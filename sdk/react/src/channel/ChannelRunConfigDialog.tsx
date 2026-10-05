@@ -141,8 +141,8 @@ function ChannelRunConfigDialogBody({
     try {
       // Full-input apply: only run_config changes. An all-empty draft
       // clears the block entirely — the proto's "empty = inherit" contract
-      // — while `max_tool_rounds`, which this editor never
-      // renders, survives verbatim (an operator knob).
+      // — while `max_tool_rounds` and `max_tool_result_chars`, which this
+      // editor never renders, survive verbatim (operator knobs).
       await save({
         ...agentChannelToInput(channel),
         runConfig: buildRunConfig(
@@ -151,6 +151,7 @@ function ChannelRunConfigDialogBody({
           serviceTier,
           thinkingMode,
           stored?.maxToolRounds ?? 0,
+          stored?.maxToolResultChars ?? 0,
         ),
       });
       onSaved?.();
@@ -300,7 +301,8 @@ function ChannelRunConfigDialogBody({
  * Assemble the run_config the save writes. The schedule form's
  * `buildRunConfig` contract (#357/#772) plus the edit-surface rule from
  * the schedule detail view's `normalizeRunConfig`: fields this editor
- * does not own (`max_tool_rounds`) are preserved verbatim, and an
+ * does not own (`max_tool_rounds`, `max_tool_result_chars`) are
+ * preserved verbatim, and an
  * all-empty result clears the block ("empty = inherit").
  */
 function buildRunConfig(
@@ -309,6 +311,7 @@ function buildRunConfig(
   serviceTier: ServiceTierOption,
   thinkingMode: ThinkingModeOption,
   storedMaxToolRounds: number,
+  storedMaxToolResultChars: number,
 ): RunConfigInput | undefined {
   const model = modelName.trim();
   const cost = Number.parseFloat(budgetUsd);
@@ -317,6 +320,7 @@ function buildRunConfig(
   if (model !== "") config.modelName = model;
   if (Number.isFinite(cost) && cost > 0) config.maxCostUsd = cost;
   if (storedMaxToolRounds > 0) config.maxToolRounds = storedMaxToolRounds;
+  if (storedMaxToolResultChars > 0) config.maxToolResultChars = storedMaxToolResultChars;
   // Carried only when the user actively chose the variant AND pinned a
   // model (both are per-model; the server refuses them without one). An
   // untouched switch stays absent — unspecified-vs-explicit is a

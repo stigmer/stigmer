@@ -22,6 +22,8 @@ import type { SessionAudience } from "./audience.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
 import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
+import { agentRunDefaultsFor, type AgentRunDefaults } from "../agent/run-defaults.js";
+import { useRunAgentSpec } from "../agent/useRunAgentSpec.js";
 
 /**
  * Well-known Daytona sandbox workspace root. Used as the SDK safety-net
@@ -108,8 +110,26 @@ export interface UseSessionPageFlowReturn {
    */
   readonly executionTarget: ExecutionTargetOption | undefined;
 
-  /** Persisted model selection: `[modelId, setModelId]`. */
+  /**
+   * Model selection: `[modelId, setModelId]`. The model is the one the
+   * last message asked for (`spec.run_config`, what the person picked,
+   * never what the server resolved), so a follow-up keeps the person's
+   * pick and never copies an agent default into the next message. Where
+   * the agent names no model for this conversation's engine, a model
+   * remembered on this device comes first. The setter remembers the pick.
+   */
   readonly model: UsePersistedModelReturn;
+
+  /**
+   * The agent's run defaults that apply to the next message: the model,
+   * tier and thinking of the agent version the conversation runs, when it
+   * names a model for the engine this conversation runs. Pass it to the
+   * composer's `agentRunDefaults` so an untouched send asks for nothing
+   * and the server applies them. `undefined` for the built-in assistant,
+   * an agent that names none for this engine, a guest, and while the
+   * agent loads.
+   */
+  readonly agentRunDefaults: AgentRunDefaults | undefined;
 
   /**
    * Composer interaction mode: `[interactionMode, setInteractionMode]`.
@@ -331,18 +351,17 @@ export function useSessionPageFlow(
     enabled: !isGuest,
   });
 
-  // Guest note: this stays undefined for guests by construction — guest
-  // executions never carry a modelName (the first message omits it and the
-  // server-side guest execution profile owns the field thereafter). The
-  // guest flow test asserts that invariant; if it ever breaks, fix the
-  // server profile rather than special-casing here.
-  const lastExecModelId = useMemo(() => {
+  // The model the last message asked for: the REQUESTED settings, never
+  // status.run_config, which records what the server resolved (an agent
+  // default among them) and would copy that default into every later
+  // message as if the person had picked it. Guests never seed: a guest's
+  // turn runs the share's saved settings, which the server writes over
+  // what the visitor sent.
+  const lastRequestedModelId = useMemo(() => {
+    if (isGuest) return undefined;
     const lastExec = conv.completedExecutions.at(-1);
-    return lastExec?.spec?.executionConfig?.modelName || undefined;
-  }, [conv.completedExecutions]);
-
-  const modelId = persistedModelId ?? lastExecModelId;
-  const model: UsePersistedModelReturn = [modelId, setPersistedModelId] as const;
+    return lastExec?.spec?.runConfig?.modelName || undefined;
+  }, [isGuest, conv.completedExecutions]);
 
   // Interaction mode mirrors the model derivation: an explicit user override
   // wins; otherwise reflect the latest execution's mode so a completed Plan
@@ -351,7 +370,7 @@ export function useSessionPageFlow(
   const lastExecInteractionMode = useMemo(
     () =>
       fromProtoInteractionMode(
-        conv.completedExecutions.at(-1)?.spec?.executionConfig?.interactionMode,
+        conv.completedExecutions.at(-1)?.spec?.interactionMode,
       ),
     [conv.completedExecutions],
   );
@@ -511,6 +530,34 @@ export function useSessionPageFlow(
   }, []);
 
   // -------------------------------------------------------------------------
+  // Model — the agent's run defaults, then the person's own picks
+  // -------------------------------------------------------------------------
+
+  // The agent the next message runs, at the version it runs: the session's
+  // pinned version while the selection is the session's own agent, the
+  // current version of an agent the person switched to (the follow-up
+  // rebinds the session, which pins that agent's current version).
+  // Guests read nothing: a guest token cannot read the agent.
+  const nextRunsSessionAgent = agentRef !== null && isSameAgent(agentRef, sessionAgentRef);
+  const { spec: runAgentSpec } = useRunAgentSpec(
+    isGuest ? null : agentRef,
+    nextRunsSessionAgent ? (conv.session?.status?.agentVersionHash ?? "") : "",
+  );
+  const agentRunDefaults = useMemo(
+    () => agentRunDefaultsFor(runAgentSpec, harness),
+    [runAgentSpec, harness],
+  );
+
+  // Where the agent names a model for this engine, only this conversation's
+  // own last pick seeds the composer: a model remembered on this device was
+  // picked for other conversations, and sending it would override the
+  // agent's default the person never touched here.
+  const modelId = agentRunDefaults
+    ? lastRequestedModelId
+    : (persistedModelId ?? lastRequestedModelId);
+  const model: UsePersistedModelReturn = [modelId, setPersistedModelId] as const;
+
+  // -------------------------------------------------------------------------
   // Session spec sync — hydrate workspace, MCP servers, and skills on first load
   // -------------------------------------------------------------------------
 
@@ -591,9 +638,11 @@ export function useSessionPageFlow(
       conv.sendFollowUp(message, {
         agentRef: agentRefOverride,
         // The owner pin wins over everything the user or the SDK
-        // resolved (#664); the pinned tier is stamped only as "fast" —
-        // an untouched/standard tier stays off the wire, preserving the
-        // #357 UNSPECIFIED-vs-explicit telemetry distinction.
+        // resolved (#664), its tier and thinking as the surface set them.
+        // Otherwise the composer's context carries only what the person
+        // chose: an untouched tier or thinking stays off the wire, so the
+        // layer that chose the model (the agent's defaults, the operator
+        // profile) keeps its own.
         modelName: pinnedModelName ?? selectedModel ?? modelId,
         workspaceEntries: workspace.hasEntries
           ? workspace.toInput()
@@ -603,13 +652,8 @@ export function useSessionPageFlow(
         runtimeEnv,
         attachments: context?.attachments,
         interactionMode: context?.interactionMode,
-        serviceTier: pinnedModelName
-          ? (pinnedServiceTier === "fast" ? "fast" : undefined)
-          : context?.serviceTier,
-        // The tier's #772 twin, same pin-wins + only-explicit-enabled rule.
-        thinkingMode: pinnedModelName
-          ? (pinnedThinkingMode === "enabled" ? "enabled" : undefined)
-          : context?.thinkingMode,
+        serviceTier: pinnedModelName ? pinnedServiceTier : context?.serviceTier,
+        thinkingMode: pinnedModelName ? pinnedThinkingMode : context?.thinkingMode,
         buildFromPlan: context?.buildFromPlan,
         // Sourced from the session-scoped preference set at the approval gate,
         // not from the composer (the pre-arm toggle was removed).
@@ -654,6 +698,7 @@ export function useSessionPageFlow(
     harness,
     executionTarget,
     model,
+    agentRunDefaults,
     interactionMode,
     agentRef,
     setAgentRef,

@@ -138,7 +138,9 @@ describe("SessionComposer — service tier submit contract", () => {
     expect(context?.serviceTier).toBeUndefined();
   });
 
-  it("leaves serviceTier undefined after toggling fast on and back off", async () => {
+  it("sends an explicit standard tier after toggling fast on and back off", async () => {
+    // Off is a choice too: it turns off a fast tier a less specific layer
+    // (the agent's defaults) would otherwise apply.
     const { onSubmit } = renderComposer();
 
     await toggleFastTier();
@@ -147,6 +149,15 @@ describe("SessionComposer — service tier submit contract", () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     const context = onSubmit.mock.calls[0][2];
-    expect(context?.serviceTier).toBeUndefined();
+    expect(context?.serviceTier).toBe("standard");
+  });
+
+  it("leaves serviceTier undefined while the switch is untouched", async () => {
+    const { onSubmit } = renderComposer();
+
+    submitMessage("Nothing chosen");
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit.mock.calls[0][2]?.serviceTier).toBeUndefined();
   });
 });

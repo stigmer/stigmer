@@ -22,6 +22,7 @@ import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvF
 import { McpServerReadiness } from "../plugin/McpServerReadiness.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup.js";
+import type { AgentRunDefaults } from "../agent/run-defaults.js";
 import { PersonalKeyDisclosure } from "./PersonalKeyDisclosure.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/SecretFlowErrorGuide.js";
 import { McpServerPicker } from "../mcp-server/McpServerPicker.js";
@@ -99,7 +100,7 @@ export interface SessionComposerHandle {
    *   in addition to any files attached in the composer. Used by "Build from
    *   plan" to deliver the approved `plan.md` to the implement execution.
    * @param options.buildFromPlan - Marks this submission as the implement
-   *   turn of a Plan → Build handoff (`execution_config.build_from_plan`).
+   *   turn of a Plan → Build handoff (`AgentExecutionSpec.build_from_plan`).
    *   The runner injects the implement-plan directive and the thread hides
    *   the turn's message; the message stays a short label for surfaces
    *   without that treatment (the CLI, history).
@@ -153,23 +154,27 @@ export interface SessionComposerSubmitContext {
    * - `"plan"`: read-only analysis — read, search, list only.
    *
    * `undefined` when no mode picker is shown (defaults to `"agent"`).
-   * Pass to execution creation as `execution_config.interaction_mode`.
+   * Pass to execution creation as `interactionMode`
+   * (`AgentExecutionSpec.interaction_mode`).
    */
   readonly interactionMode?: InteractionModeOption;
   /**
-   * Service tier the user actively selected for this execution
-   * (stigmer/stigmer#357). Only ever `"fast"` — an untouched tier means
-   * "platform default" and is carried as `undefined`, preserving the
-   * unspecified-vs-explicit distinction all the way to the ledger.
-   * Pass to execution creation as `execution_config.service_tier`.
+   * Service tier the person chose for this message (stigmer/stigmer#357):
+   * `"fast"` or `"standard"` once they touched the switch (an explicit
+   * `"standard"` turns off a fast tier the agent's defaults would apply),
+   * `undefined` while untouched, so the layer that chose the model keeps
+   * its own tier. Pass to execution creation as `serviceTier`
+   * (`RunConfig.service_tier`).
    */
   readonly serviceTier?: ServiceTierOption;
   /**
-   * Thinking mode the user actively selected for this execution
-   * (stigmer/stigmer#772). Only ever `"enabled"` — an untouched mode means
-   * "platform default" and is carried as `undefined`, the same
-   * unspecified-vs-explicit contract as {@link serviceTier}.
-   * Pass to execution creation as `execution_config.thinking_mode`.
+   * Thinking mode the person chose for this message (stigmer/stigmer#772),
+   * under {@link serviceTier}'s contract: explicit once touched (an
+   * explicit `"disabled"` turns off thinking the agent's defaults would
+   * apply), `undefined` while untouched. A model that always thinks is
+   * sent as `"enabled"` whenever the message names it, what its locked
+   * switch shows. Pass to execution creation as `thinkingMode`
+   * (`RunConfig.thinking_mode`).
    */
   readonly thinkingMode?: ThinkingModeOption;
   /**
@@ -187,7 +192,7 @@ export interface SessionComposerSubmitContext {
    *
    * Only ever set through {@link SessionComposerHandle.submit} (the thread
    * card / plan editor CTA) — there is no composer UI for it. Pass to
-   * execution creation as `execution_config.build_from_plan`; the runner
+   * execution creation as `buildFromPlan`; the runner
    * injects the implement-plan directive and the thread hides the turn's
    * machine-written message (the plan card above it is the visible cause).
    *
@@ -292,8 +297,23 @@ export interface SessionComposerProps {
   /** Show the interaction mode picker in the toolbar. @default false */
   readonly showInteractionModePicker?: boolean;
 
-  /** Initial model ID for the model selector. */
+  /**
+   * Initial model ID for the model selector: a model the message asks for
+   * unless the person picks another (the conversation's last pick, a
+   * remembered one). Re-applied when it changes until the person picks.
+   */
   readonly defaultModelId?: string;
+  /**
+   * The run defaults of the agent the message runs, when they apply to
+   * this conversation's engine (`agentRunDefaultsFor`). While the person
+   * has not picked a model and {@link defaultModelId} names none, the
+   * picker reads "Agent default: <model>" with the agent's tier and
+   * thinking as its switches' state, and an untouched send asks for no
+   * model, tier or thinking, so the server applies the agent's. A model
+   * remembered on the device does not belong here: the host passes it as
+   * `defaultModelId` only where the agent names no model.
+   */
+  readonly agentRunDefaults?: AgentRunDefaults;
   /** Called when the user changes the selected model. */
   readonly onModelChange?: (modelId: string) => void;
   /** Show the model selector. @default true */
@@ -607,6 +627,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   onInteractionModeChange,
   showInteractionModePicker = false,
   defaultModelId,
+  agentRunDefaults,
   onModelChange,
   showModelSelector = true,
   workspace,
@@ -644,10 +665,12 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const userOverrodeModel = useRef(false);
 
   // Sync internal modelId when the external defaultModelId prop changes
-  // (e.g., lastExecModelId resolves after executions load). Only sync if the
-  // user hasn't made a local selection in this composer instance.
+  // (e.g., the last pick resolves after executions load). Only sync if the
+  // user hasn't made a local selection in this composer instance. A seed
+  // that goes away is followed too: a remembered model the host withdraws
+  // once the agent's defaults load must not linger as a pick.
   useEffect(() => {
-    if (!userOverrodeModel.current && defaultModelId !== undefined) {
+    if (!userOverrodeModel.current) {
       setModelIdRaw(defaultModelId);
     }
   }, [defaultModelId]);
@@ -657,15 +680,18 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     setModelIdRaw(id);
   }, []);
 
-  // Service tier (#357): composer-local state like modelId. "standard" is
-  // the resting default; the ModelSelector's fail-safe resets it when the
-  // user switches to a model without a fast tier. Whether an armed "fast"
-  // actually rides the submit is decided by the derived effective run
-  // selection below (#663) — state here records the user's intent only.
-  const [serviceTier, setServiceTier] = useState<ServiceTierOption>("standard");
+  // Service tier (#357): the person's own choice, `undefined` until they
+  // touch the switch. Untouched, the switch shows the tier of the layer
+  // that chose the model (the agent's defaults, else standard) and the
+  // send asks for none; touched, the send carries it explicitly, off as
+  // well as on. The ModelSelector's fail-safe sets "standard" when the
+  // person switches to a model without a fast tier. What actually rides
+  // the submit is decided by the derived effective run selection below
+  // (#663) — state here records the person's intent only.
+  const [serviceTierPick, setServiceTierPick] = useState<ServiceTierOption | undefined>(undefined);
 
   // Thinking mode (#772): the tier's twin, same intent-vs-effective split.
-  const [thinkingMode, setThinkingMode] = useState<ThinkingModeOption>("disabled");
+  const [thinkingModePick, setThinkingModePick] = useState<ThinkingModeOption | undefined>(undefined);
 
   // Active harness mirror: controlled hosts (both viewers) keep the
   // `harness` prop current, but with `showHarnessSelector` the dropdown
@@ -793,7 +819,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     visionLimits,
     isLoading: isRegistryLoading,
   } = useModelRegistry();
-  const { defaultModel: harnessDefaultModel } = useModelRegistry({
+  const { defaultModel: harnessDefaultModel, getModel: harnessGetModel } = useModelRegistry({
     harness: activeHarness,
   });
 
@@ -809,7 +835,15 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // no pill there is no displayed promise, and whoever hid the picker owns
   // the model (the guest share profile server-side, a host pin) — the
   // guest no-modelName invariant depends on this gate staying put.
+  //
+  // The agent's run defaults come before that adoption: while nothing
+  // names a model, the agent's model is what runs, so the pill shows it
+  // and the send names none (the server applies the agent's choice, which
+  // a client copy would freeze into the message as if it were the
+  // person's).
   // -------------------------------------------------------------------------
+
+  const inheritsAgentModel = agentRunDefaults !== undefined && !modelId;
 
   const effective = useMemo(() => {
     // modelId may be a compound "harness/id" key (unified picker) or a
@@ -821,7 +855,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
     let effectiveModelId = modelId;
     let effectiveModel = stateModel;
-    if (showModelSelector && !isRegistryLoading && stateModel === undefined) {
+    if (inheritsAgentModel) {
+      effectiveModelId = undefined;
+      effectiveModel = harnessGetModel(agentRunDefaults.modelName);
+    } else if (showModelSelector && !isRegistryLoading && stateModel === undefined) {
       // Empty state, or an id the registry no longer lists (e.g. a retired
       // model carried over from the last execution): the pill falls back to
       // the harness default, so the submission adopts it too. While the
@@ -830,6 +867,15 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       effectiveModelId = harnessDefaultModel?.modelId ?? modelId;
       effectiveModel = harnessDefaultModel;
     }
+
+    // What the switches show: the person's choice, else the choice of the
+    // layer that chose the model — the agent's while its model runs; a
+    // model the message names gets no less specific layer's tier or
+    // thinking (the server's rule), so it starts standard and off.
+    const serviceTier: ServiceTierOption =
+      serviceTierPick ?? (inheritsAgentModel ? agentRunDefaults.serviceTier : undefined) ?? "standard";
+    const thinkingMode: ThinkingModeOption =
+      thinkingModePick ?? (inheritsAgentModel ? agentRunDefaults.thinkingMode : undefined) ?? "disabled";
 
     // "fast" rides the submit only while the effective model prices the
     // variant — the same rule the trigger badge renders and the server
@@ -856,13 +902,18 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     return {
       modelId: effectiveModelId,
       model: effectiveModel,
+      shownServiceTier: serviceTier,
+      shownThinkingMode: thinkingMode,
       serviceTier: effectiveServiceTier,
       thinkingMode: effectiveThinkingMode,
     };
   }, [
     modelId,
-    serviceTier,
-    thinkingMode,
+    serviceTierPick,
+    thinkingModePick,
+    inheritsAgentModel,
+    agentRunDefaults,
+    harnessGetModel,
     showModelSelector,
     isRegistryLoading,
     registryGetByKey,
@@ -1066,16 +1117,25 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           : undefined);
       const hasFileRefs = enableFileReferences && fileRefs.hasRefs;
       const buildFromPlan = overrides?.buildFromPlan;
-      // Carried only when fast is actually in effect (armed by the user
-      // AND priced by the effective model — see the effective run
-      // selection): an untouched tier means "platform default" (which
-      // resolves to standard in the runner), and the UNSPECIFIED-vs-
-      // explicit distinction is load-bearing telemetry (#357).
+      // Carried only once the person touched the switch, as what is in
+      // effect (chosen AND priced by the effective model — see the
+      // effective run selection), off as explicitly as on: an untouched
+      // tier leaves the choice to the layer that chose the model, and the
+      // UNSPECIFIED-vs-explicit distinction is load-bearing telemetry
+      // (#357).
       const submitServiceTier =
-        effective.serviceTier === "fast" ? effective.serviceTier : undefined;
-      // The tier's #772 twin: only an in-effect "enabled" is carried.
+        serviceTierPick !== undefined ? effective.serviceTier : undefined;
+      // The tier's #772 twin. A model that always thinks, named by this
+      // message, is sent "enabled" untouched too: what its locked switch
+      // shows.
       const submitThinkingMode =
-        effective.thinkingMode === "enabled" ? effective.thinkingMode : undefined;
+        thinkingModePick !== undefined
+          ? effective.thinkingMode
+          : effective.modelId !== undefined
+              && effective.model !== undefined
+              && thinkingLocked(effective.model)
+            ? "enabled"
+            : undefined;
 
       const context: SessionComposerSubmitContext | undefined =
         hasEnv || hasAttachments || effectiveMode || hasFileRefs || buildFromPlan
@@ -1106,7 +1166,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         fileRefs.clear();
       }
     },
-    [onSubmit, effective, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
+    [onSubmit, effective, serviceTierPick, thinkingModePick, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
   );
 
   const composer = useComposer({
@@ -1126,10 +1186,22 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
   const handleModelChange = useCallback(
     (id: string) => {
+      // Leaving the agent's default model keeps the tier and thinking the
+      // switches showed: they become the person's choices for the model
+      // they pick (the ModelSelector resets one the new model cannot
+      // run), never a silent drop to the new model's base variant.
+      if (inheritsAgentModel) {
+        if (serviceTierPick === undefined && agentRunDefaults.serviceTier !== undefined) {
+          setServiceTierPick(agentRunDefaults.serviceTier);
+        }
+        if (thinkingModePick === undefined && agentRunDefaults.thinkingMode !== undefined) {
+          setThinkingModePick(agentRunDefaults.thinkingMode);
+        }
+      }
       setModelId(id);
       onModelChange?.(id);
     },
-    [onModelChange],
+    [onModelChange, inheritsAgentModel, agentRunDefaults, serviceTierPick, thinkingModePick],
   );
 
   const handleHarnessChange = useCallback(
@@ -1890,11 +1962,16 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           // The pill renders the effective selection — the same value the
           // submit payload carries (#663), never a fallback of its own.
           modelId={effective.modelId}
+          inheritedModel={
+            inheritsAgentModel
+              ? { modelId: agentRunDefaults.modelName, source: "Agent default" }
+              : undefined
+          }
           onModelChange={handleModelChange}
-          serviceTier={serviceTier}
-          onServiceTierChange={setServiceTier}
-          thinkingMode={thinkingMode}
-          onThinkingModeChange={setThinkingMode}
+          serviceTier={effective.shownServiceTier}
+          onServiceTierChange={setServiceTierPick}
+          thinkingMode={effective.shownThinkingMode}
+          onThinkingModeChange={setThinkingModePick}
         />
       </div>
       {disclosePersonalKeys && agentRef && org && (

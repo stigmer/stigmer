@@ -274,8 +274,16 @@ function generateResourceClient(
             }
           }
         }
-        if (f.type.kind === "message" && (f.type.messageType ?? "") !== "" && !isSpecialType(f.type.messageType ?? "")) {
-          const ts = typeMap.get(f.type.messageType ?? "");
+        // A message field, or a repeated one (`repeated McpServerUsage`
+        // in another package's spec), imports the message's own package.
+        const msgName =
+          f.type.kind === "message"
+            ? (f.type.messageType ?? "")
+            : f.type.kind === "array" && f.type.elementType?.kind === "message"
+              ? (f.type.elementType.messageType ?? "")
+              : "";
+        if (msgName !== "" && !isSpecialType(msgName)) {
+          const ts = typeMap.get(msgName);
           if (ts !== undefined && ts.protoType !== "") {
             const a = protoTypeToPackageAlias(ts.protoType);
             if (a !== "" && a !== alias && a !== "environmentv1" && a !== "executioncontextv1") {

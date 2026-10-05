@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
+  InteractionMode,
+  ServiceTier,
+  ThinkingMode,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { useCreateAgentExecution } from "../useCreateAgentExecution";
@@ -26,62 +30,71 @@ beforeEach(() => {
   mockCreate.mockResolvedValue({ metadata: { id: "aex-1" } });
 });
 
-describe("useCreateAgentExecution — executionConfig mapping", () => {
-  it("maps buildFromPlan into executionConfig (the Build-from-plan turn)", async () => {
+describe("useCreateAgentExecution — run_config and the per-message intents", () => {
+  async function createWith(fields: Partial<Parameters<ReturnType<typeof useCreateAgentExecution>["create"]>[0]>) {
     const { result } = renderHook(() => useCreateAgentExecution(), {
       wrapper: createWrapper(makeMockClient()),
     });
-
-    await act(async () => {
-      await result.current.create({
-        org: "acme",
-        sessionId: "ses-1",
-        message: "Build from plan",
-        interactionMode: "agent",
-        buildFromPlan: true,
-      });
-    });
-
-    expect(mockCreate).toHaveBeenCalledTimes(1);
-    expect(mockCreate.mock.calls[0][0].executionConfig).toMatchObject({
-      interactionMode: InteractionMode.AGENT,
-      buildFromPlan: true,
-    });
-  });
-
-  it("builds an executionConfig when buildFromPlan is the only config input", async () => {
-    const { result } = renderHook(() => useCreateAgentExecution(), {
-      wrapper: createWrapper(makeMockClient()),
-    });
-
-    await act(async () => {
-      await result.current.create({
-        org: "acme",
-        sessionId: "ses-1",
-        message: "Build from plan",
-        buildFromPlan: true,
-      });
-    });
-
-    expect(mockCreate.mock.calls[0][0].executionConfig).toMatchObject({
-      buildFromPlan: true,
-    });
-  });
-
-  it("omits executionConfig entirely for an ordinary message", async () => {
-    const { result } = renderHook(() => useCreateAgentExecution(), {
-      wrapper: createWrapper(makeMockClient()),
-    });
-
     await act(async () => {
       await result.current.create({
         org: "acme",
         sessionId: "ses-1",
         message: "Hello",
-      });
+        ...fields,
+      } as Parameters<typeof result.current.create>[0]);
     });
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    return mockCreate.mock.calls[0][0];
+  }
 
-    expect(mockCreate.mock.calls[0][0].executionConfig).toBeUndefined();
+  it("sends the intents at the top level, outside run_config (the Build-from-plan turn)", async () => {
+    const input = await createWith({
+      message: "Build from plan",
+      interactionMode: "agent",
+      buildFromPlan: true,
+    });
+    expect(input.interactionMode).toBe(InteractionMode.AGENT);
+    expect(input.buildFromPlan).toBe(true);
+    expect(input.runConfig).toBeUndefined();
+  });
+
+  it("carries the structured-output schema at the top level", async () => {
+    const schema = { type: "object" };
+    const input = await createWith({ structuredOutputSchema: schema });
+    expect(input.structuredOutputSchema).toEqual(schema);
+    expect(input.runConfig).toBeUndefined();
+  });
+
+  it("puts model, tier and thinking in run_config", async () => {
+    const input = await createWith({
+      modelName: "claude-sonnet-4.6",
+      serviceTier: "fast",
+      thinkingMode: "enabled",
+    });
+    expect(input.runConfig).toEqual({
+      modelName: "claude-sonnet-4.6",
+      serviceTier: ServiceTier.FAST,
+      thinkingMode: ThinkingMode.ENABLED,
+    });
+  });
+
+  it("sends an explicit off alone: it adjusts the model a less specific layer chose", async () => {
+    const input = await createWith({
+      serviceTier: "standard",
+      thinkingMode: "disabled",
+    });
+    expect(input.runConfig).toEqual({
+      serviceTier: ServiceTier.STANDARD,
+      thinkingMode: ThinkingMode.DISABLED,
+    });
+  });
+
+  it("omits run_config and every intent for an ordinary message", async () => {
+    const input = await createWith({});
+    expect(input.runConfig).toBeUndefined();
+    expect(input.interactionMode).toBeUndefined();
+    expect(input.buildFromPlan).toBeUndefined();
+    expect(input.structuredOutputSchema).toBeUndefined();
   });
 });
 

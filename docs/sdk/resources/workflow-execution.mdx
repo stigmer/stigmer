@@ -1782,7 +1782,7 @@ ApprovalPolicySource is the policy layer that decided a tool call's approval req
 | `APPROVAL_POLICY_SOURCE_APPROVAL_LEASE` | Layer 4: a run-lifetime scoped lease (the successor to a global "approve all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched the leased class. |
 | `APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY` | The default asked for a built-in tool of an approval class (write / delete / shell). |
 | `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint annotation). |
-| `APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP` | The unattended approval mode (ExecutionConfig.approval_mode = APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip: the surface that created the execution (a messaging channel, a guest share) has no approver, so the platform skipped the tool and told the model to adapt. |
+| `APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP` | The unattended approval mode (AgentExecutionStatus.approval_mode = APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip: the surface that created the execution (a messaging channel, a guest share) has no approver, so the platform skipped the tool and told the model to adapt. |
 
 ### WorkflowTaskType
 

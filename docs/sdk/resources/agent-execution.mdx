@@ -11,7 +11,9 @@ continues a session (`session_id`) or starts one (`session_spec`, whose
 `agent_ref` names the agent; neither starts a conversation with the built-in
 assistant), runs the agent version its session records, and is refused unless
 the caller may still run that agent; `status.agent_id` and
-`status.agent_version_hash` record what ran.
+`status.agent_version_hash` record what ran. `run_config` asks for this
+message's model and limits; unset fields fall to the agent's defaults, and
+`status.run_config` records the settings the turn ran with.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -26,8 +28,8 @@ spec:
       org: acme
       slug: deploy-assistant
   message: "What is the status of my latest deployment?"
-  execution_config:
-    model_name: "claude-sonnet-4-6"
+  run_config:
+    model_name: "claude-sonnet-4.6"
 ```
 
 ## Client Access
@@ -626,7 +628,10 @@ const agentExecution = await stigmer.agentExecution.create({
   sessionId: "...",
   sessionSpec: {},
   message: "...",
-  executionConfig: {},
+  runConfig: {},
+  interactionMode: "...",
+  buildFromPlan: false,
+  structuredOutputSchema: {},
   runtimeEnv: {},
   autoApproveAll: false,
   attachments: [],
@@ -640,21 +645,24 @@ const agentExecution = await stigmer.agentExecution.create({
 <Tab value="Go">
 ```go
 agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecutionInput{
-  Name:                  "my-agent-execution",
-  Org:                   "acme",
-  Slug:                  "...",
-  Labels:                map[string]string{},
-  SessionId:             "...",
-  SessionSpec:           &stigmer.SessionSpecInput{},
-  Message:               "...",
-  ExecutionConfig:       &stigmer.ExecutionConfigInput{},
-  RuntimeEnv:            map[string]string{},
-  AutoApproveAll:        false,
-  Attachments:           []stigmer.AttachmentInput{},
-  WorkspaceFileRefs:     []string{},
-  SupersedesExecutionId: "...",
-  ConversationCatchup:   &stigmer.ConversationCatchupInput{},
-  Parent:                &stigmer.WorkflowParentInput{},
+  Name:                   "my-agent-execution",
+  Org:                    "acme",
+  Slug:                   "...",
+  Labels:                 map[string]string{},
+  SessionId:              "...",
+  SessionSpec:            &stigmer.SessionSpecInput{},
+  Message:                "...",
+  RunConfig:              &stigmer.RunConfigInput{},
+  InteractionMode:        "...",
+  BuildFromPlan:          false,
+  StructuredOutputSchema: nil,
+  RuntimeEnv:             map[string]string{},
+  AutoApproveAll:         false,
+  Attachments:            []stigmer.AttachmentInput{},
+  WorkspaceFileRefs:      []string{},
+  SupersedesExecutionId:  "...",
+  ConversationCatchup:    &stigmer.ConversationCatchupInput{},
+  Parent:                 &stigmer.WorkflowParentInput{},
 })
 ```
 </Tab>
@@ -668,7 +676,10 @@ agent_execution = client.agent_executions.create(AgentExecutionInput(
     session_id="...",
     session_spec=None,
     message="...",
-    execution_config=None,
+    run_config=None,
+    interaction_mode="...",
+    build_from_plan=False,
+    structured_output_schema=None,
     runtime_env={},
     auto_approve_all=False,
     attachments=[],
@@ -689,7 +700,10 @@ AgentExecution agentExecution = client.agentExecutions().create(AgentExecutionIn
     .sessionId("...")
     .sessionSpec(null)
     .message("...")
-    .executionConfig(null)
+    .runConfig(null)
+    .interactionMode("...")
+    .buildFromPlan(false)
+    .structuredOutputSchema(null)
     .runtimeEnv(Map.of())
     .autoApproveAll(false)
     .attachments(List.of())
@@ -721,7 +735,10 @@ const agentExecution = await stigmer.agentExecution.update({
   sessionId: "...",
   sessionSpec: {},
   message: "...",
-  executionConfig: {},
+  runConfig: {},
+  interactionMode: "...",
+  buildFromPlan: false,
+  structuredOutputSchema: {},
   runtimeEnv: {},
   autoApproveAll: false,
   attachments: [],
@@ -735,21 +752,24 @@ const agentExecution = await stigmer.agentExecution.update({
 <Tab value="Go">
 ```go
 agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecutionInput{
-  Name:                  "my-agent-execution",
-  Org:                   "acme",
-  Slug:                  "...",
-  Labels:                map[string]string{},
-  SessionId:             "...",
-  SessionSpec:           &stigmer.SessionSpecInput{},
-  Message:               "...",
-  ExecutionConfig:       &stigmer.ExecutionConfigInput{},
-  RuntimeEnv:            map[string]string{},
-  AutoApproveAll:        false,
-  Attachments:           []stigmer.AttachmentInput{},
-  WorkspaceFileRefs:     []string{},
-  SupersedesExecutionId: "...",
-  ConversationCatchup:   &stigmer.ConversationCatchupInput{},
-  Parent:                &stigmer.WorkflowParentInput{},
+  Name:                   "my-agent-execution",
+  Org:                    "acme",
+  Slug:                   "...",
+  Labels:                 map[string]string{},
+  SessionId:              "...",
+  SessionSpec:            &stigmer.SessionSpecInput{},
+  Message:                "...",
+  RunConfig:              &stigmer.RunConfigInput{},
+  InteractionMode:        "...",
+  BuildFromPlan:          false,
+  StructuredOutputSchema: nil,
+  RuntimeEnv:             map[string]string{},
+  AutoApproveAll:         false,
+  Attachments:            []stigmer.AttachmentInput{},
+  WorkspaceFileRefs:      []string{},
+  SupersedesExecutionId:  "...",
+  ConversationCatchup:    &stigmer.ConversationCatchupInput{},
+  Parent:                 &stigmer.WorkflowParentInput{},
 })
 ```
 </Tab>
@@ -763,7 +783,10 @@ agent_execution = client.agent_executions.update(AgentExecutionInput(
     session_id="...",
     session_spec=None,
     message="...",
-    execution_config=None,
+    run_config=None,
+    interaction_mode="...",
+    build_from_plan=False,
+    structured_output_schema=None,
     runtime_env={},
     auto_approve_all=False,
     attachments=[],
@@ -784,7 +807,10 @@ AgentExecution agentExecution = client.agentExecutions().update(AgentExecutionIn
     .sessionId("...")
     .sessionSpec(null)
     .message("...")
-    .executionConfig(null)
+    .runConfig(null)
+    .interactionMode("...")
+    .buildFromPlan(false)
+    .structuredOutputSchema(null)
     .runtimeEnv(Map.of())
     .autoApproveAll(false)
     .attachments(List.of())
@@ -1280,7 +1306,10 @@ Input for creating or updating an Agent Execution.
     sessionId: { type: "string", description: "ID of the existing session this turn continues." },
     sessionSpec: { type: "SessionSpecInput", description: "Spec for a new session this turn starts.", typeDescriptionLink: "#sessionspecinput" },
     message: { type: "string", description: "User input message that triggers this execution." },
-    executionConfig: { type: "ExecutionConfigInput", description: "Optional execution-time configuration overrides.", typeDescriptionLink: "#executionconfiginput" },
+    runConfig: { type: "RunConfigInput", description: "The settings this message asks for (optional): a model, a speed tier, thinking, and run bounds.", typeDescriptionLink: "#runconfiginput" },
+    interactionMode: { type: "InteractionMode", description: "Interaction mode for this message.", typeDescriptionLink: "#interactionmode" },
+    buildFromPlan: { type: "boolean", description: "Marks this message as a \"Build from plan\" turn: the user approved a plan produced by a prior Plan-mode execution and asked the agent to implement it." },
+    structuredOutputSchema: { type: "object", description: "JSON Schema that the agent's output must conform to (optional)." },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Runtime environment variables and secrets (execution-scoped).", typeDescriptionLink: "#envvarinput" },
     autoApproveAll: { type: "boolean", description: "Auto-approve all tool executions for this execution." },
     attachments: { type: "AttachmentInput[]", description: "Files attached to this execution.", typeDescriptionLink: "#attachmentinput" },
@@ -1372,7 +1401,7 @@ LocalPathSource uses an existing directory on the host filesystem as the workspa
 
 ### McpServerUsageInput
 
-McpServerUsage declares that this agent uses a McpServer resource.
+McpServerUsage declares that an agent (AgentSpec.mcp_server_usages) or a session (SessionSpec.mcp_server_usages) uses a McpServer resource.
 
 <TypeTable
   type={{
@@ -1380,35 +1409,18 @@ McpServerUsage declares that this agent uses a McpServer resource.
   }}
 />
 
-### ExecutionConfigInput
+### RunConfigInput
 
-Configuration that can be applied at execution time.
+RunConfig is the settings message for every run: a model, a speed tier, thinking, and run bounds.
 
 <TypeTable
   type={{
-    modelName: { type: "string", description: "The model to use for this execution." },
-    contextManagement: { type: "ContextManagementConfigInput", description: "Context management configuration for this execution.", typeDescriptionLink: "#contextmanagementconfiginput" },
-    maxToolRounds: { type: "number", description: "Maximum number of model-to-tools reasoning cycles per message." },
+    modelName: { type: "string", description: "The model each run uses." },
+    maxCostUsd: { type: "number", description: "Maximum estimated cost in USD per run." },
+    maxToolRounds: { type: "number", description: "Maximum model-to-tools reasoning cycles per message." },
+    serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
+    thinkingMode: { type: "ThinkingMode", description: "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).", typeDescriptionLink: "#thinkingmode" },
     maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
-    maxCostUsd: { type: "number", description: "Maximum estimated cost in USD for this execution." },
-    interactionMode: { type: "InteractionMode", description: "Interaction mode for this execution.", typeDescriptionLink: "#interactionmode" },
-    structuredOutputSchema: { type: "object", description: "JSON Schema that the agent's output must conform to." },
-    buildFromPlan: { type: "boolean", description: "Marks this execution as a \"Build from plan\" turn: the user approved a plan produced by a prior Plan-mode execution and asked the agent to implement it." },
-    approvalMode: { type: "ApprovalMode", description: "How approval gates resolve for this execution.", typeDescriptionLink: "#approvalmode" },
-    serviceTier: { type: "ServiceTier", description: "Service tier for this execution's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
-    thinkingMode: { type: "ThinkingMode", description: "Thinking mode for this execution's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant.", typeDescriptionLink: "#thinkingmode" },
-  }}
-/>
-
-### ContextManagementConfigInput
-
-ContextManagementConfig controls automatic context summarization behavior.
-
-<TypeTable
-  type={{
-    disableSummarization: { type: "boolean", description: "Disable automatic context summarization for this execution." },
-    customTriggerThreshold: { type: "number", description: "Custom token threshold to trigger summarization." },
-    customTargetTokens: { type: "number", description: "Custom target token count after summarization." },
   }}
 />
 
@@ -1855,6 +1867,8 @@ AgentExecutionStatus contains all execution results and state.
     agentVersionHash: { type: "string", description: "Content hash of the agent version this turn ran (AgentStatus.version_hash at create; resolvable through AgentQueryController.getVersion with agent_id)." },
     declaredPreferences: { type: "DeclaredPreferences", description: "Standing preferences declared by the organization and the calling user, snapshotted into this execution at create time.", typeDescriptionLink: "#declaredpreferences" },
     recalledMemories: { type: "RecalledMemories", description: "The caller's confirmed memories, snapshotted into this execution at create time: the candidate set the prompt was built from.", typeDescriptionLink: "#recalledmemories" },
+    runConfig: { type: "RunConfig", description: "The settings this turn runs with: spec.run_config (or the saved settings of the surface it came through), the defaults of the agent version the turn runs, and the lane's operator profile, resolved by RunConfig's rule.", typeDescriptionLink: "#runconfig" },
+    approvalMode: { type: "ApprovalMode", description: "How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never UNSPECIFIED.", typeDescriptionLink: "#approvalmode" },
   }}
 />
 
@@ -2258,6 +2272,21 @@ RecalledMemoryFact is one confirmed memory as injected into an execution.
   }}
 />
 
+### RunConfig
+
+RunConfig is the settings message for every run: a model, a speed tier, thinking, and run bounds.
+
+<TypeTable
+  type={{
+    modelName: { type: "string", description: "The model each run uses." },
+    maxCostUsd: { type: "number", description: "Maximum estimated cost in USD per run." },
+    maxToolRounds: { type: "number", description: "Maximum model-to-tools reasoning cycles per message." },
+    serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
+    thinkingMode: { type: "ThinkingMode", description: "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).", typeDescriptionLink: "#thinkingmode" },
+    maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
+  }}
+/>
+
 ### SetupProgress
 
 Setup progress reported during the EXECUTION_PENDING phase.
@@ -2498,6 +2527,15 @@ Controls the time range for agent execution summary queries.
 | `AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D` |  |
 | `AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME` |  |
 
+### ApprovalMode
+
+ApprovalMode controls how an execution resolves HITL approval gates.
+
+| Value | Description |
+|-------|-------------|
+| `APPROVAL_MODE_INTERACTIVE` | Interactive approval (today's behavior): a gated tool pauses the execution (EXECUTION_WAITING_FOR_APPROVAL) until a human submits a decision via the submitApproval RPC. |
+| `APPROVAL_MODE_UNATTENDED` | Unattended: no approver exists on the creating surface. |
+
 ### MessageType
 
 MessageType defines the type of message in the conversation.
@@ -2553,7 +2591,7 @@ ApprovalPolicySource is the policy layer that decided a tool call's approval req
 | `APPROVAL_POLICY_SOURCE_APPROVAL_LEASE` | Layer 4: a run-lifetime scoped lease (the successor to a global "approve all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched the leased class. |
 | `APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY` | The default asked for a built-in tool of an approval class (write / delete / shell). |
 | `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint annotation). |
-| `APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP` | The unattended approval mode (ExecutionConfig.approval_mode = APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip: the surface that created the execution (a messaging channel, a guest share) has no approver, so the platform skipped the tool and told the model to adapt. |
+| `APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP` | The unattended approval mode (AgentExecutionStatus.approval_mode = APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip: the surface that created the execution (a messaging channel, a guest share) has no approver, so the platform skipped the tool and told the model to adapt. |
 
 ### ApprovalRetractionReason
 
@@ -2660,16 +2698,6 @@ FileReviewFailureKind is the precise cause carried by a FAILED file-review event
 | `FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED` | Reconciling approved bytes into the workspace failed. |
 | `FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH` | A post-reconcile filesystem hash did not match the approved digest. |
 
-### SnapshotKind
-
-SnapshotKind is the substrate backing a SnapshotRef.
-
-| Value | Description |
-|-------|-------------|
-| `SNAPSHOT_KIND_GIT_TREE_REF` | A git no-commit tree ref (git-tracked/untracked paths only). |
-| `SNAPSHOT_KIND_CAS_MANIFEST` | A content-addressed manifest (ignored/non-git paths). |
-| `SNAPSHOT_KIND_HYBRID` | Both a git tree ref and a CAS manifest (mixed workspace). |
-
 ### ServiceTier
 
 ServiceTier selects the provider-side speed/service tier for an execution's model calls.
@@ -2687,6 +2715,16 @@ ThinkingMode selects the model's extended-reasoning ("thinking") variant for an 
 |-------|-------------|
 | `THINKING_MODE_DISABLED` | Extended reasoning off: the model's base variant, requested explicitly (thinking=false pinned where the model declares the parameter). |
 | `THINKING_MODE_ENABLED` | Extended reasoning on: the model's thinking variant, billed at base per-token rates (reasoning tokens bill as output tokens). |
+
+### SnapshotKind
+
+SnapshotKind is the substrate backing a SnapshotRef.
+
+| Value | Description |
+|-------|-------------|
+| `SNAPSHOT_KIND_GIT_TREE_REF` | A git no-commit tree ref (git-tracked/untracked paths only). |
+| `SNAPSHOT_KIND_CAS_MANIFEST` | A content-addressed manifest (ignored/non-git paths). |
+| `SNAPSHOT_KIND_HYBRID` | Both a git tree ref and a CAS manifest (mixed workspace). |
 
 ### SubAgentStatus
 
@@ -2754,6 +2792,15 @@ WorkspaceWriteBackPhase tracks the progress of a single workspace write-back thr
 | `WORKSPACE_WRITE_BACK_PR_CREATED` | A pull request was created on the remote repository. |
 | `WORKSPACE_WRITE_BACK_FAILED` | The write-back failed at some step. |
 
+### InteractionMode
+
+InteractionMode controls the agent's behavioral posture for an execution.
+
+| Value | Description |
+|-------|-------------|
+| `INTERACTION_MODE_AGENT` | Full agent mode with unrestricted tool access. |
+| `INTERACTION_MODE_PLAN` | Read-only planning mode — analysis and recommendations only. |
+
 ### Harness
 
 Harness identifies the execution engine that processes agent activities for a session.
@@ -2788,22 +2835,4 @@ GitWriteBackMode controls the platform's git workflow for a git-backed workspace
 | Value | Description |
 |-------|-------------|
 | `GIT_WRITE_BACK_BRANCH_AND_PR` | Create a branch and pull request from the agent's file changes after execution completes. |
-
-### InteractionMode
-
-InteractionMode controls the agent's behavioral posture for an execution.
-
-| Value | Description |
-|-------|-------------|
-| `INTERACTION_MODE_AGENT` | Full agent mode with unrestricted tool access. |
-| `INTERACTION_MODE_PLAN` | Read-only planning mode — analysis and recommendations only. |
-
-### ApprovalMode
-
-ApprovalMode controls how an execution resolves HITL approval gates.
-
-| Value | Description |
-|-------|-------------|
-| `APPROVAL_MODE_INTERACTIVE` | Interactive approval (today's behavior): a gated tool pauses the execution (EXECUTION_WAITING_FOR_APPROVAL) until a human submits a decision via the submitApproval RPC. |
-| `APPROVAL_MODE_UNATTENDED` | Unattended: no approver exists on the creating surface. |
 

@@ -2,7 +2,10 @@
 //
 // All resource protos share the ApiResourceMetadata envelope, so the human
 // (table) view of a single `get` is derived generically from the protojson
-// projection — no per-kind formatter. json/yaml use the canonical protojson
+// projection — no per-kind formatter. The common spec fields it adds are the
+// ones several kinds share by name: the description, and the settings a run
+// starts from (spec.harness and spec.run_config: an agent's run defaults, a
+// share's or channel's saved settings, a session's engine). json/yaml use the canonical protojson
 // renderers for full fidelity and Go byte-parity. Collections render via the
 // shared table renderer with a caller-supplied row extractor.
 //
@@ -136,10 +139,36 @@ function renderResourceFields(json: JsonValue, options: RenderFieldsOptions): st
   if (options.hideOrg !== true) pushField(fields, "Org", options.orgLabel ?? metadata.org);
   pushField(fields, "Visibility", metadata.visibility);
   pushField(fields, "Description", spec.description);
+  pushRunSettings(fields, spec);
 
   const width = Math.max(0, ...fields.map(([key]) => key.length));
   const lines = fields.map(([key, value]) => `  ${key}:${" ".repeat(width - key.length + 2)}${value}`);
   return `\n${lines.join("\n")}\n`;
+}
+
+// The engine and run settings a resource names, each only when set (protojson
+// omits defaults, so an absent field is "not set here").
+function pushRunSettings(fields: Array<[string, string]>, spec: JsonObject): void {
+  pushField(fields, "Engine", enumWord(spec.harness, "HARNESS_"));
+  const runConfig = asObject(spec.run_config);
+  pushField(fields, "Model", runConfig.model_name);
+  pushField(fields, "Speed tier", enumWord(runConfig.service_tier, "SERVICE_TIER_"));
+  pushField(fields, "Thinking", enumWord(runConfig.thinking_mode, "THINKING_MODE_"));
+  if (typeof runConfig.max_cost_usd === "number") {
+    fields.push(["Cost cap", `$${runConfig.max_cost_usd} per message`]);
+  }
+  if (typeof runConfig.max_tool_rounds === "number") {
+    fields.push(["Tool rounds", `at most ${runConfig.max_tool_rounds} per message`]);
+  }
+  if (typeof runConfig.max_tool_result_chars === "number") {
+    fields.push(["Tool result size", `at most ${runConfig.max_tool_result_chars} characters`]);
+  }
+}
+
+// A protojson enum name as the word a person reads ("HARNESS_CURSOR" -> "cursor").
+function enumWord(value: JsonValue | undefined, prefix: string): string | undefined {
+  if (typeof value !== "string") return undefined;
+  return (value.startsWith(prefix) ? value.slice(prefix.length) : value).toLowerCase();
 }
 
 function pushField(fields: Array<[string, string]>, key: string, value: JsonValue | undefined): void {

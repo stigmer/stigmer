@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ReactNode } from "react";
 import { DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, parseRegistryJson } from "../../models/registry";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
@@ -10,9 +12,12 @@ import type { ApprovalDefaults } from "../../approval-defaults-context";
 import { RunnerAdapterContext } from "../../runner-adapter";
 import type { RunnerAdapter } from "../../runner-adapter";
 const mockGetByReference = vi.fn();
-vi.mock("../../hooks", () => ({
-  useStigmer: () => ({ agent: { getByReference: mockGetByReference } }),
-}));
+// One client for every render, as the provider gives: a fresh object per
+// call would change the agent read's inputs on each render.
+vi.mock("../../hooks", () => {
+  const stigmer = { agent: { getByReference: (...args: unknown[]) => mockGetByReference(...args) } };
+  return { useStigmer: () => stigmer };
+});
 
 const mockCreateExecution = vi.fn();
 vi.mock("../../execution/useCreateAgentExecution", () => ({
@@ -592,7 +597,7 @@ describe("useNewSessionFlow", () => {
     it.each([
       ["saved", { mode: "saved" } as const],
       ["direct", { mode: "direct" } as const],
-    ])("starts the conversation on the agent itself for a %s resolution, reading no agent", async (_mode, resolution) => {
+    ])("starts the conversation on the agent itself for a %s resolution", async (_mode, resolution) => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
@@ -604,11 +609,79 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      expect(mockGetByReference).not.toHaveBeenCalled();
       const execInput = mockCreateExecution.mock.calls[0][0];
       // No version: the server pins the agent's current version.
       expect(execInput.sessionSpec.agentRef).toEqual({ org: "acme", slug: "reviewer" });
       expect(execInput.sessionId).toBeUndefined();
+    });
+  });
+
+  describe("the selected agent's engine and run defaults", () => {
+    const AGENT_ON_CURSOR = {
+      metadata: { id: "agt_1", org: "acme", slug: "reviewer" },
+      spec: {
+        harness: Harness.CURSOR,
+        runConfig: { modelName: "default", thinkingMode: ThinkingMode.UNSPECIFIED },
+      },
+    };
+
+    async function renderWithAgent(agent: unknown) {
+      mockGetByReference.mockResolvedValue(agent);
+      const hook = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
+      await act(async () => {
+        hook.result.current.setAgentRef({ org: "acme", slug: "reviewer" });
+        hook.result.current.setResolution({ mode: "direct" });
+      });
+      await waitFor(() => expect(hook.result.current.harness).toBe(
+        (agent as typeof AGENT_ON_CURSOR | null)?.spec.harness === Harness.CURSOR ? "cursor" : "native",
+      ));
+      return hook;
+    }
+
+    it("opens the engine picker on the agent's engine over a remembered one", async () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
+      expect(result.current.harness).toBe("cursor");
+      expect(result.current.agentRunDefaults).toEqual({ modelName: "default" });
+    });
+
+    it("keeps the remembered engine where the agent names none", async () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
+      mockGetByReference.mockResolvedValue({
+        metadata: { id: "agt_2", org: "acme", slug: "plain" },
+        spec: {},
+      });
+      await act(async () => {
+        result.current.setAgentRef({ org: "acme", slug: "plain" });
+      });
+      await waitFor(() => expect(mockGetByReference).toHaveBeenCalled());
+      expect(result.current.harness).toBe("cursor");
+      expect(result.current.agentRunDefaults).toBeUndefined();
+    });
+
+    it("the person's engine pick wins over the agent's", async () => {
+      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
+      act(() => result.current.setHarness("native"));
+      expect(result.current.harness).toBe("native");
+      expect(result.current.agentRunDefaults).toBeUndefined();
+    });
+
+    it("sends no remembered model where the agent's default applies", async () => {
+      localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, DEFAULT_CURSOR_MODEL_ID);
+      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
+      expect(result.current.modelId).toBeUndefined();
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+      expect(mockCreateExecution.mock.calls[0][0].modelName).toBeUndefined();
+    });
+
+    it("sends a model the person picks over the agent's default", async () => {
+      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
+      act(() => result.current.setModelId(DEFAULT_CURSOR_MODEL_ID));
+      expect(result.current.modelId).toBe(DEFAULT_CURSOR_MODEL_ID);
     });
   });
 

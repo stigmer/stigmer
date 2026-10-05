@@ -9,7 +9,7 @@ import {
 } from "../internal/tooltip.js";
 import { ContextPopover } from "./ContextPopover.js";
 import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu.js";
-import { ModelSelector } from "../models/ModelSelector.js";
+import { ModelSelector, type InheritedModel } from "../models/ModelSelector.js";
 import { HarnessSelector } from "../models/HarnessSelector.js";
 import type { HarnessOption } from "../models/harness.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
@@ -49,6 +49,11 @@ export interface ComposerToolbarProps {
 
   readonly showModelSelector: boolean;
   readonly modelId?: string;
+  /**
+   * The model the send inherits while `modelId` is empty (the agent's run
+   * defaults): the picker names it as "Agent default: <model>".
+   */
+  readonly inheritedModel?: InheritedModel;
   readonly onModelChange: (id: string) => void;
   /** Current service tier for the selected model (#357). */
   readonly serviceTier?: ServiceTierOption;
@@ -130,6 +135,7 @@ export function ComposerToolbar({
   onInteractionModeChange,
   showModelSelector,
   modelId,
+  inheritedModel,
   onModelChange,
   serviceTier,
   onServiceTierChange,
@@ -162,6 +168,7 @@ export function ComposerToolbar({
         {showModelSelector && (
           <ModelSelector
             value={modelId}
+            inheritedModel={inheritedModel}
             onValueChange={onModelChange}
             harness={showHarnessSelector ? undefined : harness}
             initialHarness={showHarnessSelector ? harness : undefined}

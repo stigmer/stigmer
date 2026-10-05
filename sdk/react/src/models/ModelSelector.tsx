@@ -24,6 +24,14 @@ const SPEED_TIER_LABEL: Record<SpeedTier, string> = {
   slow: "Powerful",
 };
 
+/** A model a run inherits from a less specific layer, and the layer's name. */
+export interface InheritedModel {
+  /** The inherited model's id, as the registry lists it on the active harness. */
+  readonly modelId: string;
+  /** Who chose it, as the trigger names it (for example `"Agent default"`). */
+  readonly source: string;
+}
+
 /** Props for {@link ModelSelector}. */
 export interface ModelSelectorProps {
   /** Currently selected model ID. */
@@ -73,6 +81,14 @@ export interface ModelSelectorProps {
    * the placeholder shows, since no engine is pinned either.
    */
   readonly placeholderLabel?: string;
+  /**
+   * The model a run gets while `value` is empty because another layer
+   * chooses it (an agent's run defaults): the trigger reads
+   * `"<source>: <model>"`, the list marks that model, and the fast-tier
+   * and thinking switches gate on it. Picking a model replaces it. Wins
+   * over {@link placeholderLabel}; ignored while `value` is set.
+   */
+  readonly inheritedModel?: InheritedModel;
 
   /**
    * Current service tier for the selected model (stigmer/stigmer#357).
@@ -186,6 +202,7 @@ export function ModelSelector({
   className,
   disabled,
   placeholderLabel,
+  inheritedModel,
   serviceTier = "standard",
   onServiceTierChange,
   thinkingMode = "disabled",
@@ -220,7 +237,13 @@ export function ModelSelector({
 
   const resolvedHarnesses = availableHarnesses ?? HARNESS_OPTIONS;
 
-  const selectedModel = (value ? getModel(value) : undefined) ?? defaultModel ?? undefined;
+  // An inherited model is what the run gets, so it is the selection the
+  // switches and the list read; one the registry no longer lists stays
+  // unresolved rather than borrowing the registry default's capabilities.
+  const inheriting = !value && inheritedModel !== undefined;
+  const selectedModel = inheriting
+    ? getModel(inheritedModel.modelId)
+    : ((value ? getModel(value) : undefined) ?? defaultModel ?? undefined);
 
   const isSearching = searchQuery.length > 0;
   const lowerQuery = searchQuery.toLowerCase();
@@ -394,10 +417,12 @@ export function ModelSelector({
     || (thinkingMode === "enabled"
       && (selectedModel !== undefined && thinkingSelectable(selectedModel)));
 
-  const usingPlaceholder = !value && placeholderLabel !== undefined;
-  const triggerLabel = usingPlaceholder
-    ? placeholderLabel
-    : (selectedModel?.displayName ?? "Select model");
+  const usingPlaceholder = !value && !inheriting && placeholderLabel !== undefined;
+  const triggerLabel = inheriting
+    ? `${inheritedModel.source}: ${selectedModel?.displayName ?? inheritedModel.modelId}`
+    : usingPlaceholder
+      ? placeholderLabel
+      : (selectedModel?.displayName ?? "Select model");
   const triggerHarness =
     !isHarnessLocked && !usingPlaceholder
       ? HARNESS_META[activeHarness].label

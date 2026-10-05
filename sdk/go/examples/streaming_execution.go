@@ -28,7 +28,7 @@ func StreamingExecution() {
 			AgentRef: stigmer.ResourceRef{Org: "my-org", Slug: "code-reviewer"},
 		},
 		Message: "Review the latest changes in the auth module",
-		ExecutionConfig: &stigmer.ExecutionConfigInput{
+		RunConfig: &stigmer.RunConfigInput{
 			ModelName:     "claude-sonnet-4-6",
 			MaxToolRounds: 25,
 			MaxCostUsd:    2.00,

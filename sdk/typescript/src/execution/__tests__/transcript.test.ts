@@ -212,7 +212,7 @@ function exec4(): AgentExecution {
     spec: {
       target: { case: "sessionId", value: "ses_01" },
       message: "Build from plan",
-      executionConfig: { buildFromPlan: true },
+      buildFromPlan: true,
     },
     status: {
       phase: ExecutionPhase.EXECUTION_IN_PROGRESS,

@@ -145,6 +145,7 @@ base per-token rates and costs more only through extra reasoning
     disabled: { type: "boolean", description: "When true, disables the selector." },
     groupBy: { type: "\"provider\" | \"none\" | \"tier\"", description: "Grouping in the \"Show All\" expanded view. Default: \"provider\"." },
     harness: { type: "HarnessOption", description: "Current harness. When provided as a single value, locks the selector to that harness (dropdown hidden). When omitted, shows the harness dropdown.", typeDescriptionLink: "#harnessoption" },
+    inheritedModel: { type: "InheritedModel", description: "The model a run gets while `value` is empty because another layer chooses it (an agent's run defaults): the trigger reads `\"<source>: <model>\"`, the list marks that model, and the fast-tier and thinking switches gate on it. Picking a model replaces it. Wins over placeholderLabel; ignored while `value` is set.", typeDescriptionLink: "#inheritedmodel" },
     initialHarness: { type: "HarnessOption", description: "Initial harness value for the internal state when `harness` prop is undefined (unlocked mode). Prevents desync when the parent knows the active harness but delegates the dropdown to this component.  When `harness` is provided (locked mode), this prop is ignored.", typeDescriptionLink: "#harnessoption" },
     onHarnessChange: { type: "(harness: HarnessOption) => void", description: "Called when user changes harness in the dropdown." },
     onHarnessResolved: { type: "(harness: HarnessOption) => void", description: "" },
@@ -252,6 +253,18 @@ String literal alias for the proto `Harness` enum.
 Used on component props and hook options so platform builders
 do not need to import proto enums to use the SDK. Exactly the
 engines the platform runs; it grows only when the proto enum does.
+
+
+### InheritedModel
+
+A model a run inherits from a less specific layer, and the layer's name.
+
+<TypeTable
+  type={{
+    modelId: { type: "string", description: "The inherited model's id, as the registry lists it on the active harness.", required: true },
+    source: { type: "string", description: "Who chose it, as the trigger names it (for example `\"Agent default\"`).", required: true },
+  }}
+/>
 
 
 ### ModelInfo

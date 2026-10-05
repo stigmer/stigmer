@@ -24,6 +24,7 @@ import type { TabItem } from "../tabs/Tabs.js";
 import { DependencyGraph } from "../dependency-graph/DependencyGraph.js";
 import { useDependencyGraph } from "../dependency-graph/useDependencyGraph.js";
 import { AgentToolLists, hasToolLists } from "./AgentToolLists.js";
+import { AgentRunDefaultsSection, type AgentRunDefaultsSave } from "./AgentRunDefaultsSection.js";
 import type { DependencyNode } from "../dependency-graph/types.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
 import { InlineEditImage } from "../inline-edit/InlineEditImage.js";
@@ -225,15 +226,16 @@ export function AgentDetailView({
     message: string;
   } | null>(null);
 
-  const saveField = useCallback(
-    async <K extends keyof import("@stigmer/sdk").AgentInput>(
-      field: K,
-      value: import("@stigmer/sdk").AgentInput[K],
+  // Several fields saved as one edit (the run defaults write run_config
+  // and harness together); a failure is attributed to `field`.
+  const saveFields = useCallback(
+    async (
+      field: string,
+      patch: Partial<import("@stigmer/sdk").AgentInput>,
     ): Promise<boolean> => {
       if (!agent) return false;
       setSaveError(null);
-      const input = toAgentUpdateInput(agent);
-      (input as unknown as Record<string, unknown>)[field] = value;
+      const input = { ...toAgentUpdateInput(agent), ...patch };
       try {
         const updated = await update(input);
         onResourceUpdated?.(updated);
@@ -245,6 +247,24 @@ export function AgentDetailView({
       }
     },
     [agent, update, onResourceUpdated, refetch],
+  );
+
+  const saveField = useCallback(
+    async <K extends keyof import("@stigmer/sdk").AgentInput>(
+      field: K,
+      value: import("@stigmer/sdk").AgentInput[K],
+    ): Promise<boolean> => {
+      const patch: Partial<import("@stigmer/sdk").AgentInput> = {};
+      patch[field] = value;
+      return saveFields(field, patch);
+    },
+    [saveFields],
+  );
+
+  const saveRunDefaults = useCallback(
+    ({ harness, runConfig }: AgentRunDefaultsSave) =>
+      saveFields("runConfig", { harness, runConfig }),
+    [saveFields],
   );
 
   const clearSaveError = useCallback(() => setSaveError(null), []);
@@ -421,6 +441,7 @@ export function AgentDetailView({
         editable={editable}
         isSaving={isUpdating}
         saveField={saveField}
+        saveRunDefaults={saveRunDefaults}
         saveError={saveError}
         clearSaveError={clearSaveError}
       />
@@ -461,6 +482,7 @@ function AgentOverview({
   editable,
   isSaving,
   saveField,
+  saveRunDefaults,
   saveError,
   clearSaveError,
 }: {
@@ -475,6 +497,7 @@ function AgentOverview({
     field: K,
     value: import("@stigmer/sdk").AgentInput[K],
   ) => Promise<boolean>;
+  readonly saveRunDefaults?: (save: AgentRunDefaultsSave) => Promise<boolean>;
   readonly saveError?: { field: string; message: string } | null;
   readonly clearSaveError?: () => void;
 }) {
@@ -645,6 +668,15 @@ function AgentOverview({
           )}
         </Section>
       )}
+
+      <AgentRunDefaultsSection
+        spec={spec}
+        editable={!!editable && saveRunDefaults !== undefined}
+        isSaving={!!isSaving}
+        error={errorFor("runConfig")}
+        onSave={(save) => saveRunDefaults?.(save) ?? Promise.resolve(false)}
+        onEditStart={clearSaveError}
+      />
 
       {showMcpServers && (
         <Section title="MCP Servers" count={spec?.mcpServerUsages.length} onEdit={editable ? () => handleMcpEditingChange(!mcpEditing) : undefined}>

@@ -8,6 +8,7 @@ import {
   type EnvVarInput,
   type McpServerUsageInput,
   type ResourceRef,
+  type RunConfigInput,
   type WorkspaceEntryInput,
 } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
@@ -86,7 +87,13 @@ export interface SharedAgentExecutionFields {
   readonly org: string;
   /** User message that initiates the execution. */
   readonly message: string;
-  /** Override the default model for this execution. */
+  /**
+   * The model this message asks for. Omit it to run the model a less
+   * specific layer chooses: the agent's run defaults when the conversation
+   * runs the agent's engine, else the operator profile, else the engine's
+   * own default. Maps to `RunConfig.model_name` on
+   * `AgentExecutionSpec.run_config`.
+   */
   readonly modelName?: string;
   /**
    * Execution-scoped secrets and configuration (Execution Flow).
@@ -121,36 +128,42 @@ export interface SharedAgentExecutionFields {
    * - `"agent"` (default): full tool access.
    * - `"plan"`: read-only analysis, no file mutations.
    *
-   * Maps to `ExecutionConfig.interaction_mode` in the proto.
+   * Maps to `AgentExecutionSpec.interaction_mode` in the proto.
    */
   readonly interactionMode?: "agent" | "plan";
   /**
-   * Service tier for this execution's model calls (stigmer/stigmer#357).
+   * Service tier this message asks for (stigmer/stigmer#357). Omit it to
+   * keep the tier of the layer that chose the model (an agent's default
+   * may turn fast on); set it to choose explicitly, with or without
+   * {@link modelName} — alone it adjusts the model a less specific layer
+   * chose.
    *
-   * - `"standard"` (default): the model's base-priced configuration,
-   *   requested explicitly — never the provider account default.
+   * - `"standard"`: the model's base-priced configuration. Sent
+   *   explicitly, it turns off a fast tier an agent default would apply.
    * - `"fast"`: the provider's fast variant at fast rates. Valid only for
    *   models whose registry entry prices a fast variant — the backend
    *   refuses the create otherwise, so gate the option on
    *   `ModelInfo.serviceTiers`.
    *
-   * Maps to `ExecutionConfig.service_tier` in the proto.
+   * Maps to `RunConfig.service_tier` on `AgentExecutionSpec.run_config`.
    */
   readonly serviceTier?: ServiceTierOption;
   /**
-   * Thinking mode for this execution's model calls (stigmer/stigmer#772).
+   * Thinking mode this message asks for (stigmer/stigmer#772). Omit it to
+   * keep the mode of the layer that chose the model; set it, with or
+   * without {@link modelName}, to choose explicitly.
    *
-   * - `"disabled"` (default): the model's base variant, pinned explicitly —
-   *   never the provider account default. Refused for a model that always
-   *   thinks (`ModelInfo.thinkingRequired`); leave the mode unset or send
-   *   `"enabled"` for it.
+   * - `"disabled"`: the model's base variant. Sent explicitly, it turns
+   *   off thinking an agent default would apply. Refused for a model that
+   *   always thinks (`ModelInfo.thinkingRequired`); leave the mode unset or
+   *   send `"enabled"` for it.
    * - `"enabled"`: the model's extended-reasoning variant, billed at base
    *   per-token rates (reasoning tokens bill as output). Valid only for
    *   models whose registry entry, on the harness the execution runs on,
    *   declares a thinking form — the backend refuses the create otherwise,
    *   so gate the option on `thinkingSelectable(model)`.
    *
-   * Maps to `ExecutionConfig.thinking_mode` in the proto.
+   * Maps to `RunConfig.thinking_mode` on `AgentExecutionSpec.run_config`.
    */
   readonly thinkingMode?: ThinkingModeOption;
   /**
@@ -162,7 +175,7 @@ export interface SharedAgentExecutionFields {
    * visible cause. Surfaces without that treatment (the CLI, history)
    * show the message text as-is.
    *
-   * Maps to `ExecutionConfig.build_from_plan` in the proto.
+   * Maps to `AgentExecutionSpec.build_from_plan` in the proto.
    */
   readonly buildFromPlan?: boolean;
   /**
@@ -182,6 +195,7 @@ export interface SharedAgentExecutionFields {
    * - Cursor harness: prompt injection + 3-tier extraction fallback
    *
    * The validated data is returned in `execution.status.structuredOutput`.
+   * Maps to `AgentExecutionSpec.structured_output_schema` in the proto.
    */
   readonly structuredOutputSchema?: JsonObject;
   /**
@@ -330,31 +344,21 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
       setError(null);
 
       try {
-        const hasConfig =
-          input.modelName ||
-          input.interactionMode ||
-          input.serviceTier ||
-          input.thinkingMode ||
-          input.structuredOutputSchema ||
-          input.buildFromPlan;
-        const executionConfig = hasConfig
-          ? {
-              ...(input.modelName ? { modelName: input.modelName } : {}),
-              ...(input.interactionMode
-                ? { interactionMode: toProtoInteractionMode(input.interactionMode) }
-                : {}),
-              ...(input.serviceTier
-                ? { serviceTier: toProtoServiceTier(input.serviceTier) }
-                : {}),
-              ...(input.thinkingMode
-                ? { thinkingMode: toProtoThinkingMode(input.thinkingMode) }
-                : {}),
-              ...(input.structuredOutputSchema
-                ? { structuredOutputSchema: input.structuredOutputSchema }
-                : {}),
-              ...(input.buildFromPlan ? { buildFromPlan: true } : {}),
-            }
-          : undefined;
+        // What this message asks for, and nothing it leaves to a less
+        // specific layer: an absent field is "not set here", so the
+        // agent's defaults and the operator profile still apply to it.
+        const runConfig: RunConfigInput | undefined =
+          input.modelName || input.serviceTier || input.thinkingMode
+            ? {
+                ...(input.modelName ? { modelName: input.modelName } : {}),
+                ...(input.serviceTier
+                  ? { serviceTier: toProtoServiceTier(input.serviceTier) }
+                  : {}),
+                ...(input.thinkingMode
+                  ? { thinkingMode: toProtoThinkingMode(input.thinkingMode) }
+                  : {}),
+              }
+            : undefined;
 
         const sessionSpec = input.sessionSpec
           ? {
@@ -382,7 +386,12 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
           sessionId: input.sessionId,
           sessionSpec,
           message: input.message,
-          executionConfig,
+          runConfig,
+          interactionMode: input.interactionMode
+            ? toProtoInteractionMode(input.interactionMode)
+            : undefined,
+          buildFromPlan: input.buildFromPlan || undefined,
+          structuredOutputSchema: input.structuredOutputSchema,
           autoApproveAll: input.autoApproveAll,
           runtimeEnv: input.runtimeEnv,
           attachments: input.attachments,

@@ -205,8 +205,6 @@ export {
   AgentExecutionClient,
   toAgentExecutionUpdateInput,
   type AgentExecutionInput,
-  type ExecutionConfigInput,
-  type ContextManagementConfigInput,
   type AttachmentInput,
 } from "./gen/agentexecution.js";
 export {

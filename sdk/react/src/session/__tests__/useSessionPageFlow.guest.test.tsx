@@ -28,9 +28,12 @@ vi.mock("../useSessionConversation", () => ({
   useSessionConversation: () => mockConv,
 }));
 
-vi.mock("../../hooks", () => ({
-  useStigmer: () => ({ agent: { getByReference: vi.fn() } }),
-}));
+// One client for every render, as the provider gives: a fresh object per
+// call would change the agent reads' inputs on each render.
+vi.mock("../../hooks", () => {
+  const stigmer = { agent: { getByReference: vi.fn().mockResolvedValue(null) } };
+  return { useStigmer: () => stigmer };
+});
 
 const mockWorkspace = {
   entries: [],
@@ -134,14 +137,12 @@ describe("useSessionPageFlow — guest audience", () => {
   });
 
   it("sends follow-ups with NO model — the session's harness resolves it", async () => {
-    // Invariant this relies on: guest executions never carry a modelName
-    // (the first message omits it and the server-side guest execution
-    // profile owns spec.execution_config thereafter), so the composer's
-    // lastExecModelId fallback stays undefined too. If this test starts
-    // failing because a guest execution carries a model, fix the server
-    // profile — do not special-case lastExecModelId.
+    // A guest's turn runs the share's saved settings, which the server
+    // writes over whatever the visitor sent, so a guest never seeds a
+    // follow-up from an earlier turn: even a turn that records a model
+    // must not put one on the next message.
     mockConv.completedExecutions = [
-      { spec: { executionConfig: { maxCostUsd: 0.5 } } },
+      { spec: { runConfig: { modelName: "claude-sonnet-4.6", maxCostUsd: 0.5 } } },
     ];
     const { result } = renderHook(() =>
       useSessionPageFlow({ ...OPTS, audience: "guest" }),

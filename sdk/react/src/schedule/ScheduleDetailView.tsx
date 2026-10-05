@@ -1178,7 +1178,7 @@ function BudgetInlineEditor({
 /**
  * Write the engine+model choice onto the invocation, preserving the
  * run-config fields the editor does not own (budget; the API-only tool
- * rounds), and dropping an all-empty run_config — the proto's "empty =
+ * rounds and tool-result size), and dropping an all-empty run_config — the proto's "empty =
  * inherit" contract.
  */
 function applyEngineModel(
@@ -1197,6 +1197,7 @@ function applyEngineModel(
     // no thinking (#357/#772).
     modelName.trim() !== "" ? serviceTier : "standard",
     modelName.trim() !== "" ? thinkingMode : "disabled",
+    invocation.runConfig?.maxToolResultChars ?? 0,
   );
 }
 
@@ -1211,6 +1212,7 @@ function applyBudget(
     invocation.runConfig?.maxToolRounds ?? 0,
     fromProtoServiceTier(invocation.runConfig?.serviceTier) ?? "standard",
     fromProtoThinkingMode(invocation.runConfig?.thinkingMode) ?? "disabled",
+    invocation.runConfig?.maxToolResultChars ?? 0,
   );
 }
 
@@ -1220,6 +1222,7 @@ function normalizeRunConfig(
   maxToolRounds: number,
   serviceTier: ServiceTierOption,
   thinkingMode: ThinkingModeOption,
+  maxToolResultChars: number,
 ): RunConfig | undefined {
   const fields: {
     modelName?: string;
@@ -1227,10 +1230,12 @@ function normalizeRunConfig(
     maxToolRounds?: number;
     serviceTier?: ServiceTier;
     thinkingMode?: ThinkingMode;
+    maxToolResultChars?: number;
   } = {};
   if (modelName.trim() !== "") fields.modelName = modelName.trim();
   if (maxCostUsd > 0) fields.maxCostUsd = maxCostUsd;
   if (maxToolRounds > 0) fields.maxToolRounds = maxToolRounds;
+  if (maxToolResultChars > 0) fields.maxToolResultChars = maxToolResultChars;
   // Only an active fast choice is carried — an untouched tier stays
   // absent, preserving the unspecified-vs-explicit ledger distinction (#357).
   if (serviceTier === "fast") fields.serviceTier = toProtoServiceTier(serviceTier);
