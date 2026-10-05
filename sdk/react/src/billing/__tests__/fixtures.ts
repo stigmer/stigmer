@@ -1,5 +1,5 @@
 // Plan and subscription fixtures for the plan surface's suites: the
-// launch catalog's shape (Team, Business with five managed organizations,
+// launch catalog's shape (Team, Business with five child organizations,
 // a retired row), a subscription in any state, an estimate, and a Stigmer
 // Cloud refusal carrying its ErrorInfo reason the way the SDK surfaces it.
 
@@ -53,10 +53,10 @@ function plan(
 
 export const TEAM = plan("pln_team", "Team", 99n);
 export const BUSINESS = plan("pln_business", "Business", 499n, {
-  description: "Everything in Team, with your own provider keys, managed organizations for your customers.",
+  description: "Everything in Team, with your own provider keys, child organizations for your customers.",
   entitlements: {
-    features: [Feature.byo_provider_keys, Feature.channels, Feature.sharing, Feature.teams, Feature.managed_organizations],
-    limits: { includedManagedOrganizations: 5 },
+    features: [Feature.byo_provider_keys, Feature.channels, Feature.sharing, Feature.teams, Feature.child_orgs],
+    limits: { includedChildOrgs: 5 },
   },
   terms: { monthlyMinimumMicros: 499n * USD, usageShareBasisPoints: 1_000, perExtraOrgMicros: 25n * USD },
 });

@@ -53,51 +53,51 @@ public final class AuthorizationConfigProto extends com.google.protobuf.Generate
       "\nIai/stigmer/commons/apiresource/apireso" +
       "urcekind/authorization_config.proto\022.ai." +
       "stigmer.commons.apiresource.apiresourcek" +
-      "ind\032\034ai/stigmer/iam/v1/enum.proto\"\266\001\n\020Vi" +
-      "sibilityConfig\022+\n\021supports_platform\030\002 \001(" +
-      "\010R\020supportsPlatform\022!\n\014supports_org\030\003 \001(" +
-      "\010R\013supportsOrg\022;\n\032defaults_to_org_visibi" +
-      "lity\030\004 \001(\010R\027defaultsToOrgVisibilityJ\004\010\001\020" +
-      "\002R\017supports_public\"e\n\024ParentRelationConf" +
-      "ig\022\022\n\004kind\030\001 \001(\tR\004kind\022\032\n\010relation\030\002 \001(\t" +
-      "R\010relation\022\035\n\nspec_field\030\003 \001(\tR\tspecFiel" +
-      "d\"\337\005\n\023AuthorizationConfig\022e\n\nscope_type\030" +
-      "\001 \001(\0162F.ai.stigmer.commons.apiresource.a" +
-      "piresourcekind.AuthorizationScopeTypeR\ts" +
-      "copeType\022c\n\nowner_type\030\002 \001(\0162D.ai.stigme" +
-      "r.commons.apiresource.apiresourcekind.Ow" +
-      "nerAttributionTypeR\townerType\022\\\n\006parent\030" +
-      "\003 \001(\0132D.ai.stigmer.commons.apiresource.a" +
-      "piresourcekind.ParentRelationConfigR\006par" +
-      "ent\022s\n\022additional_parents\030\004 \003(\0132D.ai.sti" +
+      "ind\032\034ai/stigmer/iam/v1/enum.proto\"\271\001\n\020Vi" +
+      "sibilityConfig\022.\n\023supports_child_orgs\030\002 " +
+      "\001(\010R\021supportsChildOrgs\022!\n\014supports_org\030\003" +
+      " \001(\010R\013supportsOrg\022;\n\032defaults_to_org_vis" +
+      "ibility\030\004 \001(\010R\027defaultsToOrgVisibilityJ\004" +
+      "\010\001\020\002R\017supports_public\"e\n\024ParentRelationC" +
+      "onfig\022\022\n\004kind\030\001 \001(\tR\004kind\022\032\n\010relation\030\002 " +
+      "\001(\tR\010relation\022\035\n\nspec_field\030\003 \001(\tR\tspecF" +
+      "ield\"\337\005\n\023AuthorizationConfig\022e\n\nscope_ty" +
+      "pe\030\001 \001(\0162F.ai.stigmer.commons.apiresourc" +
+      "e.apiresourcekind.AuthorizationScopeType" +
+      "R\tscopeType\022c\n\nowner_type\030\002 \001(\0162D.ai.sti" +
       "gmer.commons.apiresource.apiresourcekind" +
-      ".ParentRelationConfigR\021additionalParents" +
-      "\022`\n\nvisibility\030\005 \001(\0132@.ai.stigmer.common" +
-      "s.apiresource.apiresourcekind.Visibility" +
-      "ConfigR\nvisibility\0224\n\026requires_creator_t" +
-      "uple\030\006 \001(\010R\024requiresCreatorTuple\022C\n\017gran" +
-      "table_roles\030\007 \003(\0162\032.ai.stigmer.iam.v1.Ia" +
-      "mRoleR\016grantableRoles\022L\n\024team_grantable_" +
-      "roles\030\010 \003(\0162\032.ai.stigmer.iam.v1.IamRoleR" +
-      "\022teamGrantableRoles*\205\002\n\026AuthorizationSco" +
-      "peType\022(\n$AUTHORIZATION_SCOPE_TYPE_UNSPE" +
-      "CIFIED\020\000\022%\n!AUTHORIZATION_SCOPE_TYPE_PLA" +
-      "TFORM\020\001\022)\n%AUTHORIZATION_SCOPE_TYPE_ORGA" +
-      "NIZATION\020\002\022#\n\037AUTHORIZATION_SCOPE_TYPE_P" +
-      "ARENT\020\003\022\'\n#AUTHORIZATION_SCOPE_TYPE_OWNE" +
-      "R_ONLY\020\004\022!\n\035AUTHORIZATION_SCOPE_TYPE_NON" +
-      "E\020\005*\311\001\n\024OwnerAttributionType\022&\n\"OWNER_AT" +
-      "TRIBUTION_TYPE_UNSPECIFIED\020\000\022!\n\035OWNER_AT" +
-      "TRIBUTION_TYPE_DIRECT\020\001\022$\n OWNER_ATTRIBU" +
-      "TION_TYPE_INHERITED\020\002\022\037\n\033OWNER_ATTRIBUTI" +
-      "ON_TYPE_SELF\020\003\022\037\n\033OWNER_ATTRIBUTION_TYPE" +
-      "_NONE\020\004B\370\001B\030AuthorizationConfigProtoP\001\242\002" +
-      "\005ASCAA\252\002.Ai.Stigmer.Commons.Apiresource." +
-      "Apiresourcekind\312\002.Ai\\Stigmer\\Commons\\Api" +
-      "resource\\Apiresourcekind\342\002:Ai\\Stigmer\\Co" +
-      "mmons\\Apiresource\\Apiresourcekind\\GPBMet" +
-      "adata\352\0022Ai::Stigmer::Commons::Apiresourc" +
-      "e::Apiresourcekindb\006proto3"
+      ".OwnerAttributionTypeR\townerType\022\\\n\006pare" +
+      "nt\030\003 \001(\0132D.ai.stigmer.commons.apiresourc" +
+      "e.apiresourcekind.ParentRelationConfigR\006" +
+      "parent\022s\n\022additional_parents\030\004 \003(\0132D.ai." +
+      "stigmer.commons.apiresource.apiresourcek" +
+      "ind.ParentRelationConfigR\021additionalPare" +
+      "nts\022`\n\nvisibility\030\005 \001(\0132@.ai.stigmer.com" +
+      "mons.apiresource.apiresourcekind.Visibil" +
+      "ityConfigR\nvisibility\0224\n\026requires_creato" +
+      "r_tuple\030\006 \001(\010R\024requiresCreatorTuple\022C\n\017g" +
+      "rantable_roles\030\007 \003(\0162\032.ai.stigmer.iam.v1" +
+      ".IamRoleR\016grantableRoles\022L\n\024team_grantab" +
+      "le_roles\030\010 \003(\0162\032.ai.stigmer.iam.v1.IamRo" +
+      "leR\022teamGrantableRoles*\205\002\n\026Authorization" +
+      "ScopeType\022(\n$AUTHORIZATION_SCOPE_TYPE_UN" +
+      "SPECIFIED\020\000\022%\n!AUTHORIZATION_SCOPE_TYPE_" +
+      "PLATFORM\020\001\022)\n%AUTHORIZATION_SCOPE_TYPE_O" +
+      "RGANIZATION\020\002\022#\n\037AUTHORIZATION_SCOPE_TYP" +
+      "E_PARENT\020\003\022\'\n#AUTHORIZATION_SCOPE_TYPE_O" +
+      "WNER_ONLY\020\004\022!\n\035AUTHORIZATION_SCOPE_TYPE_" +
+      "NONE\020\005*\311\001\n\024OwnerAttributionType\022&\n\"OWNER" +
+      "_ATTRIBUTION_TYPE_UNSPECIFIED\020\000\022!\n\035OWNER" +
+      "_ATTRIBUTION_TYPE_DIRECT\020\001\022$\n OWNER_ATTR" +
+      "IBUTION_TYPE_INHERITED\020\002\022\037\n\033OWNER_ATTRIB" +
+      "UTION_TYPE_SELF\020\003\022\037\n\033OWNER_ATTRIBUTION_T" +
+      "YPE_NONE\020\004B\370\001B\030AuthorizationConfigProtoP" +
+      "\001\242\002\005ASCAA\252\002.Ai.Stigmer.Commons.Apiresour" +
+      "ce.Apiresourcekind\312\002.Ai\\Stigmer\\Commons\\" +
+      "Apiresource\\Apiresourcekind\342\002:Ai\\Stigmer" +
+      "\\Commons\\Apiresource\\Apiresourcekind\\GPB" +
+      "Metadata\352\0022Ai::Stigmer::Commons::Apireso" +
+      "urce::Apiresourcekindb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -109,7 +109,7 @@ public final class AuthorizationConfigProto extends com.google.protobuf.Generate
     internal_static_ai_stigmer_commons_apiresource_apiresourcekind_VisibilityConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_commons_apiresource_apiresourcekind_VisibilityConfig_descriptor,
-        new java.lang.String[] { "SupportsPlatform", "SupportsOrg", "DefaultsToOrgVisibility", });
+        new java.lang.String[] { "SupportsChildOrgs", "SupportsOrg", "DefaultsToOrgVisibility", });
     internal_static_ai_stigmer_commons_apiresource_apiresourcekind_ParentRelationConfig_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_commons_apiresource_apiresourcekind_ParentRelationConfig_fieldAccessorTable = new

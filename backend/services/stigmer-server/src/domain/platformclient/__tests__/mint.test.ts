@@ -40,6 +40,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { MintUserTokenRequestSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import type { Logger } from "../../../boot/logger.js";
@@ -47,6 +48,8 @@ import type { CallerIdentity } from "../../../extensions/identity.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { LAST_USED_RESOLUTION_MS } from "../../../identity/credential-use.js";
 import { verifyPlatformToken } from "../../../platformtoken/envelope.js";
+import { ResourceNotFoundError } from "../../../store/interface.js";
+import type { Store } from "../../../store/interface.js";
 import { platformTokenKeyRingFromPem } from "../../../platformtoken/key-ring.js";
 import type { PlatformTokenKeyRing } from "../../../platformtoken/key-ring.js";
 import type { IamPolicyGrantPath } from "../../iampolicy/grant-path.js";
@@ -140,6 +143,7 @@ function harness(
     },
   };
   const deps: PlatformClientMintDeps = {
+    store: organizationRows,
     clients: {
       save: async () => {
         clientWrites.push("save");
@@ -222,6 +226,33 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
 
 const SUBJECT = platformClientSubject("acme", "user-7");
 
+/**
+ * The organizations the mint may read: acme's child, an unrelated
+ * organization, and another parent's child; org_unreadable's read
+ * fails. Anything else is absent.
+ */
+const ORGANIZATIONS = new Map([
+  ["org_acmecust", { id: "org_acmecust", parentOrg: "acme" }],
+  ["globex", { id: "globex", parentOrg: "" }],
+  ["org_rivalcust", { id: "org_rivalcust", parentOrg: "rival" }],
+]);
+
+const organizationRows: Pick<Store, "getResource"> = {
+  getResource: (async (_kind: unknown, id: string) => {
+    if (id === "org_unreadable") {
+      throw new Error("store down");
+    }
+    const known = ORGANIZATIONS.get(id);
+    if (known === undefined) {
+      throw new ResourceNotFoundError(`organization ${id}`);
+    }
+    return create(OrganizationSchema, {
+      metadata: { id: known.id },
+      spec: { parentOrg: known.parentOrg },
+    });
+  }) as Store["getResource"],
+};
+
 describe("mintUserToken — the server and the client", () => {
   it("refuses without a ring and with a verify-only ring, before reading any credential", async () => {
     const unposed = await refusal(
@@ -276,13 +307,50 @@ describe("mintUserToken — the server and the client", () => {
     );
   });
 
-  it("refuses an org other than the owning organization, and accepts it or empty", async () => {
-    const other = await refusal(
-      mintUserToken(harness().deps, request({ orgId: "globex" })),
-    );
-    expect(other.code).toBe(Code.InvalidArgument);
-    expect(other.rawMessage).toBe(organizationMismatchMessage("acme"));
+  it("refuses an org that is neither the owning organization nor its child with one copy, whether it exists or not, and accepts it or empty", async () => {
+    for (const orgId of ["globex", "org_rivalcust", "org_nosuchorganization"]) {
+      const h = harness();
+      const other = await refusal(mintUserToken(h.deps, request({ orgId })));
+      expect(other.code, orgId).toBe(Code.InvalidArgument);
+      expect(other.rawMessage, orgId).toBe(organizationMismatchMessage("acme"));
+      expect(h.events, orgId).toEqual([]);
+    }
     await mintUserToken(harness().deps, request({ orgId: "acme" }));
+  });
+
+  it("answers a fault reading the requested organization INTERNAL, before any user is resolved", async () => {
+    const h = harness();
+    const fault = await refusal(
+      mintUserToken(h.deps, request({ orgId: "org_unreadable" })),
+    );
+    expect(fault.code).toBe(Code.Internal);
+    expect(fault.rawMessage).toContain("failed to read the requested organization");
+    expect(h.events).toEqual([]);
+  });
+
+  it("mints into a child of the owning organization: the account is the child's own, its sign-in role is granted there, and the token names the child", async () => {
+    const h = harness({
+      client: platformClient({ signInRole: IamRole.viewer }),
+    });
+    const minted = await mintUserToken(
+      h.deps,
+      request({ orgId: "org_acmecust" }),
+    );
+    const childSubject = platformClientSubject("org_acmecust", "user-7");
+    expect(h.created[0]?.input.spec.idpId).toBe(childSubject);
+    expect(h.created[0]?.input.provisioning).toEqual({
+      mode: "platform_client",
+      org: "org_acmecust",
+    });
+    expect(h.granted[0]?.spec.resource?.id).toBe("org_acmecust");
+    const verified = verifyPlatformToken(RING, minted.accessToken, NOW);
+    expect(verified.outcome).toBe("verified");
+    if (verified.outcome !== "verified") return;
+    expect(verified.token.payload).toMatchObject({
+      sub: accountIdFor(childSubject),
+      org: "org_acmecust",
+      platform_client_id: "pcl_dashboard",
+    });
   });
 
   it("refuses a user_id carrying the separator", async () => {

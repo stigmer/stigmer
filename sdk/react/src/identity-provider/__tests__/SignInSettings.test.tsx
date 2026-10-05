@@ -2,12 +2,12 @@
  * Pins the identity-provider sign-in settings every provider form shares:
  *
  *   - turning SSO on starts from account creation on, viewer when no role
- *     is chosen, and no tenant claim; turning it off again puts back every
+ *     is chosen, and no customer id claim; turning it off again puts back every
  *     field the switch filled and the admin left alone, and keeps what the
  *     admin changed meanwhile;
- *   - an SSO provider never sends a tenant claim, because the claim names
- *     platform-managed organizations, which only a delegation provider
- *     manages; the section hides the field for SSO;
+ *   - an SSO provider never sends a customer id claim, because the claim routes
+ *     a sign-in to a child organization and SSO signs people in to the
+ *     provider's own; the section hides the field for SSO;
  *   - a stored role reads by its own name, and an unspecified one as
  *     "None", never as a role it does not grant;
  *   - the section's toggle and claim field report what the admin set.
@@ -30,7 +30,7 @@ afterEach(cleanup);
 const DELEGATION: SignInSettings = {
   createAccounts: false,
   signInRole: IamRole.member,
-  tenantOrgClaim: "org_id",
+  externalIdClaim: "org_id",
 };
 
 describe("withoutSsoDefaults", () => {
@@ -63,36 +63,36 @@ describe("withSsoDefaults", () => {
     expect(withSsoDefaults(DELEGATION, false)).toBe(DELEGATION);
   });
 
-  it("starts an SSO provider with account creation, viewer and no tenant claim", () => {
+  it("starts an SSO provider with account creation, viewer and no customer id claim", () => {
     expect(withSsoDefaults(EMPTY_SIGN_IN_SETTINGS, true)).toEqual({
       createAccounts: true,
       signInRole: IamRole.viewer,
-      tenantOrgClaim: "",
+      externalIdClaim: "",
     });
   });
 
-  it("keeps a role already chosen and drops the tenant claim for SSO", () => {
+  it("keeps a role already chosen and drops the customer id claim for SSO", () => {
     expect(withSsoDefaults(DELEGATION, true)).toEqual({
       createAccounts: true,
       signInRole: IamRole.member,
-      tenantOrgClaim: "",
+      externalIdClaim: "",
     });
   });
 });
 
 describe("toSignInInput", () => {
-  it("sends a delegation provider's tenant claim, trimmed", () => {
+  it("sends a delegation provider's customer id claim, trimmed", () => {
     expect(
-      toSignInInput({ ...DELEGATION, tenantOrgClaim: "  org_id " }, false),
+      toSignInInput({ ...DELEGATION, externalIdClaim: "  org_id " }, false),
     ).toEqual({
       createAccountsOnSignIn: undefined,
       signInRole: IamRole.member,
-      tenantOrgClaim: "org_id",
+      externalIdClaim: "org_id",
     });
   });
 
-  it("never sends a tenant claim for an SSO provider", () => {
-    expect(toSignInInput(DELEGATION, true).tenantOrgClaim).toBeUndefined();
+  it("never sends a customer id claim for an SSO provider", () => {
+    expect(toSignInInput(DELEGATION, true).externalIdClaim).toBeUndefined();
   });
 });
 
@@ -107,7 +107,7 @@ describe("formatSignInRole", () => {
 });
 
 describe("SignInSettingsSection", () => {
-  it("reports the create-accounts toggle and the tenant claim the admin sets", () => {
+  it("reports the create-accounts toggle and the customer id claim the admin sets", () => {
     const onChange = vi.fn();
     render(
       <SignInSettingsSection
@@ -125,16 +125,16 @@ describe("SignInSettingsSection", () => {
       createAccounts: true,
     });
 
-    fireEvent.change(screen.getByLabelText("Tenant org claim"), {
+    fireEvent.change(screen.getByLabelText("Customer id claim"), {
       target: { value: "org_id" },
     });
     expect(onChange).toHaveBeenLastCalledWith({
       ...EMPTY_SIGN_IN_SETTINGS,
-      tenantOrgClaim: "org_id",
+      externalIdClaim: "org_id",
     });
   });
 
-  it("hides the tenant claim and locks account creation on for SSO", () => {
+  it("hides the customer id claim and locks account creation on for SSO", () => {
     render(
       <SignInSettingsSection
         isSso
@@ -143,7 +143,7 @@ describe("SignInSettingsSection", () => {
       />,
     );
 
-    expect(screen.queryByLabelText("Tenant org claim")).toBeNull();
+    expect(screen.queryByLabelText("Customer id claim")).toBeNull();
     const toggle = screen.getByRole("switch", {
       name: "Create accounts on sign-in",
     }) as HTMLButtonElement;

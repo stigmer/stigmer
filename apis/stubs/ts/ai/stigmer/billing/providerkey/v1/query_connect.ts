@@ -20,7 +20,7 @@ export const ProviderKeyQueryController = {
   methods: {
     /**
      * List the keys that serve the organization, its own and any it inherits
-     * from its integrator, without their secrets.
+     * from its parent organization, without their secrets.
      *
      * @generated from rpc ai.stigmer.billing.providerkey.v1.ProviderKeyQueryController.list
      */

@@ -60,7 +60,7 @@ service EnvironmentCommandController {
   // Authorization: requires can_manage_audience permission on the environment
   // resource. Visibility decides who reaches the resource, so it is the
   // owner's decision and not an edit: an editor may change the definition but
-  // not its audience. The platform level is rejected via the kind's
+  // not its audience. The child-organizations level is rejected via the kind's
   // VisibilityConfig (supports_org only) — secret values must never be
   // resolvable across the org boundary. Personal (stigmer.ai/personal) and
   // OAuth-managed (stigmer.ai/managed) environments reject visibility changes

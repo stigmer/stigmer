@@ -21,7 +21,7 @@ class TestOptionalScalarPresence:
         assert limits.HasField("max_orgs")
         assert limits.max_orgs == 5
         assert not limits.HasField("max_users")
-        assert not limits.HasField("included_managed_organizations")
+        assert not limits.HasField("included_child_orgs")
 
     def test_no_limits_set_sends_an_empty_message(self) -> None:
         assert EntitlementLimitsInput()._to_proto().ListFields() == []

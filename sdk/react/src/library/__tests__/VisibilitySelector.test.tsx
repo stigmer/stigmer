@@ -36,11 +36,11 @@ beforeAll(() => {
 afterEach(cleanup);
 
 const BLUEPRINT_LEVELS = blueprintVisibilityLevels({
-  hasIdentityProvider: true,
+  offersChildOrgs: true,
 });
 
 // Option accessible names are "<label> <description>"; anchor on the label so
-// e.g. /^Organization/ does not also match Platform's "All organizations …".
+// e.g. /^Organization/ does not match another row's description.
 const optionByLabel = (label: string) =>
   screen.getByRole("option", { name: new RegExp(`^${label}`, "i") });
 
@@ -90,16 +90,16 @@ describe("VisibilitySelector — create mode (inline list)", () => {
     render(
       <VisibilitySelector
         mode="create"
-        visibility={ApiResourceVisibility.visibility_platform}
+        visibility={ApiResourceVisibility.visibility_child_orgs}
         options={INSTANCE_VISIBILITY_LEVELS}
         onVisibilityChange={() => {}}
       />,
     );
 
     const group = screen.getByRole("radiogroup", { name: "Resource visibility" });
-    const platformRow = within(group).getByText("Platform").closest("button");
-    expect(platformRow).not.toBeNull();
-    expect(platformRow?.getAttribute("aria-checked")).toBe("true");
+    const childOrgsRow = within(group).getByText("Child organizations").closest("button");
+    expect(childOrgsRow).not.toBeNull();
+    expect(childOrgsRow?.getAttribute("aria-checked")).toBe("true");
   });
 
   it("renders a row still carrying the retired public level truthfully, and lets it move to an offered level", () => {
@@ -145,10 +145,10 @@ describe("VisibilitySelector — a locked row (consumer-supplied lockedReason)",
   // The selector takes its options from the consumer, so a platform builder
   // can lock a level its caller may not enter; the component renders the
   // lock without knowing which level or why.
-  const LOCKED_REASON = "Platform sharing is enabled by your workspace admin.";
+  const LOCKED_REASON = "Sharing with child organizations is enabled by your workspace admin.";
   const LOCKED_LEVELS: readonly VisibilityLevelOption[] = BLUEPRINT_LEVELS.map(
     (level) =>
-      level.value === ApiResourceVisibility.visibility_platform
+      level.value === ApiResourceVisibility.visibility_child_orgs
         ? { ...level, lockedReason: LOCKED_REASON }
         : level,
   );
@@ -164,7 +164,7 @@ describe("VisibilitySelector — a locked row (consumer-supplied lockedReason)",
       />,
     );
 
-    const lockedRow = screen.getByRole("radio", { name: /^Platform/i });
+    const lockedRow = screen.getByRole("radio", { name: /^Child organizations/i });
     expect((lockedRow as HTMLButtonElement).disabled).toBe(true);
     expect(lockedRow.getAttribute("aria-disabled")).toBe("true");
     expect(lockedRow.textContent).toContain(LOCKED_REASON);
@@ -211,7 +211,7 @@ describe("VisibilitySelector — manage mode (popover + confirmation)", () => {
     const onChange = vi.fn();
     render(
       <VisibilitySelector
-        visibility={ApiResourceVisibility.visibility_platform}
+        visibility={ApiResourceVisibility.visibility_child_orgs}
         options={BLUEPRINT_LEVELS}
         onVisibilityChange={onChange}
       />,
@@ -245,7 +245,7 @@ describe("VisibilitySelector — manage mode (popover + confirmation)", () => {
     expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_org);
   });
 
-  it("requires the confirm dialog before escalating to Platform", async () => {
+  it("requires the confirm dialog before escalating to Child organizations", async () => {
     const onChange = vi.fn();
     render(
       <VisibilitySelector
@@ -256,16 +256,16 @@ describe("VisibilitySelector — manage mode (popover + confirmation)", () => {
     );
 
     await openPopover();
-    fireEvent.click(optionByLabel("Platform"));
+    fireEvent.click(optionByLabel("Child organizations"));
 
     // Not applied until the modal is confirmed.
     expect(onChange).not.toHaveBeenCalled();
-    expect(await screen.findByText("Share with your whole platform?")).toBeTruthy();
+    expect(await screen.findByText("Share with every child organization?")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Make Platform" }));
+    fireEvent.click(screen.getByRole("button", { name: "Make Child organizations" }));
     // The confirm resolves on a microtask, so the apply is asynchronous.
     await waitFor(() =>
-      expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_platform),
+      expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_child_orgs),
     );
   });
 
@@ -285,9 +285,9 @@ describe("VisibilitySelector — manage mode (popover + confirmation)", () => {
     );
 
     fireEvent.keyDown(optionByLabel("Organization"), { key: "ArrowDown" });
-    expect(document.activeElement).toBe(optionByLabel("Platform"));
+    expect(document.activeElement).toBe(optionByLabel("Child organizations"));
 
-    fireEvent.keyDown(optionByLabel("Platform"), { key: "ArrowUp" });
+    fireEvent.keyDown(optionByLabel("Child organizations"), { key: "ArrowUp" });
     expect(document.activeElement).toBe(optionByLabel("Organization"));
   });
 
@@ -302,12 +302,12 @@ describe("VisibilitySelector — manage mode (popover + confirmation)", () => {
     );
 
     await openPopover();
-    fireEvent.click(optionByLabel("Platform"));
-    await screen.findByText("Share with your whole platform?");
+    fireEvent.click(optionByLabel("Child organizations"));
+    await screen.findByText("Share with every child organization?");
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() =>
-      expect(screen.queryByText("Share with your whole platform?")).toBeNull(),
+      expect(screen.queryByText("Share with every child organization?")).toBeNull(),
     );
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -315,8 +315,8 @@ describe("VisibilitySelector — manage mode (popover + confirmation)", () => {
 
 describe("VisibilityBadge", () => {
   it("renders the human label for a visibility value", () => {
-    render(<VisibilityBadge visibility={ApiResourceVisibility.visibility_platform} />);
-    expect(screen.getByText("Platform")).toBeTruthy();
+    render(<VisibilityBadge visibility={ApiResourceVisibility.visibility_child_orgs} />);
+    expect(screen.getByText("Child organizations")).toBeTruthy();
   });
 
   it("renders the retired public level by its own name, never as Private", () => {

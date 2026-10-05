@@ -316,14 +316,14 @@ describe("WorkflowInstance conformance — visibility", () => {
       () =>
         clients.workflowInstanceCommand.updateVisibility({
           resourceId: created.metadata!.id,
-          visibility: ApiResourceVisibility.visibility_platform,
+          visibility: ApiResourceVisibility.visibility_child_orgs,
         }),
       Code.InvalidArgument,
       "updateVisibility to platform",
     );
     // Both editions build the rejection from the kind's proto visibility
     // config; the stable fragment is part of the cross-edition contract.
-    expect(err.message).toContain("cannot be set to visibility_platform");
+    expect(err.message).toContain("cannot be set to visibility_child_orgs");
 
     const stored = await clients.workflowInstanceQuery.get({ value: created.metadata!.id });
     expect(stored.metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);

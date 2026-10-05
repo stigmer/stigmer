@@ -12,12 +12,12 @@ each suited to a different integration pattern.
 
 ## Account types
 
-| Type          | How it's created                                                       | Use case                                                        |
-| ------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **Direct**    | User signs up on Stigmer or through a Stigmer-hosted login             | Self-managed Organizations using Stigmer's own auth             |
-| **Federated** | Created via JIT provisioning or explicit `createFederatedAccount` call | Platform-managed Organizations bringing their own OIDC provider |
-| **Platform**  | Created automatically when your backend calls `mintUserToken`          | Embedding Stigmer in your product without OIDC setup            |
-| **Machine**   | Created via API with client credentials                                | Service-to-service communication (backend-to-backend)           |
+| Type          | How it's created                                                       | Use case                                              |
+| ------------- | ---------------------------------------------------------------------- | ----------------------------------------------------- |
+| **Direct**    | User signs up on Stigmer or through a Stigmer-hosted login             | Organizations using Stigmer's own auth                |
+| **Federated** | Created via JIT provisioning or explicit `createFederatedAccount` call | Organizations bringing their own OIDC provider        |
+| **Platform**  | Created automatically when your backend calls `mintUserToken`          | Embedding Stigmer in your product without OIDC setup  |
+| **Machine**   | Created via API with client credentials                                | Service-to-service communication (backend-to-backend) |
 
 Direct accounts use Stigmer's own authentication tenant. Federated and Platform
 accounts both represent your platform's users, but they establish trust

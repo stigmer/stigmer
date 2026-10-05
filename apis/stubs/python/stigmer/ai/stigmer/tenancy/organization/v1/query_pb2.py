@@ -30,7 +30,7 @@ from ai.stigmer.tenancy.organization.v1 import io_pb2 as ai_dot_stigmer_dot_tena
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/tenancy/organization/v1/query.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a+ai/stigmer/tenancy/organization/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xb9\x04\n\x1bOrganizationQueryController\x12\x9f\x01\n\x03get\x12\x32.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a\x30.ai.stigmer.tenancy.organization.v1.Organization\"2\xc2\xb8\x18.\x08\x01\x10\x1e\"\x05value*!unauthorized to view organization\x12{\n\x04\x66ind\x12\x37.ai.stigmer.commons.apiresource.FindApiResourcesRequest\x1a\x34.ai.stigmer.tenancy.organization.v1.OrganizationList\"\x04\xd0\xb8\x18\x01\x12\x66\n\x13\x66indMyOrganizations\x12\x16.google.protobuf.Empty\x1a\x31.ai.stigmer.tenancy.organization.v1.Organizations\"\x04\xd0\xb8\x18\x01\x12\x8c\x01\n\x12getByExternalOrgId\x12>.ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup\x1a\x30.ai.stigmer.tenancy.organization.v1.Organization\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+\x1e\x42\xe1\x01\n&com.ai.stigmer.tenancy.organization.v1B\nQueryProtoP\x01\xa2\x02\x04\x41STO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/tenancy/organization/v1/query.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a+ai/stigmer/tenancy/organization/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xd1\x06\n\x1bOrganizationQueryController\x12\x9f\x01\n\x03get\x12\x32.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a\x30.ai.stigmer.tenancy.organization.v1.Organization\"2\xc2\xb8\x18.\x08\x32\x10\x1e\"\x05value*!unauthorized to view organization\x12{\n\x04\x66ind\x12\x37.ai.stigmer.commons.apiresource.FindApiResourcesRequest\x1a\x34.ai.stigmer.tenancy.organization.v1.OrganizationList\"\x04\xd0\xb8\x18\x01\x12\x66\n\x13\x66indMyOrganizations\x12\x16.google.protobuf.Empty\x1a\x31.ai.stigmer.tenancy.organization.v1.Organizations\"\x04\xd0\xb8\x18\x01\x12\xd9\x01\n\x0fgetByExternalId\x12>.ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup\x1a\x30.ai.stigmer.tenancy.organization.v1.Organization\"T\xc2\xb8\x18P\x08\x31\x10\x1e\"\nparent_org*>unauthorized to manage this organization\'s child organizations\x12\xc8\x01\n\rlistChildOrgs\x12\x36.ai.stigmer.tenancy.organization.v1.ListChildOrgsInput\x1a\x30.ai.stigmer.tenancy.organization.v1.ChildOrgList\"M\xc2\xb8\x18I\x08\x31\x10\x1e\"\x03org*>unauthorized to manage this organization\'s child organizations\x1a\x04\xa0\xff+\x1e\x42\xe1\x01\n&com.ai.stigmer.tenancy.organization.v1B\nQueryProtoP\x01\xa2\x02\x04\x41STO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,13 +41,15 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ORGANIZATIONQUERYCONTROLLER']._loaded_options = None
   _globals['_ORGANIZATIONQUERYCONTROLLER']._serialized_options = b'\240\377+\036'
   _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['get']._loaded_options = None
-  _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030.\010\001\020\036\"\005value*!unauthorized to view organization'
+  _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030.\0102\020\036\"\005value*!unauthorized to view organization'
   _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['find']._loaded_options = None
   _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['find']._serialized_options = b'\320\270\030\001'
   _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['findMyOrganizations']._loaded_options = None
   _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['findMyOrganizations']._serialized_options = b'\320\270\030\001'
-  _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['getByExternalOrgId']._loaded_options = None
-  _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['getByExternalOrgId']._serialized_options = b'\320\270\030\001'
+  _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['getByExternalId']._loaded_options = None
+  _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['getByExternalId']._serialized_options = b'\302\270\030P\0101\020\036\"\nparent_org*>unauthorized to manage this organization\'s child organizations'
+  _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['listChildOrgs']._loaded_options = None
+  _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['listChildOrgs']._serialized_options = b'\302\270\030I\0101\020\036\"\003org*>unauthorized to manage this organization\'s child organizations'
   _globals['_ORGANIZATIONQUERYCONTROLLER']._serialized_start=351
-  _globals['_ORGANIZATIONQUERYCONTROLLER']._serialized_end=920
+  _globals['_ORGANIZATIONQUERYCONTROLLER']._serialized_end=1200
 # @@protoc_insertion_point(module_scope)

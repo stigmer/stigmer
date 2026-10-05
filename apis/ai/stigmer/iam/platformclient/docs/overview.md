@@ -61,7 +61,7 @@ Browser (React SDK)                     Stigmer API
         |                                    |
 ```
 
-Every user token a PlatformClient mints carries an `org` claim naming the client's owning organization, and works in that organization only, whatever roles the user holds elsewhere. A request into another organization is refused `PERMISSION_DENIED`; the token can still reach what belongs to no organization (the user's own account and API keys) and read and run blueprints shared at platform visibility. A token whose `org` claim is missing or is not its client's organization is refused `UNAUTHENTICATED`.
+Every user token a PlatformClient mints carries an `org` claim naming the organization it is for: the client's owning organization, or, when the mint request's `org` names one, a child organization of it. The token works in that organization only, whatever roles the user holds elsewhere, and the user's account is that organization's own (`stgm_pc|<org>|<user_id>`). A request into another organization is refused `PERMISSION_DENIED`; the token can still reach what belongs to no organization (the user's own account and API keys) and read and run what the organization's parent shares with its child organizations. A token whose `org` claim is missing, or names neither its client's organization nor a child of it, is refused `UNAUTHENTICATED`.
 
 ## JIT Provisioning
 

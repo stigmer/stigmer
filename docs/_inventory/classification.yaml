@@ -580,8 +580,8 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      Organizations are the tenant boundary; self-managed vs platform-managed
-      modes map one org per customer behind a shared IdP.
+      Organizations are the tenant boundary; a parent organization has one
+      child organization per customer, which it manages and never reads.
     medium: diagram
     why: Tenancy fan-out is structure; the two existing mermaids carry it.
 
@@ -642,7 +642,7 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Enable console SSO for a self-managed Organization and understand
+      Enable console SSO for an Organization and understand
       automatic viewer-role provisioning on first login.
     medium: diagram
     why:
@@ -671,17 +671,16 @@ pages:
     embeds:
       provision-grant-playback: keep
 
-  guides/authentication/federation/multi-tenant-setup:
-    fate: split
+  guides/authentication/federation/child-organizations:
+    fate: keep
     diataxis: how-to
     teaches:
-      Give each customer an isolated platform-managed Organization behind one
-      shared IdP, with tenantOrgClaim JIT routing.
+      Give each customer an isolated child organization under yours, manage it
+      without reading it, route sign-ins with externalIdClaim or PlatformClient
+      tokens, and share a catalog with every child.
     medium: diagram
     why:
-      Tenant fan-out is structure. Split because 826 lines duplicate sibling
-      pages' snippets and close with a 230-line concatenation of everything
-      above — the known bloat case.
+      Parent-to-child fan-out is structure; the two mermaids carry it.
     embeds:
       multi-tenant-setup-playback: keep
       multi-tenant-jit-playback: keep

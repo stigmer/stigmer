@@ -94,7 +94,7 @@ class IdentityProviderInput:
     userinfo_endpoint: str = ""
     is_sso_provider: bool = False
     oidc_client_id: str = ""
-    tenant_org_claim: str = ""
+    external_id_claim: str = ""
     create_accounts_on_sign_in: bool = False
     sign_in_role: int = 0
 
@@ -106,7 +106,7 @@ class IdentityProviderInput:
             userinfo_endpoint=self.userinfo_endpoint,
             is_sso_provider=self.is_sso_provider,
             oidc_client_id=self.oidc_client_id,
-            tenant_org_claim=self.tenant_org_claim,
+            external_id_claim=self.external_id_claim,
             create_accounts_on_sign_in=self.create_accounts_on_sign_in,
             sign_in_role=self.sign_in_role,
         )

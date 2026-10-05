@@ -19,7 +19,12 @@
  * construction.
  *
  * The rule, for a caller with `boundOrg`. A target is INSIDE when it is:
- *   - the bound organization itself;
+ *   - the bound organization itself, and, for a permission that manages
+ *     an organization (MANAGEMENT_PERMISSIONS: its settings, members,
+ *     access and billing), a child organization of the bound one: managing
+ *     an organization's children is managing the organization, and
+ *     `can_manage_child_orgs` (finding and listing them) is asked on the
+ *     bound organization itself. The child's rows stay outside;
  *   - a row of an organization-scoped or parent-scoped kind whose
  *     `metadata.org` is the bound organization (every such row carries it,
  *     an execution included, docs/single-organization.md), and an
@@ -34,10 +39,15 @@
  *     organization data.
  * It is ADMITTED OUTSIDE only along the model's one path across
  * organizations, and only for a permission that reads or runs: a
- * blueprint (agent, MCP server, plugin, skill, workflow) shared at
- * `visibility_platform` (connecting is how an MCP server runs), and a
+ * blueprint (agent, MCP server, plugin, skill, workflow) that the bound
+ * organization's own parent shares with its children at
+ * `visibility_child_orgs` (connecting is how an MCP server runs), and a
  * workflow's default instance when its workflow is (the instance's
- * `viewer from default_of`). The inner
+ * `viewer from default_of`). A blueprint another organization shares with
+ * its children is outside, even when the person belongs to one of them
+ * too: the credential names this child, and only its parent's catalog
+ * reaches it. The bound organization's parent is read once per request,
+ * from its row. The inner
  * driver then decides as it always does. Everything else is OUTSIDE and
  * answers `deny` with `BOUND_ELSEWHERE_DENY_REASON`.
  *
@@ -61,15 +71,19 @@
  *
  * What the tests pin (__tests__/credential-binding.test.ts): every scope
  * class, the missing row, the admitted path and its limits (visibility,
- * permission, a non-default instance), the read memo, a read fault
- * answering unavailable, and the three decorators' unbound byte-identity.
+ * the sharing organization, permission, a non-default instance), a
+ * parent's management of its children and its limits, the read memo, a
+ * read fault answering unavailable, and the three decorators' unbound
+ * byte-identity.
  */
 import type { Message } from "@bufbuild/protobuf";
+import { isMessage } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
@@ -109,8 +123,8 @@ export const BOUND_ELSEWHERE_DENY_REASON =
   "this credential is bound to another organization";
 
 /**
- * The blueprints the model shares across organizations
- * (`platform_viewer: [identity_provider#platform_user]`), each with the
+ * The blueprints the model shares with child organizations
+ * (`child_org_viewer: [organization#child_org_viewer]`), each with the
  * instance kind whose default instance inherits that reach.
  */
 const SHARED_BLUEPRINTS: ReadonlyMap<
@@ -148,6 +162,24 @@ const READ_OR_RUN_PERMISSIONS: ReadonlySet<string> = new Set([
   IamPermission[IamPermission.can_execute],
   IamPermission[IamPermission.can_connect],
 ]);
+
+/**
+ * The permissions that manage an organization without reading what it
+ * holds: the ones the model gives a parent's admins on a child
+ * (`parent_admin`, fga/model/tenancy/organization.fga), and the only ones
+ * a credential bound to the parent reaches on a child.
+ */
+const MANAGEMENT_PERMISSIONS: ReadonlySet<string> = new Set(
+  [
+    IamPermission.can_view_settings,
+    IamPermission.can_edit,
+    IamPermission.can_delete,
+    IamPermission.can_grant_access,
+    IamPermission.can_view_access,
+    IamPermission.can_assign_roles,
+    IamPermission.can_view_billing,
+  ].map((permission) => IamPermission[permission]),
+);
 
 export interface CredentialBindingDeps {
   readonly store: Pick<Store, "getResource">;
@@ -231,13 +263,39 @@ export function newCredentialBinding(
     return loading;
   }
 
+  /** The parent of the organization `id`; "" when it has none or its row is gone. */
+  async function parentOf(
+    caller: CallerIdentity,
+    id: string,
+  ): Promise<string> {
+    const found = await targetFacts(caller, ApiResourceKind.organization, id);
+    return found === undefined ||
+      found === UNREADABLE ||
+      !isMessage(found.row, OrganizationSchema)
+      ? ""
+      : (found.row.spec?.parentOrg ?? "");
+  }
+
+  /** Whether a row is shared with the children of the bound organization's own parent. */
+  async function sharedWithBound(
+    caller: CallerIdentity,
+    bound: string,
+    facts: Pick<RowAuthorizationFacts, "org" | "visibility">,
+  ): Promise<boolean> {
+    if (!isSharedVisibility(facts.visibility) || facts.org === "") {
+      return false;
+    }
+    return facts.org === (await parentOf(caller, bound));
+  }
+
   async function sharedAcross(
     caller: CallerIdentity,
+    bound: string,
     kind: ApiResourceKind,
     target: TargetFacts,
   ): Promise<boolean> {
     if (SHARED_BLUEPRINTS.has(kind)) {
-      return isSharedVisibility(target.facts.visibility);
+      return sharedWithBound(caller, bound, target.facts);
     }
     const instance = DEFAULT_INSTANCE_BLUEPRINTS.get(kind);
     if (instance === undefined) {
@@ -260,8 +318,39 @@ export function newCredentialBinding(
     }
     return (
       defaultInstanceIdOf(blueprint.row) === target.facts.id &&
-      isSharedVisibility(blueprint.facts.visibility)
+      (await sharedWithBound(caller, bound, blueprint.facts))
     );
+  }
+
+  /**
+   * An organization target for a bound caller: its own organization, or,
+   * for a management permission, one of its children; a missing row is
+   * the inner driver's to answer.
+   */
+  async function organizationVerdict(
+    caller: CallerIdentity,
+    target: BindingTarget,
+    bound: string,
+  ): Promise<BindingVerdict> {
+    if (target.id === bound) {
+      return "inside";
+    }
+    if (!MANAGEMENT_PERMISSIONS.has(target.permission)) {
+      return "outside";
+    }
+    const found = await targetFacts(
+      caller,
+      ApiResourceKind.organization,
+      target.id,
+    );
+    if (found === undefined) {
+      return "missing";
+    }
+    return found !== UNREADABLE &&
+      isMessage(found.row, OrganizationSchema) &&
+      (found.row.spec?.parentOrg ?? "") === bound
+      ? "inside"
+      : "outside";
   }
 
   // A key is its owner's, but a bound credential manages only the keys
@@ -292,7 +381,7 @@ export function newCredentialBinding(
       return "unbound";
     }
     if (target.kind === ApiResourceKind.organization) {
-      return target.id === bound ? "inside" : "outside";
+      return organizationVerdict(caller, target, bound);
     }
     if (target.kind === ApiResourceKind.api_key) {
       return keyVerdict(caller, target.id, bound);
@@ -317,7 +406,7 @@ export function newCredentialBinding(
     }
     if (
       READ_OR_RUN_PERMISSIONS.has(target.permission) &&
-      (await sharedAcross(caller, target.kind, found))
+      (await sharedAcross(caller, bound, target.kind, found))
     ) {
       return "admitted";
     }
@@ -332,7 +421,7 @@ export function newCredentialBinding(
       return bound === undefined || bound === org;
     },
 
-    keepsEntry(caller, kind, entry) {
+    async keepsEntry(caller, kind, entry) {
       const bound = boundOrgOf(caller);
       if (bound === undefined) {
         return true;
@@ -345,7 +434,8 @@ export function newCredentialBinding(
       }
       return (
         entry.org === bound ||
-        (SHARED_BLUEPRINTS.has(kind) && isSharedVisibility(entry.visibility))
+        (SHARED_BLUEPRINTS.has(kind) &&
+          (await sharedWithBound(caller, bound, entry)))
       );
     },
 
@@ -412,14 +502,21 @@ export function bindListReadScope(
       const ids = await inner.authorizedResourceIds(caller, kind);
       return binding.narrowIds(caller, kind, ids, CAN_VIEW);
     },
-    restrictListEntries(caller, kind, entries: ReadonlyArray<ListEntryMeta>) {
+    async restrictListEntries(
+      caller,
+      kind,
+      entries: ReadonlyArray<ListEntryMeta>,
+    ) {
       if (boundOrgOf(caller) === undefined) {
         return inner.restrictListEntries(caller, kind, entries);
       }
+      const kept = await Promise.all(
+        entries.map((entry) => binding.keepsEntry(caller, kind, entry)),
+      );
       return inner.restrictListEntries(
         caller,
         kind,
-        entries.filter((entry) => binding.keepsEntry(caller, kind, entry)),
+        entries.filter((_, index) => kept[index] === true),
       );
     },
   };
@@ -443,10 +540,7 @@ export function bindOrganizationDirectory(
       return ids.includes(own) ? [own] : [];
     },
   };
-  const lookup = inner.lookupExternalOrganization;
-  return lookup === undefined
-    ? bound
-    : { ...bound, lookupExternalOrganization: lookup.bind(inner) };
+  return bound;
 }
 
 function targetOf(check: AuthzCheck): BindingTarget {
@@ -480,7 +574,7 @@ export function belongsToAnOrganization(kind: ApiResourceKind): boolean {
 }
 
 function isSharedVisibility(visibility: ApiResourceVisibility): boolean {
-  return visibility === ApiResourceVisibility.visibility_platform;
+  return visibility === ApiResourceVisibility.visibility_child_orgs;
 }
 
 /** `status.default_instance_id`, read structurally from an agent or workflow row. */

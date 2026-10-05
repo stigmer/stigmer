@@ -64,9 +64,9 @@ spec:
   sign_in_role: member
 ```
 
-## Multi-Tenant Binding
+## Child Organization Binding
 
-Bind each token to the tenant organization it names. Stigmer reads `org_id` from every token and resolves it to the platform-managed organization whose `external_org_id` matches under this provider; the token works in that organization only. A token without the claim, or naming an unknown tenant, is refused as unauthenticated. With no `sign_in_role`, Stigmer grants nothing and the platform grants roles itself through IAM policies.
+Bind each token to the child organization it names. Stigmer reads `org_id` from every token and resolves it to the child of `saas-co` whose `external_id` equals the value; the token works in that organization only. A token without the claim, or naming an unknown child, is refused as unauthenticated. With no `sign_in_role`, Stigmer grants nothing and the platform grants roles itself through IAM policies.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
@@ -81,7 +81,7 @@ spec:
   allowed_issuers:
     - "https://auth.saas.example.com/"
   expected_audience: "https://stigmer.saas.example.com/"
-  tenant_org_claim: "org_id"
+  external_id_claim: "org_id"
 ```
 
 ## CLI: Apply (Create or Update)
@@ -119,4 +119,3 @@ stigmer apply -f updated-idp.yaml
 
 The CLI applies identity providers and does not read or delete them; use the console's Identity Providers settings or the API (`getByReference` with the organization and slug, `delete` with the id).
 
-Deletion is refused while any platform-managed organization references the IdentityProvider. Remove those organizations first.

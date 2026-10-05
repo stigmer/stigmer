@@ -60,7 +60,6 @@ export class LocalExecutionTarget implements TargetProfile {
     // sibling this target boots WITH an engine and a runner
     // (enforcingLane below).
     enforcingAuthorizer: false,
-    externalOrgLookup: false,
     organizationEnumeration: true,
     versionTagging: false,
     skillArtifactTransferLane: true,

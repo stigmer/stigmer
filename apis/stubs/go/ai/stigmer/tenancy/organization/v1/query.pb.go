@@ -27,12 +27,14 @@ var File_ai_stigmer_tenancy_organization_v1_query_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_tenancy_organization_v1_query_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/tenancy/organization/v1/query.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a+ai/stigmer/tenancy/organization/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xb9\x04\n" +
+	".ai/stigmer/tenancy/organization/v1/query.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a+ai/stigmer/tenancy/organization/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xd1\x06\n" +
 	"\x1bOrganizationQueryController\x12\x9f\x01\n" +
-	"\x03get\x122.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"2¸\x18.\b\x01\x10\x1e\"\x05value*!unauthorized to view organization\x12{\n" +
+	"\x03get\x122.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"2¸\x18.\b2\x10\x1e\"\x05value*!unauthorized to view organization\x12{\n" +
 	"\x04find\x127.ai.stigmer.commons.apiresource.FindApiResourcesRequest\x1a4.ai.stigmer.tenancy.organization.v1.OrganizationList\"\x04и\x18\x01\x12f\n" +
-	"\x13findMyOrganizations\x12\x16.google.protobuf.Empty\x1a1.ai.stigmer.tenancy.organization.v1.Organizations\"\x04и\x18\x01\x12\x8c\x01\n" +
-	"\x12getByExternalOrgId\x12>.ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"\x04и\x18\x01\x1a\x04\xa0\xff+\x1eB\xbd\x02\n" +
+	"\x13findMyOrganizations\x12\x16.google.protobuf.Empty\x1a1.ai.stigmer.tenancy.organization.v1.Organizations\"\x04и\x18\x01\x12\xd9\x01\n" +
+	"\x0fgetByExternalId\x12>.ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"T¸\x18P\b1\x10\x1e\"\n" +
+	"parent_org*>unauthorized to manage this organization's child organizations\x12\xc8\x01\n" +
+	"\rlistChildOrgs\x126.ai.stigmer.tenancy.organization.v1.ListChildOrgsInput\x1a0.ai.stigmer.tenancy.organization.v1.ChildOrgList\"M¸\x18I\b1\x10\x1e\"\x03org*>unauthorized to manage this organization's child organizations\x1a\x04\xa0\xff+\x1eB\xbd\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\n" +
 	"QueryProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
@@ -41,21 +43,25 @@ var file_ai_stigmer_tenancy_organization_v1_query_proto_goTypes = []any{
 	(*apiresource.FindApiResourcesRequest)(nil), // 1: ai.stigmer.commons.apiresource.FindApiResourcesRequest
 	(*emptypb.Empty)(nil),                       // 2: google.protobuf.Empty
 	(*OrganizationExternalLookup)(nil),          // 3: ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup
-	(*Organization)(nil),                        // 4: ai.stigmer.tenancy.organization.v1.Organization
-	(*OrganizationList)(nil),                    // 5: ai.stigmer.tenancy.organization.v1.OrganizationList
-	(*Organizations)(nil),                       // 6: ai.stigmer.tenancy.organization.v1.Organizations
+	(*ListChildOrgsInput)(nil),                  // 4: ai.stigmer.tenancy.organization.v1.ListChildOrgsInput
+	(*Organization)(nil),                        // 5: ai.stigmer.tenancy.organization.v1.Organization
+	(*OrganizationList)(nil),                    // 6: ai.stigmer.tenancy.organization.v1.OrganizationList
+	(*Organizations)(nil),                       // 7: ai.stigmer.tenancy.organization.v1.Organizations
+	(*ChildOrgList)(nil),                        // 8: ai.stigmer.tenancy.organization.v1.ChildOrgList
 }
 var file_ai_stigmer_tenancy_organization_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.get:input_type -> ai.stigmer.tenancy.organization.v1.OrganizationId
 	1, // 1: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.find:input_type -> ai.stigmer.commons.apiresource.FindApiResourcesRequest
 	2, // 2: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.findMyOrganizations:input_type -> google.protobuf.Empty
-	3, // 3: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.getByExternalOrgId:input_type -> ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup
-	4, // 4: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.get:output_type -> ai.stigmer.tenancy.organization.v1.Organization
-	5, // 5: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.find:output_type -> ai.stigmer.tenancy.organization.v1.OrganizationList
-	6, // 6: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.findMyOrganizations:output_type -> ai.stigmer.tenancy.organization.v1.Organizations
-	4, // 7: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.getByExternalOrgId:output_type -> ai.stigmer.tenancy.organization.v1.Organization
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
+	3, // 3: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.getByExternalId:input_type -> ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup
+	4, // 4: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.listChildOrgs:input_type -> ai.stigmer.tenancy.organization.v1.ListChildOrgsInput
+	5, // 5: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.get:output_type -> ai.stigmer.tenancy.organization.v1.Organization
+	6, // 6: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.find:output_type -> ai.stigmer.tenancy.organization.v1.OrganizationList
+	7, // 7: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.findMyOrganizations:output_type -> ai.stigmer.tenancy.organization.v1.Organizations
+	5, // 8: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.getByExternalId:output_type -> ai.stigmer.tenancy.organization.v1.Organization
+	8, // 9: ai.stigmer.tenancy.organization.v1.OrganizationQueryController.listChildOrgs:output_type -> ai.stigmer.tenancy.organization.v1.ChildOrgList
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

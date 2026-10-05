@@ -188,7 +188,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * What the period's usage has cost in provider charges so far, across
-   * the organization and the managed organizations it pays for.
+   * the organization and the child organizations it pays for.
    * </pre>
    *
    * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
@@ -215,19 +215,19 @@ private static final long serialVersionUID = 0L;
     return commissionCollectedMicros_;
   }
 
-  public static final int MANAGED_ORGANIZATION_COUNT_FIELD_NUMBER = 6;
-  private int managedOrganizationCount_ = 0;
+  public static final int CHILD_ORG_COUNT_FIELD_NUMBER = 6;
+  private int childOrgCount_ = 0;
   /**
    * <pre>
-   * The managed organizations counted against the plan this period.
+   * The child organizations counted against the plan this period.
    * </pre>
    *
-   * <code>int32 managed_organization_count = 6 [json_name = "managedOrganizationCount"];</code>
-   * @return The managedOrganizationCount.
+   * <code>int32 child_org_count = 6 [json_name = "childOrgCount"];</code>
+   * @return The childOrgCount.
    */
   @java.lang.Override
-  public int getManagedOrganizationCount() {
-    return managedOrganizationCount_;
+  public int getChildOrgCount() {
+    return childOrgCount_;
   }
 
   public static final int LINES_FIELD_NUMBER = 7;
@@ -335,8 +335,8 @@ private static final long serialVersionUID = 0L;
     if (commissionCollectedMicros_ != 0L) {
       output.writeInt64(5, commissionCollectedMicros_);
     }
-    if (managedOrganizationCount_ != 0) {
-      output.writeInt32(6, managedOrganizationCount_);
+    if (childOrgCount_ != 0) {
+      output.writeInt32(6, childOrgCount_);
     }
     for (int i = 0; i < lines_.size(); i++) {
       output.writeMessage(7, lines_.get(i));
@@ -372,9 +372,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(5, commissionCollectedMicros_);
     }
-    if (managedOrganizationCount_ != 0) {
+    if (childOrgCount_ != 0) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(6, managedOrganizationCount_);
+        .computeInt32Size(6, childOrgCount_);
     }
 
         {
@@ -420,8 +420,8 @@ private static final long serialVersionUID = 0L;
         != other.getProviderCostMicros()) return false;
     if (getCommissionCollectedMicros()
         != other.getCommissionCollectedMicros()) return false;
-    if (getManagedOrganizationCount()
-        != other.getManagedOrganizationCount()) return false;
+    if (getChildOrgCount()
+        != other.getChildOrgCount()) return false;
     if (!getLinesList()
         .equals(other.getLinesList())) return false;
     if (getTotalMicros()
@@ -453,8 +453,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + COMMISSION_COLLECTED_MICROS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getCommissionCollectedMicros());
-    hash = (37 * hash) + MANAGED_ORGANIZATION_COUNT_FIELD_NUMBER;
-    hash = (53 * hash) + getManagedOrganizationCount();
+    hash = (37 * hash) + CHILD_ORG_COUNT_FIELD_NUMBER;
+    hash = (53 * hash) + getChildOrgCount();
     if (getLinesCount() > 0) {
       hash = (37 * hash) + LINES_FIELD_NUMBER;
       hash = (53 * hash) + getLinesList().hashCode();
@@ -623,7 +623,7 @@ private static final long serialVersionUID = 0L;
       }
       providerCostMicros_ = 0L;
       commissionCollectedMicros_ = 0L;
-      managedOrganizationCount_ = 0;
+      childOrgCount_ = 0;
       if (linesBuilder_ == null) {
         lines_ = java.util.Collections.emptyList();
       } else {
@@ -701,7 +701,7 @@ private static final long serialVersionUID = 0L;
         result.commissionCollectedMicros_ = commissionCollectedMicros_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.managedOrganizationCount_ = managedOrganizationCount_;
+        result.childOrgCount_ = childOrgCount_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.totalMicros_ = totalMicros_;
@@ -738,8 +738,8 @@ private static final long serialVersionUID = 0L;
       if (other.getCommissionCollectedMicros() != 0L) {
         setCommissionCollectedMicros(other.getCommissionCollectedMicros());
       }
-      if (other.getManagedOrganizationCount() != 0) {
-        setManagedOrganizationCount(other.getManagedOrganizationCount());
+      if (other.getChildOrgCount() != 0) {
+        setChildOrgCount(other.getChildOrgCount());
       }
       if (linesBuilder_ == null) {
         if (!other.lines_.isEmpty()) {
@@ -826,7 +826,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 40
             case 48: {
-              managedOrganizationCount_ = input.readInt32();
+              childOrgCount_ = input.readInt32();
               bitField0_ |= 0x00000020;
               break;
             } // case 48
@@ -1275,7 +1275,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What the period's usage has cost in provider charges so far, across
-     * the organization and the managed organizations it pays for.
+     * the organization and the child organizations it pays for.
      * </pre>
      *
      * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
@@ -1288,7 +1288,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What the period's usage has cost in provider charges so far, across
-     * the organization and the managed organizations it pays for.
+     * the organization and the child organizations it pays for.
      * </pre>
      *
      * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
@@ -1305,7 +1305,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What the period's usage has cost in provider charges so far, across
-     * the organization and the managed organizations it pays for.
+     * the organization and the child organizations it pays for.
      * </pre>
      *
      * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
@@ -1365,46 +1365,46 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int managedOrganizationCount_ ;
+    private int childOrgCount_ ;
     /**
      * <pre>
-     * The managed organizations counted against the plan this period.
+     * The child organizations counted against the plan this period.
      * </pre>
      *
-     * <code>int32 managed_organization_count = 6 [json_name = "managedOrganizationCount"];</code>
-     * @return The managedOrganizationCount.
+     * <code>int32 child_org_count = 6 [json_name = "childOrgCount"];</code>
+     * @return The childOrgCount.
      */
     @java.lang.Override
-    public int getManagedOrganizationCount() {
-      return managedOrganizationCount_;
+    public int getChildOrgCount() {
+      return childOrgCount_;
     }
     /**
      * <pre>
-     * The managed organizations counted against the plan this period.
+     * The child organizations counted against the plan this period.
      * </pre>
      *
-     * <code>int32 managed_organization_count = 6 [json_name = "managedOrganizationCount"];</code>
-     * @param value The managedOrganizationCount to set.
+     * <code>int32 child_org_count = 6 [json_name = "childOrgCount"];</code>
+     * @param value The childOrgCount to set.
      * @return This builder for chaining.
      */
-    public Builder setManagedOrganizationCount(int value) {
+    public Builder setChildOrgCount(int value) {
 
-      managedOrganizationCount_ = value;
+      childOrgCount_ = value;
       bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The managed organizations counted against the plan this period.
+     * The child organizations counted against the plan this period.
      * </pre>
      *
-     * <code>int32 managed_organization_count = 6 [json_name = "managedOrganizationCount"];</code>
+     * <code>int32 child_org_count = 6 [json_name = "childOrgCount"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearManagedOrganizationCount() {
+    public Builder clearChildOrgCount() {
       bitField0_ = (bitField0_ & ~0x00000020);
-      managedOrganizationCount_ = 0;
+      childOrgCount_ = 0;
       onChanged();
       return this;
     }

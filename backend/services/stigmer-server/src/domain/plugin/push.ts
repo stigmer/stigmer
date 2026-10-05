@@ -99,7 +99,10 @@ import {
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { ARTIFACT_BYTES_KEY } from "../../pipeline/steps/resolve-artifact-source.js";
 import { generateSlug } from "../../pipeline/steps/slug.js";
-import { rejectUnsupportedVisibility } from "../../pipeline/steps/validate-visibility.js";
+import {
+  refuseChildOrgsVisibilityInChild,
+  rejectUnsupportedVisibility,
+} from "../../pipeline/steps/validate-visibility.js";
 import { newArchiveCurrentVersionStep } from "../../pipeline/steps/version-archive.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -516,20 +519,24 @@ export function newPlanMaterializationStep(
  * every planned member kind support: the push chain's counterpart of the
  * ValidateVisibility step on the resource create chains, asked here for
  * the head and for each member kind before anything is written, so a
- * plugin cannot be installed at a level one of its members may not hold.
+ * plugin cannot be installed at a level one of its members may not hold,
+ * nor shared with child organizations from an organization that is a child.
  * Each member's own chain checks again in-process; refusing here keeps the
  * head from being written before the answer is known.
  */
-export function newGuardPluginVisibilityStep(): PipelineStep<PushDesc> {
+export function newGuardPluginVisibilityStep(
+  store: Store,
+): PipelineStep<PushDesc> {
   return {
     name: "GuardPluginVisibility",
-    execute(ctx: RequestContext<PushDesc>): void {
+    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
       const level = requestedVisibility(ctx);
       const plan = ctx.get(PLUGIN_PLAN_KEY) as MaterializationPlan;
       rejectUnsupportedVisibility(ctx.apiResourceKind, level);
       for (const kind of new Set(plan.members.map((member) => member.kind))) {
         rejectUnsupportedVisibility(kind, level);
       }
+      await refuseChildOrgsVisibilityInChild(store, ctx.input.org, level);
     },
   };
 }

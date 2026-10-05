@@ -134,7 +134,7 @@ export function buildAutoCreateSessionSpec(
  * Auto-creates the session when session_id is absent: forwards the
  * caller's session_spec (its agent_ref included; none is the built-in
  * assistant), owns the session under the CALLER's org (never the agent's —
- * a platform-visible agent of another organization stays usable), points
+ * an agent the organization's parent shares with its children stays usable), points
  * the execution at the created id in place of the embedded spec (the
  * Session resource is the single source of truth; the persisted execution
  * never carries a second copy that could drift), and re-takes the turn's

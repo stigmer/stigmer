@@ -2,13 +2,10 @@
 
 import { useCallback } from "react";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import {
-  ApiResourceKind,
-  useDeploymentMode,
-  useResourceAvailable,
-} from "../deployment-mode.js";
+import { useDeploymentMode } from "../deployment-mode.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
-import { useSsoProvider } from "../identity-provider/useSsoProvider.js";
+import { useOrganization } from "../organization/useOrganization.js";
+import { useSingleOrg } from "../server-info.js";
 import { VisibilityBadge, VisibilitySelector } from "./VisibilitySelector.js";
 import {
   blueprintVisibilityLevels,
@@ -49,9 +46,9 @@ export interface ResourceVisibilityControlProps {
   /** Current visibility of the resource. */
   readonly visibility: ApiResourceVisibility;
   /**
-   * Slug of the organization that OWNS the resource (`metadata.org`).
-   * Used to look up whether the org operates an IdentityProvider, which
-   * gates the Platform option for blueprints. When omitted, Platform is
+   * The organization that OWNS the resource (`metadata.org`). Read to learn
+   * whether it is itself a child organization, which gates the Child
+   * organizations option for blueprints. When omitted, that option is
    * simply not offered (the other levels need no org context).
    */
   readonly org?: string;
@@ -80,21 +77,19 @@ export interface ResourceVisibilityControlProps {
  *
  * Offered levels are kind- and context-aware (`visibilityLevels.ts`):
  * - Blueprints (agent/workflow/skill/mcp_server/plugin): Private /
- *   Organization, plus Platform when the owning org operates an
- *   IdentityProvider (checked via {@link useSsoProvider}, the only
- *   permission-free IdP lookup — blueprint owners editing visibility are
- *   not necessarily org admins). The lookup runs only where the edition
- *   serves the IdentityProvider kind at all, asked of the kind registry
- *   rather than of the deployment mode, so a new edition answers by its
- *   tier table.
- * - Instances: Private / Organization — platform is excluded by design to
- *   preserve tenant isolation.
+ *   Organization, plus Child organizations when the server holds more than
+ *   one organization ({@link useSingleOrg}) and the owning organization is
+ *   not itself a child (its `spec.parent_org`, read with
+ *   {@link useOrganization}; anyone who may change a blueprint's audience
+ *   holds a role in its organization, so the read succeeds).
+ * - Instances: Private / Organization — child organizations are excluded
+ *   by design to preserve tenant isolation.
  * - Environments: Private / Organization only — secret values never leave
  *   the org boundary. In `local` mode there are no levels to choose (the
  *   open-source edition is single-user), so the control degrades to a badge.
  *
- * The backend remains the enforcer (`ValidateVisibilityStep` rejects
- * platform without an IdP and refuses the retired public level for every
+ * The backend remains the enforcer (it refuses child organizations in an
+ * organization that is a child, and the retired public level for every
  * kind); the gates here only prevent offering an option that is guaranteed
  * to fail.
  */
@@ -108,27 +103,24 @@ export function ResourceVisibilityControl({
 }: ResourceVisibilityControlProps) {
   const { updateVisibility, isPending } = useUpdateVisibility(kind, resourceId);
   const deploymentMode = useDeploymentMode();
-  const servesIdentityProviders = useResourceAvailable(
-    ApiResourceKind.identity_provider,
-  );
+  const singleOrg = useSingleOrg();
 
   const isInstance = INSTANCE_KINDS.has(kind);
   const isEnvironment = kind === "environment";
-  // Only a blueprint can take the platform level, and only an edition that
-  // serves IdentityProvider resources can have one to look up. Passing null
-  // makes the hook a stable no-op everywhere else.
-  const idpLookupOrg =
-    !isInstance && !isEnvironment && servesIdentityProviders
-      ? (org ?? null)
-      : null;
-  const { ssoProvider } = useSsoProvider(idpLookupOrg);
+  // Only a blueprint can take the child-organizations level, and only a
+  // server that holds more than one organization can have children.
+  // Passing null makes the hook a stable no-op everywhere else.
+  const ownerLookupOrg =
+    !isInstance && !isEnvironment && singleOrg === false ? (org ?? null) : null;
+  const { organization: owner } = useOrganization(ownerLookupOrg);
 
   const options = isEnvironment
     ? environmentVisibilityLevels(deploymentMode)
     : isInstance
       ? instanceVisibilityLevels()
       : blueprintVisibilityLevels({
-          hasIdentityProvider: ssoProvider !== null,
+          offersChildOrgs:
+            owner !== null && (owner.spec?.parentOrg ?? "") === "",
         });
 
   const handleChange = useCallback(

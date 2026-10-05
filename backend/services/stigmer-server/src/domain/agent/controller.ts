@@ -114,6 +114,8 @@ import {
   versionHistoryTarget,
 } from "../../pipeline/steps/version-history.js";
 import {
+  newRefuseChildOrgsVisibilityInChildStep,
+  newRefuseChildOrgsVisibilityInChildUpdateStep,
   newValidateVisibilityStep,
   newValidateVisibilityUpdateStep,
 } from "../../pipeline/steps/validate-visibility.js";
@@ -197,6 +199,7 @@ async function createAgent(
     )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
+    .addStep(newRefuseChildOrgsVisibilityInChildStep(deps.store))
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
@@ -400,6 +403,7 @@ async function updateVisibility(
     )
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_AGENT_KEY))
     .addStep(newValidateVisibilityUpdateStep())
+    .addStep(newRefuseChildOrgsVisibilityInChildUpdateStep(deps.store, UPDATE_VISIBILITY_AGENT_KEY))
     // The reference floor's second door: an agent may not be raised above
     // the skills and MCP servers it runs with.
     .addStep(

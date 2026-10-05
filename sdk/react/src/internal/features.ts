@@ -37,9 +37,9 @@ export const FEATURE_COPY: Readonly<
     label: "Teams",
     description: "Group members into teams and grant access to a team at once.",
   },
-  [Feature.managed_organizations]: {
-    label: "Managed organizations",
-    description: "Run organizations for your own customers under your identity provider.",
+  [Feature.child_orgs]: {
+    label: "Child organizations",
+    description: "Create organizations for your own customers under this one.",
   },
 };
 

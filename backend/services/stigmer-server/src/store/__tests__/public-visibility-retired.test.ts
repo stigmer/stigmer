@@ -104,7 +104,7 @@ describe("movePublicRowToOrg", () => {
       ApiResourceVisibility.api_resource_visibility_unspecified,
       ApiResourceVisibility.visibility_private,
       ApiResourceVisibility.visibility_org,
-      ApiResourceVisibility.visibility_platform,
+      ApiResourceVisibility.visibility_child_orgs,
     ]) {
       expect(movePublicRowToOrg(AGENT, agentBytes(level))).toBeUndefined();
     }

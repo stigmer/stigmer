@@ -101,7 +101,7 @@ type IdentityProviderInput struct {
 	UserinfoEndpoint       string
 	IsSsoProvider          bool
 	OidcClientId           string
-	TenantOrgClaim         string
+	ExternalIdClaim        string
 	CreateAccountsOnSignIn bool
 	SignInRole             iamv1.IamRole
 }
@@ -127,7 +127,7 @@ func (i *IdentityProviderInput) toProto() (*identityproviderv1.IdentityProvider,
 	resource.Spec.UserinfoEndpoint = i.UserinfoEndpoint
 	resource.Spec.IsSsoProvider = i.IsSsoProvider
 	resource.Spec.OidcClientId = i.OidcClientId
-	resource.Spec.TenantOrgClaim = i.TenantOrgClaim
+	resource.Spec.ExternalIdClaim = i.ExternalIdClaim
 	resource.Spec.CreateAccountsOnSignIn = i.CreateAccountsOnSignIn
 	resource.Spec.SignInRole = i.SignInRole
 	return resource, nil
@@ -155,7 +155,7 @@ func IdentityProviderInputFromProto(p *identityproviderv1.IdentityProvider) *Ide
 		input.UserinfoEndpoint = s.GetUserinfoEndpoint()
 		input.IsSsoProvider = s.GetIsSsoProvider()
 		input.OidcClientId = s.GetOidcClientId()
-		input.TenantOrgClaim = s.GetTenantOrgClaim()
+		input.ExternalIdClaim = s.GetExternalIdClaim()
 		input.CreateAccountsOnSignIn = s.GetCreateAccountsOnSignIn()
 		input.SignInRole = s.GetSignInRole()
 	}

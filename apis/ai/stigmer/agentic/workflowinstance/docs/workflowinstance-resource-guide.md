@@ -51,7 +51,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.name` | Canonical display name. Set by the author. Used in the UI and CLI listings. |
 | `metadata.slug` | URL-friendly identifier, unique within the organization. Derived from `metadata.name` if not explicitly set. Reference format: `org/slug` (e.g., `acme-corp/prod-deploy`). |
 | `metadata.org` | Organization that owns this instance. Provided via `--org` flag or CLI context. Every instance belongs to exactly one organization. |
-| `metadata.visibility` | Access control. `visibility_private` (default): the creator and anyone granted access directly. `visibility_org`: every member of the owning organization can run it and see its executions. Instances never take the platform level — each managed organization instantiates a shared blueprint inside its own boundary. |
+| `metadata.visibility` | Access control. `visibility_private` (default): the creator and anyone granted access directly. `visibility_org`: every member of the owning organization can run it and see its executions. Instances never take the child-organizations level — each child organization instantiates a shared blueprint inside its own boundary. |
 | `metadata.labels` | Key-value pairs for organization and filtering. |
 | `metadata.tags` | String array for categorization and discoverability. |
 

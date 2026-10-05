@@ -62,7 +62,7 @@ export const WorkflowInstanceCommandController: GenService<{
    *
    * Changes who can view this instance and its executions. Supports PRIVATE
    * (owner only) and ORG (all org members); instances never take the
-   * platform level (tenant isolation).
+   * child-organizations level (tenant isolation).
    *
    * For workflow instances, visibility has cascading effects on execution
    * observability: workflow executions inherit visibility from their parent

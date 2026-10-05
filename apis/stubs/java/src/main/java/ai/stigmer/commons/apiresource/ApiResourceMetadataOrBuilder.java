@@ -157,8 +157,8 @@ public interface ApiResourceMetadataOrBuilder extends
    * Visibility controls who can read this resource.
    * - PRIVATE: the owner and explicit grants.
    * - ORG: every member of the owning organization.
-   * - PLATFORM: members of the organizations linked by the owning
-   * organization's identity provider (blueprint kinds only).
+   * - CHILD_ORGS: everyone in the owning organization's child
+   * organizations (blueprint kinds only).
    * Write access always requires membership of the owning organization.
    * Default: config-driven per kind — blueprint kinds (marked
    * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
@@ -181,8 +181,8 @@ public interface ApiResourceMetadataOrBuilder extends
    * Visibility controls who can read this resource.
    * - PRIVATE: the owner and explicit grants.
    * - ORG: every member of the owning organization.
-   * - PLATFORM: members of the organizations linked by the owning
-   * organization's identity provider (blueprint kinds only).
+   * - CHILD_ORGS: everyone in the owning organization's child
+   * organizations (blueprint kinds only).
    * Write access always requires membership of the owning organization.
    * Default: config-driven per kind — blueprint kinds (marked
    * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.

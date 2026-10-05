@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package ai.stigmer.tenancy.organization.v1;
 
-import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/tenancy/organization/v1/api.proto";
 import "buf/validate/validate.proto";
 
@@ -29,12 +28,48 @@ message OrganizationId {
   }];
 }
 
-// Input for looking up a platform-managed organization by its external platform coordinates.
-// Used by integrating platforms to find the Stigmer organization mapped to their own org.
+// Input for finding a child organization by the identifier its parent keeps
+// for it.
 message OrganizationExternalLookup {
-  // Reference to the IdentityProvider (org + slug) that manages this organization.
-  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [(buf.validate.field).required = true];
+  // 1 was identity_provider_ref: a child is found under its parent
+  // organization now, not under an identity provider.
+  reserved 1;
+  reserved "identity_provider_ref";
 
-  // The external platform's organization identifier.
-  string external_org_id = 2 [(buf.validate.field).string.min_len = 1];
+  // The child's external_id: the parent's own identifier for it.
+  string external_id = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 256
+  }];
+
+  // The parent organization, by id or slug.
+  string parent_org = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 64
+  }];
+}
+
+// Input for listing an organization's child organizations, newest first.
+message ListChildOrgsInput {
+  // The parent organization, by id or slug.
+  string org = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 64
+  }];
+
+  // The most children to return; 0 returns every child and no token. A
+  // positive size is capped at 100.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+}
+
+// One page of an organization's child organizations.
+message ChildOrgList {
+  // The children in this page, newest first.
+  repeated Organization entries = 1;
+
+  // Set when more children may follow: pass it as page_token to continue.
+  string next_page_token = 2;
 }

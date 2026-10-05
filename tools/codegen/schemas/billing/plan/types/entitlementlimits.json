@@ -11,7 +11,7 @@
       "type": {
         "kind": "int32"
       },
-      "description": "The most organizations the customer may hold at once. Read by a license\n (an Enterprise deployment counts its organizations against it) and by\n a subscription (a Business plan counts the managed organizations it\n includes).",
+      "description": "The most organizations the customer may hold at once. Read by a license\n (an Enterprise deployment counts its organizations against it) and by\n a subscription (a Business plan counts the child organizations it\n includes).",
       "required": false,
       "oneofGroup": "_max_orgs"
     },
@@ -27,15 +27,15 @@
       "oneofGroup": "_max_users"
     },
     {
-      "name": "IncludedManagedOrganizations",
-      "jsonName": "includedManagedOrganizations",
-      "protoField": "included_managed_organizations",
+      "name": "IncludedChildOrgs",
+      "jsonName": "includedChildOrgs",
+      "protoField": "included_child_orgs",
       "type": {
         "kind": "int32"
       },
-      "description": "The platform-managed organizations a subscription includes before the\n per-organization fee applies. Read by a subscription only: an\n integrator's plan includes this many managed organizations, and the\n organizations resolve their own entitlements through the integrator's.\n Whether managed organizations are admitted at all is the\n managed_organizations feature, since absent here means \"no limit\" and\n zero is refused. A license ignores it.",
+      "description": "The child organizations a subscription includes before the\n per-organization fee applies. Read by a subscription only: a parent's\n plan includes this many child organizations, and the children resolve\n their own entitlements through the parent's. Whether child\n organizations are admitted at all is the child_orgs feature, since\n absent here means \"no limit\" and zero is refused. A license ignores it.",
       "required": false,
-      "oneofGroup": "_included_managed_organizations"
+      "oneofGroup": "_included_child_orgs"
     },
     {
       "name": "MaxActiveSessionSandboxes",

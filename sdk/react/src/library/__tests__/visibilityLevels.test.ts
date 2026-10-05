@@ -17,10 +17,10 @@ describe("environmentVisibilityLevels", () => {
     ]);
   });
 
-  it("never offers platform — secrets stay inside the org", () => {
+  it("never offers child organizations — secrets stay inside the org", () => {
     for (const mode of ["cloud", "local"] as const) {
       const values = environmentVisibilityLevels(mode).map((l) => l.value);
-      expect(values).not.toContain(ApiResourceVisibility.visibility_platform);
+      expect(values).not.toContain(ApiResourceVisibility.visibility_child_orgs);
     }
   });
 
@@ -44,41 +44,41 @@ describe("environmentVisibilityLevels", () => {
 });
 
 describe("blueprintVisibilityLevels", () => {
-  it("offers Private and Organization when the owning org operates no identity provider", () => {
+  it("offers Private and Organization when child organizations are not offered (a child, or a single-organization server)", () => {
     expect(
-      blueprintVisibilityLevels({ hasIdentityProvider: false }).map((l) => l.value),
+      blueprintVisibilityLevels({ offersChildOrgs: false }).map((l) => l.value),
     ).toEqual([
       ApiResourceVisibility.visibility_private,
       ApiResourceVisibility.visibility_org,
     ]);
   });
 
-  it("adds Platform, and only Platform, when the owning org operates an identity provider", () => {
+  it("adds Child organizations, and only it, when the owning organization may share with children", () => {
     expect(
-      blueprintVisibilityLevels({ hasIdentityProvider: true }).map((l) => l.value),
+      blueprintVisibilityLevels({ offersChildOrgs: true }).map((l) => l.value),
     ).toEqual([
       ApiResourceVisibility.visibility_private,
       ApiResourceVisibility.visibility_org,
-      ApiResourceVisibility.visibility_platform,
+      ApiResourceVisibility.visibility_child_orgs,
     ]);
   });
 
-  it("confirms a Platform escalation with a blocking dialog that names the audience", () => {
-    const platform = blueprintVisibilityLevels({ hasIdentityProvider: true }).find(
-      (l) => l.value === ApiResourceVisibility.visibility_platform,
+  it("confirms a Child organizations escalation with a blocking dialog that names the audience", () => {
+    const childOrgs = blueprintVisibilityLevels({ offersChildOrgs: true }).find(
+      (l) => l.value === ApiResourceVisibility.visibility_child_orgs,
     );
-    expect(platform?.confirmDialog?.description).toContain("Every organization managed by your platform");
+    expect(childOrgs?.confirmDialog?.description).toContain("Everyone in every child organization");
   });
 
   it("locks no level — every offered level is self-service", () => {
-    for (const level of blueprintVisibilityLevels({ hasIdentityProvider: true })) {
+    for (const level of blueprintVisibilityLevels({ offersChildOrgs: true })) {
       expect(level.lockedReason, `${level.label} must stay self-service`).toBeUndefined();
     }
   });
 });
 
 describe("instanceVisibilityLevels", () => {
-  it("offers exactly Private and Organization — instances never take the platform level", () => {
+  it("offers exactly Private and Organization — instances never take the child-organizations level", () => {
     expect(instanceVisibilityLevels().map((l) => l.value)).toEqual([
       ApiResourceVisibility.visibility_private,
       ApiResourceVisibility.visibility_org,
@@ -96,7 +96,7 @@ describe("instanceVisibilityLevels", () => {
 describe("the retired public level", () => {
   it("is offered by no level list", () => {
     const offered = [
-      ...blueprintVisibilityLevels({ hasIdentityProvider: true }),
+      ...blueprintVisibilityLevels({ offersChildOrgs: true }),
       ...instanceVisibilityLevels(),
       ...environmentVisibilityLevels("cloud"),
     ].map((l) => l.value);

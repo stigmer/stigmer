@@ -20,10 +20,12 @@
  * rather than leaving a hole; the tuple source never loads a row for it
  * and the list scope never lists it.
  *
- * The two derived rules, both on the workflow instance: `default_of`, which
- * the workflow's default-instance pointer decides (default-of.ts), and
+ * The derived rules: on the workflow instance, `default_of`, which the
+ * workflow's default-instance pointer decides (default-of.ts), and
  * `execution_viewer`, which its execution visibility decides
- * (execution-viewer.ts).
+ * (execution-viewer.ts); on the organization, `parent_org` and
+ * `child_org`, which a child's `spec.parent_org` decides
+ * (child-organizations.ts).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -55,6 +57,7 @@ import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformcli
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
+import { childOrg, parentOrg } from "./child-organizations.js";
 import { defaultOfBlueprint } from "./default-of.js";
 import { executionViewer } from "./execution-viewer.js";
 import type { DerivedRelation } from "./rewrite.js";
@@ -83,7 +86,13 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.platform_client, { schema: PlatformClientSchema }],
   [ApiResourceKind.invitation, { schema: InvitationSchema }],
   [ApiResourceKind.team, { schema: TeamSchema }],
-  [ApiResourceKind.organization, { schema: OrganizationSchema }],
+  [
+    ApiResourceKind.organization,
+    {
+      schema: OrganizationSchema,
+      derived: { parent_org: parentOrg, child_org: childOrg },
+    },
+  ],
   [ApiResourceKind.agent, { schema: AgentSchema }],
   [ApiResourceKind.agent_channel, { schema: AgentChannelSchema }],
   [ApiResourceKind.agent_share, { schema: AgentShareSchema }],

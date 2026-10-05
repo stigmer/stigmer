@@ -5,7 +5,7 @@ import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
 import { Button } from "../button/index.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import {
-  formatManagedOrganizations,
+  formatChildOrgs,
   formatMonthlyMinimum,
   explainUsageShare,
   offeredFeatures,
@@ -69,7 +69,7 @@ export function PlanPicker({
       />
       {plans.map((plan) => {
         const move = planMove(standing, plan, periodEnd);
-        const managed = formatManagedOrganizations(plan.spec?.entitlements, plan.spec?.terms);
+        const managed = formatChildOrgs(plan.spec?.entitlements, plan.spec?.terms);
         return (
           <PlanOption
             key={plan.metadata?.id ?? plan.metadata?.slug}

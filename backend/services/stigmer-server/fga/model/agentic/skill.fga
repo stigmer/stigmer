@@ -6,8 +6,8 @@ module agentic
 # Knowledge bases (markdown docs) for agents.
 # Every skill belongs to an organization. Visibility is handled entirely
 # through FGA tuples written by VisibilityTupleReconciler, across three
-# levels (private / org / platform) — see agent.fga for the full pattern
-# docs, including the org floor (PLATFORM also carries the org tuple so
+# levels (private / org / child_orgs) — see agent.fga for the full pattern
+# docs, including the org floor (CHILD_ORGS also carries the org tuple so
 # shared skills stay listable in their own org).
 #
 # Authorization model (visibility is REAL — no unconditional org grant):
@@ -20,11 +20,11 @@ module agentic
 # - skill:web-search#organization@organization:stigmer
 # - skill:web-search#owner@identity_account:alice
 # - skill:web-search#viewer@organization:stigmer#viewer (if visibility>=ORG)
-# - skill:web-search#platform_viewer@identity_provider:<idp>#platform_user (if visibility=PLATFORM)
+# - skill:web-search#child_org_viewer@organization:<org>#child_org_viewer (if visibility=CHILD_ORGS)
 #
-# Platform visibility (visibility_platform):
-# - Grants view/use to members of all orgs managed by the owning org's
-#   IdentityProvider (see agent.fga for the full pattern docs). Skills have
+# Child-organization visibility (visibility_child_orgs):
+# - Grants view/use to everyone in the owning organization's child
+#   organizations (see agent.fga for the full pattern docs). Skills have
 #   no can_execute: an agent that uses a skill reads it.
 
 type skill
@@ -43,11 +43,11 @@ type skill
     define owner: ([identity_account] and affiliated from organization) or admin from organization
     
     # ========================================
-    # PLATFORM VISIBILITY (Structural)
+    # CHILD-ORGANIZATION VISIBILITY (Structural)
     # ========================================
-    # Members of all orgs managed by the owning org's IdentityProvider.
-    # FGA tuple: skill:<id>#platform_viewer@identity_provider:<idp_id>#platform_user
-    define platform_viewer: [identity_provider#platform_user]
+    # Everyone in every child organization of the owning organization.
+    # FGA tuple: skill:<id>#child_org_viewer@organization:<org_id>#child_org_viewer
+    define child_org_viewer: [organization#child_org_viewer]
     
     # ========================================
     # VIEWER ACCESS
@@ -57,7 +57,7 @@ type skill
     # satisfy organization#viewer); a narrower role's userset is refused
     # (README, "Shapes to Avoid"). team#member is an Enterprise team's
     # grant: every member, bounded by the organization in team.fga.
-    define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or platform_viewer
+    define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or child_org_viewer
     
     # ========================================
     # PERMISSIONS

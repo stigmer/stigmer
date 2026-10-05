@@ -23,7 +23,7 @@ public final class IdentityProviderInput {
     private final String userinfoEndpoint;
     private final boolean isSsoProvider;
     private final String oidcClientId;
-    private final String tenantOrgClaim;
+    private final String externalIdClaim;
     private final boolean createAccountsOnSignIn;
     private final IamRole signInRole;
 
@@ -41,7 +41,7 @@ public final class IdentityProviderInput {
         this.userinfoEndpoint = builder.userinfoEndpoint;
         this.isSsoProvider = builder.isSsoProvider;
         this.oidcClientId = builder.oidcClientId;
-        this.tenantOrgClaim = builder.tenantOrgClaim;
+        this.externalIdClaim = builder.externalIdClaim;
         this.createAccountsOnSignIn = builder.createAccountsOnSignIn;
         this.signInRole = builder.signInRole;
     }
@@ -67,8 +67,8 @@ public final class IdentityProviderInput {
         if (this.oidcClientId != null) {
             spec.setOidcClientId(this.oidcClientId);
         }
-        if (this.tenantOrgClaim != null) {
-            spec.setTenantOrgClaim(this.tenantOrgClaim);
+        if (this.externalIdClaim != null) {
+            spec.setExternalIdClaim(this.externalIdClaim);
         }
         spec.setCreateAccountsOnSignIn(this.createAccountsOnSignIn);
         if (this.signInRole != null) {
@@ -115,7 +115,7 @@ public final class IdentityProviderInput {
         private String userinfoEndpoint;
         private boolean isSsoProvider;
         private String oidcClientId;
-        private String tenantOrgClaim;
+        private String externalIdClaim;
         private boolean createAccountsOnSignIn;
         private IamRole signInRole;
 
@@ -139,7 +139,7 @@ public final class IdentityProviderInput {
         public Builder userinfoEndpoint(String userinfoEndpoint) { this.userinfoEndpoint = userinfoEndpoint; return this; }
         public Builder isSsoProvider(boolean isSsoProvider) { this.isSsoProvider = isSsoProvider; return this; }
         public Builder oidcClientId(String oidcClientId) { this.oidcClientId = oidcClientId; return this; }
-        public Builder tenantOrgClaim(String tenantOrgClaim) { this.tenantOrgClaim = tenantOrgClaim; return this; }
+        public Builder externalIdClaim(String externalIdClaim) { this.externalIdClaim = externalIdClaim; return this; }
         public Builder createAccountsOnSignIn(boolean createAccountsOnSignIn) { this.createAccountsOnSignIn = createAccountsOnSignIn; return this; }
         public Builder signInRole(IamRole signInRole) { this.signInRole = signInRole; return this; }
 

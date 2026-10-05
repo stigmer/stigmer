@@ -69,7 +69,7 @@ describe("IdentityProviderWizard sign-in settings", () => {
     expect(input.isSsoProvider).toBeUndefined();
     expect(input.createAccountsOnSignIn).toBeUndefined();
     expect(input.signInRole).toBeUndefined();
-    expect(input.tenantOrgClaim).toBeUndefined();
+    expect(input.externalIdClaim).toBeUndefined();
   });
 
   it("an SSO provider sends account creation and the viewer role", async () => {

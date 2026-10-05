@@ -2,7 +2,7 @@
 title: Identity federation
 description:
   Let users access Stigmer with their existing credentials. Choose between
-  automatic JIT provisioning, explicit manual provisioning, or self-managed SSO.
+  automatic JIT provisioning, explicit manual provisioning, or console SSO.
 ---
 
 Identity federation lets users access Stigmer with tokens issued by an external
@@ -20,13 +20,13 @@ Federation supports three provisioning modes:
 - **Manual provisioning** — Your platform backend creates federated accounts and
   grants roles via the API before users can authenticate. Best for platforms
   that need to control exactly who gets access and when.
-- **Self-managed SSO** — Your team members sign in to the Stigmer web console
-  through your Organization's Identity Provider. Accounts are created
-  automatically on first login.
+- **Console SSO** — Your team members sign in to the Stigmer web console through
+  your Organization's Identity Provider. Accounts are created automatically on
+  first login.
 
 Whichever mode you choose, every token an Identity Provider vouches for is bound
 to one Organization and works there only: the Identity Provider's own
-Organization, or the tenant Organization a `tenantOrgClaim` claim names.
+Organization, or the child organization an `externalIdClaim` claim names.
 
 ## When you need this
 
@@ -53,7 +53,7 @@ credentials needed.
 
 |                      | JIT (automatic)                               | Manual (explicit)                              | SSO                                  |
 | -------------------- | --------------------------------------------- | ---------------------------------------------- | ------------------------------------ |
-| **Who it's for**     | Platform API integrations                     | Platform API integrations                      | Self-managed Organizations           |
+| **Who it's for**     | Platform API integrations                     | Platform API integrations                      | Your own team                        |
 | **Account creation** | Automatic on first JWT                        | Your backend calls `createFederatedAccount`    | Automatic on first web login         |
 | **Role assignment**  | Automatic (`signInRole`)                      | Your backend creates IAM Policies              | Automatic (`signInRole`)             |
 | **Setup steps**      | Register IdP with JIT enabled                 | Register IdP, provision accounts, grant access | Register IdP with SSO enabled        |
@@ -103,7 +103,7 @@ provisioning**, your backend only registers the Identity Provider (step
 
 Before starting, you need:
 
-- A **Stigmer Organization** (either self-managed or platform-managed)
+- A **Stigmer Organization**
 - An **API key** with admin access to that Organization
 - An **OIDC-compatible auth provider** with:
   - A JWKS endpoint URL (typically `https://your-domain/.well-known/jwks.json`)
@@ -152,37 +152,38 @@ All integration paths start with step 1. If you enable JIT provisioning in step
   automatically. Skip steps 2 and 3 and go straight to step 4.
 </Callout>
 
-## Self-managed SSO
+## Console SSO
 
-If your Organization is self-managed and you want team members to sign in to the
-Stigmer web console through your own Identity Provider, you can enable SSO.
-Stigmer creates accounts automatically on first login and grants the sign-in
-role you choose, `viewer` by default in the console.
+If you want your team members to sign in to the Stigmer web console through your
+own Identity Provider, you can enable SSO. Stigmer creates accounts
+automatically on first login and grants the sign-in role you choose, `viewer` by
+default in the console.
 
 <Cards>
   <Card
     href="/docs/guides/authentication/federation/sso-login"
     title="Set up SSO"
   >
-    Enable SSO login for a self-managed Organization so team members sign in
-    through your Identity Provider.
+    Enable SSO login for your Organization so team members sign in through your
+    Identity Provider.
   </Card>
 </Cards>
 
-## Multi-tenant platforms
+## Child organizations
 
 The steps above cover federation for a single Organization. If your platform
 serves multiple customers and each customer needs isolated resources, you create
-a separate Organization per tenant. With `tenantOrgClaim`, each token names its
-tenant Organization in a JWT claim and works in that tenant only.
+a child organization per customer under your own. With `externalIdClaim`, each
+token names its child organization, by your customer id, in a JWT claim and
+works in that child only.
 
 <Cards>
   <Card
-    href="/docs/guides/authentication/federation/multi-tenant-setup"
-    title="Multi-tenant platform setup"
+    href="/docs/guides/authentication/federation/child-organizations"
+    title="Child organizations"
   >
-    Create platform-managed Organizations to give each of your customers
-    isolated Agents, Skills, and Sessions. Includes JIT provisioning with
-    automatic tenant routing.
+    Create a child organization for each of your customers, manage it from your
+    Organization without reading what it holds, and route your customers'
+    sign-ins to it.
   </Card>
 </Cards>

@@ -56,7 +56,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter, 1–63 characters. This is what agents use in `mcp_server_ref.slug`. |
 | `metadata.id` | No | System-generated unique identifier. Never set by users. |
 | `metadata.org` | Recommended | Organization that owns this McpServer. Set automatically from `context.org` if omitted during apply. |
-| `metadata.visibility` | No | `visibility_org` (default): every member of the owning organization can read and use it. `visibility_private`: the creator and anyone granted access directly. `visibility_platform`: every organization the owning organization manages through its identity provider. Write access always requires org membership; an agent may not be more visible than the servers it references. |
+| `metadata.visibility` | No | `visibility_org` (default): every member of the owning organization can read and use it. `visibility_private`: the creator and anyone granted access directly. `visibility_child_orgs`: everyone in the owning organization's child organizations. Write access always requires org membership; an agent may not be more visible than the servers it references. |
 | `metadata.labels` | No | Key-value pairs for filtering and organization (e.g., `category: vcs`). |
 | `metadata.annotations` | No | Key-value pairs for additional metadata not used for filtering (e.g., `docs-url: "https://..."`). |
 | `metadata.tags` | No | String array for categorization and search. |
@@ -81,7 +81,7 @@ metadata:
 metadata:
   name: tenant-directory
   org: acme-cloud
-  visibility: visibility_platform
+  visibility: visibility_child_orgs
 ```
 
 ### Canonical Reference Format

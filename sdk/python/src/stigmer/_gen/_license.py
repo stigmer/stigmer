@@ -138,7 +138,7 @@ class EntitlementLimitsInput:
 
     max_orgs: int | None = None
     max_users: int | None = None
-    included_managed_organizations: int | None = None
+    included_child_orgs: int | None = None
     max_active_session_sandboxes: int | None = None
     max_active_workflow_sandboxes: int | None = None
     archived_workspace_retention_days: int | None = None
@@ -149,8 +149,8 @@ class EntitlementLimitsInput:
             msg.max_orgs = self.max_orgs
         if self.max_users is not None:
             msg.max_users = self.max_users
-        if self.included_managed_organizations is not None:
-            msg.included_managed_organizations = self.included_managed_organizations
+        if self.included_child_orgs is not None:
+            msg.included_child_orgs = self.included_child_orgs
         if self.max_active_session_sandboxes is not None:
             msg.max_active_session_sandboxes = self.max_active_session_sandboxes
         if self.max_active_workflow_sandboxes is not None:

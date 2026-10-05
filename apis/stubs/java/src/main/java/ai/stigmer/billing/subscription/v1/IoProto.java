@@ -89,30 +89,30 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "g\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\037\n\007plan_id\030\002 \001(\tB\006\272" +
       "H\003\310\001\001R\006planId\"3\n\027CancelSubscriptionInput" +
       "\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\"2\n\026GetPeriodE" +
-      "stimateInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\"\304" +
+      "stimateInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\"\256" +
       "\003\n\016PeriodEstimate\022\027\n\007plan_id\030\001 \001(\tR\006plan" +
       "Id\022=\n\014period_start\030\002 \001(\0132\032.google.protob" +
       "uf.TimestampR\013periodStart\0229\n\nperiod_end\030" +
       "\003 \001(\0132\032.google.protobuf.TimestampR\tperio" +
       "dEnd\0220\n\024provider_cost_micros\030\004 \001(\003R\022prov" +
       "iderCostMicros\022>\n\033commission_collected_m" +
-      "icros\030\005 \001(\003R\031commissionCollectedMicros\022<" +
-      "\n\032managed_organization_count\030\006 \001(\005R\030mana" +
-      "gedOrganizationCount\022L\n\005lines\030\007 \003(\01326.ai" +
-      ".stigmer.billing.subscription.v1.PeriodE" +
-      "stimateLineR\005lines\022!\n\014total_micros\030\010 \001(\003" +
-      "R\013totalMicros\"\211\001\n\022PeriodEstimateLine\022N\n\004" +
-      "kind\030\001 \001(\0162:.ai.stigmer.billing.subscrip" +
-      "tion.v1.PeriodEstimateLineKindR\004kind\022#\n\r" +
-      "amount_micros\030\002 \001(\003R\014amountMicros*\177\n\026Per" +
-      "iodEstimateLineKind\022)\n%period_estimate_l" +
-      "ine_kind_unspecified\020\000\022\010\n\004plan\020\001\022\025\n\021comm" +
-      "ission_credit\020\002\022\031\n\025managed_organizations" +
-      "\020\003B\266\001B\007IoProtoP\001\242\002\004ASBS\252\002\"Ai.Stigmer.Bil" +
-      "ling.Subscription.V1\312\002\"Ai\\Stigmer\\Billin" +
-      "g\\Subscription\\V1\342\002.Ai\\Stigmer\\Billing\\S" +
-      "ubscription\\V1\\GPBMetadata\352\002&Ai::Stigmer" +
-      "::Billing::Subscription::V1b\006proto3"
+      "icros\030\005 \001(\003R\031commissionCollectedMicros\022&" +
+      "\n\017child_org_count\030\006 \001(\005R\rchildOrgCount\022L" +
+      "\n\005lines\030\007 \003(\01326.ai.stigmer.billing.subsc" +
+      "ription.v1.PeriodEstimateLineR\005lines\022!\n\014" +
+      "total_micros\030\010 \001(\003R\013totalMicros\"\211\001\n\022Peri" +
+      "odEstimateLine\022N\n\004kind\030\001 \001(\0162:.ai.stigme" +
+      "r.billing.subscription.v1.PeriodEstimate" +
+      "LineKindR\004kind\022#\n\ramount_micros\030\002 \001(\003R\014a" +
+      "mountMicros*t\n\026PeriodEstimateLineKind\022)\n" +
+      "%period_estimate_line_kind_unspecified\020\000" +
+      "\022\010\n\004plan\020\001\022\025\n\021commission_credit\020\002\022\016\n\nchi" +
+      "ld_orgs\020\003B\266\001B\007IoProtoP\001\242\002\004ASBS\252\002\"Ai.Stig" +
+      "mer.Billing.Subscription.V1\312\002\"Ai\\Stigmer" +
+      "\\Billing\\Subscription\\V1\342\002.Ai\\Stigmer\\Bi" +
+      "lling\\Subscription\\V1\\GPBMetadata\352\002&Ai::" +
+      "Stigmer::Billing::Subscription::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -162,7 +162,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimate_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimate_descriptor,
-        new java.lang.String[] { "PlanId", "PeriodStart", "PeriodEnd", "ProviderCostMicros", "CommissionCollectedMicros", "ManagedOrganizationCount", "Lines", "TotalMicros", });
+        new java.lang.String[] { "PlanId", "PeriodStart", "PeriodEnd", "ProviderCostMicros", "CommissionCollectedMicros", "ChildOrgCount", "Lines", "TotalMicros", });
     internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimateLine_descriptor =
       getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimateLine_fieldAccessorTable = new

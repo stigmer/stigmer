@@ -8,7 +8,7 @@
 #   ORG       viewer@organization:<org>#viewer   (the org's FULL read audience —
 #             every role satisfies organization#viewer, including read-only
 #             viewers; a narrower role's userset is a shape the model refuses)
-#   PLATFORM  platform_viewer@identity_provider:<idp>#platform_user  +  the ORG tuple
+#   CHILD_ORGS child_org_viewer@organization:<org>#child_org_viewer  +  the ORG tuple
 #
 # Read vs spend: an org viewer-role user READS org-visible blueprints (and, at
 # the model level, satisfies can_execute — run-what-you-can-read), but every
@@ -16,7 +16,7 @@
 # can_create_execution_in permissions, which require member-or-guest. The
 # vera assertions pin both halves of that contract.
 #
-# The ORG tuple rides along on PLATFORM (the "org floor") so a shared
+# The ORG tuple rides along on CHILD_ORGS (the "org floor") so a shared
 # blueprint stays listable in its own org.
 #
 # Admin exception (since 2026-07-13): org ADMINS (and org owners, via the

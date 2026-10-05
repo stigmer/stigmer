@@ -15,7 +15,8 @@
  * may found one), so it is also where a credential limited to one
  * organization is refused (RefuseBoundCredential): such a credential works
  * in its organization only and never founds another
- * (authorization/credential-binding.ts).
+ * (authorization/credential-binding.ts), except a child of that
+ * organization, which its managers create (children.ts).
  *
  * The delete revokes the organization's policy rows BEFORE its row is
  * deleted, and fails the delete when it cannot, so nothing that grants on
@@ -25,8 +26,8 @@
  * __tests__/organization.test.ts and __tests__/organization-delete.test.ts.
  */
 import type { OrganizationNameResolver } from "../../pipeline/interceptors/organization-names.js";
-import { create } from "@bufbuild/protobuf";
-import type { DescMessage } from "@bufbuild/protobuf";
+import { create, isMessage } from "@bufbuild/protobuf";
+import type { DescMessage, Message } from "@bufbuild/protobuf";
 
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -93,13 +94,16 @@ export function newCheckOrgDuplicateStep(
 
 /** Organization create's refusal of a credential limited to one organization. */
 export const BOUND_CREDENTIAL_CREATES_NO_ORGANIZATION_MESSAGE =
-  "this credential is limited to one organization and cannot create another; sign in as yourself to create an organization";
+  "this credential is limited to one organization and cannot create another, except a child of that organization; sign in as yourself to create an organization";
 
 /**
  * Refuses organization create for a caller whose credential is bound to
  * one organization (a limited API key, a PlatformClient user token, a
- * composition's bound lane). Runs first after the Authorize step, before
- * anything reads the request.
+ * composition's bound lane), unless the request creates a child of that
+ * very organization (`spec.parent_org`, which the edge resolver has turned
+ * into an id): managing an organization's children is managing the
+ * organization, and ValidateChildOrganization still asks
+ * `can_manage_child_orgs` on it. Runs first after the Authorize step.
  */
 export function newRefuseBoundCredentialStep<
   Desc extends DescMessage,
@@ -107,7 +111,8 @@ export function newRefuseBoundCredentialStep<
   return {
     name: "RefuseBoundCredential",
     execute(ctx: RequestContext<Desc>): void {
-      if (boundOrgOf(ctx.callerIdentity) !== undefined) {
+      const bound = boundOrgOf(ctx.callerIdentity);
+      if (bound !== undefined && parentOrgRequested(ctx.input) !== bound) {
         throw new ConnectError(
           BOUND_CREDENTIAL_CREATES_NO_ORGANIZATION_MESSAGE,
           Code.PermissionDenied,
@@ -115,6 +120,13 @@ export function newRefuseBoundCredentialStep<
       }
     },
   };
+}
+
+/** The `spec.parent_org` an organization request names; "" for any other message. */
+function parentOrgRequested(input: Message): string {
+  return isMessage(input, OrganizationSchema)
+    ? (input.spec?.parentOrg ?? "")
+    : "";
 }
 
 /**

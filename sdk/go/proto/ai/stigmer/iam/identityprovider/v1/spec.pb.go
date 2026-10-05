@@ -33,7 +33,7 @@ const (
 // this provider's reference.
 //
 // Every token this provider vouches for is bound to one organization: the
-// organization tenant_org_claim names when it is set, otherwise the
+// child organization external_id_claim names when it is set, otherwise the
 // provider's own. A bound token works in that organization only.
 //
 // Two settings control what happens when someone signs in:
@@ -102,7 +102,7 @@ const (
 //	  userinfo_endpoint: "https://auth.saas.co/userinfo"
 //	  create_accounts_on_sign_in: true
 //	  sign_in_role: member
-//	  tenant_org_claim: "org_id"
+//	  external_id_claim: "org_id"
 //
 // Example YAML (self-managed SSO):
 //
@@ -194,8 +194,8 @@ type IdentityProviderSpec struct {
 	//
 	// Constraints:
 	//   - At most one IdentityProvider per organization can be the SSO provider.
-	//   - An IdP used for platform-managed organization delegation cannot also
-	//     serve as an SSO provider (different trust models).
+	//   - An SSO provider cannot set external_id_claim (different trust
+	//     models: SSO signs people in to the provider's own organization).
 	IsSsoProvider bool `protobuf:"varint,7,opt,name=is_sso_provider,json=isSsoProvider,proto3" json:"is_sso_provider,omitempty"`
 	// OIDC client identifier for browser-based SSO login.
 	//
@@ -209,32 +209,34 @@ type IdentityProviderSpec struct {
 	//
 	// Required when is_sso_provider is true; must be empty otherwise.
 	OidcClientId string `protobuf:"bytes,8,opt,name=oidc_client_id,json=oidcClientId,proto3" json:"oidc_client_id,omitempty"`
-	// Name of the JWT claim that names the organization a token works in.
+	// Name of the JWT claim that names the child organization a token works
+	// in, by the identifier the provider's organization keeps for it.
 	//
 	// When set, Stigmer reads this claim from every token the provider vouches
-	// for and resolves it to a platform-managed organization:
+	// for and resolves it to one of the provider organization's children:
 	//
 	//  1. Read the claim value from the JWT (e.g., claim "org_id" yields
-	//     value "tenant-123").
-	//  2. Look up the platform-managed organization where
-	//     identity_provider_ref matches this IdP and external_org_id matches
-	//     the claim value.
+	//     value "cust-4411").
+	//  2. Find the child organization whose parent_org is the provider's
+	//     organization and whose external_id is the claim value.
 	//  3. Bind the token to that organization: it works there and nowhere
 	//     else, whatever roles the person holds in other organizations.
 	//
 	// When empty, every token is bound to the provider's own organization.
 	//
-	// The platform pre-creates its tenant organizations with their
-	// external_org_id mappings. The first time an account signs in to a tenant,
-	// it receives sign_in_role there when one is set; a role an admin later
-	// removes stays removed.
+	// The parent creates its child organizations with their external_id
+	// first. The first time an account signs in to a child, it receives
+	// sign_in_role there when one is set; a role an admin later removes stays
+	// removed.
 	//
 	// The claim name is case-sensitive and must match the JWT payload key
 	// exactly. A token that lacks the claim, carries a value that is not a
-	// string, or names no known platform-managed organization is refused as
-	// unauthenticated on every sign-in, returning or first; the refusal does not
-	// name the tenant. A first sign-in refused this way leaves no account.
-	TenantOrgClaim string `protobuf:"bytes,12,opt,name=tenant_org_claim,json=tenantOrgClaim,proto3" json:"tenant_org_claim,omitempty"`
+	// string, or names no child of the provider's organization is refused as
+	// unauthenticated on every sign-in, returning or first; the refusal does
+	// not name the value. A first sign-in refused this way leaves no account.
+	// A provider in a child organization cannot set it: a child has no
+	// children.
+	ExternalIdClaim string `protobuf:"bytes,12,opt,name=external_id_claim,json=externalIdClaim,proto3" json:"external_id_claim,omitempty"`
 	// Whether Stigmer creates a federated identity account the first time a
 	// valid token arrives for a sub claim it has no account for.
 	//
@@ -248,7 +250,7 @@ type IdentityProviderSpec struct {
 	CreateAccountsOnSignIn bool `protobuf:"varint,13,opt,name=create_accounts_on_sign_in,json=createAccountsOnSignIn,proto3" json:"create_accounts_on_sign_in,omitempty"`
 	// The role an account receives the first time it signs in to an
 	// organization through this provider: the organization its token is bound
-	// to (tenant_org_claim's, or the provider's own).
+	// to (external_id_claim's, or the provider's own).
 	//
 	// Granted once per account and organization. A role an admin later removes
 	// is not granted again, and changing this setting does not reach accounts
@@ -340,9 +342,9 @@ func (x *IdentityProviderSpec) GetOidcClientId() string {
 	return ""
 }
 
-func (x *IdentityProviderSpec) GetTenantOrgClaim() string {
+func (x *IdentityProviderSpec) GetExternalIdClaim() string {
 	if x != nil {
-		return x.TenantOrgClaim
+		return x.ExternalIdClaim
 	}
 	return ""
 }
@@ -365,7 +367,7 @@ var File_ai_stigmer_iam_identityprovider_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x9e\t\n" +
+	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xa0\t\n" +
 	"\x14IdentityProviderSpec\x12+\n" +
 	"\fdisplay_name\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\x01R\vdisplayName\x12#\n" +
 	"\bjwks_uri\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\ajwksUri\x12:\n" +
@@ -375,8 +377,8 @@ const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\xbaH\ar\x05\x10\x01\x18\xc8\x01R\x10expectedAudience\x125\n" +
 	"\x11userinfo_endpoint\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x10userinfoEndpoint\x12&\n" +
 	"\x0fis_sso_provider\x18\a \x01(\bR\risSsoProvider\x12.\n" +
-	"\x0eoidc_client_id\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\foidcClientId\x122\n" +
-	"\x10tenant_org_claim\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x0etenantOrgClaim\x12:\n" +
+	"\x0eoidc_client_id\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\foidcClientId\x124\n" +
+	"\x11external_id_claim\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x0fexternalIdClaim\x12:\n" +
 	"\x1acreate_accounts_on_sign_in\x18\r \x01(\bR\x16createAccountsOnSignIn\x12<\n" +
 	"\fsign_in_role\x18\x0e \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\n" +
 	"signInRole:\x99\x04\xbaH\x95\x04\x1a\x94\x01\n" +

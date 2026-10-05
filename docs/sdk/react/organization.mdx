@@ -74,6 +74,48 @@ useEffect(() => {
 ```
 
 
+### useChildOrganizations
+
+Data hook that pages an organization's child organizations through
+`OrganizationQueryController.listChildOrgs`, newest first.
+
+The server answers only a caller who may manage the organization's
+children (`can_manage_child_orgs`, its admins); gate the hook on that
+permission and pass `null` otherwise, which keeps it idle.
+
+**Signature**
+
+```tsx
+function useChildOrganizations(org: string | null, options: UseChildOrganizationsOptions): UseChildOrganizationsReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "", required: true },
+    options: { type: "UseChildOrganizationsOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseChildOrganizationsReturn`
+
+<TypeTable
+  type={{
+    children: { type: "readonly Organization[]", description: "The organization's children, newest first: the first page, then every page loaded since." },
+    error: { type: "Error | null", description: "Error from the last failed first-page read, or `null`." },
+    hasMore: { type: "boolean", description: "`true` while more children exist beyond what is loaded." },
+    isLoading: { type: "boolean", description: "`true` only during the first load." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` page is in flight." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
+    refetch: { type: "() => void", description: "Re-read the first page." },
+  }}
+/>
+
+```tsx
+const { children, hasMore, loadMore } = useChildOrganizations(orgId);
+```
+
+
 ### useCreateOrganization
 
 Behavior hook that wraps `organization.create()` with loading/error
@@ -377,6 +419,33 @@ refetch(); // refresh profile view
 
 ## Components
 
+### ChildOrganizationsList
+
+Read-only list of an organization's child organizations: each child's
+name, slug and external id (the parent's own identifier for it), newest
+first, with "Load more" while the server holds more.
+
+Renders nothing unless the caller may manage the organization's children
+(`can_manage_child_orgs`, checked fail-closed so nothing flashes for a
+caller the server would refuse), the server holds more than one
+organization, and the organization has at least one child. A parent's
+admins manage a child's settings and members and see its billing, but
+read none of its resources; the list says so.
+
+**Props** — `ChildOrganizationsListProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    org: { type: "string", description: "The id of the parent organization whose children to list.", required: true },
+  }}
+/>
+
+```tsx
+<ChildOrganizationsList org="org-id-123" />
+```
+
+
 ### CreateOrganizationForm
 
 Compact form for creating a new `Organization` resource.
@@ -587,6 +656,17 @@ if (state.status === "error") {
   console.log(state.message); // string — only available on "error"
 }
 ```
+
+
+### UseChildOrganizationsOptions
+
+Options for [`useChildOrganizations`](#usechildorganizations).
+
+<TypeTable
+  type={{
+    pageSize: { type: "number", description: "Children per page, the first and each `loadMore`; the server caps it at 100." },
+  }}
+/>
 
 
 ### UseOrgGateOptions

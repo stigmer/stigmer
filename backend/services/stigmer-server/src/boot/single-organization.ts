@@ -60,7 +60,6 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { ManagementMode } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/enum_pb";
 
 import type { Logger } from "./logger.js";
 import type { CallerIdentity } from "../extensions/identity.js";
@@ -200,10 +199,7 @@ async function createSingleOrganization(
         apiVersion: "tenancy.stigmer.ai/v1",
         kind: "Organization",
         metadata: { name: "Stigmer", slug: SINGLE_ORGANIZATION_SLUG },
-        spec: {
-          description: "The organization this server holds",
-          managementMode: ManagementMode.self_managed,
-        },
+        spec: { description: "The organization this server holds" },
       }),
       deps.caller,
     );

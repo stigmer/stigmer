@@ -32,7 +32,8 @@ export const InvitationCommandController: GenService<{
    *
    * The specified role must be in the organization's grantable_roles, and
    * only an owner of the organization may create an invitation for owner.
-   * Platform-managed organizations cannot create invitations.
+   * A parent organization's admins may invite people into its child
+   * organizations.
    *
    * @generated from rpc ai.stigmer.iam.invitation.v1.InvitationCommandController.create
    */

@@ -200,8 +200,8 @@
       "slug": "organization",
       "title": "Organization",
       "description": "Hooks and components for organization creation and management.",
-      "hooks": 12,
-      "components": 6
+      "hooks": 13,
+      "components": 7
     },
     {
       "slug": "platform-client",

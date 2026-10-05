@@ -10,7 +10,7 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { OrganizationSchema } from "./api_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_api } from "./api_pb.js";
-import type { OrganizationExternalLookupSchema, OrganizationIdSchema, OrganizationListSchema, OrganizationsSchema } from "./io_pb.js";
+import type { ChildOrgListSchema, ListChildOrgsInputSchema, OrganizationExternalLookupSchema, OrganizationIdSchema, OrganizationListSchema, OrganizationsSchema } from "./io_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_io } from "./io_pb.js";
 import type { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
@@ -19,7 +19,7 @@ import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
  * Describes the file ai/stigmer/tenancy/organization/v1/query.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxMrkEChtPcmdhbml6YXRpb25RdWVyeUNvbnRyb2xsZXISnwEKA2dldBIyLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uSWQaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbiIywrgYLggBEB4iBXZhbHVlKiF1bmF1dGhvcml6ZWQgdG8gdmlldyBvcmdhbml6YXRpb24SewoEZmluZBI3LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5GaW5kQXBpUmVzb3VyY2VzUmVxdWVzdBo0LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uTGlzdCIE0LgYARJmChNmaW5kTXlPcmdhbml6YXRpb25zEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GjEuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb25zIgTQuBgBEowBChJnZXRCeUV4dGVybmFsT3JnSWQSPi5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbkV4dGVybmFsTG9va3VwGjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24iBNC4GAEaBKD/Kx5iBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_io, file_google_protobuf_empty]);
+  fileDesc("Ci5haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxMtEGChtPcmdhbml6YXRpb25RdWVyeUNvbnRyb2xsZXISnwEKA2dldBIyLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uSWQaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbiIywrgYLggyEB4iBXZhbHVlKiF1bmF1dGhvcml6ZWQgdG8gdmlldyBvcmdhbml6YXRpb24SewoEZmluZBI3LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5GaW5kQXBpUmVzb3VyY2VzUmVxdWVzdBo0LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uTGlzdCIE0LgYARJmChNmaW5kTXlPcmdhbml6YXRpb25zEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GjEuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb25zIgTQuBgBEtkBCg9nZXRCeUV4dGVybmFsSWQSPi5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbkV4dGVybmFsTG9va3VwGjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24iVMK4GFAIMRAeIgpwYXJlbnRfb3JnKj51bmF1dGhvcml6ZWQgdG8gbWFuYWdlIHRoaXMgb3JnYW5pemF0aW9uJ3MgY2hpbGQgb3JnYW5pemF0aW9ucxLIAQoNbGlzdENoaWxkT3JncxI2LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuTGlzdENoaWxkT3Jnc0lucHV0GjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5DaGlsZE9yZ0xpc3QiTcK4GEkIMRAeIgNvcmcqPnVuYXV0aG9yaXplZCB0byBtYW5hZ2UgdGhpcyBvcmdhbml6YXRpb24ncyBjaGlsZCBvcmdhbml6YXRpb25zGgSg/yseYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_io, file_google_protobuf_empty]);
 
 /**
  * OrganizationQueryController handles read operations for organizations.
@@ -59,15 +59,26 @@ export const OrganizationQueryController: GenService<{
     output: typeof OrganizationsSchema;
   },
   /**
-   * Look up a platform-managed organization by its external platform coordinates.
-   * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+   * Find a child organization by the identifier its parent keeps for it
+   * (external_id). An organization that is not a child of parent_org, or no
+   * child with that identifier, answers NotFound.
    *
-   * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.getByExternalOrgId
+   * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.getByExternalId
    */
-  getByExternalOrgId: {
+  getByExternalId: {
     methodKind: "unary";
     input: typeof OrganizationExternalLookupSchema;
     output: typeof OrganizationSchema;
+  },
+  /**
+   * List an organization's child organizations, newest first.
+   *
+   * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.listChildOrgs
+   */
+  listChildOrgs: {
+    methodKind: "unary";
+    input: typeof ListChildOrgsInputSchema;
+    output: typeof ChildOrgListSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_tenancy_organization_v1_query, 0);

@@ -42,7 +42,7 @@ const IDP: IdentityProvider = create(IdentityProviderSchema, {
     isSsoProvider: false,
     createAccountsOnSignIn: true,
     signInRole: IamRole.admin,
-    tenantOrgClaim: "org_slug",
+    externalIdClaim: "org_slug",
   },
 });
 
@@ -87,7 +87,7 @@ describe("IdentityProviderDetailPanel save payload", () => {
     // Sign-in settings round-trip from the edit state.
     expect(input.createAccountsOnSignIn).toBe(true);
     expect(input.signInRole).toBe(IamRole.admin);
-    expect(input.tenantOrgClaim).toBe("org_slug");
+    expect(input.externalIdClaim).toBe("org_slug");
     // Addressing fields.
     expect(input.org).toBe("acme");
     expect(input.slug).toBe("acme-okta");

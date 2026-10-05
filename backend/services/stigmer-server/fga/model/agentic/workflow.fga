@@ -6,8 +6,8 @@ module agentic
 # Workflow definitions (templates) for agent orchestration.
 # Every workflow belongs to an organization. Visibility is handled entirely
 # through FGA tuples written by VisibilityTupleReconciler, across three
-# levels (private / org / platform) — see agent.fga for the full pattern
-# docs, including the org floor (PLATFORM also carries the org tuple so
+# levels (private / org / child_orgs) — see agent.fga for the full pattern
+# docs, including the org floor (CHILD_ORGS also carries the org tuple so
 # shared workflows stay listable in their own org).
 #
 # Authorization model (visibility is REAL — no unconditional org grant):
@@ -22,11 +22,11 @@ module agentic
 # - workflow:github-summary#organization@organization:stigmer
 # - workflow:github-summary#owner@identity_account:alice
 # - workflow:github-summary#viewer@organization:stigmer#viewer (if visibility>=ORG)
-# - workflow:github-summary#platform_viewer@identity_provider:<idp>#platform_user (if visibility=PLATFORM)
+# - workflow:github-summary#child_org_viewer@organization:<org>#child_org_viewer (if visibility=CHILD_ORGS)
 #
-# Platform visibility (visibility_platform):
-# - Grants view + execute to members of all orgs managed by the owning
-#   org's IdentityProvider (see agent.fga for the full pattern docs).
+# Child-organization visibility (visibility_child_orgs):
+# - Grants view + execute to everyone in the owning organization's child
+#   organizations (see agent.fga for the full pattern docs).
 
 type workflow
   relations
@@ -44,11 +44,11 @@ type workflow
     define owner: ([identity_account] and affiliated from organization) or admin from organization
     
     # ========================================
-    # PLATFORM VISIBILITY (Structural)
+    # CHILD-ORGANIZATION VISIBILITY (Structural)
     # ========================================
-    # Members of all orgs managed by the owning org's IdentityProvider.
-    # FGA tuple: workflow:<id>#platform_viewer@identity_provider:<idp_id>#platform_user
-    define platform_viewer: [identity_provider#platform_user]
+    # Everyone in every child organization of the owning organization.
+    # FGA tuple: workflow:<id>#child_org_viewer@organization:<org_id>#child_org_viewer
+    define child_org_viewer: [organization#child_org_viewer]
     
     # ========================================
     # EDITOR (a grant, Enterprise and the hosted edition)
@@ -70,7 +70,7 @@ type workflow
     # satisfy organization#viewer); a narrower role's userset is refused
     # (README, "Shapes to Avoid"). team#member is an Enterprise team's
     # grant: every member, bounded by the organization in team.fga.
-    define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or editor or platform_viewer
+    define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or editor or child_org_viewer
     
     # ========================================
     # PERMISSIONS

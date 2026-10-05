@@ -51,7 +51,7 @@ status: {}  # System-managed, never set by users
 | `spec.userinfo_endpoint` | No | HTTPS URL of the OIDC UserInfo endpoint. When Stigmer creates an account from a token that carries no email claim, it calls this endpoint with that token as a Bearer token to read the user's profile; it is not called otherwise. When set, it must be the `userinfo_endpoint` every allowed issuer's discovery document names. Max 2048 characters. |
 | `spec.create_accounts_on_sign_in` | No | When true, Stigmer creates a federated account the first time a valid token arrives for a `sub` it has no account for. When false (the default), the platform creates accounts with `createFederatedAccount` first. Required, and true, for an SSO provider. |
 | `spec.sign_in_role` | No | The role an account receives the first time it signs in to an organization through this provider: the organization its token is bound to. Granted once per account and organization; a role an admin later removes stays removed. Unspecified grants nothing; owner is refused. Required for an SSO provider. |
-| `spec.tenant_org_claim` | No | The JWT claim that names the organization each token works in, resolved through the platform-managed organization whose `external_org_id` matches under this provider. Read on every token: a missing claim, a non-string value or an unknown organization is refused as unauthenticated. When empty, every token is bound to the provider's own organization. Max 256 characters. |
+| `spec.external_id_claim` | No | The JWT claim that names the child organization each token works in: the child of the provider's organization whose `external_id` equals the claim's value. Refused on an SSO provider and on a provider in a child organization. Read on every token: a missing claim, a non-string value or an unknown organization is refused as unauthenticated. When empty, every token is bound to the provider's own organization. Max 256 characters. |
 
 ## API Operations
 
@@ -60,7 +60,7 @@ status: {}  # System-managed, never set by users
 | Apply (create or update) | `IdentityProviderCommandController.apply` | Kubernetes-style upsert: creating asks what Create asks, updating asks what Update asks. |
 | Create | `IdentityProviderCommandController.create` | `can_create_idp` on the owning organization |
 | Update | `IdentityProviderCommandController.update` | `can_edit` on the IdentityProvider |
-| Delete | `IdentityProviderCommandController.delete` | `can_delete` on the IdentityProvider. Refused while any platform-managed organization references this provider. |
+| Delete | `IdentityProviderCommandController.delete` | `can_delete` on the IdentityProvider. |
 | Get by ID | `IdentityProviderQueryController.get` | `can_view` on the IdentityProvider |
 | Get by reference | `IdentityProviderQueryController.getByReference` | `can_view` on the resolved IdentityProvider, exactly as Get by ID |
 | List by organization | `IdentityProviderQueryController.listByOrg` | `can_view` on the organization; the answer holds only the providers the caller may view |

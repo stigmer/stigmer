@@ -64,20 +64,20 @@ function handlerWith(opts: HandlerOptions): { handler: ApplyHandler; calls: Upda
 
 describe("applyMessage declared-visibility follow-up", () => {
   it("lands a declared level the update preserved away, and reflects it on the outcome", async () => {
-    // Server preserved stored org; manifest declares platform.
+    // Server preserved stored org; manifest declares child-orgs.
     const { handler, calls } = handlerWith({
       applyReturns: agent(ApiResourceVisibility.visibility_org),
-      updateVisibility: () => Promise.resolve(agent(ApiResourceVisibility.visibility_platform)),
+      updateVisibility: () => Promise.resolve(agent(ApiResourceVisibility.visibility_child_orgs)),
     });
 
-    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_platform), "acme", false);
+    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_child_orgs), "acme", false);
 
     expect(calls).toHaveLength(1);
     expect(calls[0].resourceId).toBe("agent-1");
-    expect(calls[0].visibility).toBe(ApiResourceVisibility.visibility_platform);
+    expect(calls[0].visibility).toBe(ApiResourceVisibility.visibility_child_orgs);
     expect(outcome.warning).toBeUndefined();
     const appliedMeta = (outcome.applied as { metadata?: { visibility?: ApiResourceVisibility } })?.metadata;
-    expect(appliedMeta?.visibility).toBe(ApiResourceVisibility.visibility_platform);
+    expect(appliedMeta?.visibility).toBe(ApiResourceVisibility.visibility_child_orgs);
   });
 
   it("skips the follow-up when the manifest omits visibility", async () => {
@@ -100,11 +100,11 @@ describe("applyMessage declared-visibility follow-up", () => {
 
   it("skips the follow-up when the server already matches (idempotent re-apply)", async () => {
     const { handler, calls } = handlerWith({
-      applyReturns: agent(ApiResourceVisibility.visibility_platform),
+      applyReturns: agent(ApiResourceVisibility.visibility_child_orgs),
       updateVisibility: () => Promise.reject(new Error("must not be called")),
     });
 
-    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_platform), "acme", false);
+    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_child_orgs), "acme", false);
 
     expect(calls).toHaveLength(0);
     expect(outcome.warning).toBeUndefined();
@@ -115,7 +115,7 @@ describe("applyMessage declared-visibility follow-up", () => {
       applyReturns: agent(ApiResourceVisibility.visibility_private),
     });
 
-    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_platform), "acme", false);
+    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_child_orgs), "acme", false);
 
     expect(outcome.warning).toMatch(/visibility cannot be changed declaratively/);
     expect(outcome.warning).toMatch(/stored value is kept/);
@@ -125,11 +125,11 @@ describe("applyMessage declared-visibility follow-up", () => {
     // e.g. a level the kind does not support.
     const { handler } = handlerWith({
       applyReturns: agent(ApiResourceVisibility.visibility_org),
-      updateVisibility: () => Promise.reject(new Error("platform visibility is not supported for this kind")),
+      updateVisibility: () => Promise.reject(new Error("child-orgs visibility is not supported for this kind")),
     });
 
     await expect(
-      applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_platform), "acme", false),
+      applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_child_orgs), "acme", false),
     ).rejects.toThrow(/spec applied, but the manifest's visibility change was rejected/);
   });
 
@@ -139,7 +139,7 @@ describe("applyMessage declared-visibility follow-up", () => {
       updateVisibility: () => Promise.reject(new Error("must not be called")),
     });
 
-    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_platform), "acme", true);
+    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_child_orgs), "acme", true);
 
     expect(calls).toHaveLength(0);
     expect(outcome.applied).toBeUndefined();
@@ -236,7 +236,7 @@ describe("applyMessage declared-slug follow-up", () => {
       apply: () => Promise.resolve(stored),
       updateVisibility: (_c, input) => {
         visibilityCalls.push(input);
-        return Promise.resolve(agent(ApiResourceVisibility.visibility_platform));
+        return Promise.resolve(agent(ApiResourceVisibility.visibility_child_orgs));
       },
       rename: (_c, input) => {
         renameCalls.push(input);
@@ -244,21 +244,21 @@ describe("applyMessage declared-slug follow-up", () => {
       },
     };
     const manifest = create(AgentSchema, {
-      metadata: { id: "agent-1", slug: "taken", org: "acme", visibility: ApiResourceVisibility.visibility_platform },
+      metadata: { id: "agent-1", slug: "taken", org: "acme", visibility: ApiResourceVisibility.visibility_child_orgs },
     });
 
     await expect(applyMessage(controller, handler, manifest, "acme", false)).rejects.toThrow(
       /Agent spec and visibility applied, but the manifest's slug change was rejected: .*the slug is taken\. The slug stays 'reviewer'; choose another slug and apply again\./,
     );
     expect(visibilityCalls).toHaveLength(1);
-    expect(visibilityCalls[0].visibility).toBe(ApiResourceVisibility.visibility_platform);
+    expect(visibilityCalls[0].visibility).toBe(ApiResourceVisibility.visibility_child_orgs);
     expect(renameCalls).toHaveLength(1);
   });
 
   it("carries the visibility warning into a refused rename for a kind without the visibility door", async () => {
     const { handler } = organizationHandler(organization("acme"), () => Promise.reject(new Error("the slug is taken")));
     const manifest = create(OrganizationSchema, {
-      metadata: { id: ACME_ID, name: "Acme", slug: "taken", visibility: ApiResourceVisibility.visibility_platform },
+      metadata: { id: ACME_ID, name: "Acme", slug: "taken", visibility: ApiResourceVisibility.visibility_child_orgs },
     });
 
     await expect(applyMessage(controller, handler, manifest, "", false)).rejects.toThrow(

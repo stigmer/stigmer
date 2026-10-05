@@ -7,7 +7,7 @@ import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
 import { PlanInstrument } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
 import { PlanLifecycle } from "@stigmer/protos/ai/stigmer/billing/plan/v1/status_pb";
 import { formatCreditBalance } from "../billing/format.js";
-import { formatManagedOrganizations, formatUsageShare, offeredFeatures } from "../billing/plan-features.js";
+import { formatChildOrgs, formatUsageShare, offeredFeatures } from "../billing/plan-features.js";
 import { usePlans } from "../billing/usePlans.js";
 import { Button } from "../button/index.js";
 import { ApiResourceKind, useResourceAvailable } from "../deployment-mode.js";
@@ -164,7 +164,7 @@ function PlanRow({ plan, onRetire, busy }: { readonly plan: Plan; readonly onRet
   const terms = plan.spec?.terms;
   const listed = (plan.spec?.entitlements?.features ?? []).filter(isNamedFeature).map((f) => FEATURE_COPY[f].label);
   const offered = new Set(offeredFeatures(plan.spec?.entitlements).map((f) => f.label));
-  const managed = formatManagedOrganizations(plan.spec?.entitlements, terms);
+  const managed = formatChildOrgs(plan.spec?.entitlements, terms);
   return (
     <li className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-3">
       <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">

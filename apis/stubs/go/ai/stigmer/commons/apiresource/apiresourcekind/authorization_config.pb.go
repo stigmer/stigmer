@@ -171,16 +171,16 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 //
 //   - visibility_private: no visibility tuple (owner + explicit grants only)
 //   - visibility_org:     resource#viewer@organization:<org>#viewer
-//   - visibility_platform: resource#platform_viewer@identity_provider:<idp>#platform_user
-//     (the "private catalog" primitive: grants access to
-//     all members of all platform_managed orgs linked to
-//     the owning org's IdentityProvider)
+//   - visibility_child_orgs: resource#child_org_viewer@organization:<org>#child_org_viewer
+//     (the shared catalog: grants read and run to
+//     everyone in every child organization of the owning
+//     organization)
 //
-// Every level but private is bounded by an organization or by the identity
-// provider that links a set of organizations. There is no level a resource
-// can hold that makes it readable to every account on the server; sharing
-// across organizations that share no identity provider is done by
-// packaging the resource as a plugin and installing a copy.
+// Every level but private is bounded by an organization or by its child
+// organizations. There is no level a resource can hold that makes it
+// readable to every account on the server; sharing across organizations
+// that are not parent and child is done by packaging the resource as a
+// plugin and installing a copy.
 //
 // Kinds WITHOUT a visibility config accept only visibility_private (or
 // unspecified) — they are personal or org-structural resources whose access
@@ -189,10 +189,10 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 //
 // Current classification:
 //   - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
-//     private, org, platform
+//     private, org, child_orgs
 //   - Instance kinds (workflow_instance):
-//     private, org — platform is deliberately excluded to preserve
-//     tenant isolation: each managed org instantiates shared blueprints
+//     private, org — child_orgs is deliberately excluded to preserve
+//     tenant isolation: each child organization instantiates shared blueprints
 //     inside its own boundary. (System-managed DEFAULT instances opt out of
 //     visibility entirely: their access tracks the parent blueprint
 //     structurally via the default_of FGA relation.)
@@ -203,12 +203,13 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 // reference here would create a Go package import cycle.
 type VisibilityConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether resources of this kind can be set to visibility_platform.
-	// FGA tuple: resource#platform_viewer@identity_provider:<idp>#platform_user
+	// Whether resources of this kind can be set to visibility_child_orgs.
+	// FGA tuple: resource#child_org_viewer@organization:<org>#child_org_viewer
 	//
-	// Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-	// Instance kinds are deliberately excluded to preserve tenant isolation.
-	SupportsPlatform bool `protobuf:"varint,2,opt,name=supports_platform,json=supportsPlatform,proto3" json:"supports_platform,omitempty"`
+	// Reserved for blueprint kinds (agent, skill, workflow, mcp_server,
+	// plugin). Instance kinds are deliberately excluded to preserve tenant
+	// isolation.
+	SupportsChildOrgs bool `protobuf:"varint,2,opt,name=supports_child_orgs,json=supportsChildOrgs,proto3" json:"supports_child_orgs,omitempty"`
 	// Whether resources of this kind can be set to visibility_org.
 	// FGA tuple: resource#viewer@organization:<org>#viewer
 	//
@@ -278,9 +279,9 @@ func (*VisibilityConfig) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *VisibilityConfig) GetSupportsPlatform() bool {
+func (x *VisibilityConfig) GetSupportsChildOrgs() bool {
 	if x != nil {
-		return x.SupportsPlatform
+		return x.SupportsChildOrgs
 	}
 	return false
 }
@@ -569,9 +570,9 @@ var File_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_pro
 
 const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDesc = "" +
 	"\n" +
-	"Iai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1a\x1cai/stigmer/iam/v1/enum.proto\"\xb6\x01\n" +
-	"\x10VisibilityConfig\x12+\n" +
-	"\x11supports_platform\x18\x02 \x01(\bR\x10supportsPlatform\x12!\n" +
+	"Iai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1a\x1cai/stigmer/iam/v1/enum.proto\"\xb9\x01\n" +
+	"\x10VisibilityConfig\x12.\n" +
+	"\x13supports_child_orgs\x18\x02 \x01(\bR\x11supportsChildOrgs\x12!\n" +
 	"\fsupports_org\x18\x03 \x01(\bR\vsupportsOrg\x12;\n" +
 	"\x1adefaults_to_org_visibility\x18\x04 \x01(\bR\x17defaultsToOrgVisibilityJ\x04\b\x01\x10\x02R\x0fsupports_public\"e\n" +
 	"\x14ParentRelationConfig\x12\x12\n" +

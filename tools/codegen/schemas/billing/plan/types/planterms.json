@@ -36,7 +36,7 @@
       "type": {
         "kind": "int64"
       },
-      "description": "What a subscription plan bills per month for each platform-managed\n organization beyond the ones its entitlements include, in micro-USD.\n Absent when the plan includes no managed organizations.",
+      "description": "What a subscription plan bills per month for each child organization\n beyond the ones its entitlements include, in micro-USD. Absent when the\n plan includes no child organizations.",
       "required": false,
       "oneofGroup": "_per_extra_org_micros"
     },

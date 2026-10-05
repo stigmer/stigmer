@@ -25,7 +25,7 @@ export interface UseProviderKeysOptions {
 export interface UseProviderKeysReturn {
   /**
    * The keys that serve the organization, its own and any it inherits from
-   * its integrator, without their secrets; `null` before the first
+   * its parent organization, without their secrets; `null` before the first
    * successful fetch.
    */
   readonly keys: readonly ProviderKey[] | null;
@@ -42,8 +42,8 @@ export interface UseProviderKeysReturn {
  *
  * No answer carries a key: each row names the provider, the key's last
  * four characters, who saved it and when, when it last served a call, and
- * whether the organization's plan still lets it be used. A managed
- * organization's list includes its integrator's keys for the providers it
+ * whether the organization's plan still lets it be used. A child
+ * organization's list includes its parent's keys for the providers it
  * holds none of (`inheritedFromOrg`). Every member may read it
  * (`can_view_billing`).
  *

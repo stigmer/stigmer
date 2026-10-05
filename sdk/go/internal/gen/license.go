@@ -84,7 +84,7 @@ type EntitlementsInput struct {
 type EntitlementLimitsInput struct {
 	MaxOrgs                        int32
 	MaxUsers                       int32
-	IncludedManagedOrganizations   int32
+	IncludedChildOrgs              int32
 	MaxActiveSessionSandboxes      int32
 	MaxActiveWorkflowSandboxes     int32
 	ArchivedWorkspaceRetentionDays int32
@@ -170,9 +170,9 @@ func (i *EntitlementLimitsInput) toProto() (*platformv1.EntitlementLimits, error
 		v := i.MaxUsers
 		p.MaxUsers = &v
 	}
-	if i.IncludedManagedOrganizations != 0 {
-		v := i.IncludedManagedOrganizations
-		p.IncludedManagedOrganizations = &v
+	if i.IncludedChildOrgs != 0 {
+		v := i.IncludedChildOrgs
+		p.IncludedChildOrgs = &v
 	}
 	if i.MaxActiveSessionSandboxes != 0 {
 		v := i.MaxActiveSessionSandboxes
@@ -248,7 +248,7 @@ func entitlementLimitsInputFromProto(p *platformv1.EntitlementLimits) *Entitleme
 	input := &EntitlementLimitsInput{}
 	input.MaxOrgs = p.GetMaxOrgs()
 	input.MaxUsers = p.GetMaxUsers()
-	input.IncludedManagedOrganizations = p.GetIncludedManagedOrganizations()
+	input.IncludedChildOrgs = p.GetIncludedChildOrgs()
 	input.MaxActiveSessionSandboxes = p.GetMaxActiveSessionSandboxes()
 	input.MaxActiveWorkflowSandboxes = p.GetMaxActiveWorkflowSandboxes()
 	input.ArchivedWorkspaceRetentionDays = p.GetArchivedWorkspaceRetentionDays()

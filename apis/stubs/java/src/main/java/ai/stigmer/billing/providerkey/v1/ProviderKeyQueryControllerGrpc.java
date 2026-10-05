@@ -121,7 +121,7 @@ public final class ProviderKeyQueryControllerGrpc {
     /**
      * <pre>
      * List the keys that serve the organization, its own and any it inherits
-     * from its integrator, without their secrets.
+     * from its parent organization, without their secrets.
      * </pre>
      */
     default void list(ai.stigmer.billing.providerkey.v1.ListProviderKeysInput request,
@@ -172,7 +172,7 @@ public final class ProviderKeyQueryControllerGrpc {
     /**
      * <pre>
      * List the keys that serve the organization, its own and any it inherits
-     * from its integrator, without their secrets.
+     * from its parent organization, without their secrets.
      * </pre>
      */
     public void list(ai.stigmer.billing.providerkey.v1.ListProviderKeysInput request,
@@ -207,7 +207,7 @@ public final class ProviderKeyQueryControllerGrpc {
     /**
      * <pre>
      * List the keys that serve the organization, its own and any it inherits
-     * from its integrator, without their secrets.
+     * from its parent organization, without their secrets.
      * </pre>
      */
     public ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput list(ai.stigmer.billing.providerkey.v1.ListProviderKeysInput request) throws io.grpc.StatusException {
@@ -241,7 +241,7 @@ public final class ProviderKeyQueryControllerGrpc {
     /**
      * <pre>
      * List the keys that serve the organization, its own and any it inherits
-     * from its integrator, without their secrets.
+     * from its parent organization, without their secrets.
      * </pre>
      */
     public ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput list(ai.stigmer.billing.providerkey.v1.ListProviderKeysInput request) {
@@ -275,7 +275,7 @@ public final class ProviderKeyQueryControllerGrpc {
     /**
      * <pre>
      * List the keys that serve the organization, its own and any it inherits
-     * from its integrator, without their secrets.
+     * from its parent organization, without their secrets.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput> list(

@@ -49,7 +49,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationSpecSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
-import { ManagementMode } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/enum_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -591,7 +590,7 @@ describe("toIdentityProviderUpdateInput", () => {
         userinfoEndpoint: "https://acme.okta.example/userinfo",
         isSsoProvider: true,
         oidcClientId: "oidc-123",
-        tenantOrgClaim: "org_slug",
+        externalIdClaim: "org_slug",
         createAccountsOnSignIn: true,
         signInRole: IamRole.admin,
       },
@@ -716,13 +715,8 @@ describe("toOrganizationUpdateInput (tripwire)", () => {
       spec: {
         description: "We make everything.",
         logoUrl: "https://acme.example/logo.png",
-        managementMode: ManagementMode.self_managed,
-        identityProviderRef: {
-          org: "acme",
-          slug: "acme-okta",
-          kind: ApiResourceKind.identity_provider,
-        },
-        externalOrgId: "ext-org-1",
+        externalId: "cust-4411",
+        parentOrg: "org_01jaaaaaaaaaaaaaaaaaaaaaaa",
         isPersonal: true,
         preferences: { standingContext: "We deploy to us-east-1." },
       },

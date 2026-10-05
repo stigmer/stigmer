@@ -1,13 +1,15 @@
 "use client";
 
 import { useId } from "react";
+import { ChildOrganizationsList } from "../organization/ChildOrganizationsList.js";
 import { OrgProfilePanel } from "../organization/OrgProfilePanel.js";
 import { useOrg } from "../organization/OrgProvider.js";
 
 /**
  * Settings section for editing the active organization profile. The panel
  * refreshes the organization context itself after a save or a rename, so
- * the section adds no refresh of its own.
+ * the section adds no refresh of its own. Below it, a parent organization's
+ * admins see its child organizations, read-only.
  */
 export function OrgProfileSection() {
   const headingId = useId();
@@ -31,7 +33,10 @@ export function OrgProfileSection() {
           Select an organization to view its profile.
         </p>
       ) : (
-        <OrgProfilePanel org={orgId} />
+        <>
+          <OrgProfilePanel org={orgId} />
+          <ChildOrganizationsList org={orgId} />
+        </>
       )}
     </section>
   );

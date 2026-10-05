@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityprovider/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEigwgKFElkZW50aXR5UHJvdmlkZXJTcGVjEh4KDGRpc3BsYXlfbmFtZRgBIAEoCUIIukgFcgMYyAESGgoIandrc191cmkYAiABKAlCCLpIBXIDGIAQEioKD2FsbG93ZWRfaXNzdWVycxgDIAMoCUIRukgOkgELEAoiB3IFEAEYgBASJQoRZXhwZWN0ZWRfYXVkaWVuY2UYBCABKAlCCrpIB3IFEAEYyAESIwoRdXNlcmluZm9fZW5kcG9pbnQYBiABKAlCCLpIBXIDGIAQEhcKD2lzX3Nzb19wcm92aWRlchgHIAEoCBIgCg5vaWRjX2NsaWVudF9pZBgIIAEoCUIIukgFcgMYgAISIgoQdGVuYW50X29yZ19jbGFpbRgMIAEoCUIIukgFcgMYgAISIgoaY3JlYXRlX2FjY291bnRzX29uX3NpZ25faW4YDSABKAgSMAoMc2lnbl9pbl9yb2xlGA4gASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZTqZBLpIlQQalAEKKGlkZW50aXR5X3Byb3ZpZGVyLnNpZ25faW5fcm9sZV9ub3Rfb3duZXISUHNpZ25faW5fcm9sZSBjYW5ub3QgYmUgb3duZXI7IG9yZ2FuaXphdGlvbiBvd25lcnNoaXAgbXVzdCBiZSBhc3NpZ25lZCBleHBsaWNpdGx5GhZ0aGlzLnNpZ25faW5fcm9sZSAhPSAxGtIBCjJpZGVudGl0eV9wcm92aWRlci5zc29fY3JlYXRlc19hY2NvdW50c193aXRoX2Ffcm9sZRJGYW4gU1NPIHByb3ZpZGVyIG11c3Qgc2V0IGNyZWF0ZV9hY2NvdW50c19vbl9zaWduX2luIGFuZCBhIHNpZ25faW5fcm9sZRpUIXRoaXMuaXNfc3NvX3Byb3ZpZGVyIHx8ICh0aGlzLmNyZWF0ZV9hY2NvdW50c19vbl9zaWduX2luICYmIHRoaXMuc2lnbl9pbl9yb2xlICE9IDApGqYBCjBpZGVudGl0eV9wcm92aWRlci5qd2tzX3VyaV9yZXF1aXJlZF93aXRoX2lzc3VlcnMSOWp3a3NfdXJpIGlzIHJlcXVpcmVkIHdoZW4gYWxsb3dlZF9pc3N1ZXJzIG5hbWVzIGFuIGlzc3Vlcho3dGhpcy5hbGxvd2VkX2lzc3VlcnMuc2l6ZSgpID09IDAgfHwgdGhpcy5qd2tzX3VyaSAhPSAnJ0oECAUQBkoECAkQCkoECAoQC0oECAsQDFIRcmF0ZV9saW1pdF9idWRnZXRSF2F1dG9fcHJvdmlzaW9uX2FjY291bnRzUhFhdXRvX2dyYW50X29uX29yZ1IPYXV0b19ncmFudF9yb2xlYgZwcm90bzM", [file_ai_stigmer_iam_v1_enum, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEihAgKFElkZW50aXR5UHJvdmlkZXJTcGVjEh4KDGRpc3BsYXlfbmFtZRgBIAEoCUIIukgFcgMYyAESGgoIandrc191cmkYAiABKAlCCLpIBXIDGIAQEioKD2FsbG93ZWRfaXNzdWVycxgDIAMoCUIRukgOkgELEAoiB3IFEAEYgBASJQoRZXhwZWN0ZWRfYXVkaWVuY2UYBCABKAlCCrpIB3IFEAEYyAESIwoRdXNlcmluZm9fZW5kcG9pbnQYBiABKAlCCLpIBXIDGIAQEhcKD2lzX3Nzb19wcm92aWRlchgHIAEoCBIgCg5vaWRjX2NsaWVudF9pZBgIIAEoCUIIukgFcgMYgAISIwoRZXh0ZXJuYWxfaWRfY2xhaW0YDCABKAlCCLpIBXIDGIACEiIKGmNyZWF0ZV9hY2NvdW50c19vbl9zaWduX2luGA0gASgIEjAKDHNpZ25faW5fcm9sZRgOIAEoDjIaLmFpLnN0aWdtZXIuaWFtLnYxLklhbVJvbGU6mQS6SJUEGpQBCihpZGVudGl0eV9wcm92aWRlci5zaWduX2luX3JvbGVfbm90X293bmVyElBzaWduX2luX3JvbGUgY2Fubm90IGJlIG93bmVyOyBvcmdhbml6YXRpb24gb3duZXJzaGlwIG11c3QgYmUgYXNzaWduZWQgZXhwbGljaXRseRoWdGhpcy5zaWduX2luX3JvbGUgIT0gMRrSAQoyaWRlbnRpdHlfcHJvdmlkZXIuc3NvX2NyZWF0ZXNfYWNjb3VudHNfd2l0aF9hX3JvbGUSRmFuIFNTTyBwcm92aWRlciBtdXN0IHNldCBjcmVhdGVfYWNjb3VudHNfb25fc2lnbl9pbiBhbmQgYSBzaWduX2luX3JvbGUaVCF0aGlzLmlzX3Nzb19wcm92aWRlciB8fCAodGhpcy5jcmVhdGVfYWNjb3VudHNfb25fc2lnbl9pbiAmJiB0aGlzLnNpZ25faW5fcm9sZSAhPSAwKRqmAQowaWRlbnRpdHlfcHJvdmlkZXIuandrc191cmlfcmVxdWlyZWRfd2l0aF9pc3N1ZXJzEjlqd2tzX3VyaSBpcyByZXF1aXJlZCB3aGVuIGFsbG93ZWRfaXNzdWVycyBuYW1lcyBhbiBpc3N1ZXIaN3RoaXMuYWxsb3dlZF9pc3N1ZXJzLnNpemUoKSA9PSAwIHx8IHRoaXMuandrc191cmkgIT0gJydKBAgFEAZKBAgJEApKBAgKEAtKBAgLEAxSEXJhdGVfbGltaXRfYnVkZ2V0UhdhdXRvX3Byb3Zpc2lvbl9hY2NvdW50c1IRYXV0b19ncmFudF9vbl9vcmdSD2F1dG9fZ3JhbnRfcm9sZWIGcHJvdG8z", [file_ai_stigmer_iam_v1_enum, file_buf_validate_validate]);
 
 /**
  * IdentityProviderSpec defines the configuration for an external identity provider.
@@ -26,7 +26,7 @@ export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__
  * this provider's reference.
  *
  * Every token this provider vouches for is bound to one organization: the
- * organization tenant_org_claim names when it is set, otherwise the
+ * child organization external_id_claim names when it is set, otherwise the
  * provider's own. A bound token works in that organization only.
  *
  * Two settings control what happens when someone signs in:
@@ -92,7 +92,7 @@ export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__
  *     userinfo_endpoint: "https://auth.saas.co/userinfo"
  *     create_accounts_on_sign_in: true
  *     sign_in_role: member
- *     tenant_org_claim: "org_id"
+ *     external_id_claim: "org_id"
  *
  * Example YAML (self-managed SSO):
  *   apiVersion: iam.stigmer.ai/v1
@@ -211,8 +211,8 @@ export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.I
    *
    * Constraints:
    * - At most one IdentityProvider per organization can be the SSO provider.
-   * - An IdP used for platform-managed organization delegation cannot also
-   *   serve as an SSO provider (different trust models).
+   * - An SSO provider cannot set external_id_claim (different trust
+   *   models: SSO signs people in to the provider's own organization).
    *
    * @generated from field: bool is_sso_provider = 7;
    */
@@ -236,35 +236,37 @@ export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.I
   oidcClientId: string;
 
   /**
-   * Name of the JWT claim that names the organization a token works in.
+   * Name of the JWT claim that names the child organization a token works
+   * in, by the identifier the provider's organization keeps for it.
    *
    * When set, Stigmer reads this claim from every token the provider vouches
-   * for and resolves it to a platform-managed organization:
+   * for and resolves it to one of the provider organization's children:
    *
    *   1. Read the claim value from the JWT (e.g., claim "org_id" yields
-   *      value "tenant-123").
-   *   2. Look up the platform-managed organization where
-   *      identity_provider_ref matches this IdP and external_org_id matches
-   *      the claim value.
+   *      value "cust-4411").
+   *   2. Find the child organization whose parent_org is the provider's
+   *      organization and whose external_id is the claim value.
    *   3. Bind the token to that organization: it works there and nowhere
    *      else, whatever roles the person holds in other organizations.
    *
    * When empty, every token is bound to the provider's own organization.
    *
-   * The platform pre-creates its tenant organizations with their
-   * external_org_id mappings. The first time an account signs in to a tenant,
-   * it receives sign_in_role there when one is set; a role an admin later
-   * removes stays removed.
+   * The parent creates its child organizations with their external_id
+   * first. The first time an account signs in to a child, it receives
+   * sign_in_role there when one is set; a role an admin later removes stays
+   * removed.
    *
    * The claim name is case-sensitive and must match the JWT payload key
    * exactly. A token that lacks the claim, carries a value that is not a
-   * string, or names no known platform-managed organization is refused as
-   * unauthenticated on every sign-in, returning or first; the refusal does not
-   * name the tenant. A first sign-in refused this way leaves no account.
+   * string, or names no child of the provider's organization is refused as
+   * unauthenticated on every sign-in, returning or first; the refusal does
+   * not name the value. A first sign-in refused this way leaves no account.
+   * A provider in a child organization cannot set it: a child has no
+   * children.
    *
-   * @generated from field: string tenant_org_claim = 12;
+   * @generated from field: string external_id_claim = 12;
    */
-  tenantOrgClaim: string;
+  externalIdClaim: string;
 
   /**
    * Whether Stigmer creates a federated identity account the first time a
@@ -285,7 +287,7 @@ export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.I
   /**
    * The role an account receives the first time it signs in to an
    * organization through this provider: the organization its token is bound
-   * to (tenant_org_claim's, or the provider's own).
+   * to (external_id_claim's, or the provider's own).
    *
    * Granted once per account and organization. A role an admin later removes
    * is not granted again, and changing this setting does not reach accounts

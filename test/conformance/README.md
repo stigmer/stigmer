@@ -488,8 +488,7 @@ A `TargetProfile` hides everything that differs between things under test: how
 the server is reached (spawned vs. external), how tenancy is provisioned, and
 which optional behaviors exist. `CapabilityFlags` gate behaviors that
 legitimately differ across editions rather than forking the tests — e.g.
-`externalOrgLookup` is `false` locally (so `getByExternalOrgId` is expected to
-be `Unimplemented`), `multiTenant` is `false` (so list RPCs return everything,
+`multiTenant` is `false` (so list RPCs return everything,
 with no IAM filtering), `enforcingAuthorizer` is `false` (the local PRIMARY runs
 the trusted-local posture, whose Authorizer admits the one operator to
 everything — so the arms that read an enforcing answer on the primary, such as

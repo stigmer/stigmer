@@ -16,10 +16,12 @@ service OrganizationQueryController {
   // Get an organization by ID.
   //
   // @internal
-  // Authorization: Requires can_view permission on the organization.
+  // Authorization: Requires can_view_settings on the organization: its
+  // members, and the admins of its parent, who manage a child without
+  // reading its resources.
   rpc get(OrganizationId) returns (Organization) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).permission = can_view_settings;
     option (ai.stigmer.commons.rpc.config).field_path = "value";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view organization";
   }
@@ -41,13 +43,31 @@ service OrganizationQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // Look up a platform-managed organization by its external platform coordinates.
-  // Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+  // Find a child organization by the identifier its parent keeps for it
+  // (external_id). An organization that is not a child of parent_org, or no
+  // child with that identifier, answers NotFound.
   //
   // @internal
-  // Authorization: custom — checks can_view on the referenced IdentityProvider,
-  // and resolves the external org ID within that IdentityProvider alone.
-  rpc getByExternalOrgId(OrganizationExternalLookup) returns (Organization) {
-    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  // Authorization: Requires can_manage_child_orgs on the parent (its
+  // admins). The parent's admins read the child's settings, never its
+  // resources.
+  rpc getByExternalId(OrganizationExternalLookup) returns (Organization) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_child_orgs;
+    option (ai.stigmer.commons.rpc.config).field_path = "parent_org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage this organization's child organizations";
+  }
+
+  // List an organization's child organizations, newest first.
+  //
+  // @internal
+  // Authorization: Requires can_manage_child_orgs on the parent (its
+  // admins). Every child is listed: the parent's admins manage all of
+  // them, so no per-row read scope runs.
+  rpc listChildOrgs(ListChildOrgsInput) returns (ChildOrgList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_child_orgs;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage this organization's child organizations";
   }
 }

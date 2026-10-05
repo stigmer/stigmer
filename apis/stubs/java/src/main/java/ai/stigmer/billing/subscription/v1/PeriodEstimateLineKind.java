@@ -39,13 +39,13 @@ public enum PeriodEstimateLineKind
   commission_credit(2),
   /**
    * <pre>
-   * The managed organizations beyond those the plan includes, at the
+   * The child organizations beyond those the plan includes, at the
    * plan's fee for each.
    * </pre>
    *
-   * <code>managed_organizations = 3;</code>
+   * <code>child_orgs = 3;</code>
    */
-  managed_organizations(3),
+  child_orgs(3),
   UNRECOGNIZED(-1),
   ;
 
@@ -82,13 +82,13 @@ public enum PeriodEstimateLineKind
   public static final int commission_credit_VALUE = 2;
   /**
    * <pre>
-   * The managed organizations beyond those the plan includes, at the
+   * The child organizations beyond those the plan includes, at the
    * plan's fee for each.
    * </pre>
    *
-   * <code>managed_organizations = 3;</code>
+   * <code>child_orgs = 3;</code>
    */
-  public static final int managed_organizations_VALUE = 3;
+  public static final int child_orgs_VALUE = 3;
 
 
   public final int getNumber() {
@@ -118,7 +118,7 @@ public enum PeriodEstimateLineKind
       case 0: return period_estimate_line_kind_unspecified;
       case 1: return plan;
       case 2: return commission_credit;
-      case 3: return managed_organizations;
+      case 3: return child_orgs;
       default: return null;
     }
   }

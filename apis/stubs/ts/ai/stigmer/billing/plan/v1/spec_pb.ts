@@ -27,7 +27,7 @@ export const file_ai_stigmer_billing_plan_v1_spec: GenFile = /*@__PURE__*/
  * below refuse the cross: a license plan is invoiced for a term, so monthly
  * terms have no meaning on it; a subscription plan bills monthly, so an
  * annual price has none. per_extra_org_micros is bound to the
- * entitlements' managed organizations, not to the instrument, and stays free.
+ * entitlements' child organizations, not to the instrument, and stays free.
  *
  * @generated from message ai.stigmer.billing.plan.v1.PlanSpec
  */
@@ -100,9 +100,9 @@ export type PlanTerms = Message<"ai.stigmer.billing.plan.v1.PlanTerms"> & {
   usageShareBasisPoints?: number;
 
   /**
-   * What a subscription plan bills per month for each platform-managed
-   * organization beyond the ones its entitlements include, in micro-USD.
-   * Absent when the plan includes no managed organizations.
+   * What a subscription plan bills per month for each child organization
+   * beyond the ones its entitlements include, in micro-USD. Absent when the
+   * plan includes no child organizations.
    *
    * @generated from field: optional int64 per_extra_org_micros = 3;
    */

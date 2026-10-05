@@ -16,7 +16,7 @@ export const EnvironmentInputShape = {
   name: z.string().describe("Human-readable name of the resource."),
   slug: z.string().optional().describe("URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."),
   org: z.string().describe("Organization that owns this resource (e.g. acme)."),
-  visibility: z.string().optional().describe("Resource visibility, by enum name. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged. Allowed values: visibility_private, visibility_org, visibility_platform."),
+  visibility: z.string().optional().describe("Resource visibility, by enum name. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged. Allowed values: visibility_private, visibility_org, visibility_child_orgs."),
   labels: z.record(z.string()).optional().describe("Key-value labels for organization and filtering."),
   tags: z.array(z.string()).optional().describe("Tags for categorization and discovery."),
   description: z.string().optional().describe("Human-readable description for UI and listing display."),

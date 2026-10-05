@@ -152,8 +152,8 @@ const VISIBILITY_ALIASES: ReadonlyMap<string, ApiResourceVisibility> = new Map([
   ["visibility_private", ApiResourceVisibility.visibility_private],
   ["org", ApiResourceVisibility.visibility_org],
   ["visibility_org", ApiResourceVisibility.visibility_org],
-  ["platform", ApiResourceVisibility.visibility_platform],
-  ["visibility_platform", ApiResourceVisibility.visibility_platform],
+  ["child-orgs", ApiResourceVisibility.visibility_child_orgs],
+  ["visibility_child_orgs", ApiResourceVisibility.visibility_child_orgs],
 ]);
 
 /**
@@ -164,7 +164,7 @@ const VISIBILITY_ALIASES: ReadonlyMap<string, ApiResourceVisibility> = new Map([
  */
 const RETIRED_VISIBILITY_SPELLINGS: ReadonlySet<string> = new Set(["public", "visibility_public"]);
 
-const VALID_VISIBILITY_VALUES = "Valid values: private, org, platform.";
+const VALID_VISIBILITY_VALUES = "Valid values: private, org, child-orgs.";
 
 /**
  * Map an optional `visibility` frontmatter value to the proto enum. Returns
@@ -181,8 +181,8 @@ export function parseVisibility(value: unknown, source = SKILL_FILE): ApiResourc
   if (RETIRED_VISIBILITY_SPELLINGS.has(key)) {
     throw new UsageError(
       `invalid 'visibility' value '${value}' in ${source}: the public level is retired\n\n` +
-        "Resources are shared across organizations through plugins, or through the\n" +
-        `platform level between organizations linked by one identity provider. ${VALID_VISIBILITY_VALUES}`,
+        "Resources are shared across organizations through plugins, or with an\n" +
+        `organization's child organizations through the child-orgs level. ${VALID_VISIBILITY_VALUES}`,
     );
   }
   const mapped = VISIBILITY_ALIASES.get(key);

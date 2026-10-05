@@ -4,10 +4,6 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
-import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
-import type { ManagementMode } from "./enum_pb.js";
-import { file_ai_stigmer_tenancy_organization_v1_enum } from "./enum_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -15,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/tenancy/organization/v1/spec.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEi7wIKEE9yZ2FuaXphdGlvblNwZWMSHQoLZGVzY3JpcHRpb24YASABKAlCCLpIBXIDGPQDEhoKCGxvZ29fdXJsGAIgASgJQgi6SAVyAxiAEBJLCg9tYW5hZ2VtZW50X21vZGUYAyABKA4yMi5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk1hbmFnZW1lbnRNb2RlElMKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgEIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRIXCg9leHRlcm5hbF9vcmdfaWQYBSABKAkSEwoLaXNfcGVyc29uYWwYBiABKAgSUAoLcHJlZmVyZW5jZXMYByABKAsyOy5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblByZWZlcmVuY2VzIlUKF09yZ2FuaXphdGlvblByZWZlcmVuY2VzEiIKEHN0YW5kaW5nX2NvbnRleHQYASABKAlCCLpIBXIDGNAPEhYKDm1lbW9yeV9lbmFibGVkGAIgASgIYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_tenancy_organization_v1_enum, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEi0wMKEE9yZ2FuaXphdGlvblNwZWMSHQoLZGVzY3JpcHRpb24YASABKAlCCLpIBXIDGPQDEhoKCGxvZ29fdXJsGAIgASgJQgi6SAVyAxiAEBIdCgtleHRlcm5hbF9pZBgFIAEoCUIIukgFcgMYgAISEwoLaXNfcGVyc29uYWwYBiABKAgSUAoLcHJlZmVyZW5jZXMYByABKAsyOy5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblByZWZlcmVuY2VzEhsKCnBhcmVudF9vcmcYCCABKAlCB7pIBHICGEA6rAG6SKgBGqUBCixvcmdhbml6YXRpb24uZXh0ZXJuYWxfaWRfcmVxdWlyZXNfcGFyZW50X29yZxJEZXh0ZXJuYWxfaWQgaXMgc2V0IG9ubHkgb24gYSBjaGlsZCBvcmdhbml6YXRpb246IG5hbWUgaXRzIHBhcmVudF9vcmcaL3RoaXMuZXh0ZXJuYWxfaWQgPT0gJycgfHwgdGhpcy5wYXJlbnRfb3JnICE9ICcnSgQIAxAESgQIBBAFUg9tYW5hZ2VtZW50X21vZGVSFWlkZW50aXR5X3Byb3ZpZGVyX3JlZiJVChdPcmdhbml6YXRpb25QcmVmZXJlbmNlcxIiChBzdGFuZGluZ19jb250ZXh0GAEgASgJQgi6SAVyAxjQDxIWCg5tZW1vcnlfZW5hYmxlZBgCIAEoCGIGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
  * OrganizationSpec defines the configurable properties of an organization.
@@ -38,25 +34,12 @@ export type OrganizationSpec = Message<"ai.stigmer.tenancy.organization.v1.Organ
   logoUrl: string;
 
   /**
-   * How this organization is operated.
+   * The parent's own identifier for this organization, such as the
+   * customer id an integrator keeps for it ("cust-4411").
    *
-   * @generated from field: ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3;
+   * @generated from field: string external_id = 5;
    */
-  managementMode: ManagementMode;
-
-  /**
-   * Reference to the IdentityProvider that authenticates requests for this organization.
-   *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4;
-   */
-  identityProviderRef?: ApiResourceReference;
-
-  /**
-   * External platform's organization identifier for reverse mapping.
-   *
-   * @generated from field: string external_org_id = 5;
-   */
-  externalOrgId: string;
+  externalId: string;
 
   /**
    * Whether this is a personal organization, auto-created during identity provisioning.
@@ -71,6 +54,14 @@ export type OrganizationSpec = Message<"ai.stigmer.tenancy.organization.v1.Organ
    * @generated from field: ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7;
    */
   preferences?: OrganizationPreferences;
+
+  /**
+   * The organization this one is a child of, by id or slug; empty for an
+   * organization that has no parent.
+   *
+   * @generated from field: string parent_org = 8;
+   */
+  parentOrg: string;
 };
 
 /**
