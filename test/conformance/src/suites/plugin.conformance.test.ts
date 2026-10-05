@@ -8,9 +8,10 @@
 //   - install materialises exactly the members the package describes, and an
 //     MCP-only package materialises no agent;
 //   - a Claude plugin's hooks that run land on status.hooks as written, the
-//     ones that do not are named in its warnings, its settings' main agent
-//     runs the agent's main thread, and its agents' tool lists arrive in
-//     Stigmer's names;
+//     ones that do not are named in its warnings (and no warning says the
+//     ones that run do not), its composed agent references the plugin's
+//     hooks, its settings' main agent runs the agent's main thread, and its
+//     agents' tool lists arrive in Stigmer's names;
 //   - a re-push of the same archive is a no-op (one version, members untouched);
 //   - an upgrade removes what the new archive dropped and keeps the agent valid;
 //   - members are the plugin's to redefine: a client update, delete, level
@@ -312,10 +313,20 @@ describe("Plugin conformance — install", () => {
     expect(plugin.status?.warnings.map((w) => w.kind)).toContain(
       "hook-event-not-run",
     );
+    expect(plugin.status?.warnings.map((w) => w.kind)).not.toContain(
+      "hooks-not-run-yet",
+    );
 
     const agent = await clients.agentQuery.getByReference(
       ref(ApiResourceKind.agent, name),
     );
+    expect(
+      agent.spec?.hooks.map((h) =>
+        h.source.case === "plugin"
+          ? [h.source.value.kind, h.source.value.slug, h.source.value.version]
+          : h.source.case,
+      ),
+    ).toEqual([[ApiResourceKind.plugin, plugin.metadata?.slug, ""]]);
     expect(agent.spec?.instructions).toBe(
       "You lead the work and delegate to the helper.",
     );
@@ -975,6 +986,55 @@ describe("Plugin conformance — the transfer lane", () => {
       (await clients.pluginQuery.listVersions({ org: org(), slug: name }))
         .totalCount,
     ).toBe(1);
+  });
+});
+
+describe("Plugin conformance — the archive, for the runner to mount", () => {
+  it("[rpc:PluginQueryController.getArtifact] returns the exact bytes that were installed", async () => {
+    const archive = pluginArchive(thermosLike(uniqueName("plg-archive")));
+    const plugin = await install(archive);
+    const res = await clients.pluginQuery.getArtifact({
+      artifactStorageKey: plugin.status!.artifactStorageKey,
+    });
+    expect(Buffer.from(res.artifact).equals(Buffer.from(archive)), "the archive verbatim").toBe(true);
+  });
+
+  it("[rpc:PluginQueryController.getArtifact] refuses an empty key, an unknown one, and a key outside the plugin store", async () => {
+    await expectGrpcCode(
+      () => clients.pluginQuery.getArtifact({ artifactStorageKey: "" }),
+      Code.InvalidArgument,
+      "getArtifact empty key",
+    );
+    await expectGrpcCode(
+      () =>
+        clients.pluginQuery.getArtifact({
+          artifactStorageKey: `plugins/${"0".repeat(64)}.zip`,
+        }),
+      Code.NotFound,
+      "getArtifact unknown key",
+    );
+    await expectGrpcCode(
+      () =>
+        clients.pluginQuery.getArtifact({
+          artifactStorageKey: `skills/${"0".repeat(64)}.zip`,
+        }),
+      Code.NotFound,
+      "getArtifact on another kind's key",
+    );
+  });
+
+  it("[rpc:PluginQueryController.getArtifactDownloadUrl] serves the exact installed bytes over HTTP", async (ctx) => {
+    if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
+    const archive = pluginArchive(thermosLike(uniqueName("plg-download")));
+    const plugin = await install(archive);
+    const minted = await clients.pluginQuery.getArtifactDownloadUrl({
+      artifactStorageKey: plugin.status!.artifactStorageKey,
+    });
+    expect(minted.url).toMatch(/^https?:\/\//);
+    expect(minted.sizeBytes, "the mint reports the stored size").toBe(BigInt(archive.length));
+    const resp = await fetch(minted.url);
+    expect(resp.status).toBe(200);
+    expect(new Uint8Array(await resp.arrayBuffer()), "HTTP bytes equal the installed archive").toEqual(archive);
   });
 });
 

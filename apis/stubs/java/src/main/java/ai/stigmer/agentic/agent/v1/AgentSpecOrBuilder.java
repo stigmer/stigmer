@@ -406,6 +406,80 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
 
   /**
    * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.agent.v1.HookSource> 
+      getHooksList();
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  ai.stigmer.agentic.agent.v1.HookSource getHooks(int index);
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  int getHooksCount();
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.agent.v1.HookSourceOrBuilder> 
+      getHooksOrBuilderList();
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  ai.stigmer.agentic.agent.v1.HookSourceOrBuilder getHooksOrBuilder(
+      int index);
+
+  /**
+   * <pre>
    * The author's run defaults: the model, speed tier, thinking and run
    * bounds a turn on this agent uses unless the message or the surface it
    * came through sets its own (RunConfig has the rule). Versioned with the
@@ -421,7 +495,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * the agent is saved.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
    * @return Whether the runConfig field is set.
    */
   boolean hasRunConfig();
@@ -442,7 +516,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * the agent is saved.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
    * @return The runConfig.
    */
   ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig();
@@ -463,7 +537,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * the agent is saved.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder();
 
@@ -481,7 +555,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * only new conversations.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 13 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
    * @return The enum numeric value on the wire for harness.
    */
   int getHarnessValue();
@@ -499,7 +573,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * only new conversations.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 13 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
    * @return The harness.
    */
   ai.stigmer.agentic.session.v1.Harness getHarness();

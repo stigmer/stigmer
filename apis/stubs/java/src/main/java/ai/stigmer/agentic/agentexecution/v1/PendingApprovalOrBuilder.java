@@ -404,4 +404,26 @@ public interface PendingApprovalOrBuilder extends
    * @return The approvalPolicySource.
    */
   ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource getApprovalPolicySource();
+
+  /**
+   * <pre>
+   * Slug of the plugin whose hook asked for this approval; empty when no
+   * plugin's hook asked. Copied from ToolCall.approval_policy_hook.
+   * </pre>
+   *
+   * <code>string approval_policy_hook = 16 [json_name = "approvalPolicyHook"];</code>
+   * @return The approvalPolicyHook.
+   */
+  java.lang.String getApprovalPolicyHook();
+  /**
+   * <pre>
+   * Slug of the plugin whose hook asked for this approval; empty when no
+   * plugin's hook asked. Copied from ToolCall.approval_policy_hook.
+   * </pre>
+   *
+   * <code>string approval_policy_hook = 16 [json_name = "approvalPolicyHook"];</code>
+   * @return The bytes for approvalPolicyHook.
+   */
+  com.google.protobuf.ByteString
+      getApprovalPolicyHookBytes();
 }

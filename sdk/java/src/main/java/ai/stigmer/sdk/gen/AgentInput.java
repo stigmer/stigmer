@@ -4,12 +4,17 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentSpec;
+import ai.stigmer.agentic.agent.v1.HookSource;
 import ai.stigmer.agentic.agent.v1.SubAgent;
 import ai.stigmer.agentic.agentexecution.v1.RunConfig;
 import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
 import ai.stigmer.agentic.agentexecution.v1.ThinkingMode;
 import ai.stigmer.agentic.environment.v1.EnvVarDeclaration;
 import ai.stigmer.agentic.mcpserver.v1.McpServerUsage;
+import ai.stigmer.agentic.plugin.v1.HookConfig;
+import ai.stigmer.agentic.plugin.v1.HookFormat;
+import ai.stigmer.agentic.plugin.v1.HookGroup;
+import ai.stigmer.agentic.plugin.v1.HookHandler;
 import ai.stigmer.agentic.session.v1.Harness;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceMetadataVersion;
@@ -34,6 +39,7 @@ public final class AgentInput {
     private final java.util.Map<String, EnvVarDeclarationInput> env;
     private final java.util.List<String> tools;
     private final java.util.List<String> disallowedTools;
+    private final java.util.List<HookSourceInput> hooks;
     private final RunConfigInput runConfig;
     private final Harness harness;
 
@@ -54,6 +60,7 @@ public final class AgentInput {
         this.env = builder.env;
         this.tools = builder.tools;
         this.disallowedTools = builder.disallowedTools;
+        this.hooks = builder.hooks;
         this.runConfig = builder.runConfig;
         this.harness = builder.harness;
     }
@@ -95,6 +102,11 @@ public final class AgentInput {
         }
         if (this.disallowedTools != null && !this.disallowedTools.isEmpty()) {
             spec.addAllDisallowedTools(this.disallowedTools);
+        }
+        if (this.hooks != null) {
+            for (HookSourceInput item : this.hooks) {
+                spec.addHooks(item.toProto());
+            }
         }
         if (this.runConfig != null) {
             spec.setRunConfig(this.runConfig.toProto());
@@ -151,6 +163,7 @@ public final class AgentInput {
         private java.util.Map<String, EnvVarDeclarationInput> env;
         private java.util.List<String> tools;
         private java.util.List<String> disallowedTools;
+        private java.util.List<HookSourceInput> hooks;
         private RunConfigInput runConfig;
         private Harness harness;
 
@@ -177,6 +190,7 @@ public final class AgentInput {
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
         public Builder tools(java.util.List<String> tools) { this.tools = tools; return this; }
         public Builder disallowedTools(java.util.List<String> disallowedTools) { this.disallowedTools = disallowedTools; return this; }
+        public Builder hooks(java.util.List<HookSourceInput> hooks) { this.hooks = hooks; return this; }
         public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
         public Builder harness(Harness harness) { this.harness = harness; return this; }
 
@@ -323,6 +337,179 @@ public final class AgentInput {
             public Builder optional(boolean optional) { this.optional = optional; return this; }
 
             public EnvVarDeclarationInput build() { return new EnvVarDeclarationInput(this); }
+        }
+    }
+
+    /** SDK input type for HookSource. */
+    public static final class HookSourceInput {
+        private final ResourceRef plugin;
+        private final HookConfigInput inline;
+
+        private HookSourceInput(Builder builder) {
+            this.plugin = builder.plugin;
+            this.inline = builder.inline;
+        }
+
+        HookSource toProto() {
+            HookSource.Builder builder = HookSource.newBuilder();
+            if (this.inline != null) {
+                builder.setInline(this.inline.toProto());
+            }
+            if (this.plugin != null && this.plugin.hasIdentifier()) {
+                builder.setPlugin(this.plugin.toProto().toBuilder()
+                    .setKind(ApiResourceKind.plugin).build());
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private ResourceRef plugin;
+            private HookConfigInput inline;
+
+            private Builder() {}
+
+            public Builder plugin(ResourceRef plugin) { this.plugin = plugin; return this; }
+            public Builder inline(HookConfigInput inline) { this.inline = inline; return this; }
+
+            public HookSourceInput build() { return new HookSourceInput(this); }
+        }
+    }
+
+    /** SDK input type for HookConfig. */
+    public static final class HookConfigInput {
+        private final HookFormat format;
+        private final java.util.List<HookGroupInput> groups;
+
+        private HookConfigInput(Builder builder) {
+            this.format = builder.format;
+            this.groups = builder.groups;
+        }
+
+        HookConfig toProto() {
+            HookConfig.Builder builder = HookConfig.newBuilder();
+            if (this.format != null) {
+                builder.setFormat(this.format);
+            }
+            if (this.groups != null) {
+                for (HookGroupInput item : this.groups) {
+                    builder.addGroups(item.toProto());
+                }
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private HookFormat format;
+            private java.util.List<HookGroupInput> groups;
+
+            private Builder() {}
+
+            public Builder format(HookFormat format) { this.format = format; return this; }
+            public Builder groups(java.util.List<HookGroupInput> groups) { this.groups = groups; return this; }
+
+            public HookConfigInput build() { return new HookConfigInput(this); }
+        }
+    }
+
+    /** SDK input type for HookGroup. */
+    public static final class HookGroupInput {
+        private final String event;
+        private final String matcher;
+        private final java.util.List<HookHandlerInput> handlers;
+
+        private HookGroupInput(Builder builder) {
+            this.event = builder.event;
+            this.matcher = builder.matcher;
+            this.handlers = builder.handlers;
+        }
+
+        HookGroup toProto() {
+            HookGroup.Builder builder = HookGroup.newBuilder();
+            if (this.event != null) {
+                builder.setEvent(this.event);
+            }
+            if (this.matcher != null) {
+                builder.setMatcher(this.matcher);
+            }
+            if (this.handlers != null) {
+                for (HookHandlerInput item : this.handlers) {
+                    builder.addHandlers(item.toProto());
+                }
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String event;
+            private String matcher;
+            private java.util.List<HookHandlerInput> handlers;
+
+            private Builder() {}
+
+            public Builder event(String event) { this.event = event; return this; }
+            public Builder matcher(String matcher) { this.matcher = matcher; return this; }
+            public Builder handlers(java.util.List<HookHandlerInput> handlers) { this.handlers = handlers; return this; }
+
+            public HookGroupInput build() { return new HookGroupInput(this); }
+        }
+    }
+
+    /** SDK input type for HookHandler. */
+    public static final class HookHandlerInput {
+        private final String command;
+        private final java.util.List<String> args;
+        private final int timeoutSeconds;
+        private final String condition;
+        private final boolean failClosed;
+
+        private HookHandlerInput(Builder builder) {
+            this.command = builder.command;
+            this.args = builder.args;
+            this.timeoutSeconds = builder.timeoutSeconds;
+            this.condition = builder.condition;
+            this.failClosed = builder.failClosed;
+        }
+
+        HookHandler toProto() {
+            HookHandler.Builder builder = HookHandler.newBuilder();
+            if (this.command != null) {
+                builder.setCommand(this.command);
+            }
+            if (this.args != null) {
+                builder.addAllArgs(this.args);
+            }
+            builder.setTimeoutSeconds(this.timeoutSeconds);
+            if (this.condition != null) {
+                builder.setCondition(this.condition);
+            }
+            builder.setFailClosed(this.failClosed);
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String command;
+            private java.util.List<String> args;
+            private int timeoutSeconds;
+            private String condition;
+            private boolean failClosed;
+
+            private Builder() {}
+
+            public Builder command(String command) { this.command = command; return this; }
+            public Builder args(java.util.List<String> args) { this.args = args; return this; }
+            public Builder timeoutSeconds(int timeoutSeconds) { this.timeoutSeconds = timeoutSeconds; return this; }
+            public Builder condition(String condition) { this.condition = condition; return this; }
+            public Builder failClosed(boolean failClosed) { this.failClosed = failClosed; return this; }
+
+            public HookHandlerInput build() { return new HookHandlerInput(this); }
         }
     }
 

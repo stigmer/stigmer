@@ -47,6 +47,7 @@ export function resolveDeepAgentConfig(config: Config): DeepAgentAdapterConfig {
     stigmerTokenRef: config.stigmerTokenRef,
     proxyEndpoint: config.proxyEndpoint,
     mode: config.mode,
+    cursorStreamStallTimeoutMs: config.cursorStreamStallTimeoutMs,
   };
 }
 

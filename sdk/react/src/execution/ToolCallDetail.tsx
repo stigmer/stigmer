@@ -308,7 +308,7 @@ function CapturedRowDiff({ change }: { change: CapturedFileChange }) {
 // the approval gate's smart-suppress (isInformativePolicySource).
 function ProvenanceNote({ toolCall }: { toolCall: ToolCall }) {
   if (!isInformativePolicySource(toolCall.approvalPolicySource)) return null;
-  const provenance = describeApprovalPolicySource(toolCall.approvalPolicySource);
+  const provenance = describeApprovalPolicySource(toolCall.approvalPolicySource, toolCall.approvalPolicyHook);
   if (!provenance) return null;
 
   return (

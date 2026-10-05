@@ -2,22 +2,36 @@
  * Cross-edition lease-scope derivation parity.
  *
  * Loads the shared corpus (apis/testdata/hitl/lease-scope/vectors.json) and
- * asserts the TS {@link deriveLeaseScope} agrees with it. The Go
- * (lease_scope_corpus_test.go) and Java (LeaseScopeFixtureTest) editions load
- * the same file, so a drift in any edition fails one of the three suites — the
- * guarantee that an APPROVE_ALL clicked in one edition leases the same class
- * everywhere.
+ * asserts the runner's {@link deriveLeaseScope} agrees with it. The server's
+ * lease-scope corpus test loads the same file, so a drift fails one of the
+ * two suites: the guarantee that the calls an APPROVE_ALL approves on the
+ * server are the calls the runner then lets through.
  */
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { ApprovalPolicySource, ApprovalPolicySourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { deriveLeaseScope } from "../approval-policy.js";
+
+type ExpectedScope =
+  | { category: string }
+  | { server: string }
+  | { hook: string; tool: string; server: string }
+  | null;
 
 interface LeaseScopeVector {
   name: string;
-  input: { toolName: string; mcpServerSlug?: string };
-  expected: { category: string } | { server: string } | null;
+  input: { toolName: string; mcpServerSlug?: string; policySource?: string; policyHook?: string };
+  expected: ExpectedScope;
+}
+
+/** The corpus's proto enum name as the generated enum value. */
+function sourceOf(name: string | undefined): ApprovalPolicySource {
+  if (name === undefined) return ApprovalPolicySource.UNSPECIFIED;
+  const value = ApprovalPolicySourceSchema.values.find((v) => v.name === name);
+  if (value === undefined) throw new Error(`unknown ApprovalPolicySource in the corpus: ${name}`);
+  return value.number as ApprovalPolicySource;
 }
 
 const vectorsPath = fileURLToPath(
@@ -31,13 +45,16 @@ const corpus = JSON.parse(readFileSync(vectorsPath, "utf-8")) as {
 };
 
 /** Normalize the discriminated union to the corpus's plain JSON shape. */
-function asExpected(
-  scope: ReturnType<typeof deriveLeaseScope>,
-): { category: string } | { server: string } | null {
+function asExpected(scope: ReturnType<typeof deriveLeaseScope>): ExpectedScope {
   if (!scope) return null;
-  return scope.kind === "server"
-    ? { server: scope.server }
-    : { category: scope.category };
+  switch (scope.kind) {
+    case "server":
+      return { server: scope.server };
+    case "category":
+      return { category: scope.category };
+    case "hook":
+      return { hook: scope.hook, tool: scope.tool, server: scope.server };
+  }
 }
 
 describe("lease-scope derivation vector corpus", () => {
@@ -48,7 +65,12 @@ describe("lease-scope derivation vector corpus", () => {
   for (const v of corpus.vectors) {
     it(`vector: ${v.name}`, () => {
       const actual = asExpected(
-        deriveLeaseScope(v.input.toolName, v.input.mcpServerSlug ?? ""),
+        deriveLeaseScope({
+          name: v.input.toolName,
+          mcpServerSlug: v.input.mcpServerSlug ?? "",
+          approvalPolicySource: sourceOf(v.input.policySource),
+          approvalPolicyHook: v.input.policyHook ?? "",
+        }),
       );
       expect(actual).toEqual(v.expected);
     });

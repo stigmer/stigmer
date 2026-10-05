@@ -64,6 +64,16 @@ func (p *PluginClient) ListMembers(ctx context.Context, id string) (*pluginv1.Li
 	return resp, wrapErr(err)
 }
 
+func (p *PluginClient) GetArtifact(ctx context.Context, input *pluginv1.GetArtifactRequest) (*pluginv1.GetArtifactResponse, error) {
+	resp, err := p.query.GetArtifact(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (p *PluginClient) GetArtifactDownloadUrl(ctx context.Context, input *pluginv1.GetArtifactRequest) (*pluginv1.PluginArtifactDownloadUrl, error) {
+	resp, err := p.query.GetArtifactDownloadUrl(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (p *PluginClient) ListVersions(ctx context.Context, input *pluginv1.ListPluginVersionsInput) (*pluginv1.ListPluginVersionsResponse, error) {
 	resp, err := p.query.ListVersions(ctx, input)
 	return resp, wrapErr(err)

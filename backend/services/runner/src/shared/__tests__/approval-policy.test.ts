@@ -16,6 +16,7 @@ import {
   resolveApprovalMessage,
   resolveBuiltInApprovalMessage,
   deriveActiveLeases,
+  hookLeaseKey,
   resolveApprovalProvenance,
   resolveToolApproval,
   toProtoPolicySource,
@@ -31,7 +32,7 @@ import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/st
 import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 /** No active leases. */
-const NO_LEASES: ActiveLeases = { global: false, categories: new Set(), servers: new Set() };
+const NO_LEASES: ActiveLeases = { global: false, categories: new Set(), servers: new Set(), hooks: new Set() };
 
 /** ActiveLeases with the given scopes; `global` defaults to false. */
 function leases(opts: {
@@ -43,6 +44,7 @@ function leases(opts: {
     global: opts.global ?? false,
     categories: new Set(opts.categories ?? []),
     servers: new Set(opts.servers ?? []),
+    hooks: new Set(),
   };
 }
 
@@ -51,6 +53,8 @@ interface TestToolCall {
   approvalAction: ApprovalAction;
   name?: string;
   mcpServerSlug?: string;
+  approvalPolicySource?: ApprovalPolicySource;
+  approvalPolicyHook?: string;
 }
 
 /**
@@ -74,6 +78,8 @@ function makeExecution(opts: {
       approvalAction: c.approvalAction,
       name: c.name ?? "",
       mcpServerSlug: c.mcpServerSlug ?? "",
+      approvalPolicySource: c.approvalPolicySource ?? ApprovalPolicySource.UNSPECIFIED,
+      approvalPolicyHook: c.approvalPolicyHook ?? "",
     }));
   return {
     spec,
@@ -94,6 +100,7 @@ function makeServer(slug: string, destructiveTools: string[] = []): ResolvedMcpS
     discoveredToolNames: null,
     discoveredCapabilitiesEmpty: false,
     declaredEnvKeys: [],
+    pluginOrigin: null,
   };
 }
 
@@ -190,6 +197,30 @@ describe("deriveActiveLeases", () => {
     const result = deriveActiveLeases(exec);
     expect([...result.categories]).toEqual(["delete"]);
     expect([...result.servers]).toEqual(["database"]);
+  });
+
+  it("derives a HOOK lease, and only that, from an APPROVE_ALL on a call a hook asked about", () => {
+    const exec = makeExecution({
+      rootCalls: [
+        {
+          approvalAction: ApprovalAction.APPROVE_ALL,
+          name: "execute",
+          approvalPolicySource: ApprovalPolicySource.HOOK,
+          approvalPolicyHook: "safety",
+        },
+        {
+          approvalAction: ApprovalAction.APPROVE_ALL,
+          name: "create_issue",
+          mcpServerSlug: "github",
+          approvalPolicySource: ApprovalPolicySource.HOOK,
+          approvalPolicyHook: "",
+        },
+      ],
+    });
+    const result = deriveActiveLeases(exec);
+    expect([...result.hooks]).toEqual([hookLeaseKey("safety", "", "execute"), hookLeaseKey("", "github", "create_issue")]);
+    expect(result.categories.size).toBe(0);
+    expect(result.servers.size).toBe(0);
   });
 
   it("does not lease a read-only built-in (no category) on APPROVE_ALL", () => {
@@ -421,6 +452,7 @@ describe("toProtoPolicySource", () => {
       "builtin_category",
       "annotation_destructive_tighten",
       "unattended_skip",
+      "hook",
     ] as const;
     const mapped = sources.map((s) => toProtoPolicySource(s));
     expect(mapped.every((v) => v !== ApprovalPolicySource.UNSPECIFIED)).toBe(true);
@@ -433,8 +465,14 @@ describe("toProtoPolicySource", () => {
 });
 
 describe("POLICY_ENGINE_VERSION", () => {
-  it("is default-1: the default alone decides", () => {
-    expect(POLICY_ENGINE_VERSION).toBe("default-1");
+  it("is hooks-1: an agent's hooks answer before the default", () => {
+    expect(POLICY_ENGINE_VERSION).toBe("hooks-1");
+  });
+});
+
+describe("hookLeaseKey", () => {
+  it("keeps the hook, the server and the tool apart, whatever their spelling", () => {
+    expect(hookLeaseKey("a", "b/c", "d")).not.toBe(hookLeaseKey("a/b", "c", "d"));
   });
 });
 

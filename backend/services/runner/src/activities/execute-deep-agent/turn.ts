@@ -21,9 +21,10 @@
  * Never throws out of `runDeepAgentTurn`: the graph exhausting its recursion
  * limit is the `tool_call_limit` outcome (the platform's budget, not a
  * failure; the runtime writes TERMINATED with the cross-repo prefix); a
- * tool list that names nothing the turn has (`ToolListResolutionError`) is
- * `failed` on the `actionable` surface with the error's own sentence, since
- * the fix is the agent's author's, not the runner's; any other exception — a provider error unwrapped from LangChain's middleware
+ * tool list that names nothing the turn has (`ToolListResolutionError`) or
+ * a hook that cannot run as written (`HookSetupError`) is `failed` on the
+ * `actionable` surface with the error's own sentence, since the fix is the
+ * agent's author's, not the runner's; any other exception — a provider error unwrapped from LangChain's middleware
  * wrapper, an MCP connect failure, an empty stream — is `failed` on the
  * `internal` surface with `describeExecutionError`'s sentence as
  * `status.error` whole, and it returns only after the inline publishes the
@@ -51,6 +52,7 @@ import { tryInferProvider } from "../../shared/llm-proxy.js";
 import { describeExecutionError } from "../../shared/model-error.js";
 import { isToolCallBudgetStop } from "../../shared/tool-rounds.js";
 import { ToolListResolutionError } from "../../shared/tool-lists.js";
+import { HookSetupError } from "./hooks-setup.js";
 import {
   buildDeepAgentWorkspace,
   buildEngine,
@@ -114,7 +116,8 @@ export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config:
  * `shared/tool-rounds.ts`) is the budget's own signal, not an error:
  * the work is checkpointed and the conversation continues on the next
  * message. A tool list that resolves to nothing refuses the turn with its
- * own sentence, naming the agent or sub-agent and its entries. Anything else
+ * own sentence, naming the agent or sub-agent and its entries, and so does
+ * a hook that cannot run as written (`hooks-setup.ts`). Anything else
  * is described by `describeExecutionError` (a model error arrives
  * MiddlewareError-wrapped with raw provider prose and is unwrapped to its
  * stable platform code; non-model errors keep the root error's identity) on
@@ -125,7 +128,7 @@ function classifyThrown(err: unknown, input: TurnInput, config: DeepAgentAdapter
     console.log(`ExecuteDeepAgent reached the tool-call limit: execution=${input.executionId}`);
     return { kind: "tool_call_limit" };
   }
-  if (err instanceof ToolListResolutionError) {
+  if (err instanceof ToolListResolutionError || err instanceof HookSetupError) {
     console.warn(`ExecuteDeepAgent refused the turn: execution=${input.executionId}, ${err.message}`);
     return { kind: "failed", surface: "actionable", message: err.message, cause: err };
   }

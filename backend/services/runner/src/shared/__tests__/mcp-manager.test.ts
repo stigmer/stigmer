@@ -33,6 +33,7 @@ function makeServer(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
     destructiveTools: [],
     discoveredToolNames: null,
     declaredEnvKeys: [],
+    pluginOrigin: null,
     discoveredCapabilitiesEmpty: false,
     ...overrides,
   };

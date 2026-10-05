@@ -76,6 +76,34 @@ export interface ResolvedMcpServer {
    * none and says so.
    */
   declaredEnvKeys: readonly string[];
+  /**
+   * The plugin that brought this server, and the server's key in that
+   * plugin, or `null` for any other server. Read only to show a hook the
+   * name Claude Code gives a plugin's own server
+   * (`mcp__plugin_<plugin>_<server>__<tool>`, `shared/hooks/tool-view.ts`).
+   * REQUIRED for the same reason as {@link destructiveTools}.
+   */
+  pluginOrigin: McpPluginOrigin | null;
+}
+
+/** Where a plugin-installed server came from: the plugin's id (its member label) and the server's own key. */
+export interface McpPluginOrigin {
+  readonly pluginId: string;
+  readonly server: string;
+}
+
+/**
+ * The label an installed plugin stamps on every member it materialises,
+ * carrying the plugin's id (the server's `PLUGIN_LABEL`,
+ * `backend/services/stigmer-server/src/pipeline/apiresource-labels.ts`).
+ */
+export const PLUGIN_MEMBER_LABEL = "stigmer.ai/plugin";
+
+/** A server's plugin origin, from its member label and its own name. */
+export function pluginOriginOf(server: McpServer): McpPluginOrigin | null {
+  const pluginId = server.metadata?.labels?.[PLUGIN_MEMBER_LABEL] ?? "";
+  const name = server.metadata?.name ?? "";
+  return pluginId !== "" && name !== "" ? { pluginId, server: name } : null;
 }
 
 export interface McpResolutionResult {
@@ -166,6 +194,7 @@ export function mcpServerToResolved(
     destructiveTools: (discovered?.tools ?? []).filter((t) => t.destructiveHint).map((t) => t.name),
     discoveredToolNames: discovered ? discovered.tools.map((t) => t.name) : null,
     declaredEnvKeys: declaredEnvKeysOf(server),
+    pluginOrigin: pluginOriginOf(server),
   };
 
   switch (spec.serverType.case) {

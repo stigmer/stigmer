@@ -1,0 +1,420 @@
+/**
+ * Hermetic golden: a plugin's tool hook denies, allows and asks on the
+ * native engine — the real activity, two invocations on the durable (sqlite)
+ * checkpointer, a real command hook.
+ *
+ * The agent references the `safety` plugin through `AgentSpec.hooks`. The
+ * runtime reads it by reference, fetches its archive (the unary lane; the
+ * download lane answers Unimplemented here), verifies it against the
+ * installed digest and mounts it; the hook is the plugin's own extensionless
+ * bash script, made executable by its `#!` line, run in shell form from
+ * `${CLAUDE_PLUGIN_ROOT}`. It reads the call on stdin and answers as Claude
+ * Code's hooks do: exit 2 with a reason refuses `rm -rf`, JSON allows `ls`,
+ * and JSON asks before publishing.
+ *
+ * Turn 1: the model proposes them one round at a time, so the transcript's
+ * order is the script's (calls proposed together run their hooks at once,
+ * and their rows open in whichever order the hooks answer). The delete is
+ * refused (its row fails with the hook's reason and names the hook), `ls`
+ * runs without a card (the shell default would have asked; the gate's
+ * `tool_policy` event stamps the hook on the row), and the publish waits for
+ * a person on a card naming the hook: WAITING_FOR_APPROVAL.
+ *
+ * Between turns: the person approves the publish.
+ *
+ * Turn 2: the graph resumes inside the gate; the hook runs again (as
+ * Claude's `defer` re-fires PreToolUse), asks again, and the stored decision
+ * answers it; the publish runs; COMPLETED. Every row says the hook decided.
+ *
+ * "Approve all" on the hook's card leases that hook's asks on that tool and
+ * nothing wider: the approved row keeps HOOK on resume (a person decided it),
+ * so the next turn derives the hook lease, a later ask of the hook runs as
+ * the lease, and the shell default still asks before a call the hook passes.
+ *
+ * A person's refusal binds on resume: a hook that asks the first time and
+ * allows after (it keeps state in `${CLAUDE_PLUGIN_DATA}`) runs again on
+ * resume and now allows, and the call the person rejected still never runs.
+ *
+ * Two refusals settle as the tool lists' does, EXECUTION_FAILED on the
+ * actionable surface with their own sentence: a referenced plugin that cannot
+ * be read, and a hook that reads a variable the run does not give the agent.
+ *
+ * Regenerate ONLY after a deliberate behavior change:
+ *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
+ */
+
+import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { create, toJson } from "@bufbuild/protobuf";
+import { ConnectError, Code } from "@connectrpc/connect";
+import { AgentExecutionSchema, AgentExecutionStatusSchema, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import {
+  ApprovalAction,
+  ApprovalPolicySource,
+  ExecutionPhase,
+  MessageType,
+  ToolCallStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { GetArtifactResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { buildZip } from "@stigmer/zip-structure/testing";
+
+vi.mock("../../../../shared/model-client.js", async () =>
+  (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
+);
+vi.mock("../../../../client/stigmer-client.js", async () =>
+  (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
+);
+
+import { ScriptedClock, createHermeticEnvironment, type HermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
+import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../../__test-utils__/hermetic-deep-agent.js";
+import type { ScriptedToolCall } from "../../__test-utils__/scripted-model.js";
+import { CLOSING_TURN } from "../../__test-utils__/hitl-script.js";
+import { deriveActiveLeases, hookLeaseKey } from "../../../../shared/approval-policy.js";
+
+const GUARD = `#!/usr/bin/env bash
+input=$(cat)
+case "$input" in
+  *'"command":"rm -rf'*)
+    echo "recursive deletes are not allowed" >&2
+    exit 2 ;;
+  *'"command":"ls'*)
+    printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}' ;;
+  *'"command":"echo publish'*)
+    printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"publishing needs a person"}}' ;;
+esac
+exit 0
+`;
+
+const ARCHIVE = buildZip([
+  { name: ".claude-plugin/plugin.json", content: '{"name":"safety"}' },
+  { name: "hooks/guard", content: GUARD },
+]);
+
+const SAFETY = create(PluginSchema, {
+  metadata: { id: "plg_safety", org: "hermetic-org", slug: "safety", name: "safety" },
+  status: {
+    digest: createHash("sha256").update(ARCHIVE).digest("hex"),
+    artifactStorageKey: "plugins/safety.zip",
+    hooks: create(HookConfigSchema, {
+      format: HookFormat.CLAUDE_CODE,
+      groups: [create(HookGroupSchema, {
+        event: "PreToolUse",
+        matcher: "Bash",
+        handlers: [create(HookHandlerSchema, { command: '"${CLAUDE_PLUGIN_ROOT}"/hooks/guard' })],
+      })],
+    }),
+  },
+});
+
+const DELETE: ScriptedToolCall = { id: "call-hooks-delete", name: "execute", args: { command: "rm -rf build" } };
+const LIST: ScriptedToolCall = { id: "call-hooks-list", name: "execute", args: { command: "ls" } };
+const PUBLISH: ScriptedToolCall = { id: "call-hooks-publish", name: "execute", args: { command: "echo publish" } };
+
+function statusJson(status: AgentExecutionStatus): string {
+  return JSON.stringify(toJson(AgentExecutionStatusSchema, status), null, 2) + "\n";
+}
+
+describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks", () => {
+  let env: HermeticEnvironment;
+  let registry: ReturnType<typeof stubRegistryFetch>;
+  const clock = new ScriptedClock();
+
+  beforeAll(() => {
+    env = createHermeticEnvironment();
+    registry = stubRegistryFetch();
+    clock.install();
+  });
+
+  afterAll(() => {
+    clock.uninstall();
+    registry.restore();
+    env.dispose();
+  });
+
+  it("refuses the delete, runs the listing, and holds the publish for a person", async () => {
+    const record = deepAgentExecutionRecord({
+      message: "Clean the build, list the files, then publish.",
+      hooks: [create(HookSourceSchema, {
+        source: { case: "plugin", value: create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "safety" }) },
+      })],
+    });
+    const getPluginArtifact = vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE }));
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      checkpointer: "sqlite",
+      clientOverrides: {
+        getPluginByReference: vi.fn(async () => SAFETY),
+        getPluginArtifactDownloadUrl: vi.fn(async () => {
+          throw new ConnectError("no download lane", Code.Unimplemented);
+        }),
+        getPluginArtifact,
+      },
+      script: () => ({
+        turns: [
+          { text: "Cleaning the build.", toolCalls: [DELETE], usage: { inputTokens: 1_400, outputTokens: 40 } },
+          { text: "Listing the files.", toolCalls: [LIST], usage: { inputTokens: 1_500, outputTokens: 40 } },
+          { text: "Publishing.", toolCalls: [PUBLISH], usage: { inputTokens: 1_600, outputTokens: 40 } },
+          CLOSING_TURN,
+        ],
+      }),
+    });
+
+    // ── Turn 1 ───────────────────────────────────────────────────────────────
+    const turn1 = await runDeepAgentTurn(scenario, { turnSeq: 0 });
+    expect(turn1.outcome.kind).toBe("returned");
+    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+
+    const run1 = record.lastFullStatus!;
+    const row = (status: AgentExecutionStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+
+    const deleted = row(run1, DELETE.id);
+    expect(deleted.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(deleted.error).toBe("The safety plugin's hook refused this call: recursive deletes are not allowed");
+    expect([deleted.approvalPolicySource, deleted.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
+
+    const listed = row(run1, LIST.id);
+    expect(listed.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(listed.requiresApproval, "the hook's allow skips the shell default's card").toBe(false);
+    expect([listed.approvalPolicySource, listed.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
+
+    const held = row(run1, PUBLISH.id);
+    expect(held.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(held.approvalMessage).toBe("publishing needs a person");
+    expect([held.approvalPolicySource, held.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
+    await expect(statusJson(run1)).toMatchFileSnapshot("./goldens/hooks.turn1.status.json");
+
+    // ── Between turns: approve the publish ───────────────────────────────────
+    expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, "2026-01-01T00:00:30.000Z")).toBe(1);
+
+    // ── Turn 2 ───────────────────────────────────────────────────────────────
+    const turn2 = await runDeepAgentTurn(scenario, { turnSeq: 1 });
+    expect(turn2.outcome.kind).toBe("returned");
+    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+
+    const final = record.lastFullStatus!;
+    const published = row(final, PUBLISH.id);
+    expect(published.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(published.result).toContain("publish");
+    expect([published.approvalPolicySource, published.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
+    expect(published.approvalAction).toBe(ApprovalAction.APPROVE);
+    expect(row(final, DELETE.id).status, "the refusal stays refused").toBe(ToolCallStatus.TOOL_CALL_FAILED);
+
+    // The second turn mounts from the session's verified cache.
+    expect(getPluginArtifact).toHaveBeenCalledTimes(1);
+    expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
+    await expect(statusJson(final)).toMatchFileSnapshot("./goldens/hooks.turn2.status.json");
+  });
+
+  it("approve all on the hook's card leases that hook's asks, never the whole shell", async () => {
+    clock.reset();
+    const record = deepAgentExecutionRecord({
+      message: "Publish twice, then show where you are.",
+      hooks: [create(HookSourceSchema, {
+        source: { case: "plugin", value: create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "safety" }) },
+      })],
+    });
+    const again: ScriptedToolCall = { id: "call-hooks-publish-again", name: "execute", args: { command: "echo publish again" } };
+    const where: ScriptedToolCall = { id: "call-hooks-where", name: "execute", args: { command: "pwd" } };
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      checkpointer: "sqlite",
+      clientOverrides: {
+        getPluginByReference: vi.fn(async () => SAFETY),
+        getPluginArtifactDownloadUrl: vi.fn(async () => {
+          throw new ConnectError("no download lane", Code.Unimplemented);
+        }),
+        getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE })),
+      },
+      script: () => ({
+        turns: [
+          { text: "Publishing.", toolCalls: [PUBLISH], usage: { inputTokens: 1_600, outputTokens: 40 } },
+          { text: "Publishing again.", toolCalls: [again], usage: { inputTokens: 1_700, outputTokens: 40 } },
+          { text: "Showing where I am.", toolCalls: [where], usage: { inputTokens: 1_800, outputTokens: 40 } },
+          CLOSING_TURN,
+        ],
+      }),
+    });
+    const row = (status: AgentExecutionStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+
+    await runDeepAgentTurn(scenario, { turnSeq: 0 });
+    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE_ALL, "2026-01-01T00:00:30.000Z")).toBe(1);
+
+    await runDeepAgentTurn(scenario, { turnSeq: 1 });
+    expect(record.persistedPhases.at(-1), "the shell default still asks before pwd").toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    const status = record.lastFullStatus!;
+
+    const approved = row(status, PUBLISH.id);
+    expect(approved.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect([approved.approvalPolicySource, approved.approvalPolicyHook, approved.approvalAction]).toEqual([
+      ApprovalPolicySource.HOOK, "safety", ApprovalAction.APPROVE_ALL,
+    ]);
+
+    const leased = row(status, again.id);
+    expect(leased.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(leased.requiresApproval).toBe(false);
+    expect([leased.approvalPolicySource, leased.approvalPolicyHook]).toEqual([ApprovalPolicySource.APPROVAL_LEASE, "safety"]);
+
+    const held = row(status, where.id);
+    expect(held.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(held.approvalPolicySource).toBe(ApprovalPolicySource.BUILTIN_CATEGORY);
+
+    const leases = deriveActiveLeases(create(AgentExecutionSchema, { status }));
+    expect([...leases.categories]).toEqual([]);
+    expect([...leases.servers]).toEqual([]);
+    expect([...leases.hooks]).toEqual([hookLeaseKey("safety", "", "execute")]);
+  });
+
+  it("keeps a call the person rejected unrun when the hook allows it on resume", async () => {
+    clock.reset();
+    const onceArchive = buildZip([
+      { name: ".claude-plugin/plugin.json", content: '{"name":"once"}' },
+      {
+        name: "hooks/once",
+        content: `#!/usr/bin/env bash
+cat > /dev/null
+if [ -e "$CLAUDE_PLUGIN_DATA/asked" ]; then
+  printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
+else
+  mkdir -p "$CLAUDE_PLUGIN_DATA" && touch "$CLAUDE_PLUGIN_DATA/asked"
+  printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"once"}}'
+fi
+`,
+      },
+    ]);
+    const once = create(PluginSchema, {
+      metadata: { id: "plg_once", org: "hermetic-org", slug: "once", name: "once" },
+      status: {
+        digest: createHash("sha256").update(onceArchive).digest("hex"),
+        artifactStorageKey: "plugins/once.zip",
+        hooks: create(HookConfigSchema, {
+          format: HookFormat.CLAUDE_CODE,
+          groups: [create(HookGroupSchema, {
+            event: "PreToolUse",
+            matcher: "Bash",
+            handlers: [create(HookHandlerSchema, { command: '"${CLAUDE_PLUGIN_ROOT}"/hooks/once' })],
+          })],
+        }),
+      },
+    });
+    const marker = `${env.workspaceRootDir}/rejected-ran`;
+    const touch: ScriptedToolCall = { id: "call-hooks-rejected", name: "execute", args: { command: `touch ${marker}` } };
+    const record = deepAgentExecutionRecord({
+      message: "Touch the marker.",
+      hooks: [create(HookSourceSchema, {
+        source: { case: "plugin", value: create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "once" }) },
+      })],
+    });
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      checkpointer: "sqlite",
+      clientOverrides: {
+        getPluginByReference: vi.fn(async () => once),
+        getPluginArtifactDownloadUrl: vi.fn(async () => {
+          throw new ConnectError("no download lane", Code.Unimplemented);
+        }),
+        getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: onceArchive })),
+      },
+      script: () => ({
+        turns: [
+          { text: "Touching.", toolCalls: [touch], usage: { inputTokens: 1_600, outputTokens: 40 } },
+          CLOSING_TURN,
+        ],
+      }),
+    });
+    const row = (status: AgentExecutionStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+
+    await runDeepAgentTurn(scenario, { turnSeq: 0 });
+    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.decideWaitingToolCalls(ApprovalAction.REJECT, "2026-01-01T00:00:30.000Z")).toBe(1);
+
+    await runDeepAgentTurn(scenario, { turnSeq: 1 });
+    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(existsSync(marker), "the rejected command never ran").toBe(false);
+    const rejected = row(record.lastFullStatus!, touch.id);
+    expect(rejected.approvalAction).toBe(ApprovalAction.REJECT);
+    expect(rejected.status).not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  });
+
+  it("refuses the turn, naming the plugin, when an agent's plugin cannot be read", async () => {
+    clock.reset();
+    const record = deepAgentExecutionRecord({
+      message: "Clean the build.",
+      hooks: [create(HookSourceSchema, {
+        source: { case: "plugin", value: create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "gone" }) },
+      })],
+    });
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      checkpointer: "sqlite",
+      clientOverrides: {
+        getPluginByReference: vi.fn(async () => {
+          throw new ConnectError("plugin not found", Code.NotFound);
+        }),
+      },
+      script: () => ({ turns: [CLOSING_TURN] }),
+    });
+
+    const turn = await runDeepAgentTurn(scenario, { turnSeq: 0 });
+
+    expect(turn.outcome.kind).toBe("returned");
+    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(record.lastFullStatus!.error).toMatch(/^The plugin 'gone' that the agent's hooks reference could not be read: /);
+  });
+
+  it("refuses the turn with its own sentence when a hook reads a variable the run does not give the agent", async () => {
+    clock.reset();
+    const record = deepAgentExecutionRecord({
+      message: "Clean the build.",
+      hooks: [create(HookSourceSchema, {
+        source: {
+          case: "inline",
+          value: create(HookConfigSchema, {
+            format: HookFormat.CLAUDE_CODE,
+            groups: [create(HookGroupSchema, {
+              event: "PreToolUse",
+              matcher: "Bash",
+              handlers: [create(HookHandlerSchema, { command: "/bin/echo", args: ["${user_config.API_TOKEN}"] })],
+            })],
+          }),
+        },
+      })],
+    });
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      checkpointer: "sqlite",
+      script: () => {
+        throw new Error("the model must never be asked when a hook cannot run");
+      },
+    });
+
+    const turn = await runDeepAgentTurn(scenario, { turnSeq: 0 });
+
+    expect(turn.outcome.kind, "a deterministic refusal RETURNS").toBe("returned");
+    const final = record.lastFullStatus!;
+    const message =
+      "A hook in the agent's own hooks block reads the variable API_TOKEN, which this run does not give the agent. " +
+      "Declare API_TOKEN in the agent's env and set its value, then run again.";
+    expect(final.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(final.error).toBe(message);
+    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+      `Execution failed: ${message}`,
+    ]);
+  });
+});

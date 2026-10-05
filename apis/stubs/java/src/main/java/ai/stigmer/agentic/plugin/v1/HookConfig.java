@@ -7,8 +7,12 @@ package ai.stigmer.agentic.plugin.v1;
 
 /**
  * <pre>
- * HookConfig is a plugin's tool-call hooks, in the format the plugin wrote
- * them.
+ * HookConfig is a set of tool-call hooks: commands that run before or after an
+ * agent's tool calls and can refuse a call, ask a person first, or let it run.
+ *
+ * A plugin's hooks are recorded here at install; an agent can also carry a
+ * block of its own (AgentSpec.hooks). The native engine runs hooks in Claude
+ * Code's format, with PreToolUse and PostToolUse events.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.plugin.v1.HookConfig}
@@ -60,6 +64,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The format the hooks are written in, which decides their input and answer.
+   * An agent's own block may leave it unset; Claude Code's format is assumed.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -71,6 +76,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The format the hooks are written in, which decides their input and answer.
+   * An agent's own block may leave it unset; Claude Code's format is assumed.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -86,7 +92,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.plugin.v1.HookGroup> groups_;
   /**
    * <pre>
-   * Hook groups, in the order the plugin declares them.
+   * Hook groups, in the order they are declared.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -97,7 +103,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Hook groups, in the order the plugin declares them.
+   * Hook groups, in the order they are declared.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -109,7 +115,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Hook groups, in the order the plugin declares them.
+   * Hook groups, in the order they are declared.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -120,7 +126,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Hook groups, in the order the plugin declares them.
+   * Hook groups, in the order they are declared.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -131,7 +137,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Hook groups, in the order the plugin declares them.
+   * Hook groups, in the order they are declared.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -318,8 +324,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * HookConfig is a plugin's tool-call hooks, in the format the plugin wrote
-   * them.
+   * HookConfig is a set of tool-call hooks: commands that run before or after an
+   * agent's tool calls and can refuse a call, ask a person first, or let it run.
+   *
+   * A plugin's hooks are recorded here at install; an agent can also carry a
+   * block of its own (AgentSpec.hooks). The native engine runs hooks in Claude
+   * Code's format, with PreToolUse and PostToolUse events.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.plugin.v1.HookConfig}
@@ -520,6 +530,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The format the hooks are written in, which decides their input and answer.
+     * An agent's own block may leave it unset; Claude Code's format is assumed.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -531,6 +542,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The format the hooks are written in, which decides their input and answer.
+     * An agent's own block may leave it unset; Claude Code's format is assumed.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -547,6 +559,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The format the hooks are written in, which decides their input and answer.
+     * An agent's own block may leave it unset; Claude Code's format is assumed.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -560,6 +573,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The format the hooks are written in, which decides their input and answer.
+     * An agent's own block may leave it unset; Claude Code's format is assumed.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -576,6 +590,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The format the hooks are written in, which decides their input and answer.
+     * An agent's own block may leave it unset; Claude Code's format is assumed.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -602,7 +617,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -616,7 +631,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -630,7 +645,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -644,7 +659,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -665,7 +680,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -683,7 +698,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -703,7 +718,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -724,7 +739,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -742,7 +757,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -760,7 +775,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -779,7 +794,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -796,7 +811,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -813,7 +828,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -824,7 +839,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -838,7 +853,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -853,7 +868,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -864,7 +879,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -876,7 +891,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Hook groups, in the order the plugin declares them.
+     * Hook groups, in the order they are declared.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>

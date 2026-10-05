@@ -52,6 +52,7 @@ private static final long serialVersionUID = 0L;
     policyEngineVersion_ = "";
     approvalContentDigest_ = "";
     fileChangeSetId_ = "";
+    approvalPolicyHook_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1268,6 +1269,55 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int APPROVAL_POLICY_HOOK_FIELD_NUMBER = 27;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object approvalPolicyHook_ = "";
+  /**
+   * <pre>
+   * Slug of the plugin whose hook decided this call; empty when no hook
+   * decided, or when the agent's own hooks block did.
+   * </pre>
+   *
+   * <code>string approval_policy_hook = 27 [json_name = "approvalPolicyHook"];</code>
+   * @return The approvalPolicyHook.
+   */
+  @java.lang.Override
+  public java.lang.String getApprovalPolicyHook() {
+    java.lang.Object ref = approvalPolicyHook_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      approvalPolicyHook_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Slug of the plugin whose hook decided this call; empty when no hook
+   * decided, or when the agent's own hooks block did.
+   * </pre>
+   *
+   * <code>string approval_policy_hook = 27 [json_name = "approvalPolicyHook"];</code>
+   * @return The bytes for approvalPolicyHook.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getApprovalPolicyHookBytes() {
+    java.lang.Object ref = approvalPolicyHook_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      approvalPolicyHook_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1353,6 +1403,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(fileChangeSetId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 26, fileChangeSetId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(approvalPolicyHook_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 27, approvalPolicyHook_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1444,6 +1497,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(fileChangeSetId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(26, fileChangeSetId_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(approvalPolicyHook_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(27, approvalPolicyHook_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1508,6 +1564,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getApprovalContentDigest())) return false;
     if (!getFileChangeSetId()
         .equals(other.getFileChangeSetId())) return false;
+    if (!getApprovalPolicyHook()
+        .equals(other.getApprovalPolicyHook())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1573,6 +1631,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getApprovalContentDigest().hashCode();
     hash = (37 * hash) + FILE_CHANGE_SET_ID_FIELD_NUMBER;
     hash = (53 * hash) + getFileChangeSetId().hashCode();
+    hash = (37 * hash) + APPROVAL_POLICY_HOOK_FIELD_NUMBER;
+    hash = (53 * hash) + getApprovalPolicyHook().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1747,6 +1807,7 @@ private static final long serialVersionUID = 0L;
       policyEngineVersion_ = "";
       approvalContentDigest_ = "";
       fileChangeSetId_ = "";
+      approvalPolicyHook_ = "";
       return this;
     }
 
@@ -1858,6 +1919,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00800000) != 0)) {
         result.fileChangeSetId_ = fileChangeSetId_;
+      }
+      if (((from_bitField0_ & 0x01000000) != 0)) {
+        result.approvalPolicyHook_ = approvalPolicyHook_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1974,6 +2038,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getFileChangeSetId().isEmpty()) {
         fileChangeSetId_ = other.fileChangeSetId_;
         bitField0_ |= 0x00800000;
+        onChanged();
+      }
+      if (!other.getApprovalPolicyHook().isEmpty()) {
+        approvalPolicyHook_ = other.approvalPolicyHook_;
+        bitField0_ |= 0x01000000;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -2126,6 +2195,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00800000;
               break;
             } // case 210
+            case 218: {
+              approvalPolicyHook_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x01000000;
+              break;
+            } // case 218
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -4953,6 +5027,103 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       fileChangeSetId_ = value;
       bitField0_ |= 0x00800000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object approvalPolicyHook_ = "";
+    /**
+     * <pre>
+     * Slug of the plugin whose hook decided this call; empty when no hook
+     * decided, or when the agent's own hooks block did.
+     * </pre>
+     *
+     * <code>string approval_policy_hook = 27 [json_name = "approvalPolicyHook"];</code>
+     * @return The approvalPolicyHook.
+     */
+    public java.lang.String getApprovalPolicyHook() {
+      java.lang.Object ref = approvalPolicyHook_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        approvalPolicyHook_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Slug of the plugin whose hook decided this call; empty when no hook
+     * decided, or when the agent's own hooks block did.
+     * </pre>
+     *
+     * <code>string approval_policy_hook = 27 [json_name = "approvalPolicyHook"];</code>
+     * @return The bytes for approvalPolicyHook.
+     */
+    public com.google.protobuf.ByteString
+        getApprovalPolicyHookBytes() {
+      java.lang.Object ref = approvalPolicyHook_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        approvalPolicyHook_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Slug of the plugin whose hook decided this call; empty when no hook
+     * decided, or when the agent's own hooks block did.
+     * </pre>
+     *
+     * <code>string approval_policy_hook = 27 [json_name = "approvalPolicyHook"];</code>
+     * @param value The approvalPolicyHook to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalPolicyHook(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      approvalPolicyHook_ = value;
+      bitField0_ |= 0x01000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Slug of the plugin whose hook decided this call; empty when no hook
+     * decided, or when the agent's own hooks block did.
+     * </pre>
+     *
+     * <code>string approval_policy_hook = 27 [json_name = "approvalPolicyHook"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearApprovalPolicyHook() {
+      approvalPolicyHook_ = getDefaultInstance().getApprovalPolicyHook();
+      bitField0_ = (bitField0_ & ~0x01000000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Slug of the plugin whose hook decided this call; empty when no hook
+     * decided, or when the agent's own hooks block did.
+     * </pre>
+     *
+     * <code>string approval_policy_hook = 27 [json_name = "approvalPolicyHook"];</code>
+     * @param value The bytes for approvalPolicyHook to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalPolicyHookBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      approvalPolicyHook_ = value;
+      bitField0_ |= 0x01000000;
       onChanged();
       return this;
     }

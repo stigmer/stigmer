@@ -28,7 +28,7 @@ do and can make an informed decision.
 
 ## What asks for approval
 
-There is nothing to configure. Stigmer asks before:
+By default there is nothing to configure. Stigmer asks before:
 
 - shell commands
 - file writes and deletes
@@ -43,6 +43,24 @@ Stigmer records the annotations each time a server connects, and reads them from
 that record. Connect a server again after its author changes them. A server
 connected before Stigmer recorded annotations asks for nothing until it is
 connected again, so connect each existing server once after upgrading.
+
+An Agent's hooks can change that, call by call. A hook is a command in Claude
+Code's hooks format, from a plugin or written in the Agent itself, that runs
+before a tool call. It can refuse the call, ask you first, or let it run without
+the approval it would otherwise need; a call it says nothing about keeps the
+default. A hook's refusal holds even when you trust the whole run. To apply a
+plugin's hooks, reference the plugin in the Agent's `hooks`:
+
+```yaml validate-as="Agent"
+spec:
+  hooks:
+    - plugin:
+        kind: plugin
+        slug: safety
+```
+
+Stigmer's own engine runs hooks, in the Cloud and on your laptop. The Cursor
+engine does not run them yet, and refuses a run of an Agent that has them.
 
 ## Keeping an Agent away from a tool
 

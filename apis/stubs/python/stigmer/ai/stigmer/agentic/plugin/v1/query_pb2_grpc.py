@@ -32,6 +32,16 @@ class PluginQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginMembersResponse.FromString,
                 _registered_method=True)
+        self.getArtifact = channel.unary_unary(
+                '/ai.stigmer.agentic.plugin.v1.PluginQueryController/getArtifact',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactResponse.FromString,
+                _registered_method=True)
+        self.getArtifactDownloadUrl = channel.unary_unary(
+                '/ai.stigmer.agentic.plugin.v1.PluginQueryController/getArtifactDownloadUrl',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginArtifactDownloadUrl.FromString,
+                _registered_method=True)
         self.listVersions = channel.unary_unary(
                 '/ai.stigmer.agentic.plugin.v1.PluginQueryController/listVersions',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginVersionsInput.SerializeToString,
@@ -72,6 +82,25 @@ class PluginQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getArtifact(self, request, context):
+        """Download a plugin archive from storage by its storage key.
+        Returns the ZIP file the plugin was installed from.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getArtifactDownloadUrl(self, request, context):
+        """Mint a URL for downloading a plugin archive over HTTP.
+
+        Preferred over getArtifact for anything that might exceed the gRPC
+        message-size cap (10MB): the bytes ride HTTP. Callers try this first and
+        fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def listVersions(self, request, context):
         """List version history for a plugin.
 
@@ -99,6 +128,16 @@ def add_PluginQueryControllerServicer_to_server(servicer, server):
                     servicer.listMembers,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginMembersResponse.SerializeToString,
+            ),
+            'getArtifact': grpc.unary_unary_rpc_method_handler(
+                    servicer.getArtifact,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactResponse.SerializeToString,
+            ),
+            'getArtifactDownloadUrl': grpc.unary_unary_rpc_method_handler(
+                    servicer.getArtifactDownloadUrl,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginArtifactDownloadUrl.SerializeToString,
             ),
             'listVersions': grpc.unary_unary_rpc_method_handler(
                     servicer.listVersions,
@@ -188,6 +227,60 @@ class PluginQueryController(object):
             '/ai.stigmer.agentic.plugin.v1.PluginQueryController/listMembers',
             ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginId.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginMembersResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getArtifact(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.plugin.v1.PluginQueryController/getArtifact',
+            ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getArtifactDownloadUrl(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.plugin.v1.PluginQueryController/getArtifactDownloadUrl',
+            ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginArtifactDownloadUrl.FromString,
             options,
             channel_credentials,
             insecure,

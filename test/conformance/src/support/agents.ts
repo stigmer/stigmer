@@ -22,7 +22,7 @@ import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentex
 import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { InitShape } from "./init-shape";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, type HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -76,6 +76,8 @@ export interface AgentSpecOptions {
   // both at save.
   runConfig?: InitShape<typeof RunConfigSchema>;
   harness?: Harness;
+  // The agent's hooks: plugin references and its own hooks block, as written.
+  hooks?: InitShape<typeof HookSourceSchema>[];
 }
 
 // A valid AgentSpec: instructions satisfy the min_len=10 constraint, and any
@@ -104,6 +106,7 @@ export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof Age
     ...(opts.disallowedTools !== undefined ? { disallowedTools: opts.disallowedTools } : {}),
     ...(opts.runConfig !== undefined ? { runConfig: opts.runConfig } : {}),
     ...(opts.harness !== undefined ? { harness: opts.harness } : {}),
+    ...(opts.hooks !== undefined ? { hooks: opts.hooks } : {}),
   };
 }
 

@@ -3,12 +3,16 @@
  *
  * Stigmer asks before a shell command, a file write or delete, and an MCP
  * tool whose server marks it destructive (`DiscoveredTool.destructive_hint`,
- * recorded at connect from the tool's own MCP annotation). Nothing else asks.
- * Two runtime layers then clear an approval that would be asked:
+ * recorded at connect from the tool's own MCP annotation). Nothing else asks
+ * by default. An agent's hooks (`shared/hooks/`) answer before the default:
+ * a hook that decides a call replaces the default for it, so a hook decides
+ * which tools ask too. Two runtime layers then clear an approval that would
+ * be asked:
  *  - Active approval leases, SCOPED: the pre-armed spec.auto_approve_all is a
  *    whole-run global bypass, while an interactive APPROVE_ALL ("approve all
  *    of this kind") grants a run-lifetime lease for only that action's scope
- *    (its built-in category, or its MCP server). See {@link ActiveLeases}.
+ *    (its built-in category, its MCP server, or one hook's asks on one tool).
+ *    See {@link ActiveLeases}.
  *  - The unattended mode resolves an asked call as a skip.
  *
  * What a tool may be called at all is a separate question, the agent's tool
@@ -54,6 +58,12 @@ export interface ActiveLeases {
   readonly categories: ReadonlySet<ToolApprovalCategory>;
   /** MCP server slugs with a run-lifetime lease (covers all of the server's tools). */
   readonly servers: ReadonlySet<string>;
+  /**
+   * Hook leases, by {@link hookLeaseKey}: a hook asked, the person chose
+   * "approve all", and that hook's later asks on that tool count as its
+   * allow. A category or server lease never clears a hook's ask.
+   */
+  readonly hooks: ReadonlySet<string>;
 }
 
 /**
@@ -66,24 +76,40 @@ export interface ActiveLeases {
  */
 export type LeaseScope =
   | { readonly kind: "category"; readonly category: ToolApprovalCategory }
-  | { readonly kind: "server"; readonly server: string };
+  | { readonly kind: "server"; readonly server: string }
+  | { readonly kind: "hook"; readonly hook: string; readonly tool: string; readonly server: string };
+
+/** The tool-call fields a lease scope is derived from. */
+export interface LeaseScopeInput {
+  readonly name: string;
+  readonly mcpServerSlug: string;
+  readonly approvalPolicySource: ApprovalPolicySource;
+  readonly approvalPolicyHook: string;
+}
+
+/** The key a hook lease is held under: the hook (`""` for the agent's own block), the tool's server and its bound name. */
+export function hookLeaseKey(hook: string, server: string, tool: string): string {
+  return JSON.stringify([hook, server, tool]);
+}
 
 /**
  * Reduce a single tool call to the scope its APPROVE_ALL would lease — the core
  * of {@link deriveActiveLeases}, extracted so the cross-edition lease-scope
  * corpus (apis/testdata/hitl/lease-scope) can exercise it directly.
  *
- * The MCP server slug takes precedence over the built-in category and is used
- * RAW (the server's identity, not case-folded), matching the Go
- * {@link DeriveLeaseScope} and Java {@link LeaseScope.deriveKey} byte-for-byte.
- * The category lookup reuses {@link toolApprovalCategory}, the shared oracle, so
- * a built-in resolves to write/delete/shell (read-only built-ins are ungated and
- * return `undefined`).
+ * A row a hook asked for (source HOOK) leases that hook's asks on that tool
+ * and nothing else. Otherwise the MCP server slug takes precedence over the
+ * built-in category and is used RAW (the server's identity, not
+ * case-folded), matching the server's `deriveLeaseScope` byte for byte. The
+ * category lookup reuses {@link toolApprovalCategory}, the shared oracle, so
+ * a built-in resolves to write/delete/shell (read-only built-ins are ungated
+ * and return `undefined`).
  */
-export function deriveLeaseScope(
-  toolName: string,
-  mcpServerSlug: string,
-): LeaseScope | undefined {
+export function deriveLeaseScope(row: LeaseScopeInput): LeaseScope | undefined {
+  const { name: toolName, mcpServerSlug } = row;
+  if (row.approvalPolicySource === ApprovalPolicySource.HOOK) {
+    return { kind: "hook", hook: row.approvalPolicyHook, tool: toolName, server: mcpServerSlug };
+  }
   if (mcpServerSlug) {
     return { kind: "server", server: mcpServerSlug };
   }
@@ -115,19 +141,28 @@ export function deriveLeaseScope(
 export function deriveActiveLeases(execution: AgentExecution): ActiveLeases {
   const categories = new Set<ToolApprovalCategory>();
   const servers = new Set<string>();
+  const hooks = new Set<string>();
 
-  const addLease = (tc: {
-    approvalAction: ApprovalAction;
-    mcpServerSlug: string;
-    name: string;
-  }): void => {
+  const addLease = (tc: LeaseScopeInput & { approvalAction: ApprovalAction }): void => {
     if (tc.approvalAction !== ApprovalAction.APPROVE_ALL) return;
-    const scope = deriveLeaseScope(tc.name, tc.mcpServerSlug);
+    const scope = deriveLeaseScope(tc);
     if (!scope) return;
-    if (scope.kind === "server") {
-      servers.add(scope.server);
-    } else {
-      categories.add(scope.category);
+    switch (scope.kind) {
+      case "server":
+        servers.add(scope.server);
+        return;
+      case "category":
+        categories.add(scope.category);
+        return;
+      case "hook":
+        hooks.add(hookLeaseKey(scope.hook, scope.server, scope.tool));
+        return;
+      /* v8 ignore start -- @preserve: the never arm; the compiler proves no scope kind reaches it */
+      default: {
+        const exhaustive: never = scope;
+        throw new Error(`deriveActiveLeases: unknown lease scope ${JSON.stringify(exhaustive)}`);
+      }
+      /* v8 ignore stop */
     }
   };
 
@@ -147,6 +182,7 @@ export function deriveActiveLeases(execution: AgentExecution): ActiveLeases {
     global: execution.spec?.autoApproveAll ?? false,
     categories,
     servers,
+    hooks,
   };
 }
 
@@ -207,17 +243,19 @@ export type PolicySource =
   | "builtin_category"               // the default asked: a built-in of an approval category
   | "file_capture"                   // Capture mode: a git-tracked built-in file edit flows, reviewed post-hoc via the file_review ledger (not gated; audit-only on the shadow receipt)
   | "annotation_destructive_tighten" // the default asked: an MCP tool its server marks destructive
-  | "unattended_skip";               // unattended approval mode auto-skipped this gated call (no approver on the creating surface)
+  | "unattended_skip"                // unattended approval mode auto-skipped this gated call (no approver on the creating surface)
+  | "hook";                          // a hook decided this call: it refused it, asked first, or let it run
 
 /**
  * Monotonic identifier of the policy-engine logic that produced a decision,
  * persisted on `ToolCall.policy_engine_version`. Bumped when the approval
  * semantics change so decisions made by different engine versions remain
- * distinguishable in audits. "default-1" is the first engine with no per-tool
- * policies: the default alone decides, from the tool's category or its
- * server's destructive annotation.
+ * distinguishable in audits. "default-1" was the first engine with no per-tool
+ * policies: the default alone decided, from the tool's category or its
+ * server's destructive annotation. "hooks-1" is the first in which an
+ * agent's hooks answer before the default.
  */
-export const POLICY_ENGINE_VERSION = "default-1";
+export const POLICY_ENGINE_VERSION = "hooks-1";
 
 /**
  * Map the runner-internal {@link PolicySource} to the persisted proto
@@ -239,6 +277,8 @@ export function toProtoPolicySource(source: PolicySource | undefined): ApprovalP
       return ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN;
     case "unattended_skip":
       return ApprovalPolicySource.UNATTENDED_SKIP;
+    case "hook":
+      return ApprovalPolicySource.HOOK;
     case "file_capture":
       // Capture-mode flow is never persisted on a gated tool call (the file tool
       // is not gated — it has no WAITING_APPROVAL row); it exists only on the

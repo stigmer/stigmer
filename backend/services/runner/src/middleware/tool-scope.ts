@@ -60,7 +60,9 @@ import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
 /**
  * The custom-stream event a refusal writes (`translator.ts` reads it). The
  * payload is the call as the model made it and the message: a refused call
- * fires no tool events, so nothing else on the stream carries them.
+ * fires no tool events, so nothing else on the stream carries them. The
+ * approval gate writes it too when a hook refuses a call, with the hook's
+ * provenance beside it.
  */
 export const TOOL_REFUSED_EVENT = "stigmer.tool_refused";
 
@@ -71,10 +73,14 @@ export interface ToolRefusedPayload {
   readonly tool_name: string;
   readonly input: Record<string, unknown>;
   readonly message: string;
+  /** Set when a hook refused the call: `"hook"`. A tool list's refusal carries none. */
+  readonly policy_source?: "hook";
+  /** The refusing plugin's slug (`""` for the agent's own hooks block), beside `policy_source`. */
+  readonly policy_hook?: string;
 }
 
 /** The runtime's custom-stream writer, when the graph streams with one. */
-function writerOf(runtime: unknown): ((chunk: ToolRefusedPayload) => void) | undefined {
+export function customStreamWriterOf<T>(runtime: unknown): ((chunk: T) => void) | undefined {
   if (runtime === null || typeof runtime !== "object" || !("writer" in runtime)) return undefined;
   const writer = (runtime as { writer: unknown }).writer;
   return typeof writer === "function" ? (chunk) => void writer(chunk) : undefined;
@@ -160,7 +166,7 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
       if (await callable(request)) return handler(request);
       const { name, id, args } = request.toolCall;
       const message = outOfScopeMessage(name, scope);
-      writerOf(request.runtime)?.({ name: TOOL_REFUSED_EVENT, tool_call_id: id ?? "", tool_name: name, input: args, message });
+      customStreamWriterOf<ToolRefusedPayload>(request.runtime)?.({ name: TOOL_REFUSED_EVENT, tool_call_id: id ?? "", tool_name: name, input: args, message });
       return new ToolMessage({ content: message, tool_call_id: id ?? "", name, status: "error" });
     },
   };

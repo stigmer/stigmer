@@ -316,6 +316,18 @@ message ToolCall {
   //
   // Field 26: appended after approval_content_digest (25), the prior maximum.
   string file_change_set_id = 26;
+
+  // Slug of the plugin whose hook decided this call; empty when no hook
+  // decided, or when the agent's own hooks block did.
+  //
+  // @internal
+  // Runner-written beside approval_policy_source, and set only when that
+  // source is HOOK, or when a hook asked and a lease, the run-wide bypass or
+  // the unattended skip resolved its ask. The lease scope of an APPROVE_ALL
+  // row reads it: a hook's lease clears only that hook's asks on that tool.
+  //
+  // Field 27: appended after file_change_set_id (26), the prior maximum.
+  string approval_policy_hook = 27;
 }
 
 // ToolCallOutputRef points to a tool call's full output after the runner

@@ -2126,6 +2126,11 @@
           "name": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
           "number": 8,
           "description": "The unattended approval mode (AgentExecutionStatus.approval_mode =\n APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:\n the lane the execution came through (a schedule's fire, a messaging\n channel, a guest share) has no approver, so the platform skipped the\n tool and told the model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it\n records HOW the gate was resolved, overriding the gating-layer source on\n the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO\n approval_action / approved_by (those record human decisions only), and\n no approval-request event is ever authored for it."
+        },
+        {
+          "name": "APPROVAL_POLICY_SOURCE_HOOK",
+          "number": 9,
+          "description": "A hook decided this call: it refused it, asked a person first, or let it\n run without the approval it would otherwise need. The deciding plugin is\n named in approval_policy_hook beside this source."
         }
       ]
     },
@@ -2915,10 +2920,21 @@
               "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
               "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
               "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
-              "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP"
+              "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
+              "APPROVAL_POLICY_SOURCE_HOOK"
             ]
           },
           "description": "Policy layer that gated this tool call, copied from\n ToolCall.approval_policy_source by the server-side projection (exactly as\n tool_kind above is). Lets the approval surface explain WHY the tool requires\n approval (e.g. \"required: marked destructive by the server\") without a\n client-side lookup.\n See ApprovalPolicySource.",
+          "required": false
+        },
+        {
+          "name": "ApprovalPolicyHook",
+          "jsonName": "approvalPolicyHook",
+          "protoField": "approval_policy_hook",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slug of the plugin whose hook asked for this approval; empty when no\n plugin's hook asked. Copied from ToolCall.approval_policy_hook.",
           "required": false
         }
       ]

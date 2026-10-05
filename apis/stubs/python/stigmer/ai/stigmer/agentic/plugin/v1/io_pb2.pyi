@@ -51,6 +51,28 @@ class PluginArtifactUploadUrl(_message.Message):
     ttl_seconds: int
     def __init__(self, url: _Optional[str] = ..., artifact_upload_ref: _Optional[str] = ..., ttl_seconds: _Optional[int] = ...) -> None: ...
 
+class GetArtifactRequest(_message.Message):
+    __slots__ = ("artifact_storage_key",)
+    ARTIFACT_STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
+    artifact_storage_key: str
+    def __init__(self, artifact_storage_key: _Optional[str] = ...) -> None: ...
+
+class GetArtifactResponse(_message.Message):
+    __slots__ = ("artifact",)
+    ARTIFACT_FIELD_NUMBER: _ClassVar[int]
+    artifact: bytes
+    def __init__(self, artifact: _Optional[bytes] = ...) -> None: ...
+
+class PluginArtifactDownloadUrl(_message.Message):
+    __slots__ = ("url", "ttl_seconds", "size_bytes")
+    URL_FIELD_NUMBER: _ClassVar[int]
+    TTL_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    url: str
+    ttl_seconds: int
+    size_bytes: int
+    def __init__(self, url: _Optional[str] = ..., ttl_seconds: _Optional[int] = ..., size_bytes: _Optional[int] = ...) -> None: ...
+
 class PluginMember(_message.Message):
     __slots__ = ("kind", "id", "slug", "name")
     KIND_FIELD_NUMBER: _ClassVar[int]

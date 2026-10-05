@@ -4,7 +4,8 @@
  * each file read once), the format decided by the entries and checked
  * against the manifests, what is carried in each format and what is named
  * as not run, one format per plugin, the matcher and `if` checks, and
- * `${user_config.KEY}` in exec-form arguments counting as a reference.
+ * `${user_config.KEY}` in exec-form arguments counting as a reference, read
+ * the same way off a read plugin's hooks by `hookVariableReferences`.
  *
  * The vendored Claude plugins are pinned in `claude-fixtures.test.ts`; the
  * cases here are the shapes no vendorable plugin carries, among them a
@@ -16,7 +17,7 @@
 import { describe, expect, it } from "vitest";
 
 import { PLUGIN_DOCUMENT_LIMITS } from "../files.js";
-import { isValidMatcher } from "../normalise/hooks.js";
+import { hookVariableReferences, isValidMatcher } from "../normalise/hooks.js";
 import { claudePlugin, codexPlugin, cursorPlugin, openPlugin, withFile } from "../testing.js";
 import { accepted, findingOf, kindsOf, read, refused } from "../__test-utils__/read.js";
 
@@ -390,5 +391,23 @@ describe("variables a hook references", () => {
       hooks: { PreToolUse: [{ hooks: [command("notify ${user_config.WEBHOOK}")] }] },
     });
     expect(kindsOf(read(files))).toEqual({ errors: [], warnings: ["variable-unreferenced"] });
+  });
+
+  it("reads the same references off a read plugin's hooks, once each, exec form only", () => {
+    const plugin = accepted(
+      read(
+        claudePlugin({
+          userConfig: { WEBHOOK: { type: "string" }, CHANNEL: { type: "string" } },
+          hooks: {
+            PreToolUse: [
+              { hooks: [command("node", { args: ["notify.js", "${user_config.WEBHOOK}", "${user_config.CHANNEL}"] })] },
+              { hooks: [command("echo ${user_config.SHELL_ONLY}")] },
+            ],
+            PostToolUse: [{ hooks: [command("${user_config.WEBHOOK}", { args: ["post"] })] }],
+          },
+        }),
+      ),
+    );
+    expect(plugin.hooks && hookVariableReferences(plugin.hooks)).toEqual(["WEBHOOK", "CHANNEL"]);
   });
 });

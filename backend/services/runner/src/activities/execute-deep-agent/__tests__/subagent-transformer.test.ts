@@ -4,7 +4,7 @@
  * sub-agent's tool scope (narrowed from the parent's, never widened; a
  * built-in runs under the parent's), the main agent's `Agent(type, …)`
  * filter, skills prompts, and compilation (a stack per invocation, a refused
- * spec skipped at setup).
+ * spec skipped at setup, the invocation id hooks see kept across a resume).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { StructuredTool } from "@langchain/core/tools";
@@ -17,6 +17,7 @@ import {
   transformSingleSubagent,
   resolveSubagentSkillPrompt,
   compileSubagents,
+  subAgentInvocationId,
   subAgentScope,
   transformAndCompileSubagents,
   type SubagentScopeBase,
@@ -1538,5 +1539,20 @@ describe("subagent-transformer edge cases", () => {
     expect(names).toContain("custom-agent");
 
     logSpy.mockRestore();
+  });
+});
+
+describe("subAgentInvocationId", () => {
+  it("is the parent's task call id, so a resumed invocation keeps it", () => {
+    expect(subAgentInvocationId({ toolCall: { id: "call-task-1" } })).toBe("call-task-1");
+    expect(subAgentInvocationId({ toolCall: { id: "call-task-1" } })).toBe(subAgentInvocationId({ toolCall: { id: "call-task-1" } }));
+  });
+
+  it("is a fresh id when the config names no call", () => {
+    for (const config of [undefined, null, {}, { toolCall: {} }, { toolCall: { id: "" } }]) {
+      const id = subAgentInvocationId(config);
+      expect(id).toMatch(/^[0-9a-f-]{36}$/);
+      expect(subAgentInvocationId(config)).not.toBe(id);
+    }
   });
 });

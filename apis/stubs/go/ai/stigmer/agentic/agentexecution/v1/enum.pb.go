@@ -1142,6 +1142,10 @@ const (
 	// approval_action / approved_by (those record human decisions only), and
 	// no approval-request event is ever authored for it.
 	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP ApprovalPolicySource = 8
+	// A hook decided this call: it refused it, asked a person first, or let it
+	// run without the approval it would otherwise need. The deciding plugin is
+	// named in approval_policy_hook beside this source.
+	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_HOOK ApprovalPolicySource = 9
 )
 
 // Enum value maps for ApprovalPolicySource.
@@ -1153,6 +1157,7 @@ var (
 		6: "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
 		7: "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
 		8: "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
+		9: "APPROVAL_POLICY_SOURCE_HOOK",
 	}
 	ApprovalPolicySource_value = map[string]int32{
 		"APPROVAL_POLICY_SOURCE_UNSPECIFIED":                    0,
@@ -1161,6 +1166,7 @@ var (
 		"APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY":               6,
 		"APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN": 7,
 		"APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP":                8,
+		"APPROVAL_POLICY_SOURCE_HOOK":                           9,
 	}
 )
 
@@ -2573,14 +2579,15 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x17APPROVAL_ACTION_APPROVE\x10\x01\x12\x18\n" +
 	"\x14APPROVAL_ACTION_SKIP\x10\x02\x12\x1a\n" +
 	"\x16APPROVAL_ACTION_REJECT\x10\x03\x12\x1f\n" +
-	"\x1bAPPROVAL_ACTION_APPROVE_ALL\x10\x04*\xb6\x03\n" +
+	"\x1bAPPROVAL_ACTION_APPROVE_ALL\x10\x04*\xd7\x03\n" +
 	"\x14ApprovalPolicySource\x12&\n" +
 	"\"APPROVAL_POLICY_SOURCE_UNSPECIFIED\x10\x00\x12+\n" +
 	"'APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL\x10\x04\x12)\n" +
 	"%APPROVAL_POLICY_SOURCE_APPROVAL_LEASE\x10\x05\x12+\n" +
 	"'APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY\x10\x06\x129\n" +
 	"5APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN\x10\a\x12*\n" +
-	"&APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP\x10\b\"\x04\b\x01\x10\x01\"\x04\b\x02\x10\x02\"\x04\b\x03\x10\x03*)APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT*&APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE*%APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE*\xe3\x01\n" +
+	"&APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP\x10\b\x12\x1f\n" +
+	"\x1bAPPROVAL_POLICY_SOURCE_HOOK\x10\t\"\x04\b\x01\x10\x01\"\x04\b\x02\x10\x02\"\x04\b\x03\x10\x03*)APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT*&APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE*%APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE*\xe3\x01\n" +
 	"\x11ApprovalEventType\x12#\n" +
 	"\x1fAPPROVAL_EVENT_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dAPPROVAL_EVENT_TYPE_REQUESTED\x10\x01\x12 \n" +

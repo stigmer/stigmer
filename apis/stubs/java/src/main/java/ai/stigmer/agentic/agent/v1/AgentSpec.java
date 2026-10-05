@@ -42,6 +42,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.LazyStringArrayList.emptyList();
     disallowedTools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    hooks_ = java.util.Collections.emptyList();
     harness_ = 0;
   }
 
@@ -666,7 +667,98 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     return disallowedTools_.getByteString(index);
   }
 
-  public static final int RUN_CONFIG_FIELD_NUMBER = 12;
+  public static final int HOOKS_FIELD_NUMBER = 12;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.agent.v1.HookSource> hooks_;
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.agent.v1.HookSource> getHooksList() {
+    return hooks_;
+  }
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.agent.v1.HookSourceOrBuilder> 
+      getHooksOrBuilderList() {
+    return hooks_;
+  }
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  @java.lang.Override
+  public int getHooksCount() {
+    return hooks_.size();
+  }
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.HookSource getHooks(int index) {
+    return hooks_.get(index);
+  }
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.HookSourceOrBuilder getHooksOrBuilder(
+      int index) {
+    return hooks_.get(index);
+  }
+
+  public static final int RUN_CONFIG_FIELD_NUMBER = 13;
   private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
   /**
    * <pre>
@@ -685,7 +777,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * the agent is saved.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
    * @return Whether the runConfig field is set.
    */
   @java.lang.Override
@@ -709,7 +801,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * the agent is saved.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
    * @return The runConfig.
    */
   @java.lang.Override
@@ -733,14 +825,14 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * the agent is saved.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
    */
   @java.lang.Override
   public ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
     return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
   }
 
-  public static final int HARNESS_FIELD_NUMBER = 13;
+  public static final int HARNESS_FIELD_NUMBER = 14;
   private int harness_ = 0;
   /**
    * <pre>
@@ -756,7 +848,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * only new conversations.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 13 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
    * @return The enum numeric value on the wire for harness.
    */
   @java.lang.Override public int getHarnessValue() {
@@ -776,7 +868,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * only new conversations.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 13 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
    * @return The harness.
    */
   @java.lang.Override public ai.stigmer.agentic.session.v1.Harness getHarness() {
@@ -828,11 +920,14 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     for (int i = 0; i < disallowedTools_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 11, disallowedTools_.getRaw(i));
     }
+    for (int i = 0; i < hooks_.size(); i++) {
+      output.writeMessage(12, hooks_.get(i));
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeMessage(12, getRunConfig());
+      output.writeMessage(13, getRunConfig());
     }
     if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
-      output.writeEnum(13, harness_);
+      output.writeEnum(14, harness_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -905,13 +1000,22 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       size += dataSize;
       size += 1 * getDisallowedToolsList().size();
     }
+
+        {
+          final int count = hooks_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(hooks_.get(i));
+          }
+          size += 1 * count;
+        }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(12, getRunConfig());
+        .computeMessageSize(13, getRunConfig());
     }
     if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
-        .computeEnumSize(13, harness_);
+        .computeEnumSize(14, harness_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -946,6 +1050,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         .equals(other.getToolsList())) return false;
     if (!getDisallowedToolsList()
         .equals(other.getDisallowedToolsList())) return false;
+    if (!getHooksList()
+        .equals(other.getHooksList())) return false;
     if (hasRunConfig() != other.hasRunConfig()) return false;
     if (hasRunConfig()) {
       if (!getRunConfig()
@@ -992,6 +1098,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     if (getDisallowedToolsCount() > 0) {
       hash = (37 * hash) + DISALLOWED_TOOLS_FIELD_NUMBER;
       hash = (53 * hash) + getDisallowedToolsList().hashCode();
+    }
+    if (getHooksCount() > 0) {
+      hash = (37 * hash) + HOOKS_FIELD_NUMBER;
+      hash = (53 * hash) + getHooksList().hashCode();
     }
     if (hasRunConfig()) {
       hash = (37 * hash) + RUN_CONFIG_FIELD_NUMBER;
@@ -1158,6 +1268,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         internalGetMcpServerUsagesFieldBuilder();
         internalGetSkillRefsFieldBuilder();
         internalGetSubAgentsFieldBuilder();
+        internalGetHooksFieldBuilder();
         internalGetRunConfigFieldBuilder();
       }
     }
@@ -1194,6 +1305,13 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
           com.google.protobuf.LazyStringArrayList.emptyList();
       disallowedTools_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      if (hooksBuilder_ == null) {
+        hooks_ = java.util.Collections.emptyList();
+      } else {
+        hooks_ = null;
+        hooksBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000200);
       runConfig_ = null;
       if (runConfigBuilder_ != null) {
         runConfigBuilder_.dispose();
@@ -1260,6 +1378,15 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       } else {
         result.subAgents_ = subAgentsBuilder_.build();
       }
+      if (hooksBuilder_ == null) {
+        if (((bitField0_ & 0x00000200) != 0)) {
+          hooks_ = java.util.Collections.unmodifiableList(hooks_);
+          bitField0_ = (bitField0_ & ~0x00000200);
+        }
+        result.hooks_ = hooks_;
+      } else {
+        result.hooks_ = hooksBuilder_.build();
+      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.agent.v1.AgentSpec result) {
@@ -1285,13 +1412,13 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         result.disallowedTools_ = disallowedTools_;
       }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.runConfig_ = runConfigBuilder_ == null
             ? runConfig_
             : runConfigBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.harness_ = harness_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -1425,6 +1552,32 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         }
         onChanged();
       }
+      if (hooksBuilder_ == null) {
+        if (!other.hooks_.isEmpty()) {
+          if (hooks_.isEmpty()) {
+            hooks_ = other.hooks_;
+            bitField0_ = (bitField0_ & ~0x00000200);
+          } else {
+            ensureHooksIsMutable();
+            hooks_.addAll(other.hooks_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.hooks_.isEmpty()) {
+          if (hooksBuilder_.isEmpty()) {
+            hooksBuilder_.dispose();
+            hooksBuilder_ = null;
+            hooks_ = other.hooks_;
+            bitField0_ = (bitField0_ & ~0x00000200);
+            hooksBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetHooksFieldBuilder() : null;
+          } else {
+            hooksBuilder_.addAllMessages(other.hooks_);
+          }
+        }
+      }
       if (other.hasRunConfig()) {
         mergeRunConfig(other.getRunConfig());
       }
@@ -1531,17 +1684,30 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
               break;
             } // case 90
             case 98: {
+              ai.stigmer.agentic.agent.v1.HookSource m =
+                  input.readMessage(
+                      ai.stigmer.agentic.agent.v1.HookSource.parser(),
+                      extensionRegistry);
+              if (hooksBuilder_ == null) {
+                ensureHooksIsMutable();
+                hooks_.add(m);
+              } else {
+                hooksBuilder_.addMessage(m);
+              }
+              break;
+            } // case 98
+            case 106: {
               input.readMessage(
                   internalGetRunConfigFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000200;
-              break;
-            } // case 98
-            case 104: {
-              harness_ = input.readEnum();
               bitField0_ |= 0x00000400;
               break;
-            } // case 104
+            } // case 106
+            case 112: {
+              harness_ = input.readEnum();
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 112
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3418,6 +3584,426 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       return this;
     }
 
+    private java.util.List<ai.stigmer.agentic.agent.v1.HookSource> hooks_ =
+      java.util.Collections.emptyList();
+    private void ensureHooksIsMutable() {
+      if (!((bitField0_ & 0x00000200) != 0)) {
+        hooks_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.HookSource>(hooks_);
+        bitField0_ |= 0x00000200;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agent.v1.HookSource, ai.stigmer.agentic.agent.v1.HookSource.Builder, ai.stigmer.agentic.agent.v1.HookSourceOrBuilder> hooksBuilder_;
+
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agent.v1.HookSource> getHooksList() {
+      if (hooksBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(hooks_);
+      } else {
+        return hooksBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public int getHooksCount() {
+      if (hooksBuilder_ == null) {
+        return hooks_.size();
+      } else {
+        return hooksBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.HookSource getHooks(int index) {
+      if (hooksBuilder_ == null) {
+        return hooks_.get(index);
+      } else {
+        return hooksBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder setHooks(
+        int index, ai.stigmer.agentic.agent.v1.HookSource value) {
+      if (hooksBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureHooksIsMutable();
+        hooks_.set(index, value);
+        onChanged();
+      } else {
+        hooksBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder setHooks(
+        int index, ai.stigmer.agentic.agent.v1.HookSource.Builder builderForValue) {
+      if (hooksBuilder_ == null) {
+        ensureHooksIsMutable();
+        hooks_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        hooksBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder addHooks(ai.stigmer.agentic.agent.v1.HookSource value) {
+      if (hooksBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureHooksIsMutable();
+        hooks_.add(value);
+        onChanged();
+      } else {
+        hooksBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder addHooks(
+        int index, ai.stigmer.agentic.agent.v1.HookSource value) {
+      if (hooksBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureHooksIsMutable();
+        hooks_.add(index, value);
+        onChanged();
+      } else {
+        hooksBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder addHooks(
+        ai.stigmer.agentic.agent.v1.HookSource.Builder builderForValue) {
+      if (hooksBuilder_ == null) {
+        ensureHooksIsMutable();
+        hooks_.add(builderForValue.build());
+        onChanged();
+      } else {
+        hooksBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder addHooks(
+        int index, ai.stigmer.agentic.agent.v1.HookSource.Builder builderForValue) {
+      if (hooksBuilder_ == null) {
+        ensureHooksIsMutable();
+        hooks_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        hooksBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder addAllHooks(
+        java.lang.Iterable<? extends ai.stigmer.agentic.agent.v1.HookSource> values) {
+      if (hooksBuilder_ == null) {
+        ensureHooksIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, hooks_);
+        onChanged();
+      } else {
+        hooksBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder clearHooks() {
+      if (hooksBuilder_ == null) {
+        hooks_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000200);
+        onChanged();
+      } else {
+        hooksBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder removeHooks(int index) {
+      if (hooksBuilder_ == null) {
+        ensureHooksIsMutable();
+        hooks_.remove(index);
+        onChanged();
+      } else {
+        hooksBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.HookSource.Builder getHooksBuilder(
+        int index) {
+      return internalGetHooksFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.HookSourceOrBuilder getHooksOrBuilder(
+        int index) {
+      if (hooksBuilder_ == null) {
+        return hooks_.get(index);  } else {
+        return hooksBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.agent.v1.HookSourceOrBuilder> 
+         getHooksOrBuilderList() {
+      if (hooksBuilder_ != null) {
+        return hooksBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(hooks_);
+      }
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.HookSource.Builder addHooksBuilder() {
+      return internalGetHooksFieldBuilder().addBuilder(
+          ai.stigmer.agentic.agent.v1.HookSource.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.HookSource.Builder addHooksBuilder(
+        int index) {
+      return internalGetHooksFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.agent.v1.HookSource.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agent.v1.HookSource.Builder> 
+         getHooksBuilderList() {
+      return internalGetHooksFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agent.v1.HookSource, ai.stigmer.agentic.agent.v1.HookSource.Builder, ai.stigmer.agentic.agent.v1.HookSourceOrBuilder> 
+        internalGetHooksFieldBuilder() {
+      if (hooksBuilder_ == null) {
+        hooksBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.agent.v1.HookSource, ai.stigmer.agentic.agent.v1.HookSource.Builder, ai.stigmer.agentic.agent.v1.HookSourceOrBuilder>(
+                hooks_,
+                ((bitField0_ & 0x00000200) != 0),
+                getParentForChildren(),
+                isClean());
+        hooks_ = null;
+      }
+      return hooksBuilder_;
+    }
+
     private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> runConfigBuilder_;
@@ -3438,11 +4024,11 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * the agent is saved.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      * @return Whether the runConfig field is set.
      */
     public boolean hasRunConfig() {
-      return ((bitField0_ & 0x00000200) != 0);
+      return ((bitField0_ & 0x00000400) != 0);
     }
     /**
      * <pre>
@@ -3461,7 +4047,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * the agent is saved.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      * @return The runConfig.
      */
     public ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig() {
@@ -3488,7 +4074,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * the agent is saved.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      */
     public Builder setRunConfig(ai.stigmer.agentic.agentexecution.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
@@ -3499,7 +4085,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       } else {
         runConfigBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3520,7 +4106,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * the agent is saved.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      */
     public Builder setRunConfig(
         ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder builderForValue) {
@@ -3529,7 +4115,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       } else {
         runConfigBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3550,11 +4136,11 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * the agent is saved.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      */
     public Builder mergeRunConfig(ai.stigmer.agentic.agentexecution.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0) &&
+        if (((bitField0_ & 0x00000400) != 0) &&
           runConfig_ != null &&
           runConfig_ != ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance()) {
           getRunConfigBuilder().mergeFrom(value);
@@ -3565,7 +4151,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         runConfigBuilder_.mergeFrom(value);
       }
       if (runConfig_ != null) {
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       return this;
@@ -3587,10 +4173,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * the agent is saved.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      */
     public Builder clearRunConfig() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000400);
       runConfig_ = null;
       if (runConfigBuilder_ != null) {
         runConfigBuilder_.dispose();
@@ -3616,10 +4202,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * the agent is saved.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder getRunConfigBuilder() {
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return internalGetRunConfigFieldBuilder().getBuilder();
     }
@@ -3640,7 +4226,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * the agent is saved.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
       if (runConfigBuilder_ != null) {
@@ -3667,7 +4253,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * the agent is saved.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> 
@@ -3698,7 +4284,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 13 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
      * @return The enum numeric value on the wire for harness.
      */
     @java.lang.Override public int getHarnessValue() {
@@ -3718,14 +4304,14 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 13 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
      * @param value The enum numeric value on the wire for harness to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
      */
     public Builder setHarnessValue(int value) {
       harness_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -3743,7 +4329,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 13 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
      * @return The harness.
      */
     @java.lang.Override
@@ -3765,13 +4351,13 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 13 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
      * @param value The harness to set.
      * @return This builder for chaining.
      */
     public Builder setHarness(ai.stigmer.agentic.session.v1.Harness value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000800;
       harness_ = value.getNumber();
       onChanged();
       return this;
@@ -3790,11 +4376,11 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 13 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
      * @return This builder for chaining.
      */
     public Builder clearHarness() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000800);
       harness_ = 0;
       onChanged();
       return this;

@@ -2,7 +2,7 @@
 
 from ._bidi import BidiStream
 from ._client import GeneratedClient
-from ._agent import AgentClient, AgentInput, McpServerUsageInput, SubAgentInput, EnvVarDeclarationInput, RunConfigInput
+from ._agent import AgentClient, AgentInput, McpServerUsageInput, SubAgentInput, EnvVarDeclarationInput, HookSourceInput, HookConfigInput, HookGroupInput, HookHandlerInput, RunConfigInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput
 from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput, WorkflowParentInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
@@ -59,6 +59,10 @@ __all__ = [
     "McpServerUsageInput",
     "SubAgentInput",
     "EnvVarDeclarationInput",
+    "HookSourceInput",
+    "HookConfigInput",
+    "HookGroupInput",
+    "HookHandlerInput",
     "RunConfigInput",
     "AgentChannelClient",
     "AgentChannelInput",

@@ -75,13 +75,18 @@ func (HookFormat) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_plugin_v1_hooks_proto_rawDescGZIP(), []int{0}
 }
 
-// HookConfig is a plugin's tool-call hooks, in the format the plugin wrote
-// them.
+// HookConfig is a set of tool-call hooks: commands that run before or after an
+// agent's tool calls and can refuse a call, ask a person first, or let it run.
+//
+// A plugin's hooks are recorded here at install; an agent can also carry a
+// block of its own (AgentSpec.hooks). The native engine runs hooks in Claude
+// Code's format, with PreToolUse and PostToolUse events.
 type HookConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The format the hooks are written in, which decides their input and answer.
+	// An agent's own block may leave it unset; Claude Code's format is assumed.
 	Format HookFormat `protobuf:"varint,1,opt,name=format,proto3,enum=ai.stigmer.agentic.plugin.v1.HookFormat" json:"format,omitempty"`
-	// Hook groups, in the order the plugin declares them.
+	// Hook groups, in the order they are declared.
 	Groups        []*HookGroup `protobuf:"bytes,2,rep,name=groups,proto3" json:"groups,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -135,11 +140,14 @@ func (x *HookConfig) GetGroups() []*HookGroup {
 // both match.
 type HookGroup struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event the handlers run on, spelled as the format spells it, e.g.
-	// "PreToolUse" or "beforeShellExecution".
+	// The event the handlers run on: "PreToolUse" before a call, which can
+	// refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
+	// which can add to what the agent reads.
 	Event string `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
-	// Which calls the handlers run for, as written by the plugin; empty or "*"
-	// matches every call.
+	// Which tools the handlers run for: a name such as "Bash", a list such as
+	// "Write|Edit", or a regular expression such as "mcp__github__.*". Empty or
+	// "*" matches every tool. A plugin's own MCP server's tools are named
+	// mcp__plugin_<plugin>_<server>__<tool>, as in Claude Code.
 	Matcher string `protobuf:"bytes,2,opt,name=matcher,proto3" json:"matcher,omitempty"`
 	// The handlers to run, in order.
 	Handlers      []*HookHandler `protobuf:"bytes,3,rep,name=handlers,proto3" json:"handlers,omitempty"`
@@ -199,21 +207,26 @@ func (x *HookGroup) GetHandlers() []*HookHandler {
 }
 
 // HookHandler is one command a hook runs.
+//
+// The command reads the call as JSON on stdin and answers as Claude Code's
+// hooks do: exit code 2 refuses the call with stderr as the reason, and JSON on
+// stdout can allow, ask or deny with a reason.
 type HookHandler struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The command to run, as written by the plugin.
+	// The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
+	// names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
 	Command string `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
 	// Arguments for the command's exec form; when set, the command runs without
 	// a shell.
 	Args []string `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"`
-	// Seconds the command may run before it is stopped; zero means the format's
-	// default.
+	// Seconds the command may run before it is stopped; zero means the default,
+	// 600 seconds. A command that is stopped makes no decision.
 	TimeoutSeconds int32 `protobuf:"varint,3,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
 	// A permission rule that narrows when the handler runs, e.g.
 	// "Bash(git push *)"; empty means whenever the group matches.
 	Condition string `protobuf:"bytes,4,opt,name=condition,proto3" json:"condition,omitempty"`
 	// Whether a crash, timeout or missing answer blocks the call instead of
-	// letting it through.
+	// letting it through. Cursor's format only.
 	FailClosed    bool `protobuf:"varint,5,opt,name=fail_closed,json=failClosed,proto3" json:"fail_closed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

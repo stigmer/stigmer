@@ -9,12 +9,13 @@ import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agen
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentSpecSchema, SubAgentSchema, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, SubAgentSchema, HookSourceSchema, type SubAgent, type HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { TagAgentVersionInputSchema, ListAgentVersionsInputSchema, ListAgentVersionsResponseSchema, GetAgentVersionInputSchema, AgentVersionEntrySchema, type TagAgentVersionInput, type ListAgentVersionsInput, type ListAgentVersionsResponse, type GetAgentVersionInput, type AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerUsageSchema, type McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
+import { HookFormat, HookHandlerSchema, HookGroupSchema, HookConfigSchema, type HookHandler, type HookGroup, type HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -137,6 +138,7 @@ export interface AgentInput {
   env?: Record<string, EnvVarDeclarationInput>;
   tools?: string[];
   disallowedTools?: string[];
+  hooks?: HookSourceInput[];
   runConfig?: RunConfigInput;
   harness?: Harness;
 }
@@ -162,6 +164,34 @@ export interface EnvVarDeclarationInput {
   isSecret?: boolean;
   description?: string;
   optional?: boolean;
+}
+
+/** SDK input type for HookSource. */
+export interface HookSourceInput {
+  plugin?: ResourceRef;
+  inline?: HookConfigInput;
+}
+
+/** SDK input type for HookConfig. */
+export interface HookConfigInput {
+  format?: HookFormat;
+  groups?: HookGroupInput[];
+}
+
+/** SDK input type for HookGroup. */
+export interface HookGroupInput {
+  event?: string;
+  matcher?: string;
+  handlers?: HookHandlerInput[];
+}
+
+/** SDK input type for HookHandler. */
+export interface HookHandlerInput {
+  command?: string;
+  args?: string[];
+  timeoutSeconds?: number;
+  condition?: string;
+  failClosed?: boolean;
 }
 
 /** SDK input type for RunConfig. */
@@ -200,6 +230,41 @@ function buildEnvVarDeclarationProto(input: EnvVarDeclarationInput) {
   }));
 }
 
+function buildHookHandlerProto(input: HookHandlerInput) {
+  return Object.assign(create(HookHandlerSchema), stripUndefined({
+    command: input.command,
+    args: input.args,
+    timeoutSeconds: input.timeoutSeconds,
+    condition: input.condition,
+    failClosed: input.failClosed,
+  }));
+}
+
+function buildHookGroupProto(input: HookGroupInput) {
+  const msg = create(HookGroupSchema);
+  if (input.event !== undefined) msg.event = input.event;
+  if (input.matcher !== undefined) msg.matcher = input.matcher;
+  if (input.handlers) msg.handlers = input.handlers.map(buildHookHandlerProto);
+  return msg;
+}
+
+function buildHookConfigProto(input: HookConfigInput) {
+  const msg = create(HookConfigSchema);
+  if (input.format !== undefined) msg.format = input.format;
+  if (input.groups) msg.groups = input.groups.map(buildHookGroupProto);
+  return msg;
+}
+
+function buildHookSourceProto(input: HookSourceInput) {
+  const msg = create(HookSourceSchema);
+  if (input.plugin) {
+    msg.source = { case: "plugin", value: create(ApiResourceReferenceSchema, { ...input.plugin, kind: 58 }) };
+  } else if (input.inline) {
+    msg.source = { case: "inline", value: buildHookConfigProto(input.inline) };
+  }
+  return msg;
+}
+
 function buildRunConfigProto(input: RunConfigInput) {
   return Object.assign(create(RunConfigSchema), stripUndefined({
     modelName: input.modelName,
@@ -219,6 +284,7 @@ export function buildAgentProto(input: AgentInput): Agent {
   if (input.env) {
     env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));
   }
+  const hooks = input.hooks?.map(buildHookSourceProto);
   const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
@@ -242,6 +308,7 @@ export function buildAgentProto(input: AgentInput): Agent {
       env,
       tools: input.tools,
       disallowedTools: input.disallowedTools,
+      hooks,
       runConfig,
       harness: input.harness,
     })),
@@ -271,6 +338,38 @@ function toEnvVarDeclarationInput(msg: EnvVarDeclaration): EnvVarDeclarationInpu
     isSecret: msg.isSecret || undefined,
     description: msg.description || undefined,
     optional: msg.optional || undefined,
+  };
+}
+
+function toHookHandlerInput(msg: HookHandler): HookHandlerInput {
+  return {
+    command: msg.command || undefined,
+    args: msg.args?.length ? [...msg.args] : undefined,
+    timeoutSeconds: msg.timeoutSeconds || undefined,
+    condition: msg.condition || undefined,
+    failClosed: msg.failClosed || undefined,
+  };
+}
+
+function toHookGroupInput(msg: HookGroup): HookGroupInput {
+  return {
+    event: msg.event || undefined,
+    matcher: msg.matcher || undefined,
+    handlers: msg.handlers?.length ? msg.handlers.map(toHookHandlerInput) : undefined,
+  };
+}
+
+function toHookConfigInput(msg: HookConfig): HookConfigInput {
+  return {
+    format: msg.format || undefined,
+    groups: msg.groups?.length ? msg.groups.map(toHookGroupInput) : undefined,
+  };
+}
+
+function toHookSourceInput(msg: HookSource): HookSourceInput {
+  return {
+    plugin: msg.source?.case === "plugin" ? toResourceRefInput(msg.source.value) : undefined,
+    inline: msg.source?.case === "inline" ? toHookConfigInput(msg.source.value) : undefined,
   };
 }
 
@@ -321,6 +420,7 @@ export function toAgentUpdateInput(resource: Agent): AgentInput {
     env: Object.keys(spec.env ?? {}).length > 0 ? Object.fromEntries(Object.entries(spec.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined,
     tools: spec.tools?.length ? [...spec.tools] : undefined,
     disallowedTools: spec.disallowedTools?.length ? [...spec.disallowedTools] : undefined,
+    hooks: spec.hooks?.length ? spec.hooks.map(toHookSourceInput) : undefined,
     runConfig: spec.runConfig ? toRunConfigInput(spec.runConfig) : undefined,
     harness: spec.harness || undefined,
   };

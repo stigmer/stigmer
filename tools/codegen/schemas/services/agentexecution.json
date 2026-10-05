@@ -1918,6 +1918,11 @@
           "name": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
           "number": 8,
           "description": "The unattended approval mode (AgentExecutionStatus.approval_mode =\n APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:\n the lane the execution came through (a schedule's fire, a messaging\n channel, a guest share) has no approver, so the platform skipped the\n tool and told the model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it\n records HOW the gate was resolved, overriding the gating-layer source on\n the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO\n approval_action / approved_by (those record human decisions only), and\n no approval-request event is ever authored for it."
+        },
+        {
+          "name": "APPROVAL_POLICY_SOURCE_HOOK",
+          "number": 9,
+          "description": "A hook decided this call: it refused it, asked a person first, or let it\n run without the approval it would otherwise need. The deciding plugin is\n named in approval_policy_hook beside this source."
         }
       ]
     },
@@ -3564,10 +3569,21 @@
               "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
               "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
               "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
-              "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP"
+              "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
+              "APPROVAL_POLICY_SOURCE_HOOK"
             ]
           },
           "description": "Policy layer that gated this call. Copied from\n ToolCall.approval_policy_source so the event-stream projection reconstructs\n the same PendingApproval as the message scan. See ApprovalPolicySource.",
+          "required": false
+        },
+        {
+          "name": "ApprovalPolicyHook",
+          "jsonName": "approvalPolicyHook",
+          "protoField": "approval_policy_hook",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slug of the plugin whose hook asked. Copied from\n ToolCall.approval_policy_hook.",
           "required": false
         }
       ]
@@ -5050,10 +5066,21 @@
               "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
               "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
               "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
-              "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP"
+              "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
+              "APPROVAL_POLICY_SOURCE_HOOK"
             ]
           },
           "description": "Policy layer that gated this tool call, copied from\n ToolCall.approval_policy_source by the server-side projection (exactly as\n tool_kind above is). Lets the approval surface explain WHY the tool requires\n approval (e.g. \"required: marked destructive by the server\") without a\n client-side lookup.\n See ApprovalPolicySource.",
+          "required": false
+        },
+        {
+          "name": "ApprovalPolicyHook",
+          "jsonName": "approvalPolicyHook",
+          "protoField": "approval_policy_hook",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slug of the plugin whose hook asked for this approval; empty when no\n plugin's hook asked. Copied from ToolCall.approval_policy_hook.",
           "required": false
         }
       ]
@@ -6042,7 +6069,8 @@
               "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
               "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
               "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
-              "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP"
+              "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
+              "APPROVAL_POLICY_SOURCE_HOOK"
             ]
           },
           "description": "Policy layer that decided this tool call's approval requirement, set by the\n runner's approval gate so clients can explain \"why was this gated or\n auto-approved?\".\n\n APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,\n or an execution that predates this field (clients fall back to no provenance,\n exactly as for an unset tool_kind). See ApprovalPolicySource.\n\n Field 23: appended after file_changes (22), the prior maximum.",
@@ -6076,6 +6104,16 @@
             "kind": "string"
           },
           "description": "Id of the FileChangeSet this flowed file-edit contributed to\n (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary\n capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the\n set's review state and to position the set's decision surface after the\n turn's last edit row. It is NEVER a correlation or enforcement key —\n decisions reference FileChangeSet.id / CapturedFileChange.id directly, and\n reconcile identity is digest-gated (see filereview.proto's identity rule).\n\n Empty for: non-file tools, denied edits (the deny-gate reconcile path owns\n those rows), rows from executions that predate this field, and turns whose\n edits netted no captured change (no CANDIDATE_CAPTURED event was authored,\n so there is no change set to reference).\n\n Field 26: appended after approval_content_digest (25), the prior maximum.",
+          "required": false
+        },
+        {
+          "name": "ApprovalPolicyHook",
+          "jsonName": "approvalPolicyHook",
+          "protoField": "approval_policy_hook",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slug of the plugin whose hook decided this call; empty when no hook\n decided, or when the agent's own hooks block did.",
           "required": false
         }
       ]

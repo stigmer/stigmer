@@ -13,6 +13,7 @@ public interface HookConfigOrBuilder extends
   /**
    * <pre>
    * The format the hooks are written in, which decides their input and answer.
+   * An agent's own block may leave it unset; Claude Code's format is assumed.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -22,6 +23,7 @@ public interface HookConfigOrBuilder extends
   /**
    * <pre>
    * The format the hooks are written in, which decides their input and answer.
+   * An agent's own block may leave it unset; Claude Code's format is assumed.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -31,7 +33,7 @@ public interface HookConfigOrBuilder extends
 
   /**
    * <pre>
-   * Hook groups, in the order the plugin declares them.
+   * Hook groups, in the order they are declared.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -40,7 +42,7 @@ public interface HookConfigOrBuilder extends
       getGroupsList();
   /**
    * <pre>
-   * Hook groups, in the order the plugin declares them.
+   * Hook groups, in the order they are declared.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -48,7 +50,7 @@ public interface HookConfigOrBuilder extends
   ai.stigmer.agentic.plugin.v1.HookGroup getGroups(int index);
   /**
    * <pre>
-   * Hook groups, in the order the plugin declares them.
+   * Hook groups, in the order they are declared.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -56,7 +58,7 @@ public interface HookConfigOrBuilder extends
   int getGroupsCount();
   /**
    * <pre>
-   * Hook groups, in the order the plugin declares them.
+   * Hook groups, in the order they are declared.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>
@@ -65,7 +67,7 @@ public interface HookConfigOrBuilder extends
       getGroupsOrBuilderList();
   /**
    * <pre>
-   * Hook groups, in the order the plugin declares them.
+   * Hook groups, in the order they are declared.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.HookGroup groups = 2 [json_name = "groups"];</code>

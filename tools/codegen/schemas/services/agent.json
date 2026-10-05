@@ -700,6 +700,23 @@
       ]
     },
     {
+      "name": "HookFormat",
+      "description": "HookFormat is the hook format a plugin's hooks are written in.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.HookFormat",
+      "values": [
+        {
+          "name": "HOOK_FORMAT_CLAUDE_CODE",
+          "number": 1,
+          "description": "Claude Code's hook format, also used by Codex plugins."
+        },
+        {
+          "name": "HOOK_FORMAT_CURSOR",
+          "number": 2,
+          "description": "Cursor's hook format."
+        }
+      ]
+    },
+    {
       "name": "ServiceTier",
       "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ServiceTier",

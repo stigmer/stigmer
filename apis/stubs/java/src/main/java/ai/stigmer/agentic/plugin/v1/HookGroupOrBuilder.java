@@ -12,8 +12,9 @@ public interface HookGroupOrBuilder extends
 
   /**
    * <pre>
-   * The event the handlers run on, spelled as the format spells it, e.g.
-   * "PreToolUse" or "beforeShellExecution".
+   * The event the handlers run on: "PreToolUse" before a call, which can
+   * refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
+   * which can add to what the agent reads.
    * </pre>
    *
    * <code>string event = 1 [json_name = "event", (.buf.validate.field) = { ... }</code>
@@ -22,8 +23,9 @@ public interface HookGroupOrBuilder extends
   java.lang.String getEvent();
   /**
    * <pre>
-   * The event the handlers run on, spelled as the format spells it, e.g.
-   * "PreToolUse" or "beforeShellExecution".
+   * The event the handlers run on: "PreToolUse" before a call, which can
+   * refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
+   * which can add to what the agent reads.
    * </pre>
    *
    * <code>string event = 1 [json_name = "event", (.buf.validate.field) = { ... }</code>
@@ -34,8 +36,10 @@ public interface HookGroupOrBuilder extends
 
   /**
    * <pre>
-   * Which calls the handlers run for, as written by the plugin; empty or "*"
-   * matches every call.
+   * Which tools the handlers run for: a name such as "Bash", a list such as
+   * "Write|Edit", or a regular expression such as "mcp__github__.*". Empty or
+   * "*" matches every tool. A plugin's own MCP server's tools are named
+   * mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;, as in Claude Code.
    * </pre>
    *
    * <code>string matcher = 2 [json_name = "matcher"];</code>
@@ -44,8 +48,10 @@ public interface HookGroupOrBuilder extends
   java.lang.String getMatcher();
   /**
    * <pre>
-   * Which calls the handlers run for, as written by the plugin; empty or "*"
-   * matches every call.
+   * Which tools the handlers run for: a name such as "Bash", a list such as
+   * "Write|Edit", or a regular expression such as "mcp__github__.*". Empty or
+   * "*" matches every tool. A plugin's own MCP server's tools are named
+   * mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;, as in Claude Code.
    * </pre>
    *
    * <code>string matcher = 2 [json_name = "matcher"];</code>

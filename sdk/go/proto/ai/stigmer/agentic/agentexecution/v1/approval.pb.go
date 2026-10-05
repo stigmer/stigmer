@@ -122,8 +122,11 @@ type PendingApproval struct {
 	// client-side lookup.
 	// See ApprovalPolicySource.
 	ApprovalPolicySource ApprovalPolicySource `protobuf:"varint,15,opt,name=approval_policy_source,json=approvalPolicySource,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource" json:"approval_policy_source,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// Slug of the plugin whose hook asked for this approval; empty when no
+	// plugin's hook asked. Copied from ToolCall.approval_policy_hook.
+	ApprovalPolicyHook string `protobuf:"bytes,16,opt,name=approval_policy_hook,json=approvalPolicyHook,proto3" json:"approval_policy_hook,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *PendingApproval) Reset() {
@@ -254,6 +257,13 @@ func (x *PendingApproval) GetApprovalPolicySource() ApprovalPolicySource {
 	return ApprovalPolicySource_APPROVAL_POLICY_SOURCE_UNSPECIFIED
 }
 
+func (x *PendingApproval) GetApprovalPolicyHook() string {
+	if x != nil {
+		return x.ApprovalPolicyHook
+	}
+	return ""
+}
+
 // Legacy full-payload notification for a child agent needing tool approval.
 //
 // Retained for wire compatibility; the platform no longer produces or
@@ -368,8 +378,11 @@ type ApprovalRequest struct {
 	// ToolCall.approval_policy_source so the event-stream projection reconstructs
 	// the same PendingApproval as the message scan. See ApprovalPolicySource.
 	ApprovalPolicySource ApprovalPolicySource `protobuf:"varint,13,opt,name=approval_policy_source,json=approvalPolicySource,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource" json:"approval_policy_source,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// Slug of the plugin whose hook asked. Copied from
+	// ToolCall.approval_policy_hook.
+	ApprovalPolicyHook string `protobuf:"bytes,14,opt,name=approval_policy_hook,json=approvalPolicyHook,proto3" json:"approval_policy_hook,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ApprovalRequest) Reset() {
@@ -484,6 +497,13 @@ func (x *ApprovalRequest) GetApprovalPolicySource() ApprovalPolicySource {
 		return x.ApprovalPolicySource
 	}
 	return ApprovalPolicySource_APPROVAL_POLICY_SOURCE_UNSPECIFIED
+}
+
+func (x *ApprovalRequest) GetApprovalPolicyHook() string {
+	if x != nil {
+		return x.ApprovalPolicyHook
+	}
+	return ""
 }
 
 // The platform's withdrawal of an in-flight approval request — the system-actored
@@ -884,7 +904,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_approval_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\"\x8d\x05\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\"\xbf\x05\n" +
 	"\x0fPendingApproval\x12 \n" +
 	"\ftool_call_id\x18\x01 \x01(\tR\n" +
 	"toolCallId\x12\x1b\n" +
@@ -901,10 +921,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\x0ebranch_at_deny\x18\v \x01(\tR\fbranchAtDeny\x12'\n" +
 	"\x10head_sha_at_deny\x18\f \x01(\tR\rheadShaAtDeny\x12K\n" +
 	"\ttool_kind\x18\r \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKind\x12p\n" +
-	"\x16approval_policy_source\x18\x0f \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySourceJ\x04\b\x0e\x10\x0f\"\xa2\x01\n" +
+	"\x16approval_policy_source\x18\x0f \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySource\x120\n" +
+	"\x14approval_policy_hook\x18\x10 \x01(\tR\x12approvalPolicyHookJ\x04\b\x0e\x10\x0f\"\xa2\x01\n" +
 	"\x19ChildApprovalNotification\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12b\n" +
-	"\x11pending_approvals\x18\x02 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals\"\xc5\x04\n" +
+	"\x11pending_approvals\x18\x02 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals\"\xf7\x04\n" +
 	"\x0fApprovalRequest\x12.\n" +
 	"\x13approval_request_id\x18\x01 \x01(\tR\x11approvalRequestId\x12 \n" +
 	"\ftool_call_id\x18\x02 \x01(\tR\n" +
@@ -919,7 +940,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\x0fmcp_server_slug\x18\n" +
 	" \x01(\tR\rmcpServerSlug\x12K\n" +
 	"\ttool_kind\x18\v \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKind\x12p\n" +
-	"\x16approval_policy_source\x18\r \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySourceJ\x04\b\f\x10\r\"\xbf\x01\n" +
+	"\x16approval_policy_source\x18\r \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySource\x120\n" +
+	"\x14approval_policy_hook\x18\x0e \x01(\tR\x12approvalPolicyHookJ\x04\b\f\x10\r\"\xbf\x01\n" +
 	"\x12ApprovalRetraction\x12.\n" +
 	"\x13approval_request_id\x18\x01 \x01(\tR\x11approvalRequestId\x12V\n" +
 	"\x06reason\x18\x02 \x01(\x0e2>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionReasonR\x06reason\x12!\n" +

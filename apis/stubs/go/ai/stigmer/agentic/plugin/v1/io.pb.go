@@ -291,6 +291,163 @@ func (x *PluginArtifactUploadUrl) GetTtlSeconds() int32 {
 	return 0
 }
 
+// GetArtifactRequest requests download of a plugin archive by storage key.
+type GetArtifactRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The archive storage key from plugin.status.artifact_storage_key.
+	ArtifactStorageKey string `protobuf:"bytes,1,opt,name=artifact_storage_key,json=artifactStorageKey,proto3" json:"artifact_storage_key,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *GetArtifactRequest) Reset() {
+	*x = GetArtifactRequest{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetArtifactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetArtifactRequest) ProtoMessage() {}
+
+func (x *GetArtifactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetArtifactRequest.ProtoReflect.Descriptor instead.
+func (*GetArtifactRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetArtifactRequest) GetArtifactStorageKey() string {
+	if x != nil {
+		return x.ArtifactStorageKey
+	}
+	return ""
+}
+
+// GetArtifactResponse contains a plugin archive.
+type GetArtifactResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The plugin archive as a ZIP file (binary content).
+	Artifact      []byte `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetArtifactResponse) Reset() {
+	*x = GetArtifactResponse{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetArtifactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetArtifactResponse) ProtoMessage() {}
+
+func (x *GetArtifactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetArtifactResponse.ProtoReflect.Descriptor instead.
+func (*GetArtifactResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetArtifactResponse) GetArtifact() []byte {
+	if x != nil {
+		return x.Artifact
+	}
+	return nil
+}
+
+// PluginArtifactDownloadUrl provides a URL for downloading a plugin archive
+// over HTTP.
+type PluginArtifactDownloadUrl struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// URL to download the archive ZIP via HTTP GET.
+	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	// Time-to-live for the download URL in seconds; 0 means no expiry.
+	TtlSeconds int32 `protobuf:"varint,2,opt,name=ttl_seconds,json=ttlSeconds,proto3" json:"ttl_seconds,omitempty"`
+	// Size of the archive ZIP in bytes.
+	SizeBytes     int64 `protobuf:"varint,3,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginArtifactDownloadUrl) Reset() {
+	*x = PluginArtifactDownloadUrl{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginArtifactDownloadUrl) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginArtifactDownloadUrl) ProtoMessage() {}
+
+func (x *PluginArtifactDownloadUrl) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginArtifactDownloadUrl.ProtoReflect.Descriptor instead.
+func (*PluginArtifactDownloadUrl) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *PluginArtifactDownloadUrl) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *PluginArtifactDownloadUrl) GetTtlSeconds() int32 {
+	if x != nil {
+		return x.TtlSeconds
+	}
+	return 0
+}
+
+func (x *PluginArtifactDownloadUrl) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
 // PluginMember is one resource an installed plugin materialised.
 type PluginMember struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -308,7 +465,7 @@ type PluginMember struct {
 
 func (x *PluginMember) Reset() {
 	*x = PluginMember{}
-	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -320,7 +477,7 @@ func (x *PluginMember) String() string {
 func (*PluginMember) ProtoMessage() {}
 
 func (x *PluginMember) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -333,7 +490,7 @@ func (x *PluginMember) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginMember.ProtoReflect.Descriptor instead.
 func (*PluginMember) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *PluginMember) GetKind() apiresourcekind.ApiResourceKind {
@@ -375,7 +532,7 @@ type ListPluginMembersResponse struct {
 
 func (x *ListPluginMembersResponse) Reset() {
 	*x = ListPluginMembersResponse{}
-	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -387,7 +544,7 @@ func (x *ListPluginMembersResponse) String() string {
 func (*ListPluginMembersResponse) ProtoMessage() {}
 
 func (x *ListPluginMembersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -400,7 +557,7 @@ func (x *ListPluginMembersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPluginMembersResponse.ProtoReflect.Descriptor instead.
 func (*ListPluginMembersResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListPluginMembersResponse) GetMembers() []*PluginMember {
@@ -427,7 +584,7 @@ type ListPluginVersionsInput struct {
 
 func (x *ListPluginVersionsInput) Reset() {
 	*x = ListPluginVersionsInput{}
-	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -439,7 +596,7 @@ func (x *ListPluginVersionsInput) String() string {
 func (*ListPluginVersionsInput) ProtoMessage() {}
 
 func (x *ListPluginVersionsInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -452,7 +609,7 @@ func (x *ListPluginVersionsInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPluginVersionsInput.ProtoReflect.Descriptor instead.
 func (*ListPluginVersionsInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListPluginVersionsInput) GetOrg() string {
@@ -507,7 +664,7 @@ type PluginVersionEntry struct {
 
 func (x *PluginVersionEntry) Reset() {
 	*x = PluginVersionEntry{}
-	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -519,7 +676,7 @@ func (x *PluginVersionEntry) String() string {
 func (*PluginVersionEntry) ProtoMessage() {}
 
 func (x *PluginVersionEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -532,7 +689,7 @@ func (x *PluginVersionEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginVersionEntry.ProtoReflect.Descriptor instead.
 func (*PluginVersionEntry) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *PluginVersionEntry) GetDigest() string {
@@ -599,7 +756,7 @@ type ListPluginVersionsResponse struct {
 
 func (x *ListPluginVersionsResponse) Reset() {
 	*x = ListPluginVersionsResponse{}
-	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -611,7 +768,7 @@ func (x *ListPluginVersionsResponse) String() string {
 func (*ListPluginVersionsResponse) ProtoMessage() {}
 
 func (x *ListPluginVersionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -624,7 +781,7 @@ func (x *ListPluginVersionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPluginVersionsResponse.ProtoReflect.Descriptor instead.
 func (*ListPluginVersionsResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListPluginVersionsResponse) GetVersions() []*PluginVersionEntry {
@@ -672,7 +829,17 @@ const file_ai_stigmer_agentic_plugin_v1_io_proto_rawDesc = "" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12.\n" +
 	"\x13artifact_upload_ref\x18\x02 \x01(\tR\x11artifactUploadRef\x12\x1f\n" +
 	"\vttl_seconds\x18\x03 \x01(\x05R\n" +
-	"ttlSeconds\"\x9b\x01\n" +
+	"ttlSeconds\"N\n" +
+	"\x12GetArtifactRequest\x128\n" +
+	"\x14artifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12artifactStorageKey\"1\n" +
+	"\x13GetArtifactResponse\x12\x1a\n" +
+	"\bartifact\x18\x01 \x01(\fR\bartifact\"m\n" +
+	"\x19PluginArtifactDownloadUrl\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1f\n" +
+	"\vttl_seconds\x18\x02 \x01(\x05R\n" +
+	"ttlSeconds\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x03 \x01(\x03R\tsizeBytes\"\x9b\x01\n" +
 	"\fPluginMember\x12S\n" +
 	"\x04kind\x18\x01 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x12\n" +
@@ -714,29 +881,32 @@ func file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ai_stigmer_agentic_plugin_v1_io_proto_goTypes = []any{
 	(*PluginId)(nil),                             // 0: ai.stigmer.agentic.plugin.v1.PluginId
 	(*PushPluginRequest)(nil),                    // 1: ai.stigmer.agentic.plugin.v1.PushPluginRequest
 	(*CreatePluginArtifactUploadUrlRequest)(nil), // 2: ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest
 	(*PluginArtifactUploadUrl)(nil),              // 3: ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl
-	(*PluginMember)(nil),                         // 4: ai.stigmer.agentic.plugin.v1.PluginMember
-	(*ListPluginMembersResponse)(nil),            // 5: ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse
-	(*ListPluginVersionsInput)(nil),              // 6: ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput
-	(*PluginVersionEntry)(nil),                   // 7: ai.stigmer.agentic.plugin.v1.PluginVersionEntry
-	(*ListPluginVersionsResponse)(nil),           // 8: ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse
-	(apiresource.ApiResourceVisibility)(0),       // 9: ai.stigmer.commons.apiresource.ApiResourceVisibility
-	(apiresourcekind.ApiResourceKind)(0),         // 10: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
-	(*timestamppb.Timestamp)(nil),                // 11: google.protobuf.Timestamp
-	(*apiresource.ApiResourceAuditActor)(nil),    // 12: ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	(*GetArtifactRequest)(nil),                   // 4: ai.stigmer.agentic.plugin.v1.GetArtifactRequest
+	(*GetArtifactResponse)(nil),                  // 5: ai.stigmer.agentic.plugin.v1.GetArtifactResponse
+	(*PluginArtifactDownloadUrl)(nil),            // 6: ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl
+	(*PluginMember)(nil),                         // 7: ai.stigmer.agentic.plugin.v1.PluginMember
+	(*ListPluginMembersResponse)(nil),            // 8: ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse
+	(*ListPluginVersionsInput)(nil),              // 9: ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput
+	(*PluginVersionEntry)(nil),                   // 10: ai.stigmer.agentic.plugin.v1.PluginVersionEntry
+	(*ListPluginVersionsResponse)(nil),           // 11: ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse
+	(apiresource.ApiResourceVisibility)(0),       // 12: ai.stigmer.commons.apiresource.ApiResourceVisibility
+	(apiresourcekind.ApiResourceKind)(0),         // 13: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
+	(*timestamppb.Timestamp)(nil),                // 14: google.protobuf.Timestamp
+	(*apiresource.ApiResourceAuditActor)(nil),    // 15: ai.stigmer.commons.apiresource.ApiResourceAuditActor
 }
 var file_ai_stigmer_agentic_plugin_v1_io_proto_depIdxs = []int32{
-	9,  // 0: ai.stigmer.agentic.plugin.v1.PushPluginRequest.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
-	10, // 1: ai.stigmer.agentic.plugin.v1.PluginMember.kind:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
-	4,  // 2: ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse.members:type_name -> ai.stigmer.agentic.plugin.v1.PluginMember
-	11, // 3: ai.stigmer.agentic.plugin.v1.PluginVersionEntry.pushed_at:type_name -> google.protobuf.Timestamp
-	12, // 4: ai.stigmer.agentic.plugin.v1.PluginVersionEntry.pushed_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
-	7,  // 5: ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse.versions:type_name -> ai.stigmer.agentic.plugin.v1.PluginVersionEntry
+	12, // 0: ai.stigmer.agentic.plugin.v1.PushPluginRequest.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
+	13, // 1: ai.stigmer.agentic.plugin.v1.PluginMember.kind:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
+	7,  // 2: ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse.members:type_name -> ai.stigmer.agentic.plugin.v1.PluginMember
+	14, // 3: ai.stigmer.agentic.plugin.v1.PluginVersionEntry.pushed_at:type_name -> google.protobuf.Timestamp
+	15, // 4: ai.stigmer.agentic.plugin.v1.PluginVersionEntry.pushed_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	10, // 5: ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse.versions:type_name -> ai.stigmer.agentic.plugin.v1.PluginVersionEntry
 	6,  // [6:6] is the sub-list for method output_type
 	6,  // [6:6] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
@@ -755,7 +925,7 @@ func file_ai_stigmer_agentic_plugin_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_plugin_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_plugin_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

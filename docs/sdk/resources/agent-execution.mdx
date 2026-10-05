@@ -1947,6 +1947,7 @@ A tool call requesting approval — the "ask" recorded when a gated tool call en
     mcpServerSlug: { type: "string", description: "Slug of the MCP server providing this tool; empty for built-in tools." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic tool category.", typeDescriptionLink: "#toolkind" },
     approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this call.", typeDescriptionLink: "#approvalpolicysource" },
+    approvalPolicyHook: { type: "string", description: "Slug of the plugin whose hook asked." },
   }}
 />
 
@@ -2235,6 +2236,7 @@ A pending approval request for a tool call that requires user consent before exe
     headShaAtDeny: { type: "string", description: "Git HEAD SHA at the time the tool was denied." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
     approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this tool call, copied from ToolCall.approval_policy_source by the server-side projection (exactly as tool_kind above is).", typeDescriptionLink: "#approvalpolicysource" },
+    approvalPolicyHook: { type: "string", description: "Slug of the plugin whose hook asked for this approval; empty when no plugin's hook asked." },
   }}
 />
 
@@ -2416,6 +2418,7 @@ Represents a tool call made by the agent during execution.
     policyEngineVersion: { type: "string", description: "Identifier of the policy-engine logic that produced approval_policy_source, bumped when the approval semantics change so decisions made by different engine versions stay distinguishable in audits." },
     approvalContentDigest: { type: "string", description: "Stable digest of the authoritative edit content (the hook-captured tool input) for a gated file-mutating tool call, set by the runner's approval gate." },
     fileChangeSetId: { type: "string", description: "Id of the FileChangeSet this flowed file-edit contributed to (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary capture." },
+    approvalPolicyHook: { type: "string", description: "Slug of the plugin whose hook decided this call; empty when no hook decided, or when the agent's own hooks block did." },
   }}
 />
 
@@ -2592,6 +2595,7 @@ ApprovalPolicySource is the policy layer that decided a tool call's approval req
 | `APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY` | The default asked for a built-in tool of an approval class (write / delete / shell). |
 | `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint annotation). |
 | `APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP` | The unattended approval mode (AgentExecutionStatus.approval_mode = APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip: the lane the execution came through (a schedule's fire, a messaging channel, a guest share) has no approver, so the platform skipped the tool and told the model to adapt. |
+| `APPROVAL_POLICY_SOURCE_HOOK` | A hook decided this call: it refused it, asked a person first, or let it run without the approval it would otherwise need. |
 
 ### ApprovalRetractionReason
 

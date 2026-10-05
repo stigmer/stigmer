@@ -25,6 +25,7 @@ function makeServer(overrides: Partial<ResolvedMcpServer> = {}): ResolvedMcpServ
     destructiveTools: [],
     discoveredToolNames: [],
     declaredEnvKeys: [],
+    pluginOrigin: null,
     discoveredCapabilitiesEmpty: false,
     ...overrides,
   };

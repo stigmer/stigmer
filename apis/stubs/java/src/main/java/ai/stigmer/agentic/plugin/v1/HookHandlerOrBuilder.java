@@ -12,7 +12,8 @@ public interface HookHandlerOrBuilder extends
 
   /**
    * <pre>
-   * The command to run, as written by the plugin.
+   * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
+   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
    * </pre>
    *
    * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -21,7 +22,8 @@ public interface HookHandlerOrBuilder extends
   java.lang.String getCommand();
   /**
    * <pre>
-   * The command to run, as written by the plugin.
+   * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
+   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
    * </pre>
    *
    * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -77,8 +79,8 @@ public interface HookHandlerOrBuilder extends
 
   /**
    * <pre>
-   * Seconds the command may run before it is stopped; zero means the format's
-   * default.
+   * Seconds the command may run before it is stopped; zero means the default,
+   * 600 seconds. A command that is stopped makes no decision.
    * </pre>
    *
    * <code>int32 timeout_seconds = 3 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -111,7 +113,7 @@ public interface HookHandlerOrBuilder extends
   /**
    * <pre>
    * Whether a crash, timeout or missing answer blocks the call instead of
-   * letting it through.
+   * letting it through. Cursor's format only.
    * </pre>
    *
    * <code>bool fail_closed = 5 [json_name = "failClosed"];</code>

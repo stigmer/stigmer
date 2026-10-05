@@ -164,6 +164,7 @@ export class TurnTimeline {
       case "reasoning_delta":
       case "tool_arg_delta":
       case "tool_output_delta":
+      case "tool_policy":
       case "approval_proposed":
       case "system_note":
         return;

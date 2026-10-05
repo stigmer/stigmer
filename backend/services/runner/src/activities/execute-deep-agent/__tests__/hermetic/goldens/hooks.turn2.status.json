@@ -1,0 +1,121 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Cleaning the build.",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hooks-delete",
+          "name": "execute",
+          "args": {
+            "command": "rm -rf build"
+          },
+          "status": "TOOL_CALL_FAILED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "error": "The safety plugin's hook refused this call: recursive deletes are not allowed",
+          "argsPreview": "{\"command\":\"rm -rf build\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
+          "policyEngineVersion": "hooks-1",
+          "approvalPolicyHook": "safety"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Listing the files.",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hooks-list",
+          "name": "execute",
+          "args": {
+            "command": "ls"
+          },
+          "result": "<no output>\n[Command succeeded with exit code 0]",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:02.000Z",
+          "completedAt": "2026-01-01T00:00:02.000Z",
+          "argsPreview": "{\"command\":\"ls\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
+          "policyEngineVersion": "hooks-1",
+          "approvalPolicyHook": "safety"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Publishing.",
+      "timestamp": "2026-01-01T00:00:03.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hooks-publish",
+          "name": "execute",
+          "args": {
+            "command": "echo publish"
+          },
+          "result": "publish\n\n[Command succeeded with exit code 0]",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:03.000Z",
+          "completedAt": "2026-01-01T00:00:03.000Z",
+          "requiresApproval": true,
+          "approvalMessage": "publishing needs a person",
+          "approvalRequestedAt": "2026-01-01T00:00:03.000Z",
+          "approvalDecidedAt": "2026-01-01T00:00:30.000Z",
+          "approvalAction": "APPROVAL_ACTION_APPROVE",
+          "argsPreview": "{\"command\":\"echo publish\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
+          "policyEngineVersion": "hooks-1",
+          "approvalPolicyHook": "safety"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Done with the command.",
+      "timestamp": "2026-01-01T00:00:04.000Z"
+    }
+  ],
+  "phase": "EXECUTION_COMPLETED",
+  "startedAt": "2026-01-01T00:00:03.000Z",
+  "completedAt": "2026-01-01T00:00:04.000Z",
+  "streamingUsage": {
+    "inputTokens": "1600",
+    "outputTokens": "20",
+    "totalTokens": "1620",
+    "turnCount": 1,
+    "estimatedCostUsd": 0.0017,
+    "model": "claude-haiku-4.5",
+    "observedAt": "2026-01-01T00:00:04.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:1:aex_hermetic_0001:1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:1",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:03.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:1",
+          "turnId": "aex_hermetic_0001:1",
+          "harnessId": "deep-agent",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:1",
+    "capturedAt": "2026-01-01T00:00:03.000Z"
+  }
+}

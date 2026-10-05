@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   ToolKind,
   resolveToolKindByName,
   describeApprovalPolicySource,
+  hookApproveAllLabel,
 } from "@stigmer/sdk";
 import { extractShellIntentFromPreview } from "@stigmer/react";
 
@@ -44,16 +45,18 @@ interface ActionOption {
  * Builds the truthful APPROVE_ALL option label for a pending approval's lease
  * class — the terminal mirror of the React card's buildApproveAllLabel.
  *
- * APPROVE_ALL grants a run-lifetime lease scoped to ONE class: the MCP server
- * for an MCP tool, otherwise the approval category (write/delete/shell), where
- * FILE_WRITE and FILE_EDIT collapse to one "file edits" class exactly as the
- * runner's toolApprovalCategory collapses them. The label names that class so it
- * never implies a broader, run-wide bypass.
+ * APPROVE_ALL grants a run-lifetime lease scoped to ONE class: when a hook
+ * asked, that hook's asks on that one tool (`hookApproveAllLabel`); otherwise
+ * the MCP server for an MCP tool, or the approval category
+ * (write/delete/shell), where FILE_WRITE and FILE_EDIT collapse to one "file
+ * edits" class exactly as the runner's toolApprovalCategory collapses them. The
+ * label names that class so it never implies a broader, run-wide bypass.
  */
-function buildApproveAllLabel(
-  toolName: string,
-  mcpServerSlug: string,
-): string {
+function buildApproveAllLabel(pending: PendingApproval): string {
+  const { toolName, mcpServerSlug } = pending;
+  if (pending.approvalPolicySource === ApprovalPolicySource.HOOK) {
+    return hookApproveAllLabel(hookLeaseSubject(toolName, mcpServerSlug), pending.approvalPolicyHook);
+  }
   if (mcpServerSlug) {
     return `Approve all ${mcpServerSlug} tools`;
   }
@@ -67,6 +70,23 @@ function buildApproveAllLabel(
       return "Approve all file edits";
     default:
       return "Approve all of this kind";
+  }
+}
+
+/** What a hook lease covers, in words: one tool's calls, so a write and an edit stay apart. */
+function hookLeaseSubject(toolName: string, mcpServerSlug: string): string {
+  if (mcpServerSlug) return `${toolName} calls`;
+  switch (resolveToolKindByName(toolName, mcpServerSlug)) {
+    case ToolKind.SHELL:
+      return "shell commands";
+    case ToolKind.FILE_DELETE:
+      return "file deletions";
+    case ToolKind.FILE_WRITE:
+      return "file writes";
+    case ToolKind.FILE_EDIT:
+      return "file edits";
+    default:
+      return `${toolName} calls`;
   }
 }
 
@@ -98,10 +118,7 @@ export function ApprovalPrompt({
         shortcut: "y",
       },
       {
-        label: buildApproveAllLabel(
-          pendingApproval.toolName,
-          pendingApproval.mcpServerSlug,
-        ),
+        label: buildApproveAllLabel(pendingApproval),
         action: ApprovalAction.APPROVE_ALL,
         color: "green",
         shortcut: "a",
@@ -154,6 +171,7 @@ export function ApprovalPrompt({
   // surface explains the gate at parity. Empty for legacy executions.
   const gateReason = describeApprovalPolicySource(
     pendingApproval.approvalPolicySource,
+    pendingApproval.approvalPolicyHook,
   );
 
   // Model-authored shell intent (stigmer#276), mirroring the React card's

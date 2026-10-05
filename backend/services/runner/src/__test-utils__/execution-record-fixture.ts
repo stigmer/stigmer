@@ -33,7 +33,7 @@ import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, type HookSource, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -101,6 +101,8 @@ export interface ExecutionRecordOptions {
   readonly tools?: string[];
   /** The agent's `AgentSpec.disallowed_tools` ("never these"). */
   readonly disallowedTools?: string[];
+  /** The agent's `AgentSpec.hooks`: plugin references and its own hooks block. */
+  readonly hooks?: HookSource[];
   /**
    * The built-in assistant: the session names NO agent and the turn's stamp
    * is empty, so the record carries no agent and the activity must run on
@@ -167,6 +169,7 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       subAgents: options.subAgents ?? [],
       tools: options.tools ?? [],
       disallowedTools: options.disallowedTools ?? [],
+      hooks: options.hooks ?? [],
     }),
   });
   return new ExecutionRecord({ execution, session, agent, controlSignal: options.controlSignal });

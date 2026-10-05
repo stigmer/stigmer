@@ -106,6 +106,7 @@ export function synthesizeConversationAttachment(
     destructiveTools: [],
     discoveredToolNames: null,
     declaredEnvKeys: [],
+    pluginOrigin: null,
     discoveredCapabilitiesEmpty: false,
     connectionType: "http",
     url: options.bridgeEndpoint.replace(/\/+$/, "") + CONVERSATION_ROUTE,

@@ -125,6 +125,7 @@ import { agentSearchExtractor } from "./search-extractor.js";
 import {
   newCascadeDeleteSharesStep,
   newMergeMcpServerEnvSpecsStep,
+  newValidateHooksStep,
 } from "./steps.js";
 import {
   TAG_VERSION_AGENT_KEY,
@@ -211,6 +212,7 @@ async function createAgent(
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newValidateHooksStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
@@ -261,6 +263,7 @@ async function update(
     .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newValidateHooksStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))

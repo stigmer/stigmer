@@ -358,6 +358,7 @@ export {
 export {
   ApprovalPolicySource,
   describeApprovalPolicySource,
+  hookApproveAllLabel,
   isInformativePolicySource,
 } from "./execution/approval-provenance.js";
 export { isTerminalPhase } from "./execution/execution-phases.js";

@@ -6,7 +6,10 @@
  * Claude plugin's lists rewritten to Stigmer's names (its own servers and
  * agents) with unstorable entries dropped and an emptied sub-agent left
  * out, the settings' main agent running the main thread, the hooks riding
- * the plan to the status, `model_override` staying empty while the hint becomes a warning,
+ * the plan to the status, the composed agent referencing its own plugin's
+ * Claude Code-format hooks and declaring the variables they read (never a
+ * Cursor-format plugin's, which alone is warned as not run yet),
+ * `model_override` staying empty while the hint becomes a warning,
  * a built-in name becoming a warning, an MCP-only package planning no
  * agent, the `mcpServers` key-to-slug rule, a skill archive rooted at its
  * SKILL.md with the plugin's labels on the request, a version the tag
@@ -604,22 +607,101 @@ describe("a Claude plugin's tool lists, main agent and hooks", () => {
     expect(plan(claudePlugin()).hooks).toBeUndefined();
   });
 
-  it("says in one warning that recorded hooks are not run yet, and says nothing without them", () => {
-    const hooks = {
-      PreToolUse: [{ hooks: [{ type: "command", command: "guard" }] }],
-    };
-    const warned = plan(claudePlugin({ hooks })).warnings.filter(
-      (w) => w.kind === "hooks-not-run-yet",
-    );
-    expect(warned.map((w) => w.message)).toEqual([
-      "the plugin's tool-call hooks are recorded but not run yet: this version of Stigmer runs no plugin hook, so none of them checks a call",
+  it("warns only for Cursor-format hooks that they are recorded and not run yet", () => {
+    const warnedOf = (fixture: PluginFixture) =>
+      plan(fixture)
+        .warnings.filter((w) => w.kind === "hooks-not-run-yet")
+        .map((w) => w.message);
+    expect(
+      warnedOf(
+        cursorPlugin({
+          hooks: { preToolUse: [{ command: "./guard.sh" }] },
+        }),
+      ),
+    ).toEqual([
+      "the plugin's tool-call hooks are in Cursor's format, which Stigmer records but does not run yet, so none of them checks a call",
     ]);
-    const lifecycleOnly = claudePlugin({
-      hooks: { Stop: [{ hooks: [{ type: "command", command: "x" }] }] },
-    });
-    expect(plan(lifecycleOnly).warnings.map((w) => w.kind)).not.toContain(
-      "hooks-not-run-yet",
+    expect(
+      warnedOf(
+        claudePlugin({
+          hooks: {
+            PreToolUse: [{ hooks: [{ type: "command", command: "guard" }] }],
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(warnedOf(claudePlugin())).toEqual([]);
+  });
+
+  it("has the composed agent run its own plugin's Claude Code hooks, unversioned, and declare the variables they read", () => {
+    const planned = plan(
+      claudePlugin({
+        skills: [{ name: "howto", description: "How to", body: "# How" }],
+        userConfig: {
+          WEBHOOK: {
+            type: "string",
+            description: "Where to post",
+            required: true,
+          },
+        },
+        hooks: {
+          PreToolUse: [
+            {
+              hooks: [
+                {
+                  type: "command",
+                  command: "node",
+                  args: [
+                    "notify.js",
+                    "${user_config.WEBHOOK}",
+                    "${user_config.UNDECLARED}",
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      }),
     );
+    const spec = planned.agent!.resource.spec!;
+    expect(spec.hooks.map((h) => h.source)).toEqual([
+      {
+        case: "plugin",
+        value: expect.objectContaining({
+          org: IDENTITY.org,
+          kind: ApiResourceKind.plugin,
+          slug: IDENTITY.slug,
+          version: "",
+        }) as unknown,
+      },
+    ]);
+    expect(spec.env["WEBHOOK"]).toMatchObject({
+      description: "Where to post",
+      isSecret: false,
+      optional: false,
+    });
+    expect(spec.env["UNDECLARED"]).toMatchObject({
+      isSecret: true,
+      optional: false,
+    });
+  });
+
+  it("gives a Cursor-format plugin's agent no hook reference, and composes no agent for a plugin that is only hooks", () => {
+    const cursor = plan(
+      cursorPlugin({
+        skills: [{ name: "howto", description: "How to", body: "# How" }],
+        hooks: { preToolUse: [{ command: "./guard.sh" }] },
+      }),
+    );
+    expect(cursor.agent!.resource.spec!.hooks).toEqual([]);
+    const hooksOnly = plan(
+      claudePlugin({
+        hooks: {
+          PreToolUse: [{ hooks: [{ type: "command", command: "guard" }] }],
+        },
+      }),
+    );
+    expect(hooksOnly.agent).toBeUndefined();
   });
 
   it("names hooks and settings among what Stigmer reads when it ignores a component", () => {

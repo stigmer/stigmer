@@ -11,6 +11,9 @@
  *     well-formed lists are accepted and read back as written, and their
  *     names are never checked against a server's discovered tools, so an
  *     entry naming a tool no connected server exposes still applies;
+ *   - hooks at apply: an inline block is stored with Claude Code's format
+ *     filled, and a malformed one is refused on the create and on the
+ *     update an apply delegates to (ValidateHooks runs on both chains);
  *   - cascade delete (oss#611): same-org shares are deleted, cross-org
  *     shares of the same agent SURVIVE, and a bystander agent's share is
  *     untouched;
@@ -34,6 +37,7 @@ import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
@@ -350,6 +354,53 @@ describe("agent tool lists at apply", () => {
       "mcp__github",
       "NotebookEdit",
     ]);
+  });
+});
+
+describe("agent hooks at apply", () => {
+  const block = (event: string) => ({
+    source: {
+      case: "inline" as const,
+      value: {
+        groups: [{ event, matcher: "Bash", handlers: [{ command: "guard" }] }],
+      },
+    },
+  });
+
+  it("stores an inline block with Claude Code's format filled, and refuses a malformed one on create and on update", async () => {
+    const input = agentInput({ name: "Hooked Agent" });
+    const applied = await command.apply({
+      ...input,
+      spec: { ...input.spec, hooks: [block("PreToolUse")] },
+    });
+    const fetched = await query.get({ value: applied.metadata!.id });
+    const source = fetched.spec?.hooks[0]?.source;
+    expect(source?.case).toBe("inline");
+    expect(source?.case === "inline" && source.value.format).toBe(
+      HookFormat.CLAUDE_CODE,
+    );
+
+    const refusedUpdate = await grpcError(() =>
+      command.apply({
+        ...input,
+        spec: { ...input.spec, hooks: [block("Stop")] },
+      }),
+    );
+    expect(refusedUpdate.code).toBe(Code.InvalidArgument);
+    expect(refusedUpdate.rawMessage).toContain("event 'Stop'");
+
+    const fresh = agentInput({ name: "Hooked Agent Two" });
+    const refusedCreate = await grpcError(() =>
+      command.create({
+        ...fresh,
+        spec: {
+          ...fresh.spec,
+          hooks: [block("PreToolUse"), block("PostToolUse")],
+        },
+      }),
+    );
+    expect(refusedCreate.code).toBe(Code.InvalidArgument);
+    expect(refusedCreate.rawMessage).toContain("more than one inline block");
   });
 });
 

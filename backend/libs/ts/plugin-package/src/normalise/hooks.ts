@@ -14,8 +14,8 @@
  * a Cursor inline object is read in its file's shape.
  *
  * Stigmer reads hooks on tool calls only, and only command handlers that
- * can decide a call (the installer records them; no engine runs one yet): `PreToolUse` and `PostToolUse` in Claude Code's
- * format, and Cursor's `preToolUse`, `beforeShellExecution`,
+ * can decide a call: `PreToolUse` and `PostToolUse` in Claude Code's
+ * format (the native engine runs them), and Cursor's `preToolUse`, `beforeShellExecution`,
  * `beforeMCPExecution`, `postToolUse` and `afterMCPExecution`. Everything
  * else is named, never dropped silently: an event once per file
  * (`hook-event-not-run`), a handler that is not a command, runs in the
@@ -44,7 +44,12 @@
  *
  * `${user_config.KEY}` in an exec-form handler (one with `args`) is a
  * reference to `KEY`, returned so a variable only a hook uses is not
- * reported as unreferenced.
+ * reported as unreferenced; `hookVariableReferences` reads the same rule off
+ * a read plugin's hooks, for the installer that declares them on the agent.
+ *
+ * The event set, `isValidMatcher` and `HOOK_CONDITION_PATTERN` are exported
+ * so a hooks block written in an agent by hand is checked by the rules a
+ * plugin's are.
  */
 
 import type { ManifestSet, ResolvedHookSource } from "../detect.js";
@@ -64,8 +69,8 @@ export const RUN_EVENTS: Readonly<Record<HookFormat, ReadonlySet<string>>> = {
 /** Claude Code's exact-match matcher alphabet; any other character makes the matcher a regular expression. */
 const CLAUDE_EXACT_MATCHER = /^[A-Za-z0-9_\- ,|]+$/;
 
-/** A permission rule: `Tool` or `Tool(specifier)`. */
-const CONDITION_PATTERN = /^[A-Za-z_][A-Za-z0-9_-]*(\([^\r\n]+\))?$/;
+/** A permission rule: `Tool` or `Tool(specifier)`, the shape a handler's `if` must take. */
+export const HOOK_CONDITION_PATTERN = /^[A-Za-z_][A-Za-z0-9_-]*(\([^\r\n]+\))?$/;
 
 /** Top-level keys a hooks file may carry beside `hooks` without a warning. */
 const FILE_KEYS: Readonly<Record<HookFormat, ReadonlySet<string>>> = {
@@ -322,9 +327,7 @@ function readClaudeHandler(
   for (const [key] of fields(handler)) {
     if (!CLAUDE_HANDLER_KEYS.has(key)) out.warnings.push({ kind: "hook-field-ignored", ctx: { path, subject: event, detail: key } });
   }
-  if (args.length > 0) {
-    for (const value of [command, ...args]) out.references.push(...userConfigReferences(value));
-  }
+  out.references.push(...handlerVariableReferences(command, args));
   return {
     command,
     args,
@@ -389,6 +392,27 @@ function readMatcher(object: JsonObject, event: string, path: string, format: Ho
 }
 
 /**
+ * The `${user_config.KEY}` names one Claude Code handler references: in its
+ * command and arguments when it runs in exec form (it has `args`), where
+ * Claude substitutes them; a shell-form command's text is the shell's.
+ */
+function handlerVariableReferences(command: string, args: readonly string[]): string[] {
+  if (args.length === 0) return [];
+  return [command, ...args].flatMap((value) => [...userConfigReferences(value)]);
+}
+
+/** Every `${user_config.KEY}` name a read plugin's hooks reference, in first-seen order. */
+export function hookVariableReferences(hooks: PluginHooks): readonly string[] {
+  const names = new Set<string>();
+  for (const group of hooks.groups) {
+    for (const handler of group.handlers) {
+      for (const name of handlerVariableReferences(handler.command, handler.args)) names.add(name);
+    }
+  }
+  return [...names];
+}
+
+/**
  * True when a matcher means something in its format: every call (`""` or
  * `*`, in both), an exact list (Claude Code), or a regular expression
  * JavaScript compiles.
@@ -423,7 +447,7 @@ function readCondition(handler: JsonObject, event: string, path: string, finding
     findings.error("hooks-shape", { path, subject: event, detail: "a handler's 'if' must be a string" });
     return null;
   }
-  if (!CONDITION_PATTERN.test(condition)) {
+  if (!HOOK_CONDITION_PATTERN.test(condition)) {
     findings.error("hook-condition-invalid", { path, subject: event, detail: condition });
     return null;
   }

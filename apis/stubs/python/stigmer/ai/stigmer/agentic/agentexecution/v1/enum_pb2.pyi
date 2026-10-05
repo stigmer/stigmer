@@ -111,6 +111,7 @@ class ApprovalPolicySource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY: _ClassVar[ApprovalPolicySource]
     APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN: _ClassVar[ApprovalPolicySource]
     APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP: _ClassVar[ApprovalPolicySource]
+    APPROVAL_POLICY_SOURCE_HOOK: _ClassVar[ApprovalPolicySource]
 
 class ApprovalEventType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -318,6 +319,7 @@ APPROVAL_POLICY_SOURCE_APPROVAL_LEASE: ApprovalPolicySource
 APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY: ApprovalPolicySource
 APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN: ApprovalPolicySource
 APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP: ApprovalPolicySource
+APPROVAL_POLICY_SOURCE_HOOK: ApprovalPolicySource
 APPROVAL_EVENT_TYPE_UNSPECIFIED: ApprovalEventType
 APPROVAL_EVENT_TYPE_REQUESTED: ApprovalEventType
 APPROVAL_EVENT_TYPE_APPROVED: ApprovalEventType

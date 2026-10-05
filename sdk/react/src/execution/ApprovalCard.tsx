@@ -3,10 +3,11 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ApprovalAction, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ApprovalPolicySource, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import {
   describeApprovalPolicySource,
+  hookApproveAllLabel,
   isInformativePolicySource,
 } from "./approval-provenance.js";
 import {
@@ -313,8 +314,8 @@ export function ApprovalCardBody({
   // toolApprovalCategory). The label must name that exact class so the button
   // never over-promises: it does NOT silence other classes.
   const approveAllLabel = useMemo(
-    () => buildApproveAllLabel(categoryInfo.category, pendingApproval.mcpServerSlug),
-    [categoryInfo.category, pendingApproval.mcpServerSlug],
+    () => buildApproveAllLabel(categoryInfo.category, pendingApproval),
+    [categoryInfo.category, pendingApproval],
   );
 
   // Why-gated: the authorization provenance the server projected onto the
@@ -323,8 +324,8 @@ export function ApprovalCardBody({
   // so only a genuinely informative provenance (an explicit override, a
   // server-marked destructive tighten) earns a line; the full phrase is on hover.
   const gateReason = useMemo(
-    () => describeApprovalPolicySource(pendingApproval.approvalPolicySource),
-    [pendingApproval.approvalPolicySource],
+    () => describeApprovalPolicySource(pendingApproval.approvalPolicySource, pendingApproval.approvalPolicyHook),
+    [pendingApproval.approvalPolicySource, pendingApproval.approvalPolicyHook],
   );
   const showGateReason =
     gateReason != null &&
@@ -476,18 +477,24 @@ export function ApprovalCardBody({
 /**
  * Builds the truthful APPROVE_ALL button label for a tool's lease class.
  *
- * The lease an APPROVE_ALL grants is scoped to ONE class: the MCP server for an
- * MCP tool, otherwise the approval category (write/delete/shell) — where the
- * presentation "write" and "edit" categories collapse to a single "file edits"
- * class, exactly as the runner's `toolApprovalCategory` collapses FILE_WRITE and
- * FILE_EDIT to "write". The label names that class so the button never implies a
- * broader effect than the lease actually has. The generic fallback only applies
- * to a tool with no leasable class, which is not normally gated for approval.
+ * The lease an APPROVE_ALL grants is scoped to ONE class: when a hook asked,
+ * that hook's asks on that one tool (`hookApproveAllLabel`); otherwise the MCP
+ * server for an MCP tool, or the approval category (write/delete/shell) — where
+ * the presentation "write" and "edit" categories collapse to a single "file
+ * edits" class, exactly as the runner's `toolApprovalCategory` collapses
+ * FILE_WRITE and FILE_EDIT to "write". The label names that class so the button
+ * never implies a broader effect than the lease actually has. The generic
+ * fallback only applies to a tool with no leasable class, which is not normally
+ * gated for approval.
  */
 function buildApproveAllLabel(
   category: ToolCategory,
-  mcpServerSlug: string,
+  pending: Pick<PendingApproval, "mcpServerSlug" | "toolName" | "approvalPolicySource" | "approvalPolicyHook">,
 ): string {
+  const { mcpServerSlug } = pending;
+  if (pending.approvalPolicySource === ApprovalPolicySource.HOOK) {
+    return hookApproveAllLabel(hookLeaseSubject(category, pending.toolName, mcpServerSlug), pending.approvalPolicyHook);
+  }
   if (mcpServerSlug) {
     return `Approve all ${mcpServerSlug} tools`;
   }
@@ -501,6 +508,23 @@ function buildApproveAllLabel(
       return "Approve all file edits";
     default:
       return "Approve all of this kind";
+  }
+}
+
+/** What a hook lease covers, in words: one tool's calls, so a write and an edit stay apart. */
+function hookLeaseSubject(category: ToolCategory, toolName: string, mcpServerSlug: string): string {
+  if (mcpServerSlug) return `${toolName} calls`;
+  switch (category) {
+    case "shell":
+      return "shell commands";
+    case "delete":
+      return "file deletions";
+    case "write":
+      return "file writes";
+    case "edit":
+      return "file edits";
+    default:
+      return `${toolName} calls`;
   }
 }
 

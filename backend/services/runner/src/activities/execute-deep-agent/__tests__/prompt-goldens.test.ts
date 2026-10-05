@@ -196,7 +196,7 @@ function everythingInput(shape: EverythingShape): TurnInput {
     mcp: {
       servers: [],
       channelMessaging: CHANNEL_MESSAGING,
-      leases: { global: false, categories: new Set(), servers: new Set() },
+      leases: { global: false, categories: new Set(), servers: new Set(), hooks: new Set() },
       mcpDefault: { destructive: new Set(), leasedServers: new Set() },
       platformServerSlugs: new Set(),
       toolScope: ToolScope.unrestricted(),
