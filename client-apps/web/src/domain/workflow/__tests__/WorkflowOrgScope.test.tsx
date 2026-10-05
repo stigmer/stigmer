@@ -2,14 +2,16 @@
  * Pins how the web workflow pages name organizations: the list, the
  * executions list and the new-workflow editor use the active
  * organization's id, the way the server names every org, and the detail
- * page shows and runs the workflow in the organization it lives in;
+ * page shows and runs the workflow in the organization it lives in, its
+ * Run action opens the run dialog, and a change saved on the page refreshes
+ * the dialog's copy of the workflow;
  * a list row's Organization column shows the stored org id through
  * OrgSlugText; and a row's "Copy reference" copies `<org slug>/<slug>`.
  * The views and the workbench are pinned in @stigmer/react.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 
 interface Row {
   id: string;
@@ -37,6 +39,7 @@ const page = vi.hoisted(() => ({
   architectOrg: [] as Array<string | null>,
   executionListOrg: [] as Array<string | null>,
   confirms: [] as Array<{ title: string; description: string }>,
+  refetchWorkflow: () => undefined,
 }));
 
 vi.mock("@stigmer/react", () => {
@@ -126,7 +129,10 @@ vi.mock("@stigmer/react", () => {
         loadMoreError: null,
       };
     },
-    useWorkflow: () => ({ workflow: { metadata: { id: "wfl_1" } } }),
+    useWorkflow: () => ({
+      workflow: { metadata: { id: "wfl_1" } },
+      refetch: page.refetchWorkflow,
+    }),
     useWorkflowYaml: () => ({ yaml: null }),
     useCopyResource: () => ({
       copyId: () => undefined,
@@ -240,6 +246,20 @@ describe("web WorkflowDetailPageInner", () => {
     expect(Object.keys(runDialog ?? {}).sort()).toEqual(
       ["onError", "onOpenChange", "onSuccess", "open", "org", "workflow"],
     );
+  });
+
+  it("opens the run dialog from the Run action, and refreshes its copy when the page saves a change", () => {
+    render(<WorkflowDetailPageInner org="other" slug="nightly" />);
+
+    const detail = page.props.get("WorkflowDetailView");
+    expect(detail?.onResourceUpdated).toBe(page.refetchWorkflow);
+    expect(page.props.get("WorkflowRunDialog")?.open).toBe(false);
+
+    const run = detail?.primaryAction as { id: string; onAction: () => void };
+    expect(run.id).toBe("run");
+    act(() => run.onAction());
+
+    expect(page.props.get("WorkflowRunDialog")?.open).toBe(true);
   });
 
   it("confirms a delete that removes the workflow and keeps its past runs", () => {

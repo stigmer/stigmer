@@ -4,8 +4,9 @@
  * "Edit YAML" switches to that tab, and only once the workflow's YAML has
  * loaded; the clipboard actions copy the id and the qualified slug; the
  * delete confirmation names the workflow alone and keeps its past runs;
- * the run dialog names the workflow alone. The detail view and the editor
- * are pinned in @stigmer/react.
+ * the Run action opens the run dialog, which names the workflow alone, and
+ * a change saved on the page refreshes the dialog's copy of the workflow.
+ * The detail view and the editor are pinned in @stigmer/react.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render } from "@testing-library/react";
@@ -24,6 +25,8 @@ interface DetailProps {
   activeTab: string;
   additionalTabs: Array<{ id: string }>;
   onResourceLoad: (resource: { name: string; id: string }) => void;
+  onResourceUpdated?: () => void;
+  primaryAction?: Action;
 }
 
 const page = vi.hoisted(() => ({
@@ -33,6 +36,7 @@ const page = vi.hoisted(() => ({
   copiedSlugs: [] as Array<[string, string]>,
   confirms: [] as Array<{ description: string }>,
   runDialog: [] as Array<Record<string, unknown>>,
+  refetchWorkflow: () => undefined,
 }));
 
 const noop = () => undefined;
@@ -48,7 +52,10 @@ vi.mock("@stigmer/react", () => ({
     return null;
   },
   ConfirmDialog: () => null,
-  useWorkflow: () => ({ workflow: { metadata: { id: "wfl_1" } } }),
+  useWorkflow: () => ({
+    workflow: { metadata: { id: "wfl_1" } },
+    refetch: page.refetchWorkflow,
+  }),
   useWorkflowYaml: () => ({ yaml: page.yaml }),
   useCopyResource: () => ({
     copyId: (id: string) => page.copiedIds.push(id),
@@ -161,5 +168,18 @@ describe("desktop WorkflowDetailPage — header actions", () => {
     expect(Object.keys(runDialog ?? {}).sort()).toEqual(
       ["onError", "onOpenChange", "onSuccess", "open", "org", "workflow"],
     );
+  });
+
+  it("opens the run dialog from the Run action, and refreshes its copy when the page saves a change", () => {
+    renderWorkflow();
+
+    expect(page.detail.at(-1)?.onResourceUpdated).toBe(page.refetchWorkflow);
+    expect(page.runDialog.at(-1)?.open).toBe(false);
+
+    const run = page.detail.at(-1)?.primaryAction;
+    expect(run?.id).toBe("run");
+    act(() => run?.onAction());
+
+    expect(page.runDialog.at(-1)?.open).toBe(true);
   });
 });
