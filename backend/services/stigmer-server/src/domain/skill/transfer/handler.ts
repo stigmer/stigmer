@@ -13,7 +13,8 @@
  * Neither route carries bearer auth by design: the URL is the credential,
  * mirroring a bucket's pre-signed URLs. Minting an upload URL requires the
  * same gRPC authorization as push; download keys are unguessable content
- * hashes handed out by authorized skill reads.
+ * hashes handed out by authorized skill and plugin reads (the plugin
+ * archive rides the same driver and so the same lane).
  *
  * The lane slots into the transport's existing skillTransferLane seam
  * (transport/server.ts lane 3); URL renderers live next to the route
@@ -27,7 +28,7 @@
 import type { Logger } from "../../../boot/logger.js";
 import { SKILL_ARTIFACTS_PATH_PREFIX } from "../../../transport/constants.js";
 import type { LaneHandler, LaneRequest, LaneResponse } from "../../../transport/lanes.js";
-import { DOWNLOAD_KEY_PREFIX, UPLOADS_SEGMENT } from "../constants.js";
+import { DOWNLOAD_KEY_PREFIXES, UPLOADS_SEGMENT } from "../constants.js";
 import { ArtifactNotFoundError } from "../storage/artifact-storage.js";
 import type { SkillArtifactStorage } from "../storage/artifact-storage.js";
 import {
@@ -166,7 +167,7 @@ async function handleDownload(
     writeText(response, 405, "method not allowed");
     return;
   }
-  if (!key.startsWith(DOWNLOAD_KEY_PREFIX)) {
+  if (!DOWNLOAD_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) {
     writeText(response, 404, "404 page not found");
     return;
   }

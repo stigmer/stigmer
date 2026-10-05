@@ -30,6 +30,7 @@
  * - Empty subagent list returns null (no subagents configured)
  */
 
+import { randomUUID } from "node:crypto";
 import { createDeepAgent, FilesystemBackend, LocalShellBackend, DEFAULT_SUBAGENT_PROMPT } from "deepagents";
 import type { AnyBackendProtocol, CompiledSubAgent, FilesystemPermission } from "deepagents";
 import type { StructuredTool } from "@langchain/core/tools";
@@ -537,13 +538,19 @@ export async function compileSubagents(
       // impossible by construction. Path normalization is unconditional
       // (issue #754): every graph speaks the virtual dialect, so every graph
       // carries the repair seam — matching the parent's composition.
-      const buildGraph = () => createDeepAgent({
+      //
+      // Each invocation gets an id of its own, which the agent's hooks see as
+      // `agent_id` beside the sub-agent's name as `agent_type`
+      // (`subAgentInvocationId`).
+      const buildGraph = (invocationId: string) => createDeepAgent({
         model,
         systemPrompt: spec.systemPrompt,
         tools: spec.tools.length > 0 ? spec.tools : undefined,
         middleware: buildSubAgentMiddleware({
           costAdvisory: opts.costAdvisory,
-          approvalGate: opts.approvalGate,
+          approvalGate: opts.approvalGate
+            ? { ...opts.approvalGate, subAgent: { type: spec.name, id: invocationId } }
+            : opts.approvalGate,
           captureIgnored: !!opts.casObserver,
           pathNormalization: { rootDir: opts.workspaceRootDir },
           ...(opts.scopeBase ? { toolScope: { ...opts.scopeBase, scope: spec.scope } } : {}),
@@ -558,10 +565,10 @@ export async function compileSubagents(
       // building (a tool named like a built-in, a permission rule on a
       // shell-capable backend), and a refused spec is skipped at setup with a
       // log line, never failed at its first delegation.
-      buildGraph();
+      buildGraph(randomUUID());
 
       const gatedRunnable = gate.wrapRunnable<Record<string, unknown>, Record<string, unknown>>(
-        { invoke: (input, config) => buildGraph().invoke(input, config) },
+        { invoke: (input, config) => buildGraph(subAgentInvocationId(config)).invoke(input, config) },
         spec.name,
       );
 
@@ -743,4 +750,16 @@ export async function transformAndCompileSubagents(
     `[subagent-transformer] Successfully compiled ${compiled.length} sub-agent(s)`,
   );
   return compiled;
+}
+
+/**
+ * The id a sub-agent invocation's hooks see as `agent_id`: the parent's
+ * `task` call id, which deepagents passes down in the config. A resume after
+ * an approval re-invokes the sub-agent for the same call, so its hooks keep
+ * one id across the approval; a call with none gets a fresh id.
+ */
+export function subAgentInvocationId(config: unknown): string {
+  const toolCall = typeof config === "object" && config !== null ? (config as { toolCall?: { id?: unknown } }).toolCall : undefined;
+  const id = toolCall?.id;
+  return typeof id === "string" && id !== "" ? id : randomUUID();
 }

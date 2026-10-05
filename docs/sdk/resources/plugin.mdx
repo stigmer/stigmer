@@ -76,6 +76,8 @@ Plugin plugin = client.plugins().get("plg_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get a single plugin by ID. |
+| [`getArtifact`](#getartifact) | Download a plugin archive from storage by its storage key. |
+| [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Mint a URL for downloading a plugin archive over HTTP. |
 | [`getByReference`](#getbyreference) | Get a plugin by API resource reference with version support. |
 | [`listMembers`](#listmembers) | List the resources an installed plugin materialised. |
 | [`listVersions`](#listversions) | List version history for a plugin. |
@@ -118,6 +120,86 @@ Plugin plugin = client.plugins().get(id);
 | `id` | `string` | Plugin identifier. |
 
 **Returns**: [`Plugin`](#plugin)
+
+### getArtifact
+
+Download a plugin archive from storage by its storage key. Returns the ZIP file the plugin was installed from.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const getArtifactResponse = await stigmer.plugin.getArtifact({
+  artifactStorageKey: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+getArtifactResponse, err := client.Plugin.GetArtifact(ctx, &stigmer.GetArtifactRequest{
+  ArtifactStorageKey: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+get_artifact_response = client.plugins.get_artifact(GetArtifactRequest(
+    artifact_storage_key="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+GetArtifactResponse getArtifactResponse = client.plugins().getArtifact(GetArtifactRequest.builder()
+    .artifactStorageKey("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetArtifactRequest`](#getartifactrequest)
+
+**Returns**: [`GetArtifactResponse`](#getartifactresponse)
+
+### getArtifactDownloadUrl
+
+Mint a URL for downloading a plugin archive over HTTP.
+
+Preferred over getArtifact for anything that might exceed the gRPC message-size cap (10MB): the bytes ride HTTP. Callers try this first and fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const pluginArtifactDownloadUrl = await stigmer.plugin.getArtifactDownloadUrl({
+  artifactStorageKey: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+pluginArtifactDownloadUrl, err := client.Plugin.GetArtifactDownloadUrl(ctx, &stigmer.GetArtifactRequest{
+  ArtifactStorageKey: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+plugin_artifact_download_url = client.plugins.get_artifact_download_url(GetArtifactRequest(
+    artifact_storage_key="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+PluginArtifactDownloadUrl pluginArtifactDownloadUrl = client.plugins().getArtifactDownloadUrl(GetArtifactRequest.builder()
+    .artifactStorageKey("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetArtifactRequest`](#getartifactrequest)
+
+**Returns**: [`PluginArtifactDownloadUrl`](#pluginartifactdownloadurl)
 
 ### getByReference
 
@@ -546,6 +628,38 @@ ListPluginMembersResponse lists the resources an installed plugin owns.
   }}
 />
 
+### GetArtifactRequest
+
+GetArtifactRequest requests download of a plugin archive by storage key.
+
+<TypeTable
+  type={{
+    artifactStorageKey: { type: "string", description: "The archive storage key from plugin.status.artifact_storage_key.", required: true },
+  }}
+/>
+
+### GetArtifactResponse
+
+GetArtifactResponse contains a plugin archive.
+
+<TypeTable
+  type={{
+    artifact: { type: "Uint8Array", description: "The plugin archive as a ZIP file (binary content)." },
+  }}
+/>
+
+### PluginArtifactDownloadUrl
+
+PluginArtifactDownloadUrl provides a URL for downloading a plugin archive over HTTP.
+
+<TypeTable
+  type={{
+    url: { type: "string", description: "URL to download the archive ZIP via HTTP GET." },
+    ttlSeconds: { type: "number", description: "Time-to-live for the download URL in seconds; 0 means no expiry." },
+    sizeBytes: { type: "number", description: "Size of the archive ZIP in bytes." },
+  }}
+/>
+
 ### ListPluginVersionsInput
 
 ListPluginVersionsInput requests the version history for a plugin.
@@ -604,12 +718,12 @@ PluginStatus is the system-managed state of an installed plugin: the archive ide
 
 ### HookConfig
 
-HookConfig is a plugin's tool-call hooks, in the format the plugin wrote them.
+HookConfig is a set of tool-call hooks: commands that run before or after an agent's tool calls and can refuse a call, ask a person first, or let it run.
 
 <TypeTable
   type={{
     format: { type: "HookFormat", description: "The format the hooks are written in, which decides their input and answer.", typeDescriptionLink: "#hookformat" },
-    groups: { type: "HookGroup[]", description: "Hook groups, in the order the plugin declares them.", typeDescriptionLink: "#hookgroup" },
+    groups: { type: "HookGroup[]", description: "Hook groups, in the order they are declared.", typeDescriptionLink: "#hookgroup" },
   }}
 />
 
@@ -619,8 +733,8 @@ HookGroup is one event, an optional matcher, and the handlers that run when both
 
 <TypeTable
   type={{
-    event: { type: "string", description: "The event the handlers run on, spelled as the format spells it, e.g. \"PreToolUse\" or \"beforeShellExecution\"." },
-    matcher: { type: "string", description: "Which calls the handlers run for, as written by the plugin; empty or \"*\" matches every call." },
+    event: { type: "string", description: "The event the handlers run on: \"PreToolUse\" before a call, which can refuse it, ask first or allow it, or \"PostToolUse\" after a call succeeds, which can add to what the agent reads." },
+    matcher: { type: "string", description: "Which tools the handlers run for: a name such as \"Bash\", a list such as \"Write|Edit\", or a regular expression such as \"mcp__github__.*\"." },
     handlers: { type: "HookHandler[]", description: "The handlers to run, in order.", typeDescriptionLink: "#hookhandler" },
   }}
 />
@@ -631,9 +745,9 @@ HookHandler is one command a hook runs.
 
 <TypeTable
   type={{
-    command: { type: "string", description: "The command to run, as written by the plugin." },
+    command: { type: "string", description: "The command to run." },
     args: { type: "string[]", description: "Arguments for the command's exec form; when set, the command runs without a shell." },
-    timeoutSeconds: { type: "number", description: "Seconds the command may run before it is stopped; zero means the format's default." },
+    timeoutSeconds: { type: "number", description: "Seconds the command may run before it is stopped; zero means the default, 600 seconds." },
     condition: { type: "string", description: "A permission rule that narrows when the handler runs, e.g. \"Bash(git push *)\"; empty means whenever the group matches." },
     failClosed: { type: "boolean", description: "Whether a crash, timeout or missing answer blocks the call instead of letting it through." },
   }}

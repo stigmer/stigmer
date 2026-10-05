@@ -7,6 +7,7 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
+	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
@@ -134,6 +135,7 @@ type AgentInput struct {
 	Env             map[string]*EnvVarDeclarationInput
 	Tools           []string
 	DisallowedTools []string
+	Hooks           []*HookSourceInput
 }
 
 // McpServerUsageInput is the SDK input type for McpServerUsage.
@@ -157,6 +159,34 @@ type EnvVarDeclarationInput struct {
 	IsSecret    bool
 	Description string
 	Optional    bool
+}
+
+// HookSourceInput is the SDK input type for HookSource.
+type HookSourceInput struct {
+	Plugin ResourceRef
+	Inline *HookConfigInput
+}
+
+// HookConfigInput is the SDK input type for HookConfig.
+type HookConfigInput struct {
+	Format pluginv1.HookFormat
+	Groups []*HookGroupInput
+}
+
+// HookGroupInput is the SDK input type for HookGroup.
+type HookGroupInput struct {
+	Event    string
+	Matcher  string
+	Handlers []*HookHandlerInput
+}
+
+// HookHandlerInput is the SDK input type for HookHandler.
+type HookHandlerInput struct {
+	Command        string
+	Args           []string
+	TimeoutSeconds int32
+	Condition      string
+	FailClosed     bool
 }
 
 func (i *AgentInput) toProto() (*agentv1.Agent, error) {
@@ -212,6 +242,13 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 	}
 	resource.Spec.Tools = i.Tools
 	resource.Spec.DisallowedTools = i.DisallowedTools
+	for idx, item := range i.Hooks {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Hooks", idx, err)
+		}
+		resource.Spec.Hooks = append(resource.Spec.Hooks, v)
+	}
 	return resource, nil
 }
 
@@ -246,6 +283,52 @@ func (i *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration, er
 		IsSecret:    i.IsSecret,
 		Description: i.Description,
 		Optional:    i.Optional,
+	}, nil
+}
+
+func (i *HookSourceInput) toProto() (*agentv1.HookSource, error) {
+	p := &agentv1.HookSource{}
+	if i.Inline != nil {
+		m := &pluginv1.HookConfig{}
+		m.Format = i.Inline.Format
+		for idx, item := range i.Inline.Groups {
+			v, err := item.toProto()
+			if err != nil {
+				return nil, indexErr("Inline.Groups", idx, err)
+			}
+			m.Groups = append(m.Groups, v)
+		}
+		p.Source = &agentv1.HookSource_Inline{Inline: m}
+	}
+	if i.Plugin.Org != "" || i.Plugin.Slug != "" {
+		ref := i.Plugin.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_plugin
+		p.Source = &agentv1.HookSource_Plugin{Plugin: ref}
+	}
+	return p, nil
+}
+
+func (i *HookGroupInput) toProto() (*pluginv1.HookGroup, error) {
+	p := &pluginv1.HookGroup{}
+	p.Event = i.Event
+	p.Matcher = i.Matcher
+	for idx, item := range i.Handlers {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Handlers", idx, err)
+		}
+		p.Handlers = append(p.Handlers, v)
+	}
+	return p, nil
+}
+
+func (i *HookHandlerInput) toProto() (*pluginv1.HookHandler, error) {
+	return &pluginv1.HookHandler{
+		Command:        i.Command,
+		Args:           i.Args,
+		TimeoutSeconds: i.TimeoutSeconds,
+		Condition:      i.Condition,
+		FailClosed:     i.FailClosed,
 	}, nil
 }
 
@@ -284,6 +367,9 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 		}
 		input.Tools = s.GetTools()
 		input.DisallowedTools = s.GetDisallowedTools()
+		for _, item := range s.GetHooks() {
+			input.Hooks = append(input.Hooks, hookSourceInputFromProto(item))
+		}
 	}
 	return input
 }
@@ -322,5 +408,53 @@ func envVarDeclarationInputFromProto(p *environmentv1.EnvVarDeclaration) *EnvVar
 	input.IsSecret = p.GetIsSecret()
 	input.Description = p.GetDescription()
 	input.Optional = p.GetOptional()
+	return input
+}
+
+func hookSourceInputFromProto(p *agentv1.HookSource) *HookSourceInput {
+	if p == nil {
+		return nil
+	}
+	input := &HookSourceInput{}
+	input.Plugin = resourceRefFromProto(p.GetPlugin())
+	input.Inline = hookConfigInputFromProto(p.GetInline())
+	return input
+}
+
+func hookConfigInputFromProto(p *pluginv1.HookConfig) *HookConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &HookConfigInput{}
+	input.Format = p.GetFormat()
+	for _, item := range p.GetGroups() {
+		input.Groups = append(input.Groups, hookGroupInputFromProto(item))
+	}
+	return input
+}
+
+func hookGroupInputFromProto(p *pluginv1.HookGroup) *HookGroupInput {
+	if p == nil {
+		return nil
+	}
+	input := &HookGroupInput{}
+	input.Event = p.GetEvent()
+	input.Matcher = p.GetMatcher()
+	for _, item := range p.GetHandlers() {
+		input.Handlers = append(input.Handlers, hookHandlerInputFromProto(item))
+	}
+	return input
+}
+
+func hookHandlerInputFromProto(p *pluginv1.HookHandler) *HookHandlerInput {
+	if p == nil {
+		return nil
+	}
+	input := &HookHandlerInput{}
+	input.Command = p.GetCommand()
+	input.Args = p.GetArgs()
+	input.TimeoutSeconds = p.GetTimeoutSeconds()
+	input.Condition = p.GetCondition()
+	input.FailClosed = p.GetFailClosed()
 	return input
 }

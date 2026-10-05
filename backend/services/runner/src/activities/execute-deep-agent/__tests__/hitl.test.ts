@@ -154,8 +154,32 @@ describe("detectPendingInterrupts", () => {
     };
 
     expect(detectPendingInterrupts(state)).toEqual([
-      { toolCallId: "call-1", toolName: "shell", mcpServerSlug: "", message: "Run it?", policySource: "builtin_category" },
+      { toolCallId: "call-1", toolName: "shell", mcpServerSlug: "", message: "Run it?", policySource: "builtin_category", policyHook: undefined, args: undefined },
     ]);
+  });
+
+  it("reads the asking hook and a hook's rewritten arguments", () => {
+    const state: GraphStateSnapshot = {
+      values: {},
+      tasks: [{
+        id: "task-1",
+        interrupts: [{
+          value: {
+            tool_call_id: "call-1",
+            tool_name: "execute",
+            message: "pushing needs a person",
+            policy_source: "hook",
+            policy_hook: "safety",
+            args: { command: "git push --dry-run" },
+          },
+        }],
+      }],
+    };
+    expect(detectPendingInterrupts(state)[0]).toMatchObject({
+      policySource: "hook",
+      policyHook: "safety",
+      args: { command: "git push --dry-run" },
+    });
   });
 
   it("reads an absent policy source as undefined", () => {
@@ -194,7 +218,7 @@ describe("reconcileUnattendedSkips", () => {
       { id: "call-1", status: ToolCallStatus.TOOL_CALL_COMPLETED, result: "was skipped" },
     ]);
 
-    reconcileUnattendedSkips(status, new Set(["call-1"]));
+    reconcileUnattendedSkips(status, new Map([["call-1", null]]));
 
     const tc = status.messages[0].toolCalls[0];
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
@@ -210,7 +234,7 @@ describe("reconcileUnattendedSkips", () => {
       { id: "call-1", status: ToolCallStatus.TOOL_CALL_RUNNING },
     ]);
 
-    reconcileUnattendedSkips(status, new Set(["call-1"]));
+    reconcileUnattendedSkips(status, new Map([["call-1", null]]));
 
     const tc = status.messages[0].toolCalls[0];
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
@@ -222,8 +246,8 @@ describe("reconcileUnattendedSkips", () => {
       { id: "call-1", status: ToolCallStatus.TOOL_CALL_COMPLETED, result: "real result" },
     ]);
 
-    reconcileUnattendedSkips(status, new Set(["other-call"]));
-    reconcileUnattendedSkips(status, new Set());
+    reconcileUnattendedSkips(status, new Map([["other-call", null]]));
+    reconcileUnattendedSkips(status, new Map());
     reconcileUnattendedSkips(status, undefined);
 
     const tc = status.messages[0].toolCalls[0];
@@ -248,7 +272,7 @@ describe("reconcileUnattendedSkips", () => {
       }],
     });
 
-    reconcileUnattendedSkips(status, new Set(["sub-call-1"]));
+    reconcileUnattendedSkips(status, new Map([["sub-call-1", null]]));
 
     const tc = status.subAgentExecutions[0].messages[0].toolCalls[0];
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
@@ -260,10 +284,27 @@ describe("reconcileUnattendedSkips", () => {
       { id: "call-1", status: ToolCallStatus.TOOL_CALL_COMPLETED },
     ]);
 
-    reconcileUnattendedSkips(status, new Set(["call-1"]));
+    reconcileUnattendedSkips(status, new Map([["call-1", null]]));
     const after = JSON.stringify(status.messages[0].toolCalls[0]);
-    reconcileUnattendedSkips(status, new Set(["call-1"]));
+    reconcileUnattendedSkips(status, new Map([["call-1", null]]));
 
     expect(JSON.stringify(status.messages[0].toolCalls[0])).toBe(after);
+  });
+});
+
+describe("reconcileUnattendedSkips — a hook's ask", () => {
+  it("names the hook whose ask was skipped, and no hook when the default asked", () => {
+    const status = create(AgentExecutionStatusSchema, {
+      messages: [create(AgentMessageSchema, {
+        toolCalls: [
+          create(ToolCallSchema, { id: "call-h", name: "execute", status: ToolCallStatus.TOOL_CALL_RUNNING }),
+          create(ToolCallSchema, { id: "call-d", name: "execute", status: ToolCallStatus.TOOL_CALL_RUNNING }),
+        ],
+      })],
+    });
+    reconcileUnattendedSkips(status, new Map([["call-h", "safety"], ["call-d", null]]));
+    const [hooked, defaulted] = status.messages[0]!.toolCalls;
+    expect(hooked).toMatchObject({ approvalPolicySource: ApprovalPolicySource.UNATTENDED_SKIP, approvalPolicyHook: "safety" });
+    expect(defaulted).toMatchObject({ approvalPolicySource: ApprovalPolicySource.UNATTENDED_SKIP, approvalPolicyHook: "" });
   });
 });

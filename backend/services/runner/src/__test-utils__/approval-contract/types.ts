@@ -178,6 +178,12 @@ export interface SubstrateCapabilities {
    */
   readonly surfacesGatePolicySource: boolean;
   /**
+   * True when the substrate runs an agent's hooks (Claude Code's format) at
+   * its gate; the contract's hooks section runs only there. The native gate
+   * does (`true`); the Cursor engine refuses an agent with hooks (`false`).
+   */
+  readonly runsHooks: boolean;
+  /**
    * True when a sub-agent's own tool lists are enforced inside the sub-agent.
    * The native engine narrows each sub-agent graph (`true`); the Cursor hook
    * cannot tell which sub-agent is calling, so the Cursor engine refuses a
@@ -227,4 +233,75 @@ export interface GatewaySubstrate {
    * gated it, or it ran.
    */
   authorizeUnderLists(lists: ContractToolLists, action: ProposedAction, options?: ListsDriveOptions): Promise<ListsOutcome>;
+  /**
+   * Put one action through an agent carrying `hooks` and report what the
+   * hooks and the gate made of it. Implemented only when
+   * {@link SubstrateCapabilities.runsHooks} is true.
+   */
+  authorizeUnderHooks?(hooks: readonly ContractHook[], action: ProposedAction, options?: HooksDriveOptions): Promise<HooksOutcome>;
+}
+
+/** What a contract hook's command does when it runs. */
+export type ContractHookBehaviour =
+  /** Answer with Claude Code's JSON: a decision, its reason, a rewritten action, and context for the model. */
+  | {
+      readonly answer: "allow" | "deny" | "ask";
+      readonly reason?: string;
+      /** Rewrite the call into this action (`updatedInput`). */
+      readonly rewrite?: ProposedAction;
+      readonly context?: string;
+    }
+  /** Ask on its first run and deny on every later one: the resume probe. */
+  | { readonly answer: "ask-then-deny" }
+  /** Exit with this code, writing `stderr`. */
+  | { readonly exit: number; readonly stderr?: string }
+  /** Never answer: outlive the hook's timeout. */
+  | { readonly hang: true }
+  /** A PostToolUse hook that blocks on the result with this reason, beside optional context. */
+  | { readonly postBlock: string; readonly context?: string };
+
+/** One command hook, in Claude Code's format. */
+export interface ContractHook {
+  readonly event: "PreToolUse" | "PostToolUse";
+  /** Claude Code's matcher: `Bash`, `Write`, `mcp__srv__search_issues`. */
+  readonly matcher: string;
+  /** The handler's `if`. */
+  readonly condition?: string;
+  readonly does: ContractHookBehaviour;
+  /** The plugin the hook comes from; `""` is the agent's own hooks block. Default `safety`. */
+  readonly plugin?: string;
+}
+
+/** How a hooks drive runs the action. */
+export interface HooksDriveOptions {
+  /** The decision a card gets, if one shows; default `none`. */
+  readonly decision?: GatewayDecision;
+  /** The pre-armed "trust this whole run". */
+  readonly autoApproveAll?: boolean;
+  /** The unattended approval mode: an ask resolves as a skip. */
+  readonly unattended?: boolean;
+  /** A held hook lease: `plugin`'s asks on `action`'s tool count as its allow. */
+  readonly hookLease?: { readonly plugin: string; readonly action: ProposedAction };
+  /** A held category lease. */
+  readonly categoryLease?: "write" | "shell";
+  /** Make the call inside a sub-agent of this type. */
+  readonly subAgent?: string;
+  /** The agent's tool lists, ahead of the hooks. */
+  readonly lists?: ContractToolLists;
+  /** The tool itself fails when it runs. */
+  readonly failTool?: boolean;
+}
+
+/** The outcome of a hooks drive. */
+export interface HooksOutcome extends GatewayOutcome {
+  /** Who refused the call, if anyone: a hook's deny, or the agent's tool lists. */
+  readonly refusedBy: "hook" | "lists" | undefined;
+  /** The plugin a withheld call's card names; undefined when no hook asked. */
+  readonly policyHook?: string;
+  /** What the model read back for the call. */
+  readonly modelRead: string;
+  /** What each hook run read on stdin, in run order. */
+  readonly hookRuns: readonly Record<string, unknown>[];
+  /** The files a write created, by the action's resource. */
+  readonly writtenPaths: readonly string[];
 }

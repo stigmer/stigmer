@@ -20,7 +20,7 @@
 // the convention established by support/workflows.ts.
 import type { InitShape } from "./init-shape";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, type HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -69,6 +69,8 @@ export interface AgentSpecOptions {
   // key whitelist the execution engine filters the merged environment against.
   // Declarations carry no value (that is the instance/runtime job); see envmerge.
   env?: Record<string, EnvVarDeclarationInit>;
+  // The agent's hooks: plugin references and its own hooks block, as written.
+  hooks?: InitShape<typeof HookSourceSchema>[];
 }
 
 // A valid AgentSpec: instructions satisfy the min_len=10 constraint, and any
@@ -95,6 +97,7 @@ export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof Age
     ...(opts.env !== undefined ? { env: makeEnvDeclarations(opts.env) } : {}),
     ...(opts.tools !== undefined ? { tools: opts.tools } : {}),
     ...(opts.disallowedTools !== undefined ? { disallowedTools: opts.disallowedTools } : {}),
+    ...(opts.hooks !== undefined ? { hooks: opts.hooks } : {}),
   };
 }
 

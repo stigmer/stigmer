@@ -49,6 +49,7 @@ private static final long serialVersionUID = 0L;
     headShaAtDeny_ = "";
     toolKind_ = 0;
     approvalPolicySource_ = 0;
+    approvalPolicyHook_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -780,6 +781,55 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.UNRECOGNIZED : result;
   }
 
+  public static final int APPROVAL_POLICY_HOOK_FIELD_NUMBER = 16;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object approvalPolicyHook_ = "";
+  /**
+   * <pre>
+   * Slug of the plugin whose hook asked for this approval; empty when no
+   * plugin's hook asked. Copied from ToolCall.approval_policy_hook.
+   * </pre>
+   *
+   * <code>string approval_policy_hook = 16 [json_name = "approvalPolicyHook"];</code>
+   * @return The approvalPolicyHook.
+   */
+  @java.lang.Override
+  public java.lang.String getApprovalPolicyHook() {
+    java.lang.Object ref = approvalPolicyHook_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      approvalPolicyHook_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Slug of the plugin whose hook asked for this approval; empty when no
+   * plugin's hook asked. Copied from ToolCall.approval_policy_hook.
+   * </pre>
+   *
+   * <code>string approval_policy_hook = 16 [json_name = "approvalPolicyHook"];</code>
+   * @return The bytes for approvalPolicyHook.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getApprovalPolicyHookBytes() {
+    java.lang.Object ref = approvalPolicyHook_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      approvalPolicyHook_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -836,6 +886,9 @@ private static final long serialVersionUID = 0L;
     if (approvalPolicySource_ != ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
       output.writeEnum(15, approvalPolicySource_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(approvalPolicyHook_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 16, approvalPolicyHook_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -890,6 +943,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(15, approvalPolicySource_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(approvalPolicyHook_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(16, approvalPolicyHook_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -931,6 +987,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getHeadShaAtDeny())) return false;
     if (toolKind_ != other.toolKind_) return false;
     if (approvalPolicySource_ != other.approvalPolicySource_) return false;
+    if (!getApprovalPolicyHook()
+        .equals(other.getApprovalPolicyHook())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -971,6 +1029,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + toolKind_;
     hash = (37 * hash) + APPROVAL_POLICY_SOURCE_FIELD_NUMBER;
     hash = (53 * hash) + approvalPolicySource_;
+    hash = (37 * hash) + APPROVAL_POLICY_HOOK_FIELD_NUMBER;
+    hash = (53 * hash) + getApprovalPolicyHook().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1124,6 +1184,7 @@ private static final long serialVersionUID = 0L;
       headShaAtDeny_ = "";
       toolKind_ = 0;
       approvalPolicySource_ = 0;
+      approvalPolicyHook_ = "";
       return this;
     }
 
@@ -1198,6 +1259,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00002000) != 0)) {
         result.approvalPolicySource_ = approvalPolicySource_;
+      }
+      if (((from_bitField0_ & 0x00004000) != 0)) {
+        result.approvalPolicyHook_ = approvalPolicyHook_;
       }
     }
 
@@ -1276,6 +1340,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.approvalPolicySource_ != 0) {
         setApprovalPolicySourceValue(other.getApprovalPolicySourceValue());
+      }
+      if (!other.getApprovalPolicyHook().isEmpty()) {
+        approvalPolicyHook_ = other.approvalPolicyHook_;
+        bitField0_ |= 0x00004000;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1373,6 +1442,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00002000;
               break;
             } // case 120
+            case 130: {
+              approvalPolicyHook_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00004000;
+              break;
+            } // case 130
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2905,6 +2979,103 @@ private static final long serialVersionUID = 0L;
     public Builder clearApprovalPolicySource() {
       bitField0_ = (bitField0_ & ~0x00002000);
       approvalPolicySource_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object approvalPolicyHook_ = "";
+    /**
+     * <pre>
+     * Slug of the plugin whose hook asked for this approval; empty when no
+     * plugin's hook asked. Copied from ToolCall.approval_policy_hook.
+     * </pre>
+     *
+     * <code>string approval_policy_hook = 16 [json_name = "approvalPolicyHook"];</code>
+     * @return The approvalPolicyHook.
+     */
+    public java.lang.String getApprovalPolicyHook() {
+      java.lang.Object ref = approvalPolicyHook_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        approvalPolicyHook_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Slug of the plugin whose hook asked for this approval; empty when no
+     * plugin's hook asked. Copied from ToolCall.approval_policy_hook.
+     * </pre>
+     *
+     * <code>string approval_policy_hook = 16 [json_name = "approvalPolicyHook"];</code>
+     * @return The bytes for approvalPolicyHook.
+     */
+    public com.google.protobuf.ByteString
+        getApprovalPolicyHookBytes() {
+      java.lang.Object ref = approvalPolicyHook_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        approvalPolicyHook_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Slug of the plugin whose hook asked for this approval; empty when no
+     * plugin's hook asked. Copied from ToolCall.approval_policy_hook.
+     * </pre>
+     *
+     * <code>string approval_policy_hook = 16 [json_name = "approvalPolicyHook"];</code>
+     * @param value The approvalPolicyHook to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalPolicyHook(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      approvalPolicyHook_ = value;
+      bitField0_ |= 0x00004000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Slug of the plugin whose hook asked for this approval; empty when no
+     * plugin's hook asked. Copied from ToolCall.approval_policy_hook.
+     * </pre>
+     *
+     * <code>string approval_policy_hook = 16 [json_name = "approvalPolicyHook"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearApprovalPolicyHook() {
+      approvalPolicyHook_ = getDefaultInstance().getApprovalPolicyHook();
+      bitField0_ = (bitField0_ & ~0x00004000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Slug of the plugin whose hook asked for this approval; empty when no
+     * plugin's hook asked. Copied from ToolCall.approval_policy_hook.
+     * </pre>
+     *
+     * <code>string approval_policy_hook = 16 [json_name = "approvalPolicyHook"];</code>
+     * @param value The bytes for approvalPolicyHook to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalPolicyHookBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      approvalPolicyHook_ = value;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }

@@ -72,6 +72,22 @@
           "description": "List the resources an installed plugin materialised.\n\n Returns every skill, MCP server, agent and workflow the plugin owns, in\n materialisation order."
         },
         {
+          "name": "GetArtifact",
+          "inputType": "GetArtifactRequest",
+          "inputFullType": "ai.stigmer.agentic.plugin.v1.GetArtifactRequest",
+          "outputType": "GetArtifactResponse",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.GetArtifactResponse",
+          "description": "Download a plugin archive from storage by its storage key.\n Returns the ZIP file the plugin was installed from."
+        },
+        {
+          "name": "GetArtifactDownloadUrl",
+          "inputType": "GetArtifactRequest",
+          "inputFullType": "ai.stigmer.agentic.plugin.v1.GetArtifactRequest",
+          "outputType": "PluginArtifactDownloadUrl",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl",
+          "description": "Mint a URL for downloading a plugin archive over HTTP.\n\n Preferred over getArtifact for anything that might exceed the gRPC\n message-size cap (10MB): the bytes ride HTTP. Callers try this first and\n fall back to getArtifact against servers that predate it (UNIMPLEMENTED)."
+        },
+        {
           "name": "ListVersions",
           "inputType": "ListPluginVersionsInput",
           "inputFullType": "ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput",
@@ -372,6 +388,83 @@
             }
           },
           "description": "Members in materialisation order: skills, MCP servers, agents, workflows.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactRequest",
+      "description": "GetArtifactRequest requests download of a plugin archive by storage key.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.GetArtifactRequest",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "ArtifactStorageKey",
+          "jsonName": "artifactStorageKey",
+          "protoField": "artifact_storage_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The archive storage key from plugin.status.artifact_storage_key.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactResponse",
+      "description": "GetArtifactResponse contains a plugin archive.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.GetArtifactResponse",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "Artifact",
+          "jsonName": "artifact",
+          "protoField": "artifact",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "The plugin archive as a ZIP file (binary content).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginArtifactDownloadUrl",
+      "description": "PluginArtifactDownloadUrl provides a URL for downloading a plugin archive\n over HTTP.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to download the archive ZIP via HTTP GET.",
+          "required": false
+        },
+        {
+          "name": "TtlSeconds",
+          "jsonName": "ttlSeconds",
+          "protoField": "ttl_seconds",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Time-to-live for the download URL in seconds; 0 means no expiry.",
+          "required": false
+        },
+        {
+          "name": "SizeBytes",
+          "jsonName": "sizeBytes",
+          "protoField": "size_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Size of the archive ZIP in bytes.",
           "required": false
         }
       ]
@@ -986,7 +1079,7 @@
     },
     {
       "name": "HookConfig",
-      "description": "HookConfig is a plugin's tool-call hooks, in the format the plugin wrote\n them.",
+      "description": "HookConfig is a set of tool-call hooks: commands that run before or after an\n agent's tool calls and can refuse a call, ask a person first, or let it run.\n\n A plugin's hooks are recorded here at install; an agent can also carry a\n block of its own (AgentSpec.hooks). The native engine runs hooks in Claude\n Code's format, with PreToolUse and PostToolUse events.",
       "protoType": "ai.stigmer.agentic.plugin.v1.HookConfig",
       "protoFile": "apis/ai/stigmer/agentic/plugin/v1/hooks.proto",
       "fields": [
@@ -1002,7 +1095,7 @@
               "HOOK_FORMAT_CURSOR"
             ]
           },
-          "description": "The format the hooks are written in, which decides their input and answer.",
+          "description": "The format the hooks are written in, which decides their input and answer.\n An agent's own block may leave it unset; Claude Code's format is assumed.",
           "required": false
         },
         {
@@ -1016,7 +1109,7 @@
               "messageType": "HookGroup"
             }
           },
-          "description": "Hook groups, in the order the plugin declares them.",
+          "description": "Hook groups, in the order they are declared.",
           "required": false
         }
       ]
@@ -1034,7 +1127,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The event the handlers run on, spelled as the format spells it, e.g.\n \"PreToolUse\" or \"beforeShellExecution\".",
+          "description": "The event the handlers run on: \"PreToolUse\" before a call, which can\n refuse it, ask first or allow it, or \"PostToolUse\" after a call succeeds,\n which can add to what the agent reads.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -1047,7 +1140,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Which calls the handlers run for, as written by the plugin; empty or \"*\"\n matches every call.",
+          "description": "Which tools the handlers run for: a name such as \"Bash\", a list such as\n \"Write|Edit\", or a regular expression such as \"mcp__github__.*\". Empty or\n \"*\" matches every tool. A plugin's own MCP server's tools are named\n mcp__plugin_\u003cplugin\u003e_\u003cserver\u003e__\u003ctool\u003e, as in Claude Code.",
           "required": false
         },
         {
@@ -1068,7 +1161,7 @@
     },
     {
       "name": "HookHandler",
-      "description": "HookHandler is one command a hook runs.",
+      "description": "HookHandler is one command a hook runs.\n\n The command reads the call as JSON on stdin and answers as Claude Code's\n hooks do: exit code 2 refuses the call with stderr as the reason, and JSON on\n stdout can allow, ask or deny with a reason.",
       "protoType": "ai.stigmer.agentic.plugin.v1.HookHandler",
       "protoFile": "apis/ai/stigmer/agentic/plugin/v1/hooks.proto",
       "fields": [
@@ -1079,7 +1172,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The command to run, as written by the plugin.",
+          "description": "The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}\n names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -1105,7 +1198,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Seconds the command may run before it is stopped; zero means the format's\n default.",
+          "description": "Seconds the command may run before it is stopped; zero means the default,\n 600 seconds. A command that is stopped makes no decision.",
           "required": false
         },
         {
@@ -1125,7 +1218,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether a crash, timeout or missing answer blocks the call instead of\n letting it through.",
+          "description": "Whether a crash, timeout or missing answer blocks the call instead of\n letting it through. Cursor's format only.",
           "required": false
         }
       ]

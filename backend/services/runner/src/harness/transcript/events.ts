@@ -34,6 +34,10 @@
  *     produce, and `system_note`, a harness's line in its own voice. The
  *     union is complete: a Cursor translator emits it and writes
  *     nothing else.
+ *   - `tool_policy`, the provenance of a call an agent's hook decided. A
+ *     hook is a process, not policy state a translator can re-derive, so the
+ *     gate that ran it says what it decided, and the builder stamps the row
+ *     whether it opens before or after.
  *
  * The rule the union keeps: a member carries an identity and the
  * fact the builder cannot read elsewhere, nothing else. Every engine fact
@@ -115,6 +119,23 @@ export interface ToolStartedEvent extends Scoped {
    * on both harnesses today, #1133) or no layer governs it.
    */
   readonly provenance?: PolicySource;
+  /** The plugin whose hook the provenance names (`""` for the agent's own hooks block); absent when no hook did. */
+  readonly policyHook?: string;
+}
+
+/**
+ * Which hook decided a call that runs, as the gate that ran it reports it
+ * (a hook's answer cannot be re-derived from static policy state). The
+ * builder stamps it on the call's row and lets it outrank the provenance its
+ * `tool_started` carried, in whichever order the two arrive: they travel on
+ * different engine streams, and nothing orders one against the other.
+ */
+export interface ToolPolicyEvent extends Scoped {
+  readonly kind: "tool_policy";
+  readonly callId: string;
+  readonly provenance: PolicySource;
+  /** The deciding plugin's slug; `""` for the agent's own hooks block. */
+  readonly policyHook: string;
 }
 
 export interface ToolArgDeltaEvent extends Scoped {
@@ -223,6 +244,8 @@ export interface ApprovalProposedEvent extends Scoped {
   /** The approval card's message, placeholders already resolved. */
   readonly message: string;
   readonly provenance?: PolicySource;
+  /** The plugin whose hook asked (`""` for the agent's own hooks block); absent when no hook asked. */
+  readonly policyHook?: string;
   /** Cursor's content identity for a same-identity re-proposal (`approvalContentDigest`); native has none. */
   readonly contentDigest?: string;
 }
@@ -246,6 +269,7 @@ export type TranscriptEvent =
   | ReasoningDeltaEvent
   | MessageFinishEvent
   | ToolStartedEvent
+  | ToolPolicyEvent
   | ToolArgDeltaEvent
   | ToolOutputDeltaEvent
   | ToolFinishedEvent

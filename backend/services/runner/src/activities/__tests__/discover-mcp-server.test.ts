@@ -662,6 +662,7 @@ describe("DiscoverMcpServer activity", () => {
         destructiveTools: [],
         discoveredToolNames: null,
         declaredEnvKeys: [],
+        pluginOrigin: null,
         discoveredCapabilitiesEmpty: true,
       });
       expect(message).toContain("https://mcp.monday.com/mcp");
@@ -678,6 +679,7 @@ describe("DiscoverMcpServer activity", () => {
         destructiveTools: [],
         discoveredToolNames: null,
         declaredEnvKeys: [],
+        pluginOrigin: null,
         discoveredCapabilitiesEmpty: true,
       });
       expect(message).toContain("npx");

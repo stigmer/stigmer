@@ -912,6 +912,21 @@ function emitOneofMemberToProto(
   const oneofWrapper = containerMsg + "_" + protoField;
   const msgType = f.type.messageType ?? "";
 
+  // A reference member is a ResourceRef value, not a generated input type:
+  // set when it names something, with its kind filled from reference_kind as
+  // a plain reference field is.
+  if (msgType === "ApiResourceReference") {
+    buf.push(`\tif i.${f.name}.Org != "" || i.${f.name}.Slug != "" {\n`);
+    buf.push(`\t\tref := i.${f.name}.toProto()\n`);
+    if ((f.referenceKind ?? 0) !== 0) {
+      const enumName = apiResourceKindEnumNames.get(f.referenceKind ?? 0) ?? "";
+      buf.push(`\t\tref.Kind = apiresourcekind.ApiResourceKind_${enumName}\n`);
+    }
+    buf.push(`\t\t${dst}.${goProtoFieldName(f.oneofGroup ?? "")} = &${alias}.${oneofWrapper}{${protoField}: ref}\n`);
+    buf.push("\t}\n");
+    return;
+  }
+
   const ts = typeMap.get(msgType);
   if (ts === undefined) return;
 

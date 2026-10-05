@@ -70,13 +70,14 @@ describe("createDeepAgentAdapter", () => {
     await expect(adapter.releaseSession("ses_unknown")).resolves.toBeUndefined();
   });
 
-  it("the config slice is the five fields the engine slice reads and nothing else", () => {
+  it("the config slice is the six fields the engine slice reads and nothing else", () => {
     expect(resolveDeepAgentConfig(CONFIG)).toEqual({
       checkpointerType: "memory",
       checkpointerProxyEndpoint: null,
       stigmerTokenRef: { current: "tok" },
       proxyEndpoint: null,
       mode: "local",
+      cursorStreamStallTimeoutMs: CONFIG.cursorStreamStallTimeoutMs,
     });
   });
 });

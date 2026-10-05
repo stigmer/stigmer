@@ -18,11 +18,18 @@ export { ApprovalPolicySource };
  * execution that predates this field, or a call that needed no approval (a
  * read-only built-in, or an MCP tool its server does not mark destructive) — so
  * callers render nothing rather than a misleading default.
+ *
+ * `hook` is the call's `approvalPolicyHook`: the plugin whose hook decided it,
+ * empty when the agent's own hooks did. It is read only for
+ * {@link ApprovalPolicySource.HOOK}.
  */
 export function describeApprovalPolicySource(
   source: ApprovalPolicySource,
+  hook = "",
 ): string | null {
   switch (source) {
+    case ApprovalPolicySource.HOOK:
+      return hook === "" ? "decided by the agent's hook" : `decided by the ${hook} plugin's hook`;
     case ApprovalPolicySource.BUILTIN_CATEGORY:
       return "required by built-in tool policy";
     case ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN:
@@ -69,10 +76,25 @@ export function isInformativePolicySource(
     // observer) needs to see why the tool did not run — and that no human
     // declined it.
     case ApprovalPolicySource.UNATTENDED_SKIP:
+    // A hook is a policy someone installed on purpose: the person deciding
+    // should see whose it is.
+    case ApprovalPolicySource.HOOK:
       return true;
     case ApprovalPolicySource.BUILTIN_CATEGORY:
     case ApprovalPolicySource.UNSPECIFIED:
     default:
       return false;
   }
+}
+
+/**
+ * The "approve all" label for a call a hook asked about. Approving all of it
+ * leases exactly that hook's asks on that tool, so the label names both:
+ * "Approve all shell commands the safety plugin asks about". `subject` is the
+ * surface's name for the tool's calls ("shell commands", "file edits").
+ */
+export function hookApproveAllLabel(subject: string, hook: string): string {
+  return hook === ""
+    ? `Approve all ${subject} the agent's hooks ask about`
+    : `Approve all ${subject} the ${hook} plugin asks about`;
 }

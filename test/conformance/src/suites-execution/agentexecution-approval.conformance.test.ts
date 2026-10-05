@@ -42,6 +42,10 @@
 //   carries tool_call_id, tool_name, mcp_server_slug, and the provenance
 //   ANNOTATION_DESTRUCTIVE_TIGHTEN (the default asked because the server
 //   marks the tool destructive).
+// - An agent's own hooks block decides before the default: a hook's deny
+//   fails the call's row (provenance HOOK) and the run completes; a hook's ask
+//   parks the run on a pending approval with provenance HOOK and the hook's
+//   reason as its message, and approving it completes the run.
 // - Idempotency: re-submitting the same {tool_call_id, action} before the gate
 //   resolves is a benign no-op that returns the current state.
 // - Negatives: UNSPECIFIED action / empty ids -> InvalidArgument (proto
@@ -85,6 +89,8 @@ import {
 } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { zipFiles } from "../support/skills";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -602,5 +608,167 @@ describe("AgentExecution submitApproval — negatives", () => {
       Code.FailedPrecondition,
       "submit on terminal execution",
     );
+  });
+});
+
+// An agent's own hooks block, in Claude Code's format, over the same
+// destructive echo: the hook decides before the default does. Shell-form
+// commands run in bash on the runner, as Claude Code's do.
+describe("AgentExecution — an agent's hooks decide at the gate", () => {
+  async function provisionHookedAgent(org: string, command: string): Promise<AgentRefInit> {
+    const server = await createConnectedMcpServer(clients, mcp, fixtures, {
+      org,
+      name: uniqueName("mcp"),
+      tools: [DESTRUCTIVE_ECHO_TOOL_NAME],
+    });
+    const agent = await clients.agentCommand.create(
+      makeAgent({
+        org,
+        name: uniqueName("agent-hooks"),
+        mcpServerRefs: [server.metadata!.slug],
+        hooks: [{
+          source: {
+            case: "inline",
+            value: { groups: [{ event: "PreToolUse", matcher: "mcp__.*__echo.*", handlers: [{ command }] }] },
+          },
+        }],
+      }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    return agentRefOf(agent);
+  }
+
+  it("a hook's deny: the call never runs, the run completes, and the row names the hook", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentRef = await provisionHookedAgent(org, "echo 'echoes are not allowed' >&2; exit 2");
+    mock.enqueue(anthropicToolUses([echoBlock("call_echo_hook_deny", "hello")]));
+    mock.enqueue(anthropicText("Done."));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-hook-deny"), agentRef }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase, "a refused call does not stop the run").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const row = allToolCalls(final).find((tc) => tc.id === "call_echo_hook_deny");
+    expect(row, `execution ${executionId}: the refused call has a row`).toBeDefined();
+    expect(ToolCallStatus[row!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
+    expect(row!.error).toContain("echoes are not allowed");
+    expect(ApprovalPolicySource[row!.approvalPolicySource]).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
+    expect(row!.approvalPolicyHook, "the agent's own block decided").toBe("");
+  });
+
+  it("a hook's ask: the run waits on a card naming the hook, and completes once approved", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentRef = await provisionHookedAgent(
+      org,
+      `printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"echoes need a person"}}'`,
+    );
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_hook_ask", "hello")]);
+
+    expect(gated.status?.pendingApprovals.length).toBe(1);
+    const pending = gated.status!.pendingApprovals[0]!;
+    expect(ApprovalPolicySource[pending.approvalPolicySource]).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
+    expect(pending.approvalPolicyHook).toBe("");
+    expect(pending.message).toBe("echoes need a person");
+
+    await submitApprovalPerContract({
+      expectedRemaining: 0,
+      label: "approving the hook's ask clears the gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId: pending.toolCallId,
+          action: ApprovalAction.APPROVE,
+        }),
+    });
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const row = allToolCalls(final).find((tc) => tc.id === pending.toolCallId);
+    expect(ApprovalPolicySource[row!.approvalPolicySource], "the row says the hook decided").toBe(
+      ApprovalPolicySource[ApprovalPolicySource.HOOK],
+    );
+  });
+});
+
+// A plugin's hooks, end to end over the wire: a hooks-only Claude Code plugin
+// is pushed, an agent references it, and the runner reads it by reference,
+// downloads its archive over the transfer lane, verifies and mounts it, and
+// runs the plugin's own extensionless script.
+describe("AgentExecution — a pushed plugin's hooks decide at the gate", () => {
+  const GUARD = [
+    "#!/usr/bin/env bash",
+    "input=$(cat)",
+    'case "$input" in',
+    "  *'\"command\":\"rm -rf'*) echo 'recursive deletes are not allowed' >&2; exit 2 ;;",
+    "  *'\"command\":\"echo published'*) printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"publishing needs a person\"}}' ;;",
+    "esac",
+    "exit 0",
+    "",
+  ].join("\n");
+
+  it("refuses the delete, holds the publish for a person, and names the plugin on both", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("safety");
+    const plugin = await clients.pluginCommand.push({
+      org,
+      artifact: zipFiles({
+        ".claude-plugin/plugin.json": JSON.stringify({ name }),
+        "hooks/hooks.json": JSON.stringify({
+          hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: '"${CLAUDE_PLUGIN_ROOT}"/hooks/guard' }] }] },
+        }),
+        "hooks/guard": GUARD,
+      }),
+    });
+    fixtures.defer(() => clients.pluginCommand.delete({ value: plugin.metadata!.id }).then(() => undefined, () => undefined));
+    const slug = plugin.metadata!.slug;
+
+    const agent = await clients.agentCommand.create(
+      makeAgent({
+        org,
+        name: uniqueName("agent-plugin-hooks"),
+        hooks: [{ source: { case: "plugin", value: { kind: ApiResourceKind.plugin, slug } } }],
+      }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+
+    mock.enqueue(anthropicToolUses([{ toolCallId: "call_hook_rm", toolName: "execute", toolInput: { command: "rm -rf build" } }]));
+    mock.enqueue(anthropicToolUses([{ toolCallId: "call_hook_publish", toolName: "execute", toolInput: { command: "echo published" } }]));
+    mock.enqueue(anthropicText("Done."));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-plugin-hooks"), agentRef: agentRefOf(agent) }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+
+    const gated = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, {
+      label: "WAITING_FOR_APPROVAL on the plugin's ask",
+    });
+    const refused = allToolCalls(gated).find((tc) => tc.id === "call_hook_rm");
+    expect(refused, `execution ${executionId}: the refused delete has a row`).toBeDefined();
+    expect(ToolCallStatus[refused!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
+    expect(refused!.error).toContain("recursive deletes are not allowed");
+    expect(refused!.approvalPolicyHook).toBe(slug);
+    const pending = gated.status!.pendingApprovals[0]!;
+    expect(pending.toolCallId).toBe("call_hook_publish");
+    expect(pending.message).toBe("publishing needs a person");
+    expect(ApprovalPolicySource[pending.approvalPolicySource]).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
+    expect(pending.approvalPolicyHook).toBe(slug);
+
+    await submitApprovalPerContract({
+      expectedRemaining: 0,
+      label: "approving the plugin's ask clears the gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId: pending.toolCallId,
+          action: ApprovalAction.APPROVE,
+        }),
+    });
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const published = allToolCalls(final).find((tc) => tc.id === "call_hook_publish");
+    expect(published?.result).toContain("published");
   });
 });

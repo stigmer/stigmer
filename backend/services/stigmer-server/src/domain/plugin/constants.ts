@@ -51,7 +51,7 @@ export const TRANSFER_LANE_NOT_CONFIGURED =
  */
 export const SERVER_WARNING_KINDS = {
   componentIgnored: "component-ignored",
-  /** The plugin carries tool-call hooks, recorded on its status, that no engine runs yet. */
+  /** The plugin's tool-call hooks are in Cursor's format, recorded on its status, which no engine runs yet. */
   hooksNotRunYet: "hooks-not-run-yet",
   /** A system-content row the plugin took over in place (members.ts, judgeSlug). */
   memberAdopted: "member-adopted",

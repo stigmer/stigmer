@@ -153,6 +153,10 @@ message PendingApproval {
   // client-side lookup.
   // See ApprovalPolicySource.
   ApprovalPolicySource approval_policy_source = 15;
+
+  // Slug of the plugin whose hook asked for this approval; empty when no
+  // plugin's hook asked. Copied from ToolCall.approval_policy_hook.
+  string approval_policy_hook = 16;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -281,6 +285,10 @@ message ApprovalRequest {
   // ToolCall.approval_policy_source so the event-stream projection reconstructs
   // the same PendingApproval as the message scan. See ApprovalPolicySource.
   ApprovalPolicySource approval_policy_source = 13;
+
+  // Slug of the plugin whose hook asked. Copied from
+  // ToolCall.approval_policy_hook.
+  string approval_policy_hook = 14;
 }
 
 // The platform's withdrawal of an in-flight approval request — the system-actored

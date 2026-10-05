@@ -403,4 +403,78 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    */
   com.google.protobuf.ByteString
       getDisallowedToolsBytes(int index);
+
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.agent.v1.HookSource> 
+      getHooksList();
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  ai.stigmer.agentic.agent.v1.HookSource getHooks(int index);
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  int getHooksCount();
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.agent.v1.HookSourceOrBuilder> 
+      getHooksOrBuilderList();
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  ai.stigmer.agentic.agent.v1.HookSourceOrBuilder getHooksOrBuilder(
+      int index);
 }

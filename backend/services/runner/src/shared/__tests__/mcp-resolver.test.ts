@@ -5,7 +5,7 @@
  * claims, the platform address fill (stigmer#1433), and one usage per slug.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { declaredEnvKeysOf, mcpServerToResolved, mergeMcpServerUsages, resolveMcpServers } from "../mcp-resolver.js";
+import { declaredEnvKeysOf, mcpServerToResolved, mergeMcpServerUsages, PLUGIN_MEMBER_LABEL, resolveMcpServers } from "../mcp-resolver.js";
 import { McpTransportError } from "../mcp-transport-guard.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 
@@ -144,6 +144,19 @@ describe("a resolved server's discovered tools", () => {
     expect(resolved?.destructiveTools).toEqual([]);
     expect(resolved?.discoveredToolNames).toBeNull();
     expect(resolved?.discoveredCapabilitiesEmpty).toBe(true);
+  });
+});
+
+describe("a resolved server's plugin origin", () => {
+  it("reads the plugin a member server belongs to from the label the server writes at install", () => {
+    // The label is the server's reserved `stigmer.ai/plugin`, pinned on the
+    // wire by plugin.conformance.test.ts; this pins the runner's copy.
+    expect(PLUGIN_MEMBER_LABEL).toBe("stigmer.ai/plugin");
+    const server = httpMcpServer("plugin-safety-guard");
+    server.metadata = { ...server.metadata, name: "guard", labels: { "stigmer.ai/plugin": "plg_safety" } };
+
+    expect(mcpServerToResolved(server, "plugin-safety-guard", {})?.pluginOrigin).toEqual({ pluginId: "plg_safety", server: "guard" });
+    expect(mcpServerToResolved(httpMcpServer("github"), "github", {})?.pluginOrigin).toBeNull();
   });
 });
 

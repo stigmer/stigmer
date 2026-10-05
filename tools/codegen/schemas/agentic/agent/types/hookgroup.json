@@ -1,0 +1,45 @@
+{
+  "name": "HookGroup",
+  "description": "HookGroup is one event, an optional matcher, and the handlers that run when\n both match.",
+  "protoType": "ai.stigmer.agentic.plugin.v1.HookGroup",
+  "protoFile": "apis/ai/stigmer/agentic/plugin/v1/hooks.proto",
+  "fields": [
+    {
+      "name": "Event",
+      "jsonName": "event",
+      "protoField": "event",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The event the handlers run on: \"PreToolUse\" before a call, which can\n refuse it, ask first or allow it, or \"PostToolUse\" after a call succeeds,\n which can add to what the agent reads.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Matcher",
+      "jsonName": "matcher",
+      "protoField": "matcher",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Which tools the handlers run for: a name such as \"Bash\", a list such as\n \"Write|Edit\", or a regular expression such as \"mcp__github__.*\". Empty or\n \"*\" matches every tool. A plugin's own MCP server's tools are named\n mcp__plugin_\u003cplugin\u003e_\u003cserver\u003e__\u003ctool\u003e, as in Claude Code.",
+      "required": false
+    },
+    {
+      "name": "Handlers",
+      "jsonName": "handlers",
+      "protoField": "handlers",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "HookHandler"
+        }
+      },
+      "description": "The handlers to run, in order.",
+      "required": false
+    }
+  ]
+}

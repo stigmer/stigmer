@@ -134,6 +134,17 @@ describe("writeSkillMount — marker mechanics", () => {
     expect(statSync(join(skillDir, "scripts", "run.py")).mode & 0o111).not.toBe(0);
     expect(statSync(join(skillDir, "references", "notes.md")).mode & 0o111).toBe(0);
   });
+
+  it("makes an extensionless script executable by its #! line", async () => {
+    const artifact = buildZip([
+      { name: "scripts/check", content: "#!/usr/bin/env bash\necho ok\n" },
+      { name: "scripts/README", content: "plain text" },
+    ]);
+    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+
+    expect(statSync(join(skillDir, "scripts", "check")).mode & 0o111).not.toBe(0);
+    expect(statSync(join(skillDir, "scripts", "README")).mode & 0o111).toBe(0);
+  });
 });
 
 // ─── downloadArtifact — transfer lane routing (#675) ─────────────────────
@@ -234,5 +245,29 @@ describe("downloadArtifact — transfer lane routing", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }));
 
     await expect(downloadArtifact(client, "skills/gone.zip")).rejects.toThrow(/HTTP 404/);
+  });
+
+  it("keeps a signed URL's query out of a failed fetch's message", async () => {
+    const client = makeClient({
+      getSkillArtifactDownloadUrl: vi.fn().mockResolvedValue({
+        url: "https://storage.example.com/bucket/skills/a.zip?X-Goog-Signature=secret-signature&X-Goog-Expires=300",
+        sizeBytes: 0n,
+        ttlSeconds: 300,
+      }),
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+
+    const failed = downloadArtifact(client, "skills/a.zip");
+    await expect(failed).rejects.toThrow(new Error("artifact fetch failed: HTTP 403 from https://storage.example.com/bucket/skills/a.zip"));
+    await expect(failed).rejects.not.toThrow("secret-signature");
+  });
+
+  it("names an unparseable minted URL without repeating it", async () => {
+    const client = makeClient({
+      getSkillArtifactDownloadUrl: vi.fn().mockResolvedValue({ url: "not a url?sig=secret", sizeBytes: 0n, ttlSeconds: 300 }),
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+
+    await expect(downloadArtifact(client, "skills/a.zip")).rejects.toThrow("artifact fetch failed: HTTP 403 from the minted download URL");
   });
 });

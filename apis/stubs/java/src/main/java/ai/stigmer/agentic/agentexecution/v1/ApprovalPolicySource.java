@@ -86,6 +86,16 @@ public enum ApprovalPolicySource
    * <code>APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP = 8;</code>
    */
   APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP(8),
+  /**
+   * <pre>
+   * A hook decided this call: it refused it, asked a person first, or let it
+   * run without the approval it would otherwise need. The deciding plugin is
+   * named in approval_policy_hook beside this source.
+   * </pre>
+   *
+   * <code>APPROVAL_POLICY_SOURCE_HOOK = 9;</code>
+   */
+  APPROVAL_POLICY_SOURCE_HOOK(9),
   UNRECOGNIZED(-1),
   ;
 
@@ -162,6 +172,16 @@ public enum ApprovalPolicySource
    * <code>APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP = 8;</code>
    */
   public static final int APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP_VALUE = 8;
+  /**
+   * <pre>
+   * A hook decided this call: it refused it, asked a person first, or let it
+   * run without the approval it would otherwise need. The deciding plugin is
+   * named in approval_policy_hook beside this source.
+   * </pre>
+   *
+   * <code>APPROVAL_POLICY_SOURCE_HOOK = 9;</code>
+   */
+  public static final int APPROVAL_POLICY_SOURCE_HOOK_VALUE = 9;
 
 
   public final int getNumber() {
@@ -194,6 +214,7 @@ public enum ApprovalPolicySource
       case 6: return APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY;
       case 7: return APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN;
       case 8: return APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP;
+      case 9: return APPROVAL_POLICY_SOURCE_HOOK;
       default: return null;
     }
   }

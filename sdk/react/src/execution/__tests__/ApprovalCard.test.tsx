@@ -335,6 +335,30 @@ describe("ApprovalCard approve-all action", () => {
     }
   });
 
+  it("labels the approve-all action of a call a hook asked about by that hook and that tool", () => {
+    const cases: ReadonlyArray<{ toolName: string; mcpServerSlug?: string; hook: string; expected: string }> = [
+      { toolName: "execute", hook: "safety", expected: "Approve all shell commands the safety plugin asks about" },
+      { toolName: "write_file", hook: "safety", expected: "Approve all file writes the safety plugin asks about" },
+      { toolName: "edit_file", hook: "", expected: "Approve all file edits the agent's hooks ask about" },
+      { toolName: "create_issue", mcpServerSlug: "github", hook: "safety", expected: "Approve all create_issue calls the safety plugin asks about" },
+      { toolName: "delete_file", hook: "safety", expected: "Approve all file deletions the safety plugin asks about" },
+      { toolName: "web_fetch", hook: "safety", expected: "Approve all web_fetch calls the safety plugin asks about" },
+    ];
+    for (const { toolName, mcpServerSlug, hook, expected } of cases) {
+      const approval = create(PendingApprovalSchema, {
+        toolCallId: `tc-hook-${toolName}`,
+        toolName,
+        mcpServerSlug: mcpServerSlug ?? "",
+        argsPreview: "{}",
+        approvalPolicySource: ApprovalPolicySource.HOOK,
+        approvalPolicyHook: hook,
+      });
+      const { getByLabelText, unmount } = render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
+      expect(getByLabelText(expected)).toBeTruthy();
+      unmount();
+    }
+  });
+
   it("submits APPROVE_ALL when the subordinate action is clicked", () => {
     const onSubmit = vi.fn();
     const approval = create(PendingApprovalSchema, {

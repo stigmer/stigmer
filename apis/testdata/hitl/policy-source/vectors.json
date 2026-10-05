@@ -1,5 +1,5 @@
 {
-  "description": "Cross-language HITL authorization-provenance vectors. Each vector pins one ApprovalPolicySource to its proto enum name and number. The runner (TS) maps its internal PolicySource union to the proto enum via toProtoPolicySource and must land on `number`; the Go and Java editions consume the generated enum directly and assert the same `name` resolves to the same `number`. Together this guarantees the runner's union->enum mapping and the proto enum numbering agree across all three editions, so a persisted approval_policy_source means the same thing everywhere. `policySource` is the runner's union string, or null for the UNSPECIFIED default (a call that needed no approval). Values 1 to 3 are reserved in the proto and listed nowhere.",
+  "description": "Cross-reader HITL authorization-provenance vectors. Each vector pins one ApprovalPolicySource to its proto enum name and number. The runner maps its internal PolicySource union to the proto enum via toProtoPolicySource and must land on `number`; the server reads the generated enum and asserts the same `name_proto` resolves to the same `number`. Together this guarantees the runner's union->enum mapping and the enum numbering agree, so a persisted approval_policy_source means the same thing to every reader. `policySource` is the runner's union string, or null for the UNSPECIFIED default (a call that needed no approval). Values 1 to 3 are reserved in the proto and listed nowhere.",
   "vectors": [
     {
       "name": "unspecified",
@@ -36,6 +36,12 @@
       "policySource": "unattended_skip",
       "name_proto": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
       "number": 8
+    },
+    {
+      "name": "hook",
+      "policySource": "hook",
+      "name_proto": "APPROVAL_POLICY_SOURCE_HOOK",
+      "number": 9
     }
   ]
 }

@@ -288,7 +288,7 @@ describe("ApprovalGateMiddleware", () => {
       // Provenance: a built-in mutating tool is decided by the taxonomy, and the
       // engine version is stamped for audit correlation.
       expect(r[0].policySource).toBe("builtin_category");
-      expect(r[0].policyEngineVersion).toBe("default-1");
+      expect(r[0].policyEngineVersion).toBe("hooks-1");
     });
 
     it("emits an auto_approve receipt for an auto-approved MCP side effect", async () => {
@@ -307,7 +307,7 @@ describe("ApprovalGateMiddleware", () => {
       // Not marked destructive by its server: the default does not ask, and
       // the receipt carries no policy source.
       expect(r[0].policySource).toBe("");
-      expect(r[0].policyEngineVersion).toBe("default-1");
+      expect(r[0].policyEngineVersion).toBe("hooks-1");
     });
 
     it("stamps the destructive-annotation source on a user-approved MCP gate", async () => {
@@ -325,7 +325,7 @@ describe("ApprovalGateMiddleware", () => {
       const r = receipts();
       expect(r).toHaveLength(1);
       expect(r[0].policySource).toBe("annotation_destructive_tighten");
-      expect(r[0].policyEngineVersion).toBe("default-1");
+      expect(r[0].policyEngineVersion).toBe("hooks-1");
     });
 
     it("does NOT emit a receipt for read-only built-ins (not a side effect)", async () => {
@@ -885,7 +885,7 @@ describe("ApprovalGateMiddleware", () => {
     const gatedMcpDefault = destructive("srv/gated_tool");
 
     it("skips a gated MCP tool without interrupting and records it in the registry", async () => {
-      const unattendedSkips = new Set<string>();
+      const unattendedSkips = new Map<string, string | null>();
       const mw = createApprovalGateMiddleware(makeConfig({
         mcpDefault: gatedMcpDefault,
         toolServerMap: new Map([["gated_tool", "srv"]]),
@@ -908,7 +908,7 @@ describe("ApprovalGateMiddleware", () => {
     });
 
     it("skips a gated built-in (shell) the same way", async () => {
-      const unattendedSkips = new Set<string>();
+      const unattendedSkips = new Map<string, string | null>();
       const mw = createApprovalGateMiddleware(makeConfig({
         unattended: true,
         unattendedSkips,
@@ -929,7 +929,7 @@ describe("ApprovalGateMiddleware", () => {
     it("still runs MCP tools the default does not ask for", async () => {
       // A tool its server does not mark destructive never asks, so
       // unattended mode never touches it.
-      const unattendedSkips = new Set<string>();
+      const unattendedSkips = new Map<string, string | null>();
       const mw = createApprovalGateMiddleware(makeConfig({
         toolServerMap: new Map([["book_appointment", "clinic"]]),
         unattended: true,
@@ -953,7 +953,7 @@ describe("ApprovalGateMiddleware", () => {
           mcpDefault: gatedMcpDefault,
           toolServerMap: new Map([["gated_tool", "srv"]]),
           unattended: true,
-          unattendedSkips: new Set<string>(),
+          unattendedSkips: new Map<string, string | null>(),
         }));
 
         await mw.wrapToolCall!(makeRequest({ name: "gated_tool" }), passthrough);

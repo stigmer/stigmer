@@ -38,6 +38,26 @@
  * 19. a sub-agent narrows the agent's tools and never widens them
  *     (capability: enforcesSubAgentLists).
  *
+ * An agent's hooks, in Claude Code's format (capability: runsHooks):
+ * 20. a hook's deny refuses the call: the tool never runs and the model
+ *     reads the hook's reason; exit code 2 denies with stderr as the reason.
+ * 21. a hook's allow runs a call the default would ask about.
+ * 22. a hook's ask shows the card, naming the hook; approving it runs the
+ *     call once.
+ * 23. a hook's deny binds under "trust this whole run", and its ask is
+ *     satisfied there.
+ * 24. a hook that fails or times out decides nothing: the default decides.
+ * 25. a hook lease clears only that hook's asks on that tool; a category
+ *     lease never clears a hook's ask.
+ * 26. unattended, a hook's ask is a skip.
+ * 27. a hook's rewritten input replaces the arguments.
+ * 28. PostToolUse feedback reaches the model; a failed tool runs none.
+ * 29. a secret-like write is blocked whatever a hook says.
+ * 30. inside a sub-agent a hook sees the sub-agent's type.
+ * 31. on resume the hook runs again, and a deny then binds even after an
+ *     approval.
+ * 32. a call the tool lists exclude never reaches a hook.
+ *
  * Capability-gated invariants (9, 10, 11, 19) run only where the substrate supports
  * the relevant lease; the "executes exactly once" count in (2) is asserted only
  * where the substrate observes execution. Differences are gated, never forked —
@@ -45,7 +65,15 @@
  */
 
 import { describe, it, expect } from "vitest";
-import type { GatewayDecision, GatewaySubstrate, ListsOutcome, ProposedAction } from "./types.js";
+import type {
+  ContractHook,
+  ContractHookBehaviour,
+  GatewayDecision,
+  GatewaySubstrate,
+  HooksOutcome,
+  ListsOutcome,
+  ProposedAction,
+} from "./types.js";
 
 /** Representative actions shared by the per-substrate and cross-substrate suites. */
 const WRITE_A: ProposedAction = { kind: "write", resource: "/work/alpha.txt" };
@@ -71,12 +99,25 @@ const MCP_DESTRUCTIVE: ProposedAction = {
   mcpDestructive: true,
 };
 const PLATFORM_READ: ProposedAction = { kind: "read", resource: "skills/guide/SKILL.md", platformContent: true };
+const SECRET_WRITE: ProposedAction = { kind: "write", resource: "/work/.env", content: "TOKEN=x" };
 
 /** Assert a lists drive refused the call: not run, not asked. */
 function expectRefused(substrate: GatewaySubstrate, what: string, outcome: ListsOutcome): void {
   expect(outcome.refused, `${substrate.name}: ${what} must be refused by the lists`).toBe(true);
   expect(outcome.executed, `${substrate.name}: a refused ${what} must not run`).toBe(false);
   expect(outcome.gated, `${substrate.name}: a refused ${what} must never ask for approval`).toBe(false);
+}
+
+/** A PreToolUse hook on shell commands. */
+function onShell(does: ContractHookBehaviour, extra: Partial<ContractHook> = {}): ContractHook {
+  return { event: "PreToolUse", matcher: "Bash", does, ...extra };
+}
+
+/** Assert a hooks drive's call never ran and asked nobody. */
+function expectHookRefused(substrate: GatewaySubstrate, what: string, outcome: HooksOutcome): void {
+  expect(outcome.refusedBy, `${substrate.name}: ${what} must be refused by the hook`).toBe("hook");
+  expect(outcome.executed, `${substrate.name}: ${what} must not run`).toBe(false);
+  expect(outcome.gated, `${substrate.name}: ${what} must not ask`).toBe(false);
 }
 
 /** Assert a lists drive let the call run with no approval asked. */
@@ -237,6 +278,10 @@ export function describeGatewayContract(substrate: GatewaySubstrate): void {
       });
     }
 
+    if (substrate.capabilities.runsHooks && substrate.authorizeUnderHooks) {
+      describeHooksContract(substrate, substrate.authorizeUnderHooks.bind(substrate));
+    }
+
     // Invariants 9, 10: lease isolation — only meaningful where the substrate
     // binds the exact resource. Gated honestly rather than asserted everywhere.
     if (substrate.capabilities.enforcesExactResource && substrate.authorizeAfterGrant) {
@@ -298,6 +343,128 @@ export function describeGatewayContract(substrate: GatewaySubstrate): void {
         expect(writeUnderShell.executed, `${substrate.name}: a shell lease must NOT authorize a write`).toBe(false);
       });
     }
+  });
+}
+
+/** Invariants 20 to 32: an agent's hooks at the gate. */
+function describeHooksContract(
+  substrate: GatewaySubstrate,
+  under: NonNullable<GatewaySubstrate["authorizeUnderHooks"]>,
+): void {
+  describe("hooks", () => {
+    it("a hook's deny refuses the call with its reason; exit 2 denies with stderr (invariant 20)", async () => {
+      const json = await under([onShell({ answer: "deny", reason: "no recursive deletes" })], SHELL);
+      expectHookRefused(substrate, "a shell the hook denies", json);
+      expect(json.modelRead).toContain("no recursive deletes");
+      const exit2 = await under([onShell({ exit: 2, stderr: "blocked by policy" })], SHELL);
+      expectHookRefused(substrate, "a shell the hook exits 2 on", exit2);
+      expect(exit2.modelRead).toContain("blocked by policy");
+    });
+
+    it("a hook's allow runs a call the default would ask about (invariant 21)", async () => {
+      const outcome = await under([onShell({ answer: "allow" })], SHELL);
+      expect(outcome.gated, `${substrate.name}: an allowed shell must not ask`).toBe(false);
+      expect(outcome.executed, `${substrate.name}: an allowed shell must run`).toBe(true);
+    });
+
+    it("a hook's ask shows the card naming the hook; approving runs the call once (invariant 22)", async () => {
+      const held = await under([{ event: "PreToolUse", matcher: "Read", does: { answer: "ask", reason: "reads need a person" } }], READ);
+      expect(held.gated, `${substrate.name}: a hook's ask must show a card even where the default asks nothing`).toBe(true);
+      expect(held.executed).toBe(false);
+      expect(held.policySource).toBe("hook");
+      expect(held.policyHook).toBe("safety");
+      const approved = await under([onShell({ answer: "ask" })], SHELL, { decision: "approve" });
+      expect(approved.executed).toBe(true);
+      if (substrate.capabilities.observesExecution) expect(approved.executionCount).toBe(1);
+      const rejected = await under([onShell({ answer: "ask" })], SHELL, { decision: "reject" });
+      expect(rejected.executed).toBe(false);
+    });
+
+    it("a hook's deny binds under trust this whole run, and its ask is satisfied there (invariant 23)", async () => {
+      const trust = { autoApproveAll: true };
+      expectHookRefused(substrate, "a denied shell under trust", await under([onShell({ answer: "deny" })], SHELL, trust));
+      const asked = await under([onShell({ answer: "ask" })], SHELL, trust);
+      expect(asked.gated).toBe(false);
+      expect(asked.executed).toBe(true);
+    });
+
+    it("a hook that fails or times out decides nothing, and the default decides (invariant 24)", async () => {
+      for (const does of [{ exit: 1, stderr: "crashed" }, { hang: true }] as const) {
+        const shell = await under([onShell(does)], SHELL);
+        expect(shell.gated, `${substrate.name}: the default still asks before a shell`).toBe(true);
+        expect(shell.policySource).toBe("builtin_category");
+        const read = await under([{ event: "PreToolUse", matcher: "Read", does }], READ);
+        expect(read.executed, `${substrate.name}: the default still lets a read run`).toBe(true);
+      }
+    });
+
+    it("a hook lease clears only that hook's asks on that tool; a category lease never does (invariant 25)", async () => {
+      const ask = [onShell({ answer: "ask" })];
+      const leased = await under(ask, SHELL, { hookLease: { plugin: "safety", action: SHELL } });
+      expect(leased.gated, `${substrate.name}: the hook's own lease clears its ask`).toBe(false);
+      expect(leased.executed).toBe(true);
+      const otherTool = await under(ask, SHELL, { hookLease: { plugin: "safety", action: WRITE_A } });
+      expect(otherTool.gated, `${substrate.name}: a lease on another tool does not clear it`).toBe(true);
+      const otherHook = await under(ask, SHELL, { hookLease: { plugin: "other", action: SHELL } });
+      expect(otherHook.gated, `${substrate.name}: another hook's lease does not clear it`).toBe(true);
+      const category = await under(ask, SHELL, { categoryLease: "shell" });
+      expect(category.gated, `${substrate.name}: a category lease never clears a hook's ask`).toBe(true);
+      expect(category.policySource).toBe("hook");
+    });
+
+    it("unattended, a hook's ask is a skip (invariant 26)", async () => {
+      const outcome = await under([onShell({ answer: "ask" })], SHELL, { unattended: true });
+      expect(outcome.gated).toBe(false);
+      expect(outcome.executed).toBe(false);
+      expect(outcome.refusedBy).toBeUndefined();
+    });
+
+    it("a hook's rewritten input replaces the arguments (invariant 27)", async () => {
+      const outcome = await under(
+        [{ event: "PreToolUse", matcher: "Write", does: { answer: "allow", rewrite: WRITE_B } }],
+        WRITE_A,
+      );
+      expect(outcome.executed).toBe(true);
+      expect(outcome.writtenPaths).toEqual([WRITE_B.resource]);
+    });
+
+    it("PostToolUse feedback reaches the model, and a failed tool runs none (invariant 28)", async () => {
+      const post: ContractHook = {
+        event: "PostToolUse",
+        matcher: "mcp__srv__search_issues",
+        does: { postBlock: "the result names a private repo", context: "summarise without names" },
+      };
+      const ran = await under([post], MCP);
+      expect(ran.executed).toBe(true);
+      expect(ran.modelRead).toContain("the result names a private repo");
+      expect(ran.modelRead).toContain("summarise without names");
+      const failed = await under([post], MCP, { failTool: true });
+      expect(failed.hookRuns.filter((run) => run["hook_event_name"] === "PostToolUse")).toEqual([]);
+    });
+
+    it("a secret-like write is blocked whatever a hook says (invariant 29)", async () => {
+      const outcome = await under([{ event: "PreToolUse", matcher: "Write", does: { answer: "allow" } }], SECRET_WRITE);
+      expect(outcome.executed).toBe(false);
+      expect(outcome.writtenPaths).toEqual([]);
+    });
+
+    it("inside a sub-agent a hook sees the sub-agent's type (invariant 30)", async () => {
+      const outcome = await under([onShell({ answer: "allow" })], SHELL, { subAgent: "helper" });
+      expect(outcome.hookRuns[0]?.["agent_type"]).toBe("helper");
+      expect(outcome.hookRuns[0]?.["agent_id"]).toBeTruthy();
+    });
+
+    it("on resume the hook runs again, and its deny binds after an approval (invariant 31)", async () => {
+      const outcome = await under([onShell({ answer: "ask-then-deny" })], SHELL, { decision: "approve" });
+      expect(outcome.executed).toBe(false);
+      expect(outcome.refusedBy).toBe("hook");
+    });
+
+    it("a call the tool lists exclude never reaches a hook (invariant 32)", async () => {
+      const outcome = await under([onShell({ answer: "deny" })], SHELL, { lists: { tools: [], disallowedTools: ["Bash"] } });
+      expect(outcome.refusedBy).toBe("lists");
+      expect(outcome.hookRuns).toEqual([]);
+    });
   });
 }
 

@@ -100,6 +100,13 @@ import { buildMcpApprovalDefault, deriveActiveLeases } from "../shared/approval-
 import { ToolScope } from "../shared/tool-lists.js";
 import { resolveAttachments } from "../shared/attachment-resolver.js";
 import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
+import { mountPlugin, PluginMountError } from "../shared/plugin-mount.js";
+import { isTerminalError } from "../shared/grpc-retry.js";
+import type { PluginServerName } from "../shared/hooks/tool-view.js";
+import { getPlatformDir } from "../shared/workspace/platform-dir.js";
+import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
 import { VisionBudget, type NotViewableEntry, type VisionProfile } from "../shared/attachment-vision.js";
 import { getDefaultModel, getModelVisionCapability } from "../shared/model-registry.js";
 import { applyApprovedWholeFileWrites } from "../shared/exact-apply.js";
@@ -118,6 +125,8 @@ import type { TranscriptBuilder } from "./transcript/builder.js";
 import type {
   TurnAttachments,
   TurnEnvironment,
+  TurnHookSource,
+  TurnHooks,
   TurnInput,
   TurnMcp,
   TurnModelPreferences,
@@ -228,6 +237,11 @@ export type TurnSettlement =
       readonly failed: boolean;
       readonly failureDetail: string;
       readonly discardedPaths: readonly string[];
+    }
+  | {
+      /** The agent's hooks cannot run as written; `message` names what and why, for the person who owns the agent. */
+      readonly kind: "hooks-refused";
+      readonly message: string;
     };
 
 /** The lock phase's answer: the release handle (absent when there is no primary tree), or the one settlement a lock can produce. */
@@ -238,7 +252,7 @@ export type WorkspaceLockOutcome =
 /** The reinvocation phase's answer: what the previous invocation left, or one of the two settlements a reconcile can produce. */
 export type ReinvocationOutcome =
   | { readonly kind: "ready"; readonly reinvocation: TurnReinvocation }
-  | { readonly kind: "settled"; readonly settlement: Exclude<TurnSettlement, { kind: "workspace-lock-timeout" }> };
+  | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "file-review-resolved" }> };
 
 // ---------------------------------------------------------------------------
 // Pure helpers (exported for their tests and for the adapter kit)
@@ -315,7 +329,7 @@ export interface ReinvocationFacts {
  */
 export function decideReinvocation(
   facts: ReinvocationFacts,
-): Exclude<TurnSettlement, { kind: "workspace-lock-timeout" }> | undefined {
+): Extract<TurnSettlement, { kind: "file-review-resolved" }> | undefined {
   if (facts.approvalDecisions.size > 0) return undefined;
   if (facts.reconciledFileReview) {
     return {
@@ -845,6 +859,145 @@ export async function mountSkills(
   return { root, bySubAgent };
 }
 
+/** No hooks: the record of an agent without any, and of the built-in assistant. */
+const NO_HOOKS: TurnHooks = { sources: [], pluginServers: new Map() };
+
+/** How a refusal names one hook source. */
+function describeHookSource(source: HookSource): string {
+  return source.source.case === "plugin" ? `the plugin '${source.source.value.slug}'` : "its own hooks block";
+}
+
+/**
+ * Phase 2b: refuse a turn whose agent has hooks when the harness does not
+ * run them, right after the blueprint and before anything else is fetched
+ * or provisioned. Run without them, the hooks would be policies that
+ * silently vanished; the refusal names them and says what to do.
+ */
+export function refuseUnrunnableHooks(
+  blueprint: ResolvedBlueprint,
+  capabilities: Pick<HarnessCapabilities, "runsHooks">,
+): Extract<TurnSettlement, { kind: "hooks-refused" }> | undefined {
+  const sources = blueprint.agent?.spec?.hooks ?? [];
+  if (sources.length === 0 || capabilities.runsHooks) return undefined;
+  return {
+    kind: "hooks-refused",
+    message:
+      `The agent has hooks (${sources.map(describeHookSource).join(", ")}), and this engine does not run hooks yet. ` +
+      "Run the agent on Stigmer's native engine, or remove its hooks.",
+  };
+}
+
+/**
+ * Phase 5a: resolve the agent's hooks for a harness that runs them.
+ *
+ * Each source, in the agent's order: a plugin reference is read with
+ * `getByReference` (the reference's version when it names one, else the
+ * installed version) and mounted from its verified archive
+ * (`shared/plugin-mount.ts`); the agent's own block is taken as written.
+ * Only Claude Code's hook format runs here; a plugin whose hooks are in
+ * Cursor's format is refused by name. A plugin that records no hooks
+ * contributes none, with a log line. When the agent has hooks, every server
+ * a plugin brought is named as Claude Code names it, from its plugin's own
+ * name, so a plugin's matchers find its tools.
+ *
+ * Anything that cannot be read, fetched, verified or named refuses the turn
+ * (`hooks-refused`), naming it: a hook that does not run as written is a
+ * policy that vanished, so this is deliberately stricter than a skill, whose
+ * failed download degrades.
+ */
+export async function resolveHooks(
+  deps: ResolutionDeps,
+  args: {
+    readonly blueprint: ResolvedBlueprint;
+    readonly sessionId: string;
+    readonly servers: readonly ResolvedMcpServer[];
+  },
+): Promise<{ readonly kind: "ready"; readonly hooks: TurnHooks } | { readonly kind: "settled"; readonly settlement: TurnSettlement }> {
+  const sources = args.blueprint.agent?.spec?.hooks ?? [];
+  if (sources.length === 0) return { kind: "ready", hooks: NO_HOOKS };
+  deps.enterPhase("resolve_hooks");
+  await deps.reportProgress("Resolving hooks");
+  const refused = (message: string) => ({ kind: "settled" as const, settlement: { kind: "hooks-refused" as const, message } });
+
+  const platformDir = getPlatformDir(args.sessionId);
+  const resolved: TurnHookSource[] = [];
+  for (const source of sources) {
+    if (source.source.case === "inline") {
+      if (source.source.value.format === HookFormat.CURSOR) {
+        return refused("The agent's own hooks block is in Cursor's format, which does not run yet. Write it in Claude Code's format.");
+      }
+      resolved.push({ plugin: null, groups: source.source.value.groups });
+      continue;
+    }
+    if (source.source.case !== "plugin") continue;
+    const ref = source.source.value;
+    let plugin;
+    try {
+      plugin = await deps.client.getPluginByReference(ref);
+    } catch (err) {
+      if (!ownersToFix(err)) throw err;
+      return refused(`The plugin '${ref.slug}' that the agent's hooks reference could not be read: ${errorText(err)}`);
+    }
+    const hooks = plugin.status?.hooks;
+    if (hooks === undefined || hooks.groups.length === 0) {
+      console.log(`[turn-context] the plugin '${ref.slug}' records no hooks; it contributes none`);
+      continue;
+    }
+    if (hooks.format === HookFormat.CURSOR) {
+      return refused(
+        `The plugin '${ref.slug}' carries hooks in Cursor's format, which do not run yet. ` +
+          "Remove it from the agent's hooks, or use a plugin whose hooks are in Claude Code's format.",
+      );
+    }
+    try {
+      resolved.push({ plugin: await mountPlugin(deps.client, plugin, platformDir), groups: hooks.groups });
+    } catch (err) {
+      if (!ownersToFix(err)) throw err;
+      return refused(`The agent's hooks could not be prepared: ${errorText(err)}`);
+    }
+  }
+
+  const pluginServers = new Map<string, PluginServerName>();
+  const pluginNames = new Map<string, string>();
+  for (const server of args.servers) {
+    const origin = server.pluginOrigin;
+    if (origin === null) continue;
+    let name = pluginNames.get(origin.pluginId);
+    if (name === undefined) {
+      try {
+        const owner = await deps.client.getPlugin(origin.pluginId);
+        name = owner.metadata?.name || owner.metadata?.slug || "";
+      } catch (err) {
+        if (!ownersToFix(err)) throw err;
+        return refused(
+          `The MCP server '${server.slug}' came from a plugin that could not be read, so the agent's hooks cannot see its tools by name: ${errorText(err)}`,
+        );
+      }
+      pluginNames.set(origin.pluginId, name);
+    }
+    pluginServers.set(server.slug, { plugin: name, server: origin.server });
+  }
+
+  deps.timing.mark("resolve_hooks");
+  return { kind: "ready", hooks: { sources: resolved, pluginServers } };
+}
+
+/**
+ * Whether a failure reading or mounting a hook's plugin is the agent owner's
+ * to fix (the plugin is gone, not theirs to read, or its archive does not
+ * verify), and so refuses the turn with a sentence naming it. A transient
+ * fault (the server unreachable, a download that failed in transit) is the
+ * infrastructure's: it is thrown and settles as any other failure there.
+ */
+function ownersToFix(err: unknown): boolean {
+  if (err instanceof PluginMountError) return err.cause === undefined || isTerminalError(err.cause);
+  return isTerminalError(err);
+}
+
+function errorText(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 /**
  * Phase 5b: resolve the turn's attachments, fail-hard
  * (they are explicit user inputs; see `shared/attachment-resolver.ts`).
@@ -1069,8 +1222,8 @@ export type TurnResolution =
   | { readonly kind: "settled"; readonly settlement: TurnSettlement };
 
 /**
- * Run the twelve phases in order and compose the turn's `TurnInput`, or
- * stop at the first settlement.
+ * Run the phases in order and compose the turn's `TurnInput`, or stop at
+ * the first settlement.
  *
  * The order is the orchestrator's, with its harness-specific steps gone
  * (they run inside `adapter.runTurn`, after this returns): the tool surface,
@@ -1089,6 +1242,8 @@ export async function resolveTurnContext(
 ): Promise<TurnResolution> {
   const { execution, spec, sessionId } = await fetchExecution(deps);
   const { session, blueprint } = await resolveAgentBlueprint(deps, execution, sessionId);
+  const unrunnable = refuseUnrunnableHooks(blueprint, capabilities);
+  if (unrunnable !== undefined) return { kind: "settled", settlement: unrunnable };
   const environment = await resolveEnvironment(deps);
   const { workspace, writeback } = await provisionWorkspace(deps, { session, sessionId, envVars: environment.envVars });
   frame.primaryDir = workspace.primaryDir;
@@ -1115,6 +1270,8 @@ export async function resolveTurnContext(
     primaryDir: workspace.primaryDir,
     subAgents: capabilities.subAgents,
   });
+  const hookResolution = await resolveHooks(deps, { blueprint, sessionId, servers: mcp.servers });
+  if (hookResolution.kind === "settled") return hookResolution;
   const attachments = await resolveTurnAttachments(deps, {
     spec,
     sessionId,
@@ -1148,6 +1305,7 @@ export async function resolveTurnContext(
       workspace,
       mcp,
       skills,
+      hooks: hookResolution.hooks,
       attachments,
       appliedToolCallIds,
       model: resolveModelPreferences(spec),

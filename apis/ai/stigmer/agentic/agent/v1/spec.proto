@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.agent.v1;
 
 import "ai/stigmer/agentic/environment/v1/spec.proto";
+import "ai/stigmer/agentic/plugin/v1/hooks.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
@@ -96,6 +97,52 @@ message AgentSpec {
     max_len: 256
     pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
   }];
+
+  // Hooks that run around this agent's tool calls, and its sub-agents' calls.
+  //
+  // Each entry is a plugin whose hooks apply, or a hooks block written in the
+  // agent itself. A hook can refuse a call, ask a person first, or let it run
+  // without the approval it would otherwise need. The native engine runs hooks
+  // in Claude Code's format; the Cursor engine refuses a turn whose agent has
+  // hooks.
+  //
+  // @internal
+  // Order matters only for attribution: when two hooks give the winning
+  // answer, the first source in this list is recorded as the decider. Apply
+  // refuses two plugins with one slug (the slug is what a run records as the
+  // deciding hook) and more than one inline block, and checks an inline
+  // block's events, matchers and conditions with the plugin reader's rules.
+  repeated HookSource hooks = 12;
+}
+
+// HookSource is one source of an agent's hooks: a plugin, or a hooks block
+// written in the agent.
+message HookSource {
+  oneof source {
+    option (buf.validate.oneof).required = true;
+
+    // A plugin whose recorded hooks apply to this agent.
+    //
+    // @internal
+    // Resolved at turn start like a skill reference: the reference's version
+    // when set, else the installed version. Another organization's plugin is
+    // accepted only from this organization's parent, shared with its child
+    // organizations (the reference rule).
+    ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [
+      (ai.stigmer.commons.apiresource.reference_kind) = plugin,
+      (buf.validate.field).cel = {
+        id: "hook_source_plugin.kind"
+        message: "plugin must reference a resource with kind=plugin"
+        expression: "this.kind == 58"
+      }
+    ];
+
+    // A hooks block in Claude Code's hooks.json shape, written in the agent.
+    //
+    // @internal
+    // An omitted format is filled with Claude Code's at apply.
+    ai.stigmer.agentic.plugin.v1.HookConfig inline = 2;
+  }
 }
 
 // SubAgent defines a specialized agent that the parent can delegate to.

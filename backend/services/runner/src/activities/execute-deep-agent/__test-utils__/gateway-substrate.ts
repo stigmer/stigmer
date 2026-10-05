@@ -22,9 +22,16 @@
  * decides by the engine's own tool names, so the probe aliases above would read
  * as engine extras there. A sub-agent drive narrows the scope exactly as
  * `subagent-wiring.ts` hands each sub-agent graph its own.
+ *
+ * The hooks drive (`authorizeUnderHooks`) runs the production gate with the
+ * production evaluator (`shared/hooks/`) over the same real built-ins, and
+ * every hook is a real command run by bash: it appends what it read on stdin
+ * to a log the outcome reports, then answers as the contract asks. A sub-agent
+ * drive hands the gate the identity `buildSubAgentMiddleware` does.
  */
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { HumanMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
@@ -33,18 +40,29 @@ import { z } from "zod";
 import { Command, MemorySaver } from "@langchain/langgraph";
 import { createDeepAgent, LocalShellBackend, StateBackend } from "deepagents";
 
+import { create } from "@bufbuild/protobuf";
+import { HookGroupSchema, HookHandlerSchema, type HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { createApprovalGateMiddleware } from "../../../middleware/approval-gate.js";
+import { normalizeWorkspacePathArg } from "../../../middleware/path-normalization.js";
 import { createToolScopeMiddleware } from "../../../middleware/tool-scope.js";
-import { deriveLeaseScope, mcpToolKey, type McpApprovalDefault } from "../../../shared/approval-policy.js";
+import { deriveLeaseScope, hookLeaseKey, mcpToolKey, type McpApprovalDefault } from "../../../shared/approval-policy.js";
+import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
+import { HookSet, type HookSourceGroups } from "../../../shared/hooks/hook-set.js";
+import { NativeToolViews } from "../../../shared/hooks/tool-view.js";
+import { buildShellEnv } from "../shell-env.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
 import { PLATFORM_ROUTE_PREFIX, confinedReadAdmission } from "../platform-route.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
 import { ScriptedModel, readPendingInterrupts } from "./scripted-model.js";
 import type {
+  ContractHook,
+  ContractHookBehaviour,
   ContractToolLists,
   GatewayDecision,
   GatewayOutcome,
   GatewaySubstrate,
+  HooksDriveOptions,
+  HooksOutcome,
   ListsDriveOptions,
   ListsOutcome,
   ProposedAction,
@@ -274,6 +292,213 @@ async function runListsProbe(
   }
 }
 
+/** A string as one single-quoted bash word. */
+function shellWord(text: string): string {
+  return `'${text.replace(/'/g, `'\\''`)}'`;
+}
+
+/** The marker file a shell probe appends to when it runs, one line per run. */
+const SHELL_RAN = ".contract-ran";
+
+/** The native call for a hooks probe: a shell leaves a mark, a write and a read touch the workspace. */
+function toHooksCall(action: ProposedAction): { name: string; args: Record<string, unknown>; serverSlug: string } {
+  if (action.kind === "shell") {
+    return { name: "execute", args: { command: `${action.resource}; echo ran >> ${SHELL_RAN}` }, serverSlug: "" };
+  }
+  return toNativeCall(action);
+}
+
+/** Claude Code's input for an action a hook rewrites a call into, as the hook would write it. */
+function claudeInputOf(action: ProposedAction, root: string): Record<string, unknown> {
+  switch (action.kind) {
+    case "write":
+      return { file_path: join(root, action.resource), content: action.content ?? "x" };
+    case "shell":
+      return { command: action.resource };
+    default:
+      throw new Error(`claudeInputOf: no rewrite into a ${action.kind} action`);
+  }
+}
+
+/** The bash command a contract hook runs: log its stdin, then answer as `does` says. */
+function hookCommand(does: ContractHookBehaviour, files: { runs: string; state: string }, root: string): string {
+  const log = `cat >> ${shellWord(files.runs)}; echo >> ${shellWord(files.runs)}; `;
+  const print = (json: unknown) => `printf '%s' ${shellWord(JSON.stringify(json))}`;
+  const decide = (permissionDecision: string, extra: Record<string, unknown> = {}) =>
+    print({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision, ...extra } });
+  if ("hang" in does) return `${log}sleep 30`;
+  if ("exit" in does) return `${log}printf '%s' ${shellWord(does.stderr ?? "")} >&2; exit ${does.exit}`;
+  if ("postBlock" in does) {
+    return log + print({
+      decision: "block",
+      reason: does.postBlock,
+      ...(does.context ? { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: does.context } } : {}),
+    });
+  }
+  if (does.answer === "ask-then-deny") {
+    return `${log}if [ -e ${shellWord(files.state)} ]; then ${decide("deny", { permissionDecisionReason: "asked once already" })}; ` +
+      `else : > ${shellWord(files.state)}; ${decide("ask")}; fi`;
+  }
+  return log + decide(does.answer, {
+    ...(does.reason ? { permissionDecisionReason: does.reason } : {}),
+    ...(does.rewrite ? { updatedInput: claudeInputOf(does.rewrite, root) } : {}),
+    ...(does.context ? { additionalContext: does.context } : {}),
+  });
+}
+
+/** The write resources a hooks probe may create, checked after it runs. */
+const WRITE_RESOURCES = ["/work/alpha.txt", "/work/beta.txt", "/work/.env"];
+
+/** Drive one action through the tool lists, the gate and its hooks. */
+async function runHooksProbe(
+  hooks: readonly ContractHook[],
+  action: ProposedAction,
+  options: HooksDriveOptions,
+): Promise<HooksOutcome> {
+  const root = mkdtempSync(join(tmpdir(), "contract-hooks-"));
+  const pluginRoot = mkdtempSync(join(tmpdir(), "contract-hook-plugin-"));
+  try {
+    if (action.kind === "read") seedWorkspace(root);
+    mkdirSync(join(root, "work"), { recursive: true });
+    const files = { runs: join(pluginRoot, "runs.jsonl"), state: join(pluginRoot, "asked") };
+    const { name, args, serverSlug } = toHooksCall(action);
+
+    let mcpCount = 0;
+    const mcpTools =
+      action.kind === "mcp"
+        ? [
+            tool(
+              async (_input, config) => {
+                mcpCount += 1;
+                if (!options.failTool) return "found three issues";
+                return new ToolMessage({ content: "the server failed", tool_call_id: config?.toolCall?.id ?? "call_1", name, status: "error" });
+              },
+              { name, description: `contract MCP tool ${name}`, schema: z.object({}).passthrough() },
+            ),
+          ]
+        : [];
+    const toolServerMap = serverSlug ? new Map([[name, serverSlug]]) : new Map<string, string>();
+
+    const groupsByPlugin = new Map<string, HookGroup[]>();
+    for (const hook of hooks) {
+      const plugin = hook.plugin ?? "safety";
+      const groups = groupsByPlugin.get(plugin) ?? [];
+      groups.push(create(HookGroupSchema, {
+        event: hook.event,
+        matcher: hook.matcher,
+        handlers: [create(HookHandlerSchema, {
+          command: hookCommand(hook.does, files, root),
+          timeoutSeconds: "hang" in hook.does ? 1 : 0,
+          condition: hook.condition ?? "",
+        })],
+      }));
+      groupsByPlugin.set(plugin, groups);
+    }
+    const sources: HookSourceGroups[] = [...groupsByPlugin].map(([plugin, groups]) => ({
+      source: { plugin, root: pluginRoot, data: pluginRoot, options: new Map() },
+      groups,
+    }));
+    const leased = options.hookLease;
+    const evaluator = new HookEvaluator({
+      set: HookSet.of(sources),
+      views: new NativeToolViews({
+        workspaceRoot: root,
+        toVirtualPath: (path) => normalizeWorkspacePathArg(path, root),
+        toolServerMap,
+        pluginServers: new Map(),
+        platformServerSlugs: new Set(),
+      }),
+      sessionId: "contract-session",
+      workspaceRoot: root,
+      permissionMode: options.autoApproveAll ? "bypassPermissions" : "default",
+      baseEnv: buildShellEnv({}),
+      homeDir: pluginRoot,
+      leases: leased
+        ? new Set([hookLeaseKey(leased.plugin, toHooksCall(leased.action).serverSlug, toHooksCall(leased.action).name)])
+        : new Set(),
+    });
+
+    const middleware: unknown[] = [];
+    if (options.lists) {
+      middleware.push(createToolScopeMiddleware({
+        scope: ToolScope.of('Agent "contract"', options.lists),
+        serverToolMap: new Map(serverSlug ? [[serverSlug, mcpTools]] : []),
+        platformServerSlugs: new Set(),
+        admitsConfinedRead: confinedReadAdmission(root),
+      }));
+    }
+    middleware.push(createApprovalGateMiddleware({
+      mcpDefault: mcpDefaultFor(action),
+      toolServerMap,
+      leasedCategories: options.categoryLease ? new Set([options.categoryLease]) : NO_LEASED_CATEGORIES,
+      hooks: evaluator,
+      globalBypass: options.autoApproveAll ?? false,
+      unattended: options.unattended ?? false,
+      unattendedSkips: new Map(),
+      ...(options.subAgent ? { subAgent: { type: options.subAgent, id: "contract-invocation" } } : {}),
+    }));
+
+    const backend = new LocalShellBackend({ rootDir: root, virtualMode: true });
+    await backend.initialize();
+    const agent = await createDeepAgent({
+      model: new ScriptedModel(() => ({ toolCalls: [{ name, args, id: "call_1" }], done: "done" })),
+      checkpointer: new MemorySaver() as never,
+      backend,
+      tools: mcpTools,
+      middleware,
+    } as unknown as Parameters<typeof createDeepAgent>[0]);
+
+    const config = { configurable: { thread_id: `contract-hooks-${threadSeq++}` }, recursionLimit: 50 };
+    await agent.invoke({ messages: [new HumanMessage({ content: "go" })] }, config);
+    const pending = readPendingInterrupts((await agent.getState(config)) as never);
+    const gated = pending.length > 0;
+    const decision = options.decision ?? "none";
+    if (gated && decision !== "none") {
+      const resume: Record<string, { action: string }> = {};
+      for (const p of pending) resume[p.interruptId] = { action: toResumeAction(decision) };
+      await agent.invoke(new Command({ resume }), config);
+    }
+
+    const messages = ((await agent.getState(config)) as { values: { messages?: BaseMessage[] } }).values.messages ?? [];
+    const answer = [...messages].reverse().find(
+      (m): m is ToolMessage => m instanceof ToolMessage && m.tool_call_id === "call_1",
+    );
+    const modelRead = answer === undefined ? "" : typeof answer.content === "string" ? answer.content : JSON.stringify(answer.content);
+    const refusedBy = modelRead.includes("is not available to this agent")
+      ? "lists" as const
+      : modelRead.includes("refused this call")
+        ? "hook" as const
+        : undefined;
+    const writtenPaths = WRITE_RESOURCES.filter((resource) => existsSync(join(root, resource)));
+    const shellRuns = existsSync(join(root, SHELL_RAN)) ? readFileSync(join(root, SHELL_RAN), "utf-8").trim().split("\n").length : 0;
+    const executionCount = action.kind === "shell"
+      ? shellRuns
+      : action.kind === "write"
+        ? writtenPaths.length
+        : action.kind === "mcp"
+          ? mcpCount
+          : modelRead.includes("seeded") ? 1 : 0;
+    const hookRuns = existsSync(files.runs)
+      ? readFileSync(files.runs, "utf-8").split("\n").filter((line) => line.trim() !== "").map((line) => JSON.parse(line) as Record<string, unknown>)
+      : [];
+
+    return {
+      executed: executionCount > 0,
+      gated,
+      executionCount,
+      policySource: gated ? pending[0]!.policySource : "",
+      ...(gated && pending[0]!.policyHook !== undefined ? { policyHook: pending[0]!.policyHook } : {}),
+      refusedBy,
+      modelRead,
+      hookRuns,
+      writtenPaths,
+    };
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(pluginRoot, { recursive: true, force: true });
+  }
+}
+
 export function createDeepAgentSubstrate(): GatewaySubstrate {
   return {
     name: "deep-agent",
@@ -288,6 +513,7 @@ export function createDeepAgentSubstrate(): GatewaySubstrate {
       appliesRunLifetimeLease: true,
       surfacesGatePolicySource: true,
       enforcesSubAgentLists: true,
+      runsHooks: true,
     },
 
     async authorize(action: ProposedAction, decision: GatewayDecision): Promise<GatewayOutcome> {
@@ -302,7 +528,12 @@ export function createDeepAgentSubstrate(): GatewaySubstrate {
       // arm the gate with that category lease and run the probe with no fresh
       // decision — so only the lease can clear it.
       const leasedTool = toDeepAgentTool(leased);
-      const scope = deriveLeaseScope(leasedTool.name, leasedTool.serverSlug);
+      const scope = deriveLeaseScope({
+        name: leasedTool.name,
+        mcpServerSlug: leasedTool.serverSlug,
+        approvalPolicySource: ApprovalPolicySource.UNSPECIFIED,
+        approvalPolicyHook: "",
+      });
       const leasedCategories =
         scope?.kind === "category" ? new Set([scope.category]) : NO_LEASED_CATEGORIES;
       return runProbe(probe, "none", leasedCategories);
@@ -314,6 +545,14 @@ export function createDeepAgentSubstrate(): GatewaySubstrate {
       options: ListsDriveOptions = {},
     ): Promise<ListsOutcome> {
       return runListsProbe(lists, action, options);
+    },
+
+    async authorizeUnderHooks(
+      hooks: readonly ContractHook[],
+      action: ProposedAction,
+      options: HooksDriveOptions = {},
+    ): Promise<HooksOutcome> {
+      return runHooksProbe(hooks, action, options);
     },
   };
 }

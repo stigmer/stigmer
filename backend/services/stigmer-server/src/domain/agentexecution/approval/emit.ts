@@ -165,6 +165,7 @@ export function buildRequestedEvent(
         // reconstructs the same PendingApproval the message-scan
         // cross-check does — keeps fromEvents == fromScan.
         approvalPolicySource: tc.approvalPolicySource,
+        approvalPolicyHook: tc.approvalPolicyHook,
       },
     },
   });

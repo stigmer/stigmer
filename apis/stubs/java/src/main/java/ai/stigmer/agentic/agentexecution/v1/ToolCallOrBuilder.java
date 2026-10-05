@@ -732,4 +732,26 @@ public interface ToolCallOrBuilder extends
    */
   com.google.protobuf.ByteString
       getFileChangeSetIdBytes();
+
+  /**
+   * <pre>
+   * Slug of the plugin whose hook decided this call; empty when no hook
+   * decided, or when the agent's own hooks block did.
+   * </pre>
+   *
+   * <code>string approval_policy_hook = 27 [json_name = "approvalPolicyHook"];</code>
+   * @return The approvalPolicyHook.
+   */
+  java.lang.String getApprovalPolicyHook();
+  /**
+   * <pre>
+   * Slug of the plugin whose hook decided this call; empty when no hook
+   * decided, or when the agent's own hooks block did.
+   * </pre>
+   *
+   * <code>string approval_policy_hook = 27 [json_name = "approvalPolicyHook"];</code>
+   * @return The bytes for approvalPolicyHook.
+   */
+  com.google.protobuf.ByteString
+      getApprovalPolicyHookBytes();
 }

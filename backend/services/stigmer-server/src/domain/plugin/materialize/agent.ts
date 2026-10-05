@@ -29,15 +29,27 @@
  * its installed name. Without a list, an agent or sub-agent may use every
  * tool its parent may.
  *
+ * The composed agent runs the plugin's own hooks: when the plugin carries
+ * tool-call hooks in Claude Code's format (the format the native engine
+ * runs), the agent's `hooks` references the plugin, with no version, as its
+ * skill references carry none, so the hooks follow the installed version. A
+ * Cursor-format plugin's agent gets no reference: no engine runs that
+ * format, and a reference would only make every turn refuse. A plugin that
+ * is only hooks still composes no agent; any agent switches its hooks on by
+ * referencing it.
+ *
  * The composed agent declares in `env` the union of its servers' variables,
- * OAuth-managed target variables excluded. An execution filters its
+ * OAuth-managed target variables excluded, and every `${user_config.KEY}`
+ * its hooks read. An execution filters its
  * environment to the AGENT's declared keys, and every client's session
  * start asks the user for the AGENT's declared keys, so an agent declaring
  * nothing over a server declaring `${API_TOKEN}` is never asked for the
  * token and fails at its first tool call. The declaration on the agent is
  * what routes the user's values to the execution; the declaration on the
  * server stays too (the connect flow and the runner's per-server filter
- * read it there). An OAuth target is excluded because its value is injected
+ * read it there). A hook's variable reaches its hook the same way, so a
+ * variable only a hook reads is declared too, as the plugin declared it,
+ * or as a required secret when the plugin declared none. An OAuth target is excluded because its value is injected
  * from a managed environment, never asked of the user. An author's
  * `agent.yaml` is taken as written: they chose what to declare.
  *
@@ -51,16 +63,21 @@
  */
 import { create } from "@bufbuild/protobuf";
 
+import { hookVariableReferences } from "@stigmer/plugin-package";
 import type { PluginPackage, PluginSubAgent } from "@stigmer/plugin-package";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import {
   AgentSpecSchema,
+  HookSourceSchema,
   McpServerUsageSchema,
   SubAgentSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type {
+  HookSource,
+  SubAgent,
+} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { PluginWarningSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -79,7 +96,11 @@ import {
 } from "./tool-lists.js";
 import { memberMetadata } from "./identity.js";
 import type { PluginIdentity } from "./identity.js";
-import { mcpServerSlugOf } from "./mcp-servers.js";
+import {
+  declaredVariables,
+  inferredSecret,
+  mcpServerSlugOf,
+} from "./mcp-servers.js";
 import type { PlannedMcpServer } from "./mcp-servers.js";
 import { skillSlugOf } from "./skills.js";
 
@@ -170,7 +191,8 @@ export function planAgent(
     instructions: main?.instructions ?? renderDefaultAgentInstructions(plugin),
     tools: [...(mainLists?.tools ?? [])],
     disallowedTools: [...(mainLists?.disallowedTools ?? [])],
-    env: toolVariables(mcpServers),
+    env: toolVariables(mcpServers, hookVariables(plugin)),
+    hooks: ownHooks(plugin, identity),
     skillRefs: [...skillSlugByName.values()].map((slug) =>
       create(ApiResourceReferenceSchema, {
         org: identity.org,
@@ -214,12 +236,14 @@ export function planAgent(
 
 /**
  * The variables the agent's tools need from the user: every server's
- * declarations, minus each server's OAuth target. Two servers declaring
- * one name share one declaration; the first server's wins, and the
- * library already refuses a plugin whose variables disagree about a name.
+ * declarations, minus each server's OAuth target, then each variable a
+ * hook reads that no server declared. Two servers declaring one name share
+ * one declaration; the first server's wins, and the library already
+ * refuses a plugin whose variables disagree about a name.
  */
 export function toolVariables(
   mcpServers: readonly PlannedMcpServer[],
+  hookVariables: ReadonlyMap<string, EnvVarDeclaration>,
 ): Record<string, EnvVarDeclaration> {
   const declarations: Record<string, EnvVarDeclaration> = {};
   for (const server of mcpServers) {
@@ -231,7 +255,53 @@ export function toolVariables(
       declarations[name] = declaration;
     }
   }
+  for (const [name, declaration] of hookVariables) {
+    if (!(name in declarations)) declarations[name] = declaration;
+  }
   return declarations;
+}
+
+/** Whether the agent runs the plugin's hooks: they exist and are in the format the native engine runs. */
+function runsOwnHooks(plugin: PluginPackage): boolean {
+  return plugin.hooks?.format === "claude-code";
+}
+
+/** The plugin itself as the composed agent's one hook source, unversioned; none when it runs no hooks. */
+function ownHooks(
+  plugin: PluginPackage,
+  identity: PluginIdentity,
+): HookSource[] {
+  if (!runsOwnHooks(plugin)) return [];
+  return [
+    create(HookSourceSchema, {
+      source: {
+        case: "plugin",
+        value: create(ApiResourceReferenceSchema, {
+          org: identity.org,
+          kind: ApiResourceKind.plugin,
+          slug: identity.slug,
+        }),
+      },
+    }),
+  ];
+}
+
+/**
+ * Every variable the plugin's hooks read, as the plugin declared it, or as
+ * a required secret when it declared none; empty when the agent does not
+ * run the plugin's hooks.
+ */
+function hookVariables(
+  plugin: PluginPackage,
+): ReadonlyMap<string, EnvVarDeclaration> {
+  if (plugin.hooks === undefined || !runsOwnHooks(plugin)) return new Map();
+  const declared = declaredVariables(plugin);
+  return new Map(
+    hookVariableReferences(plugin.hooks).map((name) => [
+      name,
+      declared.get(name) ?? inferredSecret(),
+    ]),
+  );
 }
 
 /** The checked lists of one agent; `undefined` when its `tools` list emptied. */

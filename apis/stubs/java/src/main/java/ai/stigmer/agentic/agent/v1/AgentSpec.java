@@ -42,6 +42,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.LazyStringArrayList.emptyList();
     disallowedTools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    hooks_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -664,6 +665,97 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     return disallowedTools_.getByteString(index);
   }
 
+  public static final int HOOKS_FIELD_NUMBER = 12;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.agent.v1.HookSource> hooks_;
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.agent.v1.HookSource> getHooksList() {
+    return hooks_;
+  }
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.agent.v1.HookSourceOrBuilder> 
+      getHooksOrBuilderList() {
+    return hooks_;
+  }
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  @java.lang.Override
+  public int getHooksCount() {
+    return hooks_.size();
+  }
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.HookSource getHooks(int index) {
+    return hooks_.get(index);
+  }
+  /**
+   * <pre>
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.HookSourceOrBuilder getHooksOrBuilder(
+      int index) {
+    return hooks_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -707,6 +799,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     for (int i = 0; i < disallowedTools_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 11, disallowedTools_.getRaw(i));
+    }
+    for (int i = 0; i < hooks_.size(); i++) {
+      output.writeMessage(12, hooks_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -779,6 +874,15 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       size += dataSize;
       size += 1 * getDisallowedToolsList().size();
     }
+
+        {
+          final int count = hooks_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(hooks_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -812,6 +916,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         .equals(other.getToolsList())) return false;
     if (!getDisallowedToolsList()
         .equals(other.getDisallowedToolsList())) return false;
+    if (!getHooksList()
+        .equals(other.getHooksList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -852,6 +958,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     if (getDisallowedToolsCount() > 0) {
       hash = (37 * hash) + DISALLOWED_TOOLS_FIELD_NUMBER;
       hash = (53 * hash) + getDisallowedToolsList().hashCode();
+    }
+    if (getHooksCount() > 0) {
+      hash = (37 * hash) + HOOKS_FIELD_NUMBER;
+      hash = (53 * hash) + getHooksList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1039,6 +1149,13 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
           com.google.protobuf.LazyStringArrayList.emptyList();
       disallowedTools_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      if (hooksBuilder_ == null) {
+        hooks_ = java.util.Collections.emptyList();
+      } else {
+        hooks_ = null;
+        hooksBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000200);
       return this;
     }
 
@@ -1098,6 +1215,15 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         result.subAgents_ = subAgents_;
       } else {
         result.subAgents_ = subAgentsBuilder_.build();
+      }
+      if (hooksBuilder_ == null) {
+        if (((bitField0_ & 0x00000200) != 0)) {
+          hooks_ = java.util.Collections.unmodifiableList(hooks_);
+          bitField0_ = (bitField0_ & ~0x00000200);
+        }
+        result.hooks_ = hooks_;
+      } else {
+        result.hooks_ = hooksBuilder_.build();
       }
     }
 
@@ -1253,6 +1379,32 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         }
         onChanged();
       }
+      if (hooksBuilder_ == null) {
+        if (!other.hooks_.isEmpty()) {
+          if (hooks_.isEmpty()) {
+            hooks_ = other.hooks_;
+            bitField0_ = (bitField0_ & ~0x00000200);
+          } else {
+            ensureHooksIsMutable();
+            hooks_.addAll(other.hooks_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.hooks_.isEmpty()) {
+          if (hooksBuilder_.isEmpty()) {
+            hooksBuilder_.dispose();
+            hooksBuilder_ = null;
+            hooks_ = other.hooks_;
+            bitField0_ = (bitField0_ & ~0x00000200);
+            hooksBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetHooksFieldBuilder() : null;
+          } else {
+            hooksBuilder_.addAllMessages(other.hooks_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1352,6 +1504,19 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
               disallowedTools_.add(input.readStringRequireUtf8());
               break;
             } // case 90
+            case 98: {
+              ai.stigmer.agentic.agent.v1.HookSource m =
+                  input.readMessage(
+                      ai.stigmer.agentic.agent.v1.HookSource.parser(),
+                      extensionRegistry);
+              if (hooksBuilder_ == null) {
+                ensureHooksIsMutable();
+                hooks_.add(m);
+              } else {
+                hooksBuilder_.addMessage(m);
+              }
+              break;
+            } // case 98
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3226,6 +3391,426 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       bitField0_ |= 0x00000100;
       onChanged();
       return this;
+    }
+
+    private java.util.List<ai.stigmer.agentic.agent.v1.HookSource> hooks_ =
+      java.util.Collections.emptyList();
+    private void ensureHooksIsMutable() {
+      if (!((bitField0_ & 0x00000200) != 0)) {
+        hooks_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.HookSource>(hooks_);
+        bitField0_ |= 0x00000200;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agent.v1.HookSource, ai.stigmer.agentic.agent.v1.HookSource.Builder, ai.stigmer.agentic.agent.v1.HookSourceOrBuilder> hooksBuilder_;
+
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agent.v1.HookSource> getHooksList() {
+      if (hooksBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(hooks_);
+      } else {
+        return hooksBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public int getHooksCount() {
+      if (hooksBuilder_ == null) {
+        return hooks_.size();
+      } else {
+        return hooksBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.HookSource getHooks(int index) {
+      if (hooksBuilder_ == null) {
+        return hooks_.get(index);
+      } else {
+        return hooksBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder setHooks(
+        int index, ai.stigmer.agentic.agent.v1.HookSource value) {
+      if (hooksBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureHooksIsMutable();
+        hooks_.set(index, value);
+        onChanged();
+      } else {
+        hooksBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder setHooks(
+        int index, ai.stigmer.agentic.agent.v1.HookSource.Builder builderForValue) {
+      if (hooksBuilder_ == null) {
+        ensureHooksIsMutable();
+        hooks_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        hooksBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder addHooks(ai.stigmer.agentic.agent.v1.HookSource value) {
+      if (hooksBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureHooksIsMutable();
+        hooks_.add(value);
+        onChanged();
+      } else {
+        hooksBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder addHooks(
+        int index, ai.stigmer.agentic.agent.v1.HookSource value) {
+      if (hooksBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureHooksIsMutable();
+        hooks_.add(index, value);
+        onChanged();
+      } else {
+        hooksBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder addHooks(
+        ai.stigmer.agentic.agent.v1.HookSource.Builder builderForValue) {
+      if (hooksBuilder_ == null) {
+        ensureHooksIsMutable();
+        hooks_.add(builderForValue.build());
+        onChanged();
+      } else {
+        hooksBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder addHooks(
+        int index, ai.stigmer.agentic.agent.v1.HookSource.Builder builderForValue) {
+      if (hooksBuilder_ == null) {
+        ensureHooksIsMutable();
+        hooks_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        hooksBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder addAllHooks(
+        java.lang.Iterable<? extends ai.stigmer.agentic.agent.v1.HookSource> values) {
+      if (hooksBuilder_ == null) {
+        ensureHooksIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, hooks_);
+        onChanged();
+      } else {
+        hooksBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder clearHooks() {
+      if (hooksBuilder_ == null) {
+        hooks_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000200);
+        onChanged();
+      } else {
+        hooksBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public Builder removeHooks(int index) {
+      if (hooksBuilder_ == null) {
+        ensureHooksIsMutable();
+        hooks_.remove(index);
+        onChanged();
+      } else {
+        hooksBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.HookSource.Builder getHooksBuilder(
+        int index) {
+      return internalGetHooksFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.HookSourceOrBuilder getHooksOrBuilder(
+        int index) {
+      if (hooksBuilder_ == null) {
+        return hooks_.get(index);  } else {
+        return hooksBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.agent.v1.HookSourceOrBuilder> 
+         getHooksOrBuilderList() {
+      if (hooksBuilder_ != null) {
+        return hooksBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(hooks_);
+      }
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.HookSource.Builder addHooksBuilder() {
+      return internalGetHooksFieldBuilder().addBuilder(
+          ai.stigmer.agentic.agent.v1.HookSource.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.HookSource.Builder addHooksBuilder(
+        int index) {
+      return internalGetHooksFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.agent.v1.HookSource.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     *
+     * Each entry is a plugin whose hooks apply, or a hooks block written in the
+     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * without the approval it would otherwise need. The native engine runs hooks
+     * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+     * hooks.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.HookSource hooks = 12 [json_name = "hooks"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agent.v1.HookSource.Builder> 
+         getHooksBuilderList() {
+      return internalGetHooksFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agent.v1.HookSource, ai.stigmer.agentic.agent.v1.HookSource.Builder, ai.stigmer.agentic.agent.v1.HookSourceOrBuilder> 
+        internalGetHooksFieldBuilder() {
+      if (hooksBuilder_ == null) {
+        hooksBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.agent.v1.HookSource, ai.stigmer.agentic.agent.v1.HookSource.Builder, ai.stigmer.agentic.agent.v1.HookSourceOrBuilder>(
+                hooks_,
+                ((bitField0_ & 0x00000200) != 0),
+                getParentForChildren(),
+                isClean());
+        hooks_ = null;
+      }
+      return hooksBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentSpec)

@@ -24,14 +24,16 @@
  * deep-agent path adopted the same cache (issue #337). Orchestration —
  * which skills to mount, prompt metadata, degradation logging — stays
  * with each harness; only the per-skill-directory mechanics live here.
+ * The archive's transport, the rebuild and the file modes are the shared
+ * archive mount's (`archive-mount.ts`), one copy for skills and plugins.
  */
 
-import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
-import { join, dirname, extname, resolve } from "node:path";
-import { ConnectError, Code } from "@connectrpc/connect";
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { extractZipFileEntries } from "./zip-extract.js";
+import { downloadArchive, resetDirectory, writeArchiveEntries } from "./archive-mount.js";
 
 /** Subdirectory of the platform dir where skill mounts live. */
 export const SKILLS_SUBDIR = "skills";
@@ -56,14 +58,6 @@ export interface MountMarker {
 }
 
 /**
- * File extensions written with the executable bit set. The ZIP layer is
- * deliberately mode-blind (path + bytes only, see zip-extract.ts), so
- * extension is the only signal available for `./script.sh`-style
- * invocation to work out of the mount.
- */
-const SCRIPT_EXTENSIONS = new Set([".sh", ".py", ".js", ".ts", ".rb", ".pl"]);
-
-/**
  * Whether the mount at `skillDir` already holds this version's content.
  *
  * Fresh means: the marker's hash matches AND the mount isn't a degraded
@@ -85,13 +79,9 @@ export async function mountIsFresh(
 }
 
 /**
- * Download a skill artifact's ZIP bytes, transfer lane first (#675).
- *
- * The URL lane (getArtifactDownloadUrl → HTTP GET) carries any valid skill
- * size; the unary getArtifact response is capped by the server's 10MB gRPC
- * message limit. Servers that predate the lane (and cloud until its sibling
- * lands) answer the mint with UNIMPLEMENTED — those fall back to the unary
- * path, which behaves exactly as before for ≤10MB artifacts.
+ * Download a skill artifact's ZIP bytes over the shared archive transport
+ * (`archive-mount.ts` `downloadArchive`: the URL lane first, the unary RPC
+ * against a server that predates it).
  *
  * Runs only on a mount-cache miss (the hash-keyed marker above) — a hit
  * skips the transfer entirely, whichever lane would have carried it.
@@ -100,28 +90,13 @@ export async function downloadArtifact(
   client: StigmerClient,
   artifactStorageKey: string,
 ): Promise<Uint8Array | undefined> {
-  let minted;
-  try {
-    minted = await client.getSkillArtifactDownloadUrl(artifactStorageKey);
-  } catch (err) {
-    if (err instanceof ConnectError && err.code === Code.Unimplemented) {
-      const resp = await client.getSkillArtifact(artifactStorageKey);
-      return resp.artifact && resp.artifact.length > 0 ? resp.artifact : undefined;
-    }
-    throw err;
-  }
-
-  const resp = await fetch(minted.url);
-  if (!resp.ok) {
-    throw new Error(`artifact fetch failed: HTTP ${resp.status} from ${minted.url}`);
-  }
-  const bytes = new Uint8Array(await resp.arrayBuffer());
-  if (minted.sizeBytes > 0n && BigInt(bytes.length) !== minted.sizeBytes) {
-    throw new Error(
-      `artifact fetch truncated: got ${bytes.length} bytes, expected ${minted.sizeBytes}`,
-    );
-  }
-  return bytes.length > 0 ? bytes : undefined;
+  return downloadArchive(
+    {
+      mintDownloadUrl: (key) => client.getSkillArtifactDownloadUrl(key),
+      fetchUnary: (key) => client.getSkillArtifact(key),
+    },
+    artifactStorageKey,
+  );
 }
 
 /**
@@ -137,38 +112,23 @@ export async function downloadArtifact(
  * excluded from extraction so the mount's ownership of those two files is
  * unconditional.
  *
- * Every extracted entry must resolve inside `skillDir`. The server already
- * rejects traversal at push (google/safearchive), but this runner-side
- * check is kept as defense-in-depth: it is the guard the deep-agent path
- * used to get from LocalWorkspaceBackend's platform-path routing, preserved
- * here when skill writes moved to direct fs.
+ * Every extracted entry must resolve inside `skillDir` (the archive
+ * mount's escape check): the server already rejects traversal at push, and
+ * this is the runner's defence in depth.
  */
 export async function writeSkillMount(
   skill: Skill,
   skillDir: string,
   artifactBytes: Uint8Array | undefined,
 ): Promise<void> {
-  await rm(skillDir, { recursive: true, force: true });
-  await mkdir(skillDir, { recursive: true });
+  await resetDirectory(skillDir);
 
   await writeFile(join(skillDir, "SKILL.md"), skill.spec!.skillMd, "utf-8");
 
   const artifactMounted = artifactBytes !== undefined && artifactBytes.length > 0;
   if (artifactMounted) {
-    const normalizedSkillDir = resolve(skillDir);
     const entries = await extractZipFileEntries(artifactBytes, { exclude: ["SKILL.md", MOUNT_MARKER_FILE] });
-    for (const entry of entries) {
-      const filePath = resolve(normalizedSkillDir, entry.path);
-      if (filePath !== normalizedSkillDir && !filePath.startsWith(normalizedSkillDir + "/")) {
-        throw new Error(
-          `skill artifact entry escapes its mount directory: '${entry.path}'`,
-        );
-      }
-      await mkdir(dirname(filePath), { recursive: true });
-      await writeFile(filePath, entry.content, {
-        mode: SCRIPT_EXTENSIONS.has(extname(entry.path)) ? 0o755 : 0o644,
-      });
-    }
+    await writeArchiveEntries(skillDir, entries, "skill artifact");
   }
 
   const versionHash = skill.status?.versionHash ?? "";

@@ -58,6 +58,7 @@ const noLeases: ActiveLeases = {
   global: false,
   categories: new Set(),
   servers: new Set(),
+  hooks: new Set(),
 };
 
 describe("discoverChannelMessaging (the never-throw failure posture)", () => {

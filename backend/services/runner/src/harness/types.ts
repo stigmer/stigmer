@@ -83,6 +83,9 @@ import type { ChannelMessagingInfo } from "../shared/channel-attachment.js";
 import type { ActiveLeases, McpApprovalDefault } from "../shared/approval-policy.js";
 import type { ToolScope } from "../shared/tool-lists.js";
 import type { SkillMetadata } from "../shared/skill-resolver.js";
+import type { MountedPlugin } from "../shared/plugin-mount.js";
+import type { PluginServerName } from "../shared/hooks/tool-view.js";
+import type { HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { ResolvedAttachment } from "../shared/attachment-resolver.js";
 import type { NotViewableEntry, VisionImage } from "../shared/attachment-vision.js";
 import type { EffectiveServiceTier } from "../shared/service-tier.js";
@@ -233,6 +236,27 @@ export interface TurnSkills {
   readonly bySubAgent: ReadonlyMap<string, readonly SkillMetadata[]>;
 }
 
+/** One source of the agent's hooks: a mounted plugin and its recorded groups, or the agent's own block. */
+export interface TurnHookSource {
+  /** The plugin, mounted and verified; `null` for the hooks block written in the agent. */
+  readonly plugin: MountedPlugin | null;
+  readonly groups: readonly HookGroup[];
+}
+
+/**
+ * The agent's hooks (phase 5a), resolved for a harness whose
+ * `capabilities.runsHooks` is true: each source in the agent's order, every
+ * referenced plugin mounted from its verified archive, and the names Claude
+ * Code gives the servers a plugin brought. Empty for an agent with no hooks.
+ * What a hook's values are (the run's, through the agent shell's filter) is
+ * the harness's to read: the shell's environment is the harness's.
+ */
+export interface TurnHooks {
+  readonly sources: readonly TurnHookSource[];
+  /** By server slug; filled only when the agent has hooks. */
+  readonly pluginServers: ReadonlyMap<string, PluginServerName>;
+}
+
 /** The turn's explicit inputs (phase 5b), resolved into the workspace with the vision facts derived once. */
 export interface TurnAttachments {
   readonly results: readonly ResolvedAttachment[];
@@ -320,6 +344,7 @@ export interface TurnInput extends NormalizedActivityInput {
   readonly workspace: TurnWorkspace;
   readonly mcp: TurnMcp;
   readonly skills: TurnSkills;
+  readonly hooks: TurnHooks;
   readonly attachments: TurnAttachments;
   /** Approved whole-file writes the runtime applied itself this turn (exact-apply); the harness issues no grant for them. */
   readonly appliedToolCallIds: ReadonlySet<string>;

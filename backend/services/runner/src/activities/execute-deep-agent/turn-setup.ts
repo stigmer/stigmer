@@ -44,7 +44,7 @@ import type { Command } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
 import { providerStrategy } from "langchain";
 import { transformJSONSchema } from "@anthropic-ai/sdk/lib/transform-json-schema";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
@@ -91,6 +91,7 @@ import { buildShellEnv, shellRunValues } from "./shell-env.js";
 import { subAgentScope, transformAndCompileSubagents, type SubagentScopeBase } from "./subagent-transformer.js";
 import { ENGINE_TOOL } from "./engine-tools.js";
 import { createTodoListMiddleware } from "./todo-list.js";
+import { buildHookEvaluator } from "./hooks-setup.js";
 
 /**
  * The runner config this harness reads per turn, as a named slice
@@ -101,7 +102,7 @@ import { createTodoListMiddleware } from "./todo-list.js";
  */
 export type DeepAgentAdapterConfig = Pick<
   Config,
-  "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "mode"
+  "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "mode" | "cursorStreamStallTimeoutMs"
 >;
 
 /**
@@ -143,8 +144,10 @@ export interface DeepAgentGateState {
   readonly globalBypass: boolean;
   /** Unattended approval mode: the gate auto-skips instead of interrupting. */
   readonly unattended: boolean;
-  /** Tool-call ids the gate auto-skipped this turn; written by the gate, read by `reconcileUnattendedSkips`. */
-  readonly unattendedSkips: Set<string>;
+  /** Tool-call ids the gate auto-skipped this turn, each with the hook whose ask it was (`null`: the default's); written by the gate, read by `reconcileUnattendedSkips`. */
+  readonly unattendedSkips: Map<string, string | null>;
+  /** The calls a person skipped or rejected among the decisions this turn resumes with. */
+  readonly refusedByPerson?: ReadonlyMap<string, "skip" | "reject">;
 }
 
 /** The engine this turn runs on and everything the stream and the settle read from it. */
@@ -268,8 +271,19 @@ export function readGateState(input: TurnInput, tools: DeepAgentTools): DeepAgen
     leasedCategories: input.mcp.leases.categories,
     globalBypass: input.mcp.leases.global,
     unattended: isUnattendedApprovalMode(input.execution),
-    unattendedSkips: new Set<string>(),
+    unattendedSkips: new Map<string, string | null>(),
+    refusedByPerson: refusalsOf(input.approvalDecisions),
   };
+}
+
+/** The skip and reject decisions among a turn's resumed approvals, by tool-call id. */
+export function refusalsOf(decisions: ReadonlyMap<string, ApprovalAction>): ReadonlyMap<string, "skip" | "reject"> {
+  const refused = new Map<string, "skip" | "reject">();
+  for (const [id, action] of decisions) {
+    if (action === ApprovalAction.SKIP) refused.set(id, "skip");
+    else if (action === ApprovalAction.REJECT) refused.set(id, "reject");
+  }
+  return refused;
 }
 
 /**
@@ -439,14 +453,20 @@ export async function buildEngine(
     admitsConfinedRead: confinedReadAdmission(primaryDir),
   };
 
+  // The agent's hooks, run inside the gate before the default
+  // (`hooks-setup.ts`); null when the agent has none. A hook that cannot run
+  // as written refuses the turn here (`HookSetupError`).
+  const hooks = await buildHookEvaluator(input, sink, tools, config.cursorStreamStallTimeoutMs);
+
   // The approval gate config is the single source of truth for HITL gating,
   // built once and inherited verbatim by sub-agents. Null under the global
-  // pre-arm, where the gate is inert. Capture mode: file edits flow (tracked
-  // to the git diff, ignored into CAS on THIS gate); secret-like paths are
-  // hard-blocked; shell/MCP stay gated. The CAS arm additionally
-  // requires storage to persist its blobs.
+  // pre-arm when the agent has no hooks, where the gate is inert; with hooks
+  // it is installed there too and runs only them (`approval-gate.ts`).
+  // Capture mode: file edits flow (tracked to the git diff, ignored into CAS
+  // on THIS gate); secret-like paths are hard-blocked; shell/MCP stay gated.
+  // The CAS arm additionally requires storage to persist its blobs.
   const captureMode = input.workspace.captureMode;
-  const approvalGateConfig: ApprovalGateConfig | null = !gate.globalBypass
+  const approvalGateConfig: ApprovalGateConfig | null = !gate.globalBypass || hooks !== null
     ? {
         mcpDefault: gate.mcpDefault,
         leasedCategories: gate.leasedCategories,
@@ -463,6 +483,9 @@ export async function buildEngine(
         captureDeleteBefore: (rawPath: string) => workspace.casObserver.recordBefore(rawPath),
         unattended: gate.unattended,
         unattendedSkips: gate.unattendedSkips,
+        ...(gate.refusedByPerson !== undefined ? { refusedByPerson: gate.refusedByPerson } : {}),
+        hooks,
+        globalBypass: gate.globalBypass,
       }
     : null;
 

@@ -4,8 +4,12 @@ package ai.stigmer.agentic.plugin.v1;
 
 import "buf/validate/validate.proto";
 
-// HookConfig is a plugin's tool-call hooks, in the format the plugin wrote
-// them.
+// HookConfig is a set of tool-call hooks: commands that run before or after an
+// agent's tool calls and can refuse a call, ask a person first, or let it run.
+//
+// A plugin's hooks are recorded here at install; an agent can also carry a
+// block of its own (AgentSpec.hooks). The native engine runs hooks in Claude
+// Code's format, with PreToolUse and PostToolUse events.
 //
 // @internal
 // Derived at push from the plugin's hooks files (hooks/hooks.json and any
@@ -13,14 +17,15 @@ import "buf/validate/validate.proto";
 // the events and handlers Stigmer reads (tool-call events, command handlers
 // that can decide a call); every event, handler type and field it does not
 // read is named in PluginStatus.warnings instead, so a reader needs no table
-// of its own. No engine runs them yet. Placeholders such as
-// ${CLAUDE_PLUGIN_ROOT} are kept verbatim; the runner substitutes them when it
-// mounts the plugin.
+// of its own. Placeholders such as ${CLAUDE_PLUGIN_ROOT} and
+// ${user_config.KEY} are kept verbatim; the runner substitutes them when it
+// runs a hook. Cursor-format hooks are recorded, and no engine runs them yet.
 message HookConfig {
   // The format the hooks are written in, which decides their input and answer.
+  // An agent's own block may leave it unset; Claude Code's format is assumed.
   HookFormat format = 1;
 
-  // Hook groups, in the order the plugin declares them.
+  // Hook groups, in the order they are declared.
   repeated HookGroup groups = 2;
 }
 
@@ -46,12 +51,19 @@ enum HookFormat {
 // HookGroup is one event, an optional matcher, and the handlers that run when
 // both match.
 message HookGroup {
-  // The event the handlers run on, spelled as the format spells it, e.g.
-  // "PreToolUse" or "beforeShellExecution".
+  // The event the handlers run on: "PreToolUse" before a call, which can
+  // refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
+  // which can add to what the agent reads.
+  //
+  // @internal
+  // Spelled as the format spells it; a Cursor plugin's events, such as
+  // "beforeShellExecution", are recorded verbatim.
   string event = 1 [(buf.validate.field).string.min_len = 1];
 
-  // Which calls the handlers run for, as written by the plugin; empty or "*"
-  // matches every call.
+  // Which tools the handlers run for: a name such as "Bash", a list such as
+  // "Write|Edit", or a regular expression such as "mcp__github__.*". Empty or
+  // "*" matches every tool. A plugin's own MCP server's tools are named
+  // mcp__plugin_<plugin>_<server>__<tool>, as in Claude Code.
   //
   // @internal
   // Kept verbatim: an exact list of names separated by "|" or ",", or an
@@ -65,16 +77,21 @@ message HookGroup {
 }
 
 // HookHandler is one command a hook runs.
+//
+// The command reads the call as JSON on stdin and answers as Claude Code's
+// hooks do: exit code 2 refuses the call with stderr as the reason, and JSON on
+// stdout can allow, ask or deny with a reason.
 message HookHandler {
-  // The command to run, as written by the plugin.
+  // The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
+  // names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
   string command = 1 [(buf.validate.field).string.min_len = 1];
 
   // Arguments for the command's exec form; when set, the command runs without
   // a shell.
   repeated string args = 2;
 
-  // Seconds the command may run before it is stopped; zero means the format's
-  // default.
+  // Seconds the command may run before it is stopped; zero means the default,
+  // 600 seconds. A command that is stopped makes no decision.
   int32 timeout_seconds = 3 [(buf.validate.field).int32.gte = 0];
 
   // A permission rule that narrows when the handler runs, e.g.
@@ -87,10 +104,11 @@ message HookHandler {
   string condition = 4;
 
   // Whether a crash, timeout or missing answer blocks the call instead of
-  // letting it through.
+  // letting it through. Cursor's format only.
   //
   // @internal
   // Cursor's failClosed. Claude Code hooks fail open on a non-blocking error,
-  // so a Claude Code handler never sets it.
+  // so a Claude Code handler never sets it, and apply refuses an agent's own
+  // block that does.
   bool fail_closed = 5;
 }

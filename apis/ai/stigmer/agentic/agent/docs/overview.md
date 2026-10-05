@@ -1,7 +1,9 @@
 An Agent defines what an AI assistant knows and can do. It declares the agent's
 instructions (system prompt), which MCP servers it can use, which Skills it has,
 optional Sub-Agents for delegation, and the tools it may and may never use, in
-Claude Code's names (`tools` and `disallowed_tools`, deny applied first).
+Claude Code's names (`tools` and `disallowed_tools`, deny applied first). Its
+`hooks`, a plugin's or a block written in the agent in Claude Code's format, can
+refuse a tool call, ask a person first, or let it run.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -21,4 +23,8 @@ spec:
       slug: code-review-best-practices
   tools: [Read, Grep, Glob, mcp__github]
   disallowed_tools: [mcp__github__merge_pull_request]
+  hooks:
+    - plugin:
+        kind: plugin
+        slug: safety
 ```

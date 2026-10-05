@@ -101,12 +101,14 @@ export function planMaterialization(
     );
   }
   const tag = versionTag(plugin.version, warnings);
-  if (plugin.hooks !== undefined) {
+  if (plugin.hooks?.format === "cursor") {
+    // Claude Code-format hooks run on the native engine; Cursor's format
+    // has no engine that runs it yet, so its hooks are only recorded.
     warnings.push(
       create(PluginWarningSchema, {
         kind: SERVER_WARNING_KINDS.hooksNotRunYet,
         message:
-          "the plugin's tool-call hooks are recorded but not run yet: this version of Stigmer runs no plugin hook, " +
+          "the plugin's tool-call hooks are in Cursor's format, which Stigmer records but does not run yet, " +
           "so none of them checks a call",
       }),
     );

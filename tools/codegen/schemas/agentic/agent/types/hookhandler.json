@@ -1,0 +1,64 @@
+{
+  "name": "HookHandler",
+  "description": "HookHandler is one command a hook runs.\n\n The command reads the call as JSON on stdin and answers as Claude Code's\n hooks do: exit code 2 refuses the call with stderr as the reason, and JSON on\n stdout can allow, ask or deny with a reason.",
+  "protoType": "ai.stigmer.agentic.plugin.v1.HookHandler",
+  "protoFile": "apis/ai/stigmer/agentic/plugin/v1/hooks.proto",
+  "fields": [
+    {
+      "name": "Command",
+      "jsonName": "command",
+      "protoField": "command",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}\n names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Args",
+      "jsonName": "args",
+      "protoField": "args",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Arguments for the command's exec form; when set, the command runs without\n a shell.",
+      "required": false
+    },
+    {
+      "name": "TimeoutSeconds",
+      "jsonName": "timeoutSeconds",
+      "protoField": "timeout_seconds",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Seconds the command may run before it is stopped; zero means the default,\n 600 seconds. A command that is stopped makes no decision.",
+      "required": false
+    },
+    {
+      "name": "Condition",
+      "jsonName": "condition",
+      "protoField": "condition",
+      "type": {
+        "kind": "string"
+      },
+      "description": "A permission rule that narrows when the handler runs, e.g.\n \"Bash(git push *)\"; empty means whenever the group matches.",
+      "required": false
+    },
+    {
+      "name": "FailClosed",
+      "jsonName": "failClosed",
+      "protoField": "fail_closed",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether a crash, timeout or missing answer blocks the call instead of\n letting it through. Cursor's format only.",
+      "required": false
+    }
+  ]
+}

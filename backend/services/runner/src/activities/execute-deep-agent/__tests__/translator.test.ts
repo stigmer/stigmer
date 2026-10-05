@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { DeepAgentTranslator, normalize, usageOf } from "../translator.js";
 import { TOOL_REFUSED_EVENT } from "../../../middleware/tool-scope.js";
+import { TOOL_POLICY_EVENT } from "../../../middleware/approval-gate.js";
 import {
   resetSeq,
   makeProtocolEvent,
@@ -493,7 +494,7 @@ describe("V3ProtocolNormalizer", () => {
         leasedCategories: new Set(),
         globalBypass: false,
         unattended: false,
-        unattendedSkips: new Set(),
+        unattendedSkips: new Map(),
       });
       t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: TASK_NS }));
       const [root] = t.translate(makeToolStarted("root-grep", "grep", {}));
@@ -513,7 +514,7 @@ describe("V3ProtocolNormalizer", () => {
       leasedCategories: new Set<never>(),
       globalBypass: false,
       unattended: false,
-      unattendedSkips: new Set<string>(),
+      unattendedSkips: new Map<string, string | null>(),
     };
     const refused = (callId: string, name: string, namespace: string[] = []) =>
       makeProtocolEvent(
@@ -549,6 +550,59 @@ describe("V3ProtocolNormalizer", () => {
     it("ignores any other custom event", () => {
       expect(normalize(makeProtocolEvent("custom", { name: "someone.else", tool_call_id: "c" }))).toEqual([]);
       expect(normalize(makeProtocolEvent("custom", { payload: 1 }))).toEqual([]);
+    });
+
+    it("a hook's refusal keeps the hook's provenance at the root and drops it inside a sub-agent", () => {
+      const byHook = (callId: string, namespace: string[] = []) =>
+        makeProtocolEvent(
+          "custom",
+          { name: TOOL_REFUSED_EVENT, tool_call_id: callId, tool_name: "execute", input: {}, message: "no", policy_source: "hook", policy_hook: "safety" },
+          { namespace },
+        );
+      const t = new DeepAgentTranslator(GATE);
+      expect(t.translate(byHook("c3"))[0]).toEqual({
+        kind: "tool_started",
+        callId: "c3",
+        name: "execute",
+        input: {},
+        mcpServerSlug: "",
+        provenance: "hook",
+        policyHook: "safety",
+      });
+      t.translate(makeToolStarted("task-2", "task", { subagent_type: "helper" }, { namespace: ["tools:pregel-2"] }));
+      const [started] = t.translate(byHook("c4", ["tools:pregel-2"]));
+      expect(started).toEqual({ kind: "tool_started", callId: "c4", name: "execute", input: {}, mcpServerSlug: "", subAgentId: "task-2" });
+    });
+  });
+
+  // ── A hook's decision on a call that runs (middleware/approval-gate.ts) ──
+
+  describe("a hook's decision, from the gate's tool_policy custom event", () => {
+    const policy = (callId: string, namespace: string[] = [], data: Record<string, unknown> = {}) =>
+      makeProtocolEvent(
+        "custom",
+        { name: TOOL_POLICY_EVENT, tool_call_id: callId, policy_source: "hook", policy_hook: "safety", ...data },
+        { namespace },
+      );
+
+    it("becomes a tool_policy event at the root", () => {
+      expect(new DeepAgentTranslator(null).translate(policy("c1"))).toEqual([
+        { kind: "tool_policy", callId: "c1", provenance: "hook", policyHook: "safety" },
+      ]);
+    });
+
+    it("is not reported inside a sub-agent, whose rows carry no provenance", () => {
+      const t = new DeepAgentTranslator(null);
+      t.translate(makeToolStarted("task-3", "task", { subagent_type: "helper" }, { namespace: ["tools:pregel-3"] }));
+      expect(t.translate(policy("c2", ["tools:pregel-3"]))).toEqual([]);
+    });
+
+    it("ignores a custom event that carries no data", () => {
+      expect(normalize(makeProtocolEvent("custom", undefined as never))).toEqual([]);
+    });
+
+    it("is ignored without a source", () => {
+      expect(normalize(policy("c5", [], { policy_source: undefined }))).toEqual([]);
     });
   });
 });

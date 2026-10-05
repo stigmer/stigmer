@@ -14,21 +14,26 @@ export const file_ai_stigmer_agentic_plugin_v1_hooks: GenFile = /*@__PURE__*/
   fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL2hvb2tzLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxIn8KCkhvb2tDb25maWcSOAoGZm9ybWF0GAEgASgOMiguYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5Ib29rRm9ybWF0EjcKBmdyb3VwcxgCIAMoCzInLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuSG9va0dyb3VwInEKCUhvb2tHcm91cBIWCgVldmVudBgBIAEoCUIHukgEcgIQARIPCgdtYXRjaGVyGAIgASgJEjsKCGhhbmRsZXJzGAMgAygLMikuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5Ib29rSGFuZGxlciJ/CgtIb29rSGFuZGxlchIYCgdjb21tYW5kGAEgASgJQge6SARyAhABEgwKBGFyZ3MYAiADKAkSIAoPdGltZW91dF9zZWNvbmRzGAMgASgFQge6SAQaAigAEhEKCWNvbmRpdGlvbhgEIAEoCRITCgtmYWlsX2Nsb3NlZBgFIAEoCCpeCgpIb29rRm9ybWF0EhsKF0hPT0tfRk9STUFUX1VOU1BFQ0lGSUVEEAASGwoXSE9PS19GT1JNQVRfQ0xBVURFX0NPREUQARIWChJIT09LX0ZPUk1BVF9DVVJTT1IQAmIGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
- * HookConfig is a plugin's tool-call hooks, in the format the plugin wrote
- * them.
+ * HookConfig is a set of tool-call hooks: commands that run before or after an
+ * agent's tool calls and can refuse a call, ask a person first, or let it run.
+ *
+ * A plugin's hooks are recorded here at install; an agent can also carry a
+ * block of its own (AgentSpec.hooks). The native engine runs hooks in Claude
+ * Code's format, with PreToolUse and PostToolUse events.
  *
  * @generated from message ai.stigmer.agentic.plugin.v1.HookConfig
  */
 export type HookConfig = Message<"ai.stigmer.agentic.plugin.v1.HookConfig"> & {
   /**
    * The format the hooks are written in, which decides their input and answer.
+   * An agent's own block may leave it unset; Claude Code's format is assumed.
    *
    * @generated from field: ai.stigmer.agentic.plugin.v1.HookFormat format = 1;
    */
   format: HookFormat;
 
   /**
-   * Hook groups, in the order the plugin declares them.
+   * Hook groups, in the order they are declared.
    *
    * @generated from field: repeated ai.stigmer.agentic.plugin.v1.HookGroup groups = 2;
    */
@@ -50,16 +55,19 @@ export const HookConfigSchema: GenMessage<HookConfig> = /*@__PURE__*/
  */
 export type HookGroup = Message<"ai.stigmer.agentic.plugin.v1.HookGroup"> & {
   /**
-   * The event the handlers run on, spelled as the format spells it, e.g.
-   * "PreToolUse" or "beforeShellExecution".
+   * The event the handlers run on: "PreToolUse" before a call, which can
+   * refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
+   * which can add to what the agent reads.
    *
    * @generated from field: string event = 1;
    */
   event: string;
 
   /**
-   * Which calls the handlers run for, as written by the plugin; empty or "*"
-   * matches every call.
+   * Which tools the handlers run for: a name such as "Bash", a list such as
+   * "Write|Edit", or a regular expression such as "mcp__github__.*". Empty or
+   * "*" matches every tool. A plugin's own MCP server's tools are named
+   * mcp__plugin_<plugin>_<server>__<tool>, as in Claude Code.
    *
    * @generated from field: string matcher = 2;
    */
@@ -83,11 +91,16 @@ export const HookGroupSchema: GenMessage<HookGroup> = /*@__PURE__*/
 /**
  * HookHandler is one command a hook runs.
  *
+ * The command reads the call as JSON on stdin and answers as Claude Code's
+ * hooks do: exit code 2 refuses the call with stderr as the reason, and JSON on
+ * stdout can allow, ask or deny with a reason.
+ *
  * @generated from message ai.stigmer.agentic.plugin.v1.HookHandler
  */
 export type HookHandler = Message<"ai.stigmer.agentic.plugin.v1.HookHandler"> & {
   /**
-   * The command to run, as written by the plugin.
+   * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
+   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
    *
    * @generated from field: string command = 1;
    */
@@ -102,8 +115,8 @@ export type HookHandler = Message<"ai.stigmer.agentic.plugin.v1.HookHandler"> & 
   args: string[];
 
   /**
-   * Seconds the command may run before it is stopped; zero means the format's
-   * default.
+   * Seconds the command may run before it is stopped; zero means the default,
+   * 600 seconds. A command that is stopped makes no decision.
    *
    * @generated from field: int32 timeout_seconds = 3;
    */
@@ -119,7 +132,7 @@ export type HookHandler = Message<"ai.stigmer.agentic.plugin.v1.HookHandler"> & 
 
   /**
    * Whether a crash, timeout or missing answer blocks the call instead of
-   * letting it through.
+   * letting it through. Cursor's format only.
    *
    * @generated from field: bool fail_closed = 5;
    */
