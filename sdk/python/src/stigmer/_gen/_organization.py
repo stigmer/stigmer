@@ -99,7 +99,6 @@ class OrganizationInput:
     description: str = ""
     logo_url: str = ""
     external_id: str = ""
-    is_personal: bool = False
     preferences: OrganizationPreferencesInput | None = None
     parent_org: str = ""
 
@@ -108,7 +107,6 @@ class OrganizationInput:
             description=self.description,
             logo_url=self.logo_url,
             external_id=self.external_id,
-            is_personal=self.is_personal,
             parent_org=self.parent_org,
         )
         if self.preferences is not None:

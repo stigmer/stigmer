@@ -200,21 +200,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int IS_PERSONAL_FIELD_NUMBER = 6;
-  private boolean isPersonal_ = false;
-  /**
-   * <pre>
-   * Whether this is a personal organization, auto-created during identity provisioning.
-   * </pre>
-   *
-   * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
-   * @return The isPersonal.
-   */
-  @java.lang.Override
-  public boolean getIsPersonal() {
-    return isPersonal_;
-  }
-
   public static final int PREFERENCES_FIELD_NUMBER = 7;
   private ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences_;
   /**
@@ -325,9 +310,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 5, externalId_);
     }
-    if (isPersonal_ != false) {
-      output.writeBool(6, isPersonal_);
-    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(7, getPreferences());
     }
@@ -351,10 +333,6 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(5, externalId_);
-    }
-    if (isPersonal_ != false) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(6, isPersonal_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -384,8 +362,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getLogoUrl())) return false;
     if (!getExternalId()
         .equals(other.getExternalId())) return false;
-    if (getIsPersonal()
-        != other.getIsPersonal()) return false;
     if (hasPreferences() != other.hasPreferences()) return false;
     if (hasPreferences()) {
       if (!getPreferences()
@@ -410,9 +386,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getLogoUrl().hashCode();
     hash = (37 * hash) + EXTERNAL_ID_FIELD_NUMBER;
     hash = (53 * hash) + getExternalId().hashCode();
-    hash = (37 * hash) + IS_PERSONAL_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getIsPersonal());
     if (hasPreferences()) {
       hash = (37 * hash) + PREFERENCES_FIELD_NUMBER;
       hash = (53 * hash) + getPreferences().hashCode();
@@ -563,7 +536,6 @@ private static final long serialVersionUID = 0L;
       description_ = "";
       logoUrl_ = "";
       externalId_ = "";
-      isPersonal_ = false;
       preferences_ = null;
       if (preferencesBuilder_ != null) {
         preferencesBuilder_.dispose();
@@ -612,17 +584,14 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.externalId_ = externalId_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.isPersonal_ = isPersonal_;
-      }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000010) != 0)) {
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.preferences_ = preferencesBuilder_ == null
             ? preferences_
             : preferencesBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.parentOrg_ = parentOrg_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -655,15 +624,12 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000004;
         onChanged();
       }
-      if (other.getIsPersonal() != false) {
-        setIsPersonal(other.getIsPersonal());
-      }
       if (other.hasPreferences()) {
         mergePreferences(other.getPreferences());
       }
       if (!other.getParentOrg().isEmpty()) {
         parentOrg_ = other.parentOrg_;
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -707,21 +673,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 42
-            case 48: {
-              isPersonal_ = input.readBool();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 48
             case 58: {
               input.readMessage(
                   internalGetPreferencesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000008;
               break;
             } // case 58
             case 66: {
               parentOrg_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 66
             default: {
@@ -1022,50 +983,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private boolean isPersonal_ ;
-    /**
-     * <pre>
-     * Whether this is a personal organization, auto-created during identity provisioning.
-     * </pre>
-     *
-     * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
-     * @return The isPersonal.
-     */
-    @java.lang.Override
-    public boolean getIsPersonal() {
-      return isPersonal_;
-    }
-    /**
-     * <pre>
-     * Whether this is a personal organization, auto-created during identity provisioning.
-     * </pre>
-     *
-     * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
-     * @param value The isPersonal to set.
-     * @return This builder for chaining.
-     */
-    public Builder setIsPersonal(boolean value) {
-
-      isPersonal_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Whether this is a personal organization, auto-created during identity provisioning.
-     * </pre>
-     *
-     * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearIsPersonal() {
-      bitField0_ = (bitField0_ & ~0x00000008);
-      isPersonal_ = false;
-      onChanged();
-      return this;
-    }
-
     private ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.tenancy.organization.v1.OrganizationPreferences, ai.stigmer.tenancy.organization.v1.OrganizationPreferences.Builder, ai.stigmer.tenancy.organization.v1.OrganizationPreferencesOrBuilder> preferencesBuilder_;
@@ -1078,7 +995,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the preferences field is set.
      */
     public boolean hasPreferences() {
-      return ((bitField0_ & 0x00000010) != 0);
+      return ((bitField0_ & 0x00000008) != 0);
     }
     /**
      * <pre>
@@ -1111,7 +1028,7 @@ private static final long serialVersionUID = 0L;
       } else {
         preferencesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1129,7 +1046,7 @@ private static final long serialVersionUID = 0L;
       } else {
         preferencesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1142,7 +1059,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergePreferences(ai.stigmer.tenancy.organization.v1.OrganizationPreferences value) {
       if (preferencesBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0) &&
+        if (((bitField0_ & 0x00000008) != 0) &&
           preferences_ != null &&
           preferences_ != ai.stigmer.tenancy.organization.v1.OrganizationPreferences.getDefaultInstance()) {
           getPreferencesBuilder().mergeFrom(value);
@@ -1153,7 +1070,7 @@ private static final long serialVersionUID = 0L;
         preferencesBuilder_.mergeFrom(value);
       }
       if (preferences_ != null) {
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       return this;
@@ -1166,7 +1083,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
      */
     public Builder clearPreferences() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       preferences_ = null;
       if (preferencesBuilder_ != null) {
         preferencesBuilder_.dispose();
@@ -1183,7 +1100,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
      */
     public ai.stigmer.tenancy.organization.v1.OrganizationPreferences.Builder getPreferencesBuilder() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return internalGetPreferencesFieldBuilder().getBuilder();
     }
@@ -1281,7 +1198,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       parentOrg_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1296,7 +1213,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearParentOrg() {
       parentOrg_ = getDefaultInstance().getParentOrg();
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       onChanged();
       return this;
     }
@@ -1315,7 +1232,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       parentOrg_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }

@@ -586,8 +586,8 @@ together; nothing outside it sees them.
   slug is the name people type, unique across the server and changed only by
   `rename`. A request may name an Organization by either; responses carry the
   id, and clients show the slug.
-- **Key fields**: `description`, `logo_url`, `preferences`, `is_personal`, and
-  the child-organization fields `parent_org` and `external_id` (see
+- **Key fields**: `description`, `logo_url`, `preferences`, and the
+  child-organization fields `parent_org` and `external_id` (see
   [Parent organization, child organization](#parent-organization-child-organization)).
 - **Note**: Every edition has Organizations. Open source holds one: its server
   makes it the first time it starts, `stigmer`, fills it into every request that
@@ -595,7 +595,8 @@ together; nothing outside it sees them.
   names it, and the console and the CLI never show it
   (`GetServerInfoOutput.single_org`). Enterprise and Stigmer Cloud hold many,
   and a request names its Organization; `stigmer config context set --org`
-  points the CLI at one.
+  points the CLI at one. Signing up for Stigmer Cloud creates an ordinary
+  Organization that the new person owns.
 - **Context rule**: `org` in identifiers, "Organization" in prose. Never call it
   a tenant, and never a Workspace, which is a Session's files. In docs for open
   source, do not make a reader name or create one. "System Organization" is a

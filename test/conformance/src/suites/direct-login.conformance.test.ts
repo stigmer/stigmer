@@ -9,11 +9,12 @@
 //     call provisionMyAccount), never UNAUTHENTICATED — the Java mapper's
 //     raw-subject fallback, the composition's direct-idp miss arm;
 //   - a FIRST login end to end: provisionMyAccount creates a `direct`
-//     account for that subject from the tenant's /userinfo, the personal
-//     org it creates is OWNED BY the new account (findMyOrganizations as the
-//     same token lists it — the owner tuple names the ida_, not the raw
-//     subject, a defect once fixed here), and the next whoAmI
-//     resolves the token to the account;
+//     account for that subject from the tenant's /userinfo, the
+//     organization the edition creates at sign-up is CREATED BY the new
+//     account (its spec audit names the ida_) and visible to it
+//     (findMyOrganizations as the same token lists it — the owner tuple
+//     names the ida_, not the raw subject, a defect once fixed here), and
+//     the next whoAmI resolves the token to the account;
 //   - the tenant's MCP audience (the hosted MCP server forwards tokens
 //     minted for its own resource) is accepted beside the API audience;
 //   - a token for a FOREIGN audience, an EXPIRED token, and a token signed
@@ -36,6 +37,7 @@ import { generateKeyPairSync } from "node:crypto";
 
 import { Code } from "@connectrpc/connect";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";
@@ -83,6 +85,11 @@ function tenantOrSkip(ctx: {
   return tenant;
 }
 
+// The account an organization's create was made by, from its spec audit.
+function createdBy(org: Organization): string | undefined {
+  return org.status?.audit?.specAudit?.createdBy?.id;
+}
+
 describe.skipIf(!directLoginEnabled)(
   "direct login: the platform tenant's tokens",
   () => {
@@ -102,7 +109,7 @@ describe.skipIf(!directLoginEnabled)(
       ).toBe(ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE);
     });
 
-    it("provisions a first login end to end: a direct account from /userinfo, a personal org OWNED BY the new account, and whoAmI resolving to it", async (ctx) => {
+    it("provisions a first login end to end: a direct account from /userinfo, an organization CREATED BY and visible to the new account, and whoAmI resolving to it", async (ctx) => {
       const tenant = tenantOrSkip(ctx);
       const subject = freshSubject();
       const asUser = target.clientsPresenting(tenant.mint({ subject }));
@@ -136,20 +143,21 @@ describe.skipIf(!directLoginEnabled)(
         ).toBe(accountId);
 
         const mine = await asUser.organizationQuery.findMyOrganizations({});
-        const personalVisible = mine.entries.some((org) => org.spec?.isPersonal === true);
+        const signupOrgVisible = mine.entries.some((org) => createdBy(org) === accountId);
         expect(
-          personalVisible,
-          "the personal org is visible to the account — its owner tuple names the ida_, not the raw subject",
+          signupOrgVisible,
+          "the sign-up organization is created by the account and visible to it — its owner tuple names the ida_, not the raw subject",
         ).toBe(true);
       } finally {
-        // Leave nothing behind: the personal org (owned by the account) and the
+        // Leave nothing behind: the organizations the account created and the
         // account (self-owned). Best-effort — a failed cleanup must not mask
         // the assertion that failed.
         try {
           const mine = await asUser.organizationQuery.findMyOrganizations({});
           for (const org of mine.entries) {
             if (
-              org.spec?.isPersonal === true &&
+              accountId !== "" &&
+              createdBy(org) === accountId &&
               org.metadata?.id !== undefined
             ) {
               await asUser.organizationCommand.delete({

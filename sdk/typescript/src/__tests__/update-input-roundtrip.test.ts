@@ -704,7 +704,6 @@ describe("toOrganizationUpdateInput (tripwire)", () => {
         logoUrl: "https://acme.example/logo.png",
         externalId: "cust-4411",
         parentOrg: "org_01jaaaaaaaaaaaaaaaaaaaaaaa",
-        isPersonal: true,
         preferences: { standingContext: "We deploy to us-east-1." },
       },
     });

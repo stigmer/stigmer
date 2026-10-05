@@ -1,5 +1,5 @@
 // Pins useOrgGate as a pure derivation over useOrg(). The hook once carried a
-// "provisioning" arm that polled for a personal organization the server was
+// "provisioning" arm that polled for a sign-up organization the server was
 // "still creating"; the cloud creates that organization synchronously inside
 // provisionMyAccount, and the step is best-effort, so by the time the identity
 // gate is ready the organization list is final in every edition. Zero

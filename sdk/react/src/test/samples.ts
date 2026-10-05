@@ -222,8 +222,6 @@ export interface OrganizationOverrides {
   readonly id?: string;
   readonly name?: string;
   readonly slug?: string;
-  /** Personal orgs render a person icon in the switcher; teams a building. */
-  readonly isPersonal?: boolean;
 }
 
 export interface SearchResultOverrides {
@@ -462,9 +460,7 @@ export const samples = {
         name: o?.name ?? "Acme Corp",
         slug: o?.slug ?? "acme",
       }),
-      spec: create(OrganizationSpecSchema, {
-        isPersonal: o?.isPersonal ?? false,
-      }),
+      spec: create(OrganizationSpecSchema, {}),
     });
   },
 

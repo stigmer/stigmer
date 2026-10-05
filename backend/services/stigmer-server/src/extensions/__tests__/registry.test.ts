@@ -521,7 +521,7 @@ describe("resolveExtensions — loud-fail throws", () => {
       "iam-policy-create:pre-side-effect-gate",
       // The seventh slot — after the account
       // persists inside provisionMyAccount, before the reply (the cloud's
-      // personal-organization ensure and backfill ride it).
+      // first-organization step rides it).
       "identity-account-provision:post-persist",
       "org-create:post-persist",
       // The ninth: the organization create chain before Persist, where a

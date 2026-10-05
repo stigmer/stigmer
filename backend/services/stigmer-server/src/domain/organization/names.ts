@@ -37,7 +37,7 @@
  * name keeps the existing duplicate copy; one it holds as a recent previous
  * name answers AlreadyExists carrying ORGANIZATION_SLUG_RESERVED (the
  * create and rename contracts document it). Both keep the AlreadyExists
- * code, which the personal-organization retry keys on.
+ * code, which the cloud's first-organization slug retry keys on.
  *
  * Proven by __tests__/organization-names.test.ts, the store contract and
  * the organization conformance suites.

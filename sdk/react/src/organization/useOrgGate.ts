@@ -85,8 +85,8 @@ export interface UseOrgGateReturn {
  * 5. **`ready`** — at least one org exists; render the app.
  *
  * A pure derivation, deliberately: the organization list is final by the
- * time this hook runs. Where a server creates a personal organization on
- * first sign-in (Stigmer Cloud), it does so inside `provisionMyAccount`,
+ * time this hook runs. Where a server creates an organization on first
+ * sign-in (Stigmer Cloud), it does so inside `provisionMyAccount`,
  * before the identity gate ahead of this one reports ready — so there is
  * nothing to wait for, and an empty list means the person creates their
  * first organization now. (The hook once polled for that organization for

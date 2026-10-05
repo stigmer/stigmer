@@ -17,7 +17,8 @@ import { getRuntimeConfig } from "@/config/runtime-config";
  * `isEnabled: false` and immediately reports ready.
  *
  * This gate sits between StigmerTransportBridge and OrgProvider in the
- * provider chain so that the identity account (and personal org) exist
+ * provider chain so that the identity account (and, on Cloud, the
+ * organization created at sign-up) exist
  * before `findMyOrganizations()` is called.
  */
 export function IdentityAccountGate({ children }: { children: React.ReactNode }) {
