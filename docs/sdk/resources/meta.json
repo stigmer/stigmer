@@ -30,7 +30,6 @@
     "subscription",
     "team",
     "workflow",
-    "workflow-execution",
-    "workflow-instance"
+    "workflow-execution"
   ]
 }
