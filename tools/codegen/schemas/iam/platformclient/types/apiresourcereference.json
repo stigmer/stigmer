@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Organization that owns the referenced resource, by slug or id.\n\n When non-empty: an organization slug (lowercase alphanumeric with hyphens,\n starts with a letter, 2-63 characters; e.g. \"stigmer\", \"acme-corp\") or an\n organization id (org_\u003culid\u003e). The server stores the id, so a stored\n reference keeps pointing at its organization across a rename.\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form, the id).\n\n Use empty org for same-org references (the common case).\n An explicit other org is accepted only when that organization is a\n platform that shares the resource with yours (visibility_platform).",
+      "description": "Organization that owns the referenced resource, by slug or id.\n\n When non-empty: an organization slug (lowercase alphanumeric with hyphens,\n starts with a letter, 2-63 characters; e.g. \"stigmer\", \"acme-corp\") or an\n organization id (org_\u003culid\u003e). The server stores the id, so a stored\n reference keeps pointing at its organization across a rename.\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form, the id).\n\n Use empty org for same-org references (the common case).\n An explicit other org is accepted only when that organization is your\n organization's parent and shares the resource with its children\n (visibility_child_orgs).",
       "required": false,
       "validation": {
         "maxLength": 63,

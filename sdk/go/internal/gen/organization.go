@@ -76,8 +76,13 @@ func (o *OrganizationClient) FindMyOrganizations(ctx context.Context) (*organiza
 	return resp, wrapErr(err)
 }
 
-func (o *OrganizationClient) GetByExternalOrgId(ctx context.Context, input *organizationv1.OrganizationExternalLookup) (*organizationv1.Organization, error) {
-	resp, err := o.query.GetByExternalOrgId(ctx, input)
+func (o *OrganizationClient) GetByExternalId(ctx context.Context, input *organizationv1.OrganizationExternalLookup) (*organizationv1.Organization, error) {
+	resp, err := o.query.GetByExternalId(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (o *OrganizationClient) ListChildOrgs(ctx context.Context, input *organizationv1.ListChildOrgsInput) (*organizationv1.ChildOrgList, error) {
+	resp, err := o.query.ListChildOrgs(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -87,19 +92,18 @@ type OrganizationInput struct {
 	// set from a loaded resource. Required for updates to platform-scoped
 	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
 	// on create: the server assigns every new resource's id.
-	Id                  string
-	Name                string
-	Slug                string
-	Org                 string
-	Labels              map[string]string
-	Visibility          apiresource.ApiResourceVisibility
-	Description         string
-	LogoUrl             string
-	ManagementMode      organizationv1.ManagementMode
-	IdentityProviderRef ResourceRef
-	ExternalOrgId       string
-	IsPersonal          bool
-	Preferences         *OrganizationPreferencesInput
+	Id          string
+	Name        string
+	Slug        string
+	Org         string
+	Labels      map[string]string
+	Visibility  apiresource.ApiResourceVisibility
+	Description string
+	LogoUrl     string
+	ExternalId  string
+	IsPersonal  bool
+	Preferences *OrganizationPreferencesInput
+	ParentOrg   string
 }
 
 // OrganizationPreferencesInput is the SDK input type for OrganizationPreferences.
@@ -124,11 +128,7 @@ func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
 	}
 	resource.Spec.Description = i.Description
 	resource.Spec.LogoUrl = i.LogoUrl
-	resource.Spec.ManagementMode = i.ManagementMode
-	if i.IdentityProviderRef.Org != "" || i.IdentityProviderRef.Slug != "" {
-		resource.Spec.IdentityProviderRef = i.IdentityProviderRef.toProto()
-	}
-	resource.Spec.ExternalOrgId = i.ExternalOrgId
+	resource.Spec.ExternalId = i.ExternalId
 	resource.Spec.IsPersonal = i.IsPersonal
 	if i.Preferences != nil {
 		v, err := i.Preferences.toProto()
@@ -137,6 +137,7 @@ func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
 		}
 		resource.Spec.Preferences = v
 	}
+	resource.Spec.ParentOrg = i.ParentOrg
 	return resource, nil
 }
 
@@ -164,11 +165,10 @@ func OrganizationInputFromProto(p *organizationv1.Organization) *OrganizationInp
 	if s := p.GetSpec(); s != nil {
 		input.Description = s.GetDescription()
 		input.LogoUrl = s.GetLogoUrl()
-		input.ManagementMode = s.GetManagementMode()
-		input.IdentityProviderRef = resourceRefFromProto(s.GetIdentityProviderRef())
-		input.ExternalOrgId = s.GetExternalOrgId()
+		input.ExternalId = s.GetExternalId()
 		input.IsPersonal = s.GetIsPersonal()
 		input.Preferences = organizationPreferencesInputFromProto(s.GetPreferences())
+		input.ParentOrg = s.GetParentOrg()
 	}
 	return input
 }

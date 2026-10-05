@@ -35,9 +35,9 @@ const (
 	// The commission already collected on the period's usage, credited
 	// against the plan's cost and never more than it.
 	PeriodEstimateLineKind_commission_credit PeriodEstimateLineKind = 2
-	// The managed organizations beyond those the plan includes, at the
+	// The child organizations beyond those the plan includes, at the
 	// plan's fee for each.
-	PeriodEstimateLineKind_managed_organizations PeriodEstimateLineKind = 3
+	PeriodEstimateLineKind_child_orgs PeriodEstimateLineKind = 3
 )
 
 // Enum value maps for PeriodEstimateLineKind.
@@ -46,13 +46,13 @@ var (
 		0: "period_estimate_line_kind_unspecified",
 		1: "plan",
 		2: "commission_credit",
-		3: "managed_organizations",
+		3: "child_orgs",
 	}
 	PeriodEstimateLineKind_value = map[string]int32{
 		"period_estimate_line_kind_unspecified": 0,
 		"plan":                                  1,
 		"commission_credit":                     2,
-		"managed_organizations":                 3,
+		"child_orgs":                            3,
 	}
 )
 
@@ -398,13 +398,13 @@ type PeriodEstimate struct {
 	// When the period ends and is invoiced.
 	PeriodEnd *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=period_end,json=periodEnd,proto3" json:"period_end,omitempty"`
 	// What the period's usage has cost in provider charges so far, across
-	// the organization and the managed organizations it pays for.
+	// the organization and the child organizations it pays for.
 	ProviderCostMicros int64 `protobuf:"varint,4,opt,name=provider_cost_micros,json=providerCostMicros,proto3" json:"provider_cost_micros,omitempty"`
 	// The commission the wallet has already collected on that usage. It
 	// counts toward the plan's cost instead of adding to it.
 	CommissionCollectedMicros int64 `protobuf:"varint,5,opt,name=commission_collected_micros,json=commissionCollectedMicros,proto3" json:"commission_collected_micros,omitempty"`
-	// The managed organizations counted against the plan this period.
-	ManagedOrganizationCount int32 `protobuf:"varint,6,opt,name=managed_organization_count,json=managedOrganizationCount,proto3" json:"managed_organization_count,omitempty"`
+	// The child organizations counted against the plan this period.
+	ChildOrgCount int32 `protobuf:"varint,6,opt,name=child_org_count,json=childOrgCount,proto3" json:"child_org_count,omitempty"`
 	// The invoice's lines in the order they print, zero lines omitted.
 	Lines []*PeriodEstimateLine `protobuf:"bytes,7,rep,name=lines,proto3" json:"lines,omitempty"`
 	// The estimated invoice total: the sum of the lines.
@@ -478,9 +478,9 @@ func (x *PeriodEstimate) GetCommissionCollectedMicros() int64 {
 	return 0
 }
 
-func (x *PeriodEstimate) GetManagedOrganizationCount() int32 {
+func (x *PeriodEstimate) GetChildOrgCount() int32 {
 	if x != nil {
-		return x.ManagedOrganizationCount
+		return x.ChildOrgCount
 	}
 	return 0
 }
@@ -573,25 +573,26 @@ const file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc = "" +
 	"\x17CancelSubscriptionInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"2\n" +
 	"\x16GetPeriodEstimateInput\x12\x18\n" +
-	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\xc4\x03\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\xae\x03\n" +
 	"\x0ePeriodEstimate\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12=\n" +
 	"\fperiod_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vperiodStart\x129\n" +
 	"\n" +
 	"period_end\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tperiodEnd\x120\n" +
 	"\x14provider_cost_micros\x18\x04 \x01(\x03R\x12providerCostMicros\x12>\n" +
-	"\x1bcommission_collected_micros\x18\x05 \x01(\x03R\x19commissionCollectedMicros\x12<\n" +
-	"\x1amanaged_organization_count\x18\x06 \x01(\x05R\x18managedOrganizationCount\x12L\n" +
+	"\x1bcommission_collected_micros\x18\x05 \x01(\x03R\x19commissionCollectedMicros\x12&\n" +
+	"\x0fchild_org_count\x18\x06 \x01(\x05R\rchildOrgCount\x12L\n" +
 	"\x05lines\x18\a \x03(\v26.ai.stigmer.billing.subscription.v1.PeriodEstimateLineR\x05lines\x12!\n" +
 	"\ftotal_micros\x18\b \x01(\x03R\vtotalMicros\"\x89\x01\n" +
 	"\x12PeriodEstimateLine\x12N\n" +
 	"\x04kind\x18\x01 \x01(\x0e2:.ai.stigmer.billing.subscription.v1.PeriodEstimateLineKindR\x04kind\x12#\n" +
-	"\ramount_micros\x18\x02 \x01(\x03R\famountMicros*\x7f\n" +
+	"\ramount_micros\x18\x02 \x01(\x03R\famountMicros*t\n" +
 	"\x16PeriodEstimateLineKind\x12)\n" +
 	"%period_estimate_line_kind_unspecified\x10\x00\x12\b\n" +
 	"\x04plan\x10\x01\x12\x15\n" +
-	"\x11commission_credit\x10\x02\x12\x19\n" +
-	"\x15managed_organizations\x10\x03B\xbc\x02\n" +
+	"\x11commission_credit\x10\x02\x12\x0e\n" +
+	"\n" +
+	"child_orgs\x10\x03B\xbc\x02\n" +
 	"&com.ai.stigmer.billing.subscription.v1B\aIoProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
 
 var (

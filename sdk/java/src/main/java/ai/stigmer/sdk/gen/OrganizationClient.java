@@ -4,6 +4,8 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.FindApiResourcesRequest;
 import ai.stigmer.commons.apiresource.RenameInput;
+import ai.stigmer.tenancy.organization.v1.ChildOrgList;
+import ai.stigmer.tenancy.organization.v1.ListChildOrgsInput;
 import ai.stigmer.tenancy.organization.v1.Organization;
 import ai.stigmer.tenancy.organization.v1.OrganizationCommandControllerGrpc;
 import ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup;
@@ -73,9 +75,15 @@ public final class OrganizationClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Organization getByExternalOrgId(OrganizationExternalLookup input) {
+    public Organization getByExternalId(OrganizationExternalLookup input) {
         try {
-            return query.getByExternalOrgId(input);
+            return query.getByExternalId(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ChildOrgList listChildOrgs(ListChildOrgsInput input) {
+        try {
+            return query.listChildOrgs(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

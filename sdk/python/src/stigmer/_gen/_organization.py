@@ -15,7 +15,6 @@ from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import empty_pb2
 
 from ._errors import wrap_error
-from ._types import ResourceRef
 
 
 class OrganizationClient:
@@ -73,9 +72,15 @@ class OrganizationClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_by_external_org_id(self, input: io_pb2.OrganizationExternalLookup) -> api_pb2.Organization:
+    def get_by_external_id(self, input: io_pb2.OrganizationExternalLookup) -> api_pb2.Organization:
         try:
-            return self._query.getByExternalOrgId(input)
+            return self._query.getByExternalId(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_child_orgs(self, input: io_pb2.ListChildOrgsInput) -> io_pb2.ChildOrgList:
+        try:
+            return self._query.listChildOrgs(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -93,22 +98,19 @@ class OrganizationInput:
     visibility: int = 0
     description: str = ""
     logo_url: str = ""
-    management_mode: int = 0
-    identity_provider_ref: ResourceRef | None = None
-    external_org_id: str = ""
+    external_id: str = ""
     is_personal: bool = False
     preferences: OrganizationPreferencesInput | None = None
+    parent_org: str = ""
 
     def _to_proto(self) -> api_pb2.Organization:
         spec = spec_pb2.OrganizationSpec(
             description=self.description,
             logo_url=self.logo_url,
-            management_mode=self.management_mode,
-            external_org_id=self.external_org_id,
+            external_id=self.external_id,
             is_personal=self.is_personal,
+            parent_org=self.parent_org,
         )
-        if self.identity_provider_ref is not None and (self.identity_provider_ref.org or self.identity_provider_ref.slug):
-            spec.identity_provider_ref.CopyFrom(self.identity_provider_ref._to_proto())
         if self.preferences is not None:
             spec.preferences.CopyFrom(self.preferences._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(

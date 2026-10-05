@@ -31,7 +31,7 @@
             "channels",
             "sharing",
             "teams",
-            "managed_organizations"
+            "child_orgs"
           ]
         }
       },
