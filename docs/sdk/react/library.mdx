@@ -248,8 +248,7 @@ Behavior hook that updates the visibility of a resource.
 
 Supports blueprints (Agent, Workflow, Skill, MCP Server, Plugin) with
 the full private/org/child-organizations spectrum (a plugin's change reaches
-every resource it installed, by the server's contract), workflow
-instances with private/org, and environments
+every resource it installed, by the server's contract), and environments
 with private/org (secret values never leave the org boundary, so the
 child-organizations level is rejected by the backend).
 
@@ -397,8 +396,8 @@ to their access-management surface; the badge itself never edits.
 
 ### VisibilitySelector
 
-The single control for resource visibility across blueprints AND
-instances. Offered levels are pure data ([`VisibilityLevelOption`](#visibilityleveloption));
+The single control for resource visibility across blueprints and
+environments. Offered levels are pure data ([`VisibilityLevelOption`](#visibilityleveloption));
 per-kind level sets live in `visibilityLevels.ts`, so this component
 carries no kind-specific logic.
 
@@ -410,7 +409,7 @@ Recall). Escalation is confirmed in proportion to how far access expands:
 de-escalation applies instantly, an Organization escalation shows a light
 inline prompt, and a Child organizations escalation opens a blocking
 [`ConfirmDialog`](/docs/sdk/react/resource-detail#confirmdialog) that names the exact audience. Confirmation is owned
-here so every consumer — blueprint detail, instance detail, and any
+here so every consumer — blueprint detail, environment detail, and any
 standalone embed — behaves identically.
 
 In `"create"` mode it renders an inline radio list that applies
@@ -607,21 +606,6 @@ back to it would promote the wrong text.
 
 ```tsx
 function findStreamingPlan(execution: AgentExecution | null | undefined): StreamingPlan | undefined
-```
-
-
-### instanceVisibilityLevels
-
-The levels an instance (workflow_instance) selector
-offers, in escalation order: Private / Organization.
-
-Child organizations are deliberately absent — instances are
-tenant-isolated by design (each child organization instantiates shared
-blueprints inside its own boundary). Descriptions are execution-oriented because org visibility on
-an instance is about who can run it and see its executions.
-
-```tsx
-function instanceVisibilityLevels(): readonly VisibilityLevelOption[]
 ```
 
 

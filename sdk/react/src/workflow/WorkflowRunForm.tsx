@@ -1,10 +1,21 @@
 "use client";
 
+/**
+ * The fields of the run dialog: one input per key the workflow declares,
+ * each marked with where its value will come from (typed here and passed
+ * with the run, the person's personal environment, or missing), a notice
+ * when the workflow's runs are visible to its organization, and the
+ * trigger input.
+ *
+ * Presentational only; {@link useRunWorkflowFlow} supplies the state.
+ * Pinned through the dialog by `__tests__/WorkflowRunDialog.test.tsx`.
+ */
+
 import { useId } from "react";
 import { cn } from "@stigmer/theme";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import type { RunWorkflowFieldErrors } from "./useRunWorkflowFlow.js";
+import type { RunEnvKeySource } from "./useRunEnvKeySources.js";
 
 /** Props for {@link WorkflowRunForm}. */
 export interface WorkflowRunFormProps {
@@ -20,25 +31,19 @@ export interface WorkflowRunFormProps {
   /** Called when a single env var value changes. */
   readonly onEnvVarChange: (key: string, value: string) => void;
 
-  /** Available workflow instances for the selector. */
-  readonly instances: readonly WorkflowInstance[];
-  /** Currently selected instance ID, or `null` for server-resolved default. */
-  readonly selectedInstanceId: string | null;
-  /** Called when the selected instance changes. */
-  readonly onInstanceChange: (id: string | null) => void;
   /**
-   * The platform-managed default instance ID (from workflow.status.defaultInstanceId).
-   * When provided, the picker shows whenever user-created instances exist (>= 1),
-   * and labels the default option clearly.
+   * Where each declared key's value will come from, keyed by key name
+   * ({@link useRunWorkflowFlow}'s `envKeySources`). A key held by the
+   * personal environment is shown as an optional override; a key with no
+   * entry carries no marker.
    */
-  readonly defaultInstanceId?: string;
+  readonly envKeySources?: Readonly<Record<string, RunEnvKeySource>>;
 
   /**
-   * Set of env var keys already provided by the selected instance's
-   * bound environments. Fields for these keys are shown as optional
-   * overrides rather than required inputs.
+   * When `true`, a notice says that every run of this workflow is visible
+   * to its organization, this run's input and output included.
    */
-  readonly instanceEnvKeys?: Set<string>;
+  readonly runsVisibleToOrganization?: boolean;
 
   /**
    * Whether to show the trigger message field.
@@ -68,8 +73,8 @@ const INPUT_CLASSES = cn(
  * Form fields for running a workflow execution.
  *
  * Renders auto-generated environment variable fields from the workflow's
- * `spec.env` declarations, an instance selector (hidden when 0-1 instances
- * exist), and a conditionally-visible trigger message textarea.
+ * `spec.env` declarations, each marked with its source, and a
+ * conditionally-visible trigger message textarea.
  *
  * Field ordering prioritizes required inputs (env vars) over optional
  * contextual fields (trigger message), following progressive disclosure.
@@ -91,9 +96,8 @@ const INPUT_CLASSES = cn(
  *   envDeclarations={flow.envDeclarations}
  *   runtimeEnv={flow.runtimeEnv}
  *   onEnvVarChange={flow.setEnvVar}
- *   instances={instances}
- *   selectedInstanceId={flow.selectedInstanceId}
- *   onInstanceChange={flow.setSelectedInstanceId}
+ *   envKeySources={flow.envKeySources}
+ *   runsVisibleToOrganization={flow.runsVisibleToOrganization}
  *   showTriggerMessage={flow.showTriggerMessage}
  *   onShowTriggerMessageChange={flow.setShowTriggerMessage}
  *   errors={flow.fieldErrors}
@@ -107,11 +111,8 @@ export function WorkflowRunForm({
   envDeclarations,
   runtimeEnv,
   onEnvVarChange,
-  instances,
-  selectedInstanceId,
-  onInstanceChange,
-  defaultInstanceId,
-  instanceEnvKeys,
+  envKeySources,
+  runsVisibleToOrganization = false,
   showTriggerMessage,
   onShowTriggerMessageChange,
   errors,
@@ -120,40 +121,19 @@ export function WorkflowRunForm({
 }: WorkflowRunFormProps) {
   const formId = useId();
   const envEntries = Object.entries(envDeclarations);
-  const userInstances = defaultInstanceId
-    ? instances.filter((i) => i.metadata?.id !== defaultInstanceId)
-    : instances;
-  const showInstanceSelector = defaultInstanceId
-    ? userInstances.length >= 1
-    : instances.length > 1;
 
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-4", className)}>
-      {/* Instance selector — shown first so env var state reacts to selection */}
-      {showInstanceSelector && (
-        <FieldGroup>
-          <FieldLabel htmlFor={`${formId}-instance`}>Instance</FieldLabel>
-          <select
-            id={`${formId}-instance`}
-            value={selectedInstanceId ?? ""}
-            onChange={(e) =>
-              onInstanceChange(e.target.value || null)
-            }
-            disabled={disabled}
-            className={INPUT_CLASSES}
-          >
-            <option value="">Default (no specific configuration)</option>
-            {userInstances.map((inst) => {
-              const envCount = inst.spec?.environmentRefs?.length ?? 0;
-              const envSuffix = envCount > 0 ? ` (${envCount} env${envCount > 1 ? "s" : ""})` : "";
-              return (
-                <option key={inst.metadata?.id} value={inst.metadata?.id ?? ""}>
-                  {inst.metadata?.name || inst.metadata?.slug || inst.metadata?.id}{envSuffix}
-                </option>
-              );
-            })}
-          </select>
-        </FieldGroup>
+      {/* Said before the run starts: the run joins an org-visible history. */}
+      {runsVisibleToOrganization && (
+        <p
+          role="note"
+          className="stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-3 stg:py-2 stg:text-xs stg:text-foreground"
+        >
+          Every run of this workflow is visible to everyone in its
+          organization. This run&apos;s input and output will be visible to
+          them too.
+        </p>
       )}
 
       {/* Environment variables */}
@@ -165,29 +145,35 @@ export function WorkflowRunForm({
           {envEntries.map(([key, decl]) => {
             const fieldId = `${formId}-env-${key}`;
             const fieldError = errors[key];
-            const satisfiedByInstance = instanceEnvKeys?.has(key) ?? false;
-            const isRequired = !decl.optional && !satisfiedByInstance;
+            const source = envKeySources?.[key];
+            const fromPersonal = source === "personal";
+            const isRequired = !decl.optional && !fromPersonal;
             return (
               <FieldGroup key={key}>
-                <FieldLabel htmlFor={fieldId}>
-                  <code className="stg:text-xs">{key}</code>
-                  {isRequired && (
-                    <span
-                      className="stg:ml-1 stg:text-destructive"
-                      aria-label="required"
-                    >
-                      *
-                    </span>
+                <div className="stg:flex stg:items-center">
+                  <FieldLabel htmlFor={fieldId}>
+                    <code className="stg:text-xs">{key}</code>
+                    {isRequired && (
+                      <span
+                        className="stg:ml-1 stg:text-destructive"
+                        aria-label="required"
+                      >
+                        *
+                      </span>
+                    )}
+                  </FieldLabel>
+                  {source && (
+                    <SourceMarker source={source} optional={decl.optional} />
                   )}
-                </FieldLabel>
+                </div>
                 <input
                   id={fieldId}
                   type={decl.isSecret ? "password" : "text"}
                   value={runtimeEnv[key] ?? ""}
                   onChange={(e) => onEnvVarChange(key, e.target.value)}
                   placeholder={
-                    satisfiedByInstance
-                      ? "Provided by instance"
+                    fromPersonal
+                      ? "From your personal environment"
                       : decl.optional
                         ? "Optional"
                         : "Required"
@@ -197,7 +183,7 @@ export function WorkflowRunForm({
                   aria-describedby={
                     fieldError
                       ? `${fieldId}-error`
-                      : decl.description || satisfiedByInstance
+                      : decl.description || fromPersonal
                         ? `${fieldId}-desc`
                         : undefined
                   }
@@ -206,16 +192,16 @@ export function WorkflowRunForm({
                     fieldError && "stg:border-destructive stg:focus-visible:ring-destructive",
                   )}
                 />
-                {satisfiedByInstance && !fieldError && (
+                {fromPersonal && !fieldError && (
                   <FieldHint id={`${fieldId}-desc`}>
-                    Provided by instance environment.{" "}
+                    Your personal environment holds this key.{" "}
                     {decl.description
                       ? `${decl.description} `
                       : ""}
-                    Enter a value to override.
+                    Enter a value to use a different one for this run.
                   </FieldHint>
                 )}
-                {!satisfiedByInstance && decl.description && !fieldError && (
+                {!fromPersonal && decl.description && !fieldError && (
                   <FieldHint id={`${fieldId}-desc`}>
                     {decl.description}
                   </FieldHint>
@@ -278,6 +264,36 @@ export function WorkflowRunForm({
 // ---------------------------------------------------------------------------
 // Shared form primitives (internal to this file)
 // ---------------------------------------------------------------------------
+
+const SOURCE_LABEL: Record<RunEnvKeySource, string> = {
+  typed: "Passed with this run",
+  personal: "From your personal environment",
+  missing: "Missing",
+};
+
+/** A missing key reads as a problem only when the workflow requires it. */
+function SourceMarker({
+  source,
+  optional,
+}: {
+  readonly source: RunEnvKeySource;
+  readonly optional: boolean;
+}) {
+  const alarming = source === "missing" && !optional;
+  return (
+    <span
+      data-source={source}
+      className={cn(
+        "stg:ml-2 stg:rounded stg:px-1 stg:py-0.5 stg:text-[0.65rem] stg:font-normal",
+        alarming
+          ? "stg:bg-destructive-muted stg:text-destructive"
+          : "stg:bg-muted stg:text-muted-foreground",
+      )}
+    >
+      {SOURCE_LABEL[source]}
+    </span>
+  );
+}
 
 function FieldGroup({
   children,

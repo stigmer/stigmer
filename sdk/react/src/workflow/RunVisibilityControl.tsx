@@ -1,18 +1,34 @@
 "use client";
 
+/**
+ * The control for a workflow's run visibility: whether every run of the
+ * workflow, past runs included, is visible only to the person who started
+ * it or to everyone in the workflow's organization.
+ *
+ * It is a separate axis from the workflow's own visibility. Letting the
+ * organization see and run a workflow never exposes anyone's runs; this
+ * setting does, and it reaches runs already finished as well as future
+ * ones, so the copy says so. Writes go through
+ * {@link useUpdateWorkflowExecutionVisibility}; the server refuses anyone
+ * without `can_manage_audience`, and the workflow page offers the control
+ * only to those who hold it. `unspecified` reads as private (the default).
+ *
+ * Pinned by `__tests__/RunVisibilityControl.test.tsx`.
+ */
+
 import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { getUserMessage } from "@stigmer/sdk";
-import { useUpdateWorkflowInstanceExecutionVisibility } from "./useUpdateWorkflowInstanceExecutionVisibility.js";
+import { useUpdateWorkflowExecutionVisibility } from "./useUpdateWorkflowExecutionVisibility.js";
 
 /** Props for {@link RunVisibilityControl}. */
 export interface RunVisibilityControlProps {
-  /** Id of the workflow instance whose run visibility is edited. */
-  readonly instanceId: string;
-  /** Current `execution_visibility` from the instance spec. */
+  /** Id of the workflow whose run visibility is edited. */
+  readonly workflowId: string;
+  /** Current `execution_visibility` from the workflow spec. */
   readonly executionVisibility: WorkflowExecutionVisibility;
-  /** Called after a successful change so the host can refresh the instance. */
+  /** Called after a successful change so the host can refresh the workflow. */
   readonly onChanged?: () => void;
 }
 
@@ -26,35 +42,37 @@ const RUN_VISIBILITY_OPTIONS: readonly RunVisibilityOption[] = [
   {
     value: WorkflowExecutionVisibility.private,
     label: "Only the person who runs it",
-    description: "Each run is visible only to whoever started it (and explicit shares).",
+    description:
+      "Each run, past and future, is visible only to whoever started it (and anyone it is shared with).",
   },
   {
     value: WorkflowExecutionVisibility.organization,
     label: "All organization members",
-    description: "Everyone in the organization can observe every run of this instance.",
+    description:
+      "Everyone in the organization can see every run of this workflow, past runs included, with its input and output.",
   },
 ];
 
 /**
- * Segmented control for an instance's run (execution) visibility — a separate
- * axis from the instance's own visibility: an owner can keep the instance
- * private while letting the whole org observe its runs.
+ * Segmented control for who can see the runs of a workflow. Render it only
+ * for someone who may change the workflow's audience (`can_manage_audience`).
  *
- * Writes the `execution_visibility` spec field via the dedicated RPC, which
- * reconciles the dormant `workflow_instance#execution_viewer` FGA relation in
- * Cloud mode. `unspecified` is treated as private (the default).
- *
- * Only meaningful while the instance itself is private; an ORG/PUBLIC instance
- * already exposes its runs to org members by inheritance, so callers should
- * render this only in the private case.
+ * @example
+ * ```tsx
+ * <RunVisibilityControl
+ *   workflowId={workflow.metadata.id}
+ *   executionVisibility={workflow.spec.executionVisibility}
+ *   onChanged={refetch}
+ * />
+ * ```
  */
 export function RunVisibilityControl({
-  instanceId,
+  workflowId,
   executionVisibility,
   onChanged,
 }: RunVisibilityControlProps) {
   const { updateExecutionVisibility, isUpdating, error } =
-    useUpdateWorkflowInstanceExecutionVisibility();
+    useUpdateWorkflowExecutionVisibility();
 
   const current =
     executionVisibility === WorkflowExecutionVisibility.unspecified
@@ -65,13 +83,13 @@ export function RunVisibilityControl({
     async (value: WorkflowExecutionVisibility) => {
       if (value === current || isUpdating) return;
       try {
-        await updateExecutionVisibility(instanceId, value);
+        await updateExecutionVisibility(workflowId, value);
         onChanged?.();
       } catch {
-        // error surfaced below
+        // The hook's error state renders below.
       }
     },
-    [current, isUpdating, updateExecutionVisibility, instanceId, onChanged],
+    [current, isUpdating, updateExecutionVisibility, workflowId, onChanged],
   );
 
   return (
@@ -96,7 +114,7 @@ export function RunVisibilityControl({
                 "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
                 "stg:disabled:opacity-60",
                 selected
-                  ? "stg:border-primary stg:bg-primary/5"
+                  ? "stg:border-primary stg:bg-primary-subtle"
                   : "stg:border-border stg:hover:bg-accent-hover",
               )}
             >

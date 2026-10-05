@@ -1,7 +1,8 @@
 /**
  * Pins how the web workflow pages name organizations: the list, the
- * executions list, the new-workflow editor and the detail page's viewer org
- * all use the active organization's id, the way the server names every org;
+ * executions list and the new-workflow editor use the active
+ * organization's id, the way the server names every org, and the detail
+ * page shows and runs the workflow in the organization it lives in;
  * a list row's Organization column shows the stored org id through
  * OrgSlugText; and a row's "Copy reference" copies `<org slug>/<slug>`.
  * The views and the workbench are pinned in @stigmer/react.
@@ -35,7 +36,7 @@ const page = vi.hoisted(() => ({
   props: new Map<string, Record<string, unknown>>(),
   architectOrg: [] as Array<string | null>,
   executionListOrg: [] as Array<string | null>,
-  instancesOrg: [] as string[],
+  confirms: [] as Array<{ title: string; description: string }>,
 }));
 
 vi.mock("@stigmer/react", () => {
@@ -91,8 +92,7 @@ vi.mock("@stigmer/react", () => {
     WorkflowArchitectDialog: () => null,
     WorkflowTemplateGallery: () => null,
     WorkflowDetailView: capture("WorkflowDetailView"),
-    WorkflowRunDialog: () => null,
-    CreateWorkflowInstanceDialog: () => null,
+    WorkflowRunDialog: capture("WorkflowRunDialog"),
     STARTER_WORKFLOW_YAML: "document: {}",
     WORKFLOW_TEMPLATES: [],
     useStigmer: () => ({ workflow }),
@@ -101,7 +101,10 @@ vi.mock("@stigmer/react", () => {
     useOrgSlugForId: () => (id: string) => (id === "org_acme" ? "acme" : id),
     useConfirmAction: () => ({
       confirmState: null,
-      confirm: async () => false,
+      confirm: async (options: { title: string; description: string }) => {
+        page.confirms.push(options);
+        return false;
+      },
       handleConfirm: () => undefined,
       handleCancel: () => undefined,
     }),
@@ -125,10 +128,6 @@ vi.mock("@stigmer/react", () => {
     },
     useWorkflow: () => ({ workflow: { metadata: { id: "wfl_1" } } }),
     useWorkflowYaml: () => ({ yaml: null }),
-    useWorkflowInstances: (_workflowId: string | undefined, org: string) => {
-      page.instancesOrg.push(org);
-      return { instances: [], refetch: () => undefined };
-    },
     useCopyResource: () => ({
       copyId: () => undefined,
       copyQualifiedSlug: () => undefined,
@@ -136,9 +135,6 @@ vi.mock("@stigmer/react", () => {
     useDeleteResource: () => ({
       deleteResource: async () => undefined,
       isDeleting: false,
-    }),
-    useDeleteWorkflowInstance: () => ({
-      deleteInstance: async () => undefined,
     }),
     useExportResource: () => ({
       copyYaml: () => undefined,
@@ -184,7 +180,7 @@ beforeEach(() => {
   page.props.clear();
   page.architectOrg.length = 0;
   page.executionListOrg.length = 0;
-  page.instancesOrg.length = 0;
+  page.confirms.length = 0;
   copied = [];
   vi.spyOn(navigator.clipboard, "writeText").mockImplementation(
     async (text: string) => {
@@ -232,15 +228,34 @@ describe("web WorkflowNewPage", () => {
 });
 
 describe("web WorkflowDetailPageInner", () => {
-  it("shows the workflow where it lives and scopes the viewer and instances to the active org id", () => {
+  it("shows the workflow where it lives and runs it there, naming the workflow alone", () => {
     render(<WorkflowDetailPageInner org="other" slug="nightly" />);
 
     expect(page.props.get("WorkflowDetailView")).toMatchObject({
       org: "other",
       slug: "nightly",
-      viewerOrg: "org_acme",
     });
-    expect(page.instancesOrg.at(-1)).toBe("org_acme");
+    const runDialog = page.props.get("WorkflowRunDialog");
+    expect(runDialog).toMatchObject({ org: "other" });
+    expect(Object.keys(runDialog ?? {}).sort()).toEqual(
+      ["onError", "onOpenChange", "onSuccess", "open", "org", "workflow"],
+    );
+  });
+
+  it("confirms a delete that removes the workflow and keeps its past runs", () => {
+    render(<WorkflowDetailPageInner org="other" slug="nightly" />);
+
+    const actions = page.props.get("WorkflowDetailView")?.actions as Array<{
+      id: string;
+      onAction: () => void;
+    }>;
+    actions.find((a) => a.id === "delete")?.onAction();
+
+    expect(page.confirms.at(-1)?.description).toBe(
+      "This permanently removes the workflow. " +
+        "Past executions are preserved in the execution history. " +
+        "This action cannot be undone.",
+    );
   });
 });
 

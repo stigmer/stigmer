@@ -2,8 +2,10 @@
  * Pins the desktop workflow page's header actions: a workflow's YAML is
  * edited in its dedicated Editor tab (one YAML surface per workflow), so
  * "Edit YAML" switches to that tab, and only once the workflow's YAML has
- * loaded; the clipboard actions copy the id and the qualified slug. The
- * detail view and the editor are pinned in @stigmer/react.
+ * loaded; the clipboard actions copy the id and the qualified slug; the
+ * delete confirmation names the workflow alone and keeps its past runs;
+ * the run dialog names the workflow alone. The detail view and the editor
+ * are pinned in @stigmer/react.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render } from "@testing-library/react";
@@ -29,6 +31,8 @@ const page = vi.hoisted(() => ({
   detail: [] as DetailProps[],
   copiedIds: [] as string[],
   copiedSlugs: [] as Array<[string, string]>,
+  confirms: [] as Array<{ description: string }>,
+  runDialog: [] as Array<Record<string, unknown>>,
 }));
 
 const noop = () => undefined;
@@ -39,22 +43,29 @@ vi.mock("@stigmer/react", () => ({
     return null;
   },
   WorkflowEditorView: () => null,
-  WorkflowRunDialog: () => null,
-  CreateWorkflowInstanceDialog: () => null,
+  WorkflowRunDialog: (props: Record<string, unknown>) => {
+    page.runDialog.push(props);
+    return null;
+  },
   ConfirmDialog: () => null,
-  useWorkflow: () => ({ workflow: undefined }),
+  useWorkflow: () => ({ workflow: { metadata: { id: "wfl_1" } } }),
   useWorkflowYaml: () => ({ yaml: page.yaml }),
-  useWorkflowInstances: () => ({ instances: [], refetch: noop }),
   useCopyResource: () => ({
     copyId: (id: string) => page.copiedIds.push(id),
     copyQualifiedSlug: (org: string, slug: string) => page.copiedSlugs.push([org, slug]),
   }),
-  useConfirmAction: () => ({ confirmState: null, confirm: noop, handleConfirm: noop, handleCancel: noop }),
+  useConfirmAction: () => ({
+    confirmState: null,
+    confirm: async (options: { description: string }) => {
+      page.confirms.push(options);
+      return false;
+    },
+    handleConfirm: noop,
+    handleCancel: noop,
+  }),
   useDeleteResource: () => ({ deleteResource: noop, isDeleting: false }),
-  useDeleteWorkflowInstance: () => ({ deleteInstance: noop }),
   useElkLayoutEngine: () => undefined,
   useBreadcrumbOverride: () => ({ setLabel: noop }),
-  useActiveOrgId: () => "org_acme",
   toast: { success: () => undefined, error: () => undefined },
 }));
 
@@ -79,6 +90,8 @@ beforeEach(() => {
   page.detail.length = 0;
   page.copiedIds.length = 0;
   page.copiedSlugs.length = 0;
+  page.confirms.length = 0;
+  page.runDialog.length = 0;
 });
 
 describe("desktop WorkflowDetailPage — header actions", () => {
@@ -123,5 +136,30 @@ describe("desktop WorkflowDetailPage — header actions", () => {
 
     expect(page.copiedIds).toEqual(["wfl_1"]);
     expect(page.copiedSlugs).toEqual([["acme", "digest"]]);
+  });
+
+  it("confirms a delete that removes the workflow and keeps its past runs", () => {
+    renderWorkflow();
+
+    // The confirmation is asked synchronously; the delete itself waits on it.
+    act(() => {
+      action("delete")?.onAction();
+    });
+
+    expect(page.confirms.at(-1)?.description).toBe(
+      "This permanently removes the workflow. " +
+        "Past executions are preserved in the execution history. " +
+        "This action cannot be undone.",
+    );
+  });
+
+  it("runs the workflow in its organization, naming the workflow alone", () => {
+    renderWorkflow();
+
+    const runDialog = page.runDialog.at(-1);
+    expect(runDialog).toMatchObject({ org: "acme" });
+    expect(Object.keys(runDialog ?? {}).sort()).toEqual(
+      ["onError", "onOpenChange", "onSuccess", "open", "org", "workflow"],
+    );
   });
 });

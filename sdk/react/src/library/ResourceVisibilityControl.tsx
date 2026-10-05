@@ -10,7 +10,6 @@ import { VisibilityBadge, VisibilitySelector } from "./VisibilitySelector.js";
 import {
   blueprintVisibilityLevels,
   environmentVisibilityLevels,
-  instanceVisibilityLevels,
 } from "./visibilityLevels.js";
 import {
   useUpdateVisibility,
@@ -29,13 +28,8 @@ const FGA_KIND: Record<VisibilityResourceKind, string> = {
   plugin: "plugin",
   skill: "skill",
   mcpServer: "mcp_server",
-  workflowInstance: "workflow_instance",
   environment: "environment",
 };
-
-const INSTANCE_KINDS: ReadonlySet<VisibilityResourceKind> = new Set([
-  "workflowInstance",
-]);
 
 /** Props for {@link ResourceVisibilityControl}. */
 export interface ResourceVisibilityControlProps {
@@ -82,8 +76,6 @@ export interface ResourceVisibilityControlProps {
  *   not itself a child (its `spec.parent_org`, read with
  *   {@link useOrganization}; anyone who may change a blueprint's audience
  *   holds a role in its organization, so the read succeeds).
- * - Instances: Private / Organization — child organizations are excluded
- *   by design to preserve tenant isolation.
  * - Environments: Private / Organization only — secret values never leave
  *   the org boundary. In `local` mode there are no levels to choose (the
  *   open-source edition is single-user), so the control degrades to a badge.
@@ -105,23 +97,20 @@ export function ResourceVisibilityControl({
   const deploymentMode = useDeploymentMode();
   const singleOrg = useSingleOrg();
 
-  const isInstance = INSTANCE_KINDS.has(kind);
   const isEnvironment = kind === "environment";
   // Only a blueprint can take the child-organizations level, and only a
   // server that holds more than one organization can have children.
   // Passing null makes the hook a stable no-op everywhere else.
   const ownerLookupOrg =
-    !isInstance && !isEnvironment && singleOrg === false ? (org ?? null) : null;
+    !isEnvironment && singleOrg === false ? (org ?? null) : null;
   const { organization: owner } = useOrganization(ownerLookupOrg);
 
   const options = isEnvironment
     ? environmentVisibilityLevels(deploymentMode)
-    : isInstance
-      ? instanceVisibilityLevels()
-      : blueprintVisibilityLevels({
-          offersChildOrgs:
-            owner !== null && (owner.spec?.parentOrg ?? "") === "",
-        });
+    : blueprintVisibilityLevels({
+        offersChildOrgs:
+          owner !== null && (owner.spec?.parentOrg ?? "") === "",
+      });
 
   const handleChange = useCallback(
     async (next: ApiResourceVisibility) => {
@@ -151,7 +140,7 @@ export function ResourceVisibilityControl({
       options={options}
       onVisibilityChange={handleChange}
       isPending={isPending}
-      ariaLabel={isInstance ? "Instance visibility" : "Resource visibility"}
+      ariaLabel="Resource visibility"
       className={className}
     />
   );

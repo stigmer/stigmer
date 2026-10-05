@@ -27,7 +27,7 @@ export interface ManageAccessButtonProps {
 /**
  * The single drop-in, visible trigger for the unified Manage access dialog —
  * used by surfaces that render a button in a header or panel (session and
- * workflow-execution viewers, instance panels) rather than a kebab menu (those
+ * workflow-execution viewers) rather than a kebab menu (those
  * use {@link useManageAccess}).
  *
  * Self-gates on `can_view_access`: the button renders only for users who may

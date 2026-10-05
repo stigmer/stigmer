@@ -3,7 +3,6 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import {
   blueprintVisibilityLevels,
   environmentVisibilityLevels,
-  instanceVisibilityLevels,
   visibilityLabel,
   visibilityOption,
 } from "../visibilityLevels";
@@ -77,27 +76,10 @@ describe("blueprintVisibilityLevels", () => {
   });
 });
 
-describe("instanceVisibilityLevels", () => {
-  it("offers exactly Private and Organization — instances never take the child-organizations level", () => {
-    expect(instanceVisibilityLevels().map((l) => l.value)).toEqual([
-      ApiResourceVisibility.visibility_private,
-      ApiResourceVisibility.visibility_org,
-    ]);
-  });
-
-  it("describes the org level in execution terms", () => {
-    const org = instanceVisibilityLevels().find(
-      (l) => l.value === ApiResourceVisibility.visibility_org,
-    );
-    expect(org?.description).toContain("executions");
-  });
-});
-
 describe("the retired public level", () => {
   it("is offered by no level list", () => {
     const offered = [
       ...blueprintVisibilityLevels({ offersChildOrgs: true }),
-      ...instanceVisibilityLevels(),
       ...environmentVisibilityLevels("cloud"),
     ].map((l) => l.value);
     expect(offered).not.toContain(ApiResourceVisibility.visibility_public);

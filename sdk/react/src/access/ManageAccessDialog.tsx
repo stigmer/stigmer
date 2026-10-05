@@ -28,7 +28,7 @@ export interface ManageAccessDialogProps {
   readonly visibility?: AccessVisibility;
   /**
    * An optional resource-specific section appended below People (e.g.
-   * workflow-instance run observability).
+   * a workflow's run visibility).
    */
   readonly extraSection?: AccessExtraSection;
 }

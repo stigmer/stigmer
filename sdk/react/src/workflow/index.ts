@@ -50,11 +50,6 @@ export {
 } from "./useWorkflowCount.js";
 
 export {
-  useWorkflowInstances,
-  type UseWorkflowInstancesReturn,
-} from "./useWorkflowInstances.js";
-
-export {
   useWorkflowExecutionList,
   type UseWorkflowExecutionListOptions,
   type UseWorkflowExecutionListReturn,
@@ -135,11 +130,12 @@ export {
   type RunWorkflowFieldErrors,
 } from "./useRunWorkflowFlow.js";
 
-// Run workflow — instance env key resolution
+// Run workflow — where each declared key's value comes from
 export {
-  useInstanceEnvKeys,
-  type UseInstanceEnvKeysReturn,
-} from "./useInstanceEnvKeys.js";
+  useRunEnvKeySources,
+  type RunEnvKeySource,
+  type UseRunEnvKeySourcesReturn,
+} from "./useRunEnvKeySources.js";
 
 // Run workflow — trigger input detection
 export { workflowUsesTriggerInput } from "./workflow-uses-trigger-input.js";
@@ -774,29 +770,15 @@ export {
   type WorkflowExplainDialogProps,
 } from "./WorkflowExplainDialog.js";
 
-// Workflow Instance management hooks
+// Run visibility — who sees every run of a workflow
 export {
-  useWorkflowInstance,
-  type UseWorkflowInstanceReturn,
-  useCreateWorkflowInstance,
-  type UseCreateWorkflowInstanceReturn,
-  useUpdateWorkflowInstance,
-  type UseUpdateWorkflowInstanceReturn,
-  useUpdateWorkflowInstanceExecutionVisibility,
-  type UseUpdateWorkflowInstanceExecutionVisibilityReturn,
-  useDeleteWorkflowInstance,
-  type UseDeleteWorkflowInstanceReturn,
-  WorkflowInstanceEmptyState,
-  type WorkflowInstanceEmptyStateProps,
-  WorkflowInstanceList,
-  type WorkflowInstanceListProps,
-  CreateWorkflowInstanceDialog,
-  type CreateWorkflowInstanceDialogProps,
-  WorkflowInstanceDetailPanel,
-  type WorkflowInstanceDetailPanelProps,
+  useUpdateWorkflowExecutionVisibility,
+  type UseUpdateWorkflowExecutionVisibilityReturn,
+} from "./useUpdateWorkflowExecutionVisibility.js";
+export {
   RunVisibilityControl,
   type RunVisibilityControlProps,
-} from "./instance/index.js";
+} from "./RunVisibilityControl.js";
 
 // Execution Comparison — run-vs-run comparison
 export {

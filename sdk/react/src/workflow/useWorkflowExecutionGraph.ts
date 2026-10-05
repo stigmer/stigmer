@@ -139,50 +139,30 @@ export function useWorkflowExecutionGraph(
   // ── Workflow definition fetch (version-aware for graph building) ──
 
   const workflowId = execution?.spec?.workflowId || null;
-  const workflowInstanceId = execution?.spec?.workflowInstanceId || null;
   const versionHash = execution?.status?.workflowVersionHash || null;
 
-  const instanceFetchFn = !workflowId && workflowInstanceId
-    ? async () => {
-        try {
-          const instance = await stigmer.workflowInstance.get(workflowInstanceId);
-          return instance.spec?.workflowId ?? null;
-        } catch {
-          return null;
-        }
-      }
-    : null;
-
-  const { data: resolvedWorkflowId } = useFetch(
-    instanceFetchFn,
-    [workflowInstanceId, stigmer],
-    null,
-  );
-
-  const effectiveWorkflowId = workflowId || resolvedWorkflowId;
-
   // Fetch workflow definition — use pinned version if available, otherwise live
-  const workflowFetchFn = effectiveWorkflowId
+  const workflowFetchFn = workflowId
     ? async () => {
         // Path 1: Versioned execution — fetch the specific version entry
         if (versionHash) {
           try {
             const versionEntry = await stigmer.workflow.getVersion(
-              create(GetWorkflowVersionInputSchema, { workflowId: effectiveWorkflowId, versionHash }),
+              create(GetWorkflowVersionInputSchema, { workflowId, versionHash }),
             );
             if (versionEntry?.validatedYaml) {
               return { yaml: versionEntry.validatedYaml, isVersionPinned: true, versionFetchFailed: false };
             }
             // Version entry exists but YAML is empty — treat as degraded
-            return await fetchLiveWorkflowFallback(stigmer, effectiveWorkflowId, true);
+            return await fetchLiveWorkflowFallback(stigmer, workflowId, true);
           } catch {
             // Version lookup failed — explicit fallback with signal
-            return await fetchLiveWorkflowFallback(stigmer, effectiveWorkflowId, true);
+            return await fetchLiveWorkflowFallback(stigmer, workflowId, true);
           }
         }
 
         // Path 2: Legacy execution or no hash — use live workflow
-        return await fetchLiveWorkflowFallback(stigmer, effectiveWorkflowId, false);
+        return await fetchLiveWorkflowFallback(stigmer, workflowId, false);
       }
     : null;
 
@@ -190,7 +170,7 @@ export function useWorkflowExecutionGraph(
     data: workflowData,
     isLoading: isLoadingWorkflow,
     error: workflowError,
-  } = useFetch(workflowFetchFn, [effectiveWorkflowId, versionHash, stigmer], null);
+  } = useFetch(workflowFetchFn, [workflowId, versionHash, stigmer], null);
 
   // ── Build graph model ────────────────────────────────────────────
 
@@ -355,7 +335,7 @@ export function useWorkflowExecutionGraph(
   const isLoading = isLoadingExecution || isLoadingWorkflow;
   const error = executionError?.message
     ?? workflowError?.message
-    ?? (!isLoading && !baseElements && effectiveWorkflowId ? "Unable to build workflow graph" : null)
+    ?? (!isLoading && !baseElements && workflowId ? "Unable to build workflow graph" : null)
     ?? null;
 
   return {

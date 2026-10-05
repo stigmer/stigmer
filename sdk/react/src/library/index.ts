@@ -60,7 +60,6 @@ export type {
 
 export {
   blueprintVisibilityLevels,
-  instanceVisibilityLevels,
   visibilityLabel,
   visibilityOption,
 } from "./visibilityLevels.js";
@@ -78,5 +77,3 @@ export type {
   UseUpdateVisibilityReturn,
 } from "./useUpdateVisibility.js";
 
-export { InstanceVisibilitySelector } from "./InstanceVisibilitySelector.js";
-export type { InstanceVisibilitySelectorProps } from "./InstanceVisibilitySelector.js";

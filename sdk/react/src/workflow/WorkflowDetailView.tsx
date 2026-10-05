@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import type { WorkflowInput } from "@stigmer/sdk";
 import { useWorkflow } from "./useWorkflow.js";
@@ -18,12 +18,14 @@ import { WorkflowOverviewSummary } from "./WorkflowOverviewSummary.js";
 import { WorkflowExplainDialog } from "./WorkflowExplainDialog.js";
 import { serializeWorkflowYaml } from "./serialize-workflow-yaml.js";
 import { WorkflowExecutionHistory } from "./execution-history/WorkflowExecutionHistory.js";
-import { WorkflowInstanceList } from "./instance/WorkflowInstanceList.js";
+import { RunVisibilityControl } from "./RunVisibilityControl.js";
 import { WorkflowVersionsTab } from "./WorkflowVersionsTab.js";
 import { useWorkflowVersions } from "./useWorkflowVersions.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
+import type { AccessExtraSection } from "../access/types.js";
+import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { formatDurationSec } from "./format-utils.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
@@ -36,7 +38,6 @@ import type { AdditionalTab, DetailAction, ResourceHeaderMeta } from "../resourc
 import type { TabItem } from "../tabs/Tabs.js";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
-const INSTANCES_TAB: TabItem = { id: "instances", label: "Instances" };
 const EXECUTIONS_TAB: TabItem = { id: "executions", label: "Executions" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
 
@@ -77,35 +78,6 @@ export interface WorkflowDetailViewProps {
    */
   readonly onExecutionClick?: (executionId: string) => void;
   /**
-   * The viewer's active organization id (a slug is also accepted), feeding the Instances tab:
-   * it scopes the list to this org's instances of the workflow, so a
-   * member of several orgs sees the current org context only. Omit to
-   * default to the workflow's own org.
-   */
-  readonly viewerOrg?: string;
-  /**
-   * Called when the user clicks "Create Instance" in the Instances tab.
-   * Opens the create instance dialog.
-   */
-  readonly onCreateInstanceClick?: () => void;
-  /**
-   * Called when the user clicks an instance row in the Instances tab.
-   */
-  readonly onInstanceClick?: (instance: WorkflowInstance) => void;
-  /**
-   * Called when the user clicks "Run" on a specific instance.
-   */
-  readonly onInstanceRunClick?: (instance: WorkflowInstance) => void;
-  /**
-   * Called when the user clicks "Delete" on a specific instance.
-   */
-  readonly onInstanceDeleteClick?: (instance: WorkflowInstance) => void;
-  /**
-   * Increment this value to trigger a refetch of the instance list.
-   * Useful after externally creating or deleting an instance.
-   */
-  readonly instancesRefreshKey?: number;
-  /**
    * When `true`, description and environment variables become click-to-edit.
    * Each field saves independently via `stigmer.workflow.update()`.
    * @default false
@@ -137,8 +109,12 @@ export interface WorkflowDetailViewProps {
  * its full specification inside a {@link ResourceDetailShell}:
  *
  * - **Overview**: Description, budget, env vars, task flow DAG, document metadata
- * - **Instances**: Environment-bound deployments (embedded, not standalone)
  * - **Executions**: Recent executions with phase badges and timing
+ * - **Versions**: The workflow's saved versions
+ *
+ * The Manage access dialog (from the kebab) carries the workflow's run
+ * visibility beside its general access, for those who may change the
+ * workflow's audience.
  *
  * Handles loading, error, and not-found states automatically.
  * Zero Console dependencies — safe for platform builder embedding.
@@ -160,12 +136,6 @@ export function WorkflowDetailView({
   onTabChange,
   defaultTab,
   onExecutionClick,
-  viewerOrg,
-  onCreateInstanceClick,
-  onInstanceClick,
-  onInstanceRunClick,
-  onInstanceDeleteClick,
-  instancesRefreshKey,
   editable = false,
   onResourceUpdated,
   onOpenInEditor,
@@ -203,7 +173,6 @@ export function WorkflowDetailView({
   const builtInTabs = useMemo<readonly TabItem[]>(
     () => [
       OVERVIEW_TAB,
-      INSTANCES_TAB,
       EXECUTIONS_TAB,
       {
         ...VERSIONS_TAB,
@@ -238,6 +207,36 @@ export function WorkflowDetailView({
     }
   }, [workflow]);
 
+  // Run visibility decides who sees every run of the workflow, so it is
+  // offered only to those who may change who reaches the workflow
+  // (can_manage_audience, the server's bar on updateExecutionVisibility),
+  // as the dialog's resource-specific section.
+  const workflowResourceId = workflow?.metadata?.id ?? "";
+  const { allowed: canManageAudience } = useCheckPermission(
+    workflowResourceId ? { kind: "workflow", id: workflowResourceId } : null,
+    "can_manage_audience",
+  );
+  const executionVisibility =
+    workflow?.spec?.executionVisibility ?? WorkflowExecutionVisibility.unspecified;
+  const runVisibilitySection = useMemo<AccessExtraSection | undefined>(
+    () =>
+      canManageAudience && workflowResourceId
+        ? {
+            title: "Run visibility",
+            description:
+              "Who can see every run of this workflow, past runs included, with each run's input and output.",
+            content: (
+              <RunVisibilityControl
+                workflowId={workflowResourceId}
+                executionVisibility={executionVisibility}
+                onChanged={refetch}
+              />
+            ),
+          }
+        : undefined,
+    [canManageAudience, workflowResourceId, executionVisibility, refetch],
+  );
+
   // Unified Manage access — visibility (General access) over explicit grants
   // (People), opened from the kebab. Replaces the host's bespoke share popover.
   const access = useManageAccess({
@@ -258,6 +257,7 @@ export function WorkflowDetailView({
           onChanged: refetch,
         }
       : undefined,
+    extraSection: runVisibilitySection,
   });
 
   if (isLoading) return <LoadingSkeleton className={className} />;
@@ -302,20 +302,6 @@ export function WorkflowDetailView({
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
-  } else if (effectiveActiveTab === "instances") {
-    tabContent = (
-      <WorkflowInstanceList
-        workflowId={meta?.id ?? ""}
-        defaultInstanceId={workflow?.status?.defaultInstanceId}
-        org={org}
-        viewerOrg={viewerOrg}
-        onCreateClick={onCreateInstanceClick}
-        onInstanceClick={onInstanceClick}
-        onRunClick={onInstanceRunClick}
-        onDeleteClick={onInstanceDeleteClick}
-        refreshKey={instancesRefreshKey}
-      />
-    );
   } else if (effectiveActiveTab === "executions") {
     tabContent = (
       <WorkflowExecutionHistory
