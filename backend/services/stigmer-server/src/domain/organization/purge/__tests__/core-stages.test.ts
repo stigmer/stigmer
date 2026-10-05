@@ -93,6 +93,7 @@ const context: OrganizationPurgeContext = {
   org: { id: ORG, parentOrg: "" },
   logger: silentLogger,
   caller: serverActingFor("organization-purge"),
+  rows: { ids: () => Promise.reject(new Error("no core stage reads rows")) },
 };
 
 function kindPurge(

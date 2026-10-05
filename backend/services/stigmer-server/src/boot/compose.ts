@@ -1517,6 +1517,7 @@ export async function composeServer(
   const organizationPurge = new OrganizationPurgeRunner({
     store,
     logger,
+    listIndexes: LIST_INDEXES,
     stages: orderOrganizationPurgeStages({
       quiesce: purgeQuiesce,
       units: extensions.orgPurge,

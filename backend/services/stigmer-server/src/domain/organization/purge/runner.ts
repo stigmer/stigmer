@@ -51,6 +51,8 @@ import { serverActingFor } from "../../../pipeline/interceptors/auth.js";
 import { PURGE_ACTOR } from "../lifecycle.js";
 import type { OrganizationDeletion, Store } from "../../../store/interface.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
+import type { ListIndexDeclaration } from "../../../store/list-index.js";
+import { newOrganizationRows } from "./rows.js";
 
 /** How often the interval pass reads the deletion table. */
 export const PURGE_PASS_INTERVAL_MS = 30 * 1000;
@@ -80,6 +82,8 @@ export interface OrganizationPurgeRunnerDeps {
   readonly logger: Logger;
   /** Every stage, in the order the purge runs them. */
   readonly stages: ReadonlyArray<OrganizationPurgeStage>;
+  /** The composition's list indexes, which the stages' row reader reads through (rows.ts). */
+  readonly listIndexes?: ReadonlyArray<ListIndexDeclaration>;
   /** The clock; tests pass their own. */
   readonly now?: () => Date;
   /** The interval between passes; tests pass their own. */
@@ -242,6 +246,11 @@ export class OrganizationPurgeRunner implements OrganizationPurgeKick {
     this.owned.add(deletion.org);
     try {
       const org = await this.target(deletion.org);
+      const rows = newOrganizationRows(
+        this.deps.store,
+        this.deps.listIndexes ?? [],
+        org.id,
+      );
       for (let index = resumeAt; index < stages.length; index++) {
         const stage = stages[index]!;
         stageName = stage.name;
@@ -254,6 +263,7 @@ export class OrganizationPurgeRunner implements OrganizationPurgeKick {
             org,
             logger: this.deps.logger,
             caller: this.caller,
+            rows,
           });
           if (!progress.more) {
             break;

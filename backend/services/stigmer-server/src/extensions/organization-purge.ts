@@ -46,6 +46,8 @@
  * purge, a unit stage's `kinds`, a retention (boot/organization-purge.ts),
  * the precedent being the refusal of a served kind no reader can read.
  */
+import type { DescMessage } from "@bufbuild/protobuf";
+
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../boot/logger.js";
@@ -68,6 +70,35 @@ export interface OrganizationPurgeContext {
    * that record who removed a row.
    */
   readonly caller: CallerIdentity;
+  /**
+   * The organization's rows of a kind the library keeps, a page at a time,
+   * for a stage that finds its own rows through them (a session's
+   * checkpoints, an execution's files). Read through the kind's list index
+   * when it has one, so a page costs the organization's rows, never the
+   * whole kind's (domain/organization/purge/rows.ts).
+   */
+  readonly rows: OrganizationRows;
+}
+
+/** One page of an organization's row ids. */
+export interface OrganizationRowPage {
+  readonly ids: ReadonlyArray<string>;
+  /** Where the next page starts; undefined on the last page. */
+  readonly next: string | undefined;
+}
+
+/** An organization's rows of one kind, by id, a page at a time. */
+export interface OrganizationRows {
+  /**
+   * At most `limit` ids of the organization's rows of `kind`, decoded with
+   * `schema` (the kind's resource message). `after` is "" for the first
+   * page, then the previous page's `next`.
+   */
+  ids(
+    kind: ApiResourceKind,
+    schema: DescMessage,
+    page: { readonly after: string; readonly limit: number },
+  ): Promise<OrganizationRowPage>;
 }
 
 /** A stage's answer: whether it has more to remove. */
