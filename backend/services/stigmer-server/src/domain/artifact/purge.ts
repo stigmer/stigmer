@@ -46,7 +46,10 @@ type DeleteInput = typeof ArtifactCommandController.method.delete.input;
 export interface ArtifactPurgeDeps extends KindPurgeDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The content-addressed blob store artifacts upload to. */
-  readonly artifactStorage: Pick<ArtifactStorage, "delete">;
+  readonly artifactStorage: Pick<
+    ArtifactStorage,
+    "delete" | "download" | "exists" | "upload"
+  >;
 }
 
 export function newArtifactPurge(deps: ArtifactPurgeDeps): KindPurge {
@@ -65,13 +68,19 @@ export function newArtifactPurge(deps: ArtifactPurgeDeps): KindPurge {
 
 /**
  * DeleteUnsharedBlob — before the row: the blob, when no other artifact row
- * names its hash (the row being purged is left out of the count). A fault
- * leaves the row, so the retry finds it and asks again; a missing blob is
- * no fault.
+ * names its hash (the row being purged is left out of the count).
+ *
+ * A create of the same bytes in another organization uploads the blob
+ * before it stores its row, so a count can miss it. Both sides close that:
+ * this step keeps the bytes, deletes, and counts again, restoring the blob
+ * when a holder appeared; the create checks its blob after storing its row
+ * and uploads again when it is gone (controller.ts). Whichever moves last
+ * sees the other. A fault leaves the row, so the retry finds it and asks
+ * again; a blob already gone is no fault.
  */
 function newDeleteUnsharedBlobStep(
   store: Pick<Store, "queryResources">,
-  storage: Pick<ArtifactStorage, "delete">,
+  storage: Pick<ArtifactStorage, "delete" | "download" | "exists" | "upload">,
 ): PipelineStep<DeleteInput> {
   return {
     name: "DeleteUnsharedBlob",
@@ -84,14 +93,21 @@ function newDeleteUnsharedBlobStep(
         return;
       }
       const id = artifact?.metadata?.id ?? "";
-      const holders = await store.queryResources(artifactListIndex, {
-        anyKey: [{ name: "blob", value: hash }],
-        limit: 2,
-      });
-      if (holders.some((holder) => holder.id !== id)) {
+      const otherHolder = async (): Promise<boolean> => {
+        const holders = await store.queryResources(artifactListIndex, {
+          anyKey: [{ name: "blob", value: hash }],
+          limit: 2,
+        });
+        return holders.some((holder) => holder.id !== id);
+      };
+      if ((await otherHolder()) || !(await storage.exists(hash))) {
         return;
       }
+      const bytes = await storage.download(hash);
       await storage.delete(hash);
+      if (await otherHolder()) {
+        await storage.upload(hash, bytes, artifact?.spec?.contentType ?? "");
+      }
     },
   };
 }

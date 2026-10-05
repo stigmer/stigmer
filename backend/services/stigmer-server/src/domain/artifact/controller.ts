@@ -131,6 +131,22 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
   return ctx.values.get(apiResourceKindKey);
 }
 
+/** Re-uploads the content when its blob is gone once the row is stored. */
+async function ensureBlobAfterPersist(
+  deps: ArtifactControllerDeps,
+  contentHash: string,
+  content: Uint8Array,
+  contentType: string,
+): Promise<void> {
+  try {
+    if (!(await deps.artifactStorage.exists(contentHash))) {
+      await deps.artifactStorage.upload(contentHash, content, contentType);
+    }
+  } catch (error) {
+    throw internalError(error, "failed to upload artifact content");
+  }
+}
+
 /**
  * Create — Go's direct handler, step for step: validate spec/content/
  * source, SHA-256 the content (the hex hash IS the blob key), upload,
@@ -237,6 +253,14 @@ async function createArtifact(
     });
     throw internalError(error, "failed to persist artifact");
   }
+
+  // Blobs are shared by content hash, so an organization's purge may have
+  // deleted this one between the upload and the row (it counted holders
+  // before this row existed). The purge re-counts after its delete and
+  // restores a blob a holder appeared for; this re-check after the row is
+  // the other side, so whichever moves last sees the other
+  // (domain/artifact/purge.ts).
+  await ensureBlobAfterPersist(deps, contentHash, content, spec.contentType);
 
   deps.logger.info("artifact created successfully", {
     artifactId,

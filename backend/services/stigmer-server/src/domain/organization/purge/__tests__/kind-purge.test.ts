@@ -15,8 +15,11 @@
  *   - a kind that names its organization elsewhere (`belongsTo`, an API
  *     key's bound organization) and one read through a port (`rows`);
  *   - the artifact purge removes the row for good and a blob only when no
- *     other artifact names it; the agent execution purge removes its
- *     attachments' blobs; the workflow execution purge its event log.
+ *     other artifact names it, and restores a blob another organization's
+ *     create stored a row for while the purge was deleting it; the agent
+ *     execution purge removes its attachments' blobs, only those the upload
+ *     minted, never an object a creator named; the workflow execution purge
+ *     its event log, before the row, so a fault leaves the row to retry.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -246,6 +249,34 @@ describe("the API key purge", () => {
   });
 });
 
+/** A blob store over a map; `onDelete` runs inside a delete, where a racing create would land. */
+function blobStore(initial: ReadonlyArray<string>, onDelete?: (key: string) => Promise<void>) {
+  const blobs = new Map<string, Uint8Array>(initial.map((key) => [key, new Uint8Array([1])]));
+  const deleted: string[] = [];
+  return {
+    blobs,
+    deleted,
+    storage: {
+      async exists(key: string) {
+        return blobs.has(key);
+      },
+      async download(key: string) {
+        const bytes = blobs.get(key);
+        if (bytes === undefined) throw new Error(`no blob ${key}`);
+        return bytes;
+      },
+      async upload(key: string, data: Uint8Array) {
+        blobs.set(key, data);
+      },
+      async delete(key: string) {
+        deleted.push(key);
+        blobs.delete(key);
+        await onDelete?.(key);
+      },
+    },
+  };
+}
+
 describe("the artifact purge", () => {
   async function saveArtifact(id: string, org: string, hash: string) {
     await fx.store.saveResource(
@@ -264,27 +295,43 @@ describe("the artifact purge", () => {
     await saveArtifact("art_a2", ORG.id, "hash-own");
     await saveArtifact("art_a3", ORG.id, "hash-own");
     await saveArtifact("art_b1", OTHER, "hash-shared");
-    const deleted: string[] = [];
+    const store = blobStore(["hash-shared", "hash-own"]);
     const purge = newArtifactPurge({
       ...deps,
       authorizationLifecycle: undefined,
-      artifactStorage: {
-        async delete(key) {
-          deleted.push(key);
-        },
-      },
+      artifactStorage: store.storage,
     });
 
     expect(await purge.purge(ORG, CALLER)).toEqual({ more: false });
     expect(await ids(ApiResourceKind.artifact)).toEqual(["art_b1"]);
-    expect(deleted).toEqual(["hash-own"]);
+    expect(store.deleted).toEqual(["hash-own"]);
     await purge.purge({ id: OTHER, parentOrg: "" }, CALLER);
-    expect(deleted).toEqual(["hash-own", "hash-shared"]);
+    expect(store.deleted).toEqual(["hash-own", "hash-shared"]);
+    expect([...store.blobs.keys()]).toEqual([]);
+  });
+
+  it("restores a blob another organization's create stored a row for while the purge deleted it", async () => {
+    await saveArtifact("art_a1", ORG.id, "hash-raced");
+    // Another organization's create of the same bytes uploaded before the
+    // purge counted, and stores its row while the purge deletes.
+    const store = blobStore(["hash-raced"], async () => {
+      await saveArtifact("art_b1", OTHER, "hash-raced");
+    });
+    const purge = newArtifactPurge({
+      ...deps,
+      authorizationLifecycle: undefined,
+      artifactStorage: store.storage,
+    });
+    await purge.purge(ORG, CALLER);
+    expect(await ids(ApiResourceKind.artifact)).toEqual(["art_b1"]);
+    expect(store.deleted).toEqual(["hash-raced"]);
+    expect(store.blobs.has("hash-raced"), "the other organization's artifact keeps its blob").toBe(true);
   });
 });
 
 describe("the agent execution purge", () => {
-  it("removes each attachment's blob with the row", async () => {
+  const MINTED = "attachments/01K7Q6Z5X3V8M2N4P6R8T0W2Y4/report.pdf";
+  it("removes each attachment the upload minted with the row, and no object a creator named", async () => {
     await fx.store.saveResource(
       ApiResourceKind.agent_execution,
       "aex_a1",
@@ -293,28 +340,27 @@ describe("the agent execution purge", () => {
         metadata: { id: "aex_a1", org: ORG.id },
         spec: {
           attachments: [
-            { storageKey: "attachments/01a/report.pdf" },
-            { storageKey: "attachments/01b/notes.txt" },
+            { storageKey: MINTED },
+            // Keys a creator can send that name objects it does not own: an
+            // artifact's content hash, a skill or plugin archive, a path.
+            { storageKey: "3f2a9c" },
+            { storageKey: "skills/3f2a9c" },
+            { storageKey: "attachments/not-a-ulid/notes.txt" },
+            { storageKey: "attachments/01K7Q6Z5X3V8M2N4P6R8T0W2Y4/../../plugins/x" },
+            { storageKey: "attachments/01K7Q6Z5X3V8M2N4P6R8T0W2Y4/.." },
           ],
         },
       }),
     );
-    const deleted: string[] = [];
+    const store = blobStore([MINTED, "3f2a9c", "skills/3f2a9c"]);
     const purge = newAgentExecutionPurge({
       ...deps,
       authorizationLifecycle: undefined,
-      artifactStorage: {
-        async delete(key) {
-          deleted.push(key);
-        },
-      },
+      artifactStorage: store.storage,
     });
     expect(await purge.purge(ORG, CALLER)).toEqual({ more: false });
     expect(await ids(ApiResourceKind.agent_execution)).toEqual([]);
-    expect(deleted).toEqual([
-      "attachments/01a/report.pdf",
-      "attachments/01b/notes.txt",
-    ]);
+    expect(store.deleted).toEqual([MINTED]);
   });
 });
 
@@ -345,5 +391,20 @@ describe("the workflow execution purge", () => {
     expect(await purge.purge(ORG, CALLER)).toEqual({ more: false });
     expect(await ids(ApiResourceKind.workflow_execution)).toEqual([]);
     expect(await fx.store.getMaxEventSequence("wfe_a1")).toBe(0);
+  });
+
+  it("keeps the row when the event log cannot be removed, so the retry finds it", async () => {
+    await fx.store.saveResource(
+      ApiResourceKind.workflow_execution,
+      "wfe_a2",
+      WorkflowExecutionSchema,
+      create(WorkflowExecutionSchema, { metadata: { id: "wfe_a2", org: ORG.id } }),
+    );
+    const failing = Object.create(fx.store) as typeof fx.store;
+    failing.deleteWorkflowExecutionEvents = () => Promise.reject(new Error("events down"));
+    await expect(
+      newWorkflowExecutionPurge({ ...deps, store: failing, authorizationLifecycle: undefined }).purge(ORG, CALLER),
+    ).rejects.toThrow("internal server error");
+    expect(await ids(ApiResourceKind.workflow_execution)).toEqual(["wfe_a2"]);
   });
 });

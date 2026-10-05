@@ -78,7 +78,10 @@ export interface CoreKindPurgeDeps extends KindPurgeDeps {
   /** The composition's one secret facade (sealed values' backing state). */
   readonly secretService: SecretService;
   /** The artifact blob store (artifacts and attachments). */
-  readonly artifactStorage: Pick<ArtifactStorage, "delete">;
+  readonly artifactStorage: Pick<
+    ArtifactStorage,
+    "delete" | "download" | "exists" | "upload"
+  >;
   /** The schedule clock the schedule controller tears artifacts down through. */
   readonly scheduleClock: ClockProvider;
   /** The composed channel runtime; undefined when no unit composes one. */

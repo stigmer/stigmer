@@ -164,7 +164,7 @@ export async function uploadAttachment(
     contentType = osMimeTypeByExtension(req.filename);
   }
 
-  const storageKey = `attachments/${uploadId}/${req.filename}`;
+  const storageKey = attachmentStorageKey(uploadId, req.filename);
   deps.logger.info("Uploading attachment to artifact storage", {
     storageKey,
     filename: req.filename,
@@ -513,4 +513,28 @@ function isSpecAttachmentKey(
   return (execution.spec?.attachments ?? []).some(
     (attachment) => attachment.storageKey === storageKey,
   );
+}
+
+/** The key an upload is stored under: a fresh ULID folder and the bare filename. */
+function attachmentStorageKey(uploadId: string, filename: string): string {
+  return `attachments/${uploadId}/${filename}`;
+}
+
+/** `attachments/<ULID>/<bare filename>`, the only shape uploadAttachment mints. */
+const MINTED_ATTACHMENT_KEY = /^attachments\/[0-9A-HJKMNP-TV-Z]{26}\/[^/]+$/;
+
+/**
+ * Whether a key has the shape uploadAttachment mints. An execution's
+ * `spec.attachments` carries the keys its creator sent, which the create
+ * checks only for presence, so a key there may name any object the blob
+ * store holds (another organization's artifact, a skill archive); anything
+ * that acts on such a key on the server's own authority (the purge's
+ * delete) acts only on a minted one.
+ */
+export function isMintedAttachmentKey(key: string): boolean {
+  if (!MINTED_ATTACHMENT_KEY.test(key)) {
+    return false;
+  }
+  const filename = key.slice(key.lastIndexOf("/") + 1);
+  return filename !== "." && filename !== "..";
 }

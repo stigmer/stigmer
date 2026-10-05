@@ -8,7 +8,11 @@
  * attachments, by their `storage_key`. An attachment is uploaded under a
  * key minted per upload (`attachments/<ulid>/<file>`, artifacts.ts), so no
  * other execution names it; deleting an execution through its RPC leaves
- * the blob behind, and a purge must not. Removed before the row, which is
+ * the blob behind, and a purge must not. The key in `spec.attachments` is
+ * the one the creator sent, checked at create only for presence, so it may
+ * name any object in the blob store; only a key of the shape the upload
+ * mints (`isMintedAttachmentKey`) is deleted, and any other is left where
+ * it is. Removed before the row, which is
  * how a retry finds them: a fault fails the batch with the row in place,
  * and the retry deletes what is left (a missing blob is no fault). Core
  * quiesce has already terminated the run.
@@ -33,6 +37,8 @@ import type {
   KindPurgeDeps,
 } from "../organization/purge/kind-purge.js";
 import { agentExecutionListIndex } from "./list-index.js";
+
+import { isMintedAttachmentKey } from "./artifacts.js";
 
 type DeleteInput = typeof AgentExecutionCommandController.method.delete.input;
 
@@ -70,7 +76,9 @@ function newDeleteAttachmentBlobsStep(
         | MessageShape<typeof AgentExecutionSchema>
         | undefined;
       for (const attachment of execution?.spec?.attachments ?? []) {
-        if (attachment.storageKey !== "") {
+        // A key the creator sent may name any object in the blob store;
+        // only one uploadAttachment minted is the execution's to delete.
+        if (isMintedAttachmentKey(attachment.storageKey)) {
           await storage.delete(attachment.storageKey);
         }
       }

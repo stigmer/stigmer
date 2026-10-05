@@ -47,10 +47,11 @@ export function newWorkflowExecutionPurge(
     input: WorkflowExecutionCommandController.method.delete.input,
     listIndex: workflowExecutionListIndex,
     steps: [
+      // The event log goes before the row, which is how a retry finds it.
+      newDeleteExecutionEventsStep(deps.store),
       newDeleteResourceStep(deps.store),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
       newDeleteSearchIndexStep(deps.store, deps.logger),
-      newDeleteExecutionEventsStep(deps.store),
     ],
   });
 }
