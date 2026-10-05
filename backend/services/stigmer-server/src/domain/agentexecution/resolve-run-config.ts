@@ -42,12 +42,16 @@
  * The step runs right after AuthorizeRunAgent, so the agent read is the
  * one the caller may run, and before the validators and the pre-side-effect
  * gate slot, so the checks judge what will actually run on every lane and
- * a refusal reserves nothing. It also refuses an unattended turn that would
+ * a refusal reserves nothing. It refuses a surface's saved settings that
+ * set a tier or thinking with no model of their own (savedChoiceRefusal):
+ * saved settings name the model they are for, and only a live message may
+ * set either alone. And it refuses an unattended turn that would
  * run Cursor with no model at any layer: the pin-presence rule
  * (temporal/schedule/model-pinning.ts) judged on what will run, closing an
  * agent whose engine is Cursor reached by a schedule that names no engine.
  * CreateSessionIfNeeded resolves again (reResolveRunConfig) when the
- * session it creates pins another version than the stamp did.
+ * session it creates pins another version than the stamp did, and judges
+ * the result by the same checks.
  *
  * Proven by __tests__/resolve-run-config.test.ts (the rule's table, the
  * lanes, the engine match) and the agent-execution conformance arms.
@@ -74,7 +78,10 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { RunLanes } from "../../extensions/run-lanes.js";
-import { failedPreconditionError } from "../../pipeline/errors.js";
+import {
+  failedPreconditionError,
+  invalidArgumentError,
+} from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Store } from "../../store/interface.js";
 import { CURSOR_AUTO_PRICE_REASON } from "../../temporal/schedule/model-pinning.js";
@@ -83,6 +90,7 @@ import {
   HARNESS_NAME_CURSOR,
   harnessName,
 } from "../workflow/registry/pin-validation.js";
+import { savedChoiceWithoutModelRefusal } from "../workflow/registry/run-config-checks.js";
 
 import { SCHEDULE_ID_LABEL_KEY } from "./run-person.js";
 import { storedSessionOf } from "./session-binding.js";
@@ -219,6 +227,12 @@ export interface PlacedLane {
   readonly approvalMode: ApprovalMode;
   /** Whether the lane replaced the request's settings with its surface's. */
   readonly replacesRequest: boolean;
+  /**
+   * Whether the turn's layer is a surface's saved settings (a schedule's, a
+   * workflow step's, an edition lane's) rather than a live message's: saved
+   * settings name the model their tier or thinking is for.
+   */
+  readonly saved: boolean;
 }
 
 /** One turn's resolution and what it was resolved from: what the checks read. */
@@ -297,6 +311,10 @@ export function newResolveRunConfigStep(
       );
       stampRunConfig(execution, placement);
       ctx.set(RUN_CONFIG_PLACEMENT_KEY, placement);
+      const unnamed = savedChoiceRefusal(placement);
+      if (unnamed !== "") {
+        throw invalidArgumentError(unnamed);
+      }
       const refusal = unattendedPinRefusal(placement);
       if (refusal !== "") {
         throw failedPreconditionError(refusal);
@@ -363,6 +381,29 @@ function stampRunConfig(execution: AgentExecution, placement: RunConfigPlacement
 }
 
 /**
+ * The refusal for a surface's saved settings that set a fast tier or
+ * thinking with no model of their own, or "". Saved settings name the model
+ * they are for (RunConfig's contract): a tier or thinking saved alone would
+ * otherwise land on whatever model a less specific layer chose. The surfaces
+ * refuse this at save (registry/run-config-checks.ts); this catches rows
+ * saved before that rule, and a workflow step's settings composed at run
+ * time. Only a live message may set either alone.
+ */
+export function savedChoiceRefusal(placement: RunConfigPlacement): string {
+  if (!placement.lane.saved) {
+    return "";
+  }
+  const reason = savedChoiceWithoutModelRefusal(
+    { prefix: "", fieldPath: "run_config" },
+    placement.lane.turn,
+  );
+  return reason === ""
+    ? ""
+    : `${placement.lane.turnName} sets a speed tier or thinking without a model: ${reason}. ` +
+        "Saved settings name the model they are for.";
+}
+
+/**
  * The run-time pin-presence refusal, or "": an unattended turn that will
  * run Cursor with no model at any layer would run Auto, priced by the
  * provider account's own setting with nobody watching.
@@ -396,6 +437,7 @@ async function placeLane(
       profile: edition.profile,
       approvalMode: edition.approvalMode,
       replacesRequest: true,
+      saved: true,
     };
   }
   const turn = execution.spec?.runConfig;
@@ -406,6 +448,7 @@ async function placeLane(
       profile: deps.scheduleProfile,
       approvalMode: ApprovalMode.UNATTENDED,
       replacesRequest: false,
+      saved: true,
     };
   }
   if (execution.spec?.parent !== undefined) {
@@ -415,6 +458,7 @@ async function placeLane(
       profile: undefined,
       approvalMode: ApprovalMode.INTERACTIVE,
       replacesRequest: false,
+      saved: true,
     };
   }
   return {
@@ -423,5 +467,6 @@ async function placeLane(
     profile: undefined,
     approvalMode: ApprovalMode.INTERACTIVE,
     replacesRequest: false,
+    saved: false,
   };
 }

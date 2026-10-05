@@ -11,7 +11,9 @@
  *     variant for;
  *   - ENABLED needs a model the engine marks able to think, in either form
  *     (claude-sonnet-5's native entry is adaptive), and is refused without
- *     a model or on one that cannot think there (composer-2.5).
+ *     a model or on one that cannot think there (composer-2.5);
+ *   - DISABLED is refused on a model whose entry always thinks
+ *     (claude-fable-5 on native), since every turn would be refused.
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -138,5 +140,14 @@ describe("ValidateAgentRunConfig: what is refused", () => {
         runConfig: { modelName: "composer-2.5", thinkingMode: ThinkingMode.ENABLED },
       }).rawMessage,
     ).toContain("no thinking capability");
+  });
+
+  it("thinking off on a model that always thinks on the engine", () => {
+    expect(
+      refusal({
+        harness: Harness.NATIVE,
+        runConfig: { modelName: "claude-fable-5", thinkingMode: ThinkingMode.DISABLED },
+      }).rawMessage,
+    ).toContain("always thinks");
   });
 });

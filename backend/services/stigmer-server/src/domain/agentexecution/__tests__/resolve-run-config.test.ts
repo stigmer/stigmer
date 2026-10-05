@@ -25,7 +25,9 @@
  * judges the re-resolved settings by the same checks (a fast tier the new
  * version cannot price, an unattended Cursor turn left with no model).
  * Refusals name the layer that chose each value, the profile and "no
- * layer" included.
+ * layer" included. A surface's saved settings that set a tier or thinking
+ * with no model of their own are refused; a live message may set either
+ * alone.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -466,6 +468,33 @@ describe("ResolveRunConfig over a real store", () => {
     expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((err as ConnectError).rawMessage).toContain("the schedule's run_config");
     expect((err as ConnectError).rawMessage).toContain("stigmer/stigmer#362");
+  });
+
+  it("refuses a schedule's saved fast tier with no model of its own, naming the schedule's settings", async () => {
+    const err = await resolve(
+      execution({
+        metadata: { labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_1" } },
+        spec: { message: "hi", runConfig: { serviceTier: ServiceTier.FAST } },
+        status: { agentId: AGENT, agentVersionHash: PINNED },
+      }),
+    ).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(err).toBeInstanceOf(ConnectError);
+    expect((err as ConnectError).code).toBe(Code.InvalidArgument);
+    expect((err as ConnectError).rawMessage).toContain("the schedule's run_config");
+  });
+
+  it("lets a live message set thinking alone, on the agent's model", async () => {
+    const ctx = await resolve(
+      execution({
+        spec: { message: "hi", runConfig: { thinkingMode: ThinkingMode.DISABLED } },
+        status: { agentId: AGENT, agentVersionHash: PINNED },
+      }),
+    );
+    expect(ctx.newState.status?.runConfig?.modelName).toBe("claude-sonnet-5");
+    expect(ctx.newState.status?.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
   });
 
   it("an attended Cursor turn with no model runs Auto, as a person chose", async () => {

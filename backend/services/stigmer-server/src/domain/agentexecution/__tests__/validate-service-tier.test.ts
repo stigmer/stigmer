@@ -2,7 +2,9 @@
  * Pins validate-service-tier.ts against Go's validate_service_tier_test.go
  * case-for-case: fail-closed create-time validation of the service tier a
  * turn resolved (#357; each case runs ResolveRunConfig first, as the chain
- * does, over a turn with no agent) against the BUNDLED registry
+ * does, over a new conversation with no agent, on Cursor unless a case
+ * names native) against the BUNDLED registry, on the engine the
+ * conversation runs
  * (composer-2.5 prices a fast variant; claude-sonnet-4.6 is native with
  * none). Both editions must refuse the same request with the same
  * message — the conformance tier suite asserts the codes on every target;
@@ -16,6 +18,7 @@ import { describe, expect, it } from "vitest";
 
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -44,12 +47,14 @@ const step = newValidateServiceTierStep(registry);
 
 function contextFor(
   config: MessageInitShape<typeof RunConfigSchema> | undefined,
+  harness: Harness,
 ): RequestContext<typeof AgentExecutionSchema> {
   return new RequestContext(
     AgentExecutionSchema,
     create(AgentExecutionSchema, {
       spec: {
         message: "hello",
+        target: { case: "sessionSpec", value: { harness } },
         ...(config === undefined ? {} : { runConfig: config }),
       },
     }),
@@ -58,10 +63,15 @@ function contextFor(
   );
 }
 
+/**
+ * Resolves and judges a new conversation's turn on `harness` (Cursor by
+ * default: the bundled registry prices fast variants under Cursor).
+ */
 async function run(
   config: MessageInitShape<typeof RunConfigSchema> | undefined,
+  harness: Harness = Harness.CURSOR,
 ): Promise<void> {
-  const ctx = contextFor(config);
+  const ctx = contextFor(config, harness);
   await newResolveRunConfigStep({
     store: {} as Store,
     runLanes: undefined,
@@ -72,9 +82,10 @@ async function run(
 
 async function refusal(
   config: MessageInitShape<typeof RunConfigSchema>,
+  harness: Harness = Harness.CURSOR,
 ): Promise<ConnectError> {
   try {
-    await run(config);
+    await run(config, harness);
   } catch (error) {
     expect(error).toBeInstanceOf(ConnectError);
     return error as ConnectError;
@@ -122,5 +133,16 @@ describe("ValidateServiceTier (#357, bundled registry)", () => {
       serviceTier: ServiceTier.FAST,
     });
     expect(err.code).toBe(Code.InvalidArgument);
+  });
+
+  it("FAST on a model priced fast only on the other engine fails closed, naming the engine", async () => {
+    // composer-2.5's fast price is listed under Cursor only: on a native
+    // conversation the tier would select a variant the turn never applies.
+    const err = await refusal(
+      { modelName: "composer-2.5", serviceTier: ServiceTier.FAST },
+      Harness.NATIVE,
+    );
+    expect(err.code).toBe(Code.InvalidArgument);
+    expect(err.rawMessage).toContain("on the native harness");
   });
 });

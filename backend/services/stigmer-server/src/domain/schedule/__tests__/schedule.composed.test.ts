@@ -16,6 +16,7 @@
  *     EnsureEngineAvailable refusal — never a gRPC error;
  *   - the fire ledger: manual rows, cascade on delete, listRuns paging.
  */
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -209,6 +210,24 @@ describe("create — the defaults resolver through the real chain", () => {
       command.create(scheduleInput({ name: "Y", agentSlug: "vanished" })),
     );
     expect(err.code).toBe(Code.NotFound);
+  });
+
+  it("refuses a saved fast tier with no model of its own", async () => {
+    const input = scheduleInput({ name: "Fast alone" });
+    const err = await refusal(() =>
+      command.create({
+        ...input,
+        spec: {
+          ...input.spec,
+          target: {
+            case: "agent" as const,
+            value: { ...input.spec.target.value, runConfig: { serviceTier: ServiceTier.FAST } },
+          },
+        },
+      }),
+    );
+    expect(err.code).toBe(Code.InvalidArgument);
+    expect(err.rawMessage).toContain("spec.agent.run_config.model_name");
   });
 
   it("validates the cron grammar and time zone through the pipeline", async () => {

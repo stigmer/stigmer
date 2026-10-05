@@ -15,7 +15,8 @@
  * (`thinking`, a fixed budget, or `adaptiveThinking`), as at execution
  * create.
  *
- * STANDARD, DISABLED and unset are always valid here; unknown enum values
+ * STANDARD and unset are always valid here, and so is DISABLED except on a
+ * model that always thinks; unknown enum values
  * never reach these functions (proto validation and strict task-config
  * unmarshaling refuse them first).
  */
@@ -27,6 +28,7 @@ import {
   ADAPTIVE_THINKING_CAPABILITY_KEY,
   FAST_VARIANT_KEY,
   THINKING_CAPABILITY_KEY,
+  THINKING_REQUIRED_CAPABILITY_KEY,
 } from "./model-registry-store.js";
 
 /** Where a refusal places the saved settings: a sentence prefix and the settings' field path. */
@@ -35,6 +37,36 @@ export interface SavedRunConfigSite {
   readonly prefix: string;
   /** The saved settings' field path, e.g. "run_config" or "spec.run_config". */
   readonly fieldPath: string;
+}
+
+/**
+ * The refusal copy for saved settings that set FAST or ENABLED without a
+ * model of their own, or "": saved settings name the model they are for.
+ * Needs no registry, so a surface that stores its settings without knowing
+ * its engine (a share, a channel) applies it at save, and the server
+ * applies it again when a saved surface's settings reach a turn.
+ */
+export function savedChoiceWithoutModelRefusal(
+  site: SavedRunConfigSite,
+  rc: RunConfig | undefined,
+): string {
+  if (rc === undefined || rc.modelName.trim() !== "") {
+    return "";
+  }
+  const { prefix, fieldPath } = site;
+  if (rc.serviceTier === ServiceTier.FAST) {
+    return (
+      `${prefix}${fieldPath}.service_tier 'fast' requires ` +
+      `${fieldPath}.model_name — the fast tier is a per-model price`
+    );
+  }
+  if (rc.thinkingMode === ThinkingMode.ENABLED) {
+    return (
+      `${prefix}${fieldPath}.thinking_mode 'enabled' requires ` +
+      `${fieldPath}.model_name — thinking is a per-model capability`
+    );
+  }
+  return "";
 }
 
 /** The refusal copy for a saved FAST tier, or "" when it is valid. */
@@ -50,10 +82,7 @@ export function savedServiceTierRefusal(
   const { prefix, fieldPath } = site;
   const modelName = rc.modelName.trim();
   if (modelName === "") {
-    return (
-      `${prefix}${fieldPath}.service_tier 'fast' requires ` +
-      `${fieldPath}.model_name — the fast tier is a per-model price`
-    );
+    return savedChoiceWithoutModelRefusal(site, rc);
   }
   if (!models.hasPricingVariantForHarness(harness, modelName, FAST_VARIANT_KEY)) {
     return (
@@ -65,23 +94,38 @@ export function savedServiceTierRefusal(
   return "";
 }
 
-/** The refusal copy for a saved ENABLED thinking mode, or "" when it is valid. */
+/**
+ * The refusal copy for a saved thinking mode, or "" when it is valid:
+ * ENABLED needs a model the engine marks able to think, and DISABLED is
+ * refused on a model whose entry on the engine always thinks (its provider
+ * refuses a request to turn thinking off, so every turn would be refused).
+ */
 export function savedThinkingModeRefusal(
   models: ModelCatalogProvider,
   site: SavedRunConfigSite,
   harness: string,
   rc: RunConfig | undefined,
 ): string {
+  const { prefix, fieldPath } = site;
+  const modelName = (rc?.modelName ?? "").trim();
+  if (rc?.thinkingMode === ThinkingMode.DISABLED) {
+    if (
+      modelName !== "" &&
+      models.hasCapabilityForHarness(harness, modelName, THINKING_REQUIRED_CAPABILITY_KEY)
+    ) {
+      return (
+        `${prefix}${fieldPath}.thinking_mode 'disabled' is not available ` +
+        `for model '${modelName}' on harness '${harness}': the model always thinks and ` +
+        "refuses a request to turn thinking off"
+      );
+    }
+    return "";
+  }
   if (rc?.thinkingMode !== ThinkingMode.ENABLED) {
     return "";
   }
-  const { prefix, fieldPath } = site;
-  const modelName = rc.modelName.trim();
   if (modelName === "") {
-    return (
-      `${prefix}${fieldPath}.thinking_mode 'enabled' requires ` +
-      `${fieldPath}.model_name — thinking is a per-model capability`
-    );
+    return savedChoiceWithoutModelRefusal(site, rc);
   }
   if (!canThinkOn(models, harness, modelName)) {
     return (

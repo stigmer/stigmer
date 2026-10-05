@@ -151,7 +151,11 @@ export function buildAutoCreateSessionSpec(
  * engine the session took, differs from what ResolveRunConfig read (an
  * author saved a version between the two resolutions), the settings are
  * resolved again over the session's version and judged by the same checks
- * before the turn is persisted (resolve-run-config.ts).
+ * before the turn is persisted (resolve-run-config.ts). A refusal there
+ * leaves the session it created, empty, as a refusal by any later create
+ * step does (the context build, the attachments): the session is the turn's
+ * first side effect, and only an author's save landing between the two
+ * resolutions reaches this arm.
  */
 export function newCreateSessionIfNeededStep(deps: {
   logger: Logger;

@@ -7,7 +7,9 @@
  *     lists none when the engine offers none (an engine the registry does
  *     not know);
  *   - the adaptive thinking form counts as able to think (claude-sonnet-5's
- *     native entry), as at execution create.
+ *     native entry), as at execution create;
+ *   - the model-presence rule alone refuses a fast tier or thinking with no
+ *     model, and passes either with one, or neither.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -23,6 +25,7 @@ import { bundledModelRegistryDocument } from "../bundled.js";
 import { ModelRegistryStore } from "../model-registry-store.js";
 import {
   canThinkOn,
+  savedChoiceWithoutModelRefusal,
   savedServiceTierRefusal,
   savedThinkingModeRefusal,
 } from "../run-config-checks.js";
@@ -65,5 +68,22 @@ describe("the saved tier and thinking checks", () => {
         create(RunConfigSchema, { modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.ENABLED }),
       ),
     ).toBe("");
+  });
+
+  it("the model-presence rule refuses a lone fast tier or thinking, and nothing else", () => {
+    expect(savedChoiceWithoutModelRefusal(SITE, create(RunConfigSchema, { serviceTier: ServiceTier.FAST }))).toContain(
+      "service_tier 'fast' requires spec.run_config.model_name",
+    );
+    expect(
+      savedChoiceWithoutModelRefusal(SITE, create(RunConfigSchema, { thinkingMode: ThinkingMode.ENABLED })),
+    ).toContain("thinking_mode 'enabled' requires spec.run_config.model_name");
+    expect(
+      savedChoiceWithoutModelRefusal(
+        SITE,
+        create(RunConfigSchema, { modelName: "composer-2.5", serviceTier: ServiceTier.FAST }),
+      ),
+    ).toBe("");
+    expect(savedChoiceWithoutModelRefusal(SITE, create(RunConfigSchema, { maxCostUsd: 1 }))).toBe("");
+    expect(savedChoiceWithoutModelRefusal(SITE, undefined)).toBe("");
   });
 });

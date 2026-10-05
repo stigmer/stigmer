@@ -8,14 +8,16 @@
  * ResolveRunConfig resolved (status.run_config), whichever layer chose
  * them, so a tier saved on a surface or an agent is judged exactly as one a
  * person sends (resolve-run-config.ts). The rule is a pure function of
- * (model_name, service_tier, registry):
+ * (model_name, service_tier, the conversation's engine, registry):
  *
  *   - UNSPECIFIED / STANDARD: always valid — every model has a
  *     base-priced configuration, and unset resolves to
  *     explicitly-requested STANDARD in the runner (never the provider
  *     account default).
  *   - FAST: requires a model (Auto has no tier dimension) whose registry
- *     entry prices a "fast" variant. A tier the registry cannot price
+ *     entry on the engine the conversation runs prices a "fast" variant: a
+ *     fast price listed under the other engine would select a tier this
+ *     turn can never apply. A tier the registry cannot price
  *     would trip billing's undercharge guard — selection and billability
  *     are coupled by construction.
  *
@@ -74,14 +76,15 @@ export function serviceTierRefusal(
     return (
       `service_tier 'fast' (from ${tierFrom}) requires a model_name: the fast tier is a ` +
       "per-model price, and Auto (no pinned model) has no tier dimension. " +
-      `Pin a model that supports it${fastCapableSuffix(registry)}.`
+      `Pin a model that supports it${fastCapableSuffix(registry, placement.harness)}.`
     );
   }
-  if (!registry.hasPricingVariant(config.modelName, FAST_VARIANT_KEY)) {
+  const harness = placement.harness;
+  if (!registry.hasPricingVariantForHarness(harness, config.modelName, FAST_VARIANT_KEY)) {
     return (
       `service_tier 'fast' (from ${tierFrom}) is not available for model ` +
       `'${config.modelName}'${modelFromClause(placement, chosenBy.serviceTier)}: the model registry prices no ` +
-      `fast variant for it${fastCapableSuffix(registry)}.`
+      `fast variant for it on the ${harness} harness${fastCapableSuffix(registry, harness)}.`
     );
   }
   return "";
@@ -99,12 +102,12 @@ export function modelFromClause(
 }
 
 /**
- * "; models with a fast tier: a, b, c" — actionable refusal detail,
- * sorted (the store keeps the list sorted), empty when the registry
- * prices none.
+ * "; models with a fast tier: a, b, c" — actionable refusal detail for the
+ * harness, sorted (the store keeps the list sorted), empty when the
+ * registry prices none there.
  */
-function fastCapableSuffix(registry: ModelCatalogProvider): string {
-  const capable = registry.canonicalModelsWithVariant(FAST_VARIANT_KEY);
+function fastCapableSuffix(registry: ModelCatalogProvider, harness: string): string {
+  const capable = registry.canonicalModelsWithVariantForHarness(harness, FAST_VARIANT_KEY);
   if (capable.length === 0) {
     return "";
   }

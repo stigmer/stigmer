@@ -33,6 +33,7 @@ import {
   unknownModelPinRefusal,
 } from "../workflow/registry/pin-validation.js";
 import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
+import { savedChoiceWithoutModelRefusal } from "../workflow/registry/run-config-checks.js";
 import { validateScheduleCron, validateScheduleTimeZone } from "./cron.js";
 
 export interface ScheduleValidationDeps {
@@ -220,6 +221,14 @@ export function validateScheduleModelPinning(
   }
   const invocation =
     spec?.target.case === "agent" ? spec.target.value : undefined;
+  // Saved settings name the model their tier or thinking is for.
+  const selfContained = savedChoiceWithoutModelRefusal(
+    { prefix: "", fieldPath: "spec.agent.run_config" },
+    invocation?.runConfig,
+  );
+  if (selfContained !== "") {
+    throw invalidArgumentError(selfContained);
+  }
   const existence = unknownModelPinRefusal(
     modelRegistry,
     "spec.agent.run_config.model_name",
