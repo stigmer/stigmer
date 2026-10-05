@@ -32,6 +32,9 @@ async function fixture(
     for (const file of ["generate.ts", "assets.mts", "package.json"]) {
       await cp(join(root, "brand", file), join(directory, "brand", file));
     }
+    await cp(join(root, "brand/source"), join(directory, "brand/source"), {
+      recursive: true,
+    });
     await symlink(
       join(root, "node_modules"),
       join(directory, "node_modules"),
@@ -87,6 +90,63 @@ test("the generator exports current upload pixels and identical runtime paths", 
   });
 });
 
+test("horizontal exports preserve the symbol, include outlined lettering, and match the site copy", async () => {
+  await fixture(source, async (directory) => {
+    await generate(directory);
+    const dark = await readFile(join(directory, "brand/logo-lockup.svg"));
+    const light = await readFile(
+      join(directory, "brand/logo-lockup-white.svg"),
+    );
+    assert.doesNotMatch(
+      dark.toString(),
+      /<text\b|<image\b|font-family|https?:\/\/(?!www\.w3\.org)/,
+    );
+    const rendered = sharp(dark).resize(364, 96);
+    const symbol = await rendered
+      .clone()
+      .extract({ left: 0, top: 0, width: 96, height: 96 })
+      .ensureAlpha()
+      .raw()
+      .toBuffer();
+    const expected = await sharp(Buffer.from(source))
+      .resize(96, 96)
+      .ensureAlpha()
+      .raw()
+      .toBuffer();
+    assert.deepEqual(
+      symbol,
+      expected,
+      "the horizontal layout must not redraw the symbol",
+    );
+    const lettering = await rendered
+      .clone()
+      .extract({ left: 104, top: 0, width: 260, height: 96 })
+      .ensureAlpha()
+      .raw()
+      .toBuffer();
+    assert.ok(
+      lettering.some((value, index) => index % 4 === 3 && value > 0),
+      "the name must remain visible without a font download",
+    );
+    assert.deepEqual(
+      await sharp(dark).extractChannel("alpha").raw().toBuffer(),
+      await sharp(light).extractChannel("alpha").raw().toBuffer(),
+    );
+    assert.deepEqual(
+      light,
+      await readFile(join(directory, "site/public/logo-lockup-white.svg")),
+    );
+    for (const suffix of ["", "-white"]) {
+      const metadata = await sharp(
+        join(directory, `brand/logo-lockup${suffix}.png`),
+      ).metadata();
+      assert.equal(metadata.width, 1536);
+      assert.equal(metadata.height, 405);
+      assert.equal(metadata.hasAlpha, true);
+    }
+  });
+});
+
 for (const [name, invalid] of [
   ["missing form", source.replace(/<path d="[^"]+"\/>/, "")],
   [
@@ -113,6 +173,7 @@ for (const [name, invalid] of [
         "generate.ts",
         "logo.svg",
         "package.json",
+        "source",
       ]);
     });
   });

@@ -1,3 +1,4 @@
+/** Pair the product name with the symbol in the site's persistent brand and resource footer. */
 import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -28,9 +29,11 @@ function Footer({ className, ...props }: FooterProps) {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/logo-white.svg"
+                  src="/logo-lockup-white.svg"
                   alt="Stigmer"
-                  className="w-8 h-8"
+                  width={364}
+                  height={96}
+                  className="h-9 w-auto"
                 />
               </Link>
               <p className="text-sm text-muted-foreground leading-relaxed mb-4">

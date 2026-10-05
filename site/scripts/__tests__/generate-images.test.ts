@@ -49,6 +49,9 @@ describe("website brand exports", () => {
     expect(await readFile(join(root!, "docs/banner_dark.png"))).toEqual(
       await readFile(join(publicDir, "og-image.png")),
     );
+    expect(await readFile(join(publicDir, "logo-lockup-white.svg"))).toEqual(
+      await readFile(new URL("../../../brand/logo-lockup-white.svg", import.meta.url)),
+    );
   });
 
   it("reports source errors and exits unsuccessfully instead of declaring success", async () => {

@@ -29,25 +29,16 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
-  # One pull request removes OrganizationSpec field 6 (is_personal) and
-  # reserves its number and name: the organization Stigmer Cloud creates at
-  # sign-up is an ordinary organization. It is made before launch: the
-  # release notes name the change under Upgrading. Its entry below exists for
-  # that one pull request, and the pull request that removes it lands
-  # straight after the merge (https://github.com/stigmer/stigmer/issues/1946).
-  #
   # One pull request removes the WorkflowInstance kind: a workflow run names
   # its workflow directly and run visibility moves onto the workflow. It
   # deletes the workflowinstance/v1 package (its WorkflowExecutionVisibility
   # enum moves, values unchanged, to workflow/v1/enum.proto), the fields that
   # named an instance, and the run's unused callback_token (each number and
   # name reserved). It is made before launch: the release notes name every
-  # change under Upgrading. Its entries below exist for that one pull request,
-  # and the pull request that removes them lands straight after the merge
+  # change under Upgrading. This block exists for that one pull request. While
+  # it stays, buf breaking does not report these rules on the listed files, so
+  # the pull request that removes it lands straight after the merge
   # (https://github.com/stigmer/stigmer/issues/1944).
-  #
-  # While an entry stays, buf breaking does not report its rule on the listed
-  # files.
   ignore_only:
     FILE_NO_DELETE:
       - ai/stigmer/agentic/workflowinstance
@@ -55,6 +46,5 @@ breaking:
       - ai/stigmer/agentic/workflow/v1/status.proto
       - ai/stigmer/agentic/workflowexecution/v1/event.proto
       - ai/stigmer/agentic/workflowexecution/v1/spec.proto
-      - ai/stigmer/tenancy/organization/v1/spec.proto
     ENUM_VALUE_NO_DELETE:
       - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
