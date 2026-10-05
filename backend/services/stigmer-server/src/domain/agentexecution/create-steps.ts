@@ -63,6 +63,13 @@ import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineDispatchError } from "./engine.js";
 import { ENGINE_UNAVAILABLE_MESSAGE } from "./constants.js";
 import { stampRunAgent } from "./resolve-run-agent.js";
+import {
+  reResolveRunConfig,
+  unattendedPinRefusal,
+} from "./resolve-run-config.js";
+import { serviceTierRefusal } from "./validate-service-tier.js";
+import { thinkingModeRefusal } from "./validate-thinking-mode.js";
+import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
 import { notifyStatusObservers } from "./status-observers.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
 import type { WorkflowRunQueue } from "../../temporal/workflowexecution/dispatch.js";
@@ -140,11 +147,17 @@ export function buildAutoCreateSessionSpec(
  * never carries a second copy that could drift), and re-takes the turn's
  * agent stamp from the created session: the session's own chain resolved
  * and gated the same reference, so the turn records exactly the version
- * its conversation runs (resolve-run-agent.ts).
+ * its conversation runs (resolve-run-agent.ts). When that pin, or the
+ * engine the session took, differs from what ResolveRunConfig read (an
+ * author saved a version between the two resolutions), the settings are
+ * resolved again over the session's version and judged by the same checks
+ * before the turn is persisted (resolve-run-config.ts).
  */
 export function newCreateSessionIfNeededStep(deps: {
   logger: Logger;
   sessionCreator: SessionCreatorProvider;
+  store: Store;
+  modelRegistry: ModelCatalogProvider;
 }): PipelineStep<CreateDesc> {
   return {
     name: "CreateSessionIfNeeded",
@@ -213,6 +226,25 @@ export function newCreateSessionIfNeededStep(deps: {
         agentId: createdSession.status?.agentId ?? "",
         versionHash: createdSession.status?.agentVersionHash ?? "",
       });
+      const placement = await reResolveRunConfig(
+        ctx,
+        deps.store,
+        execution,
+        createdSession,
+      );
+      if (placement !== undefined) {
+        const refusal = [
+          serviceTierRefusal(deps.modelRegistry, placement),
+          thinkingModeRefusal(deps.modelRegistry, placement),
+        ].find((text) => text !== "");
+        if (refusal !== undefined) {
+          throw invalidArgumentError(refusal);
+        }
+        const pinRefusal = unattendedPinRefusal(placement);
+        if (pinRefusal !== "") {
+          throw failedPreconditionError(pinRefusal);
+        }
+      }
 
       // 4. Track the created session for observability.
       ctx.set(CREATED_SESSION_ID_KEY, sessionId);

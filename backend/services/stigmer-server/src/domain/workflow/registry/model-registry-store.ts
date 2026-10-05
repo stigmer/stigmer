@@ -163,7 +163,7 @@ export class ModelRegistryStore implements ModelCatalogProvider {
   /**
    * Whether a model reference prices the given variant key under ANY
    * harness — the registry-backed capability check for
-   * ExecutionConfig.service_tier at execution create (oss#357), which is
+   * a turn's resolved service_tier at execution create (oss#357), which is
    * deliberately harness-free (it never resolves the session).
    */
   hasPricingVariant(model: string, variant: string): boolean {

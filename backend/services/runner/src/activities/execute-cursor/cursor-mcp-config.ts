@@ -10,7 +10,7 @@
  * final SDK serialization differs.
  */
 
-import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 
 /**

@@ -41,7 +41,17 @@ export function scheduleModelPinningRefusal(
   }
   return (
     "spec.agent.run_config.model_name must name a pinned model when the run would use " +
-    "the Cursor harness — with no pinned model Cursor runs Auto, whose price variant " +
-    "follows the provider account's out-of-band default speed setting (stigmer/stigmer#362)"
+    "the Cursor harness — " +
+    CURSOR_AUTO_PRICE_REASON
   );
 }
+
+/**
+ * Why an unattended Cursor run must name a model: the reason clause every
+ * pin-presence refusal ends with, here and at execution create
+ * (domain/agentexecution/resolve-run-config.ts, which judges the rule on
+ * the settings the turn will actually run with).
+ */
+export const CURSOR_AUTO_PRICE_REASON =
+  "with no pinned model Cursor runs Auto, whose price variant " +
+  "follows the provider account's out-of-band default speed setting (stigmer/stigmer#362)";

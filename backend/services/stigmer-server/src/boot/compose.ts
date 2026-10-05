@@ -1571,6 +1571,7 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
+      modelRegistry: modelCatalog,
     });
     registerSessionServices(router, {
       store,
@@ -1655,6 +1656,8 @@ export async function composeServer(
       listReadScope,
       personAccounts,
       visitorClassifier: extensions.drivers.visitorClassifier,
+      runLanes: extensions.drivers.runLanes,
+      scheduleRunProfile: scheduleTemporalConfig.executionProfile(),
       runnerCredentialProvider: runnerCredentials,
       broker: agentExecutionStreamBroker,
       recoverSerializer: agentExecutionRecoverSerializer,

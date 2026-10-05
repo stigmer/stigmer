@@ -6,7 +6,7 @@ import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentex
 import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { ApprovalAction, ExecutionPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import {

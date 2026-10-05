@@ -78,7 +78,7 @@ export interface ModelCatalogProvider {
 
   /**
    * Whether a model reference prices the given variant key under ANY
-   * harness — the capability check for ExecutionConfig.service_tier at
+   * harness — the capability check for a turn's resolved service_tier at
    * execution create (oss#357), deliberately harness-free (it never
    * resolves the session).
    */

@@ -49,6 +49,12 @@ import {
 } from "../agent-instance-retired.js";
 import type { InstanceAgent } from "../agent-instance-retired.js";
 import {
+  EXECUTION_CONFIG_PAGE_SIZE,
+  EXECUTION_KIND,
+  migrateExecutionRow,
+  unreadableExecutionError,
+} from "../execution-config-retired.js";
+import {
   HISTORY_PAGE_SIZE,
   ORGANIZATION_SCOPED_KINDS_AT_LEDGER,
   organizationNamedBy,
@@ -81,9 +87,11 @@ export const SCHEMA_VERSION_12 = 12;
 export const SCHEMA_VERSION_13 = 13;
 /** v14: sessions name their agent directly; the agent instance rows removed. */
 export const SCHEMA_VERSION_14 = 14;
+/** v15: every turn's settings move out of the retired execution_config. */
+export const SCHEMA_VERSION_15 = 15;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_14;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_15;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -122,6 +130,7 @@ export function runMigrations(
     [SCHEMA_VERSION_12, migrateToV12],
     [SCHEMA_VERSION_13, migrateToV13],
     [SCHEMA_VERSION_14, migrateToV14],
+    [SCHEMA_VERSION_15, migrateToV15],
   ];
 
   for (const [version, migrate] of chain) {
@@ -718,5 +727,44 @@ function migrateToV14(db: DatabaseSync): void {
     db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(
       RETIRED_INSTANCE_KIND,
     );
+  }
+}
+
+/**
+ * v15: a turn's settings leave the retired execution_config — the Postgres
+ * driver's v10 in this engine's terms (execution-config-retired.ts says what
+ * each row becomes and why an unreadable row fails the step). Every
+ * execution row is read in keyset pages and rewritten unless it is already
+ * in the current shape, its `updated_at` left alone (the list keys it feeds
+ * are unchanged). Runs inside applyInTransaction's BEGIN, so a throw rolls
+ * the whole step back and the boot stops on the row it names.
+ */
+function migrateToV15(db: DatabaseSync): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const update = db.prepare(
+    `UPDATE resources SET data = ? WHERE kind = ? AND id = ?`,
+  );
+  for (let after = ""; ; ) {
+    const rows = page.all(EXECUTION_KIND, after, EXECUTION_CONFIG_PAGE_SIZE) as Array<{
+      id: string;
+      data: Uint8Array;
+    }>;
+    for (const row of rows) {
+      let migrated: Uint8Array | undefined;
+      try {
+        migrated = migrateExecutionRow(row.data);
+      } catch (error) {
+        throw unreadableExecutionError(row.id, error);
+      }
+      if (migrated !== undefined) {
+        update.run(migrated, EXECUTION_KIND, row.id);
+      }
+    }
+    if (rows.length < EXECUTION_CONFIG_PAGE_SIZE) {
+      return;
+    }
+    after = rows[rows.length - 1]!.id;
   }
 }
