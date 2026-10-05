@@ -18,6 +18,25 @@
 // InvalidArgument, for an ordinary child name, for each platform workflow
 // type, and for the task nested in a for_each.
 //
+// The run-visibility arms pin the workflow's second audience, who observes
+// its runs (`spec.execution_visibility`): it starts private, only
+// updateExecutionVisibility changes it, update and apply keep the stored
+// level, only the owner may change it (a member who can see and run the
+// workflow is refused, and so is an editor where the edition grants one),
+// and a toggle is no new version. Who the level then admits to a run is the
+// execution class's (workflowexecution-run-visibility).
+//
+// The version arms pin what a version covers: everything a run reads from
+// the workflow, so an edit to only a step's environment_refs or to the
+// declared keys (spec.env) is a new version, an unchanged re-apply is not,
+// and the run audience is outside it. A workflow last saved under the
+// earlier YAML-hash rule needs a store seeded before the change, so its
+// next-save arm is the server's store unit, not a wire arm.
+//
+// The agent_call step-name arm pins that a step's name identifies it across
+// the whole workflow: save refuses two agent_call steps of one name at any
+// depth, a compensate list included, naming both places.
+//
 // The agent_call reference arm pins the reference rule over the `agent`
 // string at write, in both editions: another organization's agent only when
 // it is the workflow organization's parent's, shared with its child
@@ -29,7 +48,7 @@
 // expression may reach when it resolves is the runner-as-subject execution
 // suite's arm.
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowExecutionVisibility, WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -40,16 +59,18 @@ import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
+import { makeEnvironment } from "../support/environments";
+import { policyTriple } from "../support/iampolicies";
 import { uniqueName } from "../support/naming";
-import { makeWorkflowInstance } from "../support/workflowinstances";
 import {
   WORKFLOW_API_VERSION,
   WORKFLOW_KIND,
+  makeAgentCallStepWorkflow,
   makeAgentCallWorkflow,
   makeWorkflow,
   makeWorkflowSpec,
 } from "../support/workflows";
-import { createTarget, type TargetProfile } from "../targets";
+import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 import { createChildOrganization, organizationSlug } from "../support/organizations";
 
 let target: TargetProfile;
@@ -98,7 +119,7 @@ async function applyWorkflow(org: string, name: string, opts: CreateOptions = {}
 }
 
 describe("Workflow conformance — CRUD & identity", () => {
-  it("[rpc:WorkflowCommandController.create] create assigns a wfl_ id, echoes the spec, records a created audit event, and sets version + default instance", async () => {
+  it("[rpc:WorkflowCommandController.create] create assigns a wfl_ id, echoes the spec, records a created audit event, and sets a version", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
 
@@ -111,7 +132,6 @@ describe("Workflow conformance — CRUD & identity", () => {
     expect(created.spec?.tasks).toHaveLength(1);
     expect(created.status?.audit?.specAudit?.event).toBe("created");
     expect(created.status?.versionHash, "create computes a content version hash").toMatch(/^[a-f0-9]{64}$/);
-    expect(created.status?.defaultInstanceId, "create provisions a default instance").toMatch(/^win_[0-9a-z]+$/);
     // Workflow is a blueprint kind (defaults_to_org_visibility), so an
     // unspecified visibility defaults to org; private is an explicit opt-in.
     expect(created.metadata?.visibility, "visibility defaults to org (blueprint default)").toBe(ApiResourceVisibility.visibility_org);
@@ -229,82 +249,20 @@ describe("Workflow conformance — CRUD & identity", () => {
   });
 });
 
-describe("Workflow instance conformance — default-instance visibility guard", () => {
-  it("[rpc:WorkflowInstanceCommandController.updateVisibility] updateVisibility on the workflow's default instance rejects entirely (FailedPrecondition)", async () => {
-    // The workflow twin of the agent-side pin: default instances are
-    // system-managed, their access always follows the parent workflow, so
-    // both editions reject any visibility update on them (cloud:
-    // label-keyed guard in ValidateVisibilityUpdateStep; OSS:
-    // label+pointer-keyed RejectDefaultInstanceVisibilityUpdate step,
-    // stigmer#556). The rejection text is part of the cross-edition
-    // contract.
+describe("Workflow conformance — delete frees the slug", () => {
+  it("[rpc:WorkflowCommandController.delete] a workflow deleted and created again under the same name takes its slug back", async () => {
+    // A workflow writes no row beside itself, so nothing outlives its
+    // delete to hold the slug: a same-name create converges on it.
     const { org } = await target.provisionTenancy();
-    const created = await createWorkflow(org, uniqueName("wf"));
-    const defaultInstanceId = created.status?.defaultInstanceId;
-    expect(defaultInstanceId, "create provisions a default instance").toMatch(/^win_[0-9a-z]+$/);
-
-    const err = await expectGrpcCode(
-      () =>
-        clients.workflowInstanceCommand.updateVisibility({
-          resourceId: defaultInstanceId!,
-          visibility: ApiResourceVisibility.visibility_org,
-        }),
-      Code.FailedPrecondition,
-      "update visibility of the workflow's default instance",
-    );
-    expect(err.message, "both editions emit the same rejection text").toContain(
-      "Default instances do not have their own visibility - access always follows " +
-        "the parent blueprint. Change the blueprint's visibility instead.",
-    );
-  });
-});
-
-describe("Workflow conformance — delete cascades instances (stigmer#592)", () => {
-  it("[rpc:WorkflowCommandController.delete] delete removes the default and user instances, freeing the workflow slug and the org-wide instance slug", async () => {
-    // The cascade ruling: instances are configuration OF the workflow and go
-    // with it (default AND user-created), unlike executions which survive as
-    // historical record (the #582 ruling). Without the cascade, the orphaned
-    // "<slug>-default" poisons a same-slug recreate, and a user instance's
-    // org-scoped slug stays occupied forever with no UI left to delete it.
-    const { org } = await target.provisionTenancy();
-    const name = uniqueName("cascade");
+    const name = uniqueName("reborn");
 
     const created = await clients.workflowCommand.create(makeWorkflow({ org, name }));
     const workflowId = created.metadata!.id;
-    const defaultInstanceId = created.status?.defaultInstanceId;
-    expect(defaultInstanceId, "create provisions a default instance").toMatch(/^win_[0-9a-z]+$/);
-
-    const instanceName = uniqueName("cfg");
-    const userInstance = await clients.workflowInstanceCommand.create(
-      makeWorkflowInstance({ org, name: instanceName, workflowId }),
-    );
-
     await clients.workflowCommand.delete({ value: workflowId });
 
-    await expectGrpcCode(
-      () => clients.workflowInstanceQuery.get({ value: defaultInstanceId! }),
-      Code.NotFound,
-      "default instance after cascade",
-    );
-    await expectGrpcCode(
-      () => clients.workflowInstanceQuery.get({ value: userInstance.metadata!.id }),
-      Code.NotFound,
-      "user instance after cascade",
-    );
-
-    // The workflow slug is free again: recreate converges instead of
-    // colliding with the orphaned default instance, which once held the slug.
     const recreated = await createWorkflow(org, name);
     expect(recreated.metadata?.slug).toBe(created.metadata?.slug);
     expect(recreated.metadata?.id).not.toBe(workflowId);
-
-    // The user instance's org-scoped slug is free again (the #582 live
-    // repro: a fresh workflow's instance was rejected as a duplicate).
-    const reused = await clients.workflowInstanceCommand.create(
-      makeWorkflowInstance({ org, name: instanceName, workflowId: recreated.metadata!.id }),
-    );
-    fixtures.defer(() => clients.workflowInstanceCommand.delete({ value: reused.metadata!.id }));
-    expect(reused.metadata?.slug).toBe(userInstance.metadata?.slug);
   });
 });
 
@@ -858,5 +816,366 @@ describe("Workflow conformance — agent_call references at write", () => {
     expect(privateCall.rawMessage).toBe(
       floorSentence(await organizationSlug(clients.organizationQuery, org), mine.metadata!.slug, "visibility_private", "visibility_child_orgs"),
     );
+  });
+});
+
+// An agent and two plain environments in `org`, the ingredients of an
+// agent_call step that names environments.
+async function seedStepIngredients(org: string) {
+  const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("step-agent") }));
+  fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+  const environments = [];
+  for (const label of ["keys-a", "keys-b"]) {
+    const environment = await clients.environmentCommand.create(
+      makeEnvironment({ org, name: uniqueName(label), data: { STEP_KEY: { value: label } } }),
+    );
+    fixtures.defer(() => clients.environmentCommand.delete({ resourceId: environment.metadata!.id }));
+    environments.push({ org, slug: environment.metadata!.slug });
+  }
+  return { agentSlug: agent.metadata!.slug, environments };
+}
+
+// The run audience a level reads as: an unset level is private.
+function runAudienceOf(level: WorkflowExecutionVisibility | undefined): WorkflowExecutionVisibility {
+  return level === undefined || level === WorkflowExecutionVisibility.unspecified
+    ? WorkflowExecutionVisibility.private
+    : level;
+}
+
+describe("Workflow conformance — run visibility", () => {
+  it("[rpc:WorkflowCommandController.create] a workflow created without a run audience reads private, and one created with a level stores it", async () => {
+    const { org } = await target.provisionTenancy();
+    const plain = await createWorkflow(org, uniqueName("wf"));
+    expect(runAudienceOf(plain.spec?.executionVisibility), "no level names no audience").toBe(
+      WorkflowExecutionVisibility.private,
+    );
+
+    const input = makeWorkflow({ org, name: uniqueName("wf-org-runs") });
+    input.spec!.executionVisibility = WorkflowExecutionVisibility.organization;
+    const widened = await clients.workflowCommand.create(input);
+    fixtures.defer(() => clients.workflowCommand.delete({ value: widened.metadata!.id }));
+    expect(widened.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+    const stored = await clients.workflowQuery.get({ value: widened.metadata!.id });
+    expect(stored.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+  });
+
+  it("[rpc:WorkflowCommandController.updateExecutionVisibility] sets organization and resets to private, and a fresh read follows each", async () => {
+    const { org } = await target.provisionTenancy();
+    const created = await createWorkflow(org, uniqueName("wf"));
+    const resourceId = created.metadata!.id;
+
+    const raised = await clients.workflowCommand.updateExecutionVisibility({
+      resourceId,
+      executionVisibility: WorkflowExecutionVisibility.organization,
+    });
+    expect(raised.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+    expect((await clients.workflowQuery.get({ value: resourceId })).spec?.executionVisibility).toBe(
+      WorkflowExecutionVisibility.organization,
+    );
+
+    const lowered = await clients.workflowCommand.updateExecutionVisibility({
+      resourceId,
+      executionVisibility: WorkflowExecutionVisibility.private,
+    });
+    expect(lowered.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.private);
+    expect((await clients.workflowQuery.get({ value: resourceId })).spec?.executionVisibility).toBe(
+      WorkflowExecutionVisibility.private,
+    );
+  });
+
+  it("[rpc:WorkflowCommandController.update] [rpc:WorkflowCommandController.apply] update and apply keep the stored level whatever the request carries", async () => {
+    // The oss#573 rule for metadata.visibility, on the run axis: a manifest
+    // re-applied without the field, or with a stale level, never silently
+    // changes who observes the runs.
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("wf");
+    const created = await createWorkflow(org, name, { taskVar: "before" });
+    const { id } = created.metadata!;
+    await clients.workflowCommand.updateExecutionVisibility({
+      resourceId: id,
+      executionVisibility: WorkflowExecutionVisibility.organization,
+    });
+
+    const updated = await clients.workflowCommand.update({
+      apiVersion: WORKFLOW_API_VERSION,
+      kind: WORKFLOW_KIND,
+      metadata: { id, name, org },
+      spec: {
+        ...makeWorkflowSpec({ namespace: org, documentName: name, taskVar: "after" }),
+        executionVisibility: WorkflowExecutionVisibility.private,
+      },
+    });
+    expect(updated.spec?.tasks, "the update itself landed").toHaveLength(1);
+    expect(updated.status?.versionHash, "the update itself landed").not.toBe(created.status?.versionHash);
+    expect(updated.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+
+    const applied = await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "applied" }));
+    expect(applied.metadata?.id, "apply took the update arm").toBe(id);
+    expect(applied.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+
+    const stored = await clients.workflowQuery.get({ value: id });
+    expect(stored.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+  });
+
+  it("[rpc:WorkflowCommandController.updateExecutionVisibility] a toggle is no new version, and an unchanged re-apply after it mints none either", async () => {
+    // The run audience is the one field of the spec outside the version: a
+    // version names what a run executes and reads, and who may observe the
+    // runs is neither.
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("wf");
+    const created = await applyWorkflow(org, name, { taskVar: "same" });
+    const { id, slug } = created.metadata!;
+
+    const raised = await clients.workflowCommand.updateExecutionVisibility({
+      resourceId: id,
+      executionVisibility: WorkflowExecutionVisibility.organization,
+    });
+    expect(raised.status?.versionHash, "a toggle keeps the head version").toBe(created.status?.versionHash);
+    const reapplied = await applyWorkflow(org, name, { taskVar: "same" }, false);
+    expect(reapplied.status?.versionHash, "an unchanged re-apply keeps the head version").toBe(
+      created.status?.versionHash,
+    );
+    expect(reapplied.spec?.executionVisibility, "and keeps the level").toBe(WorkflowExecutionVisibility.organization);
+
+    const history = await clients.workflowQuery.listVersions({ org, slug });
+    expect(history.versions, "neither the toggle nor the re-apply archived a version").toHaveLength(1);
+    expect(history.totalCount).toBe(1);
+  });
+
+  it("[rpc:WorkflowCommandController.updateExecutionVisibility] rejects the unspecified zero value (InvalidArgument) and leaves the stored level", async () => {
+    const { org } = await target.provisionTenancy();
+    const created = await createWorkflow(org, uniqueName("wf"));
+
+    await expectGrpcCode(
+      () =>
+        clients.workflowCommand.updateExecutionVisibility({
+          resourceId: created.metadata!.id,
+          executionVisibility: WorkflowExecutionVisibility.unspecified,
+        }),
+      Code.InvalidArgument,
+      "updateExecutionVisibility to the zero value",
+    );
+    const stored = await clients.workflowQuery.get({ value: created.metadata!.id });
+    expect(runAudienceOf(stored.spec?.executionVisibility)).toBe(WorkflowExecutionVisibility.private);
+  });
+
+  it("[rpc:WorkflowCommandController.updateExecutionVisibility] returns NotFound for an unknown workflow", () =>
+    expectGrpcCode(
+      () =>
+        clients.workflowCommand.updateExecutionVisibility({
+          resourceId: "wfl_doesnotexist",
+          executionVisibility: WorkflowExecutionVisibility.organization,
+        }),
+      Code.NotFound,
+      "updateExecutionVisibility unknown id",
+    ));
+});
+
+describe("Workflow conformance — the run audience is the owner's (on the enforcing lane)", () => {
+  it("[rpc:WorkflowCommandController.updateExecutionVisibility] a member who can see and run the workflow is refused, and the level stays", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const tenancy = await lane.provisionTenancy();
+    fixtures.defer(() => lane.cleanupTenancy(tenancy));
+    const member = await lane.provisionMember(tenancy);
+    // Org-visible (the blueprint default): the member sees and runs it.
+    const workflow = await lane.clients.workflowCommand.create(
+      makeWorkflow({ org: tenancy.org, name: uniqueName("wf-audience") }),
+    );
+    fixtures.defer(() => lane.clients.workflowCommand.delete({ value: workflow.metadata!.id }));
+    expect((await member.workflowQuery.get({ value: workflow.metadata!.id })).metadata?.id).toBe(
+      workflow.metadata?.id,
+    );
+
+    await expectGrpcCode(
+      () =>
+        member.workflowCommand.updateExecutionVisibility({
+          resourceId: workflow.metadata!.id,
+          executionVisibility: WorkflowExecutionVisibility.organization,
+        }),
+      Code.PermissionDenied,
+      "a member widens who observes the runs",
+    );
+    const stored = await lane.clients.workflowQuery.get({ value: workflow.metadata!.id });
+    expect(runAudienceOf(stored.spec?.executionVisibility)).toBe(WorkflowExecutionVisibility.private);
+  });
+
+  it("[rpc:WorkflowCommandController.updateExecutionVisibility] an editor of the workflow, who may change its definition, is refused; the owner may", async (ctx) => {
+    // An editor is a per-resource grant: an edition whose grant scope admits
+    // only organization roles (open source's default) cannot make one.
+    if (!target.capabilities.perResourceGrants) {
+      return ctx.skip("the edition grants roles on organizations only, so no one can be made an editor of one workflow");
+    }
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const tenancy = await lane.provisionTenancy();
+    fixtures.defer(() => lane.cleanupTenancy(tenancy));
+    const editor = await lane.provisionMember(tenancy);
+    const workflow = await lane.clients.workflowCommand.create(
+      makeWorkflow({ org: tenancy.org, name: uniqueName("wf-edited") }),
+    );
+    const workflowId = workflow.metadata!.id;
+    fixtures.defer(() => lane.clients.workflowCommand.delete({ value: workflowId }));
+    await lane.clients.iamPolicyCommand.create(
+      policyTriple({ kind: "identity_account", id: await lane.accountIdOf(editor) }, "editor", {
+        kind: "workflow",
+        id: workflowId,
+      }),
+    );
+
+    await expectGrpcCode(
+      () =>
+        editor.workflowCommand.updateExecutionVisibility({
+          resourceId: workflowId,
+          executionVisibility: WorkflowExecutionVisibility.organization,
+        }),
+      Code.PermissionDenied,
+      "an editor widens who observes the runs",
+    );
+    const owned = await lane.clients.workflowCommand.updateExecutionVisibility({
+      resourceId: workflowId,
+      executionVisibility: WorkflowExecutionVisibility.organization,
+    });
+    expect(owned.spec?.executionVisibility, "the owner holds the audience").toBe(
+      WorkflowExecutionVisibility.organization,
+    );
+  });
+});
+
+describe("Workflow conformance — a version covers what a run reads", () => {
+  it("[rpc:WorkflowCommandController.apply] an edit to only the declared keys (spec.env) is a new version", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("wf");
+
+    const v1 = await clients.workflowCommand.apply(makeWorkflow({ org, name, env: { FIRST_KEY: {} } }));
+    fixtures.defer(() => clients.workflowCommand.delete({ value: v1.metadata!.id }));
+    const v2 = await clients.workflowCommand.apply(
+      makeWorkflow({ org, name, env: { FIRST_KEY: {}, SECOND_KEY: { optional: true } } }),
+    );
+
+    expect(v2.metadata?.id).toBe(v1.metadata?.id);
+    expect(v2.status?.versionHash, "a run reads its declared keys from its version").not.toBe(v1.status?.versionHash);
+    const history = await clients.workflowQuery.listVersions({ org, slug: v1.metadata!.slug });
+    expect(history.totalCount).toBe(2);
+  });
+
+  it("[rpc:WorkflowCommandController.apply] an edit to only an agent_call step's environment_refs is a new version, though the executable YAML is the same", async () => {
+    // The step's environments are the server's to resolve for the turn the
+    // step starts; the YAML the runner executes never carries them. A run
+    // reads them from the version it pinned, so they are part of it
+    // (stigmer#1906).
+    const { org } = await target.provisionTenancy();
+    const { agentSlug, environments } = await seedStepIngredients(org);
+    const [envA, envB] = environments;
+    const name = uniqueName("wf-step-keys");
+
+    const v1 = await clients.workflowCommand.apply(
+      makeAgentCallStepWorkflow({ org, name, agentSlug, environmentRefs: [envA!] }),
+    );
+    fixtures.defer(() => clients.workflowCommand.delete({ value: v1.metadata!.id }));
+    const v2 = await clients.workflowCommand.apply(
+      makeAgentCallStepWorkflow({ org, name, agentSlug, environmentRefs: [envB!] }),
+    );
+
+    expect(v2.status?.versionHash, "the step's environments are part of the version").not.toBe(
+      v1.status?.versionHash,
+    );
+    const history = await clients.workflowQuery.listVersions({ org, slug: v1.metadata!.slug });
+    expect(history.totalCount).toBe(2);
+    const [newest, older] = history.versions;
+    expect(newest?.validatedYaml, "the YAML is the same for both versions").toBe(older?.validatedYaml);
+
+    const unchanged = await clients.workflowCommand.apply(
+      makeAgentCallStepWorkflow({ org, name, agentSlug, environmentRefs: [envB!] }),
+    );
+    expect(unchanged.status?.versionHash, "an unchanged re-apply keeps the head").toBe(v2.status?.versionHash);
+  });
+});
+
+// The save-time rule that makes an agent_call step's name its identity: the
+// runner labels the turn a step starts with the step's bare name, and the
+// server finds the step's environments by that name at any depth.
+const duplicateStepSentence = (name: string, at: string, first: string) =>
+  `duplicate agent_call step name "${name}" at "${at}": already used at "${first}" ` +
+  "(an agent_call step's name must be unique across the whole workflow)";
+
+describe("Workflow conformance — agent_call step names are unique across the workflow", () => {
+  it("[rpc:WorkflowCommandController.validateSpec] [rpc:WorkflowCommandController.create] refuses a nested agent_call step whose name a top-level step uses, naming both places", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("dup-agent") }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const call = { agent: agent.metadata!.slug, message: "Say hello." };
+    const workflow = makeWorkflow({ org, name: uniqueName("wf-dup") });
+    workflow.spec!.tasks = [
+      { name: "review", kind: WorkflowTaskKind.agent_call, taskConfig: call },
+      {
+        name: "loop",
+        kind: WorkflowTaskKind.for_each,
+        taskConfig: {
+          in: "${ .items }",
+          each: "item",
+          do: [{ name: "review", kind: "agent_call", task_config: call }],
+        },
+      },
+    ];
+    const sentence = duplicateStepSentence("review", "loop > review", "review");
+
+    const result = await clients.workflowCommand.validateSpec(workflow);
+    expect(result.state, JSON.stringify(result.errors)).toBe(ValidationState.INVALID);
+    expect(result.errors).toContain(sentence);
+
+    const err = await expectGrpcCode(
+      () => clients.workflowCommand.create(workflow),
+      Code.InvalidArgument,
+      "create with a duplicate agent_call step name",
+    );
+    expect(err.message).toContain(sentence);
+  });
+
+  it("[rpc:WorkflowCommandController.create] refuses an agent_call step whose name a compensate step already uses", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("dup-agent") }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const call = { agent: agent.metadata!.slug, message: "Say hello." };
+    const workflow = makeWorkflow({ org, name: uniqueName("wf-dup-comp") });
+    workflow.spec!.tasks = [
+      {
+        name: "prepare",
+        kind: WorkflowTaskKind.set_vars,
+        taskConfig: { variables: { ready: "true" } },
+        compensate: [{ name: "review", kind: WorkflowTaskKind.agent_call, taskConfig: call }],
+      },
+      { name: "review", kind: WorkflowTaskKind.agent_call, taskConfig: call },
+    ];
+
+    const err = await expectGrpcCode(
+      () => clients.workflowCommand.create(workflow),
+      Code.InvalidArgument,
+      "create with an agent_call step named like a compensate step",
+    );
+    expect(err.message).toContain(duplicateStepSentence("review", "review", "prepare > compensate > review"));
+  });
+
+  it("[rpc:WorkflowCommandController.create] admits another task kind repeating a name across nested lists: only an agent turn is looked up by its step's name", async () => {
+    const { org } = await target.provisionTenancy();
+    const workflow = makeWorkflow({ org, name: uniqueName("wf-repeat") });
+    workflow.spec!.tasks = [
+      { name: "note", kind: WorkflowTaskKind.set_vars, taskConfig: { variables: { at: "top" } } },
+      {
+        name: "loop",
+        kind: WorkflowTaskKind.for_each,
+        taskConfig: {
+          in: "${ .items }",
+          each: "item",
+          do: [{ name: "note", kind: "set_vars", task_config: { variables: { at: "nested" } } }],
+        },
+      },
+    ];
+
+    const created = await clients.workflowCommand.create(workflow);
+    fixtures.defer(() => clients.workflowCommand.delete({ value: created.metadata!.id }));
+    expect(created.metadata?.id).toMatch(/^wfl_/);
   });
 });

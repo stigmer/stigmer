@@ -68,7 +68,6 @@ import { makeOAuthApp } from "../support/oauthapps";
 import { makeSchedule } from "../support/schedules";
 import { makeSession } from "../support/sessions";
 import { makeWorkflowExecution } from "../support/workflowexecutions";
-import { makeWorkflowInstance } from "../support/workflowinstances";
 import { makeWorkflow } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -572,42 +571,6 @@ const ROWS: readonly Row[] = [
     },
     async read(id) {
       return (await clients.workflowExecutionQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:WorkflowInstanceCommandController.create] WorkflowInstance",
-    key: "WorkflowInstanceCommandController.create",
-    kind: ApiResourceKind.workflow_instance,
-    async send({ org }, chosenId) {
-      const workflowId = await workflowIn(org);
-      const name = uniqueName("mint-win");
-      const created = await clients.workflowInstanceCommand.create({
-        ...makeWorkflowInstance({ org, name, workflowId }),
-        metadata: { id: chosenId, name, org },
-      });
-      fixtures.defer(() => clients.workflowInstanceCommand.delete({ value: created.metadata!.id }));
-      return answerOf(this.key, created.metadata);
-    },
-    async read(id) {
-      return (await clients.workflowInstanceQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:WorkflowInstanceCommandController.apply] WorkflowInstance (apply as a create)",
-    key: "WorkflowInstanceCommandController.apply",
-    kind: ApiResourceKind.workflow_instance,
-    async send({ org }, chosenId) {
-      const workflowId = await workflowIn(org);
-      const name = uniqueName("mint-win");
-      const applied = await clients.workflowInstanceCommand.apply({
-        ...makeWorkflowInstance({ org, name, workflowId }),
-        metadata: { id: chosenId, name, org },
-      });
-      fixtures.defer(() => clients.workflowInstanceCommand.delete({ value: applied.metadata!.id }));
-      return answerOf(this.key, applied.metadata);
-    },
-    async read(id) {
-      return (await clients.workflowInstanceQuery.get({ value: id })).metadata?.id;
     },
   },
   {

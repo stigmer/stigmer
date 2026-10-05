@@ -38,7 +38,13 @@ Covered against the `local` target:
   Nothing resolves a child name to a workflow the platform can run, and a name
   in the platform's `stigmer/` namespace would reach the runner's own workflow
   types, so the write is the gate. The runner's own refusal of those names
-  stays as defence in depth, pinned by the runner's unit tests.
+  stays as defence in depth, pinned by the runner's unit tests. A run names
+  its workflow alone, and the workflow carries its runs' audience
+  (`spec.execution_visibility`: who may observe them, changed only through
+  `updateExecutionVisibility` by the owner, and the one field outside the
+  version); a version covers everything else a run reads, a step's
+  `environment_refs` and the declared keys included. An `agent_call` step's
+  name is unique across the whole workflow.
 - **Agent** and **McpServer** — flat (non-versioned) agentic blueprints (CRUD &
   identity, apply create/update branching, slug semantics, `getByReference`
   resolution, and Layer-1 protovalidate negatives). An agent is run directly:
@@ -797,7 +803,8 @@ src/
                     workspace-facts, and subject + quality (the judge)  (the live benchmark's library; pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
   suites-execution/ *.harness.test.ts (engine, agent, mcp, runner-ipc, benchmark-readers, temporal-port-loss)
-                    + workflowexecution*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval)
+                    + workflowexecution*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval,
+                      run-visibility)
                     + agentexecution*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect,
                       request-shape, tool-lists)

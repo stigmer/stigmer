@@ -1,8 +1,8 @@
 // Canonical WorkflowExecution fixtures + execution polling helpers.
 // Domain: conformance support (execution engine).
 //
-// A WorkflowExecution is created against a Workflow's wfl_ id; the server
-// resolves the {slug}-default instance and dispatches to the runner. Unlike the
+// A WorkflowExecution is created against a Workflow's wfl_ id; the server pins
+// the workflow's current version and dispatches to the runner. Unlike the
 // flat CRUD resources, an execution is a *running thing* — so this module also
 // owns the poll-don't-sleep helpers the execution suites use to await a phase,
 // shared so the smoke test and the domain suite gate on one definition, and the
@@ -28,14 +28,9 @@ export const WORKFLOW_EXECUTION_KIND = "WorkflowExecution";
 export interface WorkflowExecutionOptions {
   org: string;
   name: string;
-  // The wfl_ id returned by Workflow.create; the server resolves its default
-  // instance. Provide this OR workflowInstanceId (the create handler requires
-  // one of the two).
+  // The wfl_ id returned by Workflow.create: the one target a run names.
+  // Required by the contract; left out only by the arm that pins the refusal.
   workflowId?: string;
-  // The wfi_ id of an explicit WorkflowInstance. When set, the server uses this
-  // instance's environment_refs for the env merge instead of auto-resolving the
-  // workflow's default instance (create.go skips default-instance creation).
-  workflowInstanceId?: string;
   triggerMessage?: string;
   // Execution-scoped env overrides (spec.runtime_env) — the highest-precedence
   // layer of the env merge, materialized into the ExecutionContext at create.
@@ -53,7 +48,6 @@ export function makeWorkflowExecution(
     metadata: { name: opts.name, org: opts.org },
     spec: {
       ...(opts.workflowId !== undefined ? { workflowId: opts.workflowId } : {}),
-      ...(opts.workflowInstanceId !== undefined ? { workflowInstanceId: opts.workflowInstanceId } : {}),
       ...(opts.triggerMessage !== undefined ? { triggerMessage: opts.triggerMessage } : {}),
       ...(opts.runtimeEnv !== undefined ? { runtimeEnv: makeExecutionValues(opts.runtimeEnv) } : {}),
     },

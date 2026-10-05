@@ -103,6 +103,26 @@ describe("WorkflowExecution conformance — CRUD & identity", () => {
     expect(created.status?.phase).toBe(ExecutionPhase.EXECUTION_PENDING);
   });
 
+  it("[rpc:WorkflowExecutionCommandController.create] a run named by its workflow alone pins the workflow's head version; a later save moves only later runs", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("wf-pin");
+    const v1 = await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "v1" }));
+    fixtures.defer(() => clients.workflowCommand.delete({ value: v1.metadata!.id }));
+    const workflowId = v1.metadata!.id;
+
+    const first = await createExecution(org, workflowId);
+    expect(first.spec?.workflowId, "the run names its workflow and nothing else").toBe(workflowId);
+    expect(first.status?.workflowVersionHash, "the run pins the head it was created on").toBe(v1.status?.versionHash);
+
+    const v2 = await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "v2" }));
+    expect(v2.status?.versionHash).not.toBe(v1.status?.versionHash);
+    const second = await createExecution(org, workflowId);
+    expect(second.status?.workflowVersionHash, "a run after the save pins the new head").toBe(v2.status?.versionHash);
+
+    const firstNow = await clients.workflowExecutionQuery.get({ value: first.metadata!.id });
+    expect(firstNow.status?.workflowVersionHash, "the earlier run keeps its pin").toBe(v1.status?.versionHash);
+  });
+
   // The engine-backed half of the create-id rule (stigmer/stigmer#1489): the
   // Class A row for this create runs only where an engine backs Class A.
   it("[rpc:WorkflowExecutionCommandController.create] create never keeps a metadata.id the caller sent", async () => {
@@ -423,8 +443,8 @@ describe("WorkflowExecution conformance — create negative paths", () => {
 
   it("[rpc:WorkflowExecutionCommandController.create] rejects a create with no workflow reference (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
-    // spec.workflow_id is not proto-required; the handler enforces that either
-    // workflow_id or workflow_instance_id is present, with a proper code.
+    // spec.workflow_id is the run's one target, required by the proto rule;
+    // the Class A suite pins the same refusal before the engine gate.
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.create({
@@ -440,7 +460,7 @@ describe("WorkflowExecution conformance — create negative paths", () => {
 
   it("[rpc:WorkflowExecutionCommandController.create] rejects a create against an unknown workflow (NotFound)", async () => {
     const { org } = await target.provisionTenancy();
-    await expectGrpcCode(
+    const err = await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.create(
           makeWorkflowExecution({ org, name: uniqueName("wfx"), workflowId: "wfl_doesnotexist" }),
@@ -448,6 +468,12 @@ describe("WorkflowExecution conformance — create negative paths", () => {
       Code.NotFound,
       "create against an unknown workflow",
     );
+    // Under the trusted-local posture the Authorizer admits any id, so the
+    // answer is the version pin's, naming the workflow; an enforcing
+    // Authorizer answers first (the run-gate suite pins that arm).
+    if (!target.capabilities.enforcingAuthorizer) {
+      expect(err.rawMessage).toBe("Workflow not found: wfl_doesnotexist");
+    }
   });
 
   it("[rpc:WorkflowExecutionCommandController.create] rejects a duplicate create (contract: AlreadyExists)", async () => {

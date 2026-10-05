@@ -15,7 +15,7 @@ import type { InitShape } from "./init-shape";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
-import { type EnvVarDeclarationInit, makeEnvDeclarations } from "./environments";
+import { type EnvVarDeclarationInit, type EnvironmentRefInit, makeEnvDeclarations } from "./environments";
 
 export const WORKFLOW_API_VERSION = "agentic.stigmer.ai/v1";
 export const WORKFLOW_KIND = "Workflow";
@@ -40,7 +40,8 @@ export interface WorkflowSpecOptions {
   variables?: Record<string, string>;
   // Blueprint env-var declarations projected into spec.env — the least-privilege
   // key whitelist the execution engine filters the merged environment against.
-  // Declarations carry no value (that is the instance/runtime job); see envmerge.
+  // Declarations carry no value (a run's runtime_env and its person's personal
+  // environment supply values); see envmerge.
   env?: Record<string, EnvVarDeclarationInit>;
 }
 
@@ -204,6 +205,9 @@ export interface HumanInputWorkflowOptions {
   // Trailing set_vars tasks appended after `afterApproval`, used as `then`
   // routing targets so an outcome's jump lands on an observable task.
   routedTasks?: string[];
+  // Blueprint env declarations (spec.env): the keys a run of the gate
+  // workflow receives in its ExecutionContext while the gate holds it.
+  env?: Record<string, EnvVarDeclarationInit>;
 }
 
 // A Workflow whose first task is a `human_input` approval gate. The runner pauses
@@ -218,7 +222,7 @@ export interface HumanInputWorkflowOptions {
 export function makeHumanInputWorkflow(
   opts: HumanInputWorkflowOptions,
 ): InitShape<typeof WorkflowSchema> {
-  const { org, name, timeout, onTimeout, routedTasks = [] } = opts;
+  const { org, name, timeout, onTimeout, routedTasks = [], env } = opts;
   const outcomes = opts.outcomes ?? [{ name: "approve" }, { name: "deny" }];
 
   const humanInputConfig: JsonObject = {
@@ -257,6 +261,7 @@ export function makeHumanInputWorkflow(
           taskConfig: { variables: { routed: taskName } },
         })),
       ],
+      ...(env !== undefined ? { env: makeEnvDeclarations(env) } : {}),
     },
   };
 }
@@ -580,6 +585,77 @@ export function makeAgentCallWorkflow(
           kind: WorkflowTaskKind.set_vars,
           taskConfig: { variables: { resumed: "true" } },
         },
+      ],
+    },
+  };
+}
+
+// The agent_call step name and the listen gate's signal of the step-keys
+// fixture, exported so the suites read the child turn's lineage label and
+// release the gate by the same identifiers the fixture defines.
+export const AGENT_CALL_STEP_NAME = "callAgentStep";
+export const AGENT_CALL_GATE_TASK_NAME = "awaitGo";
+export const AGENT_CALL_GATE_SIGNAL = "go";
+
+export interface AgentCallStepWorkflowOptions {
+  org: string;
+  name: string;
+  // The agent_call step's `agent` (a bare slug of an agent in `org`).
+  agentSlug: string;
+  // The step's environment_refs: the environments the server resolves for
+  // the agent turn the step starts.
+  environmentRefs: readonly EnvironmentRefInit[];
+  // Where the step sits: the top-level task list, or the body of a
+  // one-item for_each (a nested list the step is found in by its name).
+  placement?: "top" | "for_each";
+  // Prepend a `listen` gate (AGENT_CALL_GATE_TASK_NAME on
+  // AGENT_CALL_GATE_SIGNAL), so a test can act between the run's create
+  // and the moment the step starts its agent turn.
+  gated?: boolean;
+}
+
+// A Workflow whose agent_call step names environments: the lever the
+// step-keys arms pull to read which environments reach the turn the step
+// starts. The refs ride in the step's task_config as the API stores them
+// (`environment_refs`, org + slug); the YAML the runner executes carries
+// none, so only the server's read of the run's workflow can supply them.
+export function makeAgentCallStepWorkflow(opts: AgentCallStepWorkflowOptions): InitShape<typeof WorkflowSchema> {
+  const { org, name, agentSlug, environmentRefs, placement = "top", gated = false } = opts;
+  const stepConfig: JsonObject = {
+    agent: agentSlug,
+    message: "Say hello.",
+    environment_refs: environmentRefs.map((ref) => ({ org: ref.org, slug: ref.slug })),
+  };
+  const step =
+    placement === "top"
+      ? { name: AGENT_CALL_STEP_NAME, kind: WorkflowTaskKind.agent_call, taskConfig: stepConfig }
+      : {
+          name: "eachItem",
+          kind: WorkflowTaskKind.for_each,
+          taskConfig: {
+            in: '${ ["one"] }',
+            each: "item",
+            do: [{ name: AGENT_CALL_STEP_NAME, kind: "agent_call", task_config: stepConfig }],
+          },
+        };
+  return {
+    apiVersion: WORKFLOW_API_VERSION,
+    kind: WORKFLOW_KIND,
+    metadata: { name, org },
+    spec: {
+      description: "conformance agent_call step-keys fixture",
+      document: { dsl: "1.0.0", namespace: org, name, version: "1.0.0" },
+      tasks: [
+        ...(gated
+          ? [
+              {
+                name: AGENT_CALL_GATE_TASK_NAME,
+                kind: WorkflowTaskKind.listen,
+                taskConfig: { to: { mode: "one", signals: [{ id: AGENT_CALL_GATE_SIGNAL, type: "signal" }] } },
+              },
+            ]
+          : []),
+        step,
       ],
     },
   };

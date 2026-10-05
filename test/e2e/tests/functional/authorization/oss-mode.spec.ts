@@ -6,9 +6,10 @@ import { test, expect } from "@playwright/test";
  * owner of every organization, and the members page lists exactly that.
  *
  * The rest of the posture is pinned where it lives: the members and
- * invitations sections in settings.spec.ts, blueprint and instance
- * visibility in blueprint-visibility.spec.ts and instance-visibility.spec.ts,
- * sharing in share-resource.spec.ts, the owner's actions in
+ * invitations sections in settings.spec.ts, blueprint visibility in
+ * blueprint-visibility.spec.ts, a workflow's run visibility in
+ * interactive/workflow-run-visibility.spec.ts, sharing in
+ * share-resource.spec.ts, the owner's actions in
  * permission-gate.spec.ts.
  */
 

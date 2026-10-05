@@ -109,7 +109,7 @@ describe("Search conformance — search mode (text query)", () => {
     expect(response.entries[0]?.score).toBeGreaterThan(0);
   });
 
-  it("[rpc:SearchService.search] discover mode (empty kinds) spans searchable kinds — including the default instances", async () => {
+  it("[rpc:SearchService.search] discover mode (empty kinds) spans searchable kinds, and a workflow create indexes the workflow alone", async () => {
     const { org } = await target.provisionTenancy();
     const token = uniqueToken();
     await createAgentNamed(org, `disc-${token}-agent`);
@@ -120,21 +120,19 @@ describe("Search conformance — search mode (text query)", () => {
 
     const response = await clients.search.search({ query: token, org });
 
-    // Three hits from two creates: a workflow create spawns a
-    // system-managed default INSTANCE named for its parent, and instances
-    // are search-indexed by kind_meta — discover truthfully surfaces all
-    // of them (an agent spawns nothing; it is run directly). Compared on the NON-ZERO entries: whether zero-count kinds
-    // appear in the map is an edition presentation difference (the
-    // multi-tenant edition enumerates every kind at 0; local omits them),
-    // while the non-zero membership is the shared contract.
-    expect(response.totalCount).toBe(3);
+    // Two hits from two creates: neither an agent nor a workflow writes a
+    // row beside itself (each is run directly). Compared on the NON-ZERO
+    // entries: whether zero-count kinds appear in the map is an edition
+    // presentation difference (the multi-tenant edition enumerates every
+    // kind at 0; local omits them), while the non-zero membership is the
+    // shared contract.
+    expect(response.totalCount).toBe(2);
     const nonZeroCounts = Object.fromEntries(
       Object.entries(response.countsByKind).filter(([, count]) => count > 0),
     );
     expect(nonZeroCounts).toEqual({
       agent: 1,
       workflow: 1,
-      workflow_instance: 1,
     });
   });
 

@@ -18,7 +18,7 @@
 // redactions (each kind's own suite), and the create-side bars
 // (parent-gated-create-authorization). Kinds whose rows are personal
 // (environment, execution context) have no org-visible arm; kinds that carry
-// no visibility (instances, shares, channels, schedules, apps) are read by
+// no visibility (shares, channels, schedules, apps) are read by
 // their owner and by a member only when the model admits members.
 import { Code } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -39,7 +39,6 @@ import { makeOAuthApp } from "../support/oauthapps";
 import { makeSchedule } from "../support/schedules";
 import { makeSkillArtifact } from "../support/skills";
 import { makeWorkflow } from "../support/workflows";
-import { makeWorkflowInstance } from "../support/workflowinstances";
 import {
   createTarget,
   enforcingLaneOf,
@@ -225,32 +224,6 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
     cleanup: (using, id) =>
       using.executionContextCommand.delete({ resourceId: id }),
     deniedCopy: "unauthorized to get execution context",
-  },
-  {
-    name: "workflow_instance",
-    visible: true,
-    memberReads: true,
-    async seed(using, org, visibility) {
-      const wfInput = makeWorkflow({ org, name: uniqueName("ref-wf") });
-      wfInput.metadata = { ...wfInput.metadata, visibility: ORG_VISIBLE };
-      const workflow = await using.workflowCommand.create(wfInput);
-      fixtures.defer(() =>
-        using.workflowCommand.delete({ value: workflow.metadata!.id }),
-      );
-      const input = makeWorkflowInstance({
-        org,
-        name: uniqueName("ref-wfi"),
-        workflowId: workflow.metadata!.id,
-      });
-      input.metadata = { ...input.metadata, visibility };
-      const created = await using.workflowInstanceCommand.create(input);
-      return { id: created.metadata!.id, slug: created.metadata!.slug };
-    },
-    getById: (using, id) => using.workflowInstanceQuery.get({ value: id }),
-    getByReference: (using, org, slug) =>
-      using.workflowInstanceQuery.getByReference({ org, slug }),
-    cleanup: (using, id) => using.workflowInstanceCommand.delete({ value: id }),
-    deniedCopy: "unauthorized to get workflow instance",
   },
   {
     name: "agent_share",

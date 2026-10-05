@@ -1,32 +1,30 @@
-// Parent-gated create authorization: the six create lanes whose target is
+// Parent-gated create authorization: the create lanes whose target is
 // not a request field — a parent loaded from a reference (an agent to
-// schedule, share or channel-bind; a workflow to instantiate),
-// or the organization a blueprint or memory lands in. Each RPC is
+// schedule, share or channel-bind), or the organization a blueprint or
+// memory lands in. Each RPC is
 // `is_skip_authorization` on the wire where the target is loaded, and the
 // handler asks the bar its proto states once its resolve step has loaded
 // the parent. This suite pins those bars on the enforcing lane:
 //
 //   - McpServer.create: the admin bar (`can_create_mcp_server`), so a member
 //     is refused and an outsider naming the organization is refused;
-//   - WorkflowInstance.create: a member instantiates an org-visible
-//     workflow and is refused a private one;
 //   - Schedule, AgentShare, AgentChannel: `can_edit` on the referenced agent,
 //     so a member who may run an org-visible agent may not schedule, share or
 //     channel-bind it, and an outsider is refused; the admin may;
 //   - Memory.create: an outsider naming an organization is refused; a member
 //     remembers there once both the organization and the member have
-//     turned memory on, the memory filed under the member;
-//   - an environment reference: a write may attach only an environment its
-//     writer can view, so a member naming a teammate's private environment
-//     on a workflow instance is refused PERMISSION_DENIED with the rule's sentence,
-//     while the owner may attach their own and anyone an org-visible one.
+//     turned memory on, the memory filed under the member.
 //
 // Every refusal is asserted by code AND copy, because the copy is the wire
 // contract each lane has carried since the Java edition. Out of scope: the
 // run gate (its own suites), the reads by reference
-// (reference-read-authorization), and the default-instance self-heal the
-// server composes in-process (a server unit, since the wire cannot compose
-// one).
+// (reference-read-authorization), and the writer clause on an environment
+// reference (a write attaches only an environment its writer can view):
+// on the open-source enforcing lane every write that carries one (a
+// workflow's agent_call step, a schedule) is an admin's, and an admin can
+// view every environment of the organization, so the refusal cannot be
+// staged here; the server's reference unit pins it
+// (pipeline/steps/__tests__/references.test.ts).
 import { Code } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -36,7 +34,6 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeEnvironment } from "../support/environments";
 import { makeAgentShare } from "../support/agentshares";
 import { makeMcpServer } from "../support/mcpservers";
 import {
@@ -47,8 +44,6 @@ import {
 } from "../support/memories";
 import { uniqueName } from "../support/naming";
 import { makeSchedule } from "../support/schedules";
-import { makeWorkflow } from "../support/workflows";
-import { makeWorkflowInstance } from "../support/workflowinstances";
 import {
   createTarget,
   enforcingLaneOf,
@@ -56,7 +51,6 @@ import {
   type TargetProfile,
   type TenancyContext,
 } from "../targets";
-import { organizationSlug } from "../support/organizations";
 
 let target: TargetProfile;
 let enforcing: Awaited<ReturnType<typeof enforcingLaneOf>>;
@@ -81,7 +75,6 @@ function laneOrSkip(ctx: { skip: (note?: string) => never }): EnforcingLane {
   return enforcing.lane;
 }
 
-const PRIVATE = ApiResourceVisibility.visibility_private;
 const ORG_VISIBLE = ApiResourceVisibility.visibility_org;
 
 interface Cast {
@@ -109,8 +102,6 @@ async function castOf(lane: EnforcingLane): Promise<Cast> {
 // the annotation family's where the check is new.
 const MCP_SERVER_ORG_DENIED =
   "unauthorized to create mcp server in this organization";
-const WORKFLOW_INSTANCE_PARENT_DENIED =
-  "You don't have permission to create instances of this workflow";
 const SCHEDULE_DENIED = "You don't have permission to schedule this agent";
 const SHARE_DENIED = "You don't have permission to share this agent";
 const CHANNEL_DENIED =
@@ -129,16 +120,6 @@ async function seedAgent(
     c.owner.agentCommand.delete({ value: agent.metadata!.id }),
   );
   return agent;
-}
-
-async function seedWorkflow(c: Cast, visibility: ApiResourceVisibility) {
-  const input = makeWorkflow({ org: c.org, name: uniqueName("gate-wf") });
-  input.metadata = { ...input.metadata, visibility };
-  const workflow = await c.owner.workflowCommand.create(input);
-  fixtures.defer(() =>
-    c.owner.workflowCommand.delete({ value: workflow.metadata!.id }),
-  );
-  return workflow;
 }
 
 async function expectDenied(
@@ -172,109 +153,6 @@ describe("McpServer.create asks the blueprint bar", () => {
         `${who} creates an MCP server`,
       );
     }
-  });
-});
-
-describe("an instance attaches only environments its writer can view", () => {
-  const notViewable = (org: string, slug: string) =>
-    `referenced environment '${org}/${slug}' is not one you can view; ` +
-    "attach an environment you own or one shared with the organization.";
-
-  it("[rpc:WorkflowInstanceCommandController.create] a member naming the owner's private environment is refused; the owner attaches it, and a member attaches an org-visible one", async (ctx) => {
-    const c = await castOf(laneOrSkip(ctx));
-    const workflow = await seedWorkflow(c, ORG_VISIBLE);
-    const ownersKeys = await c.owner.environmentCommand.create(
-      makeEnvironment({
-        org: c.org,
-        name: uniqueName("owner-keys"),
-        data: { API_KEY: { value: "owner-secret", isSecret: true } },
-      }),
-    );
-    fixtures.defer(() =>
-      c.owner.environmentCommand.delete({
-        resourceId: ownersKeys.metadata!.id,
-      }),
-    );
-    const teamKeys = await c.owner.environmentCommand.create(
-      makeEnvironment({
-        org: c.org,
-        name: uniqueName("team-keys"),
-        data: { API_KEY: { value: "team-secret", isSecret: true } },
-      }),
-    );
-    fixtures.defer(() =>
-      c.owner.environmentCommand.delete({ resourceId: teamKeys.metadata!.id }),
-    );
-    await c.owner.environmentCommand.updateVisibility({
-      resourceId: teamKeys.metadata!.id,
-      visibility: ORG_VISIBLE,
-    });
-    const instanceNaming = (slug: string) =>
-      makeWorkflowInstance({
-        org: c.org,
-        name: uniqueName("gate-env-inst"),
-        workflowId: workflow.metadata!.id,
-        environmentRefs: [{ org: c.org, slug }],
-      });
-
-    await expectDenied(
-      () =>
-        c.member.workflowInstanceCommand.create(
-          instanceNaming(ownersKeys.metadata!.slug),
-        ),
-      notViewable(await organizationSlug(c.owner.organizationQuery, c.org), ownersKeys.metadata!.slug),
-      "member attaches the owner's private environment",
-    );
-
-    for (const [who, using, slug] of [
-      [
-        "owner, their own private environment",
-        c.owner,
-        ownersKeys.metadata!.slug,
-      ],
-      ["member, an org-visible environment", c.member, teamKeys.metadata!.slug],
-    ] as const) {
-      const created = await using.workflowInstanceCommand.create(
-        instanceNaming(slug),
-      );
-      fixtures.defer(() =>
-        c.owner.workflowInstanceCommand.delete({ value: created.metadata!.id }),
-      );
-      expect(
-        created.spec?.environmentRefs.map((r) => r.slug),
-        who,
-      ).toEqual([slug]);
-    }
-  });
-});
-
-describe("WorkflowInstance.create asks can_execute on the parent", () => {
-  it("[rpc:WorkflowInstanceCommandController.create] a member instantiates an org-visible workflow and is refused a private one", async (ctx) => {
-    const c = await castOf(laneOrSkip(ctx));
-    const orgWorkflow = await seedWorkflow(c, ORG_VISIBLE);
-    const privateWorkflow = await seedWorkflow(c, PRIVATE);
-    const created = await c.member.workflowInstanceCommand.create(
-      makeWorkflowInstance({
-        org: c.org,
-        name: uniqueName("gate-wfi"),
-        workflowId: orgWorkflow.metadata!.id,
-      }),
-    );
-    fixtures.defer(() =>
-      c.owner.workflowInstanceCommand.delete({ value: created.metadata!.id }),
-    );
-    await expectDenied(
-      () =>
-        c.member.workflowInstanceCommand.create(
-          makeWorkflowInstance({
-            org: c.org,
-            name: uniqueName("gate-wfi"),
-            workflowId: privateWorkflow.metadata!.id,
-          }),
-        ),
-      WORKFLOW_INSTANCE_PARENT_DENIED,
-      "member instantiates a private workflow",
-    );
   });
 });
 
