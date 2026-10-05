@@ -333,9 +333,10 @@ export class HookRequestHandler {
   /** A write or a deletion a hook moved to another file, refused or blocked; `undefined` when it stays put. */
   private movedFile(call: HookToolCall, rewrite: Record<string, unknown> | undefined): PreReply | undefined {
     if ((call.name !== "Write" && call.name !== "Delete") || rewrite === undefined) return undefined;
+    // A write's or a deletion's rewrite here can only move its path
+    // (`hook-views.ts`), and an unchanged one is none (`evaluate.ts`).
     const target = rewrite["file_path"];
-    if (typeof target !== "string" || target === call.args["file_path"]) return undefined;
-    if (isSecretLikePath(target)) {
+    if (typeof target === "string" && isSecretLikePath(target)) {
       return { decision: "deny", deny: JSON.stringify({ permission: "deny", agent_message: SECRET_BLOCKED_AGENT_MESSAGE, user_message: SECRET_BLOCKED_AGENT_MESSAGE }), message: SECRET_BLOCKED_AGENT_MESSAGE };
     }
     if (this.turn.captureMode) {

@@ -629,21 +629,24 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     tempDirs.push(gatesRoot);
     // The pid of a process that has exited: a runner that crashed.
     const stopped = spawnSync(process.execPath, ["-e", ""]).pid!;
-    const setAside = async (name: string, writer: number) => {
+    const setAside = async (name: string, writer: number | undefined) => {
       const { settings, original } = workspace();
       const gateDir = join(gatesRoot, name);
       await rewriteWorkspaceFiles(gateDir, [{ path: settings, kind: "claude-settings", original, written: '{"model":"x"}\n' }]);
       const snapshotPath = join(gateDir, "workspace-files.json");
-      writeFileSync(snapshotPath, JSON.stringify({ ...JSON.parse(readFileSync(snapshotPath, "utf-8")), writer }), "utf-8");
+      const { rewrites } = JSON.parse(readFileSync(snapshotPath, "utf-8")) as { rewrites: unknown[] };
+      writeFileSync(snapshotPath, JSON.stringify(writer === undefined ? { rewrites } : { writer, rewrites }), "utf-8");
       return { settings, original, snapshotPath };
     };
     const crashed = await setAside("crashed", stopped);
     const running = await setAside("running", process.ppid);
+    const unnamed = await setAside("unnamed", undefined);
     mkdirSync(join(gatesRoot, "empty"));
 
     await restoreAbandonedWorkspaceFiles(gatesRoot, () => false);
     expect(readFileSync(crashed.settings, "utf-8")).toBe(crashed.original);
     expect(existsSync(crashed.snapshotPath)).toBe(false);
+    expect(readFileSync(unnamed.settings, "utf-8"), "a snapshot naming no writer is restored").toBe(unnamed.original);
     expect(readFileSync(running.settings, "utf-8"), "a running runner's turn keeps its set-aside").toBe('{"model":"x"}\n');
     expect(existsSync(running.snapshotPath)).toBe(true);
     await restoreAbandonedWorkspaceFiles(join(gatesRoot, "missing"), () => false);
