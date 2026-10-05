@@ -70,6 +70,7 @@ export function resolveCursorConfig(config: Config): CursorAdapterConfig {
     workspaceRootDir: config.workspaceRootDir,
     cloudModeEnabled: config.cloudModeEnabled,
     agentResolveTimeoutMs: config.agentResolveTimeoutMs,
+    cursorStreamStallTimeoutMs: config.cursorStreamStallTimeoutMs,
   };
 }
 
@@ -118,6 +119,11 @@ export function createCursorAdapter(): HarnessAdapter {
       await assertHttp2ConnectPatched();
 
       const { runCursorTurn } = await import("./turn.js");
+      // Workspace files a stopped runner set aside for its turn come back
+      // before any turn of this one pins its review baseline.
+      const { restoreAbandonedWorkspaceFiles } = await import("./workspace-hook-files.js");
+      const { getHitlGatesRoot } = await import("../../shared/workspace/platform-dir.js");
+      await restoreAbandonedWorkspaceFiles(getHitlGatesRoot());
       booted = { config: resolveCursorConfig(bootConfig), runCursorTurn };
     },
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildShellEnv, SHELL_ENV_DENYLIST, shellRunValues } from "../shell-env.js";
-import type { ProvisionResult } from "../../../shared/workspace/types.js";
-import { RUNNER_CREDENTIAL_ENV_KEYS } from "../../../shared/runner-credential-keys.js";
+import type { ProvisionResult } from "../workspace/types.js";
+import { RUNNER_CREDENTIAL_ENV_KEYS } from "../runner-credential-keys.js";
 
 describe("buildShellEnv", () => {
   it("strips every runner credential from the base env", () => {

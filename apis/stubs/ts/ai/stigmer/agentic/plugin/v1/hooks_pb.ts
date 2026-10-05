@@ -18,8 +18,10 @@ export const file_ai_stigmer_agentic_plugin_v1_hooks: GenFile = /*@__PURE__*/
  * agent's tool calls and can refuse a call, ask a person first, or let it run.
  *
  * A plugin's hooks are recorded here at install; an agent can also carry a
- * block of its own (AgentSpec.hooks). The native engine runs hooks in Claude
- * Code's format, with PreToolUse and PostToolUse events.
+ * block of its own (AgentSpec.hooks). Both engines, native and Cursor, run
+ * hooks in Claude Code's format (PreToolUse and PostToolUse) and in Cursor's
+ * (preToolUse, beforeShellExecution, beforeMCPExecution, postToolUse and
+ * afterMCPExecution).
  *
  * @generated from message ai.stigmer.agentic.plugin.v1.HookConfig
  */
@@ -27,6 +29,7 @@ export type HookConfig = Message<"ai.stigmer.agentic.plugin.v1.HookConfig"> & {
   /**
    * The format the hooks are written in, which decides their input and answer.
    * An agent's own block may leave it unset; Claude Code's format is assumed.
+   * A block in Cursor's format names it.
    *
    * @generated from field: ai.stigmer.agentic.plugin.v1.HookFormat format = 1;
    */
@@ -55,19 +58,25 @@ export const HookConfigSchema: GenMessage<HookConfig> = /*@__PURE__*/
  */
 export type HookGroup = Message<"ai.stigmer.agentic.plugin.v1.HookGroup"> & {
   /**
-   * The event the handlers run on: "PreToolUse" before a call, which can
-   * refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
-   * which can add to what the agent reads.
+   * The event the handlers run on, spelled as the format spells it. In Claude
+   * Code's format: "PreToolUse" before a call, which can refuse it, ask first
+   * or allow it, or "PostToolUse" after a call succeeds, which can add to what
+   * the agent reads. In Cursor's: "preToolUse", "beforeShellExecution" (shell
+   * commands) and "beforeMCPExecution" (MCP tools) before a call, and
+   * "postToolUse" and "afterMCPExecution" (MCP tools) after one.
    *
    * @generated from field: string event = 1;
    */
   event: string;
 
   /**
-   * Which tools the handlers run for: a name such as "Bash", a list such as
-   * "Write|Edit", or a regular expression such as "mcp__github__.*". Empty or
-   * "*" matches every tool. A plugin's own MCP server's tools are named
-   * mcp__plugin_<plugin>_<server>__<tool>, as in Claude Code.
+   * Which tools the handlers run for, in the format's own names. In Claude
+   * Code's format: a name such as "Bash", a list such as "Write|Edit", or a
+   * regular expression such as "mcp__github__.*"; a plugin's own MCP
+   * server's tools are named mcp__plugin_<plugin>_<server>__<tool>, as in
+   * Claude Code. In Cursor's: a regular expression tested against the tool's
+   * name ("Shell", "Write", "MCP:<tool>"), or, on "beforeShellExecution",
+   * against the command itself. Empty or "*" matches every tool.
    *
    * @generated from field: string matcher = 2;
    */
@@ -91,16 +100,18 @@ export const HookGroupSchema: GenMessage<HookGroup> = /*@__PURE__*/
 /**
  * HookHandler is one command a hook runs.
  *
- * The command reads the call as JSON on stdin and answers as Claude Code's
- * hooks do: exit code 2 refuses the call with stderr as the reason, and JSON on
- * stdout can allow, ask or deny with a reason.
+ * The command reads the call as JSON on stdin and answers as its format's
+ * hooks do: exit code 2 refuses the call, and JSON on stdout can allow, ask or
+ * deny with a reason. A Cursor-format "ask" waits for a person on both
+ * engines, where Cursor itself lets the call run.
  *
  * @generated from message ai.stigmer.agentic.plugin.v1.HookHandler
  */
 export type HookHandler = Message<"ai.stigmer.agentic.plugin.v1.HookHandler"> & {
   /**
    * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
-   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
+   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in
+   * Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too.
    *
    * @generated from field: string command = 1;
    */
@@ -108,15 +119,16 @@ export type HookHandler = Message<"ai.stigmer.agentic.plugin.v1.HookHandler"> & 
 
   /**
    * Arguments for the command's exec form; when set, the command runs without
-   * a shell.
+   * a shell. Claude Code's format only.
    *
    * @generated from field: repeated string args = 2;
    */
   args: string[];
 
   /**
-   * Seconds the command may run before it is stopped; zero means the default,
-   * 600 seconds. A command that is stopped makes no decision.
+   * Seconds the command may run before it is stopped; zero means the format's
+   * default, 600 seconds for Claude Code and 60 for Cursor. A command that is
+   * stopped makes no decision, unless fail_closed is set.
    *
    * @generated from field: int32 timeout_seconds = 3;
    */
@@ -124,7 +136,8 @@ export type HookHandler = Message<"ai.stigmer.agentic.plugin.v1.HookHandler"> & 
 
   /**
    * A permission rule that narrows when the handler runs, e.g.
-   * "Bash(git push *)"; empty means whenever the group matches.
+   * "Bash(git push *)"; empty means whenever the group matches. Claude Code's
+   * format only.
    *
    * @generated from field: string condition = 4;
    */

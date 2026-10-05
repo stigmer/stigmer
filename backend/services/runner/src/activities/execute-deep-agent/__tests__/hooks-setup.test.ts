@@ -52,12 +52,12 @@ describe("buildHookEvaluator", () => {
   it("builds nothing for an agent without hooks, or with none this engine runs", async () => {
     expect(await buildHookEvaluator(input([]), sink, tools, 180_000)).toBeNull();
     const lifecycle = [create(HookGroupSchema, { event: "Stop", handlers: [create(HookHandlerSchema, { command: "x" })] })];
-    expect(await buildHookEvaluator(input([{ plugin: mounted, groups: lifecycle }]), sink, tools, 180_000)).toBeNull();
+    expect(await buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: lifecycle }]), sink, tools, 180_000)).toBeNull();
   });
 
   it("builds an evaluator when every value a hook reads is the run's", async () => {
     const hooks = await buildHookEvaluator(
-      input([{ plugin: mounted, groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], { declare: ["API_TOKEN"], values: { API_TOKEN: "t" } }),
+      input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], { declare: ["API_TOKEN"], values: { API_TOKEN: "t" } }),
       sink,
       tools,
       180_000,
@@ -66,18 +66,18 @@ describe("buildHookEvaluator", () => {
   });
 
   it("refuses the turn when a hook reads a value the run does not give the agent", async () => {
-    const undeclared = input([{ plugin: mounted, groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], { values: { API_TOKEN: "t" } });
+    const undeclared = input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], { values: { API_TOKEN: "t" } });
     await expect(buildHookEvaluator(undeclared, sink, tools, 180_000)).rejects.toThrow(
       new HookSetupError(
         "A hook of the plugin 'safety' reads the variable API_TOKEN, which this run does not give the agent. Declare API_TOKEN in the agent's env and set its value, then run again.",
       ),
     );
-    const own = input([{ plugin: null, groups: groups({ command: "check", args: ["${user_config.X}"] }) }]);
+    const own = input([{ plugin: null, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.X}"] }) }]);
     await expect(buildHookEvaluator(own, sink, tools, 180_000)).rejects.toThrow("A hook in the agent's own hooks block reads the variable X");
   });
 
   it("names the MCP server that keeps a variable a hook reads", async () => {
-    const base = input([{ plugin: mounted, groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], {
+    const base = input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], {
       declare: ["API_TOKEN"],
       values: { API_TOKEN: "t" },
     });
@@ -92,7 +92,7 @@ describe("buildHookEvaluator", () => {
   });
 
   it("refuses a shell-form command that reads user_config, and judges only the events it runs", async () => {
-    const shellForm = input([{ plugin: mounted, groups: groups({ command: "check ${user_config.API_TOKEN}" }) }]);
+    const shellForm = input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check ${user_config.API_TOKEN}" }) }]);
     await expect(buildHookEvaluator(shellForm, sink, tools, 180_000)).rejects.toThrow(
       new HookSetupError(
         "A hook of the plugin 'safety' reads ${user_config.*} in a command that runs in bash, where the value is not substituted. " +
@@ -106,7 +106,7 @@ describe("buildHookEvaluator", () => {
         create(HookHandlerSchema, { command: "notify", args: ["${user_config.WEBHOOK}"] }),
       ],
     })];
-    expect(await buildHookEvaluator(input([{ plugin: mounted, groups: notRun }]), sink, tools, 180_000)).toBeNull();
+    expect(await buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: notRun }]), sink, tools, 180_000)).toBeNull();
   });
 
   it("hands the evaluator the workspace's paths and the turn's activity", async () => {
@@ -115,7 +115,7 @@ describe("buildHookEvaluator", () => {
     try {
       const rewrite = JSON.stringify({ hookSpecificOutput: { permissionDecision: "allow", updatedInput: { file_path: "/WORKSPACE/notes.md" } } });
       const turn = input(
-        [{ plugin: null, groups: [create(HookGroupSchema, { event: "PreToolUse", matcher: "Read", handlers: [create(HookHandlerSchema, { command: `sleep 0.2; printf '%s' '${rewrite}' | sed "s#/WORKSPACE#$CLAUDE_PROJECT_DIR#"` })] })] }],
+        [{ plugin: null, format: "claude-code", groups: [create(HookGroupSchema, { event: "PreToolUse", matcher: "Read", handlers: [create(HookHandlerSchema, { command: `sleep 0.2; printf '%s' '${rewrite}' | sed "s#/WORKSPACE#$CLAUDE_PROJECT_DIR#"` })] })] }],
         { workspaceDir: workspace },
       );
       const hooks = await buildHookEvaluator(turn, { ...sink, recordActivity }, tools, 30);
@@ -131,10 +131,10 @@ describe("buildHookEvaluator", () => {
     const empty = mkdtempSync(join(tmpdir(), "no-bash-"));
     try {
       vi.stubEnv("PATH", `:${empty}`);
-      await expect(buildHookEvaluator(input([{ plugin: mounted, groups: groups({ command: "check" }) }]), sink, tools, 180_000)).rejects.toThrow(
+      await expect(buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check" }) }]), sink, tools, 180_000)).rejects.toThrow(
         "no bash is on this runner's PATH",
       );
-      expect(await buildHookEvaluator(input([{ plugin: mounted, groups: groups({ command: "/bin/check", args: ["x"] }) }]), sink, tools, 180_000)).not.toBeNull();
+      expect(await buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "/bin/check", args: ["x"] }) }]), sink, tools, 180_000)).not.toBeNull();
     } finally {
       rmSync(empty, { recursive: true, force: true });
     }

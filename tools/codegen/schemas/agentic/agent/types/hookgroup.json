@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "The event the handlers run on: \"PreToolUse\" before a call, which can\n refuse it, ask first or allow it, or \"PostToolUse\" after a call succeeds,\n which can add to what the agent reads.",
+      "description": "The event the handlers run on, spelled as the format spells it. In Claude\n Code's format: \"PreToolUse\" before a call, which can refuse it, ask first\n or allow it, or \"PostToolUse\" after a call succeeds, which can add to what\n the agent reads. In Cursor's: \"preToolUse\", \"beforeShellExecution\" (shell\n commands) and \"beforeMCPExecution\" (MCP tools) before a call, and\n \"postToolUse\" and \"afterMCPExecution\" (MCP tools) after one.",
       "required": false,
       "validation": {
         "minLength": 1
@@ -24,7 +24,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Which tools the handlers run for: a name such as \"Bash\", a list such as\n \"Write|Edit\", or a regular expression such as \"mcp__github__.*\". Empty or\n \"*\" matches every tool. A plugin's own MCP server's tools are named\n mcp__plugin_\u003cplugin\u003e_\u003cserver\u003e__\u003ctool\u003e, as in Claude Code.",
+      "description": "Which tools the handlers run for, in the format's own names. In Claude\n Code's format: a name such as \"Bash\", a list such as \"Write|Edit\", or a\n regular expression such as \"mcp__github__.*\"; a plugin's own MCP\n server's tools are named mcp__plugin_\u003cplugin\u003e_\u003cserver\u003e__\u003ctool\u003e, as in\n Claude Code. In Cursor's: a regular expression tested against the tool's\n name (\"Shell\", \"Write\", \"MCP:\u003ctool\u003e\"), or, on \"beforeShellExecution\",\n against the command itself. Empty or \"*\" matches every tool.",
       "required": false
     },
     {

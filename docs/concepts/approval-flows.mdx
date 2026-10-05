@@ -45,11 +45,11 @@ connected before Stigmer recorded annotations asks for nothing until it is
 connected again, so connect each existing server once after upgrading.
 
 An Agent's hooks can change that, call by call. A hook is a command in Claude
-Code's hooks format, from a plugin or written in the Agent itself, that runs
-before a tool call. It can refuse the call, ask you first, or let it run without
-the approval it would otherwise need; a call it says nothing about keeps the
-default. A hook's refusal holds even when you trust the whole run. To apply a
-plugin's hooks, reference the plugin in the Agent's `hooks`:
+Code's or Cursor's hooks format, from a plugin or written in the Agent itself,
+that runs before a tool call. It can refuse the call, ask you first, or let it
+run without the approval it would otherwise need; a call it says nothing about
+keeps the default. A hook's refusal holds even when you trust the whole run. To
+apply a plugin's hooks, reference the plugin in the Agent's `hooks`:
 
 ```yaml validate-as="Agent"
 spec:
@@ -59,8 +59,35 @@ spec:
         slug: safety
 ```
 
-Stigmer's own engine runs hooks, in the Cloud and on your laptop. The Cursor
-engine does not run them yet, and refuses a run of an Agent that has them.
+Both engines run hooks in both formats, in the Cloud and on your laptop: a
+Claude Code plugin's hooks work on the Cursor engine, and a Cursor plugin's on
+Stigmer's own. A few things differ:
+
+- A Cursor-format hook that asks gets an approval on both engines, where Cursor
+  itself lets the call run.
+- On the Cursor engine, a hook is not told which sub-agent made a call. Web
+  fetch and web search reach no hook there, so an Agent whose hooks that run
+  before a call would match them runs without those tools on that engine (a hook
+  that runs after them does not run there); the sub-agent tool is left out too
+  when a hook's matcher names it. A sub-agent's own calls still reach every
+  hook. On Stigmer's own engine, a Cursor-format hook sees web fetch as
+  `WebFetch`, so its policy holds there too.
+- On the Cursor engine, a hook that rewrites a call takes effect only where
+  Cursor applies a rewrite: a shell command, its directory or timeout, a file
+  path, a search pattern or a URL. A rewrite of a file's content or of an MCP
+  tool's arguments is refused, with a sentence the agent reads.
+- Only the Agent's own hooks run. Hook files in a repository
+  (`.cursor/hooks.json`, `.claude/settings.json`) never run for the Agent: on
+  the Cursor engine they are set aside for the run and put back after it.
+  Running the Cursor engine on a folder of your own whose `.claude` settings
+  carry hooks is refused, naming the file, so your other tools keep them; the
+  native engine runs it. A folder's own `.cursor/hooks.json` is set aside even
+  in a folder of yours, so a Cursor editor open on it runs none of those hooks
+  until the run ends.
+- An Agent with hooks does not run in
+  [Cursor's cloud mode](/docs/guides/runners/cursor-harness#cursor-cloud-mode),
+  where Cursor runs the agent on its own machines and no hook of Stigmer's can
+  reach it. The run is refused; run it with a Workspace or on the native engine.
 
 ## Keeping an Agent away from a tool
 

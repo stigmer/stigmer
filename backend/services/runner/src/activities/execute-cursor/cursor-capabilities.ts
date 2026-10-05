@@ -17,8 +17,11 @@
  *    hook's scope arm refuses every out-of-scope call, sub-agents' and MCP
  *    tools' included (`hook-scope.ts`). The SDK options cannot narrow MCP
  *    below all-or-nothing nor reach a sub-agent, which is why the hook binds.
+ *  - An agent's hooks, in either format, run inside the runner: the gate's
+ *    script asks the turn's hook server for every call (`hook-server.ts`),
+ *    and only the agent's own hooks run (`workspace-hook-files.ts`).
  *  - PNG and JPEG inline; the transport re-sniffs (`shared/attachment-vision.ts`).
- *  - File review under the `cursor` harness id, with the two files the gate
+ *  - File review under the `cursor` harness id, with the files the gate
  *    writes into the repo excluded from the mid-run progress diff
  *    ({@link CURSOR_RUNNER_OWNED_PATHS}). The capture itself is the runtime's
  *    (`harness/capture.ts`, since #1096); this adapter contributes only the hook
@@ -40,10 +43,19 @@ import { CURSOR_VISION_PROFILE } from "../../shared/attachment-vision.js";
  */
 const CURSOR_RUNNER_OWNED_PATHS: readonly string[] = [".cursor/hooks.json", ".cursor/rules/stigmer-tool-approval.mdc"];
 
+/**
+ * The `.claude` settings files whose `hooks` the gate sets aside for the turn
+ * in a folder the runner owns (`workspace-hook-files.ts`), and restores
+ * before the runtime's final capture: left out of the mid-run progress diff
+ * only, so an agent's own edit to one is still reviewed at the turn's end.
+ */
+const CURSOR_TRANSIENT_PATHS: readonly string[] = [".claude/settings.json", ".claude/settings.local.json"];
+
 /** The two facts the runtime's capture and reconcile read from this harness (`harness/capabilities.ts` `FileReviewIdentity`). */
 export const CURSOR_FILE_REVIEW_IDENTITY: FileReviewIdentity = {
   harnessId: "cursor",
   excludePaths: CURSOR_RUNNER_OWNED_PATHS,
+  transientPaths: CURSOR_TRANSIENT_PATHS,
 };
 
 export const CURSOR_CAPABILITIES: HarnessCapabilities = {
@@ -52,7 +64,7 @@ export const CURSOR_CAPABILITIES: HarnessCapabilities = {
   systemPrompt: false,
   subAgents: true,
   toolRestriction: false,
-  runsHooks: false,
+  runsHooks: true,
   visionProfile: CURSOR_VISION_PROFILE,
   fileReview: CURSOR_FILE_REVIEW_IDENTITY,
 };

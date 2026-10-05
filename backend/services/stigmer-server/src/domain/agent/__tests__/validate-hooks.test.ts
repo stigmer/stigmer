@@ -4,11 +4,13 @@
  * listed once by slug (the slug is what a run records as the deciding hook,
  * so two plugins sharing one would share a lease), one inline block at
  * most, and an inline block held to the rules a plugin's hooks are held to
- * at install: Claude Code's format, the two tool-call events, a matcher
- * the library accepts, an `if` in a permission rule's shape, no
+ * at install, in either format. Claude Code's: the two tool-call events, a
+ * matcher the library accepts, an `if` in a permission rule's shape, no
  * fail_closed, and `${user_config.*}` only in a handler with args (bash
- * would not substitute it). An omitted format is filled with Claude Code's; a valid
- * block passes unchanged otherwise. The step is driven directly over a
+ * would not substitute it). Cursor's: its five tool-call events, a matcher
+ * the library accepts, fail_closed allowed, and no `if`, no args and no
+ * `${user_config.*}`. An omitted format is filled with Claude Code's; a
+ * valid block passes unchanged otherwise. The step is driven directly over a
  * request context; the chains that run it are pinned in agent.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
@@ -138,6 +140,25 @@ describe("ValidateHooks", () => {
     expect(() => newValidateHooksStep().execute(contextWith([]))).not.toThrow();
   });
 
+  it("passes a block in Cursor's format with every event Stigmer runs, keeping the format and fail_closed", () => {
+    const ctx = contextWith([
+      inline(
+        [
+          { event: "preToolUse", matcher: "Shell|Write", handlers: [{ command: "guard", failClosed: true }] },
+          { event: "beforeShellExecution", matcher: "rm -rf" },
+          { event: "beforeMCPExecution", matcher: "MCP:.*" },
+          { event: "postToolUse" },
+          { event: "afterMCPExecution" },
+        ],
+        HookFormat.CURSOR,
+      ),
+    ]);
+    newValidateHooksStep().execute(ctx);
+    const source = inlineOf(ctx);
+    expect(source.case === "inline" && source.value.format).toBe(HookFormat.CURSOR);
+    expect(source.case === "inline" && source.value.groups[0]!.handlers[0]!.failClosed).toBe(true);
+  });
+
   it("leaves a source that names nothing to the proto's own oneof rule", () => {
     expect(() => newValidateHooksStep().execute(contextWith([{}]))).not.toThrow();
   });
@@ -154,14 +175,44 @@ describe("ValidateHooks", () => {
       "hooks carries more than one inline block; write the agent's own hooks in one block",
     ],
     [
-      "a block in Cursor's format",
-      [inline([{ event: "preToolUse" }], HookFormat.CURSOR)],
-      "the agent's hooks block is in Cursor's format; an agent's own hooks are written in Claude Code's format",
-    ],
-    [
       "an event Stigmer does not run",
       [inline([{ event: "Stop" }])],
-      "the agent's hooks block names event 'Stop', which Stigmer does not run; use PreToolUse or PostToolUse",
+      "the agent's hooks block names event 'Stop', which Stigmer does not run in Claude Code's format; use PreToolUse, PostToolUse",
+    ],
+    [
+      "a Cursor event in a block that does not name Cursor's format",
+      [inline([{ event: "preToolUse" }])],
+      "the agent's hooks block names event 'preToolUse', which Stigmer does not run in Claude Code's format; use PreToolUse, PostToolUse",
+    ],
+    [
+      "a Cursor event Stigmer does not run",
+      [inline([{ event: "beforeReadFile" }], HookFormat.CURSOR)],
+      "the agent's hooks block names event 'beforeReadFile', which Stigmer does not run in Cursor's format; use preToolUse, beforeShellExecution, beforeMCPExecution, postToolUse, afterMCPExecution",
+    ],
+    [
+      "a Claude Code event in a Cursor block",
+      [inline([{ event: "PreToolUse" }], HookFormat.CURSOR)],
+      "the agent's hooks block names event 'PreToolUse', which Stigmer does not run in Cursor's format; use preToolUse, beforeShellExecution, beforeMCPExecution, postToolUse, afterMCPExecution",
+    ],
+    [
+      "a Cursor matcher that is not a regular expression",
+      [inline([{ event: "preToolUse", matcher: "[a-" }], HookFormat.CURSOR)],
+      "the agent's preToolUse hook has matcher '[a-', which is not '*' or a regular expression",
+    ],
+    [
+      "a condition on a Cursor handler",
+      [inline([{ event: "preToolUse", handlers: [{ command: "g", condition: "Shell" }] }], HookFormat.CURSOR)],
+      "the agent's preToolUse hook sets a condition, which Cursor's hook format does not have; narrow it with the matcher",
+    ],
+    [
+      "args on a Cursor handler",
+      [inline([{ event: "preToolUse", handlers: [{ command: "g", args: ["x"] }] }], HookFormat.CURSOR)],
+      "the agent's preToolUse hook sets args, which Cursor's hook format does not have; a Cursor hook's command runs in bash",
+    ],
+    [
+      "user_config in a Cursor handler",
+      [inline([{ event: "postToolUse", handlers: [{ command: "check ${user_config.API_TOKEN}" }] }], HookFormat.CURSOR)],
+      "the agent's postToolUse hook reads ${user_config.*}, which Cursor's hook format does not substitute",
     ],
     [
       "a matcher that is not a list or a regular expression",

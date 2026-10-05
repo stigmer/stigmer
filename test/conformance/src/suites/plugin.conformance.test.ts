@@ -8,9 +8,9 @@
 //   - install materialises exactly the members the package describes, and an
 //     MCP-only package materialises no agent;
 //   - a Claude plugin's hooks that run land on status.hooks as written, the
-//     ones that do not are named in its warnings (and no warning says the
-//     ones that run do not), its composed agent references the plugin's
-//     hooks, its settings' main agent runs the agent's main thread, and its
+//     ones that do not are named in its warnings, its composed agent
+//     references the plugin's hooks, its settings' main agent runs the
+//     agent's main thread, and its
 //     agents' tool lists arrive in Stigmer's names;
 //   - a re-push of the same archive is a no-op (one version, members untouched);
 //   - an upgrade removes what the new archive dropped and keeps the agent valid;
@@ -312,9 +312,6 @@ describe("Plugin conformance — install", () => {
     ]);
     expect(plugin.status?.warnings.map((w) => w.kind)).toContain(
       "hook-event-not-run",
-    );
-    expect(plugin.status?.warnings.map((w) => w.kind)).not.toContain(
-      "hooks-not-run-yet",
     );
 
     const agent = await clients.agentQuery.getByReference(

@@ -11,8 +11,10 @@ package ai.stigmer.agentic.plugin.v1;
  * agent's tool calls and can refuse a call, ask a person first, or let it run.
  *
  * A plugin's hooks are recorded here at install; an agent can also carry a
- * block of its own (AgentSpec.hooks). The native engine runs hooks in Claude
- * Code's format, with PreToolUse and PostToolUse events.
+ * block of its own (AgentSpec.hooks). Both engines, native and Cursor, run
+ * hooks in Claude Code's format (PreToolUse and PostToolUse) and in Cursor's
+ * (preToolUse, beforeShellExecution, beforeMCPExecution, postToolUse and
+ * afterMCPExecution).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.plugin.v1.HookConfig}
@@ -65,6 +67,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The format the hooks are written in, which decides their input and answer.
    * An agent's own block may leave it unset; Claude Code's format is assumed.
+   * A block in Cursor's format names it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -77,6 +80,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The format the hooks are written in, which decides their input and answer.
    * An agent's own block may leave it unset; Claude Code's format is assumed.
+   * A block in Cursor's format names it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -328,8 +332,10 @@ private static final long serialVersionUID = 0L;
    * agent's tool calls and can refuse a call, ask a person first, or let it run.
    *
    * A plugin's hooks are recorded here at install; an agent can also carry a
-   * block of its own (AgentSpec.hooks). The native engine runs hooks in Claude
-   * Code's format, with PreToolUse and PostToolUse events.
+   * block of its own (AgentSpec.hooks). Both engines, native and Cursor, run
+   * hooks in Claude Code's format (PreToolUse and PostToolUse) and in Cursor's
+   * (preToolUse, beforeShellExecution, beforeMCPExecution, postToolUse and
+   * afterMCPExecution).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.plugin.v1.HookConfig}
@@ -531,6 +537,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The format the hooks are written in, which decides their input and answer.
      * An agent's own block may leave it unset; Claude Code's format is assumed.
+     * A block in Cursor's format names it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -543,6 +550,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The format the hooks are written in, which decides their input and answer.
      * An agent's own block may leave it unset; Claude Code's format is assumed.
+     * A block in Cursor's format names it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -560,6 +568,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The format the hooks are written in, which decides their input and answer.
      * An agent's own block may leave it unset; Claude Code's format is assumed.
+     * A block in Cursor's format names it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -574,6 +583,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The format the hooks are written in, which decides their input and answer.
      * An agent's own block may leave it unset; Claude Code's format is assumed.
+     * A block in Cursor's format names it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -591,6 +601,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The format the hooks are written in, which decides their input and answer.
      * An agent's own block may leave it unset; Claude Code's format is assumed.
+     * A block in Cursor's format names it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>

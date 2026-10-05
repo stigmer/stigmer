@@ -94,6 +94,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
     mcpDefault: mcp.mcpDefault,
     leases: { global: mcp.leases.global, categories: mcp.leases.categories },
     seeded: status.messages,
+    ...(gate.hookDecisions !== undefined ? { hookDecisions: gate.hookDecisions } : {}),
   });
   // The raw recording of both SDK channels, on only when the env names a dir
   // (the recorder reads no process state itself, so its tests need no env).
@@ -217,7 +218,6 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
       turnStartMessageIndex,
       mcpDefault: mcp.mcpDefault,
       denialCancelSettled: denialSettled,
-      foreignGatingHooks: gate.hitlGate.foreignGatingHooks,
     });
 
   // The boundary mutated the transcript in place and a denial pauses the
@@ -228,28 +228,21 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
     return { kind: "awaiting_approval" };
   };
 
-  // Issue #205: a tool was blocked by a hook Stigmer does not own (the merge
-  // preserves the user's own gating hooks, and Cursor runs every one), so no
+  // Issue #205: a tool was blocked by a hook Stigmer does not own, so no
   // approval can unblock it — an approval grants a token only OUR hook reads,
-  // and the foreign hook would deny the re-attempt forever. Completing would
-  // be the silent-failure shape the issue describes; instead fail with a
-  // diagnosable reason naming the blocked tools and the likely culprit. The
-  // user can fix this one: the `actionable` surface.
+  // and that hook would deny the re-attempt forever. The gate sets a
+  // workspace's own hooks aside for the turn (`workspace-hook-files.ts`), so
+  // this is a backstop: completing would be the silent-failure shape the
+  // issue describes; instead fail with a reason naming the blocked tools.
+  // The user can fix this one: the `actionable` surface.
   const unattributedHookBlock = (boundary: TurnBoundaryResult): TurnOutcome => {
     const blockedTools = [...new Set(boundary.unattributedHookBlocks.map((b) => b.toolName))].join(", ");
-    const foreign = gate.hitlGate.foreignGatingHooks;
-    const culprit = foreign.length > 0
-      ? ` The workspace's .cursor/hooks.json registers hook(s) outside Stigmer's control ` +
-        `[${foreign.join(", ")}], which most likely denied it.`
-      : "";
     const message =
-      `A Cursor hook outside Stigmer's approval gate blocked tool(s): ${blockedTools}.` +
-      culprit +
-      ` Stigmer cannot request approval on a foreign hook's behalf — remove or adjust ` +
-      `the hook in .cursor/hooks.json and retry.`;
+      `A Cursor hook outside Stigmer's approval gate blocked tool(s): ${blockedTools}. ` +
+      `Stigmer cannot request approval on another hook's behalf — find the hook ` +
+      `(a Cursor or Claude Code hooks file the engine loads) and remove or adjust it, then retry.`;
     console.error(
-      `ExecuteCursor failed (unattributed hook block): execution=${executionId}, ` +
-        `tools=[${blockedTools}], foreignHooks=[${foreign.join(", ")}]`,
+      `ExecuteCursor failed (unattributed hook block): execution=${executionId}, tools=[${blockedTools}]`,
     );
     return { kind: "failed", surface: "actionable", message };
   };

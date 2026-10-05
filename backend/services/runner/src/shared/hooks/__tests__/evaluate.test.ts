@@ -1,5 +1,6 @@
 /**
- * Pins the hook evaluator (`evaluate.ts`) over a scripted process runner:
+ * Pins the hook evaluator (`evaluate.ts`) over a scripted process runner,
+ * in Claude Code's format and, last, both formats on one call:
  *  - which handlers run: matcher, `if`, event, and calls no hook may see;
  *  - how answers combine: deny > defer > ask > allow, the decider the first
  *    source in the agent's order, a rewrite taken from the decider's side;
@@ -15,7 +16,7 @@ import { HookGroupSchema, HookHandlerSchema, type HookGroup } from "@stigmer/pro
 import { describe, expect, it, vi } from "vitest";
 import { hookLeaseKey } from "../../approval-policy.js";
 import { HookEvaluator, type HookEvaluatorDeps } from "../evaluate.js";
-import { HookSet, type HookSource } from "../hook-set.js";
+import { HookSet, type HookSource, type HookSourceGroups } from "../hook-set.js";
 import type { HookProcessRunner, HookProcessSpec, HookRunResult } from "../run.js";
 import { NativeToolViews } from "../tool-view.js";
 
@@ -56,7 +57,7 @@ const decide = (permissionDecision: string, extra: Record<string, unknown> = {})
 });
 
 function evaluator(
-  sources: { source: HookSource; groups: HookGroup[] }[],
+  sources: readonly HookSourceGroups[],
   run: HookProcessRunner,
   extra: Partial<HookEvaluatorDeps> = {},
 ): HookEvaluator {
@@ -145,7 +146,7 @@ describe("how answers combine", () => {
     expect(await hooks.preToolUse(SHELL, {})).toMatchObject({ decision: "allow", hook: "" });
   });
 
-  it("takes a rewrite from the winning side, in the engine's shape, and never on a deny", async () => {
+  it("takes a rewrite from the winning side, in the engine's shape, never on a deny, and none that changes nothing", async () => {
     const { run } = scripted({ w: decide("allow", { updatedInput: { file_path: "/ws/src/b.ts" } }) });
     const hooks = evaluator([{ source: plugin("safety"), groups: [group("PreToolUse", "Read", { command: "w" })] }], run);
     expect((await hooks.preToolUse(READ, {})).updatedArgs).toEqual({ file_path: "/src/b.ts" });
@@ -153,6 +154,11 @@ describe("how answers combine", () => {
     const denied = scripted({ w: decide("deny", { updatedInput: { file_path: "/ws/x" } }) });
     const deny = evaluator([{ source: plugin("safety"), groups: [group("PreToolUse", "Read", { command: "w" })] }], denied.run);
     expect((await deny.preToolUse(READ, {})).updatedArgs).toBeUndefined();
+
+    const echoed = scripted({ w: decide("ask", { updatedInput: { file_path: "/ws/src/a.ts" } }) });
+    const echo = evaluator([{ source: plugin("safety"), groups: [group("PreToolUse", "Read", { command: "w" })] }], echoed.run);
+    const asked = await echo.preToolUse(READ, {});
+    expect([asked.decision, asked.updatedArgs], "a rewrite that hands the call back as it was is none").toEqual(["ask", undefined]);
   });
 
   it("drops an allow, and its rewrite, from a handler whose `if` only might match; keeps its deny and a sure allow", async () => {
@@ -370,5 +376,98 @@ describe("HookSet", () => {
     const execForm = HookSet.of([{ source: plugin("a"), groups: [group("PreToolUse", "", { command: "x", args: ["y"] })] }]);
     const lifecycle = HookSet.of([{ source: plugin("a"), groups: [group("SessionStart", "", { command: "x" })] }]);
     expect([shellForm.needsShell, execForm.needsShell, lifecycle.isEmpty]).toEqual([true, false, true]);
+  });
+});
+
+describe("both formats on one call", () => {
+  const cursorGroup = (event: string, matcher: string, command: string, failClosed = false): HookGroup =>
+    create(HookGroupSchema, { event, matcher, handlers: [create(HookHandlerSchema, { command, failClosed })] });
+
+  it("offers the call to every format's events at once, each under its own names, and combines once", async () => {
+    const { run, runs } = scripted({
+      "claude-allow": decide("allow"),
+      "cursor-pre": { stdout: '{"permission":"allow"}' },
+      "cursor-shell": { stdout: '{"permission":"deny","agent_message":"not on main"}' },
+      "cursor-miss": { stdout: '{"permission":"deny"}' },
+    });
+    const hooks = evaluator(
+      [
+        { source: plugin("claude"), groups: [group("PreToolUse", "Bash", { command: "claude-allow" })] },
+        {
+          source: plugin("cursor"),
+          format: "cursor",
+          groups: [
+            cursorGroup("preToolUse", "Shell", "cursor-pre"),
+            cursorGroup("beforeShellExecution", "git push", "cursor-shell"),
+            cursorGroup("beforeShellExecution", "^rm ", "cursor-miss"),
+          ],
+        },
+      ],
+      run,
+    );
+    const outcome = await hooks.preToolUse(SHELL, {});
+    expect(runs.map((r) => r.command).sort()).toEqual(["claude-allow", "cursor-pre", "cursor-shell"]);
+    expect(outcome).toMatchObject({ decision: "deny", hook: "cursor", reason: "not on main" });
+    const shellStdin = JSON.parse(runs.find((r) => r.command === "cursor-shell")!.stdin) as Record<string, unknown>;
+    expect(shellStdin).toMatchObject({ hook_event_name: "beforeShellExecution", command: "git push origin main", cwd: ROOT });
+    expect(runs.find((r) => r.command === "cursor-pre")!.timeoutSeconds, "a Cursor handler's default timeout").toBe(60);
+    expect(runs.find((r) => r.command === "claude-allow")!.timeoutSeconds, "a Claude handler's").toBe(600);
+  });
+
+  it("refuses a call whose winning rewrite the engine cannot take, naming why", async () => {
+    const { run } = scripted({ "cursor-move": { stdout: JSON.stringify({ permission: "allow", updated_input: { command: "ls", cwd: "/elsewhere" } }) } });
+    const hooks = evaluator(
+      [{ source: plugin("mover"), format: "cursor", groups: [cursorGroup("preToolUse", "Shell", "cursor-move")] }],
+      run,
+    );
+    const outcome = await hooks.preToolUse(SHELL, {});
+    expect(outcome.decision).toBe("deny");
+    expect(outcome.hook).toBe("mover");
+    expect(outcome.reason).toContain("another directory");
+  });
+
+  it("takes a Cursor hook's rewrite back to the engine's arguments", async () => {
+    const { run } = scripted({ "cursor-rw": { stdout: JSON.stringify({ permission: "allow", updated_input: { command: "git push origin feature", cwd: ROOT } }) } });
+    const hooks = evaluator([{ source: plugin("rw"), format: "cursor", groups: [cursorGroup("preToolUse", "Shell", "cursor-rw")] }], run);
+    expect((await hooks.preToolUse(SHELL, {})).updatedArgs).toEqual({ command: "git push origin feature" });
+  });
+
+  it("sees a Cursor hook that echoes a listing with no path as no rewrite", async () => {
+    const { run } = scripted({ "cursor-echo": { stdout: JSON.stringify({ permission: "ask", updated_input: { pattern: "", glob: "*", file_path: ROOT, output_mode: "files_with_matches" } }) } });
+    const hooks = evaluator([{ source: plugin("echo"), format: "cursor", groups: [cursorGroup("preToolUse", "Grep", "cursor-echo")] }], run);
+    const listing = await hooks.preToolUse({ id: "call_8", name: "ls", args: {}, serverSlug: "" }, {});
+    expect([listing.decision, listing.updatedArgs]).toEqual(["ask", undefined]);
+  });
+
+  it("holds a Cursor hook's web fetch policy on this engine, where the tool is always bound", async () => {
+    const { run } = scripted({ "cursor-egress": { stdout: JSON.stringify({ permission: "deny", agent_message: "no egress" }) } });
+    const hooks = evaluator([{ source: plugin("egress"), format: "cursor", groups: [cursorGroup("preToolUse", "Fetch", "cursor-egress")] }], run);
+    const fetch = { id: "call_9", name: "web_fetch", args: { url: "https://example.com" }, serverSlug: "" };
+    expect(await hooks.preToolUse(fetch, {})).toMatchObject({ decision: "deny", hook: "egress", reason: "no egress" });
+  });
+
+  it("runs Cursor's post events after a call and hands back their context", async () => {
+    const { run, runs } = scripted({ "cursor-post": { stdout: '{"additional_context":"reviewed"}' } });
+    const hooks = evaluator(
+      [{ source: plugin("audit"), format: "cursor", groups: [cursorGroup("postToolUse", "", "cursor-post"), cursorGroup("afterMCPExecution", "", "cursor-post")] }],
+      run,
+    );
+    expect((await hooks.postToolUse({ id: "c", name: "create_issue", args: {}, serverSlug: "github" }, {}, "made")).additionalContext).toEqual([
+      "reviewed",
+      "reviewed",
+    ]);
+    expect(runs.map((r) => (JSON.parse(r.stdin) as { hook_event_name: string }).hook_event_name)).toEqual(["postToolUse", "afterMCPExecution"]);
+  });
+
+  it("names the longest a handler may run, each format's default where none is set", () => {
+    const hooks = evaluator(
+      [
+        { source: plugin("a"), groups: [group("PreToolUse", "", { command: "x", timeoutSeconds: 5 })] },
+        { source: plugin("b"), format: "cursor", groups: [cursorGroup("preToolUse", "", "y")] },
+      ],
+      scripted({}).run,
+    );
+    expect(hooks.longestTimeoutSeconds).toBe(60);
+    expect(hooks.hookSet.all).toHaveLength(2);
   });
 });

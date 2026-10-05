@@ -8,7 +8,7 @@
  * credentials resolved from ExecutionContext (e.g. GITHUB_TOKEN) must NEVER be
  * listed: they reach the agent's shell through the overlay of the keys the
  * agent declares (and a git clone's token), and denying them here would break
- * that delivery (shell-env.ts shellRunValues).
+ * that delivery (shared/shell-env.ts shellRunValues).
  *
  * Consumers:
  * - runner-credential-store.ts: captures every name listed in this module
@@ -16,7 +16,7 @@
  *   runtime runs in-process and its shell tool spawns from the runner's own
  *   env, so credentials must not LIVE there; see that module for custody
  *   rules).
- * - shell-env.ts: SHELL_ENV_DENYLIST for the native harness `execute` tool
+ * - shared/shell-env.ts: SHELL_ENV_DENYLIST for the native harness `execute` tool
  *   (defense-in-depth behind the boot scrub).
  * - mcp-manager.test.ts: leak-tripwire canaries for MCP stdio subprocesses
  *   (that path passes NO runner env by construction; the test plants these

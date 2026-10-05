@@ -1,7 +1,12 @@
 /**
- * Pins Claude Code's view of a native call (`tool-view.ts`):
- *  - every tool the native engine binds has exactly one view, and a view's
- *    inverse restores the call (view-then-inverse is the identity);
+ * Pins how hooks see a native call, in both formats (`tool-view.ts`):
+ *  - every tool the native engine binds has exactly one Claude Code view, and
+ *    a view's inverse restores the call (view-then-inverse is the identity),
+ *    in either format;
+ *  - Cursor's view names a call as Cursor's own engine sends it to a hook
+ *    (a create and an edit are `Write`, a glob and a listing are `Grep` with
+ *    an empty pattern), a rewrite is laid over the call's own arguments as
+ *    Cursor lays it, and a rewrite this engine cannot take is refused;
  *  - paths become real and absolute, names change only where Claude's
  *    differ, extra arguments ride along;
  *  - MCP tools are named `mcp__<server>__<tool>`, a plugin's own server as
@@ -13,20 +18,27 @@ import { describe, expect, it } from "vitest";
 import { EXCLUDED_BUILTIN_TOOLS } from "../../../activities/execute-deep-agent/deepagents-profiles.js";
 import { normalizeWorkspacePathArg } from "../../../middleware/path-normalization.js";
 import { NATIVE_TOOL_COVERS } from "../../tool-lists.js";
+import type { HookFormatName } from "../hook-set.js";
 import { claudeToolResponse, NATIVE_VIEWED_TOOLS, NativeToolViews } from "../tool-view.js";
 
 const ROOT = "/work/repo";
+const SERVERS = new Map([
+  ["create_issue", "github"],
+  ["run_check", "safety-checks"],
+  ["send_message", "channel"],
+]);
 const views = new NativeToolViews({
   workspaceRoot: ROOT,
   toVirtualPath: (path) => normalizeWorkspacePathArg(path, ROOT),
-  toolServerMap: new Map([
-    ["create_issue", "github"],
-    ["run_check", "safety-checks"],
-    ["send_message", "channel"],
-  ]),
+  toolServerMap: SERVERS,
   pluginServers: new Map([["safety-checks", { plugin: "safety", server: "checks" }]]),
   platformServerSlugs: new Set(["channel"]),
 });
+
+/** A hook's rewrite of a call to `name`, back in the engine's shape (or why not). */
+function back(name: string, input: Record<string, unknown>, format: HookFormatName = "claude-code"): Record<string, unknown> | string {
+  return views.argsFrom({ name, args: {}, serverSlug: SERVERS.get(name) ?? "" }, format, input);
+}
 
 /** One representative call per bound native tool. */
 const CALLS: Record<string, Record<string, unknown>> = {
@@ -46,7 +58,7 @@ describe("the native views", () => {
   const bound = [...NATIVE_TOOL_COVERS.keys()].filter((name) => !EXCLUDED_BUILTIN_TOOLS.includes(name));
 
   it("cover exactly the tools the native engine binds", () => {
-    expect([...NATIVE_VIEWED_TOOLS].sort()).toEqual([...bound].sort());
+    expect([...NATIVE_VIEWED_TOOLS["claude-code"]].sort()).toEqual([...bound].sort());
   });
 
   it.each(bound)("%s: its view's inverse restores the call", (name) => {
@@ -54,7 +66,7 @@ describe("the native views", () => {
     expect(args, `a representative ${name} call`).toBeDefined();
     const view = views.viewOf(name, args!);
     expect(view).toBeDefined();
-    expect(views.nativeArgsOf(name, view!.toolInput)).toEqual(args);
+    expect(back(name, view!.toolInput)).toEqual(args);
   });
 
   it("names each call as Claude does, with real absolute paths", () => {
@@ -74,13 +86,13 @@ describe("the native views", () => {
   });
 
   it("maps a hook's rewritten path, real or relative, back to the engine's", () => {
-    expect(views.nativeArgsOf("read_file", { file_path: "docs/x.md" })).toEqual({ file_path: "/docs/x.md" });
-    expect(views.nativeArgsOf("read_file", { file_path: "./docs/../x.md" })).toEqual({ file_path: "/x.md" });
-    expect(views.nativeArgsOf("write_file", { file_path: "/work/repo/docs/x.md", content: "y" })).toEqual({
+    expect(back("read_file", { file_path: "docs/x.md" })).toEqual({ file_path: "/docs/x.md" });
+    expect(back("read_file", { file_path: "./docs/../x.md" })).toEqual({ file_path: "/x.md" });
+    expect(back("write_file", { file_path: "/work/repo/docs/x.md", content: "y" })).toEqual({
       file_path: "/docs/x.md",
       content: "y",
     });
-    expect(views.nativeArgsOf("task", { prompt: "New task", description: "old", subagent_type: "explore" })).toEqual({
+    expect(back("task", { prompt: "New task", description: "old", subagent_type: "explore" })).toEqual({
       description: "New task",
       subagent_type: "explore",
     });
@@ -114,7 +126,79 @@ describe("MCP and platform tools", () => {
   });
 
   it("passes an MCP tool's rewritten input through", () => {
-    expect(views.nativeArgsOf("create_issue", { title: "y" })).toEqual({ title: "y" });
+    expect(back("create_issue", { title: "y" })).toEqual({ title: "y" });
+  });
+});
+
+describe("Cursor's view of a native call", () => {
+  const cursorOf = (name: string): ReturnType<NativeToolViews["viewsOf"]>["cursor"] =>
+    views.viewsOf({ name, args: CALLS[name]!, serverSlug: SERVERS.get(name) ?? "" }).cursor;
+
+  it.each(NATIVE_VIEWED_TOOLS.cursor.filter((name) => name !== "execute"))("%s: its view's inverse restores the call", (name) => {
+    const view = cursorOf(name);
+    expect(view).toBeDefined();
+    expect(back(name, view!.toolInput, "cursor")).toEqual(CALLS[name]);
+  });
+
+  it("names each call as Cursor's engine does", () => {
+    expect(cursorOf("execute")).toEqual({
+      toolName: "Shell",
+      toolInput: { command: "git push origin main", intent: "Push the branch", cwd: ROOT },
+      command: "git push origin main",
+    });
+    expect(cursorOf("write_file")?.toolName).toBe("Write");
+    expect(cursorOf("edit_file")).toEqual({
+      toolName: "Write",
+      toolInput: { file_path: "/work/repo/src/a.ts", old_string: "a", new_string: "b", replace_all: true },
+    });
+    expect(cursorOf("grep")?.toolInput).toEqual({ pattern: "TODO", file_path: ROOT, glob: "*.ts", output_mode: "content" });
+    expect(cursorOf("glob")).toEqual({
+      toolName: "Grep",
+      toolInput: { pattern: "", glob: "**/*.ts", file_path: "/work/repo/src", output_mode: "files_with_matches" },
+    });
+    expect(cursorOf("ls")?.toolInput).toEqual({ pattern: "", glob: "*", file_path: "/work/repo/src", output_mode: "files_with_matches" });
+  });
+
+  it("shows Cursor's hooks no delegation or todo list, as Cursor's engine does, and the always-bound web fetch as WebFetch", () => {
+    expect([cursorOf("task"), cursorOf("write_todos")]).toEqual([undefined, undefined]);
+    expect(cursorOf("web_fetch"), "Cursor's engine hides it from a hook that would take it; here it is bound, so the hook sees it").toEqual({
+      toolName: "WebFetch",
+      toolInput: CALLS["web_fetch"],
+    });
+  });
+
+  it("names an MCP call as Cursor does on each event", () => {
+    expect(views.viewsOf({ name: "create_issue", args: { title: "x" }, serverSlug: "github" }).cursor).toEqual({
+      toolName: "MCP:create_issue",
+      toolInput: { title: "x" },
+      mcp: { tool: "create_issue", server: "github" },
+    });
+    expect(views.viewsOf({ name: "send_message", args: {}, serverSlug: "channel" })).toEqual({});
+  });
+
+  it("shows a grep with no path as one, and takes it back without one", () => {
+    const view = views.viewsOf({ name: "grep", args: { pattern: "x" }, serverSlug: "" }).cursor;
+    expect(view?.toolInput).toEqual({ pattern: "x" });
+    expect(back("grep", view!.toolInput, "cursor")).toEqual({ pattern: "x" });
+  });
+
+  it("takes back a shell rewrite in the workspace, and refuses one that moves the command", () => {
+    expect(back("execute", { command: "ls", cwd: ROOT }, "cursor")).toEqual({ command: "ls" });
+    const partial = (name: string, rewrite: Record<string, unknown>) =>
+      views.argsFrom({ name, args: CALLS[name]!, serverSlug: "" }, "cursor", rewrite);
+    expect(partial("edit_file", { file_path: `${ROOT}/src/b.ts` }), "a Cursor rewrite names only what it changes").toEqual({ ...CALLS["edit_file"], file_path: "/src/b.ts" });
+    expect(partial("execute", { command: "ls" })).toEqual({ ...CALLS["execute"], command: "ls" });
+    expect(partial("edit_file", { content: "whole file" }), "Cursor's Write is a create too").toBe(
+      "the hook rewrote content, which this engine's edit_file does not take",
+    );
+    expect(partial("write_file", { old_string: "a", new_string: "b" })).toBe("the hook rewrote old_string, new_string, which this engine's write_file does not take");
+    const issue = { title: "a", body: "b" };
+    expect(views.argsFrom({ name: "create_issue", args: issue, serverSlug: "github" }, "cursor", { title: "c" }), "an MCP call's too").toEqual({ title: "c", body: "b" });
+    expect(views.argsFrom({ name: "create_issue", args: issue, serverSlug: "github" }, "claude-code", { title: "c" })).toEqual({ title: "c" });
+    expect(views.argsFrom({ name: "edit_file", args: CALLS["edit_file"]!, serverSlug: "" }, "claude-code", { file_path: `${ROOT}/src/b.ts` }), "Claude Code's replaces the input").toEqual({ file_path: "/src/b.ts" });
+    expect(back("execute", { command: "ls", cwd: "/elsewhere" }, "cursor")).toMatch(/another directory/);
+    expect(back("glob", { pattern: "x", glob: "*.md", file_path: ROOT }, "cursor")).toMatch(/search pattern/);
+    expect(back("ls", { pattern: "", glob: "*.md", file_path: ROOT }, "cursor")).toMatch(/takes no glob|cannot take/);
   });
 });
 

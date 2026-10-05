@@ -29,12 +29,12 @@
     },
     {
       "type": "MESSAGE_SYSTEM",
-      "content": "Execution failed: A Cursor hook outside Stigmer's approval gate blocked tool(s): shell. The workspace's .cursor/hooks.json registers hook(s) outside Stigmer's control [./scripts/team-policy-hook.sh], which most likely denied it. Stigmer cannot request approval on a foreign hook's behalf — remove or adjust the hook in .cursor/hooks.json and retry.",
+      "content": "Execution failed: A Cursor hook outside Stigmer's approval gate blocked tool(s): shell. Stigmer cannot request approval on another hook's behalf — find the hook (a Cursor or Claude Code hooks file the engine loads) and remove or adjust it, then retry.",
       "timestamp": "2026-01-01T00:00:06.000Z"
     }
   ],
   "phase": "EXECUTION_FAILED",
-  "error": "A Cursor hook outside Stigmer's approval gate blocked tool(s): shell. The workspace's .cursor/hooks.json registers hook(s) outside Stigmer's control [./scripts/team-policy-hook.sh], which most likely denied it. Stigmer cannot request approval on a foreign hook's behalf — remove or adjust the hook in .cursor/hooks.json and retry.",
+  "error": "A Cursor hook outside Stigmer's approval gate blocked tool(s): shell. Stigmer cannot request approval on another hook's behalf — find the hook (a Cursor or Claude Code hooks file the engine loads) and remove or adjust it, then retry.",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "completedAt": "2026-01-01T00:00:06.000Z",
   "streamingUsage": {

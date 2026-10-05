@@ -53,7 +53,12 @@ function getSessionDir(sessionId: string): string {
  */
 export function getHitlGateDir(workspaceRoot: string): string {
   const key = createHash("sha256").update(workspaceRoot).digest("hex").slice(0, 16);
-  return join(getStigmerHome(), ".stigmer", "hitl-gate", key);
+  return join(getHitlGatesRoot(), key);
+}
+
+/** The directory every workspace's HITL gate directory lives in. Pure function. */
+export function getHitlGatesRoot(): string {
+  return join(getStigmerHome(), ".stigmer", "hitl-gate");
 }
 
 /**

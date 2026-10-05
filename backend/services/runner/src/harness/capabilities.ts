@@ -28,9 +28,9 @@
  * | `systemPrompt`    | yes                         | no (rides the first message)            | yes                                           | no (`AGENTS.md` or first message)              |
  * | `subAgents`       | yes (compiled sub-graphs)   | yes (`agents` option)                   | yes (`AgentDefinition`)                       | no                                             |
  * | `toolRestriction` | yes (tool list)             | no (the hook enforces)                  | yes (`disallowedTools`, `tools`)              | per-server config                              |
- * | `runsHooks`       | yes (in the approval gate)  | not yet (refused)                       | yes (its own hooks)                           | (surveyed later)                               |
+ * | `runsHooks`       | yes (in the approval gate)  | yes (the gate's hook server)            | yes (its own hooks)                           | (surveyed later)                               |
  * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG (transport re-sniffs)         | (surveyed later)                              | (surveyed later)                               |
- * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, `.cursor/hooks.json` excluded | (surveyed later)                              | (surveyed later)                               |
+ * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, the gate's files excluded     | (surveyed later)                              | (surveyed later)                               |
  *
  * Adapter-internal, deliberately NOT flags: how MCP servers are bound, how
  * metering is routed, how the cost cap is applied inside the engine, how a
@@ -96,6 +96,14 @@ export type StateIdSource = "deterministic" | "engine-minted";
 export interface FileReviewIdentity {
   readonly harnessId: string;
   readonly excludePaths: readonly string[];
+  /**
+   * Workspace-relative paths the harness rewrites for the turn's duration
+   * only and restores before it returns: left out of the mid-run progress
+   * diff, which would show the harness's own rewrite, and never out of the
+   * baseline or the candidate, which see the file as its owner and the
+   * agent left it, so an agent's own edit to one is still reviewed.
+   */
+  readonly transientPaths?: readonly string[];
 }
 
 export interface HarnessCapabilities {

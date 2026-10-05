@@ -14,9 +14,8 @@
  * agent overrides, and a manifest version the tag pattern rejects. The
  * hooks the library read ride on the plan unchanged, to become
  * `PluginStatus.hooks`: they are not a member, so a plugin whose only
- * content is hooks installs with no members. No engine runs them yet, and
- * the receipt says so in one warning, so nobody relies on a guard hook
- * that does not run.
+ * content is hooks installs with no members. Both engines run them, in
+ * either format, once an agent's `hooks` references the plugin.
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -101,18 +100,6 @@ export function planMaterialization(
     );
   }
   const tag = versionTag(plugin.version, warnings);
-  if (plugin.hooks?.format === "cursor") {
-    // Claude Code-format hooks run on the native engine; Cursor's format
-    // has no engine that runs it yet, so its hooks are only recorded.
-    warnings.push(
-      create(PluginWarningSchema, {
-        kind: SERVER_WARNING_KINDS.hooksNotRunYet,
-        message:
-          "the plugin's tool-call hooks are in Cursor's format, which Stigmer records but does not run yet, " +
-          "so none of them checks a call",
-      }),
-    );
-  }
 
   const skills = planSkills(plugin, files, identity, tag, message);
   const mcpServers = planMcpServers(

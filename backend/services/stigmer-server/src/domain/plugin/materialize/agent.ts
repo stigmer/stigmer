@@ -30,13 +30,11 @@
  * tool its parent may.
  *
  * The composed agent runs the plugin's own hooks: when the plugin carries
- * tool-call hooks in Claude Code's format (the format the native engine
- * runs), the agent's `hooks` references the plugin, with no version, as its
+ * tool-call hooks, in Claude Code's format or Cursor's (both engines run
+ * both), the agent's `hooks` references the plugin, with no version, as its
  * skill references carry none, so the hooks follow the installed version. A
- * Cursor-format plugin's agent gets no reference: no engine runs that
- * format, and a reference would only make every turn refuse. A plugin that
- * is only hooks still composes no agent; any agent switches its hooks on by
- * referencing it.
+ * plugin that is only hooks still composes no agent; any agent switches its
+ * hooks on by referencing it.
  *
  * The composed agent declares in `env` the union of its servers' variables,
  * OAuth-managed target variables excluded, and every `${user_config.KEY}`
@@ -261,17 +259,12 @@ export function toolVariables(
   return declarations;
 }
 
-/** Whether the agent runs the plugin's hooks: they exist and are in the format the native engine runs. */
-function runsOwnHooks(plugin: PluginPackage): boolean {
-  return plugin.hooks?.format === "claude-code";
-}
-
-/** The plugin itself as the composed agent's one hook source, unversioned; none when it runs no hooks. */
+/** The plugin itself as the composed agent's one hook source, unversioned; none when it carries no hooks. */
 function ownHooks(
   plugin: PluginPackage,
   identity: PluginIdentity,
 ): HookSource[] {
-  if (!runsOwnHooks(plugin)) return [];
+  if (plugin.hooks === undefined) return [];
   return [
     create(HookSourceSchema, {
       source: {
@@ -288,13 +281,13 @@ function ownHooks(
 
 /**
  * Every variable the plugin's hooks read, as the plugin declared it, or as
- * a required secret when it declared none; empty when the agent does not
- * run the plugin's hooks.
+ * a required secret when it declared none; empty when the plugin carries
+ * no hooks. Both formats run on both engines, so both are declared.
  */
 function hookVariables(
   plugin: PluginPackage,
 ): ReadonlyMap<string, EnvVarDeclaration> {
-  if (plugin.hooks === undefined || !runsOwnHooks(plugin)) return new Map();
+  if (plugin.hooks === undefined) return new Map();
   const declared = declaredVariables(plugin);
   return new Map(
     hookVariableReferences(plugin.hooks).map((name) => [

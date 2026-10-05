@@ -60,8 +60,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object kind_ = "";
   /**
    * <pre>
-   * Stable warning kind, e.g. "component-ignored", "hooks-not-run-yet",
-   * "member-adopted", "model-hint-unresolved", "settings-agent-not-applied",
+   * Stable warning kind, e.g. "component-ignored", "member-adopted",
+   * "model-hint-unresolved", "settings-agent-not-applied",
    * "sub-agent-name-builtin", "sub-agent-not-installed",
    * "tool-list-entry-dropped", "version-not-taggable".
    * </pre>
@@ -84,8 +84,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Stable warning kind, e.g. "component-ignored", "hooks-not-run-yet",
-   * "member-adopted", "model-hint-unresolved", "settings-agent-not-applied",
+   * Stable warning kind, e.g. "component-ignored", "member-adopted",
+   * "model-hint-unresolved", "settings-agent-not-applied",
    * "sub-agent-name-builtin", "sub-agent-not-installed",
    * "tool-list-entry-dropped", "version-not-taggable".
    * </pre>
@@ -551,8 +551,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object kind_ = "";
     /**
      * <pre>
-     * Stable warning kind, e.g. "component-ignored", "hooks-not-run-yet",
-     * "member-adopted", "model-hint-unresolved", "settings-agent-not-applied",
+     * Stable warning kind, e.g. "component-ignored", "member-adopted",
+     * "model-hint-unresolved", "settings-agent-not-applied",
      * "sub-agent-name-builtin", "sub-agent-not-installed",
      * "tool-list-entry-dropped", "version-not-taggable".
      * </pre>
@@ -574,8 +574,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable warning kind, e.g. "component-ignored", "hooks-not-run-yet",
-     * "member-adopted", "model-hint-unresolved", "settings-agent-not-applied",
+     * Stable warning kind, e.g. "component-ignored", "member-adopted",
+     * "model-hint-unresolved", "settings-agent-not-applied",
      * "sub-agent-name-builtin", "sub-agent-not-installed",
      * "tool-list-entry-dropped", "version-not-taggable".
      * </pre>
@@ -598,8 +598,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable warning kind, e.g. "component-ignored", "hooks-not-run-yet",
-     * "member-adopted", "model-hint-unresolved", "settings-agent-not-applied",
+     * Stable warning kind, e.g. "component-ignored", "member-adopted",
+     * "model-hint-unresolved", "settings-agent-not-applied",
      * "sub-agent-name-builtin", "sub-agent-not-installed",
      * "tool-list-entry-dropped", "version-not-taggable".
      * </pre>
@@ -618,8 +618,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable warning kind, e.g. "component-ignored", "hooks-not-run-yet",
-     * "member-adopted", "model-hint-unresolved", "settings-agent-not-applied",
+     * Stable warning kind, e.g. "component-ignored", "member-adopted",
+     * "model-hint-unresolved", "settings-agent-not-applied",
      * "sub-agent-name-builtin", "sub-agent-not-installed",
      * "tool-list-entry-dropped", "version-not-taggable".
      * </pre>
@@ -635,8 +635,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable warning kind, e.g. "component-ignored", "hooks-not-run-yet",
-     * "member-adopted", "model-hint-unresolved", "settings-agent-not-applied",
+     * Stable warning kind, e.g. "component-ignored", "member-adopted",
+     * "model-hint-unresolved", "settings-agent-not-applied",
      * "sub-agent-name-builtin", "sub-agent-not-installed",
      * "tool-list-entry-dropped", "version-not-taggable".
      * </pre>

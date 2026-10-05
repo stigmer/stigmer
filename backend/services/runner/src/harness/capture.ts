@@ -167,6 +167,7 @@ export async function pinCaptureBaseline(args: {
         workspace,
         baselineTree,
         excludePaths: fileReview.excludePaths,
+        transientPaths: fileReview.transientPaths ?? [],
         casSlice: artifactStorage !== undefined,
         // Delegates to whatever the adapter binds later; `capture` is
         // assigned before any capture() can run.
@@ -189,6 +190,31 @@ export async function pinCaptureBaseline(args: {
  * a workspace with storage, so the fourth cell is unreachable and says so.
  */
 function buildProgressSubstrate(args: {
+  readonly executionId: string;
+  readonly workspace: TurnWorkspace;
+  readonly baselineTree: string;
+  readonly excludePaths: readonly string[];
+  readonly transientPaths: readonly string[];
+  readonly casSlice: boolean;
+  readonly readObservations: CasTouchedReader;
+}): ProgressSubstrate {
+  const { transientPaths } = args;
+  const substrate = buildShapedProgressSubstrate(args);
+  if (transientPaths.length === 0) return substrate;
+  // A path the harness rewrites for the turn only: dropped from what the
+  // progress shows, by path, since the baseline holds it and a tree exclusion
+  // would read its absence as a deletion.
+  const transient = new Set(transientPaths);
+  return {
+    async capture() {
+      const { delta, changed } = await substrate.capture();
+      const entries = delta.entries.filter((e) => !transient.has(e.pathAfter) && !transient.has(e.pathBefore));
+      return { delta: { ...delta, entries }, changed };
+    },
+  };
+}
+
+function buildShapedProgressSubstrate(args: {
   readonly executionId: string;
   readonly workspace: TurnWorkspace;
   readonly baselineTree: string;

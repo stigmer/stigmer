@@ -33,7 +33,10 @@ import { compileHookToolScope, decodeHookToolScope, UNRESTRICTED_HOOK_SCOPE } fr
 import {
   buildApprovalGrants,
   buildApprovalState,
+  buildPersonRefusals,
   grantToken,
+  hookAskDigest,
+  primaryToken,
   toolIdentity,
 } from "../approval-state.js";
 import { buildReinvocationPrompt } from "../prompt-builder.js";
@@ -132,8 +135,59 @@ describe("toolIdentity + grantToken (canonical, taxonomy-agnostic)", () => {
     );
   });
 
-  it("MCP tools key on name only (consistent across layers)", () => {
-    expect(toolIdentity("apply_x", "planton", { path: "ignored" })).toEqual({ key: "apply_x", salient: "" });
+  it("MCP tools key on server and tool (both consistent across layers)", () => {
+    expect(toolIdentity("apply_x", "planton", { path: "ignored" })).toEqual({ key: "planton/apply_x", salient: "" });
+  });
+
+  it("a built-in with no approval category keys on the hook's name for it", () => {
+    expect(toolIdentity("read", "", { path: "/w/a.md" })).toEqual({ key: "Read", salient: "/w/a.md" });
+    expect(toolIdentity("glob", "", { file_path: "/w" })).toEqual({ key: "Grep", salient: "/w" });
+    expect(toolIdentity("Read", "", { file_path: "/w/a.md" })).toEqual({ key: "Read", salient: "/w/a.md" });
+  });
+});
+
+describe("buildPersonRefusals", () => {
+  it("holds each skipped or rejected call by its primary and its coarse identity, and nothing approved", () => {
+    const refusals = buildPersonRefusals(
+      [
+        pending({ toolCallId: "c1", toolName: "shell", argsPreview: JSON.stringify({ command: "rm -rf x" }) }),
+        pending({ toolCallId: "c2", toolName: "edit", argsPreview: JSON.stringify({ path: "/x/a" }) }),
+        pending({ toolCallId: "c3", toolName: "close_issue", mcpServerSlug: "github", argsPreview: "{}" }),
+        pending({ toolCallId: "c4", toolName: "shell", argsPreview: JSON.stringify({ command: "ls" }) }),
+      ],
+      new Map([
+        ["c1", ApprovalAction.REJECT],
+        ["c2", ApprovalAction.SKIP],
+        ["c3", ApprovalAction.REJECT],
+        ["c4", ApprovalAction.APPROVE],
+      ]),
+      new Map([["c2", "d1g3st"]]),
+    );
+    expect(refusals.get(grantToken("shell", "rm -rf x"))).toEqual({ action: "reject", toolName: "shell" });
+    expect(refusals.get(primaryToken("write", "/x/a", "d1g3st"))).toEqual({ action: "skip", toolName: "edit" });
+    expect(refusals.get(grantToken("write", "/x/a")), "a content-less retry of the same file").toEqual({ action: "skip", toolName: "edit" });
+    expect(refusals.get(grantToken("github/close_issue", ""))).toEqual({ action: "reject", toolName: "close_issue" });
+    expect(refusals.has(grantToken("shell", "ls"))).toBe(false);
+  });
+
+  it("holds a refused hook ask to that exact call, as its approval would have been", () => {
+    const digest = hookAskDigest({ pr: 1 });
+    const refusals = buildPersonRefusals(
+      [pending({ toolCallId: "c1", toolName: "merge", mcpServerSlug: "srv", argsPreview: JSON.stringify({ pr: 1 }) })],
+      new Map([["c1", ApprovalAction.REJECT]]),
+      new Map([["c1", digest]]),
+    );
+    expect(refusals.get(primaryToken("srv/merge", "", digest))).toEqual({ action: "reject", toolName: "merge" });
+    expect(refusals.has(grantToken("srv/merge", "")), "merging another PR is not refused").toBe(false);
+
+    const write = buildPersonRefusals(
+      [pending({ toolCallId: "c2", toolName: "edit", argsPreview: JSON.stringify({ path: "/x/a" }) })],
+      new Map([["c2", ApprovalAction.REJECT]]),
+      new Map([["c2", "d1g3st"]]),
+      new Set(["c2"]),
+    );
+    expect(write.get(primaryToken("write", "/x/a", "d1g3st"))).toEqual({ action: "reject", toolName: "edit" });
+    expect(write.has(grantToken("write", "/x/a")), "another write to the file is the hook's to ask on").toBe(false);
   });
 });
 
@@ -156,12 +210,12 @@ describe("buildApprovalGrants", () => {
     expect(grants).toEqual([{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt", contentDigest: digest, sourceToolCallId: "c1" }]);
   });
 
-  it("creates a name-only grant for an approved MCP tool", () => {
+  it("creates a server-and-tool grant for an approved MCP tool", () => {
     const grants = buildApprovalGrants(
       [pending({ toolCallId: "c1", toolName: "apply_x", mcpServerSlug: "planton", argsPreview: JSON.stringify({ path: "ignored" }) })],
       new Map([["c1", ApprovalAction.APPROVE]]),
     );
-    expect(grants).toEqual([{ toolName: "apply_x", mcpServerSlug: "planton", key: "apply_x", salient: "", contentDigest: "", sourceToolCallId: "c1" }]);
+    expect(grants).toEqual([{ toolName: "apply_x", mcpServerSlug: "planton", key: "planton/apply_x", salient: "", contentDigest: "", sourceToolCallId: "c1" }]);
   });
 
   it("ignores skipped and rejected approvals", () => {

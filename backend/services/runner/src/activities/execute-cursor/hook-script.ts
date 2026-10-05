@@ -19,7 +19,14 @@
  *                            runtime that does, never the guard: an
  *                            `Agent(type, …)` type list is refused at setup
  *                            (`turn-setup.ts` `checkToolScope`).
- * The script branches on the payload's `hook_event_name`.
+ *   - `postToolUse`        — hands the model what the agent's hooks say after
+ *                            a call. Registered for every turn, as the others
+ *                            are (the SDK keeps the first registration it
+ *                            reads); a turn with no hooks answers it with
+ *                            nothing, at once.
+ * The script branches on the payload's `hook_event_name`. An agent's own
+ * hooks run inside the runner, which serves them to this script on a local
+ * socket (`hook-server.ts`).
  *
  * The hook script:
  * 1. Reads the tool call JSON from stdin
@@ -44,6 +51,15 @@
  *   - "disabled"      — the agent's tool lists exclude the tool (or the
  *                       sub-agent type): the agent continues, no pause,
  *                       permanent for the run.
+ *   - "hook"          — an agent's hook refused the call, or a person's
+ *                       earlier refusal stood over a hook's allow: the agent
+ *                       continues, no pause; carries the refusal and the
+ *                       hook. An approval a hook asked for carries the hook
+ *                       and its message too.
+ *   - "hook-unavailable" — the runner's hook server did not answer, so the
+ *                       agent's hooks could not be asked: the call is
+ *                       refused, no pause; unlike "fail-closed" the gate
+ *                       itself worked.
  * Only approval-kind records carry the captured tool_input: a secret write's
  * content must never be persisted, a capture-error's content is
  * UNCLASSIFIED (the staging error means secret classification may never have
@@ -104,7 +120,19 @@
  *     and no human is ever offered "approve" on one. The Node snippet only
  *     looks names up in the runner's tables; if it cannot run while the agent
  *     has lists, the call is denied (fail-closed).
+ * 0b. postToolUse event → the hook server's answer (the agent's hooks'
+ *     context); on a turn with no hook server, nothing, before the pointer
+ *     is even parsed
  * 1b. subagentStart event that survived 1a → allow (no approval arm applies)
+ * 1h. The agent's hooks, when it has any (the hook server answers once per
+ *     call; an MCP call on beforeMCPExecution): deny → record kind "hook",
+ *     deny; ask → allow under autoApproveAll or an approved grant, record
+ *     "unattended" under the unattended mode, else record "approval" (the
+ *     hook's card); allow → the capture arms still run, then 1i; no decision
+ *     → every arm below as without hooks; no answer → record
+ *     "hook-unavailable", deny
+ * 1i. After the capture arms, a hook's allow → allow, with its context and
+ *     any rewrite it made
  * 1c. autoApproveAll (the pre-armed spec.auto_approve_all global bypass) →
  *     allow
  * 2. beforeMCPExecution event → the server's tool listed in mcpDestructiveTools:
@@ -135,6 +163,7 @@ import {
   WRITE_CONTENT_FIELDS,
 } from "../../shared/file-tools.js";
 import { buildObservationStagingScript, buildSecretClassifyScript, CAS_OBSERVATIONS_DIRNAME } from "./cas-observations.js";
+import { HOOK_ASK_DIGEST_PREFIX } from "./approval-state.js";
 
 // Shown to the model when the gate denies a tool call. It must NOT teach the
 // model to ask for permission in prose or to "stop and wait" — that framing
@@ -145,7 +174,7 @@ import { buildObservationStagingScript, buildSecretClassifyScript, CAS_OBSERVATI
 // action. Embedded verbatim into the generated hook script inside a
 // single-quoted bash echo of a JSON object, so the text must contain no double
 // quotes, apostrophes, or backslashes.
-const APPROVAL_REQUIRED_AGENT_MESSAGE =
+export const APPROVAL_REQUIRED_AGENT_MESSAGE =
   "This action has been submitted to the user for approval automatically; you " +
   "do not need to ask for permission. This is the platform approval gate working " +
   "as intended — it is not an error and not a Cursor misconfiguration, so never " +
@@ -162,7 +191,7 @@ const APPROVAL_REQUIRED_AGENT_MESSAGE =
 // constraint (single-quoted bash echo of a JSON object): no double quotes,
 // apostrophes, or backslashes. Mirrors the native gate skip message
 // (middleware/approval-gate.ts unattendedSkipMessage) in intent.
-const UNATTENDED_SKIP_AGENT_MESSAGE =
+export const UNATTENDED_SKIP_AGENT_MESSAGE =
   "This action was skipped automatically because it requires an approval that " +
   "is not available in this conversation. This is the platform approval gate " +
   "working as intended — it is not an error and not a Cursor misconfiguration. " +
@@ -176,7 +205,7 @@ const UNATTENDED_SKIP_AGENT_MESSAGE =
 // the write is discarded and never captured for review, so the model must move on
 // rather than wait or retry. Same embedding constraint (single-quoted bash echo
 // of a JSON object): no double quotes, apostrophes, or backslashes.
-const SECRET_BLOCKED_AGENT_MESSAGE =
+export const SECRET_BLOCKED_AGENT_MESSAGE =
   "This file was blocked for security because its path matches a secret-like " +
   "pattern Stigmer will not capture for review. Nothing was written. This is the " +
   "platform safety gate working as intended — it is not an error and not a Cursor " +
@@ -193,6 +222,57 @@ const SCOPE_UNAVAILABLE_AGENT_MESSAGE =
   "This tool call was refused because the platform could not check it against " +
   "this agent tool lists. Do not retry it; continue without it and tell the " +
   "user plainly what you could not do.";
+
+// Shown to the model when the agent has hooks but the gate could not reach
+// them (the runner's hook server did not answer): a hook that cannot be
+// asked must not be skipped, so the call is refused. Same embedding
+// constraint (single-quoted bash echo of a JSON object): no double quotes,
+// apostrophes, or backslashes.
+const HOOKS_UNAVAILABLE_AGENT_MESSAGE =
+  "This tool call was refused because the platform could not run this agent hooks " +
+  "for it. Do not retry it; continue without it and tell the user plainly what you " +
+  "could not do.";
+
+/**
+ * Build the inline client that asks the runner's hook server about a call
+ * (`hook-server.ts`), run on the runner's own Node like the identity
+ * extractor. It reads the hook payload on stdin and takes the socket, the
+ * turn's token, the mode (`pre` or `post`), and the call's identity and
+ * coarse tokens as arguments. For `pre` it prints seven lines: the decision
+ * (`allow`, `deny`, `ask`, `refused`, `none`, or `error` when the server did
+ * not answer), the deciding plugin's slug in base64 (`=` for the agent's own
+ * block, empty when no hook decided), then base64 of the allow, deny,
+ * approval and unattended answers and of the message the ledger records.
+ * For `post` it prints the answer itself, `{}` when the server did not
+ * answer (a hook after the call can no longer stop it). No timeout of its
+ * own: Cursor's timeout on the hook entry bounds the wait. Authored as part
+ * of a single-quoted bash string, so it contains no single quotes.
+ */
+export function buildHookClientScript(): string {
+  return [
+    `const net=require("net");`,
+    `const [sock,tok,mode,id,coarse,exact]=process.argv.slice(1);`,
+    `let input="";process.stdin.setEncoding("utf8");process.stdin.on("data",(c)=>{input+=c;});`,
+    `process.stdin.on("end",()=>{`,
+    `let payload=null;try{payload=JSON.parse(input);}catch(e){}`,
+    `let buf="",done=false;`,
+    `const fail=()=>{if(done)return;done=true;process.stdout.write(mode==="post"?"{}":"error");process.exit(0);};`,
+    `const b=(x)=>Buffer.from(String(x===undefined||x===null?"":x),"utf8").toString("base64");`,
+    `const c=net.createConnection(sock);`,
+    `c.setEncoding("utf8");`,
+    `c.on("error",fail);`,
+    `c.on("connect",()=>{c.write(JSON.stringify({token:tok,mode:mode,payload:payload,identity:id,coarse:coarse,exact:exact})+"\\n");});`,
+    `c.on("data",(d)=>{buf+=d;const i=buf.indexOf("\\n");if(i<0)return;`,
+    `let r=null;try{r=JSON.parse(buf.slice(0,i));}catch(e){return fail();}`,
+    `if(!r||typeof r!=="object"||r.error!==undefined)return fail();`,
+    `done=true;c.end();`,
+    `if(mode==="post"){process.stdout.write(typeof r.response==="string"?r.response:"{}");process.exit(0);}`,
+    `const h=typeof r.hook==="string"?(r.hook===""?"=":b(r.hook)):"";`,
+    `process.stdout.write([String(r.decision||"error"),h,b(r.allow),b(r.deny),b(r.approval),b(r.unattended),b(r.message)].join("\\n"));process.exit(0);});`,
+    `c.on("end",fail);`,
+    `});`,
+  ].join("");
+}
 
 /**
  * Build the bash `case` arms that map an incoming hook `tool_name` to its
@@ -391,7 +471,16 @@ function buildNodeIdentityScript(): string {
     // Lines 10 to 12 are the tool-lists verdict, its ledger token and its
     // refusal text (buildScopeEvalScript), each a single base64 line or a
     // sentinel.
-    `process.stdout.write(name+"\\n"+cat+"\\n"+b(cat+"\\n"+s)+"\\n"+b(name+"\\n")+"\\n"+ev+"\\n"+b(JSON.stringify(a))+"\\n"+(dig?b(cat+"\\n"+s+"\\n"+dig):"")+"\\n"+b(s)+"\\n"+srv+"\\n"+sv+"\\n"+stk+"\\n"+smsg);`,
+    // A call's key is its approval category, else the hook's name for the
+    // tool (a hook may ask on any tool); an MCP call's is `server/tool`.
+    // Line 13 is the token an approval of a hook's ask is granted under when
+    // the call has no file content: its identity and the digest of its whole
+    // input (mirror of approval-state.ts hookAskDigest).
+    `const key=cat||name;`,
+    `const hk=ev==="beforeMCPExecution"?srv+"/"+name:key;`,
+    `const hs=ev==="beforeMCPExecution"?"":s;`,
+    `const hd="${HOOK_ASK_DIGEST_PREFIX}"+require("crypto").createHash("sha256").update(JSON.stringify(a),"utf8").digest("hex");`,
+    `process.stdout.write(name+"\\n"+cat+"\\n"+b(key+"\\n"+s)+"\\n"+b(srv+"/"+name+"\\n")+"\\n"+ev+"\\n"+b(JSON.stringify(a))+"\\n"+(dig?b(key+"\\n"+s+"\\n"+dig):"")+"\\n"+b(s)+"\\n"+srv+"\\n"+sv+"\\n"+stk+"\\n"+smsg+"\\n"+b(hk+"\\n"+hs+"\\n"+hd));`,
   ].join("");
 }
 
@@ -443,6 +532,7 @@ export function generateHookScript(activePointerPath: string, workspaceRoot = ""
   const nodeIdentityScript = buildNodeIdentityScript();
   const observationStagingScript = buildObservationStagingScript();
   const secretClassifyScript = buildSecretClassifyScript();
+  const hookClientScript = buildHookClientScript();
   const nodeBin = process.execPath;
   return `#!/bin/bash
 # Stigmer HITL approval hook for Cursor (preToolUse + beforeMCPExecution).
@@ -462,6 +552,18 @@ INPUT=$(cat)
 
 NODE_BIN="${nodeBin}"
 ACTIVE_FILE="${activePointerPath}"
+
+# --- 0b, at once: after a call on a turn with no hooks ----------------------
+# postToolUse is registered for every turn; a turn whose pointer names no hook
+# server has nothing to add, so it answers before any Node or scope walk.
+case "$INPUT" in
+  *'"hook_event_name":"postToolUse"'*)
+    if [ ! -f "$ACTIVE_FILE" ] || ! grep -q '"hookSocket":"[^"]' "$ACTIVE_FILE" 2>/dev/null; then
+      echo '{}'
+      exit 0
+    fi
+    ;;
+esac
 # Baked workspace root for capture-mode's gitignore check (empty in unit tests
 # that don't exercise capture mode; the check then falls back to the path's dir).
 GIT_ROOT="${workspaceRoot}"
@@ -484,17 +586,21 @@ if [ ! -f "$ACTIVE_FILE" ]; then
   echo '{"permission":"allow"}'
   exit 0
 fi
-PTR=$(ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e 'const p=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));process.stdout.write((p.stateFile||"")+"\\n"+(p.ledgerFile||"")+"\\n"+((p.runnerPid==null)?"":String(p.runnerPid)))' "$ACTIVE_FILE" 2>/dev/null || true)
+PTR=$(ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e 'const p=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));process.stdout.write((p.stateFile||"")+"\\n"+(p.ledgerFile||"")+"\\n"+((p.runnerPid==null)?"":String(p.runnerPid))+"\\n"+(p.hookSocket||"")+"\\n"+(p.hookToken||""))' "$ACTIVE_FILE" 2>/dev/null || true)
 if [ -n "$PTR" ]; then
   STATE_FILE=$(printf '%s\\n' "$PTR" | sed -n 1p)
   LEDGER_FILE=$(printf '%s\\n' "$PTR" | sed -n 2p)
   RUNNER_PID=$(printf '%s\\n' "$PTR" | sed -n 3p)
+  HOOK_SOCKET=$(printf '%s\\n' "$PTR" | sed -n 4p)
+  HOOK_TOKEN=$(printf '%s\\n' "$PTR" | sed -n 5p)
 else
-  # Node unavailable: the pointer holds plain ~/.stigmer paths and an integer
-  # (no JSON-escaped quotes), so grep/cut is reliable here.
+  # Node unavailable: the pointer holds plain ~/.stigmer paths, an integer
+  # and a hex token (no JSON-escaped quotes), so grep/cut is reliable here.
   STATE_FILE=$(grep -o '"stateFile":"[^"]*"' "$ACTIVE_FILE" | head -1 | cut -d'"' -f4 || true)
   LEDGER_FILE=$(grep -o '"ledgerFile":"[^"]*"' "$ACTIVE_FILE" | head -1 | cut -d'"' -f4 || true)
   RUNNER_PID=$(grep -o '"runnerPid":[0-9]*' "$ACTIVE_FILE" | head -1 | cut -d: -f2 || true)
+  HOOK_SOCKET=$(grep -o '"hookSocket":"[^"]*"' "$ACTIVE_FILE" | head -1 | cut -d'"' -f4 || true)
+  HOOK_TOKEN=$(grep -o '"hookToken":"[^"]*"' "$ACTIVE_FILE" | head -1 | cut -d'"' -f4 || true)
 fi
 if [ -z "$RUNNER_PID" ]; then
   # Pointer unreadable -> no scope owner to gate for; stay inert.
@@ -584,6 +690,7 @@ if [ -n "$IDENTITY" ]; then
   SCOPE_VERDICT=$(printf '%s\\n' "$IDENTITY" | sed -n 10p)
   SCOPE_TOKEN=$(printf '%s\\n' "$IDENTITY" | sed -n 11p)
   SCOPE_MESSAGE=$(printf '%s\\n' "$IDENTITY" | sed -n 12p)
+  HOOK_ARGS_TOKEN=$(printf '%s\\n' "$IDENTITY" | sed -n 13p)
 else
   # Fallback when the Node binary cannot run: grep/cut extraction. Best-effort
   # only — '"field":"[^"]*"' truncates at the first JSON-escaped quote, so the
@@ -607,7 +714,7 @@ ${categoryCaseArms}
       *) CATEGORY="" ;;
   esac
   TOKEN=$(printf '%s\\n%s' "$CATEGORY" "$SALIENT" | base64 | tr -d '\\n')
-  MCP_TOKEN=$(printf '%s\\n' "$TOOL_NAME" | base64 | tr -d '\\n')
+  MCP_TOKEN=$(printf '%s/%s\\n' "$MCP_SERVER" "$TOOL_NAME" | base64 | tr -d '\\n')
   # The grep fallback cannot reliably capture full multi-line tool_input, so the
   # gated call degrades to today's stream-recovered args (no authoritative input)
   # and cannot compute a content digest — the coarse token is the only identity.
@@ -618,6 +725,7 @@ ${categoryCaseArms}
   SCOPE_VERDICT="E"
   SCOPE_TOKEN=""
   SCOPE_MESSAGE=""
+  HOOK_ARGS_TOKEN=""
 fi
 # The single identity a deny is recorded under: content-exact when the input
 # carried edit content, else coarse — the same PRIMARY-token choice the runner
@@ -626,6 +734,21 @@ if [ -n "$CONTENT_TOKEN" ]; then
   PRIMARY_TOKEN="$CONTENT_TOKEN"
 else
   PRIMARY_TOKEN="$TOKEN"
+fi
+
+# --- 0b. After a call: what the agent's hooks hand back (postToolUse) ---
+# Registered only for an agent with hooks that run after a call. The runner's
+# hook server (hook-server.ts) runs them and answers with the context they
+# hand the model. A call that already ran cannot be stopped, so a server that
+# does not answer adds nothing.
+if [ "$HOOK_EVENT" = "postToolUse" ]; then
+  if [ -n "$HOOK_SOCKET" ]; then
+    printf '%s' "$INPUT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${hookClientScript}' "$HOOK_SOCKET" "$HOOK_TOKEN" post "" "" 2>/dev/null || printf '{}'
+    echo
+  else
+    echo '{}'
+  fi
+  exit 0
 fi
 
 # Append a denial record to the ledger: $1 = identity token, $2 = kind (the
@@ -644,12 +767,13 @@ fi
 # failClosed hooks.json registration a call-before-define would abort with no
 # decision and block EVERY tool.
 record_denial() {
+  _extra=""
+  if [ -n "\${3:-}" ]; then _extra="$_extra"',"message":"'"$3"'"'; fi
+  if [ -n "\${4:-}" ]; then _extra="$_extra"',"hook":"'"$4"'"'; fi
   if [ "$2" = "approval" ]; then
-    printf '{"toolName":"%s","token":"%s","kind":"%s","input":"%s"}\\n' "$TOOL_NAME" "$1" "$2" "$INPUT_B64" >> "$LEDGER_FILE" 2>/dev/null || true
-  elif [ -n "\${3:-}" ]; then
-    printf '{"toolName":"%s","token":"%s","kind":"%s","message":"%s"}\\n' "$TOOL_NAME" "$1" "$2" "$3" >> "$LEDGER_FILE" 2>/dev/null || true
+    printf '{"toolName":"%s","token":"%s","kind":"%s","input":"%s"%s}\\n' "$TOOL_NAME" "$1" "$2" "$INPUT_B64" "$_extra" >> "$LEDGER_FILE" 2>/dev/null || true
   else
-    printf '{"toolName":"%s","token":"%s","kind":"%s"}\\n' "$TOOL_NAME" "$1" "$2" >> "$LEDGER_FILE" 2>/dev/null || true
+    printf '{"toolName":"%s","token":"%s","kind":"%s"%s}\\n' "$TOOL_NAME" "$1" "$2" "$_extra" >> "$LEDGER_FILE" 2>/dev/null || true
   fi
 }
 
@@ -668,6 +792,30 @@ if [ ! -f "$STATE_FILE" ]; then
 fi
 
 STATE=$(cat "$STATE_FILE")
+# The approved grants alone, so a token elsewhere in the state (a refused
+# call's, a tool-list key) never reads as a grant. Base64 holds no ']'.
+GRANTS=$(echo "$STATE" | grep -o '"approvedGrantTokens":\\[[^]]*\\]' | head -1 || true)
+# Whether an approved grant covers this call: the content-exact token (a file
+# edit approved with this exact content) or the coarse one for a built-in;
+# the server/tool token for an MCP tool.
+# The approval of a hook's ask: a built-in's file content when it has some,
+# else the call's whole input (HOOK_ARGS_TOKEN), never the tool alone, so an
+# approved call lets through that call and no other.
+__stigmer_hook_granted() {
+  if [ "$HOOK_EVENT" != "beforeMCPExecution" ] && [ -n "$CONTENT_TOKEN" ]; then
+    echo "$GRANTS" | grep -qF "\\"$CONTENT_TOKEN\\""
+    return
+  fi
+  [ -n "$HOOK_ARGS_TOKEN" ] && echo "$GRANTS" | grep -qF "\\"$HOOK_ARGS_TOKEN\\""
+}
+
+__stigmer_granted() {
+  if [ "$HOOK_EVENT" = "beforeMCPExecution" ]; then
+    echo "$GRANTS" | grep -qF "\\"$MCP_TOKEN\\""
+    return
+  fi
+  { [ -n "$CONTENT_TOKEN" ] && echo "$GRANTS" | grep -qF "\\"$CONTENT_TOKEN\\""; } || echo "$GRANTS" | grep -qF "\\"$TOKEN\\""
+}
 
 # Capture mode (git workspaces): file mutations flow during the turn and are
 # captured/gated per-file by the runner at the turn boundary (see
@@ -731,6 +879,98 @@ if [ "$HOOK_EVENT" = "subagentStart" ]; then
   exit 0
 fi
 
+# --- 1h. The agent's hooks -----------------------------------------------
+# Present only when the agent has hooks: the runner serves them on a local
+# socket the pointer names (hook-server.ts), and every hook, in either
+# format, answers there, once per call. An MCP call is asked on
+# beforeMCPExecution, the event that names its server; its preToolUse
+# (MCP:<tool>) firing passes on. After the tool lists (1a), so an excluded
+# call never reaches a hook.
+#  - deny, or a call a person refused earlier this run that a hook would let
+#    through (refused): record kind "hook" with the refusal, deny. The agent
+#    continues; nothing pauses.
+#  - ask: under the pre-armed bypass or an approved grant, as an allow;
+#    skipped under the unattended mode; otherwise recorded kind "approval"
+#    with the hook and its message, which pauses the turn on the hook's card.
+#  - allow: the capture arms below still review the call, and nothing after
+#    them may ask (1i).
+#  - none: no hook decided; every arm below runs as it would without hooks.
+#  - anything else: the server did not answer; a hook that cannot be asked
+#    is not skipped, so the call is refused (fail-closed).
+# A secret-like write the hook asks on is blocked rather than shown on a
+# card, and one it allows meets the same block the deny-gate applies (1i).
+HOOK_ALLOW=false
+HOOK_ALLOW_RESPONSE=""
+# An allowed call's answer: a hook's (its context and any rewrite) once one
+# allowed it, else the plain allow.
+__stigmer_allow() {
+  if [ -n "$HOOK_ALLOW_RESPONSE" ]; then
+    printf '%s\\n' "$HOOK_ALLOW_RESPONSE"
+  else
+    echo '{"permission":"allow"}'
+  fi
+}
+# Whether this call is a secret-like write, outside the pre-armed bypass.
+__stigmer_secret_write() {
+  [ "$CATEGORY" = "write" ] && [ -n "$SALIENT" ] || return 1
+  ! echo "$STATE" | grep -q '"autoApproveAll":true' || return 1
+  [ "$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${secretClassifyScript}' 2>/dev/null || echo ok)" = "secret" ]
+}
+if [ -n "$HOOK_SOCKET" ] && { [ "$HOOK_EVENT" = "beforeMCPExecution" ] || { [ "$HOOK_EVENT" = "preToolUse" ] && [ "\${TOOL_NAME#MCP:}" = "$TOOL_NAME" ]; }; }; then
+  if [ "$HOOK_EVENT" = "beforeMCPExecution" ]; then
+    HOOK_ID="$MCP_TOKEN"
+    HOOK_COARSE="$MCP_TOKEN"
+  else
+    HOOK_ID="$PRIMARY_TOKEN"
+    HOOK_COARSE="$TOKEN"
+  fi
+  HOOK_REPLY=$(printf '%s' "$INPUT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${hookClientScript}' "$HOOK_SOCKET" "$HOOK_TOKEN" pre "$HOOK_ID" "$HOOK_COARSE" "$HOOK_ARGS_TOKEN" 2>/dev/null || echo error)
+  HOOK_DECISION=$(printf '%s\\n' "$HOOK_REPLY" | sed -n 1p)
+  HOOK_SLUG=$(printf '%s\\n' "$HOOK_REPLY" | sed -n 2p)
+  HOOK_MESSAGE=$(printf '%s\\n' "$HOOK_REPLY" | sed -n 7p)
+  case "$HOOK_DECISION" in
+    deny|refused)
+      record_denial "$HOOK_ID" "hook" "$HOOK_MESSAGE" "$HOOK_SLUG"
+      printf '%s\\n' "$HOOK_REPLY" | sed -n 4p | base64 -d
+      echo
+      exit 0
+      ;;
+    ask)
+      if echo "$STATE" | grep -q '"autoApproveAll":true' || __stigmer_hook_granted; then
+        # Satisfied: an allow, so the capture arms below still review it.
+        HOOK_ALLOW=true
+        HOOK_ALLOW_RESPONSE=$(printf '%s\\n' "$HOOK_REPLY" | sed -n 3p | base64 -d)
+      elif [ "$UNATTENDED_SKIP" = "true" ]; then
+        record_denial "$HOOK_ID" "unattended" "" "$HOOK_SLUG"
+        printf '%s\\n' "$HOOK_REPLY" | sed -n 6p | base64 -d
+        echo
+        exit 0
+      elif __stigmer_secret_write; then
+        # Never shown on a card: its content is a secret's.
+        record_denial "$PRIMARY_TOKEN" "secret"
+        echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written."}'
+        exit 0
+      else
+        record_denial "$HOOK_ID" "approval" "$HOOK_MESSAGE" "$HOOK_SLUG"
+        printf '%s\\n' "$HOOK_REPLY" | sed -n 5p | base64 -d
+        echo
+        exit 0
+      fi
+      ;;
+    allow)
+      HOOK_ALLOW=true
+      HOOK_ALLOW_RESPONSE=$(printf '%s\\n' "$HOOK_REPLY" | sed -n 3p | base64 -d)
+      ;;
+    none)
+      ;;
+    *)
+      record_denial "$HOOK_ID" "hook-unavailable"
+      echo '{"permission":"deny","agent_message":"${HOOKS_UNAVAILABLE_AGENT_MESSAGE}","user_message":"Refused: the agent hooks could not be run"}'
+      exit 0
+      ;;
+  esac
+fi
+
 # --- Capture mode: observe CAS-owned writes for review ----------------------
 # Runs BEFORE the auto-approve-all shortcut and the grant/lease checks because
 # capture is a property of the TURN, not authorization: a non-secret CAS-owned
@@ -751,7 +991,7 @@ if [ "$CAPTURE_IGNORED" = "true" ] && [ "$CATEGORY" = "write" ] && [ -n "$SALIEN
   OBS_DIR="$(dirname "$STATE_FILE")/${CAS_OBSERVATIONS_DIRNAME}"
   OBS_RESULT=$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${observationStagingScript}' "$GIT_ROOT" "$OBS_DIR" 2>/dev/null || echo error)
   if [ "$OBS_RESULT" = "captured" ]; then
-    echo '{"permission":"allow"}'
+    __stigmer_allow
     exit 0
   elif [ "$OBS_RESULT" = "secret" ]; then
     # Kind "secret": attributable but deliberately non-pausing (the agent moves
@@ -791,10 +1031,24 @@ if [ "$CAPTURE_IGNORED" = "true" ] && [ "$CATEGORY" = "delete" ] && [ -n "$SALIE
     OBS_DIR="$(dirname "$STATE_FILE")/${CAS_OBSERVATIONS_DIRNAME}"
     OBS_RESULT=$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${observationStagingScript}' "$GIT_ROOT" "$OBS_DIR" 2>/dev/null || echo error)
     if [ "$OBS_RESULT" = "captured" ]; then
-      echo '{"permission":"allow"}'
+      __stigmer_allow
       exit 0
     fi
   fi
+fi
+
+# --- 1i. A hook's allow ---
+# Capture (above) has reviewed what it reviews; nothing below may ask. A
+# write takes the deny-gate's own rule (3): a git-tracked one flows to the
+# turn's review in capture mode, and any other secret-like one is blocked.
+if [ "$HOOK_ALLOW" = "true" ]; then
+  if ! { [ "$CAPTURE_MODE" = "true" ] && [ "$GIT_WORKSPACE" = "true" ] && [ "$CATEGORY" = "write" ] && ! __stigmer_is_gitignored "$SALIENT"; } && __stigmer_secret_write; then
+    record_denial "$PRIMARY_TOKEN" "secret"
+    echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written."}'
+    exit 0
+  fi
+  __stigmer_allow
+  exit 0
 fi
 
 # --- 1c. Auto-approve all ---
@@ -808,14 +1062,14 @@ fi
 # MCP is gated here and ONLY here (never double-recorded). mcpDestructiveTools
 # holds only the tools that ask, keyed "server/tool" from the payload's
 # mcp_server_name, so presence means "deny" and an equal tool name on another
-# server is never caught. MCP tool names are consistent across the hook and the
-# stream, so the identity token is name-only: base64("$TOOL_NAME\\n").
+# server is never caught. MCP tool and server names are consistent across the
+# hook and the stream, so the identity token is base64("server/tool\\n").
 if [ "$HOOK_EVENT" = "beforeMCPExecution" ]; then
   if [ -n "$MCP_SERVER" ] && [ -n "$TOOL_NAME" ]; then
     TOOL_POLICY=$(echo "$STATE" | grep -o "\\"$MCP_SERVER/$TOOL_NAME\\":{[^}]*}" | head -1 || true)
     if [ -n "$TOOL_POLICY" ]; then
       # Reinvocation grant: this tool was approved earlier → allow.
-      if echo "$STATE" | grep -qF "\\"$MCP_TOKEN\\""; then
+      if __stigmer_granted; then
         echo '{"permission":"allow"}'
         exit 0
       fi
@@ -882,7 +1136,7 @@ if [ -n "$CATEGORY" ]; then
   # earlier with this exact content) OR the COARSE token (a shell/delete, or the
   # content-less degrade) is in approvedGrantTokens. A sibling edit to the same
   # file has a different content token and no coarse grant, so it re-gates.
-  if { [ -n "$CONTENT_TOKEN" ] && echo "$STATE" | grep -qF "\\"$CONTENT_TOKEN\\""; } || echo "$STATE" | grep -qF "\\"$TOKEN\\""; then
+  if __stigmer_granted; then
     echo '{"permission":"allow"}'
     exit 0
   fi

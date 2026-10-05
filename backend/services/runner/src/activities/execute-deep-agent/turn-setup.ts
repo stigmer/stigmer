@@ -87,7 +87,7 @@ import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
-import { buildShellEnv, shellRunValues } from "./shell-env.js";
+import { buildShellEnv, shellRunValues } from "../../shared/shell-env.js";
 import { subAgentScope, transformAndCompileSubagents, type SubagentScopeBase } from "./subagent-transformer.js";
 import { ENGINE_TOOL } from "./engine-tools.js";
 import { createTodoListMiddleware } from "./todo-list.js";

@@ -486,9 +486,6 @@ describe("Plugin push — materialisation", () => {
         version: "",
       },
     ]);
-    expect(installed.status?.warnings.map((w) => w.kind)).not.toContain(
-      "hooks-not-run-yet",
-    );
   });
 
   it("declares on the composed agent the variables its hooks read, and serves the archive back by key", async () => {
