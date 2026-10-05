@@ -61,7 +61,7 @@ export function newBuildUpdateStateStep<
 
       if (hasStatusField(ctx.schema)) {
         // Client-provided status is discarded, then the existing resource's
-        // ENTIRE status (default_instance_id, phase, conditions, …) is
+        // ENTIRE status (version hash, phase, conditions, …) is
         // carried over — only audit gets refreshed below.
         clearStatusField(ctx.schema, merged);
         copyStatusFromExisting(ctx.schema, merged, existing);

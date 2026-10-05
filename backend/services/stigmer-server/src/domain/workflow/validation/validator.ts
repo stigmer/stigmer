@@ -35,6 +35,7 @@ import {
   validateTaskConfigSurfaceRules,
   validateTaskKinds,
 } from "./crossref.js";
+import { validateUniqueAgentCallNames } from "./agent-call-steps.js";
 import { checkExpressionWarnings } from "./expression-warnings.js";
 import { validateHumanInputTimeoutPolicies } from "./human-input-validation.js";
 import { validateModelReferences } from "./model-validation.js";
@@ -87,8 +88,9 @@ export class InProcessValidator {
     const warnings: string[] = [];
 
     // Step 2: cross-reference validation (unique names, flow.then targets,
-    // cycles).
+    // cycles), and agent_call step names unique across the whole workflow.
     errors.push(...validateCrossTaskReferences(spec));
+    errors.push(...validateUniqueAgentCallNames(spec));
 
     // Step 2b: typed task-config constraint validation — protovalidate over
     // each strict-unmarshaled config, nested tasks included (#805). A

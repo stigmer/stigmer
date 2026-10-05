@@ -10,8 +10,8 @@
  * and this is the pin that it holds for kinds nobody thought to try. The
  * rest of the file pins the levels that remain against the proto's
  * declarations for the kinds whose configs differ (a blueprint, an
- * instance, an org-only kind, a kind with no config), and the copy fragment
- * both editions build the INVALID_ARGUMENT sentence from.
+ * org-only kind, a kind with no config), and the copy fragment both
+ * editions build the INVALID_ARGUMENT sentence from.
  */
 import { describe, expect, it } from "vitest";
 
@@ -64,18 +64,6 @@ describe("supportsVisibility", () => {
     ).toBe(true);
   });
 
-  it("an instance kind holds org but never child_orgs (tenant isolation)", () => {
-    expect(
-      supportsVisibility(ApiResourceKind.workflow_instance, V.visibility_org),
-    ).toBe(true);
-    expect(
-      supportsVisibility(
-        ApiResourceKind.workflow_instance,
-        V.visibility_child_orgs,
-      ),
-    ).toBe(false);
-  });
-
   it("an org-only kind holds org alone (environment: secrets never cross the org)", () => {
     expect(
       supportsVisibility(ApiResourceKind.environment, V.visibility_org),
@@ -100,7 +88,7 @@ describe("supportedVisibilityLevels (the copy fragment)", () => {
     expect(supportedVisibilityLevels(ApiResourceKind.agent)).toBe(
       "visibility_private, visibility_org, visibility_child_orgs",
     );
-    expect(supportedVisibilityLevels(ApiResourceKind.workflow_instance)).toBe(
+    expect(supportedVisibilityLevels(ApiResourceKind.environment)).toBe(
       "visibility_private, visibility_org",
     );
     expect(supportedVisibilityLevels(ApiResourceKind.session)).toBe(

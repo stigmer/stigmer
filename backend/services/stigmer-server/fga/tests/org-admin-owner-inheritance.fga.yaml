@@ -16,8 +16,8 @@
 # credentials, so `owner` is the organization's admins alone and a creator
 # keeps nothing past the role (channel-app-administration.fga.yaml).
 #
-# The three personal/secret kinds — environment, session,
-# workflow_instance — deliberately do NOT inherit. Their fixtures below
+# The two personal/secret kinds — environment and session — deliberately
+# do NOT inherit. Their fixtures below
 # carry the organization tuple, so these tests would fail loudly if
 # inheritance were ever wrongly added to them.
 #

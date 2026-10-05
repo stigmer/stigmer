@@ -22,7 +22,7 @@
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -217,16 +217,15 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ]);
   });
 
-  it("an instance carries its blueprint link and a run its instance link (additional parents); a user-created instance at org level adds the #viewer userset", () => {
+  it("a run carries its workflow link (an additional parent); an org-level workflow adds the #viewer userset", () => {
     expect(
-      derivedFor("workflow_instance", {
+      derivedFor("workflow", {
         visibility: ApiResourceVisibility.visibility_org,
       }),
     ).toEqual([
-      "workflow_instance:workflow_instance-1#organization@organization:acme",
-      "workflow_instance:workflow_instance-1#workflow@workflow:workflow-1",
-      "workflow_instance:workflow_instance-1#owner@identity_account:ida_carol",
-      "workflow_instance:workflow_instance-1#viewer@organization:acme#viewer",
+      "workflow:workflow-1#organization@organization:acme",
+      "workflow:workflow-1#owner@identity_account:ida_carol",
+      "workflow:workflow-1#viewer@organization:acme#viewer",
     ]);
     expect(
       derivedFor("workflow_execution", {
@@ -234,7 +233,7 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
       }),
     ).toEqual([
       "workflow_execution:workflow_execution-1#organization@organization:acme",
-      "workflow_execution:workflow_execution-1#workflow_instance@workflow_instance:workflow_instance-1",
+      "workflow_execution:workflow_execution-1#workflow@workflow:workflow-1",
       "workflow_execution:workflow_execution-1#owner@identity_account:ida_carol",
     ]);
   });
@@ -250,7 +249,6 @@ const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.organization,
   ApiResourceKind.agent,
   ApiResourceKind.workflow,
-  ApiResourceKind.workflow_instance,
   ApiResourceKind.workflow_execution,
   ApiResourceKind.identity_account,
   ApiResourceKind.team,
@@ -651,35 +649,25 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       });
 
       it("a seeded fact stands in for the row only where the row would have been read for FACTS: a `derived` rule still reads the row it needs", async () => {
-        // A seeded instance: `default_of` reads the instance's blueprint
-        // pointer from the row's spec, which a candidate's facts do not
-        // carry, so the rule loads the row — one read, stated in the list
-        // scope's cost pin as well.
+        // A seeded workflow: `execution_viewer` reads the workflow's
+        // run-visibility level from the row's spec, which a candidate's
+        // facts do not carry, so the rule loads the row — one read, stated
+        // in the list scope's cost pin as well.
         let rowReads = 0;
         const workflow = storedDeclaration("workflow");
-        await opened.store.saveResource(
-          workflow.kind,
-          "wfl_team",
-          workflow.schema,
-          fixtureRow(workflow, {
-            id: "wfl_team",
-            org: "acme",
-            visibility: ApiResourceVisibility.visibility_org,
-            createdBy: "ida_carol",
-          }),
-        );
-        const instance = storedDeclaration("workflow_instance");
-        const row = fixtureRow(instance, {
-          id: "wi_seeded",
+        const row = fixtureRow(workflow, {
+          id: "wfl_seeded",
           org: "acme",
           visibility: ApiResourceVisibility.visibility_private,
           createdBy: "ida_carol",
-          spec: { workflowId: "wfl_team" },
+          spec: {
+            executionVisibility: WorkflowExecutionVisibility.organization,
+          },
         });
         await opened.store.saveResource(
-          instance.kind,
-          "wi_seeded",
-          instance.schema,
+          workflow.kind,
+          "wfl_seeded",
+          workflow.schema,
           row,
         );
         const seeded = newDerivedTupleSource(
@@ -695,15 +683,17 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             accounts,
           },
           DAVE,
-          { facts: [rowFactsOf(instance.kind, row)] },
+          { facts: [rowFactsOf(workflow.kind, row)] },
         );
-        const object = parseObjectRef("workflow_instance:wi_seeded");
+        const object = parseObjectRef("workflow:wfl_seeded");
         await seeded.tuplesOf(object, "owner");
         expect(rowReads, "facts alone serve the derived tuples").toBe(0);
-        await seeded.tuplesOf(object, "default_of");
-        expect(rowReads, "the rule reads the instance and the blueprint").toBe(
-          2,
-        );
+        expect(
+          (await seeded.tuplesOf(object, "execution_viewer")).map(formatTuple),
+        ).toEqual([
+          "workflow:wfl_seeded#execution_viewer@organization:acme#viewer",
+        ]);
+        expect(rowReads, "the rule reads the workflow's row").toBe(1);
       });
 
       it("a store fault propagates as the fault it is — never as 'no tuples'", async () => {
@@ -887,14 +877,10 @@ describe.each(driverFixtures(SEEDED_KINDS))(
     });
 
     /**
-     * The two derived rules through the real source and the evaluator:
-     * `default_of` from the blueprint's pointer, `execution_viewer` from
-     * the instance's run-observability level. Seeded: `wfl_team` (org-
-     * visible, its pointer at `wi_default`), `wi_default` (no level of its
-     * own) and `wi_personal` (private) both naming it; `wfl_other` whose
-     * pointer names a row that is not `wi_stale`; `wi_orphan` naming a
-     * blueprint that does not exist; `wi_shared` (organization level) and
-     * `wi_private`, each with one run of Carol's.
+     * The workflow's derived rule through the real source and the
+     * evaluator: `execution_viewer` from the workflow's run-visibility
+     * level. Seeded: `wfl_shared` (organization level) and `wfl_private`,
+     * both private workflows, each with one run of Carol's.
      */
     describe.skipIf(fixture.skip)("the derived rules", () => {
       let opened: OpenedStore;
@@ -928,60 +914,27 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           visibility: ApiResourceVisibility.visibility_private,
           createdBy: ROOT.accountId,
         });
-        await seed("workflow", "wfl_team", {
-          org: "acme",
-          visibility: ApiResourceVisibility.visibility_org,
-          createdBy: CAROL.accountId,
-          status: { defaultInstanceId: "wi_default" },
-        });
-        await seed("workflow", "wfl_other", {
-          org: "acme",
-          visibility: ApiResourceVisibility.visibility_org,
-          createdBy: CAROL.accountId,
-          status: { defaultInstanceId: "wi_elsewhere" },
-        });
-        for (const [id, workflowId, visibility] of [
-          [
-            "wi_default",
-            "wfl_team",
-            ApiResourceVisibility.api_resource_visibility_unspecified,
-          ],
-          ["wi_personal", "wfl_team", ApiResourceVisibility.visibility_private],
-          ["wi_stale", "wfl_other", ApiResourceVisibility.visibility_private],
-          [
-            "wi_orphan",
-            "wfl_missing",
-            ApiResourceVisibility.visibility_private,
-          ],
-        ] as const) {
-          await seed("workflow_instance", id, {
-            org: "acme",
-            visibility,
-            createdBy: CAROL.accountId,
-            spec: { workflowId },
-          });
-        }
         for (const [id, executionVisibility] of [
-          ["wi_shared", WorkflowExecutionVisibility.organization],
-          ["wi_private", WorkflowExecutionVisibility.private],
+          ["wfl_shared", WorkflowExecutionVisibility.organization],
+          ["wfl_private", WorkflowExecutionVisibility.private],
         ] as const) {
-          await seed("workflow_instance", id, {
+          await seed("workflow", id, {
             org: "acme",
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: CAROL.accountId,
             spec: { executionVisibility },
           });
         }
-        for (const [id, workflowInstanceId] of [
-          ["we_shared", "wi_shared"],
-          ["we_private", "wi_private"],
+        for (const [id, workflowId] of [
+          ["we_shared", "wfl_shared"],
+          ["we_private", "wfl_private"],
         ] as const) {
           await seed("workflow_execution", id, {
             org: "acme",
             visibility:
               ApiResourceVisibility.api_resource_visibility_unspecified,
             createdBy: CAROL.accountId,
-            spec: { workflowInstanceId },
+            spec: { workflowId },
           });
         }
       });
@@ -1024,78 +977,26 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         );
       }
 
-      it("default_of derives iff the blueprint's pointer names the instance: the default has it, a personal, a stale and an orphaned instance do not", async () => {
-        expect(
-          await tuplesOf(DAVE, "workflow_instance:wi_default", "default_of"),
-        ).toEqual([
-          "workflow_instance:wi_default#default_of@workflow:wfl_team",
-        ]);
-        for (const instance of ["wi_personal", "wi_stale", "wi_orphan"]) {
-          expect(
-            await tuplesOf(DAVE, `workflow_instance:${instance}`, "default_of"),
-            instance,
-          ).toEqual([]);
-        }
-      });
-
-      it("the rule's blueprint read is the loader's: `viewer from default_of` then resolves the blueprint on the same decoded row", async () => {
-        const source = sourceFor(DAVE);
-        await source.tuplesOf(
-          parseObjectRef("workflow_instance:wi_default"),
-          "default_of",
-        );
-        const viaRule = await source.loader.load(
-          parseObjectRef("workflow:wfl_team"),
-        );
-        await source.tuplesOf(parseObjectRef("workflow:wfl_team"), "viewer");
-        const viaWalk = await source.loader.load(
-          parseObjectRef("workflow:wfl_team"),
-        );
-        expect(viaRule).toBeDefined();
-        expect(viaWalk).toBe(viaRule);
-      });
-
-      it("an organization member reads the default instance of an org-visible workflow through the blueprint, and NOT a personal instance of the same workflow — nor does the organization's owner", async () => {
-        expect(
-          await allowed(DAVE, "workflow_instance:wi_default", "can_view"),
-        ).toBe(true);
-        expect(
-          await allowed(DAVE, "workflow_instance:wi_default", "can_execute"),
-        ).toBe(true);
-        expect(
-          await allowed(DAVE, "workflow_instance:wi_personal", "can_view"),
-        ).toBe(false);
-        expect(
-          await allowed(ROOT, "workflow_instance:wi_personal", "can_view"),
-        ).toBe(false);
-        expect(
-          await allowed(CAROL, "workflow_instance:wi_personal", "can_view"),
-        ).toBe(true);
-        expect(
-          await allowed(DAVE, "workflow_instance:wi_default", "can_edit"),
-        ).toBe(false);
-      });
-
       it("execution_viewer derives the organization's #viewer userset at the organization level and nothing at private", async () => {
         expect(
           await tuplesOf(
             DAVE,
-            "workflow_instance:wi_shared",
+            "workflow:wfl_shared",
             "execution_viewer",
           ),
         ).toEqual([
-          "workflow_instance:wi_shared#execution_viewer@organization:acme#viewer",
+          "workflow:wfl_shared#execution_viewer@organization:acme#viewer",
         ]);
         expect(
           await tuplesOf(
             DAVE,
-            "workflow_instance:wi_private",
+            "workflow:wfl_private",
             "execution_viewer",
           ),
         ).toEqual([]);
       });
 
-      it("an organization member reads a run whose instance is org-observable and not one whose instance is private; the triggerer reads both", async () => {
+      it("an organization member reads a run whose workflow is org-observable and not one whose workflow is private; the person who started them reads both", async () => {
         expect(
           await allowed(DAVE, "workflow_execution:we_shared", "can_view"),
         ).toBe(true);

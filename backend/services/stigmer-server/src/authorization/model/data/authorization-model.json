@@ -3146,6 +3146,17 @@
               }
             ]
           },
+          "execution_viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
+              }
+            ]
+          },
           "organization": {
             "directly_related_user_types": [
               {
@@ -3249,6 +3260,25 @@
             ]
           }
         },
+        "execution_viewer": {
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
         "organization": {
           "this": {}
         },
@@ -3334,31 +3364,10 @@
       "metadata": {
         "module": "agentic",
         "relations": {
-          "can_delete": {},
           "can_edit": {},
-          "can_execute": {},
           "can_grant_access": {},
-          "can_manage_audience": {},
           "can_view": {},
           "can_view_access": {},
-          "default_of": {
-            "directly_related_user_types": [
-              {
-                "type": "workflow"
-              }
-            ]
-          },
-          "execution_viewer": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              },
-              {
-                "relation": "viewer",
-                "type": "organization"
-              }
-            ]
-          },
           "organization": {
             "directly_related_user_types": [
               {
@@ -3377,10 +3386,6 @@
             "directly_related_user_types": [
               {
                 "type": "identity_account"
-              },
-              {
-                "relation": "viewer",
-                "type": "organization"
               },
               {
                 "relation": "member",
@@ -3392,177 +3397,6 @@
             "directly_related_user_types": [
               {
                 "type": "workflow"
-              }
-            ]
-          }
-        },
-        "source_info": {
-          "file": "agentic/workflow_instance.fga"
-        }
-      },
-      "relations": {
-        "can_delete": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_edit": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_execute": {
-          "computedUserset": {
-            "relation": "can_view"
-          }
-        },
-        "can_grant_access": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_manage_audience": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_view": {
-          "computedUserset": {
-            "relation": "viewer"
-          }
-        },
-        "can_view_access": {
-          "computedUserset": {
-            "relation": "viewer"
-          }
-        },
-        "default_of": {
-          "this": {}
-        },
-        "execution_viewer": {
-          "intersection": {
-            "child": [
-              {
-                "this": {}
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "affiliated"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "organization": {
-          "this": {}
-        },
-        "owner": {
-          "intersection": {
-            "child": [
-              {
-                "this": {}
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "affiliated"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "viewer": {
-          "union": {
-            "child": [
-              {
-                "intersection": {
-                  "child": [
-                    {
-                      "this": {}
-                    },
-                    {
-                      "tupleToUserset": {
-                        "computedUserset": {
-                          "relation": "affiliated"
-                        },
-                        "tupleset": {
-                          "relation": "organization"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "owner"
-                }
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "viewer"
-                  },
-                  "tupleset": {
-                    "relation": "default_of"
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "workflow": {
-          "this": {}
-        }
-      },
-      "type": "workflow_instance"
-    },
-    {
-      "metadata": {
-        "module": "agentic",
-        "relations": {
-          "can_edit": {},
-          "can_grant_access": {},
-          "can_view": {},
-          "can_view_access": {},
-          "organization": {
-            "directly_related_user_types": [
-              {
-                "type": "organization"
-              }
-            ]
-          },
-          "owner": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              }
-            ]
-          },
-          "viewer": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              },
-              {
-                "relation": "member",
-                "type": "team"
-              }
-            ]
-          },
-          "workflow_instance": {
-            "directly_related_user_types": [
-              {
-                "type": "workflow_instance"
               }
             ]
           }
@@ -3647,14 +3481,14 @@
                     "relation": "execution_viewer"
                   },
                   "tupleset": {
-                    "relation": "workflow_instance"
+                    "relation": "workflow"
                   }
                 }
               }
             ]
           }
         },
-        "workflow_instance": {
+        "workflow": {
           "this": {}
         }
       },

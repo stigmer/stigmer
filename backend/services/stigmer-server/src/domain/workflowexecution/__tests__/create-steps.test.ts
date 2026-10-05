@@ -1,12 +1,11 @@
 /**
- * Pins the create-pipeline steps against Go case-for-case:
- * pin_workflow_version_step_test.go (direct id, instance-only resolution,
- * the graceful skips), normalize_workflow_ref_step_test.go (resolve from
- * instance, no-op when set, graceful skips), the default-instance
- * resolution paths of create.go (status id, slug self-heal + status
- * backfill, create + backfill), and StartWorkflow's failure posture
- * (execution marked FAILED with the error text and persisted —
- * recoverable via Recover).
+ * Pins the create-pipeline steps: PinWorkflowVersion (the one workflow
+ * load of a create — it pins the head's hash, keeps the loaded row for the
+ * ExecutionContext build, leaves the pin empty for a workflow with no
+ * hash, and refuses an unknown workflow NOT_FOUND naming it), and
+ * StartWorkflow's failure posture (execution marked FAILED with the error
+ * text and persisted — recoverable via Recover) and its slim input, which
+ * carries no instance key.
  */
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -19,25 +18,22 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
+import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
-import type { CallerIdentity } from "../../../extensions/identity.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 
+import { newStartWorkflowStep } from "../create-steps.js";
 import {
-  newCreateDefaultInstanceIfNeededStep,
-  newStartWorkflowStep,
-  newValidateWorkflowOrInstanceStep,
-} from "../create-steps.js";
-import { newNormalizeWorkflowRefStep } from "../normalize-workflow-ref-step.js";
-import { newPinWorkflowVersionStep } from "../pin-workflow-version-step.js";
+  PINNED_WORKFLOW_KEY,
+  newPinWorkflowVersionStep,
+  pinnedWorkflowOf,
+} from "../pin-workflow-version-step.js";
 import { stubConnectedEngine } from "./engine-stub.js";
 
 const silentLogger = createLogger({
@@ -73,7 +69,6 @@ function executionCtx(
 
 async function seedWorkflow(overrides?: {
   versionHash?: string;
-  defaultInstanceId?: string;
   slug?: string;
 }): Promise<string> {
   counter += 1;
@@ -85,257 +80,51 @@ async function seedWorkflow(overrides?: {
     WorkflowSchema,
     create(WorkflowSchema, {
       metadata: { id, name: slug, slug, org: "acme" },
-      status: {
-        versionHash: overrides?.versionHash ?? "",
-        defaultInstanceId: overrides?.defaultInstanceId ?? "",
-      },
+      status: { versionHash: overrides?.versionHash ?? "" },
     }),
   );
   return id;
 }
 
-async function seedInstance(workflowId: string, slug: string): Promise<string> {
-  counter += 1;
-  const id = `wfi_cs_${counter}`;
-  await store.saveResource(
-    ApiResourceKind.workflow_instance,
-    id,
-    WorkflowInstanceSchema,
-    create(WorkflowInstanceSchema, {
-      metadata: { id, name: slug, slug, org: "acme" },
-      spec: { workflowId },
-    }),
-  );
-  return id;
-}
-
-describe("ValidateWorkflowOrInstance (the #196 InvalidArgument contrast)", () => {
-  it("refuses when neither reference is provided", () => {
-    const ctx = executionCtx({ metadata: { name: "x" }, spec: {} });
-    try {
-      newValidateWorkflowOrInstanceStep().execute(ctx);
-      expect.unreachable("expected InvalidArgument");
-    } catch (error) {
-      expect(error).toBeInstanceOf(ConnectError);
-      expect((error as ConnectError).code).toBe(Code.InvalidArgument);
-      expect((error as ConnectError).rawMessage).toBe(
-        "either workflow_id or workflow_instance_id must be provided",
-      );
-    }
-  });
-
-  it("passes with either reference", () => {
-    newValidateWorkflowOrInstanceStep().execute(
-      executionCtx({ spec: { workflowId: "wf_x" } }),
-    );
-    newValidateWorkflowOrInstanceStep().execute(
-      executionCtx({ spec: { workflowInstanceId: "wfi_x" } }),
-    );
-  });
-});
-
-describe("CreateDefaultInstanceIfNeeded (create.go resolution paths)", () => {
-  function stepDeps(created?: WorkflowInstance) {
-    const calls: WorkflowInstance[] = [];
-    return {
-      calls,
-      deps: {
-        store,
-        logger: silentLogger,
-        workflowInstanceCreator: () => ({
-          createAsCaller: async (instance: WorkflowInstance) => {
-            calls.push(instance);
-            return (
-              created ??
-              create(WorkflowInstanceSchema, {
-                metadata: { id: "wfi_created", name: "n", slug: "s" },
-              })
-            );
-          },
-        }),
-      },
-    };
-  }
-
-  it("skips when workflow_instance_id is provided", async () => {
-    const { deps, calls } = stepDeps();
-    const ctx = executionCtx({ spec: { workflowInstanceId: "wfi_given" } });
-    await newCreateDefaultInstanceIfNeededStep(deps).execute(ctx);
-    expect(calls).toHaveLength(0);
-    expect(ctx.newState.spec?.workflowInstanceId).toBe("wfi_given");
-  });
-
-  it("unknown workflow answers NotFound", async () => {
-    const { deps } = stepDeps();
-    const ctx = executionCtx({ spec: { workflowId: "wf_missing" } });
-    try {
-      await newCreateDefaultInstanceIfNeededStep(deps).execute(ctx);
-      expect.unreachable("expected NotFound");
-    } catch (error) {
-      expect((error as ConnectError).code).toBe(Code.NotFound);
-      expect((error as ConnectError).rawMessage).toBe(
-        "Workflow not found: wf_missing",
-      );
-    }
-  });
-
-  it("uses status.default_instance_id when set", async () => {
-    const workflowId = await seedWorkflow({ defaultInstanceId: "wfi_status" });
-    const { deps, calls } = stepDeps();
-    const ctx = executionCtx({ spec: { workflowId } });
-    await newCreateDefaultInstanceIfNeededStep(deps).execute(ctx);
-    expect(ctx.newState.spec?.workflowInstanceId).toBe("wfi_status");
-    expect(calls).toHaveLength(0);
-  });
-
-  it("self-heals from the deterministic slug and backfills the workflow status", async () => {
-    const workflowId = await seedWorkflow({ slug: "healme" });
-    const instanceId = await seedInstance(workflowId, "healme-default");
-    const { deps, calls } = stepDeps();
-    const ctx = executionCtx({ spec: { workflowId } });
-    await newCreateDefaultInstanceIfNeededStep(deps).execute(ctx);
-    expect(ctx.newState.spec?.workflowInstanceId).toBe(instanceId);
-    expect(calls, "no create when the instance already exists").toHaveLength(0);
-
-    const workflow = await store.getResource(
-      ApiResourceKind.workflow,
-      workflowId,
-      WorkflowSchema,
-    );
-    expect(
-      workflow.status?.defaultInstanceId,
-      "the failed status write is healed",
-    ).toBe(instanceId);
-  });
-
-  it("creates the instance via the in-process edge and backfills", async () => {
-    const workflowId = await seedWorkflow({ slug: "fresh" });
-    const { deps, calls } = stepDeps();
-    const ctx = executionCtx({ spec: { workflowId } });
-    await newCreateDefaultInstanceIfNeededStep(deps).execute(ctx);
-    expect(calls).toHaveLength(1);
-    expect(ctx.newState.spec?.workflowInstanceId).toBe("wfi_created");
-    const workflow = await store.getResource(
-      ApiResourceKind.workflow,
-      workflowId,
-      WorkflowSchema,
-    );
-    expect(workflow.status?.defaultInstanceId).toBe("wfi_created");
-  });
-
-  it("creates the default instance unbound for a caller whose credential is bound to the run's organization", async () => {
-    const workflowId = await seedWorkflow({ slug: "shared" });
-    const callers: CallerIdentity[] = [];
-    const deps = {
-      store,
-      logger: silentLogger,
-      workflowInstanceCreator: () => ({
-        createAsCaller: async (_instance: WorkflowInstance, caller: CallerIdentity) => {
-          callers.push(caller);
-          return create(WorkflowInstanceSchema, {
-            metadata: { id: "wfi_shared", name: "n", slug: "s" },
-          });
-        },
-      }),
-    };
-    const ctx = new RequestContext(
-      WorkflowExecutionSchema,
-      create(WorkflowExecutionSchema, { spec: { workflowId } }),
-      { ...testCallerIdentity(), boundOrg: "org_a" },
-      ApiResourceKind.workflow_execution,
-    );
-    await newCreateDefaultInstanceIfNeededStep(deps).execute(ctx);
-    expect(callers).toHaveLength(1);
-    expect(callers[0]?.boundOrg).toBeUndefined();
-    expect(callers[0]?.identityId).toBe(testCallerIdentity().identityId);
-  });
-
-  it("a failing in-process create surfaces the inner code (goWrappedStatusError)", async () => {
-    const workflowId = await seedWorkflow({ slug: "collide" });
-    const deps = {
-      store,
-      logger: silentLogger,
-      workflowInstanceCreator: () => ({
-        createAsCaller: () =>
-          Promise.reject(
-            new ConnectError("slug already exists", Code.AlreadyExists),
-          ),
-      }),
-    };
-    const ctx = executionCtx({ spec: { workflowId } });
-    try {
-      await newCreateDefaultInstanceIfNeededStep(deps).execute(ctx);
-      expect.unreachable("expected AlreadyExists");
-    } catch (error) {
-      // The %w-wrapped inner code survives to the wire (oss#852 pattern).
-      expect((error as ConnectError).code).toBe(Code.AlreadyExists);
-      expect((error as ConnectError).rawMessage).toContain(
-        "failed to create default workflow instance",
-      );
-    }
-  });
-});
-
-describe("NormalizeWorkflowRef (normalize_workflow_ref_step_test.go)", () => {
-  it("resolves workflow_id from the instance", async () => {
-    const workflowId = await seedWorkflow();
-    const instanceId = await seedInstance(workflowId, `ref-${counter}`);
-    const ctx = executionCtx({ spec: { workflowInstanceId: instanceId } });
-    await newNormalizeWorkflowRefStep(store, silentLogger).execute(ctx);
-    expect(ctx.newState.spec?.workflowId).toBe(workflowId);
-  });
-
-  it("no-ops when workflow_id is already set", async () => {
-    const ctx = executionCtx({
-      spec: { workflowId: "wf_set", workflowInstanceId: "wfi_ignored" },
-    });
-    await newNormalizeWorkflowRefStep(store, silentLogger).execute(ctx);
-    expect(ctx.newState.spec?.workflowId).toBe("wf_set");
-  });
-
-  it("gracefully skips a missing instance id and a failed instance load", async () => {
-    const noInstance = executionCtx({ spec: {} });
-    await newNormalizeWorkflowRefStep(store, silentLogger).execute(noInstance);
-    expect(noInstance.newState.spec?.workflowId).toBe("");
-
-    const badInstance = executionCtx({
-      spec: { workflowInstanceId: "wfi_missing" },
-    });
-    await newNormalizeWorkflowRefStep(store, silentLogger).execute(badInstance);
-    expect(badInstance.newState.spec?.workflowId).toBe("");
-  });
-});
-
-describe("PinWorkflowVersion (pin_workflow_version_step_test.go)", () => {
-  it("pins from a direct workflow_id", async () => {
+describe("PinWorkflowVersion", () => {
+  it("pins the head's hash and keeps the row it loaded for the context build", async () => {
     const workflowId = await seedWorkflow({ versionHash: "h".repeat(64) });
     const ctx = executionCtx({ spec: { workflowId } });
     await newPinWorkflowVersionStep(store, silentLogger).execute(ctx);
     expect(ctx.newState.status?.workflowVersionHash).toBe("h".repeat(64));
+    expect(pinnedWorkflowOf(ctx).metadata?.id).toBe(workflowId);
   });
 
-  it("resolves through the instance when only instance is set", async () => {
-    const workflowId = await seedWorkflow({ versionHash: "i".repeat(64) });
-    const instanceId = await seedInstance(workflowId, `pin-${counter}`);
-    const ctx = executionCtx({ spec: { workflowInstanceId: instanceId } });
+  it("leaves the pin empty for a workflow with no hash, and still keeps the row", async () => {
+    const workflowId = await seedWorkflow({ versionHash: "" });
+    const ctx = executionCtx({ spec: { workflowId } });
     await newPinWorkflowVersionStep(store, silentLogger).execute(ctx);
-    expect(ctx.newState.status?.workflowVersionHash).toBe("i".repeat(64));
+    expect(ctx.newState.status?.workflowVersionHash ?? "").toBe("");
+    expect((ctx.get(PINNED_WORKFLOW_KEY) as Workflow).metadata?.id).toBe(
+      workflowId,
+    );
   });
 
-  it("skips when nothing is resolvable, on load failure, and on empty hash", async () => {
-    const noId = executionCtx({ spec: {} });
-    await newPinWorkflowVersionStep(store, silentLogger).execute(noId);
-    expect(noId.newState.status?.workflowVersionHash ?? "").toBe("");
+  it("refuses an unknown workflow NOT_FOUND naming it, and keeps nothing", async () => {
+    const ctx = executionCtx({ spec: { workflowId: "wfl_missing" } });
+    try {
+      await newPinWorkflowVersionStep(store, silentLogger).execute(ctx);
+      expect.unreachable("expected NotFound");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ConnectError);
+      expect((error as ConnectError).code).toBe(Code.NotFound);
+      expect((error as ConnectError).rawMessage).toBe(
+        "Workflow not found: wfl_missing",
+      );
+    }
+    expect(ctx.get(PINNED_WORKFLOW_KEY)).toBeUndefined();
+  });
 
-    const missing = executionCtx({ spec: { workflowId: "wf_missing" } });
-    await newPinWorkflowVersionStep(store, silentLogger).execute(missing);
-    expect(missing.newState.status?.workflowVersionHash ?? "").toBe("");
-
-    const noHash = executionCtx({
-      spec: { workflowId: await seedWorkflow({ versionHash: "" }) },
-    });
-    await newPinWorkflowVersionStep(store, silentLogger).execute(noHash);
-    expect(noHash.newState.status?.workflowVersionHash ?? "").toBe("");
+  it("answers Internal when the context build reads a row no pin loaded", () => {
+    const ctx = executionCtx({ spec: { workflowId: "wfl_x" } });
+    expect(() => pinnedWorkflowOf(ctx)).toThrowError(
+      expect.objectContaining({ code: Code.Internal }),
+    );
   });
 });
 
@@ -347,7 +136,7 @@ describe("StartWorkflow failure posture (create.go startWorkflowStep)", () => {
     // pipeline's Persist step just did.
     const execution: WorkflowExecution = create(WorkflowExecutionSchema, {
       metadata: { id: executionId, name: executionId, org: "acme" },
-      spec: { workflowId: "wf_x", workflowInstanceId: "wfi_x" },
+      spec: { workflowId: "wf_x" },
       status: { phase: ExecutionPhase.EXECUTION_PENDING },
     });
     await store.saveResource(
@@ -390,11 +179,11 @@ describe("StartWorkflow failure posture (create.go startWorkflowStep)", () => {
     );
   });
 
-  it("passes the slim input with recovery_mode false on success", async () => {
+  it("passes the slim input, with no instance key and recovery_mode false, on success", async () => {
     const engine = stubConnectedEngine();
     const ctx = executionCtx({
       metadata: { id: "wfx_ok", name: "wfx_ok", org: "acme" },
-      spec: { workflowId: "wf_x", workflowInstanceId: "wfi_x" },
+      spec: { workflowId: "wf_x" },
     });
     await newStartWorkflowStep({
       store,
@@ -405,9 +194,9 @@ describe("StartWorkflow failure posture (create.go startWorkflowStep)", () => {
     expect(engine.calls[0].args[0]).toMatchObject({
       executionId: "wfx_ok",
       workflowId: "wf_x",
-      workflowInstanceId: "wfi_x",
       orgId: "acme",
       recoveryMode: false,
     });
+    expect(engine.calls[0].args[0]).not.toHaveProperty("workflowInstanceId");
   });
 });

@@ -200,7 +200,6 @@ export async function submitWorkflowTaskApproval(
           await engineState.engine.signalWithStart(
             {
               executionId,
-              workflowInstanceId: execution.spec?.workflowInstanceId ?? "",
               // Go's quirk: the temporal workflow id, not spec.workflow_id.
               workflowId: execution.status?.temporalWorkflowId ?? "",
               orgId: execution.metadata?.org ?? "",

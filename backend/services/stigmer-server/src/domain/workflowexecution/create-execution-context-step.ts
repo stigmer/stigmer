@@ -1,42 +1,48 @@
 /**
- * CreateExecutionContext — ports create_execution_context_step.go: builds
- * and persists the ExecutionContext carrying the fully-merged environment
- * for the run, then strips spec.runtime_env so secrets never reach the
- * persisted execution or Temporal history.
+ * CreateExecutionContext — builds and persists the ExecutionContext
+ * carrying a workflow run's environment, then strips spec.runtime_env so
+ * secrets never reach the persisted execution or Temporal history.
  *
- * Resolution chain: execution.spec.workflow_instance_id (always set by
- * CreateDefaultInstanceIfNeeded) → instance.environment_refs resolved
- * through the environment RuntimeResolutionService (decrypted — the RPC
- * surface redacts, oss#405) → envmerge with spec.runtime_env as the top
- * layer → least-privilege filter against the workflow's env declarations
- * (undeclared keys warn + drop; empty declarations pass everything for
- * backward compatibility) → required-key validation (warn-only) →
- * ExecutionContext create through the in-process client.
+ * Where a run's keys come from (`workflowRunEnvironment`, shared with
+ * recover's RecreateExecutionContext in lifecycle.ts):
+ *   1. spec.runtime_env, what the caller passed with the run;
+ *   2. the least-privilege filter against the workflow's env declarations
+ *      (undeclared keys warn and drop; a workflow that declares nothing
+ *      passes everything through, for backward compatibility);
+ *   3. every declared key still missing, from the personal environment of
+ *      the run's person (agentexecution/run-person.ts
+ *      `workflowRunPersonOf`: whoever started the run, read from the row,
+ *      so recover rebuilds what create built), by the one rule agent
+ *      turns follow (environment/personal.ts
+ *      `fillDeclaredFromPersonalEnvironment`): none for a workflow of
+ *      another organization than the run, every failure non-fatal;
+ *   4. a required key still missing only warns — the run fails at the
+ *      step that needs it with a clearer error.
+ *
+ * The declarations are the workflow row PinWorkflowVersion loaded and
+ * pinned (pin-workflow-version-step.ts), never a second load, so the keys
+ * a run declares are the version it runs.
  *
  * Go skips the whole step when its late-injected deps are nil; the TS
  * composition root wires them unconditionally, so that arm is
  * structurally unreachable here and deliberately not modeled (the
  * loud-boot doctrine: a missing dependency is a wiring bug, not a mode).
- *
- * The recover pipeline's RecreateExecutionContext twin lives in
- * lifecycle.ts — its failure posture differs (degrade gracefully).
  */
 import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
-import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
+import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { ExecutionContextDeleter } from "../executioncontext/internal-delete.js";
-import type { RuntimeResolutionService } from "../../domain/environment/resolution/resolution.js";
+import { workflowRunPersonOf } from "../agentexecution/run-person.js";
+import { fillDeclaredFromPersonalEnvironment } from "../environment/personal.js";
+import type { PersonalEnvironmentReader } from "../environment/personal.js";
 import {
   filterByDeclaredKeys,
   mergeEnvironmentLayers,
@@ -48,16 +54,7 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Store } from "../../store/interface.js";
-
-/**
- * The narrow workflowinstance READ edge (Go workflowInstanceClient.Get)
- * — consumer-defined, satisfied by the in-process query client.
- */
-export interface ExecutionWorkflowInstanceLoader {
-  get(instanceId: string): Promise<WorkflowInstance>;
-}
-export type ExecutionWorkflowInstanceLoaderProvider =
-  () => ExecutionWorkflowInstanceLoader;
+import { pinnedWorkflowOf } from "./pin-workflow-version-step.js";
 
 /** The narrow executioncontext CREATE edge (Go executionCtxClient.Create). */
 export interface WorkflowExecutionContextCreator {
@@ -69,9 +66,8 @@ export type WorkflowExecutionContextCreatorProvider =
 export interface WorkflowExecutionContextBuilderDeps {
   readonly store: Store;
   readonly logger: Logger;
-  readonly workflowInstanceLoader: ExecutionWorkflowInstanceLoaderProvider;
-  /** The decrypt-for-execution path (oss#405); a direct service, no RPC. */
-  readonly environmentResolution: RuntimeResolutionService;
+  /** The decrypted secret read of the personal-environment fill (the RPC surface redacts, oss#405). */
+  readonly environmentReader: () => PersonalEnvironmentReader;
   readonly executionContextCreator: WorkflowExecutionContextCreatorProvider;
   /**
    * The server's own delete of a context, through its delete chain: the
@@ -79,6 +75,64 @@ export interface WorkflowExecutionContextBuilderDeps {
    * before recreating one (stigmer#1647).
    */
   readonly executionContextDeleter: () => ExecutionContextDeleter;
+}
+
+/**
+ * The environment a workflow run receives: `runtimeEnv` filtered to the
+ * workflow's declarations, then every declared key still missing from the
+ * run's person's personal environment (the module header's order). Never
+ * throws for a missing key or a failed personal read.
+ */
+export async function workflowRunEnvironment(
+  deps: WorkflowExecutionContextBuilderDeps,
+  workflow: Workflow,
+  execution: WorkflowExecution,
+  runtimeEnv: { readonly [key: string]: ExecutionValue },
+): Promise<Map<string, ExecutionValue>> {
+  const executionId = execution.metadata?.id ?? "";
+  const workflowId = workflow.metadata?.id ?? "";
+  const declarations = workflow.spec?.env ?? {};
+
+  const merged = mergeEnvironmentLayers([], runtimeEnv);
+
+  // Least-privilege whitelist: workflows only receive declared vars.
+  const { filtered, excludedKeys } = filterByDeclaredKeys(merged, declarations);
+  if (excludedKeys.length > 0) {
+    deps.logger.warn("Filtered env vars not declared in workflow env", {
+      executionId,
+      workflowId,
+      excludedKeys,
+    });
+  }
+
+  const filled = await fillDeclaredFromPersonalEnvironment(
+    deps.environmentReader(),
+    deps.store,
+    deps.logger,
+    filtered,
+    {
+      declarations,
+      exclude: new Set(),
+      owner: {
+        noun: "workflow",
+        id: workflowId,
+        declares: declarations,
+        orgOf: () => Promise.resolve(workflow.metadata?.org ?? ""),
+      },
+      executionOrg: execution.metadata?.org ?? "",
+      person: workflowRunPersonOf(execution),
+      executionId,
+    },
+  );
+
+  const missingRequired = validateRequiredKeys(filled, declarations);
+  if (missingRequired.length > 0) {
+    deps.logger.warn(
+      "Required env vars missing after environment merge — execution may fail",
+      { executionId, workflowId, missingRequired },
+    );
+  }
+  return filled;
 }
 
 export function newCreateExecutionContextStep(
@@ -91,77 +145,12 @@ export function newCreateExecutionContextStep(
       const executionId = execution.metadata?.id ?? "";
       const executionOrg = execution.metadata?.org ?? "";
 
-      // CreateDefaultInstanceIfNeeded always stamps this, user-provided
-      // or auto-resolved.
-      const workflowInstanceId = execution.spec?.workflowInstanceId ?? "";
-      if (workflowInstanceId === "") {
-        throw internalError(
-          new Error(
-            "workflow_instance_id not resolved from context or execution spec",
-          ),
-          "workflow_instance_id not resolved from context or execution spec",
-        );
-      }
-
-      let instance: WorkflowInstance;
-      try {
-        instance = await deps.workflowInstanceLoader().get(workflowInstanceId);
-      } catch (error) {
-        if (error instanceof ConnectError) {
-          throw goWrappedStatusError(
-            `load workflow instance ${workflowInstanceId}`,
-            error,
-          );
-        }
-        throw internalError(
-          error,
-          `load workflow instance ${workflowInstanceId}`,
-        );
-      }
-
-      const workflowId = instance.spec?.workflowId ?? "";
-      let workflow: Workflow;
-      try {
-        workflow = await deps.store.getResource(
-          ApiResourceKind.workflow,
-          workflowId,
-          WorkflowSchema,
-        );
-      } catch (error) {
-        throw internalError(error, `load workflow ${workflowId}`);
-      }
-
-      const environments = await resolveEnvironments(
+      const environment = await workflowRunEnvironment(
         deps,
-        instance.spec?.environmentRefs ?? [],
-      );
-
-      const merged = mergeEnvironmentLayers(
-        environments,
+        pinnedWorkflowOf(ctx),
+        execution,
         execution.spec?.runtimeEnv ?? {},
       );
-
-      // Least-privilege whitelist: workflows only receive declared vars.
-      const workflowEnvDecls = workflow.spec?.env ?? {};
-      const { filtered, excludedKeys } = filterByDeclaredKeys(
-        merged,
-        workflowEnvDecls,
-      );
-      if (excludedKeys.length > 0) {
-        deps.logger.warn("Filtered env vars not declared in workflow env", {
-          executionId,
-          workflowId,
-          excludedKeys,
-        });
-      }
-
-      const missingRequired = validateRequiredKeys(filtered, workflowEnvDecls);
-      if (missingRequired.length > 0) {
-        deps.logger.warn(
-          "Required env vars missing after environment merge — execution may fail",
-          { executionId, workflowId, missingRequired },
-        );
-      }
 
       const executionContext = create(ExecutionContextSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
@@ -172,7 +161,7 @@ export function newCreateExecutionContextStep(
         },
         spec: {
           executionId,
-          data: Object.fromEntries(filtered),
+          data: Object.fromEntries(environment),
         },
       });
 
@@ -183,7 +172,7 @@ export function newCreateExecutionContextStep(
         deps.logger.info("Successfully created execution context", {
           executionContextId: created.metadata?.id ?? "",
           executionId,
-          dataEntries: filtered.size,
+          dataEntries: environment.size,
         });
       } catch (error) {
         if (error instanceof ConnectError) {
@@ -209,32 +198,4 @@ export function newCreateExecutionContextStep(
       }
     },
   };
-}
-
-/**
- * Fetches each referenced Environment in order through the runtime
- * resolution service (decrypted values; the RPC surface redacts,
- * oss#405). A failed ref fails the create — Go wraps with the ref
- * coordinates.
- */
-async function resolveEnvironments(
-  deps: WorkflowExecutionContextBuilderDeps,
-  refs: ApiResourceReference[],
-): Promise<Environment[]> {
-  if (refs.length === 0) {
-    return [];
-  }
-  const environments: Environment[] = [];
-  for (const ref of refs) {
-    try {
-      environments.push(await deps.environmentResolution.resolveByReference(ref));
-    } catch (error) {
-      const prefix = `resolve environment ref (org=${ref.org}, slug=${ref.slug})`;
-      if (error instanceof ConnectError) {
-        throw goWrappedStatusError(prefix, error);
-      }
-      throw internalError(error, prefix);
-    }
-  }
-  return environments;
 }

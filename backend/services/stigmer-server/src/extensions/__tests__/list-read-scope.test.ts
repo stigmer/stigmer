@@ -293,14 +293,14 @@ describe("restrictListByReadScope", () => {
     await restrictListByReadScope(
       recording,
       caller,
-      ApiResourceKind.workflow_instance,
+      ApiResourceKind.workflow_execution,
       [
         {
           metadata: {
-            id: "wfi_1",
+            id: "wex_1",
             org: "acme",
             labels: {},
-            visibility: ApiResourceVisibility.visibility_org,
+            visibility: ApiResourceVisibility.visibility_private,
           },
           spec: { workflowId: "wfl_1" },
           status: {
@@ -314,11 +314,11 @@ describe("restrictListByReadScope", () => {
     );
     expect(seen).toEqual([
       {
-        id: "wfi_1",
+        id: "wex_1",
         org: "acme",
         labels: {},
         createdBy: "ida_carol",
-        visibility: ApiResourceVisibility.visibility_org,
+        visibility: ApiResourceVisibility.visibility_private,
         parentLinks: [
           organizationLink("acme"),
           {
@@ -411,12 +411,12 @@ describe("restrictListByReadScope", () => {
     });
 
     it("a kind whose authorization is its own carries no parent even when its spec names one", async () => {
-      // A workflow_execution links its workflow_instance (an additional
-      // parent, partial opt-in inheritance) and owns itself: not the pair.
+      // A workflow_execution links its workflow (an additional parent,
+      // partial opt-in inheritance) and owns itself: not the pair.
       const runs = [
         {
           metadata: { id: "wex_1", org: "acme", labels: {} },
-          spec: { workflowInstanceId: "wfi_1" },
+          spec: { workflowId: "wfl_1" },
         },
       ];
       const { scope, seen } = recordingScope(["wex_1"]);
@@ -427,16 +427,16 @@ describe("restrictListByReadScope", () => {
         runs,
         "",
       );
-      // The instance IS a parent link (the derivation walks
-      // `execution_viewer from workflow_instance` through it); it is not
-      // the parent the kind's authorization is.
+      // The workflow IS a parent link (the derivation walks
+      // `execution_viewer from workflow` through it); it is not the parent
+      // the kind's authorization is.
       expect(seen[0]).toEqual([
         bareFacts("wex_1", "acme", [
           organizationLink("acme"),
           {
-            relation: "workflow_instance",
-            parentKind: ApiResourceKind.workflow_instance,
-            parentId: "wfi_1",
+            relation: "workflow",
+            parentKind: ApiResourceKind.workflow,
+            parentId: "wfl_1",
           },
         ]),
       ]);

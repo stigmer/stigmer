@@ -2,7 +2,7 @@
  * Pins the edition-neutral half of the tuple-lifecycle seam: the visibility
  * shape policy and its set-diff
  * (re-pinning the Java VisibilityTupleReconcilerTest transition matrix),
- * the run-audience policy of a workflow instance's execution visibility,
+ * the run-audience policy of a workflow's execution visibility,
  * and the config-driven creation-event resolution
  * (CreateAuthorizationTuplesStepV2's scope/owner/parent semantics,
  * including every failure arm), and the one delete cleanup every delete
@@ -18,8 +18,8 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -68,7 +68,7 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
   it("the retired public level expands to nothing for every kind — no wildcard shape exists", () => {
     for (const kind of [
       ApiResourceKind.agent,
-      ApiResourceKind.workflow_instance,
+      ApiResourceKind.environment,
       ApiResourceKind.plugin,
       ApiResourceKind.session,
     ]) {
@@ -85,17 +85,20 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
     ]).toEqual([]);
   });
 
-  it("workflow_instance supports org but never child_orgs (tenant isolation)", () => {
+  it("environment supports org but never child_orgs (tenant isolation)", () => {
+    expect([
+      ...visibilityShapesFor(ApiResourceKind.environment, V.visibility_org),
+    ]).toEqual(["org-viewer"]);
     expect([
       ...visibilityShapesFor(
-        ApiResourceKind.workflow_instance,
+        ApiResourceKind.environment,
         V.visibility_child_orgs,
       ),
     ]).toEqual([]);
   });
 });
 
-describe("executionAudienceShapes (a workflow instance's run audience)", () => {
+describe("executionAudienceShapes (a workflow's run audience)", () => {
   it("ORGANIZATION names the organization's viewers", () => {
     expect([
       ...executionAudienceShapes(WorkflowExecutionVisibility.organization),
@@ -263,14 +266,14 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     ).toThrowError(/failed to create authorization tuples/);
   });
 
-  it("workflow_instance: org scope link PLUS the additional workflow parent from spec.workflow_id", () => {
-    const instance = create(WorkflowInstanceSchema, {
-      metadata: { id: "wfi_1", org: "acme" },
+  it("workflow_execution: org scope link PLUS the additional workflow parent from spec.workflow_id", () => {
+    const run = create(WorkflowExecutionSchema, {
+      metadata: { id: "wex_1", org: "acme" },
       spec: { workflowId: "wfl_parent" },
     });
     const event = resolveResourceCreatedEvent(
-      ApiResourceKind.workflow_instance,
-      instance,
+      ApiResourceKind.workflow_execution,
+      run,
       caller,
       logger,
     );
@@ -333,8 +336,8 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
 
 describe("cleanUpDeletedResource (the delete cleanup every chain and cascade shares)", () => {
   const event: ResourceDeletedEvent = {
-    kind: ApiResourceKind.workflow_instance,
-    resourceId: "wfi_cleanup_subject",
+    kind: ApiResourceKind.workflow_execution,
+    resourceId: "wex_cleanup_subject",
     orgId: "acme",
     caller,
   };
@@ -390,8 +393,8 @@ describe("cleanUpDeletedResource (the delete cleanup every chain and cascade sha
         message:
           "authorization cleanup failed — orphaned IAM policies may remain",
         fields: {
-          kind: "WorkflowInstance",
-          resourceId: "wfi_cleanup_subject",
+          kind: "WorkflowExecution",
+          resourceId: "wex_cleanup_subject",
           error: "fga is down",
         },
       },

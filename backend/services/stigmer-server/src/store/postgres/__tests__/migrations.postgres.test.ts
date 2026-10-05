@@ -23,7 +23,18 @@
  * instance as resource or principal leaves with its list keys (its history
  * kept) while a grant on another kind stays; a session, instance, agent or
  * policy row it cannot decode fails the step, naming the row, and leaves
- * the database at v8. A step's
+ * the database at v8. v12 removes the workflow instance kind: a run that
+ * named only an instance names the instance's workflow, a run that names
+ * its workflow keeps it, a run whose instance is gone keeps its history
+ * with no workflow, and every run loses the retired instance id and
+ * callback token, across keyset pages whatever the collation orders first;
+ * the instance rows and every grant naming one leave, a workflow's retired
+ * default-instance pointer rides on, and the store opened on the migrated
+ * database finds each run through the run list index's `workflow` key with
+ * no instance key left behind; a run, instance or policy row it cannot
+ * decode fails the step, naming the row, and leaves the database at v11.
+ * The frozen steps replay over workflow instance rows from v4 exactly as
+ * they shipped. A step's
  * starting database is built by running the chain up to the step before it.
  * Newer schemas are refused without writes or reconciliation; refusal
  * releases the migration lock and closes a failed store's pool.
@@ -47,6 +58,8 @@ import {
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
@@ -60,6 +73,7 @@ import {
   SCHEMA_VERSION_8,
   SCHEMA_VERSION_9,
   SCHEMA_VERSION_10,
+  SCHEMA_VERSION_12,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -75,6 +89,14 @@ import {
 } from "../../__tests__/retired-execution-rows.js";
 import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { sessionListIndex } from "../../../domain/session/list-index.js";
+import { workflowExecutionListIndex } from "../../../domain/workflowexecution/list-index.js";
+import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.js";
+import {
+  retiredWorkflowExecutionRow,
+  retiredWorkflowInstanceRow,
+  retiredWorkflowRow,
+  workflowExecutionBytes,
+} from "../../__tests__/retired-workflow-instance-rows.js";
 import { PostgresStore } from "../store.js";
 import {
   createTestDatabase,
@@ -1324,6 +1346,496 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           const version = await client.query(`SELECT MAX(version) AS version FROM schema_version`);
           expect(Number(version.rows[0].version)).toBe(SCHEMA_VERSION_10 - 1);
           expect((await row(client, "aex_a_good")).data).toEqual(good);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v12: workflow runs name their workflow and the workflow instance rows leave", () => {
+      const ORG = "org_01jz0000000000000000000000";
+      const PIN = "f".repeat(64);
+      const SPEC = {
+        triggerMessage: "nightly",
+        triggerMetadata: { source: "cli" },
+      };
+      const TOKEN = new Uint8Array([0x0a, 0x0b]);
+      const seededAt = new Date("2026-09-01T00:00:00Z");
+      const metadata = (id: string) => ({ id, org: ORG, slug: id });
+
+      /** A v11 database, the one v12 starts from, and a client on it for the seeding. */
+      async function v11Client(): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_12 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insert(
+        client: pg.Client,
+        kind: string,
+        id: string,
+        data: Uint8Array,
+      ): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`,
+          [kind, id, Buffer.from(data), seededAt],
+        );
+      }
+
+      /**
+       * A run as the release before this one stored it: its list facts
+       * proven under revision 1, with a key row for its workflow and its
+       * instance.
+       */
+      async function insertRun(
+        client: pg.Client,
+        id: string,
+        data: Uint8Array,
+        keys: { workflow?: string; workflow_instance?: string },
+      ): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at, list_org, list_created_at, list_index_revision, list_indexed_at)
+           VALUES ('workflow_execution', $1, $2, $3, $4, '', 1, $3)`,
+          [id, Buffer.from(data), seededAt, ORG],
+        );
+        for (const [key, value] of Object.entries(keys)) {
+          await client.query(
+            `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('workflow_execution', $1, $2, $3, '')`,
+            [id, key, value],
+          );
+        }
+      }
+
+      async function row(
+        client: pg.Client,
+        kind: string,
+        id: string,
+      ): Promise<{ data: Uint8Array; updatedAt: Date }> {
+        const result = await client.query<{ data: Buffer; updated_at: Date }>(
+          `SELECT data, updated_at FROM resources WHERE kind = $1 AND id = $2`,
+          [kind, id],
+        );
+        const found = result.rows[0]!;
+        return { data: new Uint8Array(found.data), updatedAt: found.updated_at };
+      }
+
+      async function count(
+        client: pg.Client,
+        table: string,
+        kind: string,
+      ): Promise<number> {
+        const result = await client.query<{ n: string }>(
+          `SELECT COUNT(*) AS n FROM ${table} WHERE kind = $1`,
+          [kind],
+        );
+        return Number(result.rows[0]!.n);
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        const result = await client.query(
+          `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
+        );
+        return Number(result.rows[0].version);
+      }
+
+      const workflow = retiredWorkflowRow({
+        metadata: metadata("wfl_1"),
+        defaultInstanceId: "win_default",
+        versionHash: PIN,
+      });
+
+      /** The workflow, its default and named instances. */
+      async function seedInstances(client: pg.Client): Promise<void> {
+        await insert(client, "workflow", "wfl_1", workflow);
+        await insert(
+          client,
+          "workflow_instance",
+          "win_default",
+          retiredWorkflowInstanceRow({
+            metadata: { id: "win_default", org: ORG, slug: "wfl-1-default" },
+            workflowId: "wfl_1",
+          }),
+        );
+        await insert(
+          client,
+          "workflow_instance",
+          "win_named",
+          retiredWorkflowInstanceRow({
+            metadata: { id: "win_named", org: ORG, slug: "nightly-prod" },
+            workflowId: "wfl_1",
+            environmentRefs: [{ org: ORG, slug: "prod", kind: 53 }],
+            executionVisibility: 2,
+          }),
+        );
+      }
+
+      const keptGrant = {
+        id: "iam_on_workflow",
+        principal: "identity_account:ida_1",
+        relation: "viewer",
+        resource: "workflow:wfl_1",
+      };
+      const retiredGrants = [
+        {
+          id: "iam_on_default",
+          principal: "identity_account:ida_1",
+          relation: "viewer",
+          resource: "workflow_instance:win_default",
+        },
+        {
+          id: "iam_default_of",
+          principal: "workflow_instance:win_default",
+          relation: "default_of",
+          resource: "workflow:wfl_1",
+        },
+        {
+          id: "iam_on_named",
+          principal: "identity_account:ida_2",
+          relation: "owner",
+          resource: "workflow_instance:win_named",
+        },
+        {
+          id: "iam_run_of_named",
+          principal: "workflow_instance:win_named",
+          relation: "workflow_instance",
+          resource: "workflow_execution:wex_instance_only",
+        },
+      ];
+
+      async function seedGrants(client: pg.Client): Promise<void> {
+        for (const grant of [...retiredGrants, keptGrant]) {
+          await insert(client, "iam_policy", grant.id, policyRow(grant));
+          await client.query(
+            `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', $1, 'principal', $2, '')`,
+            [grant.id, grant.principal.split(":")[1] ?? ""],
+          );
+        }
+        await client.query(
+          `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', 'iam_on_named', $1, '', '')`,
+          [Buffer.from([0x00])],
+        );
+      }
+
+      it("moves every run onto its instance's workflow, keeps every other run's history, and removes the instance rows from every table", async () => {
+        const client = await v11Client();
+        try {
+          await seedInstances(client);
+          await seedGrants(client);
+          await insertRun(
+            client,
+            "wex_instance_only",
+            retiredWorkflowExecutionRow({
+              metadata: metadata("wex_instance_only"),
+              instanceId: "win_named",
+              callbackToken: TOKEN,
+              spec: SPEC,
+              status: { workflowVersionHash: PIN },
+            }),
+            { workflow_instance: "win_named" },
+          );
+          await insertRun(
+            client,
+            "wex_both",
+            retiredWorkflowExecutionRow({
+              metadata: metadata("wex_both"),
+              instanceId: "win_default",
+              spec: { ...SPEC, workflowId: "wfl_own" },
+              status: { workflowVersionHash: PIN },
+            }),
+            { workflow: "wfl_own", workflow_instance: "win_default" },
+          );
+          await insertRun(
+            client,
+            "wex_orphan",
+            retiredWorkflowExecutionRow({
+              metadata: metadata("wex_orphan"),
+              instanceId: "win_deleted",
+              callbackToken: TOKEN,
+              spec: SPEC,
+            }),
+            { workflow_instance: "win_deleted" },
+          );
+          const current = workflowExecutionBytes({
+            metadata: metadata("wex_current"),
+            spec: { ...SPEC, workflowId: "wfl_1" },
+          });
+          await insertRun(client, "wex_current", current, { workflow: "wfl_1" });
+          await client.query(
+            `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('workflow_instance', 'win_default', $1, '', '')`,
+            [Buffer.from([0x00])],
+          );
+          await client.query(
+            `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('workflow_instance', 'win_default', 'workflow', 'wfl_1', '')`,
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_12);
+          expect(await version(client)).toBe(SCHEMA_VERSION_12);
+
+          // The instance-only run names its instance's workflow, and its
+          // stamp moves so the list index re-derives the key it is found by.
+          const instanceOnly = await row(
+            client,
+            "workflow_execution",
+            "wex_instance_only",
+          );
+          expect(instanceOnly.data).toEqual(
+            workflowExecutionBytes({
+              metadata: metadata("wex_instance_only"),
+              spec: { ...SPEC, workflowId: "wfl_1" },
+              status: { workflowVersionHash: PIN },
+            }),
+          );
+          expect(instanceOnly.updatedAt).not.toEqual(seededAt);
+          // The run with both ids keeps its own workflow and its stamp.
+          expect(await row(client, "workflow_execution", "wex_both")).toEqual({
+            data: workflowExecutionBytes({
+              metadata: metadata("wex_both"),
+              spec: { ...SPEC, workflowId: "wfl_own" },
+              status: { workflowVersionHash: PIN },
+            }),
+            updatedAt: seededAt,
+          });
+          // The orphan keeps its history with no workflow; only the
+          // retired fields leave.
+          expect(await row(client, "workflow_execution", "wex_orphan")).toEqual({
+            data: workflowExecutionBytes({
+              metadata: metadata("wex_orphan"),
+              spec: SPEC,
+            }),
+            updatedAt: seededAt,
+          });
+          expect(await row(client, "workflow_execution", "wex_current")).toEqual({
+            data: current,
+            updatedAt: seededAt,
+          });
+
+          // The workflow's retired default-instance pointer rides on.
+          const stored = (await row(client, "workflow", "wfl_1")).data;
+          expect(stored).toEqual(workflow);
+          expect(
+            fromBinary(WorkflowSchema, stored).status?.$unknown?.map(
+              (f) => f.no,
+            ),
+          ).toEqual([1]);
+
+          for (const table of [
+            "resources",
+            "resource_audit",
+            "resource_list_keys",
+          ]) {
+            expect(await count(client, table, "workflow_instance")).toBe(0);
+          }
+          const policyIds = async (table: string): Promise<string[]> =>
+            (
+              await client.query<{ id: string }>(
+                `SELECT id FROM ${table} WHERE kind = 'iam_policy' ORDER BY id`,
+              )
+            ).rows.map((r) => r.id);
+          expect(await policyIds("resources")).toEqual([keptGrant.id]);
+          expect(await policyIds("resource_list_keys")).toEqual([keptGrant.id]);
+          expect((await row(client, "iam_policy", keptGrant.id)).data).toEqual(
+            policyRow(keptGrant),
+          );
+          expect(await count(client, "resource_audit", "iam_policy")).toBe(1);
+
+          // The store the server opens on the migrated database finds each
+          // run through the key listByWorkflow reads, and the repair at
+          // open leaves no instance key behind.
+          const store = await PostgresStore.open(db.databaseUrl, undefined, {
+            listIndexes: [workflowExecutionListIndex],
+          });
+          try {
+            const byWorkflow = async (workflowId: string): Promise<string[]> =>
+              (
+                await store.queryResources(workflowExecutionListIndex, {
+                  anyKey: [{ name: "workflow", value: workflowId }],
+                })
+              )
+                .map((r) => r.id)
+                .sort();
+            expect(await byWorkflow("wfl_1")).toEqual([
+              "wex_current",
+              "wex_instance_only",
+            ]);
+            expect(await byWorkflow("wfl_own")).toEqual(["wex_both"]);
+          } finally {
+            await store.close();
+          }
+          const keys = await client.query<{ key: string }>(
+            `SELECT DISTINCT key FROM resource_list_keys WHERE kind = 'workflow_execution' ORDER BY key`,
+          );
+          expect(keys.rows).toEqual([{ key: "workflow" }]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads instances and runs across keyset pages, missing none past the first page", async () => {
+        const client = await v11Client();
+        try {
+          // Instances sort after the seeded ones, so the last lands past
+          // the first page.
+          for (let i = 0; i <= WORKFLOW_RETIREMENT_PAGE_SIZE; i++) {
+            const id = `win_page_${String(i).padStart(4, "0")}`;
+            await insert(
+              client,
+              "workflow_instance",
+              id,
+              retiredWorkflowInstanceRow({
+                metadata: metadata(id),
+                workflowId: "wfl_1",
+              }),
+            );
+          }
+          const lastInstance = `win_page_${String(WORKFLOW_RETIREMENT_PAGE_SIZE).padStart(4, "0")}`;
+          const total = WORKFLOW_RETIREMENT_PAGE_SIZE + 3;
+          for (let i = 0; i < total; i++) {
+            // Mixed case and punctuation order differently under a
+            // linguistic collation than as bytes; the keyset compares and
+            // orders under one collation, so it misses none either way.
+            const id = `${i % 2 === 0 ? "wex_" : "WEX-"}${String(i).padStart(4, "0")}`;
+            await insert(
+              client,
+              "workflow_execution",
+              id,
+              retiredWorkflowExecutionRow({
+                metadata: metadata(id),
+                instanceId: lastInstance,
+              }),
+            );
+          }
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_12);
+
+          const rows = await client.query<{ data: Buffer }>(
+            `SELECT data FROM resources WHERE kind = 'workflow_execution'`,
+          );
+          expect(rows.rowCount).toBe(total);
+          for (const r of rows.rows) {
+            const spec = fromBinary(
+              WorkflowExecutionSchema,
+              new Uint8Array(r.data),
+            ).spec;
+            expect(spec?.workflowId).toBe("wfl_1");
+            expect(spec?.$unknown).toBeUndefined();
+          }
+          expect(await count(client, "resources", "workflow_instance")).toBe(0);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it.each([
+        { kind: "workflow_instance", id: "win_broken" },
+        { kind: "workflow_execution", id: "wex_z_broken" },
+        { kind: "iam_policy", id: "iam_broken" },
+      ])(
+        "a $kind row that does not decode fails the step, names the row, rolls back, and leaves the database at v11",
+        async (broken) => {
+          const client = await v11Client();
+          try {
+            await seedInstances(client);
+            // A readable run ahead of a broken run in id order is
+            // rewritten first; the failure must take that rewrite back.
+            const good = retiredWorkflowExecutionRow({
+              metadata: metadata("wex_a_good"),
+              instanceId: "win_named",
+            });
+            await insert(client, "workflow_execution", "wex_a_good", good);
+            await insert(
+              client,
+              broken.kind,
+              broken.id,
+              new Uint8Array([0x22, 0xff]),
+            );
+            await expect(
+              migrateTo(db.databaseUrl, SCHEMA_VERSION_12),
+            ).rejects.toThrow(
+              `${broken.kind} '${broken.id}' cannot be read to retire the workflow instance kind`,
+            );
+            expect(await version(client)).toBe(SCHEMA_VERSION_12 - 1);
+            expect(
+              (await row(client, "workflow_execution", "wex_a_good")).data,
+            ).toEqual(good);
+            expect(await count(client, "resources", "workflow_instance")).toBe(
+              broken.kind === "workflow_instance" ? 3 : 2,
+            );
+          } finally {
+            await client.end();
+          }
+        },
+      );
+
+      it("replays the frozen steps over workflow instance rows from v4 exactly as they shipped, then moves their runs and removes them", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_5 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          const instanceAt = (visibility: ApiResourceVisibility) =>
+            retiredWorkflowInstanceRow({
+              metadata: {
+                id: "win_public",
+                org: "deleted-org",
+                slug: "nightly-shared",
+                visibility,
+              },
+              workflowId: "wfl_1",
+              description: "Shared deployment",
+              environmentRefs: [{ org: "deleted-org", slug: "prod", kind: 53 }],
+              executionVisibility: 2,
+            });
+          await insert(
+            client,
+            "workflow_instance",
+            "win_public",
+            instanceAt(ApiResourceVisibility.visibility_public),
+          );
+          await insert(
+            client,
+            "workflow_execution",
+            "wex_1",
+            retiredWorkflowExecutionRow({
+              metadata: { id: "wex_1", org: "deleted-org", slug: "wex_1" },
+              instanceId: "win_public",
+              callbackToken: TOKEN,
+              spec: SPEC,
+            }),
+          );
+          await insert(
+            client,
+            "iam_policy",
+            "iam_on_public",
+            policyRow({
+              id: "iam_on_public",
+              principal: "identity_account:ida_1",
+              relation: "viewer",
+              resource: "workflow_instance:win_public",
+            }),
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_7);
+          // v5 moved the retired row to org without disturbing another
+          // byte, and v7 recorded the organization it names, with none
+          // live, retired.
+          expect((await row(client, "workflow_instance", "win_public")).data).toEqual(
+            instanceAt(ApiResourceVisibility.visibility_org),
+          );
+          const ledger = await client.query(
+            `SELECT slug, retired_at IS NOT NULL AS retired FROM organization_slugs`,
+          );
+          expect(ledger.rows).toEqual([{ slug: "deleted-org", retired: true }]);
+
+          await migrateTo(db.databaseUrl, CURRENT_SCHEMA_VERSION);
+          expect(await version(client)).toBe(CURRENT_SCHEMA_VERSION);
+          expect((await row(client, "workflow_execution", "wex_1")).data).toEqual(
+            workflowExecutionBytes({
+              metadata: { id: "wex_1", org: "deleted-org", slug: "wex_1" },
+              spec: { ...SPEC, workflowId: "wfl_1" },
+            }),
+          );
+          expect(await count(client, "resources", "workflow_instance")).toBe(0);
+          expect(await count(client, "resources", "iam_policy")).toBe(0);
         } finally {
           await client.end();
         }

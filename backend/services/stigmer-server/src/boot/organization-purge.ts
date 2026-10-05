@@ -57,7 +57,6 @@ import { newSessionPurge } from "../domain/session/purge.js";
 import { newSkillPurge } from "../domain/skill/purge.js";
 import { newWorkflowPurge } from "../domain/workflow/purge.js";
 import { newWorkflowExecutionPurge } from "../domain/workflowexecution/purge.js";
-import { newWorkflowInstancePurge } from "../domain/workflowinstance/purge.js";
 import type { SecretService } from "../encryption/encryption.js";
 import type {
   OrganizationPurgeStage,
@@ -112,7 +111,6 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newAgentExecutionPurge(deps),
       newSessionPurge(deps),
       newWorkflowExecutionPurge(deps),
-      newWorkflowInstancePurge(deps),
       // A blueprint's shares and channels before the blueprint; a channel
       // before the channel app it references.
       newAgentSharePurge(deps),
@@ -154,7 +152,6 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.agent_execution,
   ApiResourceKind.session,
   ApiResourceKind.workflow_execution,
-  ApiResourceKind.workflow_instance,
   ApiResourceKind.agent_share,
   ApiResourceKind.agent_channel,
   ApiResourceKind.channel_app,

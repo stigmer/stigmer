@@ -13,8 +13,8 @@
  *     structured filter over seeded rows, the newest-created default
  *     order and its cursor pages (a token refused on another request),
  *     and a non-default sort answering its first page with no token;
- *   - listByWorkflow matching EITHER spec.workflow_id or
- *     spec.workflow_instance_id, and paging the workflow's runs;
+ *   - listByWorkflow matching spec.workflow_id, and paging the workflow's
+ *     runs;
  *   - getEventLog cursor pagination over REAL persisted events: has_more
  *     from the +1 fetch, latest_sequence, the 500 cap, the multi-type
  *     in-memory filter, and the malformed-record skip;
@@ -137,7 +137,6 @@ function seedInput(overrides?: {
   id?: string;
   org?: string;
   workflowId?: string;
-  workflowInstanceId?: string;
   phase?: ExecutionPhase;
   startedAt?: string;
   completedAt?: string;
@@ -163,8 +162,6 @@ function seedInput(overrides?: {
     },
     spec: {
       workflowId: overrides?.workflowId ?? `wf_test_${counter}`,
-      workflowInstanceId:
-        overrides?.workflowInstanceId ?? `wfi_test_${counter}`,
     },
     status: {
       phase: overrides?.phase ?? ExecutionPhase.EXECUTION_COMPLETED,
@@ -395,16 +392,14 @@ describe("get / list / listByWorkflow over the wire", () => {
     ).toEqual(newestFirst);
   });
 
-  it("listByWorkflow requires workflow_id and matches either spec reference", async () => {
+  it("listByWorkflow requires workflow_id and matches the runs that name it", async () => {
     await expectCode(
       () => query.listByWorkflow({ workflowId: "" }),
       Code.InvalidArgument,
     );
 
     const byWorkflow = await seed(seedInput({ workflowId: "wf_shared_ref" }));
-    const byInstance = await seed(
-      seedInput({ workflowInstanceId: "wf_shared_ref" }),
-    );
+    const second = await seed(seedInput({ workflowId: "wf_shared_ref" }));
     await seed(seedInput());
 
     const result = await query.listByWorkflow({
@@ -414,7 +409,7 @@ describe("get / list / listByWorkflow over the wire", () => {
     });
     const resultIds = result.entries.map((entry) => entry.metadata?.id);
     expect(resultIds).toContain(byWorkflow);
-    expect(resultIds).toContain(byInstance);
+    expect(resultIds).toContain(second);
     expect(resultIds).toHaveLength(2);
     expect(result.totalPages).toBe(1);
   });
@@ -1060,7 +1055,7 @@ describe("create over the wire (the engine gate)", () => {
     );
   });
 
-  it("neither reference refuses InvalidArgument BEFORE the gate (#196)", async () => {
+  it("a run naming no workflow refuses InvalidArgument BEFORE the gate (#196)", async () => {
     const err = await expectCode(
       () =>
         command.create({
@@ -1071,9 +1066,7 @@ describe("create over the wire (the engine gate)", () => {
         }),
       Code.InvalidArgument,
     );
-    expect(err.rawMessage).toBe(
-      "either workflow_id or workflow_instance_id must be provided",
-    );
+    expect(err.rawMessage).toContain("spec.workflow_id");
   });
 });
 
@@ -1489,7 +1482,6 @@ describe("update / delete over the wire", () => {
       metadata: init.metadata,
       spec: {
         workflowId: init.spec?.workflowId,
-        workflowInstanceId: init.spec?.workflowInstanceId,
         triggerMessage: "updated trigger",
       },
     });

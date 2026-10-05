@@ -211,7 +211,6 @@ export async function sendSignal(
           await engineState.engine.signalWithStart(
             {
               executionId,
-              workflowInstanceId: execution.spec?.workflowInstanceId ?? "",
               workflowId: execution.spec?.workflowId ?? "",
               orgId: execution.metadata?.org ?? "",
               recoveryMode: false,

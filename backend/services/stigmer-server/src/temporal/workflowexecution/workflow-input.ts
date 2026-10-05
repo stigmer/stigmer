@@ -6,19 +6,25 @@
  * a Go-authored history would.
  *
  * The slim-input doctrine keeps secrets out of Temporal's durable
- * history: the child workflow hydrates the full context
- * (WorkflowInstance, Workflow, ExecutionContext) via gRPC from these IDs.
+ * history: the child workflow hydrates the full context (the workflow at
+ * the version the run pinned, and the ExecutionContext) via gRPC from
+ * these IDs.
  * The SAME object is passed to the child, so the key set is a
  * cross-component contract with the runner's execute-from-execution.
  *
- * Go's callback_token / invoker_identity_account_id fields have no OSS
- * producer (cloud-only lanes) and are not modeled — the seam's boundary
+ * Go's invoker_identity_account_id field has no OSS producer (cloud-only
+ * lanes) and is not modeled — the seam's boundary
  * (src/domain/workflowexecution/engine.ts).
  *
  * Sandbox-shared module: type-only, no imports.
  */
 export interface InvokeWorkflowExecutionWorkflowInput {
   readonly execution_id: string;
+  /**
+   * Named a workflow instance until the instance kind was removed. The
+   * server no longer writes it and the runner ignores it; the key stays
+   * typed so a history recorded before then still decodes and replays.
+   */
   readonly workflow_instance_id?: string;
   readonly workflow_id?: string;
   readonly org_id?: string;

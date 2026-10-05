@@ -185,16 +185,6 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | WorkflowExecutionQueryController.list | `org` |
 | WorkflowExecutionQueryController.listPendingApprovals | `org` |
 
-## `ai.stigmer.agentic.workflowinstance.v1`
-
-| Method | Organization fields |
-|---|---|
-| WorkflowInstanceCommandController.apply | `metadata.org`, `spec.environment_refs.org` |
-| WorkflowInstanceCommandController.create | `metadata.org`, `spec.environment_refs.org` |
-| WorkflowInstanceCommandController.update | `metadata.org`, `spec.environment_refs.org` |
-| WorkflowInstanceQueryController.getByReference | `org` |
-| WorkflowInstanceQueryController.getByWorkflow | `org` |
-
 ## `ai.stigmer.iam.apikey.v1`
 
 | Method | Organization fields |

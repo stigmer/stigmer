@@ -64,6 +64,17 @@ import {
   PUBLIC_ROW_KINDS_AT_RETIREMENT,
   movePublicRowToOrg,
 } from "../public-visibility-retired.js";
+import {
+  RETIRED_WORKFLOW_INSTANCE_KIND,
+  WORKFLOW_EXECUTION_KIND,
+  WORKFLOW_RETIREMENT_PAGE_SIZE,
+  WORKFLOW_RETIREMENT_POLICY_KIND,
+  migrateWorkflowExecutionRow,
+  policyNamesRetiredWorkflowInstance,
+  unreadableWorkflowRowError,
+  workflowInstanceWorkflowIdOf,
+} from "../workflow-instance-retired.js";
+import type { MigratedRun } from "../workflow-instance-retired.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -91,9 +102,11 @@ export const SCHEMA_VERSION_14 = 14;
 export const SCHEMA_VERSION_15 = 15;
 /** v16: the organization deletion table (DDL only). */
 export const SCHEMA_VERSION_16 = 16;
+/** v17: workflow runs name their workflow directly; the workflow instance rows removed. */
+export const SCHEMA_VERSION_17 = 17;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_16;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_17;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -134,6 +147,7 @@ export function runMigrations(
     [SCHEMA_VERSION_14, migrateToV14],
     [SCHEMA_VERSION_15, migrateToV15],
     [SCHEMA_VERSION_16, migrateToV16],
+    [SCHEMA_VERSION_17, migrateToV17],
   ];
 
   for (const [version, migrate] of chain) {
@@ -791,4 +805,108 @@ function migrateToV16(db: DatabaseSync): void {
       last_error TEXT NOT NULL DEFAULT ''
     ) WITHOUT ROWID;
   `);
+}
+
+/**
+ * v17: the workflow instance kind is removed — the Postgres driver's v12 in
+ * this engine's terms (workflow-instance-retired.ts says what each run
+ * becomes and why an unreadable row fails the step). Every instance row is
+ * read in keyset pages for the workflow it names, then every run in keyset
+ * pages, rewritten when it carries a retired field. A run that gained its
+ * workflow id has `updated_at` bumped, so the list index re-derives the
+ * key it is found by at open; a run that only lost a retired field keeps
+ * its stamp. Every IamPolicy row naming an instance as resource or
+ * principal is found in keyset pages and deleted with its list keys, its
+ * history kept, as the store deletes a policy. The instance rows, their
+ * history and their list keys are then deleted; the search index is left
+ * to boot's RebuildIndex, which re-indexes only the registered kinds (the
+ * v14 precedent). Runs inside applyInTransaction's BEGIN, so a throw rolls
+ * the whole step back and the boot stops on the row it names.
+ */
+function migrateToV17(db: DatabaseSync): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const pages = function* (
+    kind: string,
+  ): Generator<{ id: string; data: Uint8Array }> {
+    let after = "";
+    for (;;) {
+      const rows = page.all(kind, after, WORKFLOW_RETIREMENT_PAGE_SIZE) as Array<{
+        id: string;
+        data: Uint8Array;
+      }>;
+      yield* rows;
+      if (rows.length < WORKFLOW_RETIREMENT_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+
+  const instanceWorkflows = new Map<string, string>();
+  for (const row of pages(RETIRED_WORKFLOW_INSTANCE_KIND)) {
+    try {
+      instanceWorkflows.set(row.id, workflowInstanceWorkflowIdOf(row.data));
+    } catch (error) {
+      throw unreadableWorkflowRowError(
+        RETIRED_WORKFLOW_INSTANCE_KIND,
+        row.id,
+        error,
+      );
+    }
+  }
+  const workflowOf = (instanceId: string): string | undefined =>
+    instanceWorkflows.get(instanceId);
+
+  const restamp = db.prepare(
+    `UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ?`,
+  );
+  const rewrite = db.prepare(
+    `UPDATE resources SET data = ? WHERE kind = ? AND id = ?`,
+  );
+  for (const row of pages(WORKFLOW_EXECUTION_KIND)) {
+    let migrated: MigratedRun | undefined;
+    try {
+      migrated = migrateWorkflowExecutionRow(row.data, workflowOf);
+    } catch (error) {
+      throw unreadableWorkflowRowError(WORKFLOW_EXECUTION_KIND, row.id, error);
+    }
+    if (migrated !== undefined) {
+      (migrated.workflowIdFilled ? restamp : rewrite).run(
+        migrated.data,
+        WORKFLOW_EXECUTION_KIND,
+        row.id,
+      );
+    }
+  }
+
+  const retiredPolicies: string[] = [];
+  for (const row of pages(WORKFLOW_RETIREMENT_POLICY_KIND)) {
+    try {
+      if (policyNamesRetiredWorkflowInstance(row.data)) {
+        retiredPolicies.push(row.id);
+      }
+    } catch (error) {
+      throw unreadableWorkflowRowError(
+        WORKFLOW_RETIREMENT_POLICY_KIND,
+        row.id,
+        error,
+      );
+    }
+  }
+  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
+  );
+  for (const id of retiredPolicies) {
+    for (const statement of deletePolicy) {
+      statement.run(WORKFLOW_RETIREMENT_POLICY_KIND, id);
+    }
+  }
+
+  for (const table of ["resource_audit", "resource_list_keys", "resources"]) {
+    db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(
+      RETIRED_WORKFLOW_INSTANCE_KIND,
+    );
+  }
 }

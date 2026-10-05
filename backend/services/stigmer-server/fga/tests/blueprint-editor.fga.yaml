@@ -44,9 +44,6 @@ tuples:
   - {user: team:maint#member, relation: editor, object: workflow:flow}
   - {user: identity_account:vw, relation: viewer, object: workflow:flow}
   - {user: identity_account:left, relation: editor, object: workflow:flow}
-  - {user: organization:acme, relation: organization, object: workflow_instance:flow-default}
-  - {user: workflow:flow, relation: workflow, object: workflow_instance:flow-default}
-  - {user: workflow:flow, relation: default_of, object: workflow_instance:flow-default}
 
   - {user: organization:acme, relation: organization, object: mcp_server:tools}
   - {user: identity_account:own, relation: owner, object: mcp_server:tools}
@@ -66,11 +63,6 @@ tests:
       - user: identity_account:ed
         object: mcp_server:tools
         assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_connect: true, can_view_access: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
-  - name: an editor runs the workflow through its default instance, as its viewers do
-    check:
-      - user: identity_account:ed
-        object: workflow_instance:flow-default
-        assertions: {viewer: true, can_view: true, can_execute: true, can_edit: false, can_grant_access: false}
   - name: a team granted editor makes each bounded member an editor
     check:
       - user: identity_account:ted

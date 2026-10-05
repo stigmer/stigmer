@@ -44,7 +44,6 @@ import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb"
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { AgentCallTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/agent_call_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
@@ -106,7 +105,6 @@ const SCHEMAS_UNDER_THE_RULE: ReadonlyArray<DescMessage> = [
   AgentSchema,
   McpServerSchema,
   WorkflowSchema,
-  WorkflowInstanceSchema,
   EnvironmentSchema,
   ScheduleSchema,
   AgentChannelSchema,
@@ -402,8 +400,8 @@ describe("checkReference", () => {
   });
 
   it("(ii) the floor does not apply to what the server resolves on the run's behalf", () => {
-    // An org-visible instance over a private personal environment: the
-    // ordinary shape of a personal instance, admitted.
+    // An org-visible resource over a private personal environment: a
+    // person attaching their own keys, admitted.
     expect(
       checkReference(targets, ACME_ORG, ref(K.environment, "acme", "personal")),
     ).toEqual({ kind: "ok" });
@@ -1224,17 +1222,16 @@ describe("the writer clause: a write may introduce only an environment its write
     };
   }
 
-  function instanceNaming(...slugs: string[]) {
-    return create(WorkflowInstanceSchema, {
+  function channelNaming(...slugs: string[]) {
+    return create(AgentChannelSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "WorkflowInstance",
+      kind: "AgentChannel",
       metadata: {
         name: "Team helper",
         org: "acme",
         visibility: V.visibility_org,
       },
       spec: {
-        workflowId: "wfl_helper",
         environmentRefs: slugs.map((slug) => ({
           kind: K.environment,
           org: "acme",
@@ -1252,19 +1249,19 @@ describe("the writer clause: a write may introduce only an environment its write
     readonly checks?: string[];
   }): Promise<unknown> {
     const ctx = new RequestContext(
-      WorkflowInstanceSchema,
-      instanceNaming(...opts.names),
+      AgentChannelSchema,
+      channelNaming(...opts.names),
       testCallerIdentity({
         identityId: opts.writer,
         callerClass: opts.callerClass ?? "user",
       }),
-      K.workflow_instance,
+      K.agent_channel,
     );
     if (opts.stored !== undefined) {
-      ctx.set(EXISTING_RESOURCE_KEY, instanceNaming(...opts.stored));
+      ctx.set(EXISTING_RESOURCE_KEY, channelNaming(...opts.stored));
     }
     return failureOf(() =>
-      newValidateReferencesStep<typeof WorkflowInstanceSchema>(
+      newValidateReferencesStep<typeof AgentChannelSchema>(
         store,
         environmentViews(opts.checks ?? []),
       ).execute(ctx),
@@ -1287,7 +1284,7 @@ describe("the writer clause: a write may introduce only an environment its write
     );
   });
 
-  it("admits the owner's own private environment on an org-visible instance, and an org-visible one for any member", async () => {
+  it("admits the owner's own private environment on an org-visible channel, and an org-visible one for any member", async () => {
     const checks: string[] = [];
     expect(
       await write({ writer: "acc_ana", names: ["ana-keys"], checks }),
@@ -1351,21 +1348,20 @@ describe("the writer clause: a write may introduce only an environment its write
 
   it("a malformed reference beside a refused one still answers INVALID_ARGUMENT first", async () => {
     const ctx = new RequestContext(
-      WorkflowInstanceSchema,
-      create(WorkflowInstanceSchema, {
+      AgentChannelSchema,
+      create(AgentChannelSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
-        kind: "WorkflowInstance",
+        kind: "AgentChannel",
         metadata: { name: "No org", org: "", visibility: V.visibility_org },
         spec: {
-          workflowId: "wfl_helper",
           environmentRefs: [{ kind: K.environment, org: "", slug: "ana-keys" }],
         },
       }),
       testCallerIdentity({ identityId: "acc_ben" }),
-      K.workflow_instance,
+      K.agent_channel,
     );
     const error = await failureOf(() =>
-      newValidateReferencesStep<typeof WorkflowInstanceSchema>(
+      newValidateReferencesStep<typeof AgentChannelSchema>(
         store,
         environmentViews([]),
       ).execute(ctx),

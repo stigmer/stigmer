@@ -431,15 +431,14 @@ describe("the built-in model", () => {
     }
   });
 
-  it("carries a derived rule only where kind_meta cannot derive the relation: an organization's two edges, and default_of and execution_viewer on the workflow instance", () => {
+  it("carries a derived rule only where kind_meta cannot derive the relation: an organization's two edges, and execution_viewer on the workflow", () => {
     const derived = builtInModel.declarations
       .flatMap((d) => [...d.derived.keys()].map((r) => `${d.type}#${r}`))
       .sort();
     expect(derived).toEqual([
       "organization#child_org",
       "organization#parent_org",
-      "workflow_instance#default_of",
-      "workflow_instance#execution_viewer",
+      "workflow#execution_viewer",
     ]);
   });
 

@@ -17,7 +17,7 @@ export const ENGINE_UNAVAILABLE_MESSAGE =
   "The execution engine is temporarily unavailable. Please try again shortly.";
 
 /**
- * The run gate's deny copy per request shape (wire copy, asserted by the
+ * The run gate's deny copy (wire copy, asserted by the
  * conformance run-gate suite). NEW copy quotes the handle single-quoted
  * (the rule since 2026-08-26).
  * The agent-execution domain's `runAgent*` functions are these copies'
@@ -25,12 +25,6 @@ export const ENGINE_UNAVAILABLE_MESSAGE =
  */
 export function runWorkflowDeniedMessage(workflowId: string): string {
   return `unauthorized to run workflow '${workflowId}'`;
-}
-
-export function runWorkflowInstanceDeniedMessage(
-  workflowInstanceId: string,
-): string {
-  return `unauthorized to run workflow instance '${workflowInstanceId}'`;
 }
 
 /**

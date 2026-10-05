@@ -57,7 +57,6 @@ const DOCUMENTS = [
   "channel-session-visibility.fga.yaml",
   "child-organizations.fga.yaml",
   "credit-issuer.fga.yaml",
-  "default-instance-inheritance.fga.yaml",
   "identity-provider-administration.fga.yaml",
   "invitation-administration.fga.yaml",
   "license-issuer.fga.yaml",

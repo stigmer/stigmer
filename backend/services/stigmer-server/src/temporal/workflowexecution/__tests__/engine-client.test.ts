@@ -144,7 +144,6 @@ function startInput(
 ): StartWorkflowExecutionInput {
   return {
     executionId: "wfe-1",
-    workflowInstanceId: "wfi-1",
     workflowId: "wf-1",
     orgId: "org-1",
     recoveryMode: false,
@@ -174,7 +173,6 @@ describe("TemporalWorkflowExecutionEngine", () => {
     expect(start.options["args"]).toEqual([
       {
         execution_id: "wfe-1",
-        workflow_instance_id: "wfi-1",
         workflow_id: "wf-1",
         org_id: "org-1",
         // The run credential, minted per dispatch (its own arms below).
@@ -191,7 +189,6 @@ describe("TemporalWorkflowExecutionEngine", () => {
 
     await engine.startInvokeWorkflow(
       startInput({
-        workflowInstanceId: "",
         workflowId: "",
         orgId: "",
         recoveryMode: true,

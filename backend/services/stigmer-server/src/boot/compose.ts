@@ -232,7 +232,6 @@ import {
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import { ModelRegistryStore } from "../domain/workflow/registry/model-registry-store.js";
 import { InProcessValidator } from "../domain/workflow/validation/validator.js";
-import { registerWorkflowInstanceServices } from "../domain/workflowinstance/controller.js";
 import { registerWorkflowExecutionServices } from "../domain/workflowexecution/controller.js";
 import { StreamBroker as WorkflowExecutionStreamBroker } from "../domain/workflowexecution/stream-broker.js";
 import {
@@ -1803,15 +1802,6 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       validator: workflowValidator,
-      workflowInstanceCreator: () => requireInProcess().workflowInstanceCreator,
-    });
-    registerWorkflowInstanceServices(router, {
-      store,
-      logger,
-      authorizer,
-      authorizationLifecycle,
-      parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
-      listReadScope,
     });
     registerWorkflowExecutionServices(router, {
       store,
@@ -1827,8 +1817,6 @@ export async function composeServer(
       sandboxLane,
       temporalConfig: workflowExecutionTemporalConfig,
       sandboxTerminalObserver: workflowSandboxTerminalObserver,
-      workflowInstanceCreator: () =>
-        requireInProcess().workflowExecutionInstanceCreator,
       approvalForwarder: () =>
         requireInProcess().workflowExecutionApprovalForwarder,
       fileDecisionForwarder: () =>
@@ -1836,9 +1824,7 @@ export async function composeServer(
       executionContextBuilder: {
         store,
         logger,
-        workflowInstanceLoader: () =>
-          requireInProcess().workflowExecutionInstanceLoader,
-        environmentResolution,
+        environmentReader: () => requireInProcess().executionEnvironmentReader,
         executionContextCreator: () =>
           requireInProcess().workflowExecutionContextCreator,
         executionContextDeleter: () =>

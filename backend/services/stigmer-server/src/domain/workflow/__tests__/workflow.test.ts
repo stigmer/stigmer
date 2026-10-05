@@ -1,23 +1,27 @@
 /**
  * Pins the workflow family against Go's pkg/domain/workflow tests —
  * through the REAL stack: a composed server on an ephemeral port, a native
- * gRPC client, the full interceptor chain, and the in-process
- * mutual edge (workflow create provisions its default instance through the
- * router transport; instance create loads its parent the same way).
+ * gRPC client and the full interceptor chain.
  *
  * The load-bearing pins conformance cannot reach (it sees only the wire):
  *   - the #341 content-addressed AUDIT ROW semantics: an idempotent apply
  *     inserts no row; a changed apply inserts exactly one; a rollback
  *     re-apply REPOINTS the head without a new row;
- *   - the version hash chain (previous_version_id) across applies;
+ *   - the version hash chain (previous_version_id) across applies, and the
+ *     version rule: the hash is the spec's own (run visibility cleared),
+ *     so an edit to the declared env or the description mints a version
+ *     the generated YAML never showed, and a head last saved under the
+ *     YAML hash mints exactly one version at its next unchanged save;
  *   - tag single-holder at the audit column + live-head tag reconcile on
  *     every tagVersion arm (tag head, move off head, tag archived);
  *   - audit rows SURVIVE workflow delete (execution viewers need them,
- *     oss#582) while instances are cascade-swept (oss#592);
- *   - the default instance's factory shape (slug, reserved labels);
+ *     oss#582);
+ *   - run visibility: stored at create, kept by update and apply, changed
+ *     by updateExecutionVisibility alone, and never a version;
  *   - an agent_call that names its organization by slug saves through the
  *     create and update chains, stored by the organization's id.
  */
+import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -32,9 +36,7 @@ import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/a
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
-import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
-import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -46,12 +48,7 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
-import {
-  DEFAULT_INSTANCE_LABEL,
-  RESERVED_LABEL_TRUE,
-  SYSTEM_MANAGED_LABEL,
-} from "../../../pipeline/apiresource-labels.js";
-import { defaultWorkflowInstanceSlug } from "../../workflowinstance/defaultinstance.js";
+import { workflowVersionHash } from "../steps.js";
 import {
   organizationId,
   seedOrganizations,
@@ -72,8 +69,6 @@ let server: ComposedServer;
 let transport: Transport;
 let command: Client<typeof WorkflowCommandController>;
 let query: Client<typeof WorkflowQueryController>;
-let instanceCommand: Client<typeof WorkflowInstanceCommandController>;
-let instanceQuery: Client<typeof WorkflowInstanceQueryController>;
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "workflow-domain-test-"));
@@ -103,8 +98,6 @@ beforeAll(async () => {
   OTHER_ORG_ID = organizationId(ids, OTHER_ORG);
   command = createClient(WorkflowCommandController, transport);
   query = createClient(WorkflowQueryController, transport);
-  instanceCommand = createClient(WorkflowInstanceCommandController, transport);
-  instanceQuery = createClient(WorkflowInstanceQueryController, transport);
 });
 
 afterAll(async () => {
@@ -118,6 +111,9 @@ function workflowInput(overrides?: {
   org?: string;
   variables?: Record<string, string>;
   tag?: string;
+  description?: string;
+  env?: Record<string, { isSecret?: boolean; optional?: boolean }>;
+  executionVisibility?: WorkflowExecutionVisibility;
 }) {
   counter += 1;
   const name = overrides?.name ?? `Test Workflow ${counter}`;
@@ -136,6 +132,11 @@ function workflowInput(overrides?: {
         : {}),
     },
     spec: {
+      description: overrides?.description ?? "",
+      env: overrides?.env ?? {},
+      executionVisibility:
+        overrides?.executionVisibility ??
+        WorkflowExecutionVisibility.unspecified,
       document: {
         dsl: "1.0.0",
         namespace: "tests",
@@ -158,7 +159,7 @@ async function auditCount(workflowId: string): Promise<number> {
 }
 
 describe("workflow version machinery (the #341 audit-row semantics)", () => {
-  it("create archives exactly one version whose snapshot carries default_instance_id", async () => {
+  it("create archives exactly one version, hashed over its spec", async () => {
     const created = await command.create(workflowInput());
     const id = created.metadata!.id;
 
@@ -167,8 +168,9 @@ describe("workflow version machinery (the #341 audit-row semantics)", () => {
     expect(created.metadata?.version?.previousVersionId).toBe("");
     expect(await auditCount(id)).toBe(1);
 
-    // v1 archives AFTER the default instance is wired, so the snapshot
-    // (what getVersion serves) carries default_instance_id.
+    expect(created.status?.versionHash).toBe(
+      workflowVersionHash(created.spec!),
+    );
     const v1 = await query.getVersion({
       workflowId: id,
       versionHash: created.status!.versionHash,
@@ -193,6 +195,64 @@ describe("workflow version machinery (the #341 audit-row semantics)", () => {
     expect(v2.metadata?.version?.id).toBe(v2.status?.versionHash);
     expect(v2.metadata?.version?.previousVersionId).toBe(v1.status?.versionHash);
     expect(await auditCount(id)).toBe(2);
+  });
+
+  it("an edit the generated YAML never shows — the declared env, the description — mints a version", async () => {
+    const name = `Unrendered ${++counter}`;
+    const v1 = await command.apply(workflowInput({ name }));
+    const id = v1.metadata!.id;
+
+    const withEnv = await command.apply(
+      workflowInput({ name, env: { SLACK_WEBHOOK: { isSecret: true } } }),
+    );
+    expect(withEnv.status?.serverlessWorkflowValidation?.yaml).toBe(
+      v1.status?.serverlessWorkflowValidation?.yaml,
+    );
+    expect(withEnv.status?.versionHash).not.toBe(v1.status?.versionHash);
+    expect(await auditCount(id)).toBe(2);
+
+    const described = await command.apply(
+      workflowInput({
+        name,
+        env: { SLACK_WEBHOOK: { isSecret: true } },
+        description: "posts the nightly triage",
+      }),
+    );
+    expect(described.status?.versionHash).not.toBe(
+      withEnv.status?.versionHash,
+    );
+    expect(await auditCount(id)).toBe(3);
+  });
+
+  it("a head last saved under the YAML hash mints exactly one version at its next unchanged save", async () => {
+    const name = `Legacy Hash ${++counter}`;
+    const v1 = await command.apply(workflowInput({ name }));
+    const id = v1.metadata!.id;
+
+    // The head as a save before the spec hash left it: its hash is the
+    // SHA-256 of its generated YAML.
+    const yaml = v1.status!.serverlessWorkflowValidation!.yaml;
+    const yamlHash = createHash("sha256").update(yaml).digest("hex");
+    const legacy = await server.store.getResource(
+      ApiResourceKind.workflow,
+      id,
+      WorkflowSchema,
+    );
+    legacy.status!.versionHash = yamlHash;
+    await server.store.saveResource(
+      ApiResourceKind.workflow,
+      id,
+      WorkflowSchema,
+      legacy,
+    );
+
+    const resaved = await command.apply(workflowInput({ name }));
+    expect(resaved.status?.versionHash).toBe(workflowVersionHash(resaved.spec!));
+    expect(resaved.status?.versionHash).not.toBe(yamlHash);
+    expect(resaved.metadata?.version?.previousVersionId).toBe(yamlHash);
+
+    const again = await command.apply(workflowInput({ name }));
+    expect(again.status?.versionHash).toBe(resaved.status?.versionHash);
   });
 
   it("a rollback re-apply REPOINTS the head without inserting a row", async () => {
@@ -334,52 +394,16 @@ describe("workflow tagVersion (single-holder + head reconcile)", () => {
   });
 });
 
-describe("workflow delete (oss#592 cascade, oss#582 survivors)", () => {
-  it("sweeps ALL instances but leaves the audit history resolvable", async () => {
+describe("workflow delete (oss#582 survivors)", () => {
+  it("removes the workflow but leaves the audit history resolvable", async () => {
     const wf = await command.create(workflowInput());
     const id = wf.metadata!.id;
 
-    // A user instance beside the default.
-    await instanceCommand.create({
-      apiVersion: API_VERSION,
-      kind: "WorkflowInstance",
-      metadata: { name: `Extra ${counter}`, org: ORG },
-      spec: { workflowId: id, description: "user instance" },
-    });
-    const before = await instanceQuery.getByWorkflow({ workflowId: id });
-    expect(before.entries).toHaveLength(2);
-
     await command.delete({ value: id });
 
-    const after = await instanceQuery.getByWorkflow({ workflowId: id });
-    expect(after.entries).toHaveLength(0);
     // Version rows SURVIVE: execution viewers render historical graphs
     // through getVersion after the workflow is gone.
     expect(await auditCount(id)).toBe(1);
-  });
-});
-
-describe("workflow default instance (factory contract)", () => {
-  it("provisions <slug>-default with the reserved labels and pins its visibility", async () => {
-    const wf = await command.create(workflowInput());
-    const instances = await instanceQuery.getByWorkflow({ workflowId: wf.metadata!.id });
-    expect(instances.entries).toHaveLength(1);
-
-    const def = instances.entries[0]!;
-    expect(def.metadata?.slug).toBe(defaultWorkflowInstanceSlug(wf.metadata!.slug));
-    expect(def.metadata?.labels[DEFAULT_INSTANCE_LABEL]).toBe(RESERVED_LABEL_TRUE);
-    expect(def.metadata?.labels[SYSTEM_MANAGED_LABEL]).toBe(RESERVED_LABEL_TRUE);
-    expect(wf.status?.defaultInstanceId).toBe(def.metadata?.id);
-
-    const err = await instanceCommand
-      .updateVisibility({
-        resourceId: def.metadata!.id,
-        visibility: ApiResourceVisibility.visibility_org,
-      })
-      .then(() => undefined)
-      .catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(ConnectError);
-    expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
   });
 });
 
@@ -416,75 +440,71 @@ describe("validateSpec (persist-free verdicts)", () => {
   });
 });
 
-describe("workflowinstance guards", () => {
-  it("refuses a missing parent (NotFound) and a cross-org parent (InvalidArgument, pinned copy)", async () => {
-    const missing = await instanceCommand
-      .create({
-        apiVersion: API_VERSION,
-        kind: "WorkflowInstance",
-        metadata: { name: `Orphan ${++counter}`, org: ORG },
-        spec: { workflowId: "wf_does_not_exist" },
-      })
-      .then(() => undefined)
-      .catch((e: unknown) => e);
-    expect((missing as ConnectError).code).toBe(Code.NotFound);
-
-    const wf = await command.create(workflowInput());
-    const crossOrg = await instanceCommand
-      .create({
-        apiVersion: API_VERSION,
-        kind: "WorkflowInstance",
-        metadata: { name: `Cross ${counter}`, org: OTHER_ORG },
-        spec: { workflowId: wf.metadata!.id },
-      })
-      .then(() => undefined)
-      .catch((e: unknown) => e);
-    expect((crossOrg as ConnectError).code).toBe(Code.InvalidArgument);
-    expect((crossOrg as ConnectError).rawMessage).toContain(
-      `Workflow belongs to org '${ORG_ID}', instance target is org '${OTHER_ORG_ID}'.`,
+describe("run visibility (spec.execution_visibility)", () => {
+  it("is stored at create, changed by updateExecutionVisibility alone, and never mints a version", async () => {
+    const created = await command.create(
+      workflowInput({
+        executionVisibility: WorkflowExecutionVisibility.organization,
+      }),
     );
-  });
+    const id = created.metadata!.id;
+    expect(created.spec?.executionVisibility).toBe(
+      WorkflowExecutionVisibility.organization,
+    );
 
-  it("refuses repointing spec.workflow_id on update (FailedPrecondition, oss#646)", async () => {
-    const wfA = await command.create(workflowInput());
-    const wfB = await command.create(workflowInput());
-    const inst = await instanceCommand.create({
-      apiVersion: API_VERSION,
-      kind: "WorkflowInstance",
-      metadata: { name: `Pinned ${counter}`, org: ORG },
-      spec: { workflowId: wfA.metadata!.id },
+    const updated = await command.updateExecutionVisibility({
+      resourceId: id,
+      executionVisibility: WorkflowExecutionVisibility.private,
     });
+    expect(updated.spec?.executionVisibility).toBe(
+      WorkflowExecutionVisibility.private,
+    );
+    expect(updated.status?.versionHash).toBe(created.status?.versionHash);
+    expect(await auditCount(id)).toBe(1);
 
-    const err = await instanceCommand
-      .update({
-        apiVersion: API_VERSION,
-        kind: "WorkflowInstance",
-        metadata: { name: inst.metadata!.name, org: ORG },
-        spec: { workflowId: wfB.metadata!.id },
-      })
-      .then(() => undefined)
-      .catch((e: unknown) => e);
-    expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
-    expect((err as ConnectError).rawMessage).toContain(
-      `spec.workflow_id is immutable (instance runs workflow ${wfA.metadata!.id})`,
+    const reloaded = await query.get({ value: id });
+    expect(reloaded.spec?.executionVisibility).toBe(
+      WorkflowExecutionVisibility.private,
     );
   });
 
-  it("persists execution visibility faithfully (no FGA in this edition)", async () => {
-    const wf = await command.create(workflowInput());
-    const instances = await instanceQuery.getByWorkflow({ workflowId: wf.metadata!.id });
-    const def = instances.entries[0]!;
-
-    // Execution visibility is deliberately NOT guarded for default
-    // instances (cloud allows it too — run observability, not access).
-    const updated = await instanceCommand.updateExecutionVisibility({
-      resourceId: def.metadata!.id,
+  it("update and apply keep the stored level whatever the manifest carries", async () => {
+    const name = `Audience ${++counter}`;
+    const created = await command.apply(workflowInput({ name }));
+    const id = created.metadata!.id;
+    await command.updateExecutionVisibility({
+      resourceId: id,
       executionVisibility: WorkflowExecutionVisibility.organization,
     });
-    expect(updated.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
 
-    const reloaded = await instanceQuery.get({ value: def.metadata!.id });
-    expect(reloaded.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+    // A manifest re-applied without the field, and one carrying a stale
+    // level, both keep what the door set.
+    const reapplied = await command.apply(workflowInput({ name }));
+    expect(reapplied.spec?.executionVisibility).toBe(
+      WorkflowExecutionVisibility.organization,
+    );
+    const stale = workflowInput({
+      name,
+      executionVisibility: WorkflowExecutionVisibility.private,
+      variables: { greeting: "changed" },
+    });
+    stale.metadata!.id = id;
+    const updated = await command.update(stale);
+    expect(updated.spec?.executionVisibility).toBe(
+      WorkflowExecutionVisibility.organization,
+    );
+  });
+
+  it("an unknown workflow answers NotFound", async () => {
+    const err = await command
+      .updateExecutionVisibility({
+        resourceId: "wfl_missing",
+        executionVisibility: WorkflowExecutionVisibility.organization,
+      })
+      .then(() => undefined)
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ConnectError);
+    expect((err as ConnectError).code).toBe(Code.NotFound);
   });
 });
 

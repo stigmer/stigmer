@@ -1,16 +1,16 @@
 /**
  * Pins the run gate's SPLICE in workflow-execution-create over the real
- * router: AuthorizeRunTarget sits after
- * ValidateWorkflowOrInstance and BEFORE EnsureEngineAvailable and
- * CreateDefaultInstanceIfNeeded (the chain's first side effect and its
- * first store read). Pinned here: (1) each shape is checked against its
- * own target with its own byte-pinned copy; (2) a denial leaves no
- * execution row and reads nothing — a nonexistent workflow_id is DENIED,
- * not NOT_FOUND, because the gate answers before the lookup; (3) the gate
+ * router: AuthorizeRunTarget sits after ValidateProto and BEFORE
+ * EnsureEngineAvailable and PinWorkflowVersion (the chain's first store
+ * read of the workflow). Pinned here: (1) the run's workflow is checked
+ * with workflow#can_execute and its byte-pinned copy; (2) a denial leaves
+ * no execution row and reads nothing — a nonexistent workflow_id is
+ * DENIED, not NOT_FOUND, because the gate answers before the lookup, so an
+ * unknown workflow and a forbidden one read the same; (3) the gate
  * precedes the engine gate: an ALLOWED create on this engineless server
- * answers the engine's UNAVAILABLE; (4) the shape-less request is still
- * INVALID_ARGUMENT from ValidateWorkflowOrInstance, which runs first. The
- * authorizer under test answers only run-gate checks.
+ * answers the engine's UNAVAILABLE; (4) a run naming no workflow is
+ * ValidateProto's INVALID_ARGUMENT, which runs first. The authorizer
+ * under test answers only run-gate checks.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -34,7 +34,6 @@ import { runGateOnlyAuthorizer } from "../../../pipeline/__tests__/support.js";
 import {
   ENGINE_UNAVAILABLE_MESSAGE,
   runWorkflowDeniedMessage,
-  runWorkflowInstanceDeniedMessage,
 } from "../constants.js";
 
 const silentLogger = createLogger({
@@ -98,10 +97,7 @@ async function captureError(
   throw new Error("expected the create to reject");
 }
 
-function createInput(spec: {
-  workflowId?: string;
-  workflowInstanceId?: string;
-}) {
+function createInput(spec: { workflowId?: string }) {
   return {
     apiVersion: API_VERSION,
     kind: "WorkflowExecution",
@@ -140,27 +136,6 @@ describe("workflow-execution-create run gate (composed server)", () => {
     ).toBe(before);
   });
 
-  it("workflow_instance_id: denies with the instance copy on workflow_instance#can_execute", async () => {
-    decision = { kind: "deny", reason: "" };
-    gate.runGateChecks.length = 0;
-
-    const err = await captureError(() =>
-      command.create(createInput({ workflowInstanceId: "wfi_01private" })),
-    );
-
-    expect(err.code).toBe(Code.PermissionDenied);
-    expect(err.rawMessage).toBe(
-      runWorkflowInstanceDeniedMessage("wfi_01private"),
-    );
-    expect(gate.runGateChecks).toEqual([
-      {
-        permission: IamPermission.can_execute,
-        resourceKind: ApiResourceKind.workflow_instance,
-        resourceId: "wfi_01private",
-      },
-    ]);
-  });
-
   it("not-found answers NOT_FOUND naming the target (the stigmer#224 order)", async () => {
     decision = { kind: "not-found" };
     const err = await captureError(() =>
@@ -185,16 +160,14 @@ describe("workflow-execution-create run gate (composed server)", () => {
     ]);
   });
 
-  it("the shape-less request is still ValidateWorkflowOrInstance's INVALID_ARGUMENT, and the gate makes no check", async () => {
+  it("a run naming no workflow is ValidateProto's INVALID_ARGUMENT, and the gate makes no check", async () => {
     decision = { kind: "deny", reason: "" };
     gate.runGateChecks.length = 0;
 
     const err = await captureError(() => command.create(createInput({})));
 
     expect(err.code).toBe(Code.InvalidArgument);
-    expect(err.rawMessage).toBe(
-      "either workflow_id or workflow_instance_id must be provided",
-    );
+    expect(err.rawMessage).toContain("spec.workflow_id");
     expect(gate.runGateChecks).toEqual([]);
   });
 });

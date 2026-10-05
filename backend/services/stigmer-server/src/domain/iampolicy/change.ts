@@ -19,7 +19,7 @@
  * person, or an audience written as a userset (`team:T#member`,
  * `organization:O#viewer`, `organization:O#child_org_viewer`). A row
  * naming a resource as its principal with no relation is a structural link
- * (a parent, a default instance, a child organization), the bookkeeping
+ * (a parent, a child organization), the bookkeeping
  * a resource's own creation implies; it carries no change record.
  *
  * The actor is the caller's id and class and nothing else: never the email,

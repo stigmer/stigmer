@@ -14,8 +14,7 @@ Workflows follow a three-tier hierarchy; agents have two, because a conversation
 
 ```
 Blueprint (Agent, Workflow)       ← discoverability and usability
-  └── Instance (WorkflowInstance)  ← who can use this deployment
-        └── Execution (WorkflowExecution)  ← who can observe runs
+  └── Execution (WorkflowExecution)  ← who can observe runs (the workflow's run visibility)
   └── Session → AgentExecution    ← a person's conversation and its turns
 ```
 
@@ -24,12 +23,11 @@ Each tier has independent but composable visibility:
 | Tier | Default Visibility | Supports Child Orgs | Inheritance |
 |------|-------------------|-------------------|-------------|
 | **Blueprint** | Org members | Yes (`child_org_viewer`) | — |
-| **Instance** (workflows) | Private (owner only) | No (a default instance inherits its workflow's) | — |
-| **Execution** | Inherited from parent | No (inherited) | Workflow: from instance. Agent: from session |
+| **Execution** | Owner only, widened by its parent | No (inherited) | Workflow: the workflow's opt-in `execution_viewer`. Agent: from session |
 
 ## The Visibility Spectrum
 
-Instances support configurable visibility controlled by which tuples are written:
+Resources support configurable visibility controlled by which tuples are written:
 
 | Visibility | Tuple Written | Who Can View |
 |---|---|---|
@@ -49,19 +47,19 @@ A blueprint (`agent`, `workflow`, `mcp_server`) is granted to a person or a team
 | `editor` | everything a viewer can, and change its definition (`can_edit`): update, tag a version, schedule an agent | delete it, or decide who else reaches it |
 | `owner` | everything (the creator, and the organization's admins by inheritance) | |
 
-Who else reaches a resource is the owner's, through two permissions. `can_grant_access` is granting and revoking. `can_manage_audience` is every act that changes the audience without a grant: `updateVisibility` on every kind, `updateExecutionVisibility` on a workflow instance, publishing an agent on a share link and binding it to a channel. They are two permissions because the self-check answers `can_grant_access` false wherever the edition grants no roles on the kind (the console then hides grant controls), while every edition lets an owner change an audience. An editor is a viewer (`viewer: ... or editor`), so the model's invariant "you can run what you can read" holds for editors too. The open-source server grants no per-resource role (its policy grant scope is the organization only); the hosted edition and Enterprise grant these.
+Who else reaches a resource is the owner's, through two permissions. `can_grant_access` is granting and revoking. `can_manage_audience` is every act that changes the audience without a grant: `updateVisibility` on every kind, `updateExecutionVisibility` on a workflow, publishing an agent on a share link and binding it to a channel. They are two permissions because the self-check answers `can_grant_access` false wherever the edition grants no roles on the kind (the console then hides grant controls), while every edition lets an owner change an audience. An editor is a viewer (`viewer: ... or editor`), so the model's invariant "you can run what you can read" holds for editors too. The open-source server grants no per-resource role (its policy grant scope is the organization only); the hosted edition and Enterprise grant these.
 
 ## Agent vs Workflow Asymmetry
 
 ```
 Agent Path:     Agent → Session (personal) → AgentExecution
-Workflow Path:  Workflow → WorkflowInstance → WorkflowExecution
+Workflow Path:  Workflow → WorkflowExecution
 ```
 
 - **Agent executions** inherit from sessions. Sessions are always personal — even if the agent is org-visible, conversations remain private. Sharing a session requires explicit viewer grants. The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
-- **Workflow executions** inherit directly from the workflow instance. If the instance has ORG visibility, all org members see all executions. Zero per-execution tuples needed.
+- **Workflow executions** are private to the person who started each one, and inherit the workflow's opt-in `execution_viewer`: a workflow whose run visibility is ORGANIZATION shows every run, past runs included, to the whole organization. Zero per-execution tuples needed. A workflow's own visibility never exposes its runs.
 
-This asymmetry is intentional: agents are conversational (privacy by default), workflows are operational (observability by default when org-shared).
+This asymmetry is intentional: agents are conversational (privacy always), workflows are operational (observability is the workflow owner's opt-in).
 
 ## What the model deliberately cannot say: the runtime lanes' blueprint reads
 
@@ -90,23 +88,23 @@ define viewer: ([identity_account] and affiliated from organization) or owner
 
 Resources: `session`
 
-### Configurable Visibility (Instances)
+### Configurable Visibility (Personal Resources)
 
 Private by default, expandable to org via an additional tuple:
 
 ```fga
-define viewer: ([identity_account, organization#viewer] and affiliated from organization) or owner or viewer from default_of
+define viewer: ([identity_account, organization#viewer] and affiliated from organization) or owner
 ```
 
-Resources: `workflow_instance`. An `environment` follows the same pattern with a narrower line, `([identity_account, organization#viewer] and affiliated from organization) or owner`: no `default_of` and no team grant. It is personal by default and shared with the organization by its visibility, and its owner arm keeps the organization's admins out of a personal one's secrets.
+Resources: `environment`. It is personal by default and shared with the organization by its visibility, and its owner arm keeps the organization's admins out of a personal one's secrets.
 
 ### Inherited Visibility (Executions)
 
 Permissions inherited from parent resource:
 
 ```fga
-# Workflow execution inherits from instance
-define viewer: ([identity_account] and affiliated from organization) or owner or viewer from workflow_instance
+# Workflow execution inherits the workflow's opt-in run audience
+define viewer: ([identity_account, team#member] and affiliated from organization) or owner or execution_viewer from workflow
 
 # Agent execution inherits from session
 define viewer: viewer from session or owner
@@ -148,23 +146,6 @@ A team's bound is `viewer`, not `affiliated`: a guest is never a team's member. 
 
 Resources: `team`
 
-## Default Instances
-
-Every workflow auto-creates a default instance on creation. Default instances are:
-
-- **System-managed**: Tagged with `stigmer.ai/system-managed: "true"` and `stigmer.ai/default-instance: "true"`
-- **Private visibility**: No viewer expansion tuples. Only the execution triggerer sees their runs
-- **Owned by the creator**: The blueprint creator owns the default instance
-
-Organizations that want shared execution observability create their own instance with ORG visibility:
-
-```
-# Org creates an instance with ORG visibility
-workflow_instance:acme-triage#viewer@organization:acme#viewer
-```
-
-This ensures that a shared blueprint's users only see their own executions, while org-managed instances provide shared observability.
-
 ## Permission Hierarchy
 
 For most resources:
@@ -185,7 +166,7 @@ Platform capabilities live on `platform:stigmer`: one `operator` role, narrow ro
 ## Shapes to Avoid
 
 - A relation used as a tupleset (`admin from organization` reads `organization`) must be direct: only `[type]` references, no `or`, `from` or `and`. Put a computed arm on each permission instead. OpenFGA refuses the model otherwise.
-- A tuple-to-userset (`viewer from workflow_instance`) works only if the parent type defines that relation; read the parent's file first.
+- A tuple-to-userset (`execution_viewer from workflow`) works only if the parent type defines that relation; read the parent's file first.
 - A mid-chain role in a read grant is wrong, and no type admits one: `resource#viewer@organization:acme#member` would exclude every viewer-role user, and single sign-on provisions the viewer role by default. A read grant names the widest audience, `organization#viewer`.
 - A new file must be listed in `fga.mod`, in dependency order; the generator refuses a `.fga` file that `fga.mod` does not list.
 - A suite holds `check` and `list_objects` assertions only: the built-in evaluator's kit refuses any other key (`list_users` included), and an assertion it cannot run would be proven on one engine only.
@@ -234,28 +215,28 @@ organization:stigmer#child_org@organization:acme-cust    ← on the parent
 
 Both edges are written once, when the child is created; a child has no `owner` tuple. The parent's admins hold `parent_admin` on the child, which feeds only the management permissions (`can_view_settings`, `can_edit`, `can_delete`, `can_grant_access`, `can_view_access`, `can_assign_roles`, `can_view_billing`), never a role: they manage the child and read none of its resources. A parent admin who needs to look inside grants themselves a role in the child, which the child's members and access history show.
 
-### Instance (Org-Visible Workflow Instance)
+### Workflow with org run visibility
 
 ```
-workflow_instance:acme-triage#organization@organization:acme
-workflow_instance:acme-triage#workflow@workflow:support-triage
-workflow_instance:acme-triage#owner@identity_account:alice
-workflow_instance:acme-triage#viewer@organization:acme#viewer  ← ORG visibility
+workflow:support-triage#organization@organization:acme
+workflow:support-triage#owner@identity_account:alice
+workflow:support-triage#viewer@organization:acme#viewer            ← ORG visibility
+workflow:support-triage#execution_viewer@organization:acme#viewer  ← ORG run visibility
 ```
 
-### Execution (Inherits from Instance)
+### Execution (Inherits the Workflow's Run Visibility)
 
 ```
 workflow_execution:ticket-4567#organization@organization:acme
-workflow_execution:ticket-4567#workflow_instance@workflow_instance:acme-triage
+workflow_execution:ticket-4567#workflow@workflow:support-triage
 workflow_execution:ticket-4567#owner@identity_account:support-agent-1
 ```
 
-Everyone in the Acme org can view — IF the instance opted into org run
-observability (`execution_viewer@organization:acme#viewer`; instance
+Everyone in the Acme org can view — IF the workflow opted into org run
+observability (`execution_viewer@organization:acme#viewer`; workflow
 visibility alone never exposes run history):
 ```
-can_view → viewer → execution_viewer from workflow_instance → organization:acme#viewer
+can_view → viewer → execution_viewer from workflow → organization:acme#viewer
 ```
 
 ### Session (Personal)
@@ -329,8 +310,7 @@ fga/
 │       ├── session.fga             # Conversations (personal)
 │       ├── skill.fga               # Knowledge bases (open access)
 │       ├── workflow.fga            # Workflow blueprints (open access)
-│       ├── workflow_instance.fga   # Workflow deployments (configurable visibility)
-│       └── workflow_execution.fga  # Workflow runs (inherits from instance)
+│       └── workflow_execution.fga  # Workflow runs (private; the workflow's opt-in run visibility)
 └── tests/                          # The suites: `fga model test` documents, one per behaviour
 ```
 

@@ -70,19 +70,6 @@ export function newValidateVisibilityUpdateStep(): PipelineStep<
   };
 }
 
-/**
- * Go RejectDefaultInstanceVisibilityUpdate: the canonical
- * FAILED_PRECONDITION for a visibility update aimed at a system-managed
- * default instance — the copy is cloud-identical and conformance-pinned;
- * the PREDICATE lives in the instance controllers' own guard steps.
- */
-export function rejectDefaultInstanceVisibilityUpdate(): never {
-  throw failedPreconditionError(
-    "Default instances do not have their own visibility - access always follows " +
-      "the parent blueprint. Change the blueprint's visibility instead.",
-  );
-}
-
 /** Go rejectUnsupportedVisibility (the shared level check + copy). */
 /**
  * The one sentence for a level a kind does not support. Exported for the

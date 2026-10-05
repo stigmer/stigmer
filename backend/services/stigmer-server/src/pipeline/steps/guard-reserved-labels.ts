@@ -3,8 +3,7 @@
  * `stigmer.ai/*` label namespace (the Java GuardReservedLabelsStep port).
  *
  * Reserved labels carry platform semantics the server reads and acts on
- * (the personal-environment marker, the default-instance marker, the
- * membership and lineage labels): a client that could write one would be
+ * (the personal-environment marker, the membership and lineage labels): a client that could write one would be
  * writing a platform decision, and any reader trusting the label would be
  * trusting the client. Only rejecting the write closes that; the label is
  * not authorization, the server is.
@@ -23,7 +22,8 @@
  *     the local posture keeps today's behavior byte-identically; the
  *     cloud's FGA Authorizer supplies the operator gate.
  *   - INTERNAL callers pass (the in-process chain's own composed
- *     requests — default-instance factories, managed environments; the
+ *     requests — managed environments and the other rows the server
+ *     composes; the
  *     TS rendering of Java's skipAuthorization + isInProcessCall arms).
  *   - PER-KIND CLIENT CONTRACTS pass: `stigmer.ai/personal` on
  *     Environment, which the console legitimately sends on create — the
@@ -120,9 +120,9 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       if (isServerComposedRequest(ctx.callerIdentity)) {
         // The Java isInProcessCall arm: the trust decision was
-        // made by the service code that built the request — default-instance
-        // factories stamp reserved labels by design, even when the call
-        // propagates the user's identity for attribution.
+        // made by the service code that built the request, which may stamp
+        // reserved labels by design, even when the call propagates the
+        // user's identity for attribution.
         return;
       }
       const state = stateOf(ctx);

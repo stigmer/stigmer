@@ -1,20 +1,29 @@
 /**
- * PinWorkflowVersion — ports pin_workflow_version_step.go: stamps the
- * workflow's current status.version_hash onto
- * execution.status.workflow_version_hash, permanently tying the run to
- * the definition active at creation time (the runner executes the pinned
- * version even if the workflow is updated before hydration; the viewer
- * renders the correct historical graph).
+ * PinWorkflowVersion — loads the workflow a run names
+ * (`spec.workflow_id`) and stamps its current `status.version_hash` onto
+ * `execution.status.workflow_version_hash`, tying the run to the
+ * definition active at creation: the runner executes the pinned version
+ * even if the workflow is saved before hydration, every step reads its
+ * keys from that version, and the viewer renders the run's own graph.
  *
- * Every miss is a graceful skip: no resolvable workflow_id, a failed
- * workflow load, or an empty hash (pre-versioning workflows) leaves the
- * field empty and the runner falls back to the live workflow.
+ * One load per create: the loaded row is kept under PINNED_WORKFLOW_KEY,
+ * and the ExecutionContext build reads the run's declarations from it
+ * instead of loading the workflow again, so the keys a run receives come
+ * from the very version it pinned (a save landing between two loads could
+ * otherwise split them).
+ *
+ * A workflow that cannot be loaded is refused NOT_FOUND naming it. Under
+ * an enforcing Authorizer the run gate meets an unknown id first and
+ * answers it as it answers a forbidden one; the `internal` class skips the
+ * gate and trusted-local's permissive Authorizer admits any id, so this is
+ * what those callers see. A workflow with no hash (saved before
+ * versioning, or never valid) leaves the pin empty and the runner reads
+ * the live workflow.
  */
 import { create } from "@bufbuild/protobuf";
 
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import {
   WorkflowExecutionSchema,
   WorkflowExecutionStatusSchema,
@@ -22,11 +31,28 @@ import {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import { internalError, notFoundError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
 type ExecutionDesc = typeof WorkflowExecutionSchema;
+
+/** Where PinWorkflowVersion keeps the workflow row it loaded and pinned. */
+export const PINNED_WORKFLOW_KEY = "pinnedWorkflow";
+
+/** The workflow PinWorkflowVersion loaded; a chain that reads it before the pin is a wiring bug. */
+export function pinnedWorkflowOf(ctx: RequestContext<ExecutionDesc>): Workflow {
+  const workflow = ctx.get(PINNED_WORKFLOW_KEY) as Workflow | undefined;
+  if (workflow === undefined) {
+    throw internalError(
+      new Error("pinned workflow not found in context (PinWorkflowVersion must run first)"),
+      "pinned workflow not found in context",
+    );
+  }
+  return workflow;
+}
 
 export function newPinWorkflowVersionStep(
   store: Store,
@@ -36,19 +62,7 @@ export function newPinWorkflowVersionStep(
     name: "PinWorkflowVersion",
     async execute(ctx) {
       const execution = ctx.newState;
-
-      // Priority: spec.workflow_id > input.spec.workflow_id > resolve
-      // from the instance (mirrors the runner's resolveWorkflowId).
-      let workflowId = execution.spec?.workflowId ?? "";
-      if (workflowId === "") {
-        workflowId = ctx.input.spec?.workflowId ?? "";
-      }
-      if (workflowId === "") {
-        workflowId = await resolveWorkflowIdFromInstance(store, logger, ctx);
-      }
-      if (workflowId === "") {
-        return;
-      }
+      const workflowId = execution.spec?.workflowId ?? "";
 
       let workflow: Workflow;
       try {
@@ -58,15 +72,12 @@ export function newPinWorkflowVersionStep(
           WorkflowSchema,
         );
       } catch (error) {
-        logger.warn(
-          "Failed to load workflow for version pinning — execution will use live workflow at hydration",
-          {
-            workflowId,
-            error: error instanceof Error ? error.message : String(error),
-          },
-        );
-        return;
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("Workflow", workflowId);
+        }
+        throw internalError(error, "failed to load workflow");
       }
+      ctx.set(PINNED_WORKFLOW_KEY, workflow);
 
       const versionHash = workflow.status?.versionHash ?? "";
       if (versionHash === "") {
@@ -83,32 +94,4 @@ export function newPinWorkflowVersionStep(
       });
     },
   };
-}
-
-async function resolveWorkflowIdFromInstance(
-  store: Store,
-  logger: Logger,
-  ctx: RequestContext<ExecutionDesc>,
-): Promise<string> {
-  let instanceId = ctx.newState.spec?.workflowInstanceId ?? "";
-  if (instanceId === "") {
-    instanceId = ctx.input.spec?.workflowInstanceId ?? "";
-  }
-  if (instanceId === "") {
-    return "";
-  }
-  try {
-    const instance = await store.getResource(
-      ApiResourceKind.workflow_instance,
-      instanceId,
-      WorkflowInstanceSchema,
-    );
-    return instance.spec?.workflowId ?? "";
-  } catch (error) {
-    logger.debug("Could not load workflow instance for version pin resolution", {
-      workflowInstanceId: instanceId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return "";
-  }
 }

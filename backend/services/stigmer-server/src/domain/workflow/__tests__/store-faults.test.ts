@@ -1,15 +1,16 @@
 /**
- * Pins the store-fault contract of the workflow's visibility-update load: a
- * typed ResourceNotFoundError answers NotFound with the domain's pinned copy
+ * Pins the store-fault contract of the workflow's two targeted-update
+ * loads (updateVisibility and updateExecutionVisibility): a typed
+ * ResourceNotFoundError answers NotFound with the domain's pinned copy
  * (`workflow not found: <id>`), and any other store failure is an
- * infrastructure fault answered as a sanitized Internal, never a NotFound that
- * tells a client the workflow does not exist (stigmer/stigmer#1345).
+ * infrastructure fault answered as a sanitized Internal, never a NotFound
+ * that tells a client the workflow does not exist (stigmer/stigmer#1345).
  *
- * The surface is updateVisibility, reached through the registered handler on
- * an in-process router. The composed suites reach only a real store, which
- * cannot fail selectively, so it runs here against a store whose read throws.
- * The validator and the default-instance creator are untouchable: a load that
- * fails must stop the call before anything past it runs.
+ * The surfaces are reached through the registered handlers on an
+ * in-process router. The composed suites reach only a real store, which
+ * cannot fail selectively, so they run here against a store whose read
+ * throws. The validator is untouchable: a load that fails must stop the
+ * call before anything past it runs.
  *
  * Out of scope: the NotFound copy itself (wire contract).
  */
@@ -18,6 +19,7 @@ import { Code, createClient, createRouterTransport } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -66,7 +68,6 @@ function workflowCommand(
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
         validator: untouchable("validator"),
-        workflowInstanceCreator: untouchable("workflowInstanceCreator"),
       });
     },
     {
@@ -87,6 +88,31 @@ describe("updateVisibility — LoadWorkflowForVisibilityUpdate", () => {
       workflowCommand(store).updateVisibility({
         resourceId: WORKFLOW_ID,
         visibility: ApiResourceVisibility.visibility_private,
+      }),
+    );
+  }
+
+  it("a missing workflow answers NotFound with the domain's copy", async () => {
+    const error = await surfaceError(failingStore(MISSING()));
+
+    expect(error.code).toBe(Code.NotFound);
+    expect(error.rawMessage).toBe(NOT_FOUND_COPY);
+  });
+
+  it("any other store failure answers a sanitized Internal", async () => {
+    const error = await surfaceError(failingStore(LOCKED()));
+
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe(LOAD_FAULT_COPY);
+  });
+});
+
+describe("updateExecutionVisibility — LoadWorkflowForExecutionVisibilityUpdate", () => {
+  function surfaceError(store: Store): Promise<ConnectError> {
+    return errorOf(() =>
+      workflowCommand(store).updateExecutionVisibility({
+        resourceId: WORKFLOW_ID,
+        executionVisibility: WorkflowExecutionVisibility.organization,
       }),
     );
   }

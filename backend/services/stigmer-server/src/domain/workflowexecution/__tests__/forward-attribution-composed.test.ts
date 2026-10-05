@@ -141,7 +141,7 @@ describe("a workflow-forwarded decision names the person who made it (composed s
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "WorkflowExecution",
         metadata: { id, name: slug, slug, org: ORG },
-        spec: { workflowId: `wf_${id}`, workflowInstanceId: `wfi_${id}` },
+        spec: { workflowId: `wf_${id}` },
         status,
       }),
     );

@@ -24,6 +24,10 @@ module agentic
 # - workflow:github-summary#viewer@organization:stigmer#viewer (if visibility>=ORG)
 # - workflow:github-summary#child_org_viewer@organization:<org>#child_org_viewer (if visibility=CHILD_ORGS)
 #
+# Run observability (opt-in, separate from visibility):
+# - workflow:github-summary#execution_viewer@organization:stigmer#viewer
+#   (if spec.execution_visibility=ORGANIZATION; see execution_viewer below)
+#
 # Child-organization visibility (visibility_child_orgs):
 # - Grants view + execute to everyone in the owning organization's child
 #   organizations (see agent.fga for the full pattern docs).
@@ -73,13 +77,28 @@ type workflow
     define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or editor or child_org_viewer
     
     # ========================================
+    # RUN OBSERVABILITY (Opt-in, Separate from Visibility)
+    # ========================================
+    # Opt-in observers of THIS workflow's runs. Kept SEPARATE from `viewer`
+    # so that making a workflow org-runnable (ORG visibility) does NOT expose
+    # other people's run inputs and outputs. Empty by default => each
+    # workflow_execution stays private to the person who started it (its
+    # owner). Org-wide run history is the workflow's
+    # spec.execution_visibility=ORGANIZATION, which reads as
+    # execution_viewer@organization:<org>#viewer (the org's full read
+    # audience). Consumed by workflow_execution.viewer via
+    # "execution_viewer from workflow". Changed only by
+    # updateExecutionVisibility, which asks can_manage_audience.
+    define execution_viewer: [identity_account, organization#viewer] and affiliated from organization
+    
+    # ========================================
     # PERMISSIONS
     # ========================================
     define can_view: viewer
     define can_edit: owner or editor
     define can_delete: owner
-    # Platform invariant: you can run what you can read (the execution gate
-    # checks can_view; instance models define can_execute: can_view).
+    # Platform invariant: you can run what you can read (the run gate asks
+    # can_execute on the workflow a run names).
     define can_execute: viewer
     
     # ========================================
@@ -90,7 +109,8 @@ type workflow
     # ========================================
     # AUDIENCE
     # ========================================
-    # Who reaches this workflow (visibility) is its owner's to change.
+    # Who reaches this workflow (visibility, and who observes its runs) is
+    # its owner's to change.
     # Kept apart from can_grant_access, which the self-check answers false
     # wherever the edition grants no roles on the kind: the audience is the
     # owner's in every edition. An editor never holds it.

@@ -71,8 +71,7 @@ export interface TupleSource {
 
 /**
  * A declaration's derived-relation rule reads related rows through this
- * (default_of needs the blueprint; an organization's child_org edges need
- * its children).
+ * (an organization's child_org edges need its children).
  */
 export interface RowLoader {
   /** The decoded row, or undefined when there is none or the kind is not declared. */

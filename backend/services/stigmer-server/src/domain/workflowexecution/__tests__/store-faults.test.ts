@@ -8,7 +8,7 @@
  * The surfaces: the five lifecycle verbs (their shared LoadExecutionById
  * step), sendSignal, the two approval-forwarding verbs, the task-approval
  * signal, subscribe's snapshot read, subscribeEvents' existence check, and
- * create's CreateDefaultInstanceIfNeeded workflow load. The composed suites
+ * create's PinWorkflowVersion workflow load. The composed suites
  * reach only a real store, which cannot fail selectively, so each surface
  * runs here against a store whose one read throws. Every other dependency is
  * untouchable: a load that fails must stop the call before any of them.
@@ -57,7 +57,7 @@ import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/autho
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 
-import { newCreateDefaultInstanceIfNeededStep } from "../create-steps.js";
+import { newPinWorkflowVersionStep } from "../pin-workflow-version-step.js";
 import type { LifecycleDeps } from "../lifecycle.js";
 import {
   cancelExecution,
@@ -363,7 +363,7 @@ describe("subscribeEvents — the existence check", () => {
   });
 });
 
-describe("create — CreateDefaultInstanceIfNeeded's workflow load", () => {
+describe("create — PinWorkflowVersion's workflow load", () => {
   async function runStep(store: Store): Promise<void> {
     const ctx = new RequestContext(
       WorkflowExecutionSchema,
@@ -371,13 +371,7 @@ describe("create — CreateDefaultInstanceIfNeeded's workflow load", () => {
       testCallerIdentity(),
       ApiResourceKind.workflow_execution,
     );
-    await newCreateDefaultInstanceIfNeededStep({
-      store,
-      logger: silentLogger,
-      workflowInstanceCreator: () => {
-        throw new Error("workflowInstanceCreator reached after a failed load");
-      },
-    }).execute(ctx);
+    await newPinWorkflowVersionStep(store, silentLogger).execute(ctx);
   }
 
   it("a missing workflow answers NotFound with the create copy", async () => {

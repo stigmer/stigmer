@@ -176,16 +176,6 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | WorkflowExecutionQueryController.list | org |
 | WorkflowExecutionQueryController.listPendingApprovals | org |
 
-## `ai.stigmer.agentic.workflowinstance.v1`
-
-| Method | Fills |
-|---|---|
-| WorkflowInstanceCommandController.apply | metadata.org |
-| WorkflowInstanceCommandController.create | metadata.org |
-| WorkflowInstanceCommandController.update | metadata.org |
-| WorkflowInstanceQueryController.getByReference | org |
-| WorkflowInstanceQueryController.getByWorkflow | org |
-
 ## `ai.stigmer.iam.iampolicy.v1`
 
 | Method | Fills |

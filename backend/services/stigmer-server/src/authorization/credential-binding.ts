@@ -41,9 +41,8 @@
  * organizations, and only for a permission that reads or runs: a
  * blueprint (agent, MCP server, plugin, skill, workflow) that the bound
  * organization's own parent shares with its children at
- * `visibility_child_orgs` (connecting is how an MCP server runs), and a
- * workflow's default instance when its workflow is (the instance's
- * `viewer from default_of`). A blueprint another organization shares with
+ * `visibility_child_orgs` (connecting is how an MCP server runs). A
+ * blueprint another organization shares with
  * its children is outside, even when the person belongs to one of them
  * too: the credential names this child, and only its parent's catalog
  * reaches it. The bound organization's parent is read once per request,
@@ -82,7 +81,7 @@
  *
  * What the tests pin (__tests__/credential-binding.test.ts): every scope
  * class, the missing row, the admitted path and its limits (visibility,
- * the sharing organization, permission, a non-default instance), a
+ * the sharing organization, permission), a
  * parent's management of its children and its limits, the read memo, a
  * read fault answering unavailable, and the three decorators' unbound
  * byte-identity.
@@ -137,29 +136,14 @@ export const BOUND_ELSEWHERE_DENY_REASON =
 
 /**
  * The blueprints the model shares with child organizations
- * (`child_org_viewer: [organization#child_org_viewer]`), each with the
- * instance kind whose default instance inherits that reach.
+ * (`child_org_viewer: [organization#child_org_viewer]`).
  */
-const SHARED_BLUEPRINTS: ReadonlyMap<
-  ApiResourceKind,
-  ApiResourceKind | undefined
-> = new Map([
-  [ApiResourceKind.agent, undefined],
-  [ApiResourceKind.workflow, ApiResourceKind.workflow_instance],
-  [ApiResourceKind.mcp_server, undefined],
-  [ApiResourceKind.plugin, undefined],
-  [ApiResourceKind.skill, undefined],
-]);
-
-/** The instance kinds, each with the blueprint its default instance follows and the parent relation naming it. */
-const DEFAULT_INSTANCE_BLUEPRINTS: ReadonlyMap<
-  ApiResourceKind,
-  { readonly blueprint: ApiResourceKind; readonly relation: string }
-> = new Map([
-  [
-    ApiResourceKind.workflow_instance,
-    { blueprint: ApiResourceKind.workflow, relation: "workflow" },
-  ],
+const SHARED_BLUEPRINTS: ReadonlySet<ApiResourceKind> = new Set([
+  ApiResourceKind.agent,
+  ApiResourceKind.workflow,
+  ApiResourceKind.mcp_server,
+  ApiResourceKind.plugin,
+  ApiResourceKind.skill,
 ]);
 
 const CAN_VIEW = IamPermission[IamPermission.can_view];
@@ -324,31 +308,9 @@ export function newCredentialBinding(
     kind: ApiResourceKind,
     target: TargetFacts,
   ): Promise<boolean> {
-    if (SHARED_BLUEPRINTS.has(kind)) {
-      return sharedWithBound(caller, bound, target.facts);
-    }
-    const instance = DEFAULT_INSTANCE_BLUEPRINTS.get(kind);
-    if (instance === undefined) {
-      return false;
-    }
-    const blueprintId =
-      target.facts.parentLinks.find(
-        (link) => link.relation === instance.relation,
-      )?.parentId ?? "";
-    if (blueprintId === "") {
-      return false;
-    }
-    const blueprint = await targetFacts(
-      caller,
-      instance.blueprint,
-      blueprintId,
-    );
-    if (blueprint === undefined || blueprint === UNREADABLE) {
-      return false;
-    }
     return (
-      defaultInstanceIdOf(blueprint.row) === target.facts.id &&
-      (await sharedWithBound(caller, bound, blueprint.facts))
+      SHARED_BLUEPRINTS.has(kind) &&
+      (await sharedWithBound(caller, bound, target.facts))
     );
   }
 
@@ -708,10 +670,4 @@ export function belongsToAnOrganization(kind: ApiResourceKind): boolean {
 
 function isSharedVisibility(visibility: ApiResourceVisibility): boolean {
   return visibility === ApiResourceVisibility.visibility_child_orgs;
-}
-
-/** `status.default_instance_id`, read structurally from an agent or workflow row. */
-function defaultInstanceIdOf(row: Message): string {
-  const status = (row as { status?: { defaultInstanceId?: string } }).status;
-  return status?.defaultInstanceId ?? "";
 }

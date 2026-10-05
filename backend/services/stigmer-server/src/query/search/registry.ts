@@ -29,7 +29,6 @@ import { sessionSearchExtractor } from "../../domain/session/search-extractor.js
 import { skillSearchExtractor } from "../../domain/skill/search-extractor.js";
 import { workflowSearchExtractor } from "../../domain/workflow/search-extractor.js";
 import { workflowExecutionSearchExtractor } from "../../domain/workflowexecution/search-extractor.js";
-import { workflowInstanceSearchExtractor } from "../../domain/workflowinstance/search-extractor.js";
 import type { Logger } from "../../boot/logger.js";
 import { searchIndexedKinds } from "./criteria.js";
 import type { SearchableExtractor } from "./extractor.js";
@@ -115,6 +114,5 @@ export function newSearchableResourceRegistry(): SearchableResourceRegistry {
     skillSearchExtractor,
     workflowSearchExtractor,
     workflowExecutionSearchExtractor,
-    workflowInstanceSearchExtractor,
   ]);
 }

@@ -30,7 +30,7 @@
  *   - visibility: a driver throw fails the request as Internal — after
  *     persist; retrying the same transition converges (set-diff
  *     idempotency).
- *   - execution visibility (a workflow instance's run audience): the same,
+ *   - execution visibility (a workflow's run audience): the same,
  *     through `notifyExecutionVisibilityChanged`; the event is the target
  *     audience, so a retry converges without the old level.
  *   - the PLATFORM scope arm is dead config in BOTH editions (no kind
@@ -39,7 +39,7 @@
  */
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
@@ -54,7 +54,6 @@ import type {
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type {
-  DefaultInstanceLinkedEvent,
   ExecutionAudienceShape,
   ExecutionVisibilityChangedEvent,
   ResolvedParentLink,
@@ -65,26 +64,7 @@ import type {
 } from "../../extensions/resource-authorization.js";
 
 /**
- * Fires the driver's default-instance link event (the default_of
- * invariant). Called by the pointer-persist sites — every
- * flow that writes a blueprint's `status.defaultInstanceId` — AFTER the
- * pointer lands, so the tuple exists iff the pointer names the instance.
- * No driver (or a driver without the optional method) = no-op — OSS
- * behavior byte-identical. Synchronous: a throw fails the request; the
- * persisted pointer survives and a retry converges (idempotent write).
- */
-export async function notifyDefaultInstanceLinked(
-  lifecycle: ResourceAuthorizationLifecycle | undefined,
-  event: DefaultInstanceLinkedEvent,
-): Promise<void> {
-  if (lifecycle?.onDefaultInstanceLinked === undefined) {
-    return;
-  }
-  await lifecycle.onDefaultInstanceLinked(event);
-}
-
-/**
- * Fires the driver's run-audience event for a workflow instance whose
+ * Fires the driver's run-audience event for a workflow whose
  * `spec.execution_visibility` just persisted. No driver (or a driver
  * without the optional method) = no-op — the OSS posture, where the
  * relation is derived from the row at check time. A driver throw fails
@@ -187,12 +167,12 @@ export function diffVisibilityShapes(
 }
 
 /**
- * The run audience a workflow instance's execution visibility names — the
+ * The run audience a workflow's execution visibility names — the
  * one mapping both editions read: open source's check-time derivation
  * (authorization/model/execution-viewer.ts) turns it into the tuple the
  * check walks, and the lifecycle event hands it to an edition that stores
  * tuples. ORGANIZATION names the organization's viewers; PRIVATE and the
- * unset level name nobody, so each run stays its triggerer's.
+ * unset level name nobody, so each run stays its starter's.
  */
 export function executionAudienceShapes(
   level: WorkflowExecutionVisibility,
@@ -409,8 +389,8 @@ export function newCreateAuthorizationTuplesStep<Desc extends DescMessage>(
  *
  * Two callers, one contract: every delete chain's CleanupIamPolicies step
  * for the chain's own resource, and every cascade step for each child it
- * deletes, right after the child's row (the agent's instances and shares,
- * the workflow's instances, the session's runs). The child is cleaned
+ * deletes, right after the child's row (the agent's shares, the session's
+ * runs). The child is cleaned
  * before its parent, so the walk that finds its organization still meets
  * every link (stigmer#1603: a child whose cleanup never ran was revoked
  * later, from its owner's side, under no organization).
