@@ -319,7 +319,7 @@ function useSessionAgentVersion(session: Session | null, options: UseSessionAgen
   type={{
     agentName: { type: "string", description: "The agent's display name (its name, else its slug); `\"\"` until it loads." },
     currentHash: { type: "string", description: "The agent's current version; `\"\"` until the agent loads, or when it cannot be read." },
-    currentPersonalKeys: { type: "readonly string[]", description: "The keys the agent's current version reads from the person's personal environment (usePersonalKeys: its declared keys, minus its servers' OAuth variables, and none for an agent of another organization than the session's), sorted: what an update hands the agent. Empty until the agent and its servers load." },
+    currentPersonalKeys: { type: "readonly string[]", description: "The keys the agent's current version reads from the person's personal environment (usePersonalKeys: its declared keys, minus its servers' OAuth variables, and none for an agent of another organization than the session's), sorted: what an update hands the agent. Empty while the conversation is current (no update to name them for), and until the agent and its servers load." },
     isOutdated: { type: "boolean", description: "`true` when the pin and the agent's current version are both known and differ: the conversation runs an older version than the agent's author last saved." },
     isUpdating: { type: "boolean", description: "`true` while update is in flight." },
     labelOf: { type: "(versionHash: string) => string", description: "How a version hash reads: its tag when it has one, else a short hash." },
