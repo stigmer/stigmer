@@ -61,6 +61,11 @@
  *     harnesses (#1117). Until then this translator stamped the policy's
  *     category verdict at start, lease- and bypass-blind, so a leased,
  *     bypassed or capture-mode call that ran read "requires approval".
+ *     A call an agent's hook allowed or asked on is the exception: the hook
+ *     server records which hook decided it (`hook-server.ts`
+ *     `HookDecisionLog`), and the first of the row's events that finds the
+ *     record emits a `tool_policy` naming it, which outranks the start's
+ *     provenance in either order.
  *   - The RESULT string (`tool-result.ts`): a failure's text is its `error`
  *     alone.
  *   - The SUB-AGENT: a `task` tool call opens a sub-agent keyed by
@@ -89,6 +94,7 @@ import { utcTimestamp } from "../../shared/status.js";
 import { isDeclinedRow } from "../../shared/tool-row.js";
 import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { toolCallIdentityToken, toolIdentity, primaryToken } from "./approval-state.js";
+import type { HookDecisionLog } from "./hook-server.js";
 import { contentDigest } from "../../shared/file-tools.js";
 import { subAgentStepEvents } from "./sub-agent-steps.js";
 import { toResultString } from "./tool-result.js";
@@ -106,6 +112,8 @@ export interface CursorTranslatorOptions {
   readonly leases: { readonly global: boolean; readonly categories: ReadonlySet<ToolApprovalCategory> };
   /** The transcript as seeded at turn start (`status.messages`): the WAITING rows a resumed agent's re-issued call may belong to. */
   readonly seeded: readonly AgentMessage[];
+  /** The hooks' decisions on the turn's calls; absent for an agent without hooks. */
+  readonly hookDecisions?: HookDecisionLog;
 }
 
 /** The text and thinking of one Cursor run, cut into messages by its tool calls. */
@@ -130,6 +138,8 @@ export class CursorTranslator {
   private readonly resumable = new Map<string, string[]>();
   /** The `task` rows whose completion closes a sub-agent. */
   private readonly taskCalls = new Set<string>();
+  /** The rows a hook's decision has been stamped on. */
+  private readonly hookStamped = new Set<string>();
   /** Delta-derived events for announced rows, awaiting the loop's drain. */
   private queue: TranscriptEvent[] = [];
   /**
@@ -305,6 +315,16 @@ export class CursorTranslator {
       this.announced.add(rowId);
     }
     out.push(this.toolStarted(rowId, name, mcpServerSlug, input));
+    // The hook that decided the call, once the server has recorded it: a
+    // call's start can stream before its hook ran, its end never does.
+    const hookDecisions = this.options.hookDecisions;
+    if (hookDecisions !== undefined && !this.hookStamped.has(rowId)) {
+      const decided = hookDecisions.take(name, mcpServerSlug, input);
+      if (decided !== undefined) {
+        this.hookStamped.add(rowId);
+        out.push({ kind: "tool_policy", callId: rowId, provenance: decided.provenance, policyHook: decided.hook });
+      }
+    }
     // Deltas that arrived before the stream announced this call follow its
     // start, targeted at the row it resolved to.
     const heldMakers = this.held.get(event.call_id);

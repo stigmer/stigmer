@@ -16,7 +16,7 @@
  */
 
 import { onTestFinished } from "vitest";
-import { execFileSync, execSync } from "node:child_process";
+import { execFileSync, execSync, spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync, readlinkSync, realpathSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -51,13 +51,18 @@ export interface CursorHookHarness {
   /** Run the hook against a single hook-input payload and report its decision. */
   decide(input: object): { permission: string; raw: string };
   /**
+   * {@link decide} without blocking the event loop: the script asks the hook
+   * server, which answers in this process (`hookServer`).
+   */
+  decideAsync(input: object): Promise<{ permission: string; raw: string }>;
+  /**
    * The denial ledger entries the hook has appended this turn, raw. `kind` is
    * the attribution taxonomy (approval/secret/capture-error/fail-closed/
    * disabled); `input` is the base64(JSON(tool_input)) the hook captures on
    * APPROVAL-kind entries only; `message` the base64 refusal text on a
    * tool-list refusal.
    */
-  ledger(): Array<{ toolName: string; token: string; kind?: string; input?: string; message?: string }>;
+  ledger(): Array<{ toolName: string; token: string; kind?: string; input?: string; message?: string; hook?: string }>;
   /** The hook's directory, the harness's `hitlDir` analog: `readDenialLedger(h.hitlDir)` reads what the runner reads. */
   readonly hitlDir: string;
   /** Truncate the denial ledger (a fresh turn). */
@@ -78,6 +83,8 @@ export interface CursorHookHarnessOptions {
   grants?: ApprovalGrant[];
   /** Tools of the MCP server "srv" (the one {@link hookMcp} names) that its server marks destructive. */
   destructiveMcpTools?: string[];
+  /** The server {@link destructiveMcpTools} belong to; "srv" (the one {@link hookMcp} names by default) when absent. */
+  destructiveMcpServer?: string;
   /** MCP servers with a run-lifetime lease. */
   leasedMcpServers?: string[];
   /** Omit the state file to exercise the fail-closed (deny) path. */
@@ -139,6 +146,13 @@ export interface CursorHookHarnessOptions {
   platformServerSlugs?: string[];
   /** The custom sub-agent types registered with the SDK. */
   subAgentTypes?: string[];
+  /** The turn's hook server, named in the active-turn pointer as the runner names it. */
+  hookServer?: { socketPath: string; token: string };
+}
+
+/** A gate answer's permission, as the SDK reads it; "?" when it carries none. */
+function permissionOf(raw: string): string {
+  return raw.includes('"permission":"deny"') ? "deny" : raw.includes('"permission":"allow"') ? "allow" : "?";
 }
 
 /** The approval default of a turn whose servers mark nothing destructive and hold no lease. */
@@ -178,6 +192,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
       stateFile: statePath,
       ledgerFile: ledgerPath,
       runnerPid: opts.runnerPid ?? process.pid,
+      ...(opts.hookServer ? { hookSocket: opts.hookServer.socketPath, hookToken: opts.hookServer.token } : {}),
     }),
     "utf-8",
   );
@@ -197,7 +212,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
 
   if (!opts.noStateFile) {
     const mcpDefault: McpApprovalDefault = {
-      destructive: new Set((opts.destructiveMcpTools ?? []).map((tool) => mcpToolKey("srv", tool))),
+      destructive: new Set((opts.destructiveMcpTools ?? []).map((tool) => mcpToolKey(opts.destructiveMcpServer ?? "srv", tool))),
       leasedServers: new Set(opts.leasedMcpServers ?? []),
     };
     const toolScope = compileHookToolScope({
@@ -227,12 +242,19 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
     hitlDir: dir,
     decide(input: object) {
       const raw = execFileSync("bash", [scriptPath], { input: JSON.stringify(input) }).toString();
-      const permission = raw.includes('"permission":"deny"')
-        ? "deny"
-        : raw.includes('"permission":"allow"')
-          ? "allow"
-          : "?";
-      return { permission, raw };
+      return { permission: permissionOf(raw), raw };
+    },
+    decideAsync(input: object) {
+      return new Promise((resolve, reject) => {
+        const child = spawn("bash", [scriptPath], { stdio: ["pipe", "pipe", "inherit"] });
+        let raw = "";
+        child.stdout.on("data", (chunk: Buffer) => {
+          raw += chunk.toString("utf-8");
+        });
+        child.on("error", reject);
+        child.on("close", () => resolve({ permission: permissionOf(raw), raw }));
+        child.stdin.end(JSON.stringify(input));
+      });
     },
     ledger() {
       if (!existsSync(ledgerPath)) return [];

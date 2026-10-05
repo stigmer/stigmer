@@ -10,9 +10,11 @@
  * What remains is Cursor's own reading of that record: the cursor mode; the
  * tool-list checks this engine can and cannot honour; the row facts beside the
  * runtime's approval verdicts; the SDK's MCP config and tool restriction; the
- * prompt-shaped view of the attachments;
- * the HITL gate (hook script, approval state, grants, denial watcher, and
- * the hook sidecar bound as the runtime's CAS observations); the catalog
+ * prompt-shaped view of the attachments; the agent's hooks (the evaluator,
+ * the workspace hook files a person's own folder may not carry, the tools
+ * a hook would answer for that Cursor never shows one); the HITL gate (hook
+ * script, approval state, grants, the hook server, denial watcher, and the
+ * hook sidecar bound as the runtime's CAS observations); the catalog
  * validation of the
  * requested model; the credential, the sub-agents, the variant params and
  * the agent itself (parked or resolved); the bind of a new agent's id through
@@ -52,10 +54,24 @@ import {
 } from "../../shared/tool-lists.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { ensureHitlDir, getPlatformDir } from "../../shared/workspace/platform-dir.js";
+import type { HookEvaluator } from "../../shared/hooks/evaluate.js";
+import { buildHookEvaluator, HookSetupError, hookPermissionMode } from "../../shared/hooks/setup.js";
 import { stigmerSymlinkPointsAt } from "../../shared/workspace/stigmer-link.js";
 import { compileHookToolScope } from "./hook-scope.js";
 import { computeAgentFingerprint, takeCachedAgent } from "./agent-session-cache.js";
-import { buildApprovalGrants, buildApprovalState, emitCursorGrantReceipts, reconstructAdjudicatedApprovals, watchDenialLedger, type ApprovalGrant } from "./approval-state.js";
+import {
+  buildApprovalGrants,
+  buildApprovalState,
+  buildPersonRefusals,
+  emitCursorGrantReceipts,
+  reconstructAdjudicatedApprovals,
+  watchDenialLedger,
+  type ApprovalGrant,
+} from "./approval-state.js";
+import { startHookServer, type HookDecisionLog } from "./hook-server.js";
+import { toolsHiddenByHooks, withToolsHidden } from "./hook-tool-hiding.js";
+import { CursorEngineToolViews } from "./hook-views.js";
+import { refuseLinkedGateFile, refuseOwnFolderHooks, workspaceFolders } from "./workspace-hook-files.js";
 import { readSidecarSnapshot } from "./cas-observations.js";
 import { CURSOR_CAPABILITIES } from "./cursor-capabilities.js";
 import { toCursorMcpConfig, validateMcpServerEnv } from "./cursor-mcp-config.js";
@@ -83,7 +99,7 @@ import { composeTurnRecoveryDigest } from "./turn-recovery.js";
 import type { TurnStreamState } from "./turn-stream.js";
 import { buildCursorSubAgentDefinitions, subAgentsInScope } from "./subagent-config.js";
 import { CursorUsagePricer } from "./usage-pricing.js";
-import { installHitlGate, removeHitlGate, type HitlGateHandle } from "./workspace-setup.js";
+import { installHitlGate, MAX_HOOK_TIMEOUT_SECONDS, removeHitlGate, type HitlGateHandle } from "./workspace-setup.js";
 
 /**
  * The runner config this harness reads per turn, as a named slice
@@ -93,7 +109,13 @@ import { installHitlGate, removeHitlGate, type HitlGateHandle } from "./workspac
  */
 export type CursorAdapterConfig = Pick<
   Config,
-  "proxyEndpoint" | "cursorApiKey" | "stigmerTokenRef" | "workspaceRootDir" | "cloudModeEnabled" | "agentResolveTimeoutMs"
+  | "proxyEndpoint"
+  | "cursorApiKey"
+  | "stigmerTokenRef"
+  | "workspaceRootDir"
+  | "cloudModeEnabled"
+  | "agentResolveTimeoutMs"
+  | "cursorStreamStallTimeoutMs"
 >;
 
 export type CursorAgentMode = "cloud" | "local";
@@ -106,6 +128,8 @@ export interface AdjudicatedRows {
   readonly adjudicatedApprovals: PendingApproval[];
   /** The content digest that authorizes an approved edit by its exact bytes (a sibling edit to the same file re-gates). */
   readonly adjudicatedContentDigests: Map<string, string>;
+  /** The approvals a hook asked for, by tool-call id. */
+  readonly adjudicatedHookAsks: ReadonlySet<string>;
 }
 
 /** The HITL gate as installed for this turn, and what the stream and the boundary read from it. */
@@ -114,9 +138,11 @@ export interface CursorGate {
   readonly hitlDir: string;
   readonly hitlGate: HitlGateHandle;
   readonly approvalGrants: ApprovalGrant[] | undefined;
+  /** The hooks' decisions on the calls that may run, for the rows' provenance; absent for an agent without hooks. */
+  readonly hookDecisions?: HookDecisionLog;
   /** Closes the denial-ledger watcher; idempotent. */
   readonly stopDenialWatcher: () => void;
-  /** Restores the workspace's `.cursor/hooks.json` (issue #173); the runtime removes the `.stigmer` link after it. */
+  /** Restores the workspace's hook files (issue #173) and stops the hook server; the runtime removes the `.stigmer` link after it. */
   readonly removeGate: () => Promise<void>;
 }
 
@@ -259,6 +285,83 @@ function cursorToolInventory(
   };
 }
 
+/** The agent's hooks on this engine: the evaluator, and the SDK tools the turn hides because a hook would answer for them. */
+export interface CursorHooks {
+  readonly evaluator: HookEvaluator;
+  readonly hiddenTools: readonly string[];
+}
+
+/**
+ * A Cursor turn the workspace's hook files would leave unsafe is refused
+ * before any agent exists (`workspace-hook-files.ts` says why): a person's
+ * own folder whose `.claude` settings carry hooks, such settings reached
+ * through a link, or a gate file that is a link, which the engine would not
+ * load. Throws `CursorWorkspaceHooksRefusal`, which settles the turn
+ * `failed` on the `actionable` surface.
+ */
+export async function checkWorkspaceHookFiles(input: TurnInput): Promise<void> {
+  await refuseLinkedGateFile(input.workspace.primaryDir);
+  await refuseOwnFolderHooks(workspaceFolders(input.workspace.dirs, input.workspace.provision.provisionResults));
+}
+
+/**
+ * The agent's hooks, built as the native engine builds them
+ * (`shared/hooks/setup.ts`) over this engine's views of its calls
+ * (`hook-views.ts`); `null` for an agent with none this runner runs. Throws
+ * `HookSetupError` when a hook cannot run as written, or when the session
+ * runs a cloud agent, which loads no hook of the runner's.
+ */
+export async function prepareHooks(
+  input: TurnInput,
+  sink: Pick<TurnSink, "stopSignal" | "recordActivity">,
+  config: CursorAdapterConfig,
+  mode: { agentMode: CursorAgentMode },
+): Promise<CursorHooks | null> {
+  const primaryDir = input.workspace.primaryDir;
+  const evaluator = await buildHookEvaluator({
+    sources: input.hooks.sources,
+    runValues: input.environment.envVars,
+    agentEnv: input.blueprint.agent?.spec?.env,
+    mcpServers: input.mcp.servers,
+    provisionResults: input.workspace.provision.provisionResults,
+    views: new CursorEngineToolViews({
+      workspaceRoot: primaryDir,
+      pluginServers: input.hooks.pluginServers,
+      platformServerSlugs: input.mcp.platformServerSlugs,
+    }),
+    sessionId: input.sessionId,
+    executionId: input.executionId,
+    model: input.model.requested,
+    workspaceRoot: primaryDir,
+    permissionMode: hookPermissionMode(
+      input.execution.spec?.interactionMode === InteractionMode.PLAN,
+      input.mcp.leases.global,
+    ),
+    leases: input.mcp.leases.hooks,
+    signal: sink.stopSignal,
+    onActivity: (detail) => sink.recordActivity(detail),
+    stallTimeoutMs: config.cursorStreamStallTimeoutMs,
+  });
+  if (evaluator === null) return null;
+  if (mode.agentMode === "cloud") {
+    throw new HookSetupError("The agent has hooks, which a cloud Cursor agent cannot run. Run the session locally or on the native engine.");
+  }
+  if (evaluator.longestTimeoutSeconds > MAX_HOOK_TIMEOUT_SECONDS) {
+    throw new HookSetupError(
+      `One of the agent's hooks may run for ${evaluator.longestTimeoutSeconds} seconds, longer than the ${MAX_HOOK_TIMEOUT_SECONDS} the Cursor engine allows. ` +
+        "Lower its timeout, or run the session on the native engine.",
+    );
+  }
+  const hiddenTools = toolsHiddenByHooks(evaluator.hookSet);
+  if (hiddenTools.length > 0) {
+    console.log(
+      `ExecuteCursor hides ${hiddenTools.join(", ")}: the agent's hooks would answer for them, and Cursor shows them to no hook ` +
+        `(execution=${input.executionId})`,
+    );
+  }
+  return { evaluator, hiddenTools };
+}
+
 /**
  * The real path an excluded `Read` may still reach files inside
  * (`HookToolScope.readRoot`): the platform dir's, on a turn whose workspace
@@ -285,6 +388,7 @@ export function readAdjudicatedRows(input: TurnInput, status: AgentExecutionStat
     isReinvocation: reinvoked,
     adjudicatedApprovals: adjudicated?.pendingApprovals ?? [],
     adjudicatedContentDigests: adjudicated?.contentDigests ?? new Map(),
+    adjudicatedHookAsks: adjudicated?.hookAsked ?? new Set(),
   };
 }
 
@@ -324,7 +428,13 @@ export function projectMcpConfig(input: TurnInput): ReturnType<typeof toCursorMc
  * this gate contributes is the hook's on-disk sidecar of gitignored writes,
  * bound as the runtime's CAS observations.
  */
-export async function installGate(input: TurnInput, sink: TurnSink, rows: AdjudicatedRows, streamState: TurnStreamState): Promise<CursorGate> {
+export async function installGate(
+  input: TurnInput,
+  sink: TurnSink,
+  rows: AdjudicatedRows,
+  streamState: TurnStreamState,
+  hooks: CursorHooks | null,
+): Promise<CursorGate> {
   const { executionId, sessionId, workspace, mcp, approvalDecisions, appliedToolCallIds, artifactStorage } = input;
   const { primaryDir, gitWorkspace, captureMode } = workspace;
   const globalBypass = mcp.leases.global;
@@ -372,19 +482,39 @@ export async function installGate(input: TurnInput, sink: TurnSink, rows: Adjudi
       subAgentTypes: subAgentsInScope(input.blueprint.subAgents, mcp.toolScope).map((sa) => sa.name),
     }),
   );
-  const hitlGate = await installHitlGate({ workspaceRoot: primaryDir, hitlDir, approvalState, runnerPid: process.pid });
-  // Issue #205 diagnosability: the merge preserved the user's own hooks on
-  // the gating events, and Cursor runs every configured hook — so any of
-  // these can deny this turn's tools without writing our denial ledger. Log
-  // the exposure up front; the turn boundary uses the same list to name the
-  // likely culprit if it detects an unattributed hook block.
-  if (hitlGate.foreignGatingHooks.length > 0) {
-    console.warn(
-      `ExecuteCursor: workspace hooks.json carries ${hitlGate.foreignGatingHooks.length} ` +
-        `foreign gating hook(s) [${hitlGate.foreignGatingHooks.join(", ")}] — a deny from ` +
-        `any of them blocks the runner's tools outside Stigmer's approval flow ` +
-        `(execution=${executionId})`,
-    );
+  // The agent's hooks run inside the runner; the gate's script reaches them
+  // on a local socket the pointer names (`hook-server.ts`), which closes with
+  // the gate. A person's refusal of a call this run binds over a hook's allow.
+  const hookServer = hooks === null
+    ? undefined
+    : await startHookServer({
+        evaluator: hooks.evaluator,
+        captureMode: workspace.captureMode,
+        globalBypass,
+        refusals: approvalDecisions.size > 0
+          ? buildPersonRefusals(rows.adjudicatedApprovals, approvalDecisions, rows.adjudicatedContentDigests, rows.adjudicatedHookAsks)
+          : new Map(),
+      });
+  let hitlGate: HitlGateHandle;
+  try {
+    hitlGate = await installHitlGate({
+      workspaceRoot: primaryDir,
+      hitlDir,
+      approvalState,
+      runnerPid: process.pid,
+      ...(hookServer !== undefined && hooks !== null
+        ? {
+            hooks: {
+              socketPath: hookServer.socketPath,
+              token: hookServer.token,
+            },
+          }
+        : {}),
+      folders: workspaceFolders(workspace.dirs, workspace.provision.provisionResults),
+    });
+  } catch (err) {
+    await hookServer?.close();
+    throw err;
   }
   // Arm the denial watcher as soon as the gate exists. The per-turn ledger
   // reset may flip the flag once before the run starts; the loop's read then
@@ -406,8 +536,15 @@ export async function installGate(input: TurnInput, sink: TurnSink, rows: Adjudi
     hitlDir,
     hitlGate,
     approvalGrants,
+    ...(hookServer !== undefined ? { hookDecisions: hookServer.decisions } : {}),
     stopDenialWatcher,
-    removeGate: () => removeHitlGate(hitlGate),
+    removeGate: async () => {
+      try {
+        await removeHitlGate(hitlGate);
+      } finally {
+        await hookServer?.close();
+      }
+    },
   };
 }
 
@@ -420,7 +557,13 @@ export async function installGate(input: TurnInput, sink: TurnSink, rows: Adjudi
  * The requested name and the effective tier and thinking mode are the
  * runtime's; validating the NAME against Cursor's catalog is this harness's.
  */
-export async function resolveEngine(input: TurnInput, sink: TurnSink, config: CursorAdapterConfig, mode: { cursorMode: CursorMode; agentMode: CursorAgentMode }): Promise<CursorEngine> {
+export async function resolveEngine(
+  input: TurnInput,
+  sink: TurnSink,
+  config: CursorAdapterConfig,
+  mode: { cursorMode: CursorMode; agentMode: CursorAgentMode },
+  hooks: CursorHooks | null = null,
+): Promise<CursorEngine> {
   const { executionId, sessionId, threadId, blueprint, workspace, session } = input;
   const { cursorMode, agentMode } = mode;
   const mcpConfig = projectMcpConfig(input);
@@ -496,8 +639,9 @@ export async function resolveEngine(input: TurnInput, sink: TurnSink, config: Cu
         mcpServers: mcpConfig,
         agents: cursorSubAgents,
         // The main loop's built-ins the lists exclude, hidden by the SDK
-        // (`read` and `mcp` never: the hook confines those).
-        ...cursorSdkToolOptions(input.mcp.toolScope, input.mcp.servers.length > 0),
+        // (`read` and `mcp` never: the hook confines those), and the tools
+        // a hook would answer for that Cursor never shows one.
+        ...withToolsHidden(cursorSdkToolOptions(input.mcp.toolScope, input.mcp.servers.length > 0), hooks?.hiddenTools ?? []),
       };
 
   // Agent.create/Agent.resume have no timeout of their own — a degraded

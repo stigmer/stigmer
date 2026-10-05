@@ -14,6 +14,7 @@ public interface HookConfigOrBuilder extends
    * <pre>
    * The format the hooks are written in, which decides their input and answer.
    * An agent's own block may leave it unset; Claude Code's format is assumed.
+   * A block in Cursor's format names it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>
@@ -24,6 +25,7 @@ public interface HookConfigOrBuilder extends
    * <pre>
    * The format the hooks are written in, which decides their input and answer.
    * An agent's own block may leave it unset; Claude Code's format is assumed.
+   * A block in Cursor's format names it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookFormat format = 1 [json_name = "format"];</code>

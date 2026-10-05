@@ -20,8 +20,15 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, symlinkSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { generateHookScript } from "../hook-script.js";
-import { buildApprovalState, grantToken, primaryToken, scopeRefusalToken, toolIdentity } from "../approval-state.js";
+import { buildHookClientScript, generateHookScript } from "../hook-script.js";
+import { create as createMessage } from "@bufbuild/protobuf";
+import { HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
+import { HookSet } from "../../../shared/hooks/hook-set.js";
+import { buildShellEnv } from "../../../shared/shell-env.js";
+import { startHookServer } from "../hook-server.js";
+import { CursorEngineToolViews } from "../hook-views.js";
+import { buildApprovalState, grantToken, hookAskDigest, primaryToken, scopeRefusalToken, toolIdentity } from "../approval-state.js";
 import { AGENT_SCOPE_KEY, READ_SCOPE_KEY, compileHookToolScope, scopeKey } from "../hook-scope.js";
 import { CURSOR_SDK_TOOL_COVERS, ToolScope } from "../../../shared/tool-lists.js";
 import { mcpToolKey } from "../../../shared/approval-policy.js";
@@ -142,7 +149,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       const ledger = h.ledger();
       expect(ledger).toHaveLength(1);
       expect(ledger[0].kind).toBe("unattended");
-      expect(ledger[0].token).toBe(grantToken("drop_table", ""));
+      expect(ledger[0].token).toBe(grantToken("srv/drop_table", ""));
     });
 
     it("still allows auto-approved MCP tools and read-only built-ins (gating is unchanged)", () => {
@@ -167,8 +174,9 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
 
   // MCP gating runs ONLY on the beforeMCPExecution event (preToolUse does not
   // enforce MCP), so a denial is recorded in exactly one place. The identity is
-  // name-only (base64("<tool>\n")) because the bare tool name is identical on the
-  // hook input and the runner's stream event.
+  // server and tool (base64("<server>/<tool>\n")): both are identical on the
+  // hook input and the runner's stream event, and a grant for one server's
+  // tool never covers an equal tool name on another.
   describe("MCP tools (beforeMCPExecution event)", () => {
     it("denies a destructive MCP tool and surfaces its approval message", () => {
       const h = setup({ destructiveMcpTools: ["click"] });
@@ -176,7 +184,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(res.permission).toBe("deny");
       expect(res.raw).toContain("Execute click");
       expect(h.ledger()).toHaveLength(1);
-      expect(h.ledger()[0].token).toBe(grantToken("click", ""));
+      expect(h.ledger()[0].token).toBe(grantToken("srv/click", ""));
       expect(h.ledger()[0].kind).toBe("approval");
     });
 
@@ -200,10 +208,33 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     it("allows a require-approval MCP tool once it has been granted (reinvocation)", () => {
       const h = setup({
         destructiveMcpTools: ["click"],
-        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "", contentDigest: "", sourceToolCallId: "consent-1" }],
+        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "srv/click", salient: "", contentDigest: "", sourceToolCallId: "consent-1" }],
       });
       expect(h.decide(hookMcp("click")).permission).toBe("allow");
       expect(h.ledger()).toEqual([]);
+    });
+
+    it("a grant for one server's tool does not let an equal tool name through on another server", () => {
+      const h = setup({
+        destructiveMcpTools: ["click"],
+        grants: [{ toolName: "click", mcpServerSlug: "other", key: "other/click", salient: "", contentDigest: "", sourceToolCallId: "consent-1" }],
+      });
+      expect(h.decide(hookMcp("click")).permission).toBe("deny");
+      expect(h.ledger()[0]!.token).toBe(grantToken("srv/click", ""));
+    });
+
+    it("keys an MCP grant on server and tool in the bash fallback too, when the Node binary is unavailable", () => {
+      const grant = (slug: string) => [{ toolName: "click", mcpServerSlug: slug, key: `${slug}/click`, salient: "", contentDigest: "", sourceToolCallId: "consent-1" }];
+      const withoutNode = (h: ReturnType<typeof setup>) => {
+        const scriptPath = join(h.hitlDir, "hook.sh");
+        writeFileSync(scriptPath, readFileSync(scriptPath, "utf-8").replace(`NODE_BIN="${process.execPath}"`, 'NODE_BIN="/nonexistent/node"'), "utf-8");
+        return h;
+      };
+      const granted = withoutNode(setup({ destructiveMcpTools: ["click"], grants: grant("srv") }));
+      expect(granted.decide(hookMcp("click")).permission).toBe("allow");
+      const elsewhere = withoutNode(setup({ destructiveMcpTools: ["click"], grants: grant("other") }));
+      expect(elsewhere.decide(hookMcp("click")).permission).toBe("deny");
+      expect(elsewhere.ledger()[0]!.token, "the token the stream row's identity recomputes").toBe(grantToken("srv/click", ""));
     });
 
     it("allows an MCP tool its server does not mark destructive", () => {
@@ -225,7 +256,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       const ledger = h.ledger();
       expect(ledger).toHaveLength(1);
       expect(ledger[0].kind).toBe("fail-closed");
-      expect(ledger[0].token).toBe(grantToken("click", ""));
+      expect(ledger[0].token).toBe(grantToken("srv/click", ""));
       expect(ledger[0]).not.toHaveProperty("input");
     });
 
@@ -1098,5 +1129,166 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     expect(raw).toContain('"permission":"deny"');
     const ledger = readFileSync(ledgerPath, "utf-8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
     expect(ledger.map((e: { kind: string }) => e.kind)).toEqual(["fail-closed"]);
+  });
+});
+
+// The agent's hooks arm (1h) and the post arm (0b), reached through the
+// runner's hook server: a server that does not answer refuses the call (a
+// hook that cannot be asked is never skipped), a call after it ran adds
+// nothing then, and an MCP call's preToolUse firing passes on to its
+// beforeMCPExecution. The arms against a real server are the gateway
+// contract's hooks section on this substrate.
+d("generated approval hook: the agent's hooks", () => {
+  const unreachable = { socketPath: join(tmpdir(), "stigmer-no-such-hooks.sock"), token: "t" };
+
+  it("refuses a call, recorded hook-unavailable, when the hook server does not answer", () => {
+    const h = setup({ hookServer: unreachable });
+    const res = h.decide({ ...hookShell("ls"), hook_event_name: "preToolUse" });
+    expect(res.permission).toBe("deny");
+    expect(res.raw).toContain("could not run this agent hooks");
+    expect(h.ledger().map((e) => e.kind), "the gate worked; the hooks could not be asked").toEqual(["hook-unavailable"]);
+  });
+
+  it("answers a call after it ran with nothing, at once, on a turn with no hook server", () => {
+    const h = setup({});
+    const after = { hook_event_name: "postToolUse", tool_name: "Shell", tool_input: { command: "ls" }, tool_output: "{}" };
+    expect(h.decide(after).raw.trim()).toBe("{}");
+    expect(h.ledger()).toEqual([]);
+    rmSync(join(h.hitlDir, "active.json"), { force: true });
+    expect(h.decide(after).raw.trim(), "with no turn at all, too").toBe("{}");
+  });
+
+  it("lets an MCP call's preToolUse firing pass to the event that names its server", () => {
+    const h = setup({ hookServer: unreachable });
+    expect(h.decide(hookMcpPreToolUse("search")).permission).toBe("allow");
+    expect(h.ledger()).toEqual([]);
+  });
+
+  it("adds nothing after a call when no hook server answers, or when the agent has none", () => {
+    const post = { hook_event_name: "postToolUse", tool_name: "Shell", tool_input: { command: "ls" } };
+    expect(setup({ hookServer: unreachable }).decide(post).raw.trim()).toBe("{}");
+    expect(setup().decide(post).raw.trim()).toBe("{}");
+  });
+
+  it("generates a client that runs on the runner's Node and answers error or {} with no server", () => {
+    const client = buildHookClientScript();
+    expect(client).not.toContain("'");
+    const run = (mode: string) =>
+      execFileSync(process.execPath, ["-e", client, unreachable.socketPath, "t", mode, "", ""], { input: "{}" }).toString();
+    expect(run("pre")).toBe("error");
+    expect(run("post")).toBe("{}");
+  });
+});
+
+// A hook's answer meets capture and the secret block as the deny-gate's own
+// answers do: an ask that trust or a grant satisfies still has a CAS-owned
+// write staged for review; a secret-like write a hook asks on is blocked,
+// never shown on a card; a hook's allow of a git-tracked write in capture
+// mode flows to the turn's review; a staged write keeps the hook's context.
+d("generated approval hook: a hook's answer under capture and the secret block", () => {
+  async function withHook(answer: object, opts: Parameters<typeof setup>[0], run: (h: ReturnType<typeof setup>) => Promise<void>): Promise<void> {
+    const evaluator = new HookEvaluator({
+      set: HookSet.of([{
+        source: { plugin: "guard", root: "", data: "", options: new Map() },
+        groups: [createMessage(HookGroupSchema, { event: "PreToolUse", matcher: "", handlers: [createMessage(HookHandlerSchema, { command: `printf '%s' '${JSON.stringify(answer)}'` })] })],
+      }]),
+      views: new CursorEngineToolViews({ workspaceRoot: "/", pluginServers: new Map(), platformServerSlugs: new Set() }),
+      sessionId: "s",
+      workspaceRoot: tmpdir(),
+      permissionMode: "default",
+      baseEnv: buildShellEnv({}),
+      homeDir: tmpdir(),
+      leases: new Set(),
+    });
+    const server = await startHookServer({ evaluator, refusals: new Map(), captureMode: opts?.captureMode ?? false, globalBypass: opts?.autoApproveAll ?? false });
+    try {
+      await run(setup({ ...opts, hookServer: { socketPath: server.socketPath, token: server.token } }));
+    } finally {
+      await server.close();
+    }
+  }
+  const ask = { hookSpecificOutput: { permissionDecision: "ask" } };
+  const allowWithContext = { hookSpecificOutput: { permissionDecision: "allow", additionalContext: "logged" } };
+
+  it("stages a gitignored write a hook asked on under trust, as it stages one without hooks", async () => {
+    await withHook(ask, { autoApproveAll: true, captureMode: true, captureIgnored: true, gitignored: ["*.log"] }, async (h) => {
+      const res = await h.decideAsync({ ...hookWrite(join(h.root, "out.log"), "x"), hook_event_name: "preToolUse" });
+      expect(res.permission).toBe("allow");
+      expect((await h.observations()).captured, "staged for review").toHaveLength(1);
+    });
+  });
+
+  it("stages a gitignored write a hook asked on that a grant answers", async () => {
+    await withHook(ask, { captureMode: true, captureIgnored: true, gitignored: ["*.log"] }, async (h) => {
+      const file = join(h.root, "out.log");
+      // The approval's grant, as the resumed turn writes it into the state.
+      const statePath = join(h.hitlDir, "state.json");
+      const state = JSON.parse(readFileSync(statePath, "utf-8")) as { approvedGrantTokens: string[] };
+      state.approvedGrantTokens.push(primaryToken("write", file, contentDigest({ file_path: file, content: "x" })));
+      writeFileSync(statePath, JSON.stringify(state), "utf-8");
+      const res = await h.decideAsync({ ...hookWrite(file, "x"), hook_event_name: "preToolUse" });
+      expect(res.permission).toBe("allow");
+      expect((await h.observations()).captured, "staged for review").toHaveLength(1);
+    });
+  });
+
+  it("refuses a call a hook asks on and rewrites, though a grant holds for the call as written; under trust the rewrite runs", async () => {
+    const root = mkdtempSync(join(tmpdir(), "ask-rewrite-"));
+    onTestFinished(() => rmSync(root, { recursive: true, force: true }));
+    const file = join(root, "a.txt");
+    const askAndMove = { hookSpecificOutput: { permissionDecision: "ask", updatedInput: { file_path: join(root, "b.txt"), content: "x" } } };
+    await withHook(askAndMove, {}, async (h) => {
+      // The approval's grant for the call as the model wrote it.
+      const statePath = join(h.hitlDir, "state.json");
+      const state = JSON.parse(readFileSync(statePath, "utf-8")) as { approvedGrantTokens: string[] };
+      state.approvedGrantTokens.push(primaryToken("write", file, contentDigest({ file_path: file, content: "x" })));
+      writeFileSync(statePath, JSON.stringify(state), "utf-8");
+      const res = await h.decideAsync({ ...hookWrite(file, "x"), hook_event_name: "preToolUse" });
+      expect(res.permission).toBe("deny");
+      expect(h.ledger().map((e) => [e.kind, Buffer.from(String(e.hook), "base64").toString("utf-8")]), "the ledger carries the hook in base64").toEqual([["hook", "guard"]]);
+    });
+    await withHook(askAndMove, { autoApproveAll: true }, async (h) => {
+      const res = await h.decideAsync({ ...hookWrite(file, "x"), hook_event_name: "preToolUse" });
+      expect(JSON.parse(res.raw.trim())).toEqual({ permission: "allow", updated_input: { file_path: join(root, "b.txt"), content: "x" } });
+    });
+  });
+
+  it("lets an approved MCP call a hook asked on through, and no other call to the same tool", async () => {
+    // The grant the runner leaves for the approval of merging PR 1 (`boundary-rows.ts` approvalDigest).
+    const grant = (digest: string) => ({ toolName: "merge", mcpServerSlug: "srv", key: "srv/merge", salient: "", contentDigest: digest, sourceToolCallId: "consent-1" });
+    await withHook(ask, { grants: [grant(hookAskDigest({ pr: 1 }))] }, async (h) => {
+      expect((await h.decideAsync(hookMcp("merge", { pr: 1 }))).permission).toBe("allow");
+      expect((await h.decideAsync(hookMcp("merge", { pr: 2 }))).permission, "merging PR 2 needs its own approval").toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["approval"]);
+    });
+    await withHook(ask, { grants: [grant("")] }, async (h) => {
+      expect((await h.decideAsync(hookMcp("merge", { pr: 1 }))).permission, "a grant for the tool alone answers no hook's ask").toBe("deny");
+    });
+  });
+
+  it("blocks a secret-like write a hook asks on, never showing it on a card", async () => {
+    await withHook(ask, {}, async (h) => {
+      const res = await h.decideAsync({ ...hookWrite(join(h.root, ".env"), "TOKEN=x"), hook_event_name: "preToolUse" });
+      expect(res.permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["secret"]);
+      expect(h.ledger()[0]).not.toHaveProperty("input");
+    });
+  });
+
+  it("lets a git-tracked write a hook allows flow in capture mode, and blocks a secret-like one outside it", async () => {
+    await withHook(allowWithContext, { captureMode: true, gitignored: [] }, async (h) => {
+      expect((await h.decideAsync({ ...hookWrite(join(h.root, ".env"), "TOKEN=x"), hook_event_name: "preToolUse" })).permission).toBe("allow");
+    });
+    await withHook(allowWithContext, {}, async (h) => {
+      expect((await h.decideAsync({ ...hookWrite(join(h.root, ".env"), "TOKEN=x"), hook_event_name: "preToolUse" })).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["secret"]);
+    });
+  });
+
+  it("keeps a hook's context on a write the capture arm staged", async () => {
+    await withHook(allowWithContext, { captureMode: true, captureIgnored: true, gitignored: ["*.log"] }, async (h) => {
+      const res = await h.decideAsync({ ...hookWrite(join(h.root, "out.log"), "x"), hook_event_name: "preToolUse" });
+      expect(JSON.parse(res.raw.trim())).toEqual({ permission: "allow", additional_context: "Hook feedback:\nlogged" });
+    });
   });
 });

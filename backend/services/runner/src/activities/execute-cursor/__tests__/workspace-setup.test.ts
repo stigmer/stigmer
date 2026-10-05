@@ -2,13 +2,16 @@
  * Tests for the HITL gate's workspace lifecycle (issue #173).
  *
  * The gate must leave the user's real repo untouched: its runtime artifacts live
- * outside the workspace, the only in-repo file (`.cursor/hooks.json`) is merged
- * with any pre-existing user config and points at the hook by absolute path, and
- * the whole surface is restored when the turn ends. These tests pin all four of
- * those guarantees plus the self-healing strip of a crash-leftover entry.
+ * outside the workspace, the in-repo `.cursor/hooks.json` holds only the gate's
+ * entries for the turn (a repository's own are set aside, so only the agent's
+ * own hooks run) and points at the hook by absolute path, a runner-owned
+ * folder's `.claude` settings hooks are set aside too, and every file is
+ * restored when the turn ends, an agent's own edit kept. These tests pin those
+ * guarantees plus the self-healing strip of a crash-leftover entry and the
+ * restore of a crashed turn's snapshot.
  */
 
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   mkdtempSync,
   mkdirSync,
@@ -17,6 +20,9 @@ import {
   existsSync,
   rmSync,
   statSync,
+  chmodSync,
+  symlinkSync,
+  lstatSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -25,7 +31,18 @@ import {
   installHitlGate,
   removeHitlGate,
   buildMergedConfig,
+  MAX_HOOK_TIMEOUT_SECONDS,
 } from "../workspace-setup.js";
+import {
+  claudeSettingsWithHooks,
+  CursorWorkspaceHooksRefusal,
+  refuseLinkedGateFile,
+  refuseOwnFolderHooks,
+  restoreAbandonedWorkspaceFiles,
+  rewriteWorkspaceFiles,
+  workspaceFolders,
+} from "../workspace-hook-files.js";
+import { spawnSync } from "node:child_process";
 import { buildApprovalState } from "../approval-state.js";
 import { NO_MCP_DEFAULT } from "../__test-utils__/cursor-hook-harness.js";
 import { getHitlGateDir } from "../../../shared/workspace/platform-dir.js";
@@ -71,7 +88,7 @@ describe("buildMergedConfig", () => {
     expect(restoreTo).toBeNull();
   });
 
-  it("merges into both event arrays and strips stale Stigmer entries from each on restore", () => {
+  it("sets every repository entry aside for the turn and strips stale Stigmer entries from each on restore", () => {
     const root = "/abs";
     const stalePre = join(root, ".stigmer", "sessions", "ses-1", "hitl", "stigmer-approval.sh");
     const staleMcp = join(root, ".stigmer", "sessions", "ses-1", "hitl", "stigmer-mcp-capture.sh");
@@ -91,7 +108,7 @@ describe("buildMergedConfig", () => {
     ]);
 
     const m = JSON.parse(merged);
-    expect(m.hooks.preToolUse.map((e: any) => e.command)).toEqual(["./user.sh", freshPre]);
+    expect(m.hooks.preToolUse.map((e: any) => e.command)).toEqual([freshPre]);
     expect(m.hooks.beforeMCPExecution.map((e: any) => e.command)).toEqual([freshMcp]);
 
     // Restore is self-healing: every stale Stigmer entry is removed from both.
@@ -100,10 +117,11 @@ describe("buildMergedConfig", () => {
     expect(r.hooks.beforeMCPExecution).toEqual([]);
   });
 
-  it("merges with a user's hooks.json and restores the original bytes verbatim", () => {
+  it("holds only the gate's entries for the turn, keeps every other field, and restores the original bytes", () => {
     const original = JSON.stringify(
       {
         version: 1,
+        note: "the repository's own field",
         hooks: {
           preToolUse: [{ command: "./user-hook.sh", timeout: 5 }],
           postToolUse: [{ command: "./user-post.sh" }],
@@ -116,14 +134,24 @@ describe("buildMergedConfig", () => {
     const { merged, restoreTo } = buildMergedConfig(original, pre(script));
     const parsed = JSON.parse(merged);
 
-    // Our entry is appended; the user's preToolUse hook is preserved...
-    expect(parsed.hooks.preToolUse).toHaveLength(2);
-    expect(parsed.hooks.preToolUse[0].command).toBe("./user-hook.sh");
-    expect(parsed.hooks.preToolUse[1].command).toBe(script);
-    // ...as is every other hook type and field.
-    expect(parsed.hooks.postToolUse).toEqual([{ command: "./user-post.sh" }]);
+    // Only the gate's entry runs this turn, on every event: the repository's
+    // preToolUse and postToolUse hooks are set aside...
+    expect(parsed.hooks).toEqual({ preToolUse: [{ command: script, timeout: MAX_HOOK_TIMEOUT_SECONDS + 30, failClosed: true }] });
+    // ...and every other field of the file is kept.
+    expect(parsed.note).toBe("the repository's own field");
     // Restore is byte-identical to the user's original.
     expect(restoreTo).toBe(original);
+  });
+
+  it("replaces a hooks.json that is not an object, and keeps an event that is not a list", () => {
+    expect(buildMergedConfig("[]", pre("/abs/hitl/stigmer-approval.sh")).restoreTo).toBe("[]");
+    const original = JSON.stringify({ version: 1, hooks: { odd: "not a list", preToolUse: [{ command: "/h/.stigmer/x/stigmer-approval.sh" }] } });
+    expect(JSON.parse(buildMergedConfig(original, pre("/abs/hitl/stigmer-approval.sh")).restoreTo!).hooks).toEqual({ odd: "not a list", preToolUse: [] });
+  });
+
+  it("gives each entry the timeout it is asked for", () => {
+    const { merged } = buildMergedConfig(null, pre("/abs/hitl/stigmer-approval.sh"), 630);
+    expect(JSON.parse(merged).hooks.preToolUse[0].timeout).toBe(630);
   });
 
   it("strips a stale Stigmer entry (crash leftover) from both merged and restore", () => {
@@ -142,12 +170,8 @@ describe("buildMergedConfig", () => {
     const { merged, restoreTo } = buildMergedConfig(original, pre(fresh));
 
     const mergedParsed = JSON.parse(merged);
-    // No duplicate: user entry + exactly one fresh Stigmer entry.
-    expect(mergedParsed.hooks.preToolUse).toHaveLength(2);
-    expect(mergedParsed.hooks.preToolUse.map((e: any) => e.command)).toEqual([
-      "./user-hook.sh",
-      fresh,
-    ]);
+    // No duplicate: exactly one fresh Stigmer entry, the user's set aside.
+    expect(mergedParsed.hooks.preToolUse.map((e: any) => e.command)).toEqual([fresh]);
     // Restore is the CLEANED user config — the stale entry is gone (self-healing).
     const restoreParsed = JSON.parse(restoreTo!);
     expect(restoreParsed.hooks.preToolUse).toEqual([{ command: "./user-hook.sh" }]);
@@ -207,72 +231,10 @@ describe("buildMergedConfig", () => {
     const fresh = "/home/u/.stigmer/sessions/ses-9/hitl/stigmer-approval.sh";
     const { merged, restoreTo } = buildMergedConfig(original, pre(fresh));
 
-    // No duplicate, stale legacy entry dropped, user hook kept ahead of ours.
-    expect(JSON.parse(merged).hooks.preToolUse.map((e: any) => e.command)).toEqual([
-      "./user.sh",
-      fresh,
-    ]);
+    // No duplicate, stale legacy entry dropped, the user's hook set aside for the turn.
+    expect(JSON.parse(merged).hooks.preToolUse.map((e: any) => e.command)).toEqual([fresh]);
     // A real user hook remains → restore the cleaned form, not delete.
     expect(JSON.parse(restoreTo!).hooks.preToolUse).toEqual([{ command: "./user.sh" }]);
-  });
-});
-
-// ── Issue #205: foreign gating hook reporting ────────────────────────────────
-// The merge PRESERVES the user's own hooks (correct — never clobber their
-// config), but Cursor runs every configured hook and a deny from any of them
-// blocks the runner's tools without writing our denial ledger. buildMergedConfig
-// therefore reports the foreign commands left on the GATING events so the
-// runner can log the exposure and name the culprit when the turn boundary
-// detects an unattributed hook block.
-describe("buildMergedConfig — foreign gating hook reporting (issue #205)", () => {
-  const bothEvents = [
-    { event: "preToolUse", scriptPath: "/abs/hitl/stigmer-approval.sh" },
-    { event: "beforeMCPExecution", scriptPath: "/abs/hitl/stigmer-approval.sh" },
-  ];
-
-  it("reports no foreign hooks when no hooks.json exists", () => {
-    expect(buildMergedConfig(null, bothEvents).foreignGatingHooks).toEqual([]);
-  });
-
-  it("reports user commands on the gating events, ignoring non-gating events", () => {
-    const original = JSON.stringify({
-      version: 1,
-      hooks: {
-        preToolUse: [{ command: "./gate-writes.sh", failClosed: true }],
-        beforeMCPExecution: [{ command: "./gate-mcp.sh" }],
-        // postToolUse cannot deny a tool — it must not be reported.
-        postToolUse: [{ command: "./audit.sh" }],
-      },
-    });
-    const { foreignGatingHooks } = buildMergedConfig(original, bothEvents);
-    expect(foreignGatingHooks).toEqual(["./gate-writes.sh", "./gate-mcp.sh"]);
-  });
-
-  it("excludes Stigmer's own entries (current and legacy) from the report", () => {
-    const original = JSON.stringify({
-      version: 1,
-      hooks: {
-        preToolUse: [
-          { command: "/home/u/.stigmer/sessions/ses-1/hitl/stigmer-approval.sh" },
-          { command: ".cursor/hooks/stigmer-approval.sh" }, // pre-#173 legacy
-          { command: "./user.sh" },
-        ],
-      },
-    });
-    const { foreignGatingHooks } = buildMergedConfig(original, bothEvents);
-    expect(foreignGatingHooks).toEqual(["./user.sh"]);
-  });
-
-  it("ignores malformed entries without a string command", () => {
-    const original = JSON.stringify({
-      version: 1,
-      hooks: { preToolUse: [{ command: 42 }, { timeout: 5 }, null, "bare-string"] },
-    });
-    expect(buildMergedConfig(original, bothEvents).foreignGatingHooks).toEqual([]);
-  });
-
-  it("reports nothing for an unparseable hooks.json (replaced for the turn, so it cannot run)", () => {
-    expect(buildMergedConfig("{ not json", bothEvents).foreignGatingHooks).toEqual([]);
   });
 });
 
@@ -350,39 +312,52 @@ describe("installHitlGate / removeHitlGate", () => {
     expect(existsSync(join(workspaceRoot, ".cursor", "hooks"))).toBe(false);
   });
 
-  it("surfaces the preserved foreign gating hooks on the install handle", async () => {
-    const { workspaceRoot, hitlDir } = dirs();
+  it("sets a repository's own hooks aside for the turn, on every event, and returns them after", async () => {
+    const { workspaceRoot, hitlDir, gateDir } = dirs();
     const cursorDir = join(workspaceRoot, ".cursor");
     mkdirSync(cursorDir, { recursive: true });
-    writeFileSync(
-      join(cursorDir, "hooks.json"),
-      JSON.stringify({
-        version: 1,
-        hooks: {
-          preToolUse: [{ command: "./gate-writes.sh", failClosed: true }],
-          postToolUse: [{ command: "./audit.sh" }],
-        },
-      }),
-      "utf-8",
-    );
-
-    const handle = await installHitlGate({
-      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+    const userConfig = JSON.stringify({
+      version: 1,
+      hooks: {
+        preToolUse: [{ command: "./gate-writes.sh", failClosed: true }],
+        postToolUse: [{ command: "./audit.sh" }],
+        sessionStart: [{ command: "./hello.sh" }],
+      },
     });
-    // The user's gating hook is preserved in the merged config AND reported on
-    // the handle (both registered events read the same preToolUse array here,
-    // so the report carries the one foreign command once per gating event it
-    // could fire on — preToolUse only, since beforeMCPExecution was absent).
-    expect(handle.foreignGatingHooks).toEqual(["./gate-writes.sh"]);
+    writeFileSync(join(cursorDir, "hooks.json"), userConfig, "utf-8");
+
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid });
+    const during = JSON.parse(readFileSync(join(cursorDir, "hooks.json"), "utf-8"));
+    const script = join(gateDir, "stigmer-approval.sh");
+    expect(Object.keys(during.hooks).sort()).toEqual(["beforeMCPExecution", "postToolUse", "preToolUse", "subagentStart"]);
+    expect(during.hooks.preToolUse.map((e: any) => e.command)).toEqual([script]);
+
     await removeHitlGate(handle);
+    expect(readFileSync(join(cursorDir, "hooks.json"), "utf-8")).toBe(userConfig);
   });
 
-  it("reports no foreign hooks for a pristine workspace", async () => {
-    const { workspaceRoot, hitlDir } = dirs();
+  it("registers the same entries and timeout for every turn, hooks or none, and points the script at the hook server", async () => {
+    // The SDK keeps the first registration it reads (for the process, and for
+    // a parked agent's executor), so an agent that gains hooks between turns
+    // must find them registered already.
+    const { workspaceRoot, hitlDir, gateDir } = dirs();
+    const hooksJson = join(workspaceRoot, ".cursor", "hooks.json");
+    const bare = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid });
+    const withoutHooks = readFileSync(hooksJson, "utf-8");
+    await removeHitlGate(bare);
     const handle = await installHitlGate({
-      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+      workspaceRoot,
+      hitlDir,
+      approvalState,
+      runnerPid: process.pid,
+      hooks: { socketPath: join(gateDir, "hooks.sock"), token: "t0k3n" },
     });
-    expect(handle.foreignGatingHooks).toEqual([]);
+    expect(readFileSync(hooksJson, "utf-8"), "byte for byte the same registration").toBe(withoutHooks);
+    const during = JSON.parse(withoutHooks);
+    expect(Object.keys(during.hooks).sort()).toEqual(["beforeMCPExecution", "postToolUse", "preToolUse", "subagentStart"]);
+    expect(during.hooks.preToolUse[0].timeout).toBe(MAX_HOOK_TIMEOUT_SECONDS + 30);
+    const pointer = JSON.parse(readFileSync(join(gateDir, "active.json"), "utf-8"));
+    expect(pointer).toMatchObject({ hookSocket: join(gateDir, "hooks.sock"), hookToken: "t0k3n" });
     await removeHitlGate(handle);
   });
 
@@ -401,9 +376,9 @@ describe("installHitlGate / removeHitlGate", () => {
     const handle = await installHitlGate({
       workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
     });
-    // During the turn our entry is present alongside the user's.
+    // During the turn only our entry is present; the user's is set aside.
     const during = JSON.parse(readFileSync(hooksPath, "utf-8"));
-    expect(during.hooks.preToolUse).toHaveLength(2);
+    expect(during.hooks.preToolUse).toHaveLength(1);
 
     await removeHitlGate(handle);
 
@@ -525,5 +500,315 @@ describe("installHitlGate / removeHitlGate", () => {
     expect(existsSync(join(rulesDir, "stigmer-tool-approval.mdc"))).toBe(false);
     expect(readFileSync(userRule, "utf-8")).toBe("---\nalwaysApply: false\n---\nmine\n");
     expect(existsSync(rulesDir)).toBe(true);
+  });
+});
+
+describe("workspace hook files: .claude settings and the turn's restore", () => {
+  const approvalState = buildApprovalState(NO_MCP_DEFAULT, false, new Set());
+  const realHome = process.env.HOME;
+  afterEach(() => {
+    if (realHome === undefined) delete process.env.HOME;
+    else process.env.HOME = realHome;
+  });
+
+  function workspace() {
+    const root = freshRoot();
+    process.env.HOME = root;
+    const workspaceRoot = join(root, "repo");
+    mkdirSync(join(workspaceRoot, ".claude"), { recursive: true });
+    const settings = join(workspaceRoot, ".claude", "settings.json");
+    const original = `${JSON.stringify({ model: "x", hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "touch fired" }] }] } }, null, 4)}\n`;
+    writeFileSync(settings, original, "utf-8");
+    return { workspaceRoot, hitlDir: join(root, "hitl"), gateDir: getHitlGateDir(workspaceRoot), settings, original };
+  }
+
+  it("sets a runner-owned folder's .claude hooks aside for the turn, keeps its other keys, and restores the bytes", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    const handle = await installHitlGate({
+      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+      folders: workspaceFolders([workspaceRoot], []),
+    });
+    expect(JSON.parse(readFileSync(settings, "utf-8"))).toEqual({ model: "x" });
+    await removeHitlGate(handle);
+    expect(readFileSync(settings, "utf-8")).toBe(original);
+  });
+
+  it("never touches a person's own folder, and refuses the turn naming the file", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    const folders = workspaceFolders([workspaceRoot], [
+      { rootDir: workspaceRoot, sourceType: "local_path", consumedKeys: [], workspaceDescription: "", entryName: "mine" },
+    ]);
+    expect(folders).toEqual([{ dir: workspaceRoot, runnerOwned: false }]);
+    await expect(refuseOwnFolderHooks(folders)).rejects.toThrow(CursorWorkspaceHooksRefusal);
+    await expect(refuseOwnFolderHooks(folders)).rejects.toThrow(settings);
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    expect(readFileSync(settings, "utf-8")).toBe(original);
+    await removeHitlGate(handle);
+  });
+
+  it("never edits a runner-owned folder's settings reached through a link, and refuses the turn naming it", async () => {
+    const { workspaceRoot, hitlDir, settings } = workspace();
+    const elsewhere = mkdtempSync(join(tmpdir(), "elsewhere-"));
+    tempDirs.push(elsewhere);
+    const outside = join(elsewhere, "settings.json");
+    const outsideBytes = `${JSON.stringify({ hooks: { PreToolUse: [{ matcher: "", hooks: [{ type: "command", command: "mine" }] }] } })}\n`;
+    writeFileSync(outside, outsideBytes, "utf-8");
+    rmSync(settings);
+    symlinkSync(outside, settings);
+    const folders = workspaceFolders([workspaceRoot], []);
+    await expect(refuseOwnFolderHooks(folders)).rejects.toThrow(/through a link/);
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    expect(readFileSync(outside, "utf-8"), "the linked file is not edited").toBe(outsideBytes);
+    await removeHitlGate(handle);
+    expect(readFileSync(outside, "utf-8")).toBe(outsideBytes);
+
+    // A linked .claude directory reaches outside the folder the same way.
+    const linkedDir = workspace();
+    rmSync(join(linkedDir.workspaceRoot, ".claude"), { recursive: true });
+    symlinkSync(elsewhere, join(linkedDir.workspaceRoot, ".claude"));
+    await expect(refuseOwnFolderHooks(workspaceFolders([linkedDir.workspaceRoot], []))).rejects.toThrow(/through a link/);
+  });
+
+  it("refuses a turn whose gate file, or its directory, is a link the engine would not load", async () => {
+    const { workspaceRoot } = workspace();
+    await expect(refuseLinkedGateFile(workspaceRoot)).resolves.toBeUndefined();
+    await expect(refuseLinkedGateFile("")).resolves.toBeUndefined();
+    const elsewhere = mkdtempSync(join(tmpdir(), "elsewhere-"));
+    tempDirs.push(elsewhere);
+    writeFileSync(join(elsewhere, "hooks.json"), "{}", "utf-8");
+    mkdirSync(join(workspaceRoot, ".cursor"), { recursive: true });
+    symlinkSync(join(elsewhere, "hooks.json"), join(workspaceRoot, ".cursor", "hooks.json"));
+    await expect(refuseLinkedGateFile(workspaceRoot)).rejects.toThrow(/approval gate would not run/);
+    rmSync(join(workspaceRoot, ".cursor"), { recursive: true });
+    symlinkSync(elsewhere, join(workspaceRoot, ".cursor"));
+    await expect(refuseLinkedGateFile(workspaceRoot)).rejects.toThrow(CursorWorkspaceHooksRefusal);
+  });
+
+  it("refuses nothing for an empty hooks object or a file that does not parse", async () => {
+    const { workspaceRoot, settings } = workspace();
+    writeFileSync(settings, JSON.stringify({ hooks: {} }), "utf-8");
+    writeFileSync(join(workspaceRoot, ".claude", "settings.local.json"), "{ not json", "utf-8");
+    expect(await claudeSettingsWithHooks(workspaceRoot)).toEqual([]);
+  });
+
+  it("keeps an agent's edit of a .claude settings file, hooks put back; returns .cursor/hooks.json as it was, which no review shows", async () => {
+    const { workspaceRoot, hitlDir, settings } = workspace();
+    const cursorHooks = join(workspaceRoot, ".cursor", "hooks.json");
+    mkdirSync(join(workspaceRoot, ".cursor"), { recursive: true });
+    writeFileSync(cursorHooks, JSON.stringify({ version: 1, hooks: { preToolUse: [{ command: "./mine.sh" }] } }), "utf-8");
+    const handle = await installHitlGate({
+      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+      folders: workspaceFolders([workspaceRoot], []),
+    });
+    expect(statSync(join(getHitlGateDir(workspaceRoot), "workspace-files.json")).mode & 0o777, "the snapshot is the owner's alone").toBe(0o600);
+    // The agent edits both files during the turn, adding a hook to each.
+    writeFileSync(settings, JSON.stringify({
+      model: "y",
+      hooks: {
+        // The agent also wrote back the set-aside hook: kept once.
+        PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "touch fired" }] }],
+        PostToolUse: [{ matcher: "", hooks: [{ type: "command", command: "added" }] }],
+      },
+    }), "utf-8");
+    const during = JSON.parse(readFileSync(cursorHooks, "utf-8"));
+    during.hooks.preToolUse.push({ command: "./added-by-agent.sh" });
+    writeFileSync(cursorHooks, JSON.stringify(during), "utf-8");
+
+    await removeHitlGate(handle);
+    expect(JSON.parse(readFileSync(settings, "utf-8"))).toEqual({
+      model: "y",
+      hooks: {
+        PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "touch fired" }] }],
+        PostToolUse: [{ matcher: "", hooks: [{ type: "command", command: "added" }] }],
+      },
+    });
+    expect(JSON.parse(readFileSync(cursorHooks, "utf-8")).hooks.preToolUse.map((e: any) => e.command), "a hook the agent added does not outlive the turn").toEqual([
+      "./mine.sh",
+    ]);
+  });
+
+  it("puts the set-aside hooks back beside an agent's edit that has none", async () => {
+    const { workspaceRoot, hitlDir, settings } = workspace();
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders: workspaceFolders([workspaceRoot], []) });
+    writeFileSync(settings, JSON.stringify({ model: "z" }), "utf-8");
+    await removeHitlGate(handle);
+    expect(JSON.parse(readFileSync(settings, "utf-8"))).toEqual({
+      model: "z",
+      hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "touch fired" }] }] },
+    });
+  });
+
+  it("keeps an agent's edit of a .claude settings file that no longer parses as it is", async () => {
+    const { workspaceRoot, hitlDir, settings } = workspace();
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders: workspaceFolders([workspaceRoot], []) });
+    writeFileSync(settings, "{ half written", "utf-8");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await removeHitlGate(handle);
+    warn.mockRestore();
+    expect(readFileSync(settings, "utf-8")).toBe("{ half written");
+  });
+
+  it("keeps an agent's deletion of a .claude settings file, and returns .cursor/hooks.json as it was over an edit that no longer parses", async () => {
+    const { workspaceRoot, hitlDir, settings } = workspace();
+    const folders = workspaceFolders([workspaceRoot], []);
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    rmSync(settings);
+    writeFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "{ half written", "utf-8");
+    await removeHitlGate(handle);
+    expect(existsSync(settings), "the deletion is the agent's, for the review to show").toBe(false);
+    expect(existsSync(join(workspaceRoot, ".cursor", "hooks.json")), "the repository had none").toBe(false);
+  });
+
+  it("puts .cursor/hooks.json back over a link the agent put in its place, or in .cursor's, never writing through it", async () => {
+    const { workspaceRoot, hitlDir } = workspace();
+    const folders = workspaceFolders([workspaceRoot], []);
+    const cursorDir = join(workspaceRoot, ".cursor");
+    const hooksJson = join(cursorDir, "hooks.json");
+    mkdirSync(cursorDir, { recursive: true });
+    const original = JSON.stringify({ version: 1, hooks: { preToolUse: [{ command: "./mine.sh" }] } });
+    writeFileSync(hooksJson, original, "utf-8");
+    const elsewhere = mkdtempSync(join(tmpdir(), "elsewhere-"));
+    tempDirs.push(elsewhere);
+    writeFileSync(join(elsewhere, "hooks.json"), "theirs", "utf-8");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const fileLink = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+      rmSync(hooksJson);
+      symlinkSync(join(elsewhere, "hooks.json"), hooksJson);
+      await removeHitlGate(fileLink);
+      expect([lstatSync(hooksJson).isSymbolicLink(), readFileSync(hooksJson, "utf-8")]).toEqual([false, original]);
+
+      const dirLink = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+      rmSync(cursorDir, { recursive: true });
+      symlinkSync(elsewhere, cursorDir);
+      await removeHitlGate(dirLink);
+      expect([lstatSync(cursorDir).isSymbolicLink(), readFileSync(hooksJson, "utf-8")]).toEqual([false, original]);
+    } finally {
+      warn.mockRestore();
+    }
+    expect(readFileSync(join(elsewhere, "hooks.json"), "utf-8"), "the file a link reached is not written").toBe("theirs");
+  });
+
+  it("puts the set-aside files back when setting one aside fails partway", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    const local = join(workspaceRoot, ".claude", "settings.local.json");
+    writeFileSync(local, JSON.stringify({ hooks: { PreToolUse: [] } }), "utf-8");
+    chmodSync(local, 0o400);
+    try {
+      await expect(
+        installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders: workspaceFolders([workspaceRoot], []) }),
+      ).rejects.toThrow();
+    } finally {
+      chmodSync(local, 0o600);
+    }
+    expect(readFileSync(settings, "utf-8"), "settings.json was set aside before the failing write").toBe(original);
+  });
+
+  it("never restores through a link put in a set-aside file's place, and leaves a file back as it was untouched", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    const folders = workspaceFolders([workspaceRoot], []);
+    const elsewhere = mkdtempSync(join(tmpdir(), "elsewhere-"));
+    tempDirs.push(elsewhere);
+    const outside = join(elsewhere, "settings.json");
+    writeFileSync(outside, '{"model":"mine"}\n', "utf-8");
+    const linked = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    rmSync(settings);
+    symlinkSync(outside, settings);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await removeHitlGate(linked);
+    warn.mockRestore();
+    expect(readFileSync(outside, "utf-8"), "the file the link reaches is not written").toBe('{"model":"mine"}\n');
+
+    rmSync(settings);
+    writeFileSync(settings, original, "utf-8");
+    const next = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    writeFileSync(settings, original, "utf-8");
+    await removeHitlGate(next);
+    expect(readFileSync(settings, "utf-8"), "its bytes, not a reformatted copy").toBe(original);
+  });
+
+  it("puts the set-aside files back when the install fails after setting them aside", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    mkdirSync(join(workspaceRoot, ".cursor"), { recursive: true });
+    // A file where the install writes its rules directory: the install fails after the set-aside.
+    writeFileSync(join(workspaceRoot, ".cursor", "rules"), "not a directory", "utf-8");
+    await expect(
+      installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders: workspaceFolders([workspaceRoot], []) }),
+    ).rejects.toThrow();
+    expect(readFileSync(settings, "utf-8")).toBe(original);
+  });
+
+  it("keeps restoring the rest when one file cannot be written back, and reads a corrupt snapshot as none", async () => {
+    const { workspaceRoot, hitlDir, gateDir, settings } = workspace();
+    const folders = workspaceFolders([workspaceRoot], []);
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // The agent edits the settings file and it cannot be written back.
+    writeFileSync(settings, JSON.stringify({ model: "y" }), "utf-8");
+    chmodSync(settings, 0o400);
+    await removeHitlGate(handle);
+    chmodSync(settings, 0o600);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("could not restore"));
+    expect(existsSync(join(workspaceRoot, ".cursor", "hooks.json")), "the hooks file still came back").toBe(false);
+    warn.mockRestore();
+    writeFileSync(join(gateDir, "workspace-files.json"), "{ corrupt", "utf-8");
+    const next = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    await removeHitlGate(next);
+  });
+
+  it("restores a crashed turn's set-aside files at the next install, before anything else", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    const folders = workspaceFolders([workspaceRoot], []);
+    // A turn installs and never tears down (the runner crashed).
+    await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    expect(JSON.parse(readFileSync(settings, "utf-8"))).toEqual({ model: "x" });
+
+    // The next turn's install restores first, then sets aside again; its
+    // teardown leaves the original bytes.
+    const next = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    await removeHitlGate(next);
+    expect(readFileSync(settings, "utf-8")).toBe(original);
+  });
+
+  it("restores at boot what a stopped runner set aside, and leaves a running one's alone", async () => {
+    const gatesRoot = mkdtempSync(join(tmpdir(), "gates-"));
+    tempDirs.push(gatesRoot);
+    // The pid of a process that has exited: a runner that crashed.
+    const stopped = spawnSync(process.execPath, ["-e", ""]).pid!;
+    const setAside = async (name: string, writer: number | undefined, writerStarted?: number) => {
+      const { settings, original } = workspace();
+      const gateDir = join(gatesRoot, name);
+      await rewriteWorkspaceFiles(gateDir, [{ path: settings, kind: "claude-settings", original, written: '{"model":"x"}\n' }]);
+      const snapshotPath = join(gateDir, "workspace-files.json");
+      const { rewrites } = JSON.parse(readFileSync(snapshotPath, "utf-8")) as { rewrites: unknown[] };
+      writeFileSync(snapshotPath, JSON.stringify({ rewrites, ...(writer !== undefined ? { writer } : {}), ...(writerStarted !== undefined ? { writerStarted } : {}) }), "utf-8");
+      return { settings, original, snapshotPath };
+    };
+    const crashed = await setAside("crashed", stopped);
+    const running = await setAside("running", process.ppid);
+    const unnamed = await setAside("unnamed", undefined);
+    // A running process whose id a stopped runner had: it started long after.
+    const reused = await setAside("reused", process.ppid, 1);
+    mkdirSync(join(gatesRoot, "empty"));
+
+    await restoreAbandonedWorkspaceFiles(gatesRoot);
+    expect(readFileSync(crashed.settings, "utf-8")).toBe(crashed.original);
+    expect(existsSync(crashed.snapshotPath)).toBe(false);
+    expect(readFileSync(unnamed.settings, "utf-8"), "a snapshot naming no writer is restored").toBe(unnamed.original);
+    expect(readFileSync(reused.settings, "utf-8"), "a process id taken again is not the runner").toBe(reused.original);
+    expect(readFileSync(running.settings, "utf-8"), "a running runner's turn keeps its set-aside").toBe('{"model":"x"}\n');
+    expect(existsSync(running.snapshotPath)).toBe(true);
+    await restoreAbandonedWorkspaceFiles(join(gatesRoot, "missing"));
+
+    // Where `ps` cannot say when a running process started, it is taken for the runner.
+    const unknown = await setAside("unknown-start", process.ppid, 1);
+    const realPath = process.env["PATH"];
+    process.env["PATH"] = gatesRoot;
+    try {
+      await restoreAbandonedWorkspaceFiles(gatesRoot);
+    } finally {
+      process.env["PATH"] = realPath;
+    }
+    expect(readFileSync(unknown.settings, "utf-8")).toBe('{"model":"x"}\n');
   });
 });

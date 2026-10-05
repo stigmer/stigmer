@@ -20,19 +20,40 @@
  * the model. Sub-agent lists are not driven here: the hook cannot tell which
  * sub-agent calls, so the engine refuses such a turn at setup instead
  * (`enforcesSubAgentLists: false`, pinned by `__tests__/check-tool-scope.test.ts`).
+ *
+ * The hooks drive runs the agent's hooks as the engine does: the real gate
+ * script asks a real hook server (`hook-server.ts`) in this process, which
+ * runs the contract's real commands through the evaluator over this
+ * engine's views (`hook-views.ts`). `executed` is again the gate's allow; a
+ * card is an approval-kind ledger entry; a decision on it is the next
+ * turn's gate, with the approval's grant or the person's refusal, as the
+ * runtime installs them. An allowed MCP call then gets its `postToolUse`
+ * run, and the model reads the context the gate hands back.
  */
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { setupCursorHookHarness, hasBash, hookInputFor, hookRead, streamArgsFor, STREAM_NAME } from "./cursor-hook-harness.js";
-import { toolIdentity, type ApprovalGrant } from "../approval-state.js";
+import { setupCursorHookHarness, hasBash, hookInputFor, hookMcp, hookRead, streamArgsFor, STREAM_NAME } from "./cursor-hook-harness.js";
+import { decodeIdentityToken, toolIdentity, type ApprovalGrant, type PersonRefusal } from "../approval-state.js";
+import { approvalDigest } from "../boundary-rows.js";
+import { startHookServer } from "../hook-server.js";
+import { CursorEngineToolViews, rowNameOf } from "../hook-views.js";
+import { hookLeaseKey } from "../../../shared/approval-policy.js";
+import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
+import { HookSet } from "../../../shared/hooks/hook-set.js";
+import { buildShellEnv } from "../../../shared/shell-env.js";
+import { contractHookSources } from "../../../__test-utils__/approval-contract/hook-commands.js";
 import { contentDigest } from "../../../shared/file-tools.js";
 import type { ApprovalCategory } from "../approval-policy.js";
 import type {
+  ContractHook,
   ContractToolLists,
   GatewayDecision,
   GatewayOutcome,
   GatewaySubstrate,
+  HooksDriveOptions,
+  HooksOutcome,
   ListsDriveOptions,
   ListsOutcome,
   ProposedAction,
@@ -85,6 +106,136 @@ function leaseCategoryOf(action: ProposedAction): ApprovalCategory {
   return action.kind;
 }
 
+/** The engine's call for a hooks probe, as the hook server receives it: the hook's name and input, the server for MCP. */
+function hooksCallOf(action: ProposedAction): { name: string; args: Record<string, unknown>; serverSlug: string } {
+  if (action.kind === "mcp") return { name: action.mcpToolName ?? "mcp_tool", args: {}, serverSlug: action.mcpServerSlug ?? "srv" };
+  const payload = hookInputFor(action) as { tool_name: string; tool_input: Record<string, unknown> };
+  return { name: payload.tool_name, args: payload.tool_input, serverSlug: "" };
+}
+
+/** The pre-execution payload for a hooks probe: `beforeMCPExecution` for MCP, `preToolUse` for a built-in. */
+function prePayloadOf(action: ProposedAction): object {
+  if (action.kind === "mcp") return hookMcp(action.mcpToolName ?? "mcp_tool", {}, action.mcpServerSlug ?? "srv");
+  return { ...hookInputFor(action), hook_event_name: "preToolUse", tool_use_id: "call_1" };
+}
+
+/** Claude Code's input for an action a hook rewrites a call into, with the content the call carried. */
+function rewriteInputOf(action: ProposedAction): Record<string, unknown> {
+  switch (action.kind) {
+    case "write":
+      return { file_path: action.resource, content: action.content ?? "x" };
+    case "shell":
+      return { command: action.resource };
+    default:
+      throw new Error(`rewriteInputOf: no rewrite into a ${action.kind} action`);
+  }
+}
+
+/** What the gate's answer told the model: its message, or the context an allow carried. */
+function modelReadOf(raw: string): string {
+  try {
+    const answer = JSON.parse(raw.trim()) as { agent_message?: unknown; additional_context?: unknown };
+    return [answer.agent_message, answer.additional_context].filter((t): t is string => typeof t === "string").join("\n");
+  } catch {
+    return raw;
+  }
+}
+
+/** Drive one action through the tool lists, the gate and the agent's hooks, as one turn and, on a decision, the next. */
+async function runCursorHooksProbe(hooks: readonly ContractHook[], action: ProposedAction, options: HooksDriveOptions): Promise<HooksOutcome> {
+  const pluginRoot = mkdtempSync(join(tmpdir(), "contract-cursor-hook-plugin-"));
+  try {
+    const files = { runs: join(pluginRoot, "runs.jsonl"), state: join(pluginRoot, "asked") };
+    const leased = options.hookLease;
+    const leasedCall = leased ? hooksCallOf(leased.action) : undefined;
+    const evaluator = new HookEvaluator({
+      set: HookSet.of(contractHookSources(hooks, files, pluginRoot, rewriteInputOf)),
+      views: new CursorEngineToolViews({ workspaceRoot: "/", pluginServers: new Map(), platformServerSlugs: new Set() }),
+      sessionId: "contract-session",
+      workspaceRoot: pluginRoot,
+      permissionMode: options.autoApproveAll ? "bypassPermissions" : "default",
+      baseEnv: buildShellEnv({}),
+      homeDir: pluginRoot,
+      leases: leased && leasedCall ? new Set([hookLeaseKey(leased.plugin, leasedCall.serverSlug, rowNameOf(leasedCall))]) : new Set(),
+    });
+
+    /** One turn's gate: a fresh server and state, as the runtime installs them. */
+    const turn = async (grants: ApprovalGrant[], refusals: ReadonlyMap<string, PersonRefusal>) => {
+      const server = await startHookServer({ evaluator, refusals, captureMode: false, globalBypass: false });
+      try {
+        const harness = setupCursorHookHarness({
+          grants,
+          autoApproveAll: options.autoApproveAll ?? false,
+          unattendedSkip: options.unattended ?? false,
+          ...(options.categoryLease ? { leasedCategories: [options.categoryLease] } : {}),
+          ...(options.lists ? { lists: options.lists, mcpServers: [{ slug: action.mcpServerSlug ?? "srv", discoveredToolNames: null }] } : {}),
+          destructiveMcpTools: destructiveToolsOf(action),
+          hookServer: { socketPath: server.socketPath, token: server.token },
+        });
+        const answer = await harness.decideAsync(prePayloadOf(action));
+        let post = "";
+        if (answer.permission === "allow" && action.kind === "mcp" && !options.failTool) {
+          const postAnswer = await harness.decideAsync({
+            hook_event_name: "postToolUse",
+            tool_name: `MCP:${action.mcpToolName ?? "mcp_tool"}`,
+            tool_input: {},
+            tool_output: JSON.stringify({ content: [{ type: "text", text: "found three issues" }], isError: false }),
+          });
+          post = modelReadOf(postAnswer.raw);
+        }
+        return { ...answer, post, ledger: harness.ledger() };
+      } finally {
+        await server.close();
+      }
+    };
+
+    const first = await turn([], new Map());
+    const card = first.ledger.find((e) => (e.kind ?? "approval") === "approval");
+    const decision = options.decision ?? "none";
+    let final = first;
+    if (card !== undefined && decision !== "none") {
+      const decoded = decodeIdentityToken(card.token)!;
+      const call = hooksCallOf(action);
+      // The grant the boundary leaves, by its own rule (`approvalDigest`): a
+      // hook's ask on a call without file content is approved under the
+      // call's whole input, as the hook saw it.
+      const input = card.input ? (JSON.parse(Buffer.from(card.input, "base64").toString("utf-8")) as Record<string, unknown>) : undefined;
+      const digest = approvalDigest(call.serverSlug, decoded.digest, input, card.hook !== undefined);
+      final = decision === "approve"
+        ? await turn([{ toolName: rowNameOf(call), mcpServerSlug: call.serverSlug, key: decoded.key, salient: decoded.salient, contentDigest: digest, sourceToolCallId: "consent-hook" }], new Map())
+        : await turn([], new Map([[card.token, { action: decision === "skip" ? "skip" : "reject", toolName: rowNameOf(call) } as const]]));
+    }
+
+    const executed = final.permission === "allow";
+    // A `hook` entry names the hook that refused; one that names none is a
+    // person's earlier refusal standing over a hook's allow.
+    const refusedBy = final.ledger.some((e) => e.kind === "disabled")
+      ? "lists" as const
+      : final.ledger.some((e) => e.kind === "hook" && e.hook !== undefined)
+        ? "hook" as const
+        : undefined;
+    const cardHook = card?.hook;
+    const call = hooksCallOf(action);
+    const rewritten = executed ? (JSON.parse(final.raw.trim()) as { updated_input?: { file_path?: unknown } }).updated_input : undefined;
+    const writtenPath = typeof rewritten?.file_path === "string" ? rewritten.file_path : call.args["file_path"];
+    const hookRuns = existsSync(files.runs)
+      ? readFileSync(files.runs, "utf-8").split("\n").filter((line) => line.trim() !== "").map((line) => JSON.parse(line) as Record<string, unknown>)
+      : [];
+    return {
+      executed,
+      gated: card !== undefined,
+      policySource: card === undefined ? "" : cardHook !== undefined ? "hook" : action.kind === "mcp" ? "annotation_destructive_tighten" : "builtin_category",
+      ...(cardHook !== undefined ? { policyHook: cardHook === "=" ? "" : Buffer.from(cardHook, "base64").toString("utf-8") } : {}),
+      refusedBy,
+      modelRead: [action.kind === "mcp" && executed ? "found three issues" : "", modelReadOf(final.raw), final.post].filter((t) => t !== "").join("\n"),
+      hookRuns,
+      writtenPaths: executed && action.kind === "write" && typeof writtenPath === "string" ? [writtenPath] : [],
+    };
+  } finally {
+    rmSync(pluginRoot, { recursive: true, force: true });
+  }
+}
+
 export function createCursorSubstrate(): GatewaySubstrate {
   return {
     name: "cursor",
@@ -97,9 +248,10 @@ export function createCursorSubstrate(): GatewaySubstrate {
       enforcesExactContent: true,
       appliesRunLifetimeLease: true,
       enforcesSubAgentLists: false,
-      // The Cursor engine refuses a turn whose agent has hooks until it runs
-      // them (`harness/turn-context.ts` `refuseUnrunnableHooks`).
-      runsHooks: false,
+      // The gate's script asks the runner's hook server (`hook-server.ts`).
+      runsHooks: true,
+      // Cursor's hook payload names no sub-agent (live probe, 2026-10-05).
+      hookSeesSubAgent: false,
       // The Cursor hook's deny decision does not carry approval_policy_source;
       // provenance is projected at translation time (the Cursor translator)
       // and asserted by the corpus + resolveApprovalProvenance suites instead.
@@ -154,6 +306,11 @@ export function createCursorSubstrate(): GatewaySubstrate {
       const refused = permission === "deny" && raw.includes("is not available to this agent");
       const executed = permission === "allow";
       return { executed, gated: !executed && !refused, refused };
+    },
+
+    async authorizeUnderHooks(hooks: readonly ContractHook[], action: ProposedAction, options: HooksDriveOptions = {}): Promise<HooksOutcome> {
+      if (options.subAgent) throw new Error("cursor substrate: a hook cannot tell a sub-agent's call here (hookSeesSubAgent: false)");
+      return runCursorHooksProbe(hooks, action, options);
     },
   };
 }

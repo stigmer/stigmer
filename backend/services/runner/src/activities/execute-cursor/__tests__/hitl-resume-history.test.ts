@@ -179,7 +179,7 @@ function resumeEvents(): SDKMessage[] {
 
 /** The denial ledger after resume holds only the freshly-gated `click`. */
 function clickDenialLedger(): DeniedLedgerEntry[] {
-  return [{ toolName: "click", token: grantToken("click", "") }];
+  return [{ toolName: "click", token: grantToken(`${MCP_SLUG}/click`, "") }];
 }
 
 /**
@@ -311,13 +311,14 @@ describe("Cursor HITL resume — append-only transcript", () => {
     const harness = setupCursorHookHarness({
       grants: state.approvedGrants,
       destructiveMcpTools: ["list_apps", "get_app_state", "click"],
+      destructiveMcpServer: MCP_SLUG,
     });
 
     // Both approved tools are allowed on the resumed turn (fresh ids, same name).
-    expect(harness.decide(hookMcp("list_apps")).permission).toBe("allow");
-    expect(harness.decide(hookMcp("get_app_state")).permission).toBe("allow");
+    expect(harness.decide(hookMcp("list_apps", {}, MCP_SLUG)).permission).toBe("allow");
+    expect(harness.decide(hookMcp("get_app_state", {}, MCP_SLUG)).permission).toBe("allow");
     // The brand-new gated tool is NOT covered by any grant -> still denied.
-    expect(harness.decide(hookMcp("click")).permission).toBe("deny");
+    expect(harness.decide(hookMcp("click", {}, MCP_SLUG)).permission).toBe("deny");
   });
 });
 

@@ -135,7 +135,7 @@
           "messageType": "HookSource"
         }
       },
-      "description": "Hooks that run around this agent's tool calls, and its sub-agents' calls.\n\n Each entry is a plugin whose hooks apply, or a hooks block written in the\n agent itself. A hook can refuse a call, ask a person first, or let it run\n without the approval it would otherwise need. The native engine runs hooks\n in Claude Code's format; the Cursor engine refuses a turn whose agent has\n hooks.",
+      "description": "Hooks that run around this agent's tool calls, and its sub-agents' calls.\n\n Each entry is a plugin whose hooks apply, or a hooks block written in the\n agent itself. A hook can refuse a call, ask a person first, or let it run\n without the approval it would otherwise need. Both engines run hooks in\n Claude Code's format and in Cursor's. On the Cursor engine, web fetch and\n web search reach no hook, so an agent whose PreToolUse hooks would match\n them runs there without those tools; a PostToolUse hook on them does not\n run there.",
       "required": false
     },
     {

@@ -178,11 +178,19 @@ export interface SubstrateCapabilities {
    */
   readonly surfacesGatePolicySource: boolean;
   /**
-   * True when the substrate runs an agent's hooks (Claude Code's format) at
-   * its gate; the contract's hooks section runs only there. The native gate
-   * does (`true`); the Cursor engine refuses an agent with hooks (`false`).
+   * True when the substrate runs an agent's hooks, in either format, at its
+   * gate; the contract's hooks section runs only there. Both engines do: the
+   * native gate in process, the Cursor gate through the runner's hook server.
    */
   readonly runsHooks: boolean;
+  /**
+   * True when a hook can tell a sub-agent's call from the main agent's (its
+   * stdin carries `agent_id` and `agent_type`). The native gate knows which
+   * sub-agent graph made a call (`true`); Cursor's hook payload carries no
+   * sub-agent identity (live probe, 2026-10-05), so the Cursor engine's
+   * hooks run on a sub-agent's calls without it (`false`).
+   */
+  readonly hookSeesSubAgent: boolean;
   /**
    * True when a sub-agent's own tool lists are enforced inside the sub-agent.
    * The native engine narrows each sub-agent graph (`true`); the Cursor hook
@@ -258,18 +266,25 @@ export type ContractHookBehaviour =
   /** Never answer: outlive the hook's timeout. */
   | { readonly hang: true }
   /** A PostToolUse hook that blocks on the result with this reason, beside optional context. */
-  | { readonly postBlock: string; readonly context?: string };
+  | { readonly postBlock: string; readonly context?: string }
+  /** Print something that is not JSON and exit 0. */
+  | { readonly invalidJson: true };
 
-/** One command hook, in Claude Code's format. */
+/** One command hook, in Claude Code's format or Cursor's. */
 export interface ContractHook {
-  readonly event: "PreToolUse" | "PostToolUse";
-  /** Claude Code's matcher: `Bash`, `Write`, `mcp__srv__search_issues`. */
+  /** Claude Code's `PreToolUse`/`PostToolUse`, or one of Cursor's tool events. */
+  readonly event: "PreToolUse" | "PostToolUse" | "preToolUse" | "beforeShellExecution" | "beforeMCPExecution" | "postToolUse";
+  /** The matcher: Claude Code's (`Bash`, `mcp__srv__search_issues`) or Cursor's (`Shell`, `MCP:search_issues`, a command pattern). */
   readonly matcher: string;
-  /** The handler's `if`. */
+  /** The handler's `if` (Claude Code's format only). */
   readonly condition?: string;
   readonly does: ContractHookBehaviour;
   /** The plugin the hook comes from; `""` is the agent's own hooks block. Default `safety`. */
   readonly plugin?: string;
+  /** The format the hook is written in; Claude Code's when absent. */
+  readonly format?: "claude-code" | "cursor";
+  /** Cursor's `failClosed`: a run that fails refuses the call. */
+  readonly failClosed?: boolean;
 }
 
 /** How a hooks drive runs the action. */

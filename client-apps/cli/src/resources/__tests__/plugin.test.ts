@@ -396,7 +396,7 @@ describe("the hooks summary", () => {
     return lines.join("");
   }
 
-  it("counts handlers per event in first-seen order, and says only Cursor-format hooks are not run yet", async () => {
+  it("counts handlers per event in first-seen order, in either format", async () => {
     const { hooksSummary } = await import("../plugin.js");
     expect(
       hooksSummary("claude-code", [
@@ -406,7 +406,7 @@ describe("the hooks summary", () => {
       ]),
     ).toBe("Claude Code format: PreToolUse 3, PostToolUse 1");
     expect(hooksSummary("cursor", [{ event: "preToolUse", handlers: [1] }])).toBe(
-      "Cursor format: preToolUse 1 (not run yet)",
+      "Cursor format: preToolUse 1",
     );
   });
 
@@ -433,7 +433,6 @@ describe("the hooks summary", () => {
     expect(text).toContain("Main agent");
     expect(text).toMatch(/Sub-agents\s+none/);
     expect(text).toContain("Claude Code format: PreToolUse 1");
-    expect(text).not.toContain("not run yet");
   });
 
   it("names the hooks an install recorded", async () => {
@@ -455,6 +454,6 @@ describe("the hooks summary", () => {
     });
     const text = await human(renderPushOutcome({ plugin, members: [], archiveBytes: 10 }));
     expect(text).toContain("Installed plugin 'guard' (nothing installed)");
-    expect(text).toContain("Cursor format: preToolUse 1, beforeShellExecution 1 (not run yet)");
+    expect(text).toContain("Cursor format: preToolUse 1, beforeShellExecution 1");
   });
 });

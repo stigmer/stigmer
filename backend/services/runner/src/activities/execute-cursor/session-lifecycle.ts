@@ -74,11 +74,15 @@ import { sessionStore } from "./session-store.js";
  * silently drops the hook and disables the entire approval gate. We must opt
  * in to "project" so the hook loads and tool calls are actually gated.
  *
- * The hooks.json is the only file written into the workspace — kept minimal,
- * merged with any user hooks.json, and restored when the turn ends; the gate's
- * own artifacts live outside the repo and the hook is scoped to this runner's
- * process, so the user's interactive IDE sharing the repo is never gated (see
- * workspace-setup.ts / hook-script.ts and issue #173).
+ * The source also loads the workspace's `.claude/settings.json` and
+ * `.claude/settings.local.json` hooks, with no option to separate them. The
+ * turn's hooks.json holds the gate's entries only, a runner-owned folder's
+ * `.claude` hooks are set aside for the turn, and a person's own folder whose
+ * `.claude` settings carry hooks is refused, so only the agent's own hooks run
+ * (workspace-setup.ts, workspace-hook-files.ts). Every file is restored when
+ * the turn ends; the gate's own artifacts live outside the repo and the hook
+ * is scoped to this runner's process, so the user's interactive IDE sharing
+ * the repo is never gated (hook-script.ts and issue #173).
  *
  * Side effect: this also loads other workspace `.cursor/*` config (rules,
  * mcp.json, commands). For runner-provisioned workspaces that is inert; for

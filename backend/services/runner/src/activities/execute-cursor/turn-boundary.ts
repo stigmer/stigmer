@@ -9,8 +9,9 @@
  *     and redact the model's provisional post-denial narration;
  *  3. settle unattended-mode denials as SKIPPED;
  *  4. detect UNATTRIBUTED hook blocks (issue #205) — a tool blocked by a hook
- *     with no ledger entry of any kind was denied by a FOREIGN hook the merge
- *     preserved, and the caller fails the run rather than completing silently;
+ *     with no ledger entry of any kind was denied by a FOREIGN hook the gate's
+ *     set-aside of the workspace's hook files missed, and the caller fails the
+ *     run rather than completing silently;
  *  5. settle UNRESOLVED tool calls (issue #965) — a this-turn row still
  *     non-terminal on a completing turn with no ledger attribution hung inside
  *     the harness and can never complete; it is settled to an honest
@@ -52,6 +53,7 @@ import {
   clearProvisionalPostDenialNarration,
   detectUnattributedHookBlocks,
   reconcileDeniedToolCalls,
+  stampHookRefusedToolCalls,
   settleUnresolvedToolCalls,
   stampScopeRefusedToolCalls,
   stampUnattendedSkippedToolCalls,
@@ -100,13 +102,6 @@ export interface TurnBoundaryOptions {
    * normal completion path and the recovery retries, which have no early stop).
    */
   readonly denialCancelSettled?: Promise<void>;
-  /**
-   * Foreign (non-Stigmer) hook commands the gate install preserved on the
-   * gating events (see HitlGateHandle.foreignGatingHooks). Used only for
-   * diagnostics: when an unattributed hook block is detected, these name the
-   * likely culprit in the logs and the caller's failure message.
-   */
-  readonly foreignGatingHooks?: readonly string[];
 }
 
 export interface TurnBoundaryResult {
@@ -120,8 +115,8 @@ export interface TurnBoundaryResult {
   readonly deniedToolCallCount: number;
   /**
    * Hook-blocked tool calls this turn that NO denial-ledger entry accounts for
-   * (issue #205): a foreign `.cursor/hooks.json` hook — or our own hook with a
-   * failed ledger append — denied them, and Stigmer cannot approve on its
+   * (issue #205): a foreign hook the set-aside missed — or our own hook with
+   * a failed ledger append — denied them, and Stigmer cannot approve on its
    * behalf. When the turn is not otherwise pausing, the caller must surface an
    * explicit EXECUTION_FAILED instead of completing with the work silently
    * undone (a pausing turn is not silent — the caller logs and pauses as usual).
@@ -161,7 +156,6 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     turnStartMessageIndex,
     mcpDefault,
     denialCancelSettled,
-    foreignGatingHooks,
   } = opts;
 
   // The timebox keeps a wedged cancel from hanging the pause; the reconcile
@@ -267,6 +261,24 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     );
   }
 
+  // Hook refusals: an agent's hook refused these calls, or a person's earlier
+  // refusal stood over a hook's allow (kind "hook"); settle their rows to the
+  // native shape, a FAILED call carrying the refusal the model read, with the
+  // hook named. Before the #205 pass, for the same reason as the lists'.
+  const stampedHookRefusals = stampHookRefusedToolCalls(
+    status.messages,
+    status.subAgentExecutions,
+    deniedLedger,
+    turnStartMessageIndex,
+    primaryWorkspaceDir,
+  );
+  if (stampedHookRefusals > 0) {
+    console.log(
+      `ExecuteCursor turn boundary: ${stampedHookRefusals} tool call(s) refused by the agent's hooks ` +
+      `(execution=${executionId})`,
+    );
+  }
+
   // Issue #205 invariant: a blocked tool must never silently complete. Match
   // this turn's hook-blocked FAILED rows against the FULL ledger (all kinds) —
   // anything left over was denied by a hook that is not ours (or by our hook
@@ -323,13 +335,10 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   }
 
   if (unattributedHookBlocks.length > 0) {
-    const culprits = (foreignGatingHooks?.length ?? 0) > 0
-      ? ` — likely foreign workspace hook(s): ${foreignGatingHooks!.join(", ")}`
-      : "";
     console.warn(
       `ExecuteCursor turn boundary: ${unattributedHookBlocks.length} tool call(s) blocked ` +
       `by a hook with NO matching denial-ledger entry ` +
-      `[${unattributedHookBlocks.map((b) => b.toolName).join(", ")}]${culprits} ` +
+      `[${unattributedHookBlocks.map((b) => b.toolName).join(", ")}] ` +
       `(execution=${executionId})${waiting ? " — turn pauses anyway; not failing" : ""}`,
     );
   }
@@ -342,6 +351,12 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
       `ExecuteCursor turn boundary: fail-closed denial(s) in the ledger — the approval ` +
       `state file was missing during this turn and gated tools were denied ` +
       `(execution=${executionId})`,
+    );
+  }
+  if (deniedLedger.some((e) => denialKindOf(e) === "hook-unavailable")) {
+    console.warn(
+      `ExecuteCursor turn boundary: the agent's hook server did not answer during this turn, ` +
+      `so the calls it was asked about were refused (execution=${executionId})`,
     );
   }
 

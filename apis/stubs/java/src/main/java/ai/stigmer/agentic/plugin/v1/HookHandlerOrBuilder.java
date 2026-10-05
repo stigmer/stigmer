@@ -13,7 +13,8 @@ public interface HookHandlerOrBuilder extends
   /**
    * <pre>
    * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
-   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
+   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in
+   * Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too.
    * </pre>
    *
    * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -23,7 +24,8 @@ public interface HookHandlerOrBuilder extends
   /**
    * <pre>
    * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
-   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
+   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in
+   * Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too.
    * </pre>
    *
    * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -35,7 +37,7 @@ public interface HookHandlerOrBuilder extends
   /**
    * <pre>
    * Arguments for the command's exec form; when set, the command runs without
-   * a shell.
+   * a shell. Claude Code's format only.
    * </pre>
    *
    * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -46,7 +48,7 @@ public interface HookHandlerOrBuilder extends
   /**
    * <pre>
    * Arguments for the command's exec form; when set, the command runs without
-   * a shell.
+   * a shell. Claude Code's format only.
    * </pre>
    *
    * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -56,7 +58,7 @@ public interface HookHandlerOrBuilder extends
   /**
    * <pre>
    * Arguments for the command's exec form; when set, the command runs without
-   * a shell.
+   * a shell. Claude Code's format only.
    * </pre>
    *
    * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -67,7 +69,7 @@ public interface HookHandlerOrBuilder extends
   /**
    * <pre>
    * Arguments for the command's exec form; when set, the command runs without
-   * a shell.
+   * a shell. Claude Code's format only.
    * </pre>
    *
    * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -79,8 +81,9 @@ public interface HookHandlerOrBuilder extends
 
   /**
    * <pre>
-   * Seconds the command may run before it is stopped; zero means the default,
-   * 600 seconds. A command that is stopped makes no decision.
+   * Seconds the command may run before it is stopped; zero means the format's
+   * default, 600 seconds for Claude Code and 60 for Cursor. A command that is
+   * stopped makes no decision, unless fail_closed is set.
    * </pre>
    *
    * <code>int32 timeout_seconds = 3 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -91,7 +94,8 @@ public interface HookHandlerOrBuilder extends
   /**
    * <pre>
    * A permission rule that narrows when the handler runs, e.g.
-   * "Bash(git push *)"; empty means whenever the group matches.
+   * "Bash(git push *)"; empty means whenever the group matches. Claude Code's
+   * format only.
    * </pre>
    *
    * <code>string condition = 4 [json_name = "condition"];</code>
@@ -101,7 +105,8 @@ public interface HookHandlerOrBuilder extends
   /**
    * <pre>
    * A permission rule that narrows when the handler runs, e.g.
-   * "Bash(git push *)"; empty means whenever the group matches.
+   * "Bash(git push *)"; empty means whenever the group matches. Claude Code's
+   * format only.
    * </pre>
    *
    * <code>string condition = 4 [json_name = "condition"];</code>

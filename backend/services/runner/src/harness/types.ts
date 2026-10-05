@@ -84,6 +84,7 @@ import type { ActiveLeases, McpApprovalDefault } from "../shared/approval-policy
 import type { ToolScope } from "../shared/tool-lists.js";
 import type { SkillMetadata } from "../shared/skill-resolver.js";
 import type { MountedPlugin } from "../shared/plugin-mount.js";
+import type { HookFormatName } from "../shared/hooks/hook-set.js";
 import type { PluginServerName } from "../shared/hooks/tool-view.js";
 import type { HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { ResolvedAttachment } from "../shared/attachment-resolver.js";
@@ -240,6 +241,8 @@ export interface TurnSkills {
 export interface TurnHookSource {
   /** The plugin, mounted and verified; `null` for the hooks block written in the agent. */
   readonly plugin: MountedPlugin | null;
+  /** The format the groups are written in: a plugin's recorded format, or the agent's own block's. */
+  readonly format: HookFormatName;
   readonly groups: readonly HookGroup[];
 }
 

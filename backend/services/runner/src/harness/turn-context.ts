@@ -106,6 +106,7 @@ import { isTerminalError } from "../shared/grpc-retry.js";
 import type { PluginServerName } from "../shared/hooks/tool-view.js";
 import { getPlatformDir } from "../shared/workspace/platform-dir.js";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookFormatName } from "../shared/hooks/hook-set.js";
 import type { HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
 import { VisionBudget, type NotViewableEntry, type VisionProfile } from "../shared/attachment-vision.js";
@@ -872,7 +873,9 @@ function describeHookSource(source: HookSource): string {
  * Phase 2b: refuse a turn whose agent has hooks when the harness does not
  * run them, right after the blueprint and before anything else is fetched
  * or provisioned. Run without them, the hooks would be policies that
- * silently vanished; the refusal names them and says what to do.
+ * silently vanished; the refusal names them and says what to do. Both built
+ * harnesses run hooks, so this refuses nothing today; it stays for the
+ * next harness that does not.
  */
 export function refuseUnrunnableHooks(
   blueprint: ResolvedBlueprint,
@@ -895,8 +898,8 @@ export function refuseUnrunnableHooks(
  * `getByReference` (the reference's version when it names one, else the
  * installed version) and mounted from its verified archive
  * (`shared/plugin-mount.ts`); the agent's own block is taken as written.
- * Only Claude Code's hook format runs here; a plugin whose hooks are in
- * Cursor's format is refused by name. A plugin that records no hooks
+ * Each source keeps the format it is written in, Claude Code's or Cursor's;
+ * both run on every engine that runs hooks. A plugin that records no hooks
  * contributes none, with a log line. When the agent has hooks, every server
  * a plugin brought is named as Claude Code names it, from its plugin's own
  * name, so a plugin's matchers find its tools.
@@ -924,10 +927,7 @@ export async function resolveHooks(
   const resolved: TurnHookSource[] = [];
   for (const source of sources) {
     if (source.source.case === "inline") {
-      if (source.source.value.format === HookFormat.CURSOR) {
-        return refused("The agent's own hooks block is in Cursor's format, which does not run yet. Write it in Claude Code's format.");
-      }
-      resolved.push({ plugin: null, groups: source.source.value.groups });
+      resolved.push({ plugin: null, format: formatOf(source.source.value.format), groups: source.source.value.groups });
       continue;
     }
     if (source.source.case !== "plugin") continue;
@@ -944,14 +944,8 @@ export async function resolveHooks(
       console.log(`[turn-context] the plugin '${ref.slug}' records no hooks; it contributes none`);
       continue;
     }
-    if (hooks.format === HookFormat.CURSOR) {
-      return refused(
-        `The plugin '${ref.slug}' carries hooks in Cursor's format, which do not run yet. ` +
-          "Remove it from the agent's hooks, or use a plugin whose hooks are in Claude Code's format.",
-      );
-    }
     try {
-      resolved.push({ plugin: await mountPlugin(deps.client, plugin, platformDir), groups: hooks.groups });
+      resolved.push({ plugin: await mountPlugin(deps.client, plugin, platformDir), format: formatOf(hooks.format), groups: hooks.groups });
     } catch (err) {
       if (!ownersToFix(err)) throw err;
       return refused(`The agent's hooks could not be prepared: ${errorText(err)}`);
@@ -981,6 +975,11 @@ export async function resolveHooks(
 
   deps.timing.mark("resolve_hooks");
   return { kind: "ready", hooks: { sources: resolved, pluginServers } };
+}
+
+/** A recorded hook format as the evaluator names it; an unset format is Claude Code's, as apply fills it. */
+function formatOf(format: HookFormat): HookFormatName {
+  return format === HookFormat.CURSOR ? "cursor" : "claude-code";
 }
 
 /**

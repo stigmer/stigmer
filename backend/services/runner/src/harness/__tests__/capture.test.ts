@@ -189,6 +189,22 @@ describe("harness/capture over a git work tree", () => {
     }
   });
 
+  it("leaves a transient path out of the mid-run diff only: an agent's own edit to it is still captured at the end", async () => {
+    const fileReview: FileReviewIdentity = { ...FILE_REVIEW, transientPaths: ["settings.json"] };
+    initGitWorkspace(root, { "notes.md": "one\n", "keep.md": "keep\n", "settings.json": '{"hooks":{}}' });
+    const workspace = workspaceOver(root);
+    const capture = (await pinCaptureBaseline({ status, executionId: EXECUTION_ID, workspace, fileReview, artifactStorage: undefined }))!;
+    // The harness rewrites it mid-run; the progress diff does not show that.
+    writeFileSync(join(root, "settings.json"), "{}");
+    expect((await capture.progress.substrate.capture()).delta.entries).toEqual([]);
+    // Restored with the agent's own edit kept: the candidate shows the edit.
+    writeFileSync(join(root, "settings.json"), '{"hooks":{},"model":"x"}');
+    expect(await captureCandidate({ status, executionId: EXECUTION_ID, workspace, fileReview, artifactStorage: undefined, capture, globalBypass: false })).toBe(true);
+    const candidate = status.fileReviewEventStream!.events.at(-1)!.payload;
+    if (candidate.case !== "candidateCaptured") throw new Error("unreachable");
+    expect(candidate.value.changes.map((c) => c.pathAfter)).toEqual(["settings.json"]);
+  });
+
   it("scopes the stamp to this turn: a seeded prior-turn row keeps its change set, a sub-agent row created this turn takes the parent's", async () => {
     // The seed a reinvocation carries: a prior turn's flowed row and a prior sub-agent row.
     status.messages.push(messageWith(row("tc-prior", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED, { fileChangeSetId: `${EXECUTION_ID}:0` })));

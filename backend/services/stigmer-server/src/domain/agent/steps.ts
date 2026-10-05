@@ -34,7 +34,7 @@ import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/envi
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import type { HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookConfig, HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -180,13 +180,16 @@ export function newMergeMcpServerEnvSpecsStep(
 // so two plugins sharing one, even from two organizations, would share a
 // lease. One inline block at most, so "the agent's own hooks" names one
 // thing. An inline block is held to the rules a plugin's hooks are held to
-// at install, from the one library that reads them (@stigmer/plugin-package):
-// Claude Code's format only (the format the native engine runs), the two
+// at install, from the one library that reads them (@stigmer/plugin-package),
+// in either format, since both engines run both. Claude Code's: the two
 // tool-call events, a matcher that is "*", an exact list or a regular
 // expression, an `if` in a permission rule's shape, and no fail_closed,
-// which is Cursor's and which Claude Code hooks do not honour. An omitted
-// format is filled with Claude Code's, so an author writing a block by hand
-// never names an enum, the way the env merge completes the spec.
+// which Claude Code hooks do not honour. Cursor's: the five tool-call
+// events Stigmer runs, a matcher that is "*" or a regular expression, and
+// neither an `if` nor `args` nor `${user_config.*}`, which Cursor's format
+// does not have. An omitted format is filled with
+// Claude Code's, so an author writing a block by hand never names an enum,
+// the way the env merge completes the spec; a Cursor block names its format.
 //
 // Pipeline position: before NormalizeReferences, so malformed hooks are
 // INVALID_ARGUMENT before any reference is looked up; before the version
@@ -229,28 +232,29 @@ export function newValidateHooksStep(): PipelineStep<AgentDesc> {
   };
 }
 
-const CLAUDE_CODE_EVENTS = RUN_EVENTS["claude-code"];
-
 /** One inline block against the install rules; fills an omitted format. */
 function checkInlineHooks(block: HookConfig): void {
-  if (block.format === HookFormat.CURSOR) {
-    throw invalidArgumentError(
-      "the agent's hooks block is in Cursor's format; an agent's own hooks are written in Claude Code's format",
-    );
-  }
-  block.format = HookFormat.CLAUDE_CODE;
+  const format = block.format === HookFormat.CURSOR ? "cursor" : "claude-code";
+  if (format === "claude-code") block.format = HookFormat.CLAUDE_CODE;
+  const events = RUN_EVENTS[format];
   for (const group of block.groups) {
-    if (!CLAUDE_CODE_EVENTS.has(group.event)) {
+    if (!events.has(group.event)) {
       throw invalidArgumentError(
-        `the agent's hooks block names event '${group.event}', which Stigmer does not run; use ${[...CLAUDE_CODE_EVENTS].join(" or ")}`,
+        `the agent's hooks block names event '${group.event}', which Stigmer does not run in ${FORMAT_NAMES[format]} format; use ${[...events].join(", ")}`,
       );
     }
-    if (!isValidMatcher(group.matcher, "claude-code")) {
+    if (!isValidMatcher(group.matcher, format)) {
       throw invalidArgumentError(
-        `the agent's ${group.event} hook has matcher '${group.matcher}', which is not '*', a list of tool names or a regular expression`,
+        format === "cursor"
+          ? `the agent's ${group.event} hook has matcher '${group.matcher}', which is not '*' or a regular expression`
+          : `the agent's ${group.event} hook has matcher '${group.matcher}', which is not '*', a list of tool names or a regular expression`,
       );
     }
     for (const handler of group.handlers) {
+      if (format === "cursor") {
+        checkCursorHandler(group.event, handler);
+        continue;
+      }
       if (
         handler.condition !== "" &&
         !HOOK_CONDITION_PATTERN.test(handler.condition)
@@ -270,6 +274,30 @@ function checkInlineHooks(block: HookConfig): void {
         );
       }
     }
+  }
+}
+
+const FORMAT_NAMES: Readonly<Record<"claude-code" | "cursor", string>> = {
+  "claude-code": "Claude Code's",
+  cursor: "Cursor's",
+};
+
+/** A Cursor handler carries a command and may fail closed; it has no `if` and no exec form. */
+function checkCursorHandler(event: string, handler: HookHandler): void {
+  if (handler.condition !== "") {
+    throw invalidArgumentError(
+      `the agent's ${event} hook sets a condition, which Cursor's hook format does not have; narrow it with the matcher`,
+    );
+  }
+  if (handler.args.length > 0) {
+    throw invalidArgumentError(
+      `the agent's ${event} hook sets args, which Cursor's hook format does not have; a Cursor hook's command runs in bash`,
+    );
+  }
+  if (handler.command.includes("${user_config.")) {
+    throw invalidArgumentError(
+      `the agent's ${event} hook reads \${user_config.*}, which Cursor's hook format does not substitute`,
+    );
   }
 }
 

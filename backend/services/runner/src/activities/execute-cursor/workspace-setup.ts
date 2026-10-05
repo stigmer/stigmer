@@ -9,10 +9,17 @@
  *
  * 2. Workspace surface — a single `.cursor/hooks.json` written into the
  *    workspace, because the Cursor SDK only loads project hooks from that
- *    hard-coded path. It is kept minimal, MERGED with any pre-existing user
- *    hooks.json, points at the hook script by ABSOLUTE path (so multi-root IDE
- *    windows can always find it instead of failing closed), and is RESTORED to
- *    its original content when the turn ends.
+ *    hard-coded path. For the turn it holds the gate's entries ONLY: a
+ *    repository's own entries are set aside, on every event, so only the
+ *    agent's own hooks run on this engine (they run inside the runner,
+ *    `hook-server.ts`), as on the native one. Every other key of the file is
+ *    kept. It points at the hook script by ABSOLUTE path (so multi-root IDE
+ *    windows can always find it instead of failing closed), and is RESTORED
+ *    when the turn ends, through the snapshot every rewritten workspace file
+ *    shares (`workspace-hook-files.ts`, which also sets aside the `.claude`
+ *    settings hooks the SDK would load from a folder the runner owns). While
+ *    the turn runs, a Cursor IDE open on the repository runs none of the
+ *    repository's hooks either.
  *
  * Why this shape. The previous design wrote all four files into the workspace
  * with a repo-relative hook command and never cleaned up. For a local-folder
@@ -28,7 +35,8 @@
  * activity's finally. Each turn snapshots and restores independently, so the
  * repo is byte-identical between turns. If a crash skips teardown, the leftover
  * hooks.json is inert: the scope guard allows every invocation once the runner
- * PID is gone, and the relocated artifacts are not in the repo.
+ * PID is gone, and the relocated artifacts are not in the repo; the next
+ * install restores what the crashed turn set aside before anything else.
  */
 
 import { writeFile, readFile, mkdir, chmod, rm, rmdir, readdir } from "node:fs/promises";
@@ -45,6 +53,12 @@ import {
 } from "./approval-state.js";
 import { resetCasObservations } from "./cas-observations.js";
 import { ensureHitlGateDir } from "../../shared/workspace/platform-dir.js";
+import {
+  claudeSettingsRewrites,
+  restoreWorkspaceFiles,
+  rewriteWorkspaceFiles,
+  type WorkspaceFolder,
+} from "./workspace-hook-files.js";
 
 const CURSOR_DIR = ".cursor";
 const HOOKS_CONFIG_FILE = "hooks.json";
@@ -67,11 +81,15 @@ const TOOL_APPROVAL_RULE_FILE = "stigmer-tool-approval.mdc";
  * for MCP tool calls; `subagentStart` answers the agent's `Agent(type, …)` list
  * on a runtime that fires it, a second line only: the 1.0.31 local runtime
  * does not fire it for a `task` call (live probe, 2026-10-05), so a type list
- * is refused at setup (`turn-setup.ts` `checkToolScope`).
+ * is refused at setup (`turn-setup.ts` `checkToolScope`). `postToolUse`, for
+ * an agent with hooks that run after a call, hands the model what they say;
+ * it fires for MCP calls too, and its context is the one Cursor delivers
+ * (`afterMCPExecution`'s is not, live probe, 2026-10-05).
  */
 const PRE_TOOL_USE_EVENT = "preToolUse";
 const BEFORE_MCP_EVENT = "beforeMCPExecution";
 const SUBAGENT_START_EVENT = "subagentStart";
+const POST_TOOL_USE_EVENT = "postToolUse";
 
 /** One (event -> script) registration in `.cursor/hooks.json`. */
 interface HookRegistration {
@@ -79,8 +97,27 @@ interface HookRegistration {
   scriptPath: string;
 }
 
-/** Hook timeout (seconds) — each script is a quick local decision. */
-const HOOK_TIMEOUT_SECONDS = 10;
+/**
+ * The longest one of an agent's hooks may run on this engine, in seconds.
+ * `@cursor/sdk` reads `.cursor/hooks.json` once and keeps it (for the
+ * process, and for a parked agent's executor), so the gate's registration
+ * is the same for every turn: its timeout cannot follow the agent's hooks.
+ * An agent with a longer hook is refused (`turn-setup.ts` `prepareHooks`).
+ */
+export const MAX_HOOK_TIMEOUT_SECONDS = 3600;
+
+/**
+ * The gate script's timeout: the longest hook, plus the script's own
+ * identity and capture steps around the hook server's answer. A script
+ * that hangs without a hook running is the stall watchdog's to end.
+ */
+const GATE_TIMEOUT_SECONDS = MAX_HOOK_TIMEOUT_SECONDS + 30;
+
+/** The agent's hooks as the gate installs them: where they are served. */
+export interface GateHooks {
+  readonly socketPath: string;
+  readonly token: string;
+}
 
 /**
  * Handle returned by {@link installHitlGate}, consumed by {@link removeHitlGate}
@@ -89,12 +126,6 @@ const HOOK_TIMEOUT_SECONDS = 10;
 export interface HitlGateHandle {
   /** Absolute path of the workspace hooks.json this turn manages. */
   hooksJsonPath: string;
-  /**
-   * Content to restore on teardown: the workspace's original hooks.json bytes
-   * (with any stale Stigmer entry stripped), or null when no hooks.json existed
-   * before this turn (in which case teardown deletes the file).
-   */
-  restoreTo: string | null;
   /**
    * The `.cursor/rules/stigmer-tool-approval.mdc` this turn manages: its
    * absolute path and the bytes to restore (null → teardown deletes the file,
@@ -107,20 +138,6 @@ export interface HitlGateHandle {
    * gate is inert between turns.
    */
   gateDir: string;
-  /**
-   * Commands of FOREIGN (non-Stigmer) hooks registered on the gating events
-   * (preToolUse/beforeMCPExecution/subagentStart) in the workspace's
-   * pre-existing hooks.json.
-   * The merge deliberately PRESERVES them (they are the user's own config), but
-   * because Cursor runs every configured hook and a deny from ANY of them blocks
-   * the tool, a foreign hook can deny the runner's tools without writing our
-   * denial ledger — the issue #205 silent-failure trigger. Surfaced here so the
-   * runner can log the exposure at install and name the likely culprit when the
-   * turn boundary detects an unattributed hook block. Empty when the workspace
-   * had no hooks.json, only Stigmer entries, or an unparseable file (which is
-   * REPLACED for the turn, so its hooks cannot run against us).
-   */
-  foreignGatingHooks: readonly string[];
 }
 
 /** Absolute path + restore target for a single workspace file the gate manages. */
@@ -141,8 +158,16 @@ export async function installHitlGate(params: {
   hitlDir: string;
   approvalState: ApprovalStateFile;
   runnerPid: number;
+  /** The agent's hooks, when it has any. */
+  hooks?: GateHooks;
+  /** The turn's workspace folders: the runner-owned ones' `.claude` settings hooks are set aside for the turn. */
+  folders?: readonly WorkspaceFolder[];
 }): Promise<HitlGateHandle> {
-  const { workspaceRoot, hitlDir, approvalState, runnerPid } = params;
+  const { workspaceRoot, hitlDir, approvalState, runnerPid, hooks, folders = [] } = params;
+
+  // A crashed turn's set-aside workspace files come back first, so this
+  // turn's snapshot is taken of the files as their owners left them.
+  await restoreWorkspaceFiles(await ensureHitlGateDir(workspaceRoot));
 
   // Heal any pre-#173 in-workspace gate leftovers before installing. Without
   // this, a stale `.cursor/hooks/stigmer-approval.sh` (from a runner build that
@@ -161,27 +186,43 @@ export async function installHitlGate(params: {
     hitlDir,
     approvalState,
     runnerPid,
+    hooks,
   );
-  // One script, three events: preToolUse gates built-ins; beforeMCPExecution
+  // One script, four events: preToolUse gates built-ins; beforeMCPExecution
   // is the only event Cursor enforces for MCP tools; subagentStart answers the
   // agent's sub-agent types where the runtime fires it (a second line; see
-  // SUBAGENT_START_EVENT). The script branches internally on hook_event_name
-  // so MCP is gated in exactly one place.
-  const hookHandle = await installWorkspaceHook(workspaceRoot, [
+  // SUBAGENT_START_EVENT); postToolUse hands back what the agent's hooks say
+  // after a call. The script branches internally on hook_event_name so MCP is
+  // gated in exactly one place. The registration is the same for every turn
+  // (see MAX_HOOK_TIMEOUT_SECONDS): a turn whose agent has no hooks answers
+  // postToolUse with nothing, at once.
+  const registrations: HookRegistration[] = [
     { event: PRE_TOOL_USE_EVENT, scriptPath: approvalScriptPath },
     { event: BEFORE_MCP_EVENT, scriptPath: approvalScriptPath },
     { event: SUBAGENT_START_EVENT, scriptPath: approvalScriptPath },
-  ]);
+    { event: POST_TOOL_USE_EVENT, scriptPath: approvalScriptPath },
+  ];
+  const timeoutSeconds = GATE_TIMEOUT_SECONDS;
+  let hooksJsonPath: string;
+  let rule: WorkspaceFileSnapshot;
+  try {
+    hooksJsonPath = await installWorkspaceHook(workspaceRoot, gateDir, registrations, timeoutSeconds, folders);
 
-  // Install the always-applied tool-approval rule. The deny-based gate surfaces
-  // an approval pause to the model as a tool failure (Cursor's generic "blocked
-  // by a hook" text), and the SDK exposes no non-leaky approval primitive — so
-  // this rule, which takes precedence over MCP-server instructions and persists
-  // across resumed turns, is the strongest available lever to stop the model
-  // from misreading the gate as a broken environment.
-  const rule = await installWorkspaceRule(workspaceRoot);
+    // Install the always-applied tool-approval rule. The deny-based gate
+    // surfaces an approval pause to the model as a tool failure (Cursor's
+    // generic "blocked by a hook" text), and the SDK exposes no non-leaky
+    // approval primitive — so this rule, which takes precedence over
+    // MCP-server instructions and persists across resumed turns, is the
+    // strongest available lever to stop the model from misreading the gate
+    // as a broken environment.
+    rule = await installWorkspaceRule(workspaceRoot);
+  } catch (err) {
+    // Whatever was set aside comes back here: no handle reaches the caller to restore it.
+    await restoreWorkspaceFiles(gateDir);
+    throw err;
+  }
 
-  return { ...hookHandle, rule, gateDir };
+  return { hooksJsonPath, rule, gateDir };
 }
 
 /**
@@ -191,7 +232,7 @@ export async function installHitlGate(params: {
  * and a leftover hooks.json is inert anyway (see the module doc).
  */
 export async function removeHitlGate(handle: HitlGateHandle): Promise<void> {
-  await restoreWorkspaceFile(handle.hooksJsonPath, handle.restoreTo);
+  await restoreWorkspaceFiles(handle.gateDir);
   // Drop the active-turn pointer so the gate is INERT between turns: a hook that
   // fires while no turn is active (a cached hooks.json, the user's own IDE on the
   // same repo) reads no pointer and allows immediately. The stable hook script
@@ -305,6 +346,7 @@ async function writeHitlArtifacts(
   hitlDir: string,
   approvalState: ApprovalStateFile,
   runnerPid: number,
+  hooks: GateHooks | undefined,
 ): Promise<{ scriptPath: string; gateDir: string }> {
   await mkdir(hitlDir, { recursive: true });
 
@@ -331,20 +373,24 @@ async function writeHitlArtifacts(
     stateFile: stateFilePath,
     ledgerFile: ledgerFilePath,
     runnerPid,
+    ...(hooks ? { hookSocket: hooks.socketPath, hookToken: hooks.token } : {}),
   });
 
   return { scriptPath, gateDir };
 }
 
 /**
- * Snapshot the workspace's existing `.cursor/hooks.json`, write a merged config
- * that adds our preToolUse entry (absolute script path) while preserving the
- * user's own hooks, and return the handle for restoration.
+ * Write the turn's `.cursor/hooks.json` (the gate's entries only) and set
+ * aside the runner-owned folders' `.claude` settings hooks, each snapshotted
+ * under the gate directory first; returns the hooks.json path.
  */
 async function installWorkspaceHook(
   workspaceRoot: string,
+  gateDir: string,
   registrations: HookRegistration[],
-): Promise<Omit<HitlGateHandle, "rule" | "gateDir">> {
+  timeoutSeconds: number,
+  folders: readonly WorkspaceFolder[],
+): Promise<string> {
   const cursorDir = join(workspaceRoot, CURSOR_DIR);
   const hooksJsonPath = join(cursorDir, HOOKS_CONFIG_FILE);
 
@@ -355,12 +401,14 @@ async function installWorkspaceHook(
     originalRaw = null;
   }
 
-  const { merged, restoreTo, foreignGatingHooks } = buildMergedConfig(originalRaw, registrations);
+  const { merged, restoreTo } = buildMergedConfig(originalRaw, registrations, timeoutSeconds);
 
   await mkdir(cursorDir, { recursive: true });
-  await writeFile(hooksJsonPath, merged, "utf-8");
-
-  return { hooksJsonPath, restoreTo, foreignGatingHooks };
+  await rewriteWorkspaceFiles(gateDir, [
+    { path: hooksJsonPath, kind: "cursor-hooks", original: restoreTo, written: merged },
+    ...(await claudeSettingsRewrites(folders)),
+  ]);
+  return hooksJsonPath;
 }
 
 /**
@@ -392,8 +440,8 @@ async function installWorkspaceRule(workspaceRoot: string): Promise<WorkspaceFil
  * A hook entry the gate installs. Absolute `command` so the hook is found
  * regardless of which workspace root a multi-root IDE resolves against.
  */
-function buildHookEntry(scriptPath: string): Record<string, unknown> {
-  return { command: scriptPath, timeout: HOOK_TIMEOUT_SECONDS, failClosed: true };
+function buildHookEntry(scriptPath: string, timeoutSeconds: number): Record<string, unknown> {
+  return { command: scriptPath, timeout: timeoutSeconds, failClosed: true };
 }
 
 /**
@@ -412,7 +460,7 @@ function buildHookEntry(scriptPath: string): Record<string, unknown> {
  *    (and vetoing) the current gate. The `stigmer-` prefix is the same
  *    runner-owned namespace convention as the rule filename.
  */
-function isStigmerHookEntry(entry: unknown): boolean {
+export function isStigmerHookEntry(entry: unknown): boolean {
   if (!entry || typeof entry !== "object") return false;
   const command = (entry as { command?: unknown }).command;
   if (typeof command !== "string" || command.length === 0) return false;
@@ -421,81 +469,47 @@ function isStigmerHookEntry(entry: unknown): boolean {
   return file.startsWith(RUNNER_OWNED_HOOK_FILE_PREFIX) && file.endsWith(".sh");
 }
 
-const STANDALONE_CONFIG = (registrations: HookRegistration[]): string =>
-  JSON.stringify({ version: 1, hooks: mergeHooks({}, registrations).hooks }, null, 2);
-
-/**
- * Merge our registrations into a hooks object: for each event, drop any stale
- * Stigmer entry, then append our fresh one. Returns the merged hooks object, the
- * cleaned (Stigmer-free) hooks for restore, whether anything was stripped, and
- * the FOREIGN commands preserved on the gating events (see
- * {@link HitlGateHandle.foreignGatingHooks} for why they matter).
- */
-function mergeHooks(
-  existingHooks: Record<string, unknown>,
-  registrations: HookRegistration[],
-): {
-  hooks: Record<string, unknown>;
-  cleaned: Record<string, unknown>;
-  strippedStale: boolean;
-  foreignGatingHooks: string[];
-} {
-  const hooks: Record<string, unknown> = { ...existingHooks };
-  const cleaned: Record<string, unknown> = { ...existingHooks };
-  let strippedStale = false;
-  const foreignGatingHooks: string[] = [];
-
-  for (const { event, scriptPath } of registrations) {
-    const hadEvent = Array.isArray(existingHooks[event]);
-    const existing = hadEvent ? (existingHooks[event] as unknown[]) : [];
-    const userEntries = existing.filter((e) => !isStigmerHookEntry(e));
-    if (userEntries.length !== existing.length) strippedStale = true;
-    // The user entries surviving on a GATING event are exactly the hooks that
-    // can deny the runner's tools without touching our denial ledger.
-    for (const entry of userEntries) {
-      const command = (entry as { command?: unknown } | null)?.command;
-      if (typeof command === "string" && command) foreignGatingHooks.push(command);
-    }
-
-    hooks[event] = [...userEntries, buildHookEntry(scriptPath)];
-    // Restore target keeps the event key only if the user originally had it, so
-    // we never leave behind an empty array the user never wrote.
-    if (hadEvent) cleaned[event] = userEntries;
-  }
-
-  return { hooks, cleaned, strippedStale, foreignGatingHooks };
+/** The gate's own hooks object: each registered event with its one entry. */
+function gateHooks(registrations: HookRegistration[], timeoutSeconds: number): Record<string, unknown> {
+  const hooks: Record<string, unknown> = {};
+  for (const { event, scriptPath } of registrations) hooks[event] = [buildHookEntry(scriptPath, timeoutSeconds)];
+  return hooks;
 }
 
 /**
- * Compute the merged hooks.json to write for this turn, the content to restore
- * afterward, and the foreign gating hooks the merge preserved.
+ * Compute the turn's hooks.json and the content to restore afterward.
  *
- * - No existing file → write our standalone config; restore by deleting (null).
- * - Existing, parseable file → append our entry to each registered event array,
- *   preserving every other hook type and field; restore the user's original
- *   bytes. Any stale Stigmer entry from a prior crashed turn is stripped from
- *   BOTH the merged config (no duplicate) and the restore target (self-healing).
- * - Existing, unparseable file → replace for the turn with our standalone
- *   config; restore the user's exact original bytes (we never "fix" their file).
+ * The turn's file holds the gate's entries only: every event's repository
+ * entries are set aside for the turn (the module doc says why), and every
+ * other key of the file is kept.
+ *
+ * - No existing file → write the gate's config; restore by deleting (null).
+ * - Existing, parseable file → the gate's hooks in place of the file's,
+ *   every other field kept; restore the original bytes. Any stale Stigmer
+ *   entry from a prior crashed turn is stripped from the restore target
+ *   (self-healing).
+ * - Existing, unparseable file → replace for the turn with the gate's config;
+ *   restore the original bytes (we never "fix" a file).
  *
  * Exported for unit testing — this is the load-bearing data transformation.
  */
 export function buildMergedConfig(
   originalRaw: string | null,
   registrations: HookRegistration[],
-): { merged: string; restoreTo: string | null; foreignGatingHooks: string[] } {
-  if (originalRaw === null) {
-    return { merged: STANDALONE_CONFIG(registrations), restoreTo: null, foreignGatingHooks: [] };
-  }
+  timeoutSeconds = GATE_TIMEOUT_SECONDS,
+): { merged: string; restoreTo: string | null } {
+  const ours = gateHooks(registrations, timeoutSeconds);
+  const standalone = JSON.stringify({ version: 1, hooks: ours }, null, 2);
+  if (originalRaw === null) return { merged: standalone, restoreTo: null };
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(originalRaw);
   } catch {
-    return { merged: STANDALONE_CONFIG(registrations), restoreTo: originalRaw, foreignGatingHooks: [] };
+    return { merged: standalone, restoreTo: originalRaw };
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return { merged: STANDALONE_CONFIG(registrations), restoreTo: originalRaw, foreignGatingHooks: [] };
+    return { merged: standalone, restoreTo: originalRaw };
   }
 
   const root = parsed as Record<string, unknown>;
@@ -504,16 +518,21 @@ export function buildMergedConfig(
       ? (root.hooks as Record<string, unknown>)
       : {};
   const version = typeof root.version === "number" ? root.version : 1;
+  const merged = JSON.stringify({ ...root, version, hooks: ours }, null, 2);
 
-  const { hooks: mergedHooks, cleaned, strippedStale, foreignGatingHooks } =
-    mergeHooks(hooks, registrations);
-
-  const merged = JSON.stringify({ ...root, version, hooks: mergedHooks }, null, 2);
-
-  // No stale Stigmer entry → restore the user's exact original bytes.
-  if (!strippedStale) {
-    return { merged, restoreTo: originalRaw, foreignGatingHooks };
+  // The restore target: the original, less any entry an earlier gate left.
+  const cleaned: Record<string, unknown> = {};
+  let strippedStale = false;
+  for (const [event, entries] of Object.entries(hooks)) {
+    if (!Array.isArray(entries)) {
+      cleaned[event] = entries;
+      continue;
+    }
+    const own = entries.filter((e) => !isStigmerHookEntry(e));
+    if (own.length !== entries.length) strippedStale = true;
+    cleaned[event] = own;
   }
+  if (!strippedStale) return { merged, restoreTo: originalRaw };
 
   // We stripped a stale Stigmer entry, so never restore the original bytes (that
   // would re-plant our leftover). If stripping leaves NO user hooks at all and
@@ -521,15 +540,10 @@ export function buildMergedConfig(
   // own leftover (the pre-#173 design wrote the whole file) — delete it on
   // teardown so a polluted repo is left pristine. Otherwise restore the cleaned,
   // Stigmer-free form, preserving the user's other hooks and root fields.
-  const onlyVersionAndHooks = Object.keys(root).every(
-    (k) => k === "version" || k === "hooks",
-  );
-  const noUserHooksRemain = Object.values(cleaned).every(
-    (v) => Array.isArray(v) && v.length === 0,
-  );
+  const onlyVersionAndHooks = Object.keys(root).every((k) => k === "version" || k === "hooks");
+  const noUserHooksRemain = Object.values(cleaned).every((v) => Array.isArray(v) && v.length === 0);
   const restoreTo = onlyVersionAndHooks && noUserHooksRemain
     ? null
     : JSON.stringify({ ...root, version, hooks: cleaned }, null, 2);
-
-  return { merged, restoreTo, foreignGatingHooks };
+  return { merged, restoreTo };
 }

@@ -203,9 +203,9 @@ describe("Cursor resume-grant identity round-trip (H1 lock)", () => {
       expectedSalient: "/work/analysis.ipynb",
     },
     {
-      label: "MCP (name-scoped identity, salient empty)",
+      label: "MCP (server-and-tool identity, salient empty)",
       event: mcpEvent("c_mcp", "open-computer-use", "click", { x: 10, y: 20 }),
-      expectedKey: "click",
+      expectedKey: "open-computer-use/click",
       expectedSalient: "",
     },
   ];

@@ -56,7 +56,7 @@
  * seams, each on the module that owns the concern.
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ModelListItem } from "@cursor/sdk";
@@ -216,6 +216,63 @@ export function runWorkspaceHook(
       ? "allow"
       : "?";
   return { permission, raw };
+}
+
+/** One hook event's answer, every entry the workspace registers for it combined as Cursor does. */
+export interface WorkspaceHooksAnswer {
+  /** deny > ask > allow, as the SDK combines matching hooks; "?" when no entry answered. */
+  readonly permission: "allow" | "deny" | "ask" | "?";
+  /** Each entry's stdout, in registration order. */
+  readonly raws: readonly string[];
+  /** The `additional_context` the entries handed back, in order. */
+  readonly additionalContext: readonly string[];
+  /** The last entry's `updated_input`, as the SDK applies it. */
+  readonly updatedInput?: Record<string, unknown>;
+}
+
+/**
+ * Run every entry the workspace's `.cursor/hooks.json` registers for the
+ * input's `hook_event_name`, as the SDK does: each command in a shell with
+ * the input on stdin, all of them, their answers combined deny > ask >
+ * allow. Asynchronous, because the gate's script asks the runner's hook
+ * server (`hook-server.ts`), which answers on this very event loop: a
+ * synchronous spawn would wait on itself.
+ */
+export async function runWorkspaceHooks(workspaceRoot: string, hookInput: { readonly hook_event_name: string }): Promise<WorkspaceHooksAnswer> {
+  const hooksJsonPath = join(workspaceRoot, ".cursor", "hooks.json");
+  const parsed = JSON.parse(readFileSync(hooksJsonPath, "utf-8")) as { hooks?: Record<string, Array<{ command: string }>> };
+  const entries = parsed.hooks?.[hookInput.hook_event_name] ?? [];
+  const raws = await Promise.all(
+    entries.map(
+      (entry) =>
+        new Promise<string>((resolve, reject) => {
+          const child = spawn("bash", ["-c", entry.command], { stdio: ["pipe", "pipe", "inherit"] });
+          let out = "";
+          child.stdout.on("data", (chunk: Buffer) => {
+            out += chunk.toString("utf-8");
+          });
+          child.on("error", reject);
+          child.on("close", () => resolve(out));
+          child.stdin.end(JSON.stringify(hookInput));
+        }),
+    ),
+  );
+  const answers = raws.map((raw) => {
+    try {
+      return JSON.parse(raw.trim()) as { permission?: string; additional_context?: string; updated_input?: Record<string, unknown> };
+    } catch {
+      return {};
+    }
+  });
+  const permissions = answers.map((a) => a.permission);
+  const permission = permissions.includes("deny") ? "deny" : permissions.includes("ask") ? "ask" : permissions.includes("allow") ? "allow" : "?";
+  const updatedInput = [...answers].reverse().find((a) => a.updated_input !== undefined)?.updated_input;
+  return {
+    permission,
+    raws,
+    additionalContext: answers.flatMap((a) => (typeof a.additional_context === "string" ? [a.additional_context] : [])),
+    ...(updatedInput !== undefined ? { updatedInput } : {}),
+  };
 }
 
 // ---------------------------------------------------------------------------

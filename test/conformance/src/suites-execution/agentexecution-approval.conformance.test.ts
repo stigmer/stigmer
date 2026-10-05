@@ -45,7 +45,8 @@
 // - An agent's own hooks block decides before the default: a hook's deny
 //   fails the call's row (provenance HOOK) and the run completes; a hook's ask
 //   parks the run on a pending approval with provenance HOOK and the hook's
-//   reason as its message, and approving it completes the run.
+//   reason as its message, and approving it completes the run. A pushed
+//   plugin's hooks do the same, in Claude Code's format or Cursor's.
 // - Idempotency: re-submitting the same {tool_call_id, action} before the gate
 //   resolves is a benign no-op that returns the current state.
 // - Negatives: UNSPECIFIED action / empty ids -> InvalidArgument (proto
@@ -769,6 +770,89 @@ describe("AgentExecution — a pushed plugin's hooks decide at the gate", () => 
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
     const published = allToolCalls(final).find((tc) => tc.id === "call_hook_publish");
+    expect(published?.result).toContain("published");
+  });
+});
+
+// The same over the wire for a plugin written in Cursor's format: a pushed
+// hooks-only Cursor plugin, its preToolUse hook in Cursor's answers, run by
+// the runner as Cursor runs it (the call is `Shell`, the plugin's root is
+// `${CURSOR_PLUGIN_ROOT}`). Proves the plugin library and the runner agree
+// on which of Cursor's events run.
+describe("AgentExecution — a pushed Cursor-format plugin's hooks decide at the gate", () => {
+  const GUARD = [
+    "#!/usr/bin/env bash",
+    "input=$(cat)",
+    'case "$input" in',
+    "  *'\"command\":\"rm -rf'*) echo 'recursive deletes are not allowed'; exit 2 ;;",
+    "  *'\"command\":\"echo published'*) printf '%s' '{\"permission\":\"ask\",\"agent_message\":\"publishing needs a person\"}' ;;",
+    "  *) printf '%s' '{\"permission\":\"allow\"}' ;;",
+    "esac",
+    "",
+  ].join("\n");
+
+  it("refuses the delete, holds the publish for a person, and names the plugin on both", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("cursor-safety");
+    const plugin = await clients.pluginCommand.push({
+      org,
+      artifact: zipFiles({
+        ".cursor-plugin/plugin.json": JSON.stringify({ name }),
+        "hooks/hooks.json": JSON.stringify({
+          version: 1,
+          hooks: { preToolUse: [{ command: 'bash "${CURSOR_PLUGIN_ROOT}/hooks/guard"', matcher: "Shell" }] },
+        }),
+        "hooks/guard": GUARD,
+      }),
+    });
+    fixtures.defer(() => clients.pluginCommand.delete({ value: plugin.metadata!.id }).then(() => undefined, () => undefined));
+    const slug = plugin.metadata!.slug;
+
+    const agent = await clients.agentCommand.create(
+      makeAgent({
+        org,
+        name: uniqueName("agent-cursor-plugin-hooks"),
+        hooks: [{ source: { case: "plugin", value: { kind: ApiResourceKind.plugin, slug } } }],
+      }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+
+    mock.enqueue(anthropicToolUses([{ toolCallId: "call_cursor_hook_rm", toolName: "execute", toolInput: { command: "rm -rf build" } }]));
+    mock.enqueue(anthropicToolUses([{ toolCallId: "call_cursor_hook_publish", toolName: "execute", toolInput: { command: "echo published" } }]));
+    mock.enqueue(anthropicText("Done."));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-cursor-plugin-hooks"), agentRef: agentRefOf(agent) }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+
+    const gated = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, {
+      label: "WAITING_FOR_APPROVAL on the Cursor plugin's ask",
+    });
+    const refused = allToolCalls(gated).find((tc) => tc.id === "call_cursor_hook_rm");
+    expect(refused, `execution ${executionId}: the refused delete has a row`).toBeDefined();
+    expect(ToolCallStatus[refused!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
+    expect(refused!.error).toContain("recursive deletes are not allowed");
+    expect(refused!.approvalPolicyHook).toBe(slug);
+    const pending = gated.status!.pendingApprovals[0]!;
+    expect(pending.toolCallId).toBe("call_cursor_hook_publish");
+    expect(pending.message).toBe("publishing needs a person");
+    expect(ApprovalPolicySource[pending.approvalPolicySource]).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
+    expect(pending.approvalPolicyHook).toBe(slug);
+
+    await submitApprovalPerContract({
+      expectedRemaining: 0,
+      label: "approving the Cursor plugin's ask clears the gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId: pending.toolCallId,
+          action: ApprovalAction.APPROVE,
+        }),
+    });
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const published = allToolCalls(final).find((tc) => tc.id === "call_cursor_hook_publish");
     expect(published?.result).toContain("published");
   });
 });
