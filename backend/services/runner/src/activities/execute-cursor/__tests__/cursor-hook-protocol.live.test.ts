@@ -54,6 +54,11 @@
  *     `settings.local.json` hook (a `Bash` matcher on a shell call), and a
  *     second folder in `dirs` contributes no hook from either file.
  * 10. A web fetch reaches no hook at all.
+ * 11. Web fetch hidden on the main loop (`disallowedTools`) is hidden from
+ *     its sub-agents too, a custom one and a built-in one; without it, both
+ *     have it. The turn's hiding of the web tools for its hooks
+ *     (`hook-tool-hiding.ts`) rests on this: a sub-agent's web fetch would
+ *     reach no hook either.
  *
  * A bump that changes any of them fails this instrument on purpose: the rules
  * above were chosen from these facts and must be revisited with them.
@@ -425,5 +430,50 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Cursor SDK hook protocol (live g
     expect(fired).toEqual(["cwd-settings", "cwd-settings-local"]);
     // Fact 10: the web fetch reached no hook (only the shell did).
     expect(invocations.map((inv) => String(inv.tool_name)).filter((name) => /fetch/i.test(name))).toEqual([]);
+  }, 600_000);
+
+  it("hides web fetch from a sub-agent when the main loop hides it, and not otherwise (fact 11)", async () => {
+    const { Agent } = await import("@cursor/sdk");
+    const { SqliteLocalAgentStore } = await import("@cursor/sdk/sqlite");
+
+    const reportFor = async (hidden: boolean): Promise<string> => {
+      const workspaceRoot = mkdtempSync(join(tmpdir(), "stigmer-hook-subagent-web-"));
+      const stateRoot = join(workspaceRoot, ".sdk-state");
+      mkdirSync(stateRoot, { recursive: true });
+      const agent = await Agent.create({
+        apiKey: CURSOR_API_KEY,
+        model: { id: "composer-2.5" },
+        local: {
+          cwd: workspaceRoot,
+          settingSources: ["project"],
+          store: await SqliteLocalAgentStore.open({ workspaceRef: `hook-subagent-web-${Date.now()}`, stateRoot }),
+          enableAgentRetries: false,
+        },
+        ...(hidden ? { disallowedTools: ["webFetch", "webSearch"] } : {}),
+        agents: {
+          researcher: {
+            description: "Lists the tools it has.",
+            prompt: "List the name of every tool you have, including every dynamic tool in every namespace, comma-separated, and nothing else.",
+            model: "inherit",
+          },
+        },
+      });
+      const run = await agent.send(
+        "Do not list your own tools. Delegate with the Task tool to the `researcher` sub-agent and reply with exactly the list it returns, nothing else.",
+      );
+      for await (const _event of run.stream()) {
+        /* drain */
+      }
+      const result = await run.wait();
+      agent.close();
+      return result.result ?? "";
+    };
+
+    const withHiding = await reportFor(true);
+    const without = await reportFor(false);
+    console.log(`[hook-subagent-web] hidden: ${withHiding} ||| not hidden: ${without}`);
+    expect(withHiding, "the sub-agent listed its tools").toContain("Shell");
+    expect(withHiding, "a sub-agent of a main loop that hides web fetch has none").not.toContain("WebFetch");
+    expect(without, "the probe can see the tool when it is there").toContain("WebFetch");
   }, 600_000);
 });
