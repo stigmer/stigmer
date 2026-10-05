@@ -178,10 +178,15 @@ export function newCreateDefaultInstanceIfNeededStep(
         workflow.metadata!,
       );
       let createdInstance: WorkflowInstance;
+      // The default instance is the workflow's own, filed in the workflow's
+      // organization, not a write of the caller's: a credential bound to the
+      // run's organization (running a workflow shared across organizations)
+      // creates it unbound, so the persist backstop leaves it alone.
+      const { boundOrg: _bound, ...instanceCreator } = ctx.callerIdentity;
       try {
         createdInstance = await deps
           .workflowInstanceCreator()
-          .createAsCaller(instanceRequest, ctx.callerIdentity);
+          .createAsCaller(instanceRequest, instanceCreator);
       } catch (error) {
         if (error instanceof ConnectError) {
           // Go wraps the client error with %w — the inner gRPC code

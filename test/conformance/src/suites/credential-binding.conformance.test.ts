@@ -546,6 +546,47 @@ describe("credential binding — a credential that names an organization works t
     ).toBe(await outcomeOf(person));
   });
 
+  it("[rpc:WorkflowExecutionCommandController.create] a run filed in A cannot name B's workflow: its run credential, bound to A, could not read it", async (ctx) => {
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
+    const a = await tenancy(on);
+    const b = await tenancy(on);
+    const person = await on.provisionMember(a);
+    await on.clients.iamPolicyCommand.create(
+      organizationRole(await on.accountIdOf(person), "member", b.org),
+    );
+    const workflowInput = makeWorkflow({
+      org: b.org,
+      name: uniqueName("binding-wf-b"),
+    });
+    const workflow = await on.clients.workflowCommand.create({
+      ...workflowInput,
+      metadata: {
+        ...workflowInput.metadata,
+        visibility: ApiResourceVisibility.visibility_org,
+      },
+    });
+    fixtures.defer(() =>
+      on.clients.workflowCommand.delete({ value: workflow.metadata?.id ?? "" }),
+    );
+
+    const refused = await expectGrpcCode(
+      () =>
+        person.workflowExecutionCommand.create(
+          makeWorkflowExecution({
+            org: a.org,
+            name: uniqueName("binding-wex-cross"),
+            workflowId: workflow.metadata?.id ?? "",
+          }),
+        ),
+      Code.FailedPrecondition,
+      "file a run in A of B's organization-visible workflow",
+    );
+    expect(refused.rawMessage).toContain(
+      "a run uses only what its own organization can read",
+    );
+  });
+
   it("[rpc:ApiKeyCommandController.create] a key can be limited only to an organization its owner can view", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
