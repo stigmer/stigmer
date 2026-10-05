@@ -1,20 +1,20 @@
 /**
  * Desktop Icon Generation Script for Stigmer
  *
- * Generates all Tauri bundle icons from stigmer_dark.svg with proper macOS
+ * Generates all Tauri bundle icons from the canonical refined brand mark with proper macOS
  * icon grid padding (~10% transparent margin per side). This ensures the
  * icon looks correctly sized in the macOS dock alongside system applications.
  *
  * Generated assets (in src-tauri/icons/):
- *   Tauri bundle:    32x32, 64x64, 128x128, 128x128@2x, icon.png
+ *   Tauri bundle:    32x32, 128x128, 128x128@2x, icon.png
  *   macOS:           icon.icns  (via iconutil)
  *   Windows:         icon.ico   (multi-resolution)
- *   Windows Store:   Square*.png, StoreLogo.png
  *
  * Usage: tsx scripts/generate-icons.ts
  */
 
 import sharp from "sharp";
+import { brandSvg } from "../../../brand/assets.mjs";
 import pngToIco from "png-to-ico";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -28,7 +28,7 @@ import { fileURLToPath } from "url";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DESKTOP_ROOT = path.resolve(SCRIPT_DIR, "..");
-const SOURCE_SVG = path.join(DESKTOP_ROOT, "public", "stigmer_dark.svg");
+
 const ICONS_DIR = path.join(DESKTOP_ROOT, "src-tauri", "icons");
 
 /**
@@ -36,29 +36,15 @@ const ICONS_DIR = path.join(DESKTOP_ROOT, "src-tauri", "icons");
  * canvas, leaving ~10% transparent padding on each side. This matches how
  * Finder, Chrome, Slack, and other well-behaved dock icons are sized.
  */
-const ICON_BODY_RATIO = 0.80;
+const ICON_BODY_RATIO = 0.8;
 
 const MASTER_SIZE = 1024;
 
 const TAURI_PNGS: Record<string, number> = {
   "32x32.png": 32,
-  "64x64.png": 64,
   "128x128.png": 128,
   "128x128@2x.png": 256,
   "icon.png": 512,
-};
-
-const WINDOWS_STORE_PNGS: Record<string, number> = {
-  "Square30x30Logo.png": 30,
-  "Square44x44Logo.png": 44,
-  "Square71x71Logo.png": 71,
-  "Square89x89Logo.png": 89,
-  "Square107x107Logo.png": 107,
-  "Square142x142Logo.png": 142,
-  "Square150x150Logo.png": 150,
-  "Square284x284Logo.png": 284,
-  "Square310x310Logo.png": 310,
-  "StoreLogo.png": 50,
 };
 
 /**
@@ -90,8 +76,13 @@ const ICO_SIZES = [16, 32, 48, 256];
  * transparent margin.
  */
 async function renderMaster(): Promise<Buffer> {
-  const svgContent = await fs.readFile(SOURCE_SVG, "utf-8");
   const bodySize = Math.round(MASTER_SIZE * ICON_BODY_RATIO);
+  const svgContent = await brandSvg({
+    size: bodySize,
+    color: "#fefefe",
+    background: "#0a0a0a",
+    rounded: true,
+  });
   const offset = Math.round((MASTER_SIZE - bodySize) / 2);
 
   const artwork = await sharp(Buffer.from(svgContent))
@@ -187,14 +178,24 @@ async function main(): Promise<void> {
 
   console.log("Stigmer Desktop Icon Generation");
   console.log("================================");
-  console.log(`Source:    ${path.relative(DESKTOP_ROOT, SOURCE_SVG)}`);
+  console.log("Source:    brand/logo.svg");
   console.log(`Output:    ${path.relative(DESKTOP_ROOT, ICONS_DIR)}/`);
-  console.log(`Padding:   ${padPct}% per side (body ${bodyPx}px of ${MASTER_SIZE}px master)`);
+  console.log(
+    `Padding:   ${padPct}% per side (body ${bodyPx}px of ${MASTER_SIZE}px master)`,
+  );
 
+  await fs.writeFile(
+    path.join(DESKTOP_ROOT, "public", "app-icon-light.svg"),
+    await brandSvg({ background: "#f1f1f1", rounded: true }),
+  );
+  await sharp(
+    Buffer.from(await brandSvg({ size: 44, color: "#000000", tight: true })),
+  )
+    .png()
+    .toFile(path.join(ICONS_DIR, "tray-icon.png"));
   const master = await renderMaster();
 
   await generatePngSet(master, "Tauri bundle PNGs", TAURI_PNGS);
-  await generatePngSet(master, "Windows Store PNGs", WINDOWS_STORE_PNGS);
   await generateIcns(master);
   await generateIco(master);
 

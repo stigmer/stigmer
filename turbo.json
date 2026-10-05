@@ -104,9 +104,26 @@
         ".env",
         ".env.local",
         ".env.production",
-        ".env.production.local"
+        ".env.production.local",
+        "$TURBO_ROOT$/brand/**"
       ],
       "outputs": [".next/**", "!.next/cache/**", "out/**", "public/embed.js"]
+    },
+    // Inline marks and image generators read the repository-level brand source.
+    "web#typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/brand/**"],
+      "outputs": []
+    },
+    "web#test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/brand/**"],
+      "outputs": []
+    },
+    "@stigmer/marketing#typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/brand/**"],
+      "outputs": []
     },
     // The desktop shell: vite build into dist/. Its vite.config reads the
     // Tauri environment (target, minify, sourcemap), so those are inputs.

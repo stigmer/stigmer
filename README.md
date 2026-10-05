@@ -181,6 +181,11 @@ Every component is themeable with design tokens, and the hooks underneath are ex
 
 Resource definitions are portable across both modes. The CLI talks to the same gRPC service interfaces regardless of backend.
 
+## Brand assets
+
+The [brand folder](brand/README.md) contains the current logo and ready-to-upload
+profile images. Use `brand/avatar.png` for GitHub and other profile uploads.
+
 ## Documentation
 
 - [Getting Started (Cloud)](https://stigmer.ai/docs/getting-started/quickstart) — Create your first agent in 5 minutes
