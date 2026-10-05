@@ -552,6 +552,17 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     ]);
   });
 
+  it("restores the original when the agent deleted a set-aside file, and keeps an edit that no longer parses", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    const folders = workspaceFolders([workspaceRoot], []);
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    rmSync(settings);
+    writeFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "{ half written", "utf-8");
+    await removeHitlGate(handle);
+    expect(readFileSync(settings, "utf-8")).toBe(original);
+    expect(readFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "utf-8")).toBe("{ half written");
+  });
+
   it("restores a crashed turn's set-aside files at the next install, before anything else", async () => {
     const { workspaceRoot, hitlDir, settings, original } = workspace();
     const folders = workspaceFolders([workspaceRoot], []);

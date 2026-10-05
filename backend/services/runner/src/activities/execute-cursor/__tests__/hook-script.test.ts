@@ -20,7 +20,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, symlinkSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { generateHookScript } from "../hook-script.js";
+import { buildHookClientScript, generateHookScript } from "../hook-script.js";
 import { buildApprovalState, grantToken, primaryToken, scopeRefusalToken, toolIdentity } from "../approval-state.js";
 import { AGENT_SCOPE_KEY, READ_SCOPE_KEY, compileHookToolScope, scopeKey } from "../hook-scope.js";
 import { CURSOR_SDK_TOOL_COVERS, ToolScope } from "../../../shared/tool-lists.js";
@@ -1108,5 +1108,44 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     expect(raw).toContain('"permission":"deny"');
     const ledger = readFileSync(ledgerPath, "utf-8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
     expect(ledger.map((e: { kind: string }) => e.kind)).toEqual(["fail-closed"]);
+  });
+});
+
+// The agent's hooks arm (1h) and the post arm (0b), reached through the
+// runner's hook server: a server that does not answer refuses the call (a
+// hook that cannot be asked is never skipped), a call after it ran adds
+// nothing then, and an MCP call's preToolUse firing passes on to its
+// beforeMCPExecution. The arms against a real server are the gateway
+// contract's hooks section on this substrate.
+d("generated approval hook: the agent's hooks", () => {
+  const unreachable = { socketPath: join(tmpdir(), "stigmer-no-such-hooks.sock"), token: "t" };
+
+  it("refuses a call, recorded fail-closed, when the hook server does not answer", () => {
+    const h = setup({ hookServer: unreachable });
+    const res = h.decide({ ...hookShell("ls"), hook_event_name: "preToolUse" });
+    expect(res.permission).toBe("deny");
+    expect(res.raw).toContain("could not run this agent hooks");
+    expect(h.ledger().map((e) => e.kind)).toEqual(["fail-closed"]);
+  });
+
+  it("lets an MCP call's preToolUse firing pass to the event that names its server", () => {
+    const h = setup({ hookServer: unreachable });
+    expect(h.decide(hookMcpPreToolUse("search")).permission).toBe("allow");
+    expect(h.ledger()).toEqual([]);
+  });
+
+  it("adds nothing after a call when no hook server answers, or when the agent has none", () => {
+    const post = { hook_event_name: "postToolUse", tool_name: "Shell", tool_input: { command: "ls" } };
+    expect(setup({ hookServer: unreachable }).decide(post).raw.trim()).toBe("{}");
+    expect(setup().decide(post).raw.trim()).toBe("{}");
+  });
+
+  it("generates a client that runs on the runner's Node and answers error or {} with no server", () => {
+    const client = buildHookClientScript();
+    expect(client).not.toContain("'");
+    const run = (mode: string) =>
+      execFileSync(process.execPath, ["-e", client, unreachable.socketPath, "t", mode, "", ""], { input: "{}" }).toString();
+    expect(run("pre")).toBe("error");
+    expect(run("post")).toBe("{}");
   });
 });

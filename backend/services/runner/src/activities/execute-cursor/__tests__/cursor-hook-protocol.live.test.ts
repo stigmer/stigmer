@@ -37,7 +37,25 @@
  *     sub-agent with lists of its own is refused at setup, while the main
  *     agent's lists still bind it through `preToolUse`.
  *
- * A bump that changes either fails this instrument on purpose: the rules
+ * A third and a fourth case pin what an agent's own hooks rest on, first seen
+ * on 1.0.31 (live probe, 2026-10-05; `hook-views.ts`, `hook-server.ts`,
+ * `workspace-hook-files.ts`, `hook-tool-hiding.ts`):
+ *
+ *  6. A create and an edit both reach `preToolUse` as `Write {file_path,
+ *     content}`, a glob as `Grep` with an empty pattern and a `glob`, a
+ *     deletion as `Delete {file_path}`, a command as `Shell {command, cwd,
+ *     timeout}`.
+ *  7. `updated_input` from `preToolUse` is applied to a command and a read's
+ *     path, never to a written file's content, and `beforeMCPExecution`'s is
+ *     not applied at all.
+ *  8. `postToolUse` fires for an MCP call (as `MCP:<tool>`) and its
+ *     `additional_context` reaches the model; `afterMCPExecution`'s does not.
+ *  9. The `project` source runs a `<cwd>/.claude/settings.json` and
+ *     `settings.local.json` hook (a `Bash` matcher on a shell call), and a
+ *     second folder in `dirs` contributes no hook from either file.
+ * 10. A web fetch reaches no hook at all.
+ *
+ * A bump that changes any of them fails this instrument on purpose: the rules
  * above were chosen from these facts and must be revisited with them.
  *
  * Live class (`*.live.test.ts`): runs only through `npm run test:live`, by
@@ -48,7 +66,7 @@
  * PRINTED as well as asserted, so a bump's PR can quote the shapes seen.
  */
 import { describe, it, expect } from "vitest";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { liveSecret } from "../../../__test-utils__/live-gate.js";
@@ -247,4 +265,165 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Cursor SDK hook protocol (live g
     expect(preToolUse.length, "the sub-agent's read never reached preToolUse: the main agent's lists would not bind it").toBeGreaterThan(0);
     expect(conversationIds, "calls carried distinct conversation ids: revisit the sub-agent-lists refusal").toHaveLength(1);
   }, 300_000);
+
+  it("pins the tool shapes, which rewrites apply, and where post-call context reaches the model (facts 6 to 8)", async () => {
+    const { Agent } = await import("@cursor/sdk");
+    const { SqliteLocalAgentStore } = await import("@cursor/sdk/sqlite");
+
+    const workspaceRoot = mkdtempSync(join(tmpdir(), "stigmer-hook-rewrites-"));
+    const stateRoot = join(workspaceRoot, ".sdk-state");
+    mkdirSync(stateRoot, { recursive: true });
+    writeFileSync(join(workspaceRoot, "alpha.txt"), "alpha: APPLE\n", "utf-8");
+    writeFileSync(join(workspaceRoot, "beta.txt"), "beta: BANANA\n", "utf-8");
+    writeFileSync(join(workspaceRoot, "keep.txt"), "original\n", "utf-8");
+    writeFileSync(join(workspaceRoot, "gone.txt"), "bye\n", "utf-8");
+    mkdirSync(join(workspaceRoot, "docs"), { recursive: true });
+    writeFileSync(join(workspaceRoot, "docs", "a.md"), "# a\n", "utf-8");
+    const hookLog = join(workspaceRoot, "hook-invocations.jsonl");
+    const mcpLog = join(workspaceRoot, "mcp-calls.jsonl");
+    // Rewrites a marked command, a read of alpha.txt, a write of keep.txt and
+    // the MCP call's text; hands back context after a grep and an MCP call.
+    const hook = join(workspaceRoot, ".cursor", "rewrite-hook.mjs");
+    mkdirSync(join(workspaceRoot, ".cursor"), { recursive: true });
+    writeFileSync(hook, [
+      'import { appendFileSync, readFileSync } from "node:fs";',
+      'const t = JSON.parse(readFileSync(0, "utf8"));',
+      `appendFileSync(${JSON.stringify(hookLog)}, JSON.stringify(t) + "\\n");`,
+      "const out = (o) => { process.stdout.write(JSON.stringify(o)); process.exit(0); };",
+      "const ti = t.tool_input || {};",
+      'if (t.hook_event_name === "preToolUse") {',
+      '  if (t.tool_name === "Shell" && String(ti.command).includes("PROBE_REWRITE")) out({ permission: "allow", updated_input: { ...ti, command: "echo rewritten > shell-rewritten.txt" } });',
+      '  if (t.tool_name === "Read" && String(ti.file_path).endsWith("alpha.txt")) out({ permission: "allow", updated_input: { ...ti, file_path: String(ti.file_path).replace(/alpha\\.txt$/, "beta.txt") } });',
+      '  if (t.tool_name === "Write" && String(ti.file_path).endsWith("keep.txt")) out({ permission: "allow", updated_input: { ...ti, content: "REWRITTEN" } });',
+      "  out({ permission: \"allow\" });",
+      "}",
+      'if (t.hook_event_name === "beforeMCPExecution") out({ permission: "allow", updated_input: { text: "rewritten-text" } });',
+      'if (t.hook_event_name === "postToolUse" && t.tool_name === "Grep") out({ additional_context: "the secret word is PINEAPPLE" });',
+      'if (t.hook_event_name === "postToolUse" && String(t.tool_name).startsWith("MCP:")) out({ additional_context: "the color is TURQUOISE" });',
+      'if (t.hook_event_name === "afterMCPExecution") out({ additional_context: "the animal is OCELOT" });',
+      "out({});",
+    ].join("\n"), "utf-8");
+    const command = `${process.execPath} ${hook}`;
+    writeFileSync(join(workspaceRoot, ".cursor", "hooks.json"), JSON.stringify({
+      version: 1,
+      hooks: Object.fromEntries(["preToolUse", "beforeMCPExecution", "postToolUse", "afterMCPExecution"].map((e) => [e, [{ command }]])),
+    }), "utf-8");
+    const mcpServer = join(workspaceRoot, ".cursor", "echo-mcp.mjs");
+    writeFileSync(mcpServer, [
+      'import { appendFileSync } from "node:fs";',
+      'import { createInterface } from "node:readline";',
+      "const send = (m) => process.stdout.write(JSON.stringify(m) + \"\\n\");",
+      'createInterface({ input: process.stdin }).on("line", (line) => {',
+      "  let m; try { m = JSON.parse(line); } catch { return; }",
+      "  if (m.id === undefined) return;",
+      '  if (m.method === "initialize") return send({ jsonrpc: "2.0", id: m.id, result: { protocolVersion: m.params?.protocolVersion ?? "2024-11-05", capabilities: { tools: {} }, serverInfo: { name: "echo", version: "1" } } });',
+      '  if (m.method === "tools/list") return send({ jsonrpc: "2.0", id: m.id, result: { tools: [{ name: "echo_tool", description: "Echoes text.", inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"] } }] } });',
+      `  if (m.method === "tools/call") { appendFileSync(${JSON.stringify(mcpLog)}, JSON.stringify(m.params) + "\\n"); return send({ jsonrpc: "2.0", id: m.id, result: { content: [{ type: "text", text: "echoed" }] } }); }`,
+      '  send({ jsonrpc: "2.0", id: m.id, result: {} });',
+      "});",
+    ].join("\n"), "utf-8");
+
+    const agent = await Agent.create({
+      apiKey: CURSOR_API_KEY,
+      model: { id: "composer-2.5" },
+      local: {
+        cwd: workspaceRoot,
+        settingSources: ["project"],
+        store: await SqliteLocalAgentStore.open({ workspaceRef: `hook-rewrites-${Date.now()}`, stateRoot }),
+        enableAgentRetries: false,
+      },
+      mcpServers: { echo: { type: "stdio", command: process.execPath, args: [mcpServer] } },
+    });
+    const run = await agent.send(
+      "Do each step in order with the right tool, without asking questions: " +
+        "(1) read alpha.txt; (2) create created.txt containing 'created'; (3) overwrite keep.txt with 'model wrote this'; " +
+        "(4) delete gone.txt with your delete tool, not the shell; (5) search the workspace for the text 'beta' with your search tool; " +
+        "(6) find every *.md file with your file-finding tool; (7) run the shell command `echo PROBE_REWRITE > shell-orig.txt`; " +
+        "(8) call the MCP tool echo_tool with text 'orig-text'. " +
+        "Finally reply with what step 1 read, and any secret word, color or animal you were told about.",
+    );
+    for await (const _event of run.stream()) {
+      /* drain */
+    }
+    const result = await run.wait();
+    agent.close();
+    const invocations = readInvocations(hookLog) as Array<HookInvocation & { tool_output?: unknown }>;
+    const pre = invocations.filter((inv) => inv.hook_event_name === "preToolUse");
+    const text = result.result ?? "";
+
+    console.log(`[hook-rewrites] run status: ${result.status}`);
+    for (const inv of pre) console.log(`[hook-rewrites] preToolUse:${String(inv.tool_name)} ${JSON.stringify(inv.tool_input).slice(0, 160)}`);
+    console.log(`[hook-rewrites] reply: ${text.slice(0, 400)}`);
+
+    expect(result.status).toBe("finished");
+    // Fact 6: the shapes the views are written against.
+    const writes = pre.filter((inv) => inv.tool_name === "Write").map((inv) => inv.tool_input as Record<string, unknown>);
+    expect(writes.some((w) => String(w["file_path"]).endsWith("created.txt") && typeof w["content"] === "string")).toBe(true);
+    expect(pre.some((inv) => inv.tool_name === "Delete" && String((inv.tool_input as Record<string, unknown>)["file_path"]).endsWith("gone.txt"))).toBe(true);
+    expect(pre.some((inv) => inv.tool_name === "Grep" && (inv.tool_input as Record<string, unknown>)["pattern"] === "" && typeof (inv.tool_input as Record<string, unknown>)["glob"] === "string")).toBe(true);
+    expect(pre.some((inv) => inv.tool_name === "Shell" && "command" in (inv.tool_input as object))).toBe(true);
+    // Fact 7: which rewrites apply.
+    expect(text, "the read's path rewrite applied").toContain("BANANA");
+    expect(existsSync(join(workspaceRoot, "shell-orig.txt")), "the command's rewrite applied").toBe(false);
+    expect(readFileSync(join(workspaceRoot, "keep.txt"), "utf-8"), "a written file's content rewrite is not applied").toContain("model wrote this");
+    expect(readFileSync(mcpLog, "utf-8"), "beforeMCPExecution's rewrite is not applied").toContain("orig-text");
+    // Fact 8: post-call context.
+    expect(invocations.some((inv) => inv.hook_event_name === "postToolUse" && String(inv.tool_name).startsWith("MCP:"))).toBe(true);
+    expect(text).toContain("PINEAPPLE");
+    expect(text).toContain("TURQUOISE");
+    expect(text).not.toContain("OCELOT");
+  }, 600_000);
+
+  it("runs a cwd's .claude settings hooks, none from a second folder, and no hook for a web fetch (facts 9 and 10)", async () => {
+    const { Agent } = await import("@cursor/sdk");
+    const { SqliteLocalAgentStore } = await import("@cursor/sdk/sqlite");
+
+    const workspaceRoot = mkdtempSync(join(tmpdir(), "stigmer-hook-claude-"));
+    const second = mkdtempSync(join(tmpdir(), "stigmer-hook-second-"));
+    const stateRoot = join(workspaceRoot, ".sdk-state");
+    mkdirSync(stateRoot, { recursive: true });
+    const markers = mkdtempSync(join(tmpdir(), "stigmer-hook-markers-"));
+    const mark = (name: string) => `touch ${join(markers, name)}; echo '{"permission":"allow"}'`;
+    const claude = (matcher: string, name: string) => ({ PreToolUse: [{ matcher, hooks: [{ type: "command", command: mark(name) }] }] });
+    mkdirSync(join(workspaceRoot, ".claude"), { recursive: true });
+    writeFileSync(join(workspaceRoot, ".claude", "settings.json"), JSON.stringify({ hooks: claude("Bash", "cwd-settings") }), "utf-8");
+    writeFileSync(join(workspaceRoot, ".claude", "settings.local.json"), JSON.stringify({ hooks: claude(".*", "cwd-settings-local") }), "utf-8");
+    mkdirSync(join(second, ".claude"), { recursive: true });
+    mkdirSync(join(second, ".cursor"), { recursive: true });
+    writeFileSync(join(second, ".claude", "settings.json"), JSON.stringify({ hooks: claude("Bash", "second-settings") }), "utf-8");
+    writeFileSync(join(second, ".cursor", "hooks.json"), JSON.stringify({ version: 1, hooks: { preToolUse: [{ command: mark("second-cursor") }] } }), "utf-8");
+    const hookLog = join(workspaceRoot, "hook-invocations.jsonl");
+    installObservationHook(workspaceRoot, hookLog);
+
+    const agent = await Agent.create({
+      apiKey: CURSOR_API_KEY,
+      model: { id: "composer-2.5" },
+      local: {
+        cwd: workspaceRoot,
+        dirs: [second],
+        settingSources: ["project"],
+        store: await SqliteLocalAgentStore.open({ workspaceRef: `hook-claude-${Date.now()}`, stateRoot }),
+        enableAgentRetries: false,
+      },
+    });
+    const run = await agent.send(
+      "Do two things without asking questions: run the shell command `echo hello`, then fetch https://example.com with your web fetch tool. Reply done.",
+    );
+    for await (const _event of run.stream()) {
+      /* drain */
+    }
+    const result = await run.wait();
+    agent.close();
+    const fired = readdirSync(markers).sort();
+    const invocations = readInvocations(hookLog);
+
+    console.log(`[hook-claude] run status: ${result.status}; markers: ${JSON.stringify(fired)}`);
+    console.log(`[hook-claude] hook names: ${JSON.stringify(invocations.map((inv) => `${String(inv.hook_event_name)}:${String(inv.tool_name)}`))}`);
+
+    expect(result.status).toBe("finished");
+    // Fact 9: the cwd's two settings files load; the second folder's files do not.
+    expect(fired).toEqual(["cwd-settings", "cwd-settings-local"]);
+    // Fact 10: the web fetch reached no hook (only the shell did).
+    expect(invocations.map((inv) => String(inv.tool_name)).filter((name) => /fetch/i.test(name))).toEqual([]);
+  }, 600_000);
 });

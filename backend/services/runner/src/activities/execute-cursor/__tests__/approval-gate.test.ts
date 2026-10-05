@@ -33,7 +33,9 @@ import { compileHookToolScope, decodeHookToolScope, UNRESTRICTED_HOOK_SCOPE } fr
 import {
   buildApprovalGrants,
   buildApprovalState,
+  buildPersonRefusals,
   grantToken,
+  primaryToken,
   toolIdentity,
 } from "../approval-state.js";
 import { buildReinvocationPrompt } from "../prompt-builder.js";
@@ -140,6 +142,31 @@ describe("toolIdentity + grantToken (canonical, taxonomy-agnostic)", () => {
     expect(toolIdentity("read", "", { path: "/w/a.md" })).toEqual({ key: "Read", salient: "/w/a.md" });
     expect(toolIdentity("glob", "", { file_path: "/w" })).toEqual({ key: "Grep", salient: "/w" });
     expect(toolIdentity("Read", "", { file_path: "/w/a.md" })).toEqual({ key: "Read", salient: "/w/a.md" });
+  });
+});
+
+describe("buildPersonRefusals", () => {
+  it("holds each skipped or rejected call by its primary and its coarse identity, and nothing approved", () => {
+    const refusals = buildPersonRefusals(
+      [
+        pending({ toolCallId: "c1", toolName: "shell", argsPreview: JSON.stringify({ command: "rm -rf x" }) }),
+        pending({ toolCallId: "c2", toolName: "edit", argsPreview: JSON.stringify({ path: "/x/a" }) }),
+        pending({ toolCallId: "c3", toolName: "close_issue", mcpServerSlug: "github", argsPreview: "{}" }),
+        pending({ toolCallId: "c4", toolName: "shell", argsPreview: JSON.stringify({ command: "ls" }) }),
+      ],
+      new Map([
+        ["c1", ApprovalAction.REJECT],
+        ["c2", ApprovalAction.SKIP],
+        ["c3", ApprovalAction.REJECT],
+        ["c4", ApprovalAction.APPROVE],
+      ]),
+      new Map([["c2", "d1g3st"]]),
+    );
+    expect(refusals.get(grantToken("shell", "rm -rf x"))).toEqual({ action: "reject", toolName: "shell" });
+    expect(refusals.get(primaryToken("write", "/x/a", "d1g3st"))).toEqual({ action: "skip", toolName: "edit" });
+    expect(refusals.get(grantToken("write", "/x/a")), "a content-less retry of the same file").toEqual({ action: "skip", toolName: "edit" });
+    expect(refusals.get(grantToken("github/close_issue", ""))).toEqual({ action: "reject", toolName: "close_issue" });
+    expect(refusals.has(grantToken("shell", "ls"))).toBe(false);
   });
 });
 

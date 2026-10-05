@@ -30,7 +30,9 @@
  *    during the turn, and both files are byte-identical after it;
  *  - a person's own folder whose `.claude` settings carry hooks refuses the
  *    turn before any agent exists, naming the file, and the file is left
- *    untouched.
+ *    untouched;
+ *  - web fetch and web search, which Cursor shows no hook, are hidden from an
+ *    agent whose hooks would take them.
  *
  * Skipped where `bash` is unavailable — reported as SKIPPED, never a silent pass.
  *
@@ -425,6 +427,38 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     expect(JSON.parse(duringClaude), "the .claude hooks were set aside during the turn, every other key kept").toEqual({ model: "x" });
     expect(readFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "utf-8")).toBe(cursorHooks);
     expect(readFileSync(join(workspaceRoot, ".claude", "settings.json"), "utf-8")).toBe(claudeSettings);
+  });
+
+  it("hides web fetch and web search from an agent whose hooks would take them", async () => {
+    clock.reset();
+    const ev = sdkEvents("agent-hide-0001", "run-hide-0001");
+    const agent = new ScriptedCursorAgent({
+      agentId: "agent-hide-0001",
+      runIds: ["run-hide-0001"],
+      observeStep: () => clock.tick(),
+      turns: [[
+        step.event(ev.init()),
+        step.event(ev.assistant("Done.")),
+        step.turnEnded({ inputTokens: 500, outputTokens: 5, cacheReadTokens: 0, cacheWriteTokens: 0 }),
+        step.finished({ result: "Done.", model: { id: FIXTURE.model, params: [] } }),
+      ]],
+    });
+    const everyCall = create(HookSourceSchema, {
+      source: {
+        case: "inline",
+        value: create(HookConfigSchema, {
+          format: HookFormat.CLAUDE_CODE,
+          groups: [create(HookGroupSchema, { event: "PreToolUse", matcher: "", handlers: [create(HookHandlerSchema, { command: "true" })] })],
+        }),
+      },
+    });
+    const record = cursorExecutionRecord({ message: "Say done.", hooks: [everyCall] });
+    const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG } });
+
+    await runCursorTurn(scenario, { threadId: "", turnSeq: 0 });
+    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const options = scenario.sdk.resolutions[0]!.options as { disallowedTools?: string[] };
+    expect(options.disallowedTools).toEqual(["webFetch", "webSearch"]);
   });
 
   it("refuses a person's own folder whose .claude settings carry hooks, naming the file, and leaves it untouched", async () => {
