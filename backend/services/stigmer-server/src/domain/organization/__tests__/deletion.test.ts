@@ -12,6 +12,10 @@
  *     nothing else;
  *   - an organization update that loaded the row before the mark and
  *     writes it after cannot erase the mark (it is not on the row);
+ *   - every fault is INTERNAL with fixed copy, never a pass: a step reached
+ *     without its loaded row, a deletion table that cannot mark, accept or
+ *     read a parent's mark; an unmark that fails is logged and the delete's
+ *     own answer stands;
  *   - the child create that persists before the delete's mark is seen by
  *     the delete's second RefuseDeletingParent; the one that persists after
  *     sees its parent's mark, deletes itself and answers
@@ -24,7 +28,7 @@ import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -33,6 +37,7 @@ import { OrganizationIdSchema } from "@stigmer/protos/ai/stigmer/tenancy/organiz
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 
 import { LIST_INDEXES } from "../../../boot/list-indexes.js";
+import { createLogger } from "../../../boot/logger.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
@@ -180,6 +185,64 @@ describe("the delete's own steps", () => {
     const notMine = deleteContext(parentRow());
     await unmarkAfterFailure(store, silentLogger, notMine);
     expect(await store.organizationDeletions.isDeleting(PARENT)).toBe(true);
+  });
+});
+
+describe("the delete's own steps, when the deletion table faults", () => {
+  const STORE_DOWN = new Error("store down");
+
+  it("answers INTERNAL when a step is reached without its loaded row", async () => {
+    const unloaded = new RequestContext(
+      OrganizationIdSchema,
+      create(OrganizationIdSchema, { value: PARENT }),
+      testCallerIdentity(),
+      ApiResourceKind.organization,
+    );
+    for (const step of [newMarkDeletingStep(store), newAcceptPurgeStep(store, purge)]) {
+      expect((await refusal(() => step.execute(unloaded))).code).toBe(Code.Internal);
+    }
+  });
+
+  it("answers INTERNAL when the mark or the accept cannot be written", async () => {
+    vi.spyOn(store.organizationDeletions, "mark").mockRejectedValueOnce(STORE_DOWN);
+    const marked = await refusal(() =>
+      newMarkDeletingStep(store).execute(deleteContext(parentRow())),
+    );
+    expect(marked.code).toBe(Code.Internal);
+    expect(marked.rawMessage).toBe("failed to delete organization");
+    vi.spyOn(store.organizationDeletions, "accept").mockRejectedValueOnce(STORE_DOWN);
+    const accepted = await refusal(() =>
+      newAcceptPurgeStep(store, purge).execute(deleteContext(parentRow())),
+    );
+    expect(accepted.code).toBe(Code.Internal);
+    expect(kicked).toEqual([]);
+  });
+
+  it("logs an unmark that fails and leaves the mark for the runner", async () => {
+    const ctx = deleteContext(parentRow());
+    await newMarkDeletingStep(store).execute(ctx);
+    vi.spyOn(store.organizationDeletions, "unmark").mockRejectedValueOnce(STORE_DOWN);
+    const lines: string[] = [];
+    await unmarkAfterFailure(
+      store,
+      createLogger({ level: "error", pretty: false, write: (line) => lines.push(line) }),
+      ctx,
+    );
+    expect(lines.join("\n")).toContain("its deletion mark could not be removed");
+    expect(await store.organizationDeletions.isDeleting(PARENT)).toBe(true);
+  });
+
+  it("answers INTERNAL when a child create cannot mark itself after its parent's", async () => {
+    await newMarkDeletingStep(store).execute(deleteContext(parentRow()));
+    const created = childCreateContext();
+    await newPersistStep(store).execute(created);
+    vi.spyOn(store.organizationDeletions, "mark").mockRejectedValueOnce(STORE_DOWN);
+    const failed = await refusal(() =>
+      newRefuseParentDeletingStep(store, purge).execute(created),
+    );
+    expect(failed.code).toBe(Code.Internal);
+    expect(failed.rawMessage).toBe("failed to create organization");
+    expect(kicked).toEqual([]);
   });
 });
 

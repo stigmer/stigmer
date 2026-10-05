@@ -6,11 +6,12 @@
  * Authorizer sees the share's organization. A share whose organization is
  * being deleted answers the lanes' one refusal, byte-identical to a
  * missing share's, while the organization's row still stands; a share of a
- * live organization loads as before. Real sqlite store.
+ * live organization loads as before; a deletion table that cannot be read
+ * is an infrastructure fault (INTERNAL), never a pass. Real sqlite store.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -65,5 +66,16 @@ describe("a hosted chat link of an organization being deleted", () => {
     expect((error as ConnectError).rawMessage).toBe(
       sharedNotFound(SHARE_ID).rawMessage,
     );
+  });
+
+  it("answers INTERNAL when the deletion table cannot be read", async () => {
+    vi.spyOn(temp.store.organizationDeletions, "isDeleting").mockRejectedValueOnce(
+      new Error("store down"),
+    );
+    const error = await loadLinkedShare(temp.store, SHARE_ID).catch(
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.Internal);
   });
 });

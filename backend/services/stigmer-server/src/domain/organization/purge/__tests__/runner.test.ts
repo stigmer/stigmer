@@ -14,18 +14,25 @@
  *   - a pending mark older than the stale age is unmarked, a younger one
  *     is left; an accepted purge another pod heartbeat recently is left
  *     alone until its heartbeat is stale;
- *   - two stages of one name refuse to compose; stop waits for the pass.
+ *   - two stages of one name refuse to compose; stop waits for the pass;
+ *   - a second start is a no-op; the interval and a kick during a pass ask
+ *     for one more pass, which runs when the first ends; a stop during a
+ *     pass ends it before the next batch and the next organization;
+ *   - a deletion table that cannot be listed, a stale mark that cannot be
+ *     removed and a fault that cannot be recorded are logged, never thrown;
+ *     an organization row that cannot be read is the stage's fault.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
   OrganizationPurgeProgress,
   OrganizationPurgeStage,
 } from "../../../../extensions/organization-purge.js";
+import { createLogger } from "../../../../boot/logger.js";
 import { silentLogger } from "../../../../extensions/__tests__/composed-support.js";
 import { SqliteStore } from "../../../../store/sqlite/store.js";
 import {
@@ -208,4 +215,101 @@ describe("the organization purge runner", () => {
     purge.kick(ORG);
     expect(calls).toEqual(["slow"]);
   });
+
+  it("runs one more pass for a kick or an interval that came during one, and ignores a second start", async () => {
+    await accepted();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let entered: () => void = () => {};
+    const inStage = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let runs = 0;
+    const purge = new OrganizationPurgeRunner({
+      store,
+      logger: silentLogger,
+      now: () => clock,
+      intervalMs: 5,
+      stages: [
+        {
+          name: "slow",
+          async run() {
+            runs += 1;
+            entered();
+            await gate;
+            // Waiting here keeps the purge this pod's, so the next pass takes it again.
+            return { more: true, wait: true };
+          },
+        },
+      ],
+    });
+    purge.start();
+    purge.start();
+    await inStage;
+    purge.kick(ORG);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    release();
+    await vi.waitFor(() => expect(runs).toBeGreaterThanOrEqual(2));
+    await purge.stop();
+  });
+
+  it("ends a pass at a stop, before the next batch and the next organization", async () => {
+    await accepted("org_01kfirstfirstfirstfirstfirst");
+    await accepted("org_01ksecondsecondsecondsecond");
+    const calls: string[] = [];
+    const purge: OrganizationPurgeRunner = new OrganizationPurgeRunner({
+      store,
+      logger: silentLogger,
+      now: () => clock,
+      stages: [
+        {
+          name: "a",
+          async run(context) {
+            calls.push(context.org.id);
+            void purge.stop();
+            return { more: true };
+          },
+        },
+      ],
+    });
+    await purge.runPass();
+    expect(calls).toEqual(["org_01kfirstfirstfirstfirstfirst"]);
+  });
+
+  it("logs, never throws, when the table cannot be listed, a stale mark cannot be removed, or a fault cannot be recorded", async () => {
+    const lines: string[] = [];
+    const logger = createLogger({ level: "warn", pretty: false, write: (line) => lines.push(line) });
+    const purge = new OrganizationPurgeRunner({
+      store,
+      logger,
+      now: () => clock,
+      stages: [scripted("a", [], [new Error("stage down")])],
+    });
+    vi.spyOn(store.organizationDeletions, "list").mockRejectedValueOnce(new Error("store down"));
+    await purge.runPass();
+    expect(lines.join("\n")).toContain("could not read the deletion table");
+
+    await store.organizationDeletions.mark(ORG, T0.toISOString());
+    clock = new Date(T0.getTime() + STALE_PENDING_MS);
+    vi.spyOn(store.organizationDeletions, "unmark").mockRejectedValueOnce(new Error("store down"));
+    await purge.runPass();
+    expect(lines.join("\n")).toContain("could not remove a stale organization delete mark");
+
+    await store.organizationDeletions.accept(ORG, T0.toISOString());
+    vi.spyOn(store.organizationDeletions, "recordError").mockRejectedValueOnce(new Error("store down"));
+    await purge.runPass();
+    expect(lines.join("\n")).toContain("could not record an organization purge fault");
+  });
+
+  it("records a fault when the organization's row cannot be read", async () => {
+    await accepted();
+    vi.spyOn(store, "getResource").mockRejectedValueOnce(new Error("store down"));
+    const calls: string[] = [];
+    await runner([scripted("a", calls)]).runPass();
+    expect(calls).toEqual([]);
+    expect((await store.organizationDeletions.get(ORG))?.lastError).toBe(PURGE_FAULT_MESSAGE);
+  });
 });
+

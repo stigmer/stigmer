@@ -5,7 +5,8 @@
  *
  * What it pins:
  *   - only the organization's rows go, read by keyset scan for a kind with
- *     no list index and through the index for one with it;
+ *     no list index (past a full page) and through the index for one with
+ *     it; a row with no id fails the batch;
  *   - a batch removes at most its limit and answers whether rows are left;
  *   - the steps see the loaded row and its id, as the delete chain's
  *     steps do after their load;
@@ -200,6 +201,28 @@ describe("newKindPurge", () => {
     expect(await purge.purge(ORG, CALLER, 5)).toEqual({ more: false });
     expect(asked).toEqual([`${ORG.id}/6`]);
     expect(await ids(ApiResourceKind.agent)).toEqual([]);
+  });
+
+  it("reads past a full keyset page to find the organization's rows", async () => {
+    // One page more than the scan reads at once, the organization's row last.
+    for (let i = 0; i < 200; i++) {
+      await saveAgent(`agt_b${String(i).padStart(3, "0")}`, OTHER);
+    }
+    await saveAgent("agt_z", ORG.id);
+    expect(await agentPurge().purge(ORG, CALLER)).toEqual({ more: false });
+    expect(await agentPurge().holdsAny(ORG)).toBe(false);
+  });
+
+  it("refuses a row with no id, which nothing could delete", async () => {
+    await fx.store.saveResource(
+      ApiResourceKind.agent,
+      "agt_keyed",
+      AgentSchema,
+      create(AgentSchema, { metadata: { org: ORG.id } }),
+    );
+    await expect(agentPurge().purge(ORG, CALLER)).rejects.toThrow(
+      "a agent row with no id cannot be purged",
+    );
   });
 });
 

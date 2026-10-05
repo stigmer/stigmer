@@ -6,7 +6,8 @@
  * otherwise file an artifact after the purge removed its organization's
  * artifacts. Refused NOT_FOUND with a missing organization's copy, before
  * anything is uploaded or saved; an execution of a live organization is
- * filed as before. The registered handler runs on an in-process router;
+ * filed as before; a deletion table that cannot be read answers INTERNAL,
+ * with nothing uploaded. The registered handler runs on an in-process router;
  * the store and the blob storage are recording fakes.
  */
 import { create } from "@bufbuild/protobuf";
@@ -36,7 +37,7 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
-function harness(deleting: ReadonlySet<string>) {
+function harness(deleting: ReadonlySet<string> | Error) {
   const uploads: string[] = [];
   const saved: string[] = [];
   const executions: Record<string, string> = {
@@ -63,7 +64,12 @@ function harness(deleting: ReadonlySet<string>) {
       saved.push(id);
     },
     organizationDeletions: {
-      isDeleting: async (org: string) => deleting.has(org),
+      isDeleting: async (org: string) => {
+        if (deleting instanceof Error) {
+          throw deleting;
+        }
+        return deleting.has(org);
+      },
     },
   } as unknown as Store;
   const transport = createRouterTransport(
@@ -113,5 +119,13 @@ describe("artifact create for an execution of an organization being deleted", ()
     expect(artifact.metadata?.org).toBe("org_live");
     expect(h.uploads).toHaveLength(1);
     expect(h.saved).toEqual([artifact.metadata?.id]);
+  });
+
+  it("answers INTERNAL, with nothing uploaded, when the deletion table cannot be read", async () => {
+    const h = harness(new Error("store down"));
+    const error = await h.createFor("aex_live").catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.Internal);
+    expect(h.uploads).toEqual([]);
   });
 });

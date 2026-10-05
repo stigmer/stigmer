@@ -35,7 +35,9 @@
  *     drops such candidates and the directory such organizations; and the
  *     cost: an unbound by-id check reads the target's row and the
  *     deletion table once per request, and a check with nothing to read
- *     reads nothing.
+ *     reads nothing; a deletion table that cannot be read answers
+ *     unavailable; an enumeration of organizations drops a deleting one by
+ *     its id alone.
  */
 import type { Message } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
@@ -964,4 +966,39 @@ describe("the deleting rule's decision seat", () => {
     expect(await directory.listMyOrganizationIds(unbound)).toEqual([ALPHA]);
     expect(await directory.listMyOrganizationIds(boundTo(BETA))).toEqual([]);
   });
+
+  it("answers unavailable when the deletion table cannot be read, never a pass", async () => {
+    const f = fixture([row("session", "ses_a", ALPHA)]);
+    const failing = newOrganizationLifecycle({
+      isDeleting: () => Promise.reject(new Error("store down")),
+      list: () => Promise.resolve([]),
+    });
+    const inner = recordingAuthorizer();
+    const bound = bindAuthorizer(
+      inner,
+      newCredentialBinding({ ...f.deps, lifecycle: failing }),
+    );
+    expect((await bound.authorize(unbound, sessionCheck("ses_a"))).kind).toBe(
+      "unavailable",
+    );
+    expect(inner.checks).toEqual([]);
+  });
+
+  it("drops a deleting organization from an enumeration of organizations without reading its row", async () => {
+    const f = fixture([]);
+    const reads: string[] = [];
+    const scope = bindListReadScope(
+      {
+        authorizedResourceIds: () => Promise.resolve(new Set([ALPHA, BETA])),
+        restrictListEntries: () => Promise.resolve(new Set<string>()),
+      },
+      newCredentialBinding({ ...f.deps, lifecycle: lifecycle(reads) }),
+      lifecycle(reads),
+    );
+    expect([
+      ...(await scope.authorizedResourceIds(unbound, ApiResourceKind.organization)),
+    ]).toEqual([ALPHA]);
+    expect(f.reads).toEqual([]);
+  });
 });
+
