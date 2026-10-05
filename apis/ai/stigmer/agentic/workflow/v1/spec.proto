@@ -39,6 +39,23 @@ message WorkflowSpec {
   // workflows from consuming more than intended.
   // Optional — when not set, no workflow-level budget is enforced.
   WorkflowBudget budget = 5;
+
+  // Who can observe the runs (executions) of this workflow.
+  //
+  // Independent of the workflow's own visibility: making a workflow
+  // org-visible lets teammates see and run it, but does NOT expose each
+  // other's run inputs and outputs unless this is set to ORGANIZATION.
+  //
+  // Defaults to PRIVATE (unspecified is treated as private): each run is
+  // visible only to the person who started it. Set at create; afterwards it
+  // changes only through WorkflowCommandController.updateExecutionVisibility,
+  // and update and apply keep the stored level.
+  //
+  // @internal
+  // Not part of the workflow's version: the version hash is taken over the
+  // spec with this field cleared, so changing who sees the runs mints no
+  // version.
+  WorkflowExecutionVisibility execution_visibility = 6 [(buf.validate.field).enum.defined_only = true];
 }
 
 // WorkflowBudget declares cost, token, and duration limits for a workflow execution.

@@ -50,8 +50,6 @@ import { WorkflowExecutionUpdateStatusInputSchema, GetEventLogRequestSchema, Sen
 import type { JsonObject } from "@bufbuild/protobuf";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
-import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { PlatformQueryController, GetRunnerScopedTokenInputSchema, TokenRenewalSchema } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
@@ -194,7 +192,6 @@ export class StigmerClient {
   readonly workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
   private readonly workflowExecutionQuery: Client<typeof WorkflowExecutionQueryController>;
   private readonly workflowQuery: Client<typeof WorkflowQueryController>;
-  private readonly workflowInstanceQuery: Client<typeof WorkflowInstanceQueryController>;
   private readonly platformQuery: Client<typeof PlatformQueryController>;
   private readonly channelMessageQuery: Client<typeof ChannelMessageQueryController>;
 
@@ -301,7 +298,6 @@ export class StigmerClient {
     this.workflowExecutionCommand = createClient(WorkflowExecutionCommandController, this.transport);
     this.workflowExecutionQuery = createClient(WorkflowExecutionQueryController, this.transport);
     this.workflowQuery = createClient(WorkflowQueryController, this.transport);
-    this.workflowInstanceQuery = createClient(WorkflowInstanceQueryController, this.transport);
     this.platformQuery = createClient(PlatformQueryController, this.transport);
     this.channelMessageQuery = createClient(ChannelMessageQueryController, this.transport);
   }
@@ -780,10 +776,6 @@ export class StigmerClient {
 
   async getWorkflowVersion(workflowId: string, versionHash: string) {
     return this.workflowQuery.getVersion({ workflowId, versionHash });
-  }
-
-  async getWorkflowInstance(instanceId: string): Promise<WorkflowInstance> {
-    return this.workflowInstanceQuery.get({ value: instanceId });
   }
 
 }

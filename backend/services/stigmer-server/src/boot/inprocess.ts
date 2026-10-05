@@ -1,6 +1,6 @@
 /**
  * In-process ConnectRPC clients — the TS twin of Go's pkg/downstream/*
- * packages (agent, workflowinstance), which serve cross-domain calls through
+ * packages (agent and the rest), which serve cross-domain calls through
  * the same *grpc.Server over an in-memory bufconn so EVERY interceptor
  * executes: an internal call is validated, logged, and kind-tagged exactly
  * like an external one. Here the bufconn equivalent is ConnectRPC's
@@ -13,9 +13,9 @@
  * interceptor runs, in registration order, and a chain rejection
  * short-circuits with a ConnectError the in-process caller sees.
  *
- * The workflow↔workflowinstance true cycle is broken at the CONSUMERS with lazy
- * providers (`() => client`) resolved at call time; this module only
- * supplies the client objects those providers close over.
+ * The routes↔clients cycle is broken at the CONSUMERS with lazy providers
+ * (`() => client`) resolved at call time; this module only supplies the
+ * client objects those providers close over.
  */
 import { createClient, createRouterTransport } from "@connectrpc/connect";
 import type { ConnectRouter, Transport } from "@connectrpc/connect";
@@ -39,9 +39,6 @@ import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/sessi
 import { SessionIdSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { WorkflowIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
-import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
-import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
-import { WorkflowInstanceIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/io_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 
 import type {
@@ -56,15 +53,9 @@ import type {
 import type { ExecutionContextDeleter } from "../domain/executioncontext/internal-delete.js";
 import type { ConnectExecutionContextClient } from "../domain/mcpserver/connect.js";
 import type { ManagedEnvironmentClient } from "../domain/mcpserver/oauth/managed-env.js";
-import type { WorkflowInstanceCreator } from "../domain/workflow/steps.js";
-import type { ExecutionWorkflowInstanceCreator } from "../domain/workflowexecution/create-steps.js";
-import type {
-  ExecutionWorkflowInstanceLoader,
-  WorkflowExecutionContextCreator,
-} from "../domain/workflowexecution/create-execution-context-step.js";
+import type { WorkflowExecutionContextCreator } from "../domain/workflowexecution/create-execution-context-step.js";
 import type { AgentExecutionApprovalForwarder } from "../domain/workflowexecution/submit-approval.js";
 import type { AgentExecutionFileDecisionForwarder } from "../domain/workflowexecution/submit-file-decision.js";
-import type { ParentWorkflowLoader } from "../domain/workflowinstance/steps.js";
 import type { PluginMaterializer } from "../domain/plugin/materialize/ports.js";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -86,8 +77,6 @@ import type { CallOptions } from "@connectrpc/connect";
 
 /** The narrow in-process surfaces the domains consume. */
 export interface InProcessClients {
-  readonly workflowInstanceCreator: WorkflowInstanceCreator;
-  readonly parentWorkflowLoader: ParentWorkflowLoader;
   // The agentexecution create/EC-builder edges (server.go 565–566: the
   // controller's agent/session/environment/executioncontext
   // in-process clients).
@@ -118,10 +107,8 @@ export interface InProcessClients {
    */
   readonly connectExecutionContextClient: ConnectExecutionContextClient;
   // The workflowexecution edges (server.go 636–642: the controller's
-  // workflowinstance/executioncontext clients and the two HITL forwarding
-  // interfaces satisfied by the agentexecution controller).
-  readonly workflowExecutionInstanceCreator: ExecutionWorkflowInstanceCreator;
-  readonly workflowExecutionInstanceLoader: ExecutionWorkflowInstanceLoader;
+  // executioncontext client and the two HITL forwarding interfaces
+  // satisfied by the agentexecution controller).
   readonly workflowExecutionContextCreator: WorkflowExecutionContextCreator;
   readonly workflowExecutionApprovalForwarder: AgentExecutionApprovalForwarder;
   readonly workflowExecutionFileDecisionForwarder: AgentExecutionFileDecisionForwarder;
@@ -218,14 +205,6 @@ export function createInProcessClients(
     ExecutionContextCommandController,
     transport,
   );
-  const workflowInstanceCommand = createClient(
-    WorkflowInstanceCommandController,
-    transport,
-  );
-  const workflowInstanceQuery = createClient(
-    WorkflowInstanceQueryController,
-    transport,
-  );
   const workflowQuery = createClient(WorkflowQueryController, transport);
   const agentExecutionCommand = createClient(
     AgentExecutionCommandController,
@@ -252,20 +231,6 @@ export function createInProcessClients(
   });
 
   const clients: InProcessClients = {
-    // CREATE (not apply) for the AlreadyExists posture — AS THE ORIGINAL
-    // CALLER (Java createAsCaller): the default instance's owner
-    // attribution lands on the requesting user, so it stays manageable
-    // under an enforcing Authorizer.
-    workflowInstanceCreator: {
-      createAsCaller: (instance, caller) =>
-        workflowInstanceCommand.create(instance, asCaller(caller)),
-    },
-    // Go's workflow.Client.Get for workflowinstance create's parent load
-    // (server.go 657: the other direction of the mutual edge).
-    parentWorkflowLoader: {
-      get: (workflowId) =>
-        workflowQuery.get(create(WorkflowIdSchema, { value: workflowId })),
-    },
     // The agentexecution edges: reads stay under the internal class (the
     // daemon-safe default); the session CREATE propagates the original
     // caller so a session born during execution create carries its real
@@ -319,19 +284,6 @@ export function createInProcessClients(
       create: (ec, caller) =>
         executionContextCommand.create(ec, asCaller(caller)),
       delete: (input) => executionContextCommand.delete(input),
-    },
-    // The workflowexecution edges: the default-instance self-heal creates
-    // as the original caller, surfacing duplicate slugs as
-    // AlreadyExists exactly as before.
-    workflowExecutionInstanceCreator: {
-      createAsCaller: (instance, caller) =>
-        workflowInstanceCommand.create(instance, asCaller(caller)),
-    },
-    workflowExecutionInstanceLoader: {
-      get: (instanceId) =>
-        workflowInstanceQuery.get(
-          create(WorkflowInstanceIdSchema, { value: instanceId }),
-        ),
     },
     workflowExecutionContextCreator: {
       create: (ec) => executionContextCommand.create(ec),

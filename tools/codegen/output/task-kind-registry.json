@@ -1510,7 +1510,6 @@
                     "agent_channel",
                     "channel_app",
                     "workflow",
-                    "workflow_instance",
                     "workflow_execution",
                     "environment",
                     "artifact",
@@ -2196,7 +2195,7 @@
         {
           "name": "notification_channels",
           "displayName": "Notification Channels",
-          "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern. The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment.",
+          "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern. The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow run's environment.",
           "type": "repeated",
           "required": false,
           "groupId": "access",
@@ -2257,7 +2256,7 @@
             "type": "object"
           },
           "notification_channels": {
-            "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern. The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment.",
+            "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern. The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow run's environment.",
             "items": {
               "type": "string"
             },
@@ -2759,7 +2758,7 @@
         {
           "name": "channel",
           "displayName": "Channel",
-          "description": "Notification channel identifier. Determines which notification provider processes this message. Common values: \"slack\", \"email\", \"discord\", \"teams\", \"webhook\" This is a string (not an enum) for extensibility — new channels can be added without proto changes. The runtime resolves the channel to its configured provider in the workflow instance's environment.",
+          "description": "Notification channel identifier. Determines which notification provider processes this message. Common values: \"slack\", \"email\", \"discord\", \"teams\", \"webhook\" This is a string (not an enum) for extensibility — new channels can be added without proto changes. The runtime resolves the channel to its configured provider in the workflow run's environment.",
           "type": "string",
           "required": true,
           "groupId": "core",
@@ -2810,7 +2809,7 @@
         {
           "name": "template",
           "displayName": "Template",
-          "description": "Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow instance's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: \"incident-alert\", \"order-confirmation\", \"approval-request\" Template resolution and rendering is a runtime concern.",
+          "description": "Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow run's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: \"incident-alert\", \"order-confirmation\", \"approval-request\" Template resolution and rendering is a runtime concern.",
           "type": "string",
           "required": false,
           "groupId": "template",
@@ -2850,7 +2849,7 @@
             "type": "string"
           },
           "channel": {
-            "description": "Notification channel identifier. Determines which notification provider processes this message. Common values: \"slack\", \"email\", \"discord\", \"teams\", \"webhook\" This is a string (not an enum) for extensibility — new channels can be added without proto changes. The runtime resolves the channel to its configured provider in the workflow instance's environment.",
+            "description": "Notification channel identifier. Determines which notification provider processes this message. Common values: \"slack\", \"email\", \"discord\", \"teams\", \"webhook\" This is a string (not an enum) for extensibility — new channels can be added without proto changes. The runtime resolves the channel to its configured provider in the workflow run's environment.",
             "maxLength": 63,
             "minLength": 1,
             "type": "string"
@@ -2875,7 +2874,7 @@
             "type": "string"
           },
           "template": {
-            "description": "Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow instance's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: \"incident-alert\", \"order-confirmation\", \"approval-request\" Template resolution and rendering is a runtime concern.",
+            "description": "Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow run's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: \"incident-alert\", \"order-confirmation\", \"approval-request\" Template resolution and rendering is a runtime concern.",
             "type": "string"
           }
         },

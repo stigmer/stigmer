@@ -17,7 +17,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // Authorization:
 // - get: Standard authorization - user must have "get" permission on the specific WorkflowExecution
 // - list: Custom authorization - filters results based on user's owner scope and permissions
-// - list_by_workflow: Custom authorization - verifies user has access to the Workflow/WorkflowInstance
+// - list_by_workflow: Custom authorization - verifies user has access to the Workflow
 // - subscribe: Standard authorization - user must have "get" permission to subscribe to updates
 //
 // Service Options:
@@ -28,7 +28,7 @@ service WorkflowExecutionQueryController {
   // Get a single workflow execution by ID.
   //
   // Retrieves the complete WorkflowExecution resource including:
-  // - spec: User inputs (workflow_instance_id, trigger_message, etc.)
+  // - spec: User inputs (workflow_id, trigger_message, etc.)
   // - status: Current execution state (phase, tasks, progress_events, output/error)
   // - metadata: Resource identification (id, name, labels, tags)
   //
@@ -86,7 +86,7 @@ service WorkflowExecutionQueryController {
   //     "org": "acme"
   //   },
   //   "spec": {
-  //     "workflow_instance_id": "wfi_customer-onboarding-prod",
+  //     "workflow_id": "wfl_customer-onboarding",
   //     "trigger_message": "New signup: john.doe@example.com"
   //   },
   //   "status": {
@@ -112,8 +112,8 @@ service WorkflowExecutionQueryController {
   // @internal
   // Authorization:
   // Custom authorization filters results to only include executions the user
-  // can access: the executions in their organization the parent instance's
-  // visibility and their own runs admit.
+  // can access: the executions in their organization the parent workflow's
+  // execution visibility and their own runs admit.
   //
   // Pagination:
   // - page_size: zero returns every execution; a positive size at most that
@@ -183,7 +183,7 @@ service WorkflowExecutionQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // List all executions for a specific Workflow or WorkflowInstance.
+  // List all executions for a specific Workflow.
   //
   // Returns executions filtered by a specific Workflow ID.
   // This is useful for viewing execution history of a particular workflow.
@@ -191,7 +191,7 @@ service WorkflowExecutionQueryController {
   // @internal
   // Authorization:
   // Custom authorization verifies:
-  // 1. User has access to the referenced Workflow or WorkflowInstance
+  // 1. User has access to the referenced Workflow
   // 2. Results are filtered to only include executions user can access
   //
   // Pagination:
@@ -234,14 +234,14 @@ service WorkflowExecutionQueryController {
   //   - page_token is malformed, or was issued for a different request
   //
   // - PERMISSION_DENIED:
-  //   - User doesn't have access to the referenced Workflow/WorkflowInstance
+  //   - User doesn't have access to the referenced Workflow
   //
   // - NOT_FOUND:
-  //   - No Workflow or WorkflowInstance exists with the given ID
+  //   - No Workflow exists with the given ID
   //
   // Example Request:
   // {
-  //   "workflow_id": "wfi_customer-onboarding-prod",
+  //   "workflow_id": "wfl_customer-onboarding",
   //   "page_size": 50
   // }
   //

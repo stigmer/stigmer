@@ -196,7 +196,6 @@ describe("dispatch surface E2E — Temporal TestWorkflowEnvironment", () => {
 
     const input: ExecuteFromExecutionInput = {
       execution_id: `wex_dispatch_${Math.random().toString(36).slice(2)}`,
-      workflow_instance_id: "wfi_1",
       workflow_id: "wf_1",
       org_id: "org_1",
     };

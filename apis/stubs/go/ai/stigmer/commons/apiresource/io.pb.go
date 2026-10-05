@@ -288,15 +288,11 @@ func (x *FindApiResourcesRequest) GetPageSize() int32 {
 // declared per kind via VisibilityConfig in kind_meta:
 //   - Blueprints (agent, workflow, skill, mcp_server, plugin):
 //     PRIVATE, ORG, or CHILD_ORGS
-//   - Instances (workflow_instance):
+//   - Org-only kinds (environment):
 //     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
 //
 // visibility_public is refused for every kind (INVALID_ARGUMENT naming the
 // supported levels); the level is retired.
-//
-// System-managed DEFAULT instances reject visibility updates entirely:
-// their access structurally tracks the parent blueprint via the
-// default_of FGA relation.
 type UpdateVisibilityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the resource whose visibility is being updated.

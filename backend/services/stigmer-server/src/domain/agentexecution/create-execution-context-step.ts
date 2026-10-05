@@ -80,16 +80,13 @@ import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/a
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { AgentCallTaskConfig } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/agent_call_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 
-import { ConnectError } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 
 import type { Logger } from "../../boot/logger.js";
 import type { ExecutionContextDeleter } from "../executioncontext/internal-delete.js";
@@ -101,18 +98,27 @@ import {
 import {
   failedPreconditionError,
   goWrappedStatusError,
+  internalError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
+import {
+  loadVersion,
+  truncateHash,
+} from "../../pipeline/steps/version-history.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { OAuthGrant, Store } from "../../store/interface.js";
-import { resolveDeclaredFromPersonalEnvironment } from "../environment/personal.js";
+import {
+  fillDeclaredFromPersonalEnvironment,
+  resolveDeclaredFromPersonalEnvironment,
+} from "../environment/personal.js";
 import type { PersonalEnvironmentResolution } from "../environment/personal.js";
 import type { RuntimeResolutionService } from "../environment/resolution/resolution.js";
 import type { ManagedEnvironmentService } from "../mcpserver/oauth/managed-env.js";
 import { refreshTokenIfExpired } from "../mcpserver/oauth/refresh.js";
 import type { PlatformClientStore } from "../platformclient/store.js";
-import { unmarshalTaskConfig } from "../workflow/converter/unmarshal.js";
+import { findAgentCallStep } from "../workflow/validation/agent-call-steps.js";
+import { workflowVersionBinding } from "../workflow/version-resolution.js";
 
 import type { AgentLoader } from "./create-steps.js";
 import { runPersonOf, SCHEDULE_ID_LABEL_KEY } from "./run-person.js";
@@ -596,17 +602,12 @@ interface PersonalFillLimits {
  * Resolves the run's declared variables still missing after every layer
  * and the OAuth injection — the agent's and its session servers' (the one
  * declared set, unionDeclarations) — from the run's person's personal
- * environment, by declared key. Left alone:
- *   - every OAuth-target variable of a server the run uses, the agent's
- *     and the session's (an absent grant is the sign-in the console asks
- *     for, not a personal-environment lookup);
- *   - every key the agent declares when the agent belongs to another
- *     organization than the run: a person's values reach an agent their
- *     own organization holds, never one another organization published.
- *     The agent's organization is read only when it declares a wanted key;
- *     an agent that cannot be read counts as another organization's.
- * A run with no person reads none. Every failure is non-fatal here: a
- * missing key is logged and the run meets the tool's own error.
+ * environment, by the one rule every run shares
+ * (environment/personal.ts `fillDeclaredFromPersonalEnvironment`). Left
+ * alone: every OAuth-target variable of a server the run uses, the
+ * agent's and the session's (an absent grant is the sign-in the console
+ * asks for, not a personal-environment lookup), and every key the agent
+ * declares when the agent belongs to another organization than the run.
  */
 async function injectDeclaredFromPersonalEnvironment(
   deps: ExecutionContextBuilderDeps,
@@ -617,83 +618,25 @@ async function injectDeclaredFromPersonalEnvironment(
   person: string | undefined,
   executionId: string,
 ): Promise<Map<string, ExecutionValue>> {
-  const wanted: { [key: string]: EnvVarDeclaration } = {};
-  for (const [key, decl] of Object.entries(declarations)) {
-    if (limits.oauthTargets.has(key) || filtered.has(key)) {
-      continue;
-    }
-    wanted[key] = decl;
-  }
-  if (
-    Object.keys(wanted).length === 0 ||
-    executionOrg === "" ||
-    person === undefined
-  ) {
-    return filtered;
-  }
-  const agentKeys = Object.keys(limits.agentEnv).filter((key) => key in wanted);
-  if (
-    agentKeys.length > 0 &&
-    (await agentOrgOf(deps, limits.agentId)) !== executionOrg
-  ) {
-    for (const key of agentKeys) {
-      delete wanted[key];
-    }
-    deps.logger.info(
-      "The run's agent belongs to another organization; its declared keys are not read from the personal environment",
-      { executionId, agentId: limits.agentId, keys: agentKeys.sort() },
-    );
-    if (Object.keys(wanted).length === 0) {
-      return filtered;
-    }
-  }
-
-  let resolution: PersonalEnvironmentResolution;
-  try {
-    resolution = await resolveDeclaredFromPersonalEnvironment(
-      deps.environmentReader(),
-      deps.store,
-      deps.logger,
+  return fillDeclaredFromPersonalEnvironment(
+    deps.environmentReader(),
+    deps.store,
+    deps.logger,
+    filtered,
+    {
+      declarations,
+      exclude: limits.oauthTargets,
+      owner: {
+        noun: "agent",
+        id: limits.agentId,
+        declares: limits.agentEnv,
+        orgOf: () => agentOrgOf(deps, limits.agentId),
+      },
       executionOrg,
       person,
-      wanted,
-    );
-  } catch (error) {
-    deps.logger.warn(
-      "Failed to resolve declared variables from the personal environment (non-fatal)",
-      {
-        executionId,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    );
-    return filtered;
-  }
-  if (resolution.kind === "no-personal-environment") {
-    deps.logger.debug(
-      "No personal environment — declared variables stay unresolved",
-      { executionId, keys: Object.keys(wanted).sort() },
-    );
-    return filtered;
-  }
-  if (resolution.missing.length > 0) {
-    deps.logger.warn(
-      "The run declares required variables the personal environment does not hold",
-      { executionId, missing: [...resolution.missing].sort() },
-    );
-  }
-  const entries = Object.entries(resolution.values);
-  if (entries.length === 0) {
-    return filtered;
-  }
-  const out = new Map(filtered);
-  for (const [key, value] of entries) {
-    out.set(key, value);
-  }
-  deps.logger.info(
-    "Injected declared variables from the run's person's personal environment",
-    { executionId, keys: entries.map(([key]) => key).sort() },
+      executionId,
+    },
   );
-  return out;
 }
 
 /**
@@ -893,13 +836,25 @@ async function resolvePlatformClientEnvironments(
 }
 
 /**
- * Resolves the environment_refs of the agent_call task that created this
- * execution (the workflow-provenance labels). Missing labels — every
- * non-workflow execution — answer empty; a deleted/renamed workflow
- * execution, workflow, or task degrades to no workflow environments; an
- * unresolvable REF fails the create (Go resolveWorkflowTaskEnvironments).
+ * Resolves the environment_refs of the agent_call step that created this
+ * execution (the workflow-provenance labels), read from the workflow
+ * version the workflow run pinned (`status.workflow_version_hash`), never
+ * the head, so an author's edit after the run started never changes what
+ * a running step receives (stigmer#1906). A version covers every step's
+ * environment_refs (the workflow's version hash is its whole spec's), and
+ * the step is found at any depth by its name, which save keeps unique
+ * across the workflow (domain/workflow/validation/agent-call-steps.ts). A
+ * run with no pin (a workflow saved before versioning) reads the head, as
+ * the runner's hydrate does.
+ *
+ * Missing labels — every non-workflow execution — answer empty; a deleted
+ * workflow execution or workflow, or a step the version does not hold,
+ * degrades to no workflow environments. A pinned version the workflow no
+ * longer holds fails the create naming it, as the runner fails the run:
+ * the step is never handed another version's keys. An unresolvable REF
+ * fails the create.
  */
-async function resolveWorkflowTaskEnvironments(
+export async function resolveWorkflowTaskEnvironments(
   deps: ExecutionContextBuilderDeps,
   execution: AgentExecution,
 ): Promise<Environment[]> {
@@ -931,55 +886,18 @@ async function resolveWorkflowTaskEnvironments(
     );
   }
 
-  let workflowId = workflowExecution.spec?.workflowId ?? "";
-  if (workflowId === "") {
-    // Instance-first executions carry only the instance id.
-    const instanceId = workflowExecution.spec?.workflowInstanceId ?? "";
-    if (instanceId === "") {
-      return [];
-    }
-    try {
-      const instance = await deps.store.getResource(
-        ApiResourceKind.workflow_instance,
-        instanceId,
-        WorkflowInstanceSchema,
-      );
-      workflowId = instance.spec?.workflowId ?? "";
-    } catch (error) {
-      if (error instanceof ResourceNotFoundError) {
-        deps.logger.warn(
-          "Workflow-labeled execution's instance row is gone — running without workflow environments",
-          { workflowInstanceId: instanceId, executionId },
-        );
-        return [];
-      }
-      throw new Error(
-        `load workflow instance ${instanceId} for environment resolution: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
+  const workflowId = workflowExecution.spec?.workflowId ?? "";
   if (workflowId === "") {
     return [];
   }
-
-  let workflow: Workflow;
-  try {
-    workflow = await deps.store.getResource(
-      ApiResourceKind.workflow,
-      workflowId,
-      WorkflowSchema,
-    );
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      deps.logger.warn(
-        "Workflow-labeled execution's workflow row is gone — running without workflow environments",
-        { workflowId, executionId },
-      );
-      return [];
-    }
-    throw new Error(
-      `load workflow ${workflowId} for environment resolution: ${error instanceof Error ? error.message : String(error)}`,
-    );
+  const workflow = await loadPinnedWorkflow(
+    deps,
+    workflowId,
+    workflowExecution.status?.workflowVersionHash ?? "",
+    executionId,
+  );
+  if (workflow === undefined) {
+    return [];
   }
 
   const refs = agentCallTaskEnvironmentRefs(deps.logger, workflow, taskName);
@@ -1010,37 +928,92 @@ async function resolveWorkflowTaskEnvironments(
 }
 
 /**
- * Extracts the environment_refs of the named agent_call task. A missing/
- * renamed task, a non-agent_call task under that name, or an unparsable
- * config all answer empty — the binding no longer exists in the current
- * revision, the degrade-not-fail case (Go agentCallTaskEnvironmentRefs).
+ * The workflow as the run pinned it: the version `versionHash` names
+ * (version-history.ts `loadVersion`, getVersion's own reader), or the head
+ * when the run pinned none. Undefined when the workflow is gone (the
+ * degrade case); a pinned version the live workflow no longer holds is
+ * FAILED_PRECONDITION naming it; a store fault is Internal.
+ */
+export async function loadPinnedWorkflow(
+  deps: Pick<ExecutionContextBuilderDeps, "store" | "logger">,
+  workflowId: string,
+  versionHash: string,
+  executionId: string,
+): Promise<Workflow | undefined> {
+  try {
+    if (versionHash === "") {
+      return await deps.store.getResource(
+        ApiResourceKind.workflow,
+        workflowId,
+        WorkflowSchema,
+      );
+    }
+    return (
+      await loadVersion(deps.store, workflowVersionBinding, workflowId, versionHash)
+    ).resource;
+  } catch (error) {
+    const notFound =
+      error instanceof ResourceNotFoundError ||
+      (error instanceof ConnectError && error.code === Code.NotFound);
+    if (!notFound) {
+      throw new Error(
+        `load workflow ${workflowId} for environment resolution: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    if (versionHash !== "" && (await workflowExists(deps, workflowId))) {
+      throw failedPreconditionError(
+        `workflow ${workflowId} no longer holds version ${truncateHash(versionHash)}, the version its run started on`,
+      );
+    }
+    deps.logger.warn(
+      "Workflow-labeled execution's workflow row is gone — running without workflow environments",
+      { workflowId, executionId },
+    );
+    return undefined;
+  }
+}
+
+/** Whether the workflow's row exists; a store fault is Internal. */
+async function workflowExists(
+  deps: Pick<ExecutionContextBuilderDeps, "store">,
+  workflowId: string,
+): Promise<boolean> {
+  try {
+    await deps.store.getResource(
+      ApiResourceKind.workflow,
+      workflowId,
+      WorkflowSchema,
+    );
+    return true;
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      return false;
+    }
+    throw internalError(error, `failed to load workflow ${workflowId}`);
+  }
+}
+
+/**
+ * The environment_refs of the agent_call step named `taskName`, found at
+ * any depth of the workflow (nested lists and compensate included). A
+ * missing or renamed step answers empty: the binding no longer exists in
+ * this version, the degrade-not-fail case. A version saved before step
+ * names were unique may hold several: the first in walk order answers,
+ * and the duplicate is logged.
  */
 export function agentCallTaskEnvironmentRefs(
   logger: Logger,
   workflow: Workflow,
   taskName: string,
 ): ApiResourceReference[] {
-  for (const task of workflow.spec?.tasks ?? []) {
-    if (task.name !== taskName || task.kind !== WorkflowTaskKind.agent_call) {
-      continue;
-    }
-    let msg;
-    try {
-      msg = unmarshalTaskConfig(task.kind, task.taskConfig);
-    } catch (error) {
-      logger.warn(
-        "agent_call task config no longer parses — running without workflow environments",
-        {
-          taskName,
-          error: error instanceof Error ? error.message : String(error),
-        },
-      );
-      return [];
-    }
-    const cfg = msg as AgentCallTaskConfig;
-    return cfg.environmentRefs;
+  const { step, matches } = findAgentCallStep(workflow.spec, taskName);
+  if (matches > 1) {
+    logger.warn(
+      "Workflow version holds several agent_call steps of one name — reading the first",
+      { workflowId: workflow.metadata?.id ?? "", taskName, matches },
+    );
   }
-  return [];
+  return step?.config.environmentRefs ?? [];
 }
 
 /**

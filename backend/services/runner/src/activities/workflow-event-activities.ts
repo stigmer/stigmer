@@ -204,7 +204,6 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
         value: create(ExecutionStartedPayloadSchema, {
           totalTasks: desc.totalTasks,
           workflowId: desc.workflowId,
-          workflowInstanceId: desc.workflowInstanceId,
         }),
       };
       break;

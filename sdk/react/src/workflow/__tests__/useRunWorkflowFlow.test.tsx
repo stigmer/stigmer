@@ -1,9 +1,20 @@
+/**
+ * Pins the run flow: a run is created with `workflowId` alone (a run names
+ * its workflow and nothing else), each declared key carries its source
+ * (typed, the person's personal environment, or missing) with validation
+ * relaxed for a key the personal environment holds, a key whose source is
+ * not yet known (still being read, or unreadable) does not block the run,
+ * a workflow of another organization than the run's reads no personal key,
+ * and the flow says when the workflow's runs are visible to its
+ * organization.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerError } from "@stigmer/sdk";
 import { Code } from "@connectrpc/connect";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { useRunWorkflowFlow } from "../useRunWorkflowFlow";
 import type { UseRunWorkflowFlowOptions } from "../useRunWorkflowFlow";
@@ -18,6 +29,7 @@ function makeWorkflow(overrides: Record<string, unknown> = {}) {
       id: "wf-123",
       name: "my-workflow",
       slug: "my-workflow",
+      org: "test-org",
       ...((overrides.metadata as Record<string, unknown>) ?? {}),
     },
     spec: {
@@ -32,13 +44,30 @@ function makeExecution(id = "wex-001") {
 }
 
 const mockCreate = vi.fn();
-const mockGetByReference = vi.fn();
+const mockListEnvironments = vi.fn();
 
 function makeMockClient(): Stigmer {
   return {
     workflowExecution: { create: mockCreate },
-    environment: { getByReference: mockGetByReference },
+    environment: { list: mockListEnvironments },
   } as unknown as Stigmer;
+}
+
+/** The person's personal environment in the run's org, holding `keys`. */
+function personalEnvironmentHolding(...keys: string[]) {
+  return {
+    items: [
+      {
+        metadata: { id: "env-personal", org: "test-org" },
+        spec: {
+          data: Object.fromEntries(
+            keys.map((k) => [k, { value: "", isSecret: true }]),
+          ),
+        },
+      },
+    ],
+    totalCount: 1,
+  };
 }
 
 function defaultOptions(
@@ -47,7 +76,6 @@ function defaultOptions(
   return {
     org: "test-org",
     workflow: makeWorkflow(),
-    instances: [],
     onSuccess: vi.fn(),
     onError: vi.fn(),
     ...overrides,
@@ -74,6 +102,7 @@ describe("useRunWorkflowFlow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCreate.mockResolvedValue(makeExecution());
+    mockListEnvironments.mockResolvedValue({ items: [], totalCount: 0 });
   });
 
   // =========================================================================
@@ -158,6 +187,7 @@ describe("useRunWorkflowFlow", () => {
       });
       const { result } = renderWithClient(opts);
 
+      await waitFor(() => expect(result.current.isLoadingEnvKeySources).toBe(false));
       await act(async () => {
         await result.current.submit();
       });
@@ -232,7 +262,7 @@ describe("useRunWorkflowFlow", () => {
       expect(result.current.isSubmitting).toBe(false);
     });
 
-    it("passes org and workflowId when no instance is selected", async () => {
+    it("creates the run with the org and the workflow's id, and no other target", async () => {
       const opts = defaultOptions();
       const { result } = renderWithClient(opts);
 
@@ -243,7 +273,7 @@ describe("useRunWorkflowFlow", () => {
       const input = mockCreate.mock.calls[0][0];
       expect(input.org).toBe("test-org");
       expect(input.workflowId).toBe("wf-123");
-      expect(input.workflowInstanceId).toBeUndefined();
+      expect(Object.keys(input)).not.toContain("workflowInstanceId");
     });
   });
 
@@ -320,72 +350,185 @@ describe("useRunWorkflowFlow", () => {
       expect(result.current.triggerMessage).toBe("");
       expect(result.current.runtimeEnv).toEqual({});
       expect(result.current.fieldErrors).toEqual({});
-      expect(result.current.selectedInstanceId).toBeNull();
     });
   });
 
   // =========================================================================
-  // Instance selection routing
+  // Where each declared key comes from
   // =========================================================================
 
-  describe("instance selection", () => {
-    it("sends workflowInstanceId instead of workflowId when instance is selected", async () => {
-      const opts = defaultOptions();
-      const { result } = renderWithClient(opts);
-
-      act(() => {
-        result.current.setSelectedInstanceId("wfi-456");
-      });
-
-      await act(async () => {
-        await result.current.submit();
-      });
-
-      const input = mockCreate.mock.calls[0][0];
-      expect(input.workflowInstanceId).toBe("wfi-456");
-      expect(input.workflowId).toBeUndefined();
+  describe("declared key sources", () => {
+    const threeKeys = makeWorkflow({
+      spec: {
+        env: {
+          TYPED: { optional: false, isSecret: false },
+          SAVED: { optional: false, isSecret: true },
+          ABSENT: { optional: true, isSecret: false },
+        },
+      },
     });
 
-    it("skips validation for required env vars satisfied by instance environments", async () => {
-      mockGetByReference.mockResolvedValue({
-        spec: { data: { DB_URL: { value: "postgres://...", isSecret: true } } },
-      });
-
-      const instance = {
-        metadata: { id: "wfi-789", name: "prod", slug: "prod", org: "test-org" },
-        spec: {
-          workflowId: "wf-123",
-          environmentRefs: [{ org: "test-org", slug: "prod-env" }],
-        },
-      } as any;
-
-      const opts = defaultOptions({
-        workflow: makeWorkflow({
-          spec: {
-            env: {
-              DB_URL: { optional: false, isSecret: true },
-            },
-          },
-        }),
-        instances: [instance],
-      });
-
-      const { result } = renderWithClient(opts);
+    it("marks a typed key typed, a personal-environment key personal, and any other key missing", async () => {
+      mockListEnvironments.mockResolvedValue(personalEnvironmentHolding("SAVED"));
+      const { result } = renderWithClient(defaultOptions({ workflow: threeKeys }));
 
       act(() => {
-        result.current.setSelectedInstanceId("wfi-789");
+        result.current.setEnvVar("TYPED", "value");
       });
 
       await waitFor(() => {
-        expect(result.current.instanceEnvKeys.has("DB_URL")).toBe(true);
+        expect(result.current.envKeySources.SAVED).toBe("personal");
+      });
+      expect(result.current.envKeySources).toEqual({
+        TYPED: "typed",
+        SAVED: "personal",
+        ABSENT: "missing",
+      });
+      expect(result.current.isLoadingEnvKeySources).toBe(false);
+    });
+
+    it("reads key names from the personal environment of the run's organization", async () => {
+      renderWithClient(defaultOptions({ workflow: threeKeys }));
+
+      await waitFor(() => expect(mockListEnvironments).toHaveBeenCalled());
+      const request = mockListEnvironments.mock.calls[0][0];
+      expect(request.org).toBe("test-org");
+      expect(request.labels).toEqual({ "stigmer.ai/personal": "true" });
+    });
+
+    it("lets a run start when the personal environment holds a required key, and passes nothing for it", async () => {
+      mockListEnvironments.mockResolvedValue(personalEnvironmentHolding("DB_URL"));
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          spec: { env: { DB_URL: { optional: false, isSecret: true } } },
+        }),
+      });
+      const { result } = renderWithClient(opts);
+
+      await waitFor(() => {
+        expect(result.current.envKeySources.DB_URL).toBe("personal");
       });
 
       await act(async () => {
         await result.current.submit();
       });
 
-      expect(mockCreate).toHaveBeenCalled();
       expect(result.current.fieldErrors).toEqual({});
+      expect(mockCreate).toHaveBeenCalled();
+      expect(mockCreate.mock.calls[0][0].runtimeEnv).toBeUndefined();
+    });
+
+    it("blocks a run whose required key is missing", async () => {
+      mockListEnvironments.mockResolvedValue(personalEnvironmentHolding("OTHER"));
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          spec: { env: { DB_URL: { optional: false, isSecret: true } } },
+        }),
+      });
+      const { result } = renderWithClient(opts);
+
+      await waitFor(() => expect(result.current.isLoadingEnvKeySources).toBe(false));
+      expect(result.current.envKeySources.DB_URL).toBe("missing");
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockCreate).not.toHaveBeenCalled();
+      expect(result.current.fieldErrors).toHaveProperty("DB_URL");
+    });
+
+    it("lets a run start while the personal environment is still being read, marking its key pending", async () => {
+      mockListEnvironments.mockReturnValue(new Promise(() => {}));
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          spec: { env: { DB_URL: { optional: false, isSecret: true } } },
+        }),
+      });
+      const { result } = renderWithClient(opts);
+
+      await waitFor(() => expect(mockListEnvironments).toHaveBeenCalled());
+      expect(result.current.envKeySources).toEqual({ DB_URL: "pending" });
+      expect(result.current.isLoadingEnvKeySources).toBe(true);
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(result.current.fieldErrors).toEqual({});
+      expect(mockCreate).toHaveBeenCalled();
+      expect(mockCreate.mock.calls[0][0].runtimeEnv).toBeUndefined();
+    });
+
+    it("lets a run start when the personal environment cannot be read, marking its key unknown", async () => {
+      mockListEnvironments.mockRejectedValue(new Error("environments unavailable"));
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          spec: { env: { DB_URL: { optional: false, isSecret: true } } },
+        }),
+      });
+      const { result } = renderWithClient(opts);
+
+      await waitFor(() => {
+        expect(result.current.envKeySources.DB_URL).toBe("unknown");
+      });
+      expect(result.current.isLoadingEnvKeySources).toBe(false);
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(result.current.fieldErrors).toEqual({});
+      expect(mockCreate).toHaveBeenCalled();
+      expect(mockCreate.mock.calls[0][0].runtimeEnv).toBeUndefined();
+    });
+
+    it("marks no key personal for a workflow of another organization, as the server fills none", async () => {
+      mockListEnvironments.mockResolvedValue(personalEnvironmentHolding("DB_URL"));
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          metadata: { id: "wf-shared", name: "shared", slug: "shared", org: "parent-org" },
+          spec: { env: { DB_URL: { optional: false, isSecret: true } } },
+        }),
+      });
+      const { result } = renderWithClient(opts);
+
+      expect(result.current.envKeySources).toEqual({ DB_URL: "missing" });
+      expect(result.current.isLoadingEnvKeySources).toBe(false);
+      expect(mockListEnvironments).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await result.current.submit();
+      });
+      expect(mockCreate).not.toHaveBeenCalled();
+      expect(result.current.fieldErrors).toHaveProperty("DB_URL");
+    });
+  });
+
+  // =========================================================================
+  // Run visibility notice
+  // =========================================================================
+
+  describe("runs visible to the organization", () => {
+    it("is true when the workflow's runs are visible to its organization", () => {
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          spec: { executionVisibility: WorkflowExecutionVisibility.organization },
+        }),
+      });
+      const { result } = renderWithClient(opts);
+      expect(result.current.runsVisibleToOrganization).toBe(true);
+    });
+
+    it.each([
+      WorkflowExecutionVisibility.private,
+      WorkflowExecutionVisibility.unspecified,
+    ])("is false for run visibility %s", (executionVisibility) => {
+      const opts = defaultOptions({
+        workflow: makeWorkflow({ spec: { executionVisibility } }),
+      });
+      const { result } = renderWithClient(opts);
+      expect(result.current.runsVisibleToOrganization).toBe(false);
     });
   });
 

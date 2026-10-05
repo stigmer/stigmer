@@ -6,8 +6,7 @@
 
 // Package ai.stigmer.agentic.workflowexecution.v1 contains the API definition for WorkflowExecution.
 //
-// WorkflowExecution is the "Execution" layer in the Template→Instance→Execution pattern.
-// It represents a single runtime invocation of a WorkflowInstance, capturing the complete
+// WorkflowExecution represents a single runtime invocation of a Workflow, capturing the complete
 // execution lifecycle from trigger to completion.
 //
 // This package belongs to the "agentic" bounded context, which encompasses all AI agent
@@ -34,7 +33,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
+// WorkflowExecution represents a single runtime invocation of a Workflow.
 type WorkflowExecution struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

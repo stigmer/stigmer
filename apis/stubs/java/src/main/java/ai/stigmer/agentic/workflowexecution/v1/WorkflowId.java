@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
 
 /**
  * <pre>
- * WorkflowId wraps a workflow or workflow instance identifier for filtering.
+ * WorkflowId wraps a workflow identifier for filtering.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowId}
@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object value_ = "";
   /**
    * <pre>
-   * Workflow or WorkflowInstance identifier.
+   * Workflow identifier.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -79,7 +79,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Workflow or WorkflowInstance identifier.
+   * Workflow identifier.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -258,7 +258,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkflowId wraps a workflow or workflow instance identifier for filtering.
+   * WorkflowId wraps a workflow identifier for filtering.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowId}
@@ -401,7 +401,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object value_ = "";
     /**
      * <pre>
-     * Workflow or WorkflowInstance identifier.
+     * Workflow identifier.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -421,7 +421,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow or WorkflowInstance identifier.
+     * Workflow identifier.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -442,7 +442,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow or WorkflowInstance identifier.
+     * Workflow identifier.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -459,7 +459,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow or WorkflowInstance identifier.
+     * Workflow identifier.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -473,7 +473,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow or WorkflowInstance identifier.
+     * Workflow identifier.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>

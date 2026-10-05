@@ -9,9 +9,9 @@ package ai.stigmer.agentic.workflow.v1;
  * <pre>
  * WorkflowVersionEntry represents a single historical version of a workflow.
  *
- * Each apply/update that changes the generated CNCF YAML (and passes validation)
+ * Each apply/update that changes the workflow's spec (and passes validation)
  * creates a new immutable version entry. The version is identified by its content
- * hash (SHA-256 of the validated YAML).
+ * hash (the canonical hash of the spec, run visibility excluded).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry}
@@ -66,7 +66,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object versionHash_ = "";
   /**
    * <pre>
-   * SHA-256 hash of the CNCF YAML — the immutable version identifier.
+   * Content hash of the version's spec — the immutable version identifier.
    * </pre>
    *
    * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -87,7 +87,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * SHA-256 hash of the CNCF YAML — the immutable version identifier.
+   * Content hash of the version's spec — the immutable version identifier.
    * </pre>
    *
    * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -637,9 +637,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * WorkflowVersionEntry represents a single historical version of a workflow.
    *
-   * Each apply/update that changes the generated CNCF YAML (and passes validation)
+   * Each apply/update that changes the workflow's spec (and passes validation)
    * creates a new immutable version entry. The version is identified by its content
-   * hash (SHA-256 of the validated YAML).
+   * hash (the canonical hash of the spec, run visibility excluded).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry}
@@ -909,7 +909,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object versionHash_ = "";
     /**
      * <pre>
-     * SHA-256 hash of the CNCF YAML — the immutable version identifier.
+     * Content hash of the version's spec — the immutable version identifier.
      * </pre>
      *
      * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -929,7 +929,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * SHA-256 hash of the CNCF YAML — the immutable version identifier.
+     * Content hash of the version's spec — the immutable version identifier.
      * </pre>
      *
      * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -950,7 +950,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * SHA-256 hash of the CNCF YAML — the immutable version identifier.
+     * Content hash of the version's spec — the immutable version identifier.
      * </pre>
      *
      * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -967,7 +967,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * SHA-256 hash of the CNCF YAML — the immutable version identifier.
+     * Content hash of the version's spec — the immutable version identifier.
      * </pre>
      *
      * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -981,7 +981,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * SHA-256 hash of the CNCF YAML — the immutable version identifier.
+     * Content hash of the version's spec — the immutable version identifier.
      * </pre>
      *
      * <code>string version_hash = 1 [json_name = "versionHash"];</code>

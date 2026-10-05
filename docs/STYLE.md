@@ -378,7 +378,7 @@ descriptions of architecture or data flow.
 ```mermaid
 flowchart TB
     A[Submit Workflow] --> B{Validate spec}
-    B -->|Valid| C[Create instance]
+    B -->|Valid| C[Record version]
     B -->|Invalid| D[Return error]
 ```
 ````

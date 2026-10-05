@@ -15,6 +15,7 @@ import {
   type WorkbenchColumnDef,
 } from "@stigmer/react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { WORKFLOW_DELETE_DESCRIPTION } from "./workflow-delete-confirmation";
 
 const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:workflows:viewMode";
 
@@ -66,10 +67,7 @@ export default function WorkflowListPage() {
     async (item: SearchResult) => {
       const confirmed = await confirm({
         title: `Delete ${item.name || item.slug}?`,
-        description:
-          "This permanently removes the workflow and all of its instances. " +
-          "Past executions are preserved in the execution history. " +
-          "This action cannot be undone.",
+        description: WORKFLOW_DELETE_DESCRIPTION,
         confirmLabel: "Delete",
         variant: "destructive",
       });

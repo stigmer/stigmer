@@ -94,7 +94,7 @@ module.exports = {
       literalId:
         "Literal `{{ attribute }}` on <{{ element }}> is a latent duplicate-id collision — a host may mount this" +
         " component more than once per page. Mint the id per mount: `const baseId = useId()` plus derived" +
-        " per-field ids (see CreateWorkflowInstanceDialog), threading it to body components as a prop if needed.",
+        " per-field ids (see CreateEnvironmentForm), threading it to body components as a prop if needed.",
       literalRadioName:
         "Literal radio `name` on <input type=\"radio\"> merges every mounted copy of this component into ONE" +
         " keyboard group (arrow keys and checked state bleed across forms). Mint the group name per mount from" +

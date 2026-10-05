@@ -8,8 +8,8 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { WorkflowSchema, type Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
-import { WorkflowTaskKind, BudgetExceededPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { WorkflowIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
+import { WorkflowExecutionVisibility, WorkflowTaskKind, BudgetExceededPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowIdSchema, UpdateWorkflowExecutionVisibilityInputSchema, type UpdateWorkflowExecutionVisibilityInput } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { type ServerlessWorkflowValidation } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema, WorkflowBudgetSchema, type WorkflowDocument, type Export, type FlowControl, type WorkflowTask, type WorkflowBudget } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
@@ -59,6 +59,12 @@ export class WorkflowClient {
   async updateVisibility(input: UpdateVisibilityInput): Promise<Workflow> {
     try {
       return await this.command.updateVisibility(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async updateExecutionVisibility(input: UpdateWorkflowExecutionVisibilityInput): Promise<Workflow> {
+    try {
+      return await this.command.updateExecutionVisibility(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -147,6 +153,7 @@ export interface WorkflowInput {
   tasks?: WorkflowTaskInput[];
   env?: Record<string, EnvVarDeclarationInput>;
   budget?: WorkflowBudgetInput;
+  executionVisibility?: WorkflowExecutionVisibility;
 }
 
 /** SDK input type for WorkflowDocument. */
@@ -269,6 +276,7 @@ export function buildWorkflowProto(input: WorkflowInput): Workflow {
       tasks,
       env,
       budget,
+      executionVisibility: input.executionVisibility,
     })),
   }) as Workflow;
 }
@@ -355,5 +363,6 @@ export function toWorkflowUpdateInput(resource: Workflow): WorkflowInput {
     tasks: spec.tasks?.length ? spec.tasks.map(toWorkflowTaskInput) : undefined,
     env: Object.keys(spec.env ?? {}).length > 0 ? Object.fromEntries(Object.entries(spec.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined,
     budget: spec.budget ? toWorkflowBudgetInput(spec.budget) : undefined,
+    executionVisibility: spec.executionVisibility || undefined,
   };
 }

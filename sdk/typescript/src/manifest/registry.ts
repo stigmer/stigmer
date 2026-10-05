@@ -86,9 +86,9 @@ export interface ManifestKindHandler {
    * plain updates, oss#573). Declared only on kinds whose controller has
    * the RPC (exactly the kinds supporting non-private levels); a manifest
    * engine that finds a visibility diff after apply follows up through
-   * this binding so the server-side guards (level support, default-instance
-   * rejection) run. Absent on private-only kinds — a visibility diff there
-   * is unactionable and should be surfaced to the user, not swallowed.
+   * this binding so the server-side guards (level support) run. Absent on
+   * private-only kinds — a visibility diff there is unactionable and should
+   * be surfaced to the user, not swallowed.
    */
   updateVisibility?(clientFor: ServiceClientFn, input: UpdateVisibilityInput): Promise<Message>;
 }

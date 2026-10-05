@@ -54,8 +54,10 @@ export function registerAgentExecutionTools(server: McpServer, target: BackendTa
           .record(z.string())
           .optional()
           .describe(
-            "Non-secret runtime environment values (name → value) injected into the run. " +
-              "Secrets must come from Environments attached to the agent, never through this tool.",
+            "Non-secret runtime environment values (name → value) injected into the run. Every key the agent " +
+              "declares that is not passed here is read from the personal Environment of the caller (the person " +
+              "the run belongs to), when the agent is in the run's organization; a secret belongs there, never in " +
+              "this tool.",
           ),
       },
     },

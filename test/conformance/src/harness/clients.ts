@@ -54,8 +54,6 @@ import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/wo
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
 import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
-import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
-import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
@@ -117,8 +115,6 @@ export interface ConformanceClients {
   workflowQuery: Client<typeof WorkflowQueryController>;
   workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
   workflowExecutionQuery: Client<typeof WorkflowExecutionQueryController>;
-  workflowInstanceCommand: Client<typeof WorkflowInstanceCommandController>;
-  workflowInstanceQuery: Client<typeof WorkflowInstanceQueryController>;
   agentExecutionCommand: Client<typeof AgentExecutionCommandController>;
   agentExecutionQuery: Client<typeof AgentExecutionQueryController>;
   agentCommand: Client<typeof AgentCommandController>;
@@ -253,14 +249,6 @@ export function makeClients(transport: Transport): ConformanceClients {
     ),
     workflowExecutionQuery: createClient(
       WorkflowExecutionQueryController,
-      transport,
-    ),
-    workflowInstanceCommand: createClient(
-      WorkflowInstanceCommandController,
-      transport,
-    ),
-    workflowInstanceQuery: createClient(
-      WorkflowInstanceQueryController,
       transport,
     ),
     agentExecutionCommand: createClient(

@@ -23,8 +23,7 @@
  *     a throw never fails the delete (orphaned grants are inert once the
  *     resource row is gone). It fires for the resource a delete chain
  *     removes, and for each child a parent's cascade deletes (an agent's
- *     instances and same-organization shares, a workflow's instances, a
- *     session's runs), right after the child's row and before the
+ *     same-organization shares, a session's runs), right after the child's row and before the
  *     parent's event (pipeline/steps/authorization-tuples.ts
  *     `cleanUpDeletedResource`, stigmer#1603). The server's own deletes
  *     ride a delete chain too: a run's execution context goes through its
@@ -73,14 +72,14 @@
  * and die with the child's delete cleanup, which removes tuples naming
  * the child on either side.
  *
- * One more structural relation rides the seam the way `default_of` does:
- * a workflow instance's run audience, `execution_viewer`, which open
- * source derives from `spec.execution_visibility` when a check asks
+ * One more structural relation rides the seam the same way: a workflow's
+ * run audience, `execution_viewer`, which open source derives from
+ * `spec.execution_visibility` when a check asks
  * (authorization/model/execution-viewer.ts) and an edition that stores
  * tuples must write. `onExecutionVisibilityChanged` hands the driver the
  * audience the stored level names, from the two doors that may set it
  * (create, and updateExecutionVisibility; Update and Apply keep the
- * stored level, domain/workflowinstance/steps.ts). Synchronous,
+ * stored level, domain/workflow/execution-visibility.ts). Synchronous,
  * post-persist; a throw fails the request with the level persisted, and a
  * retry converges because the event is the whole target state.
  */
@@ -105,12 +104,12 @@ import type { CallerIdentity } from "./identity.js";
 export type VisibilityTupleShape = "org-viewer" | "child-org-viewer";
 
 /**
- * The run-audience shapes of a workflow instance's execution visibility,
- * named edition-neutrally. The driver maps each to its tuple:
- *   - org-viewer: <instanceKind>:<id>#execution_viewer@organization:<org>#viewer
+ * The run-audience shapes of a workflow's execution visibility, named
+ * edition-neutrally. The driver maps each to its tuple:
+ *   - org-viewer: workflow:<id>#execution_viewer@organization:<org>#viewer
  * The same word as the resource visibility's org shape, a different
- * relation: making an instance's RUNS observable never widens who can see
- * or run the instance itself (fga/model/agentic/workflow_instance.fga).
+ * relation: making a workflow's RUNS observable never widens who can see
+ * or run the workflow itself (fga/model/agentic/workflow.fga).
  */
 export type ExecutionAudienceShape = "org-viewer";
 
@@ -211,25 +210,6 @@ export interface VisibilityChangedEvent {
 }
 
 /**
- * Fired synchronously after a blueprint's `status.defaultInstanceId`
- * pointer is persisted (the default_of structural-inheritance arm of
- * the Java model). The invariant the driver upholds:
- * the `<instanceKind>:<instanceId>#default_of@<blueprintKind>:<blueprintId>`
- * tuple exists iff the pointer names the instance — written by the SAME
- * flows that persist the pointer, never derived from the client-
- * suppliable default-instance label. The tuple makes the default
- * instance exactly as reachable as its blueprint (viewer from
- * default_of); it never transitions and dies with the instance's normal
- * deletion cleanup.
- */
-export interface DefaultInstanceLinkedEvent {
-  readonly instanceKind: ApiResourceKind;
-  readonly instanceId: string;
-  readonly blueprintKind: ApiResourceKind;
-  readonly blueprintId: string;
-}
-
-/**
  * Fired synchronously once per child organization, immediately before its
  * row is first persisted (the id is minted, every claim and gate has
  * passed): the driver writes
@@ -246,17 +226,17 @@ export interface ChildOrganizationLinkedEvent {
 }
 
 /**
- * Fired synchronously after a workflow instance's
- * `spec.execution_visibility` is persisted at create (only when the level
- * names an audience) or by updateExecutionVisibility (always). `shapes` is
- * the audience the stored level names — ["org-viewer"] for ORGANIZATION,
- * [] for PRIVATE and unset — never a diff: the driver makes its tuples
- * match it, so a retry, a repeat, or a transition whose old level it never
- * saw all converge.
+ * Fired synchronously after a workflow's `spec.execution_visibility` is
+ * persisted at create (only when the level names an audience) or by
+ * updateExecutionVisibility (always). `shapes` is the audience the stored
+ * level names — ["org-viewer"] for ORGANIZATION, [] for PRIVATE and unset
+ * — never a diff: the driver makes its tuples on
+ * `workflow:<workflowId>#execution_viewer` match it, so a retry, a repeat,
+ * or a transition whose old level it never saw all converge. The workflow
+ * is the one kind that carries a run audience.
  */
 export interface ExecutionVisibilityChangedEvent {
-  readonly instanceKind: ApiResourceKind;
-  readonly instanceId: string;
+  readonly workflowId: string;
   readonly orgId: string;
   readonly shapes: ReadonlyArray<ExecutionAudienceShape>;
 }
@@ -312,13 +292,6 @@ export interface ResourceAuthorizationLifecycle {
   onResourceCreated(event: ResourceCreatedEvent): Promise<void>;
   onResourceDeleted(event: ResourceDeletedEvent): Promise<void>;
   onVisibilityChanged(event: VisibilityChangedEvent): Promise<void>;
-  /**
-   * OPTIONAL: synchronous, post-pointer-persist; a
-   * throw fails the request (the pointer survives — retry converges, the
-   * write is idempotent). Absent method = no structural link is written
-   * (the OSS posture: local access control needs none).
-   */
-  onDefaultInstanceLinked?(event: DefaultInstanceLinkedEvent): Promise<void>;
   /**
    * OPTIONAL: synchronous, pre-persist: fired for a child organization
    * after its claims and immediately before its row is stored, so before

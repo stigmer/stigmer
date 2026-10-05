@@ -263,7 +263,6 @@ const TS_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["executioncontext", "executionContext"],
   ["mcpserver", "mcpServer"],
   ["workflowexecution", "workflowExecution"],
-  ["workflowinstance", "workflowInstance"],
   ["identityaccount", "identityAccount"],
   ["identityprovider", "identityProvider"],
   ["iampolicy", "iamPolicy"],

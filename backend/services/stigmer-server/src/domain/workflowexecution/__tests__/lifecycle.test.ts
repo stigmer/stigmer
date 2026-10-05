@@ -7,7 +7,8 @@
  * warn-and-proceed arms, terminate's reason/error quirk, and recover's
  * full choreography (terminate both tree members, the stale EC deleted
  * through the server's own delete edge (stigmer#1647), EC recreate
- * degrade-gracefully, fresh start with recovery_mode, error clear), and
+ * degrade-gracefully, fresh start with recovery_mode, error clear), its
+ * refusal of a run that names no workflow, and
  * recover one at a time per execution (stigmer#1672): a concurrent second
  * recover waits for the first and then takes the idempotent arm, and a
  * recover queued behind a failed one retries in full. The first recover is
@@ -105,8 +106,9 @@ afterAll(async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-/** The EC-builder deps recover consumes; the loaders throw NotFound-ish
- * errors by default, exercising the degrade-gracefully arms. The deleter
+/** The EC-builder deps recover consumes; the runs' workflows are never
+ * seeded, so the version read misses and exercises the degrade-gracefully
+ * arm, and the personal-environment read is never reached. The deleter
  * records every context id the server asks it to delete, then throws
  * `deleteFailure` when one is set. */
 function builderDeps(edges?: {
@@ -116,16 +118,10 @@ function builderDeps(edges?: {
   return {
     store,
     logger: silentLogger,
-    workflowInstanceLoader: () => ({
-      get: () =>
-        Promise.reject(
-          new ConnectError("workflow_instance not found", Code.NotFound),
-        ),
+    environmentReader: () => ({
+      getSecretValue: () =>
+        Promise.reject(new Error("no personal environment in this test")),
     }),
-    environmentResolution: {
-      resolveByReference: () =>
-        Promise.reject(new Error("no environments in this test")),
-    } as unknown as WorkflowExecutionContextBuilderDeps["environmentResolution"],
     executionContextCreator: () => ({
       create: () => Promise.reject(new Error("unused in this test")),
     }),
@@ -238,6 +234,7 @@ function terminateCalls(recording: EngineStub): number {
 async function seed(
   phase: ExecutionPhase,
   overrides?: MessageInitShape<typeof WorkflowExecutionSchema>["status"],
+  workflowId?: string,
 ): Promise<string> {
   counter += 1;
   const id = `wfx_lc_${counter}`;
@@ -247,10 +244,7 @@ async function seed(
     WorkflowExecutionSchema,
     create(WorkflowExecutionSchema, {
       metadata: { id, name: id, org: "acme" },
-      spec: {
-        workflowId: `wf_${counter}`,
-        workflowInstanceId: `wfi_${counter}`,
-      },
+      spec: { workflowId: workflowId ?? `wf_${counter}` },
       status: { phase, ...overrides },
     }),
   );
@@ -448,6 +442,24 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
       Code.FailedPrecondition,
     );
     expect(recoverErr.rawMessage).toBe(TEMPORAL_UNAVAILABLE_MESSAGE);
+  });
+
+  it("recover refuses a run that names no workflow before its first side effect", async () => {
+    // A run recorded before runs named their workflow, whose instance was
+    // gone when the store moved runs onto workflows, keeps no workflow id.
+    const orphan = await seed(ExecutionPhase.EXECUTION_FAILED, undefined, "");
+    const err = await expectCode(
+      () =>
+        recoverExecution(
+          deps(),
+          recoverInput({ id: orphan }),
+          testCallerIdentity(),
+        ),
+      Code.FailedPrecondition,
+    );
+    expect(err.rawMessage).toBe(
+      `workflow execution ${orphan} names no workflow and cannot be recovered`,
+    );
   });
 });
 

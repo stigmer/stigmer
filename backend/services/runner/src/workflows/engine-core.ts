@@ -171,7 +171,6 @@ export interface ExecuteServerlessWorkflowInput {
 export interface ExecutionMetadata {
   execution_id?: string;
   workflow_id?: string;
-  workflow_instance_id?: string;
   org_id?: string;
   execution_target?: number;
 }
@@ -278,7 +277,6 @@ export async function runWorkflowEngine(
     occurredAt: nowIso(),
     totalTasks: model.do.length,
     workflowId: metadata?.workflow_id ?? "",
-    workflowInstanceId: "",
   }]);
 
   const evaluateExpressions: ExpressionEvaluator = (exprs, jqInput, stateVars) =>

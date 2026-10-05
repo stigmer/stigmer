@@ -32,5 +32,4 @@ contents:
   - agentic/session.fga
   - agentic/skill.fga
   - agentic/workflow.fga
-  - agentic/workflow_instance.fga
   - agentic/workflow_execution.fga

@@ -12,10 +12,10 @@
  *   - a missing row reaches the inner driver, so not-found stays not-found;
  *   - the one admitted path and its limits: a blueprint the bound
  *     organization's own parent shares at visibility_child_orgs, for a read
- *     or run permission, a default instance of such a blueprint, and
- *     refusals for an org-visible blueprint, another parent's shared
- *     blueprint, a bound organization with no parent, an edit permission
- *     and a non-default instance;
+ *     or run permission (a workflow run starts on the shared workflow
+ *     itself), and refusals for an org-visible blueprint, another parent's
+ *     shared blueprint, a bound organization with no parent and an edit
+ *     permission;
  *   - a parent's children: a credential bound to the parent reaches a
  *     child for the management permissions only, never a child's rows,
  *     and another parent's child not at all;
@@ -494,57 +494,23 @@ describe("the rule, for a caller bound to one organization", () => {
     expect(await verdictOf(EDIT)).toBe("outside");
   });
 
-  it("admits the default instance of a shared blueprint, and no other instance", async () => {
+  it("admits running a workflow the parent shares with its children, never editing it", async () => {
     const f = fixture([
       ...ORGANIZATIONS,
       row("workflow", "wfl_shared", BETA, {
         visibility: ApiResourceVisibility.visibility_child_orgs,
-        status: { defaultInstanceId: "wfi_default" },
-      }),
-      row("workflow_instance", "wfi_default", BETA, {
-        spec: { workflowId: "wfl_shared" },
-      }),
-      row("workflow_instance", "wfi_personal", BETA, {
-        spec: { workflowId: "wfl_shared" },
       }),
     ]);
     const binding = newCredentialBinding(f.deps);
-    const caller = boundTo(ALPHA);
-    expect(
-      await binding.verdict(caller, {
-        kind: ApiResourceKind.workflow_instance,
-        id: "wfi_default",
-        permission: EXECUTE,
-      }),
-    ).toBe("admitted");
-    expect(
-      await binding.verdict(caller, {
-        kind: ApiResourceKind.workflow_instance,
-        id: "wfi_personal",
-        permission: VIEW,
-      }),
-    ).toBe("outside");
-  });
-
-  it("refuses an instance that names no blueprint, or whose blueprint is gone", async () => {
-    const f = fixture([
-      row("workflow_instance", "wfi_orphan", BETA, {
-        spec: { workflowId: "" },
-      }),
-      row("workflow_instance", "wfi_gone", BETA, {
-        spec: { workflowId: "wfl_gone" },
-      }),
-    ]);
-    const binding = newCredentialBinding(f.deps);
-    for (const id of ["wfi_orphan", "wfi_gone"]) {
-      expect(
-        await binding.verdict(boundTo(ALPHA), {
-          kind: ApiResourceKind.workflow_instance,
-          id,
-          permission: VIEW,
-        }),
-      ).toBe("outside");
-    }
+    const verdictOf = (permission: string) =>
+      binding.verdict(boundTo(ALPHA), {
+        kind: ApiResourceKind.workflow,
+        id: "wfl_shared",
+        permission,
+      });
+    expect(await verdictOf(EXECUTE)).toBe("admitted");
+    expect(await verdictOf(VIEW)).toBe("admitted");
+    expect(await verdictOf(EDIT)).toBe("outside");
   });
 
   it("keeps list candidates by their facts: every one for an unbound caller, the organization by id, and kinds no organization owns", async () => {

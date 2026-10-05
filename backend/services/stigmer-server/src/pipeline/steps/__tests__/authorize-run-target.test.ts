@@ -9,7 +9,7 @@
  * the stored row (EXISTING_RESOURCE_KEY), so it can ask only about what a
  * write introduces; the step runs as AuthorizeRunTarget, or as
  * AuthorizeRunAgent for a chain's second question. Also pins
- * isRunGateCheck: exactly the four (kind, permission)
+ * isRunGateCheck: exactly the three (kind, permission)
  * pairs the resolvers can produce, and nothing adjacent — the cloud's
  * lane-admission decorator keys on this predicate, so a drift here would
  * either deny a schedule fire or admit a lane to a check it never owned.
@@ -227,11 +227,6 @@ describe("isRunGateCheck — the one definition of the run-gate check set", () =
     ["agent", ApiResourceKind.agent, IamPermission.can_execute],
     ["session", ApiResourceKind.session, IamPermission.can_create_execution_in],
     ["workflow", ApiResourceKind.workflow, IamPermission.can_execute],
-    [
-      "workflow_instance",
-      ApiResourceKind.workflow_instance,
-      IamPermission.can_execute,
-    ],
   ];
 
   it.each(pairs)(
@@ -243,9 +238,9 @@ describe("isRunGateCheck — the one definition of the run-gate check set", () =
     },
   );
 
-  it("names exactly four checks, one per entry the resolvers draw from", () => {
+  it("names exactly three checks, one per entry the resolvers draw from", () => {
     expect(Object.keys(RUN_GATE_CHECKS).sort()).toEqual(
-      ["agent", "session", "workflow", "workflowInstance"].sort(),
+      ["agent", "session", "workflow"].sort(),
     );
     for (const [, resourceKind, permission] of pairs) {
       expect(

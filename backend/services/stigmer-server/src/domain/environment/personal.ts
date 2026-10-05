@@ -5,14 +5,18 @@
  * reading of "this person's personal environment" the uniqueness rule
  * shares.
  *
- * Three readers need it and must agree on it. The MCP connect lane (the
+ * Every reader needs it and must agree on it. The MCP connect lane (the
  * discovery run a person triggers from the console) resolves a server's
  * declared variables here when no one-time runtime_env was supplied, for
  * the person connecting. The agent-execution ExecutionContext build
  * resolves, for the run's person (agentexecution/run-person.ts), the run's
  * declared variables the merge chain did not carry — the agent's and its
  * session's MCP servers' alike — and the GITHUB_TOKEN a session's git
- * repository needs. Before the build learned this rule a key saved through
+ * repository needs. The workflow-execution ExecutionContext build resolves
+ * the workflow's declared variables a run did not pass, for the person who
+ * started the run. The two run builds share one fill rule,
+ * `fillDeclaredFromPersonalEnvironment`, so the organization limit cannot
+ * drift between them. Before the build learned this rule a key saved through
  * the console's "save for future" reached the connect lane and never the
  * run.
  *
@@ -196,4 +200,140 @@ export async function resolveDeclaredFromPersonalEnvironment(
     });
   }
   return { kind: "resolved", values, missing };
+}
+
+/**
+ * The resource whose declarations a fill reads: the run's agent, or the
+ * workflow a run runs. Its declared keys are filled only when it belongs
+ * to the run's own organization; its organization is asked only when it
+ * declares a wanted key, and one that cannot be read counts as another
+ * organization's.
+ */
+export interface DeclaringResource {
+  /** The noun in logs, which also names the id field ("agent" logs `agentId`). */
+  readonly noun: "agent" | "workflow";
+  readonly id: string;
+  /** The keys the resource itself declares (a subset of the fill's declarations). */
+  readonly declares: { readonly [key: string]: EnvVarDeclaration };
+  /** The resource's organization, or "" when it cannot be read. */
+  orgOf(): Promise<string>;
+}
+
+/** One fill of a run's declared keys from its person's personal environment. */
+export interface DeclaredPersonalFill {
+  /** Every key the run declares. */
+  readonly declarations: { readonly [key: string]: EnvVarDeclaration };
+  /** Keys never read from the personal environment (an MCP server's OAuth target: the managed grant's alone). */
+  readonly exclude: ReadonlySet<string>;
+  readonly owner: DeclaringResource;
+  readonly executionOrg: string;
+  /** The run's person (`runPersonOf`, `workflowRunPersonOf`); undefined reads nothing. */
+  readonly person: string | undefined;
+  readonly executionId: string;
+}
+
+/**
+ * Fills the run's declared keys still missing from `filled` — every layer
+ * already merged — from the run's person's personal environment, by
+ * declared key, and returns the merged map (`filled` is never mutated).
+ * The one rule for every run that reads a person's keys: an agent turn and
+ * a workflow run alike. Left alone:
+ *   - a key already filled, and every key in `exclude`;
+ *   - every key the owner declares when the owner belongs to another
+ *     organization than the run: a person's values reach a resource their
+ *     own organization holds, never one another organization published.
+ * A run with no person, or no organization, reads none. Every failure is
+ * non-fatal: a missing key is logged and the run meets the tool's own
+ * error, the posture of every fallback in the context builds.
+ */
+export async function fillDeclaredFromPersonalEnvironment(
+  reader: PersonalEnvironmentReader,
+  store: Store,
+  logger: Logger,
+  filled: ReadonlyMap<string, ExecutionValue>,
+  fill: DeclaredPersonalFill,
+): Promise<Map<string, ExecutionValue>> {
+  const out = new Map(filled);
+  const wanted: { [key: string]: EnvVarDeclaration } = {};
+  for (const [key, decl] of Object.entries(fill.declarations)) {
+    if (fill.exclude.has(key) || filled.has(key)) {
+      continue;
+    }
+    wanted[key] = decl;
+  }
+  if (
+    Object.keys(wanted).length === 0 ||
+    fill.executionOrg === "" ||
+    fill.person === undefined
+  ) {
+    return out;
+  }
+  const ownerKeys = Object.keys(fill.owner.declares).filter(
+    (key) => key in wanted,
+  );
+  if (
+    ownerKeys.length > 0 &&
+    (await fill.owner.orgOf()) !== fill.executionOrg
+  ) {
+    for (const key of ownerKeys) {
+      delete wanted[key];
+    }
+    logger.info(
+      `The run's ${fill.owner.noun} belongs to another organization; its declared keys are not read from the personal environment`,
+      {
+        executionId: fill.executionId,
+        [`${fill.owner.noun}Id`]: fill.owner.id,
+        keys: ownerKeys.sort(),
+      },
+    );
+    if (Object.keys(wanted).length === 0) {
+      return out;
+    }
+  }
+
+  let resolution: PersonalEnvironmentResolution;
+  try {
+    resolution = await resolveDeclaredFromPersonalEnvironment(
+      reader,
+      store,
+      logger,
+      fill.executionOrg,
+      fill.person,
+      wanted,
+    );
+  } catch (error) {
+    logger.warn(
+      "Failed to resolve declared variables from the personal environment (non-fatal)",
+      {
+        executionId: fill.executionId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
+    return out;
+  }
+  if (resolution.kind === "no-personal-environment") {
+    logger.debug(
+      "No personal environment — declared variables stay unresolved",
+      { executionId: fill.executionId, keys: Object.keys(wanted).sort() },
+    );
+    return out;
+  }
+  if (resolution.missing.length > 0) {
+    logger.warn(
+      "The run declares required variables the personal environment does not hold",
+      { executionId: fill.executionId, missing: [...resolution.missing].sort() },
+    );
+  }
+  const entries = Object.entries(resolution.values);
+  if (entries.length === 0) {
+    return out;
+  }
+  for (const [key, value] of entries) {
+    out.set(key, value);
+  }
+  logger.info(
+    "Injected declared variables from the run's person's personal environment",
+    { executionId: fill.executionId, keys: entries.map(([key]) => key).sort() },
+  );
+  return out;
 }

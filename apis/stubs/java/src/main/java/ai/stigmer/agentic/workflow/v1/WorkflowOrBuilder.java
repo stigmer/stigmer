@@ -106,7 +106,7 @@ public interface WorkflowOrBuilder extends
 
   /**
    * <pre>
-   * System-managed state including audit trail and default instance ID.
+   * System-managed state including audit trail, validation and version hash.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -115,7 +115,7 @@ public interface WorkflowOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * System-managed state including audit trail and default instance ID.
+   * System-managed state including audit trail, validation and version hash.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -124,7 +124,7 @@ public interface WorkflowOrBuilder extends
   ai.stigmer.agentic.workflow.v1.WorkflowStatus getStatus();
   /**
    * <pre>
-   * System-managed state including audit trail and default instance ID.
+   * System-managed state including audit trail, validation and version hash.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>

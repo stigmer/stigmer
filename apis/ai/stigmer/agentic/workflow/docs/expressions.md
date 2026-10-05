@@ -30,7 +30,7 @@ These special variables are available in all expression contexts:
 | `$context` | Accumulated workflow context: all exported task outputs, `set_vars` assignments, and loop variables. |
 | `$context.<taskName>` | Output of a specific task (if that task had `export.as` set). |
 | `.env.<NAME>` | Environment variable declared in `spec.env_spec`. |
-| `.secrets.<NAME>` | Secret value from the workflow instance's secret bindings. |
+| `.secrets.<NAME>` | Secret value the run received for a key the workflow declares. |
 | `now` | Current timestamp in ISO 8601 format. |
 | `$data.item` | Current item in a `for_each` loop (name matches the `each` field). |
 | `$data.index` | 0-based index of the current item in a `for_each` loop. |
@@ -166,11 +166,11 @@ endpoint:
 timeout_seconds: "${.env.TIMEOUT | tonumber}"
 ```
 
-Variables marked `required: true` that are not bound in the Workflow Instance cause execution to fail at startup with a clear error.
+A run receives the values passed with it (`runtime_env`), and the declared keys it does not pass are read from the personal environment of the person who started it, for a workflow of the run's own organization. A required key nothing supplies does not stop the run from starting; the step that reads it fails or reads it empty.
 
 ## Secrets
 
-Secrets are referenced via `.secrets.<NAME>` and sourced from the Workflow Instance's secret bindings. Secret values are never logged.
+Secrets are referenced via `.secrets.<NAME>` and come from the same sources as other values: `runtime_env`, then the personal environment of the person who started the run. Secret values are never logged.
 
 ```yaml
 headers:

@@ -177,7 +177,7 @@ The `data` field is a map of variable name to `EnvironmentValue`:
 | `is_secret` | `true`: encrypted at rest, redacted in logs, requires special permissions to read. `false`: stored as plaintext, visible in audit logs. |
 | `description` | Documentation for the variable. Shown in the UI when a person supplies the value. |
 
-The shared `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and reused across Agents, McpServers, and WorkflowInstances.
+The shared `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and reused across Agents, McpServers, and Workflows.
 
 ## Run Defaults
 

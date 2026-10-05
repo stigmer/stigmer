@@ -7,6 +7,7 @@
 package workflowexecutionv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	v11 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -26,23 +27,18 @@ const (
 // WorkflowExecutionSpec defines the user-provided inputs for a workflow execution.
 type WorkflowExecutionSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// ID of the WorkflowInstance to execute.
-	WorkflowInstanceId string `protobuf:"bytes,1,opt,name=workflow_instance_id,json=workflowInstanceId,proto3" json:"workflow_instance_id,omitempty"`
-	// ID of the Workflow template to execute (alternative to workflow_instance_id).
+	// ID of the Workflow to run.
 	WorkflowId string `protobuf:"bytes,6,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
 	// Input message or payload that triggers the workflow.
 	TriggerMessage string `protobuf:"bytes,3,opt,name=trigger_message,json=triggerMessage,proto3" json:"trigger_message,omitempty"`
 	// Contextual metadata about what triggered this execution.
 	TriggerMetadata map[string]string `protobuf:"bytes,4,rep,name=trigger_metadata,json=triggerMetadata,proto3" json:"trigger_metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Execution-scoped environment variables and secrets, available only to this
-	// execution. Values here take the highest merge priority, overriding values
-	// from Environments bound via the instance's environment_refs. A key must be
+	// execution. Values here take the highest merge priority. A key must be
 	// declared in Workflow.spec.env to survive the merge: the workflow env map is
 	// a declaration whitelist (name + is_secret + optional), never a value source
 	// — undeclared keys are dropped.
 	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Opaque callback token for asynchronous completion by a parent orchestrator.
-	CallbackToken []byte `protobuf:"bytes,7,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
 	// Where workflow activities are executed — shared runner pool or dedicated sandbox.
 	ExecutionTarget v11.ExecutionTarget `protobuf:"varint,8,opt,name=execution_target,json=executionTarget,proto3,enum=ai.stigmer.agentic.session.v1.ExecutionTarget" json:"execution_target,omitempty"`
 	unknownFields   protoimpl.UnknownFields
@@ -79,13 +75,6 @@ func (*WorkflowExecutionSpec) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_workflowexecution_v1_spec_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *WorkflowExecutionSpec) GetWorkflowInstanceId() string {
-	if x != nil {
-		return x.WorkflowInstanceId
-	}
-	return ""
-}
-
 func (x *WorkflowExecutionSpec) GetWorkflowId() string {
 	if x != nil {
 		return x.WorkflowId
@@ -114,13 +103,6 @@ func (x *WorkflowExecutionSpec) GetRuntimeEnv() map[string]*v1.ExecutionValue {
 	return nil
 }
 
-func (x *WorkflowExecutionSpec) GetCallbackToken() []byte {
-	if x != nil {
-		return x.CallbackToken
-	}
-	return nil
-}
-
 func (x *WorkflowExecutionSpec) GetExecutionTarget() v11.ExecutionTarget {
 	if x != nil {
 		return x.ExecutionTarget
@@ -132,23 +114,21 @@ var File_ai_stigmer_agentic_workflowexecution_v1_spec_proto protoreflect.FileDes
 
 const file_ai_stigmer_agentic_workflowexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\"\xc1\x05\n" +
-	"\x15WorkflowExecutionSpec\x120\n" +
-	"\x14workflow_instance_id\x18\x01 \x01(\tR\x12workflowInstanceId\x12\x1f\n" +
-	"\vworkflow_id\x18\x06 \x01(\tR\n" +
+	"2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xa3\x05\n" +
+	"\x15WorkflowExecutionSpec\x12(\n" +
+	"\vworkflow_id\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"workflowId\x12'\n" +
 	"\x0ftrigger_message\x18\x03 \x01(\tR\x0etriggerMessage\x12~\n" +
 	"\x10trigger_metadata\x18\x04 \x03(\v2S.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.TriggerMetadataEntryR\x0ftriggerMetadata\x12o\n" +
 	"\vruntime_env\x18\x05 \x03(\v2N.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.RuntimeEnvEntryR\n" +
-	"runtimeEnv\x12%\n" +
-	"\x0ecallback_token\x18\a \x01(\fR\rcallbackToken\x12Y\n" +
+	"runtimeEnv\x12Y\n" +
 	"\x10execution_target\x18\b \x01(\x0e2..ai.stigmer.agentic.session.v1.ExecutionTargetR\x0fexecutionTarget\x1aB\n" +
 	"\x14TriggerMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01B\xdf\x02\n" +
+	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01J\x04\b\x01\x10\x02J\x04\b\a\x10\bR\x14workflow_instance_idR\x0ecallback_tokenB\xdf\x02\n" +
 	"+com.ai.stigmer.agentic.workflowexecution.v1B\tSpecProtoP\x01Zdgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
 var (

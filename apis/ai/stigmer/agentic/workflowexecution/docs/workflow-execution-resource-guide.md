@@ -14,7 +14,7 @@ metadata:
   name: customer-onboarding-20250111-143022
   org: acme-corp
 spec:
-  workflow_instance_id: wfi-customer-onboarding-prod
+  workflow_id: wfl_01customeronboarding
   trigger_message: "New signup: john.doe@example.com"
   trigger_metadata:
     source: api
@@ -27,6 +27,7 @@ spec:
       secret_ref: sec-stripe-prod
 status:
   phase: EXECUTION_IN_PROGRESS
+  workflow_version_hash: 3f9a1c...
   tasks:
     - task_id: task-1
       task_name: validate_email
@@ -55,7 +56,7 @@ status:
       task_type: WORKFLOW_TASK_API_CALL
       status: WORKFLOW_TASK_PENDING
   started_at: "2025-01-11T14:30:22Z"
-  temporal_workflow_id: wfi-customer-onboarding-prod-wfx-abc123xyz456
+  temporal_workflow_id: workflow-exec-wfx-abc123xyz456
   audit:
     created_at: "2025-01-11T14:30:22Z"
     updated_at: "2025-01-11T14:30:24Z"
@@ -77,9 +78,9 @@ status:
 | Field | Description |
 |---|---|
 | `metadata.id` | System-generated unique identifier. Format: `wfx-{ulid}`. Example: `wfx-abc123xyz456`. |
-| `metadata.name` | Display name. Typically `{workflow-instance-name}-{timestamp}`. Example: `prod-deploy-20250111-143022`. |
+| `metadata.name` | Display name. Typically `{workflow-slug}-{timestamp}`. Example: `prod-deploy-20250111-143022`. |
 | `metadata.org` | Organization that owns this execution. |
-| `metadata.labels` | Key-value pairs. Common labels: `workflow_instance_id`, `workflow_id`, `trigger_source`. |
+| `metadata.labels` | Key-value pairs. Common labels: `workflow_id`, `trigger_source`. |
 | `metadata.tags` | String tags for filtering. Common tags: environment names, team names. |
 
 ## Spec Fields
@@ -88,21 +89,18 @@ status:
 
 | Field | Required | Description |
 |---|---|---|
-| `spec.workflow_instance_id` | One of these two | ID of the WorkflowInstance to execute. Format: `wfi-{slug}`. |
-| `spec.workflow_id` | One of these two | ID of the Workflow template. System resolves to the default instance (auto-created if missing). |
+| `spec.workflow_id` | Yes | ID of the Workflow to run (`wfl_...`). The caller needs `can_execute` on the workflow. The run is pinned to the workflow's current version at create. |
 | `spec.trigger_message` | No | Input message or payload for the workflow. Accessible as `{{workflow.input.trigger_message}}` in task configs. |
 | `spec.trigger_metadata` | No | Key-value metadata about who/what triggered this execution. For audit and analytics — not visible to workflow logic. |
 | `spec.runtime_env` | No | Execution-scoped environment variables and secrets. Highest merge priority. |
-| `spec.callback_token` | No | Temporal async task token for workflow-calling-workflow scenarios. See [Async Token Handshake](#async-token-handshake). |
 
-### Instance Resolution
+Fields 1 (`workflow_instance_id`) and 7 (`callback_token`) are reserved.
 
-Either `workflow_instance_id` or `workflow_id` must be provided. The handler enforces this rule.
+### The workflow a run reads
 
-| Field Provided | Behavior |
-|---|---|
-| `workflow_instance_id` | Executes against the specified WorkflowInstance directly. |
-| `workflow_id` | Resolves to the workflow's `status.default_instance_id`. If no default instance exists, one is auto-created as `{workflow-slug}-default`. |
+A run names its workflow by id. At create the server pins the workflow's current version (`status.workflow_version_hash`), and every later read of the run's workflow reads that version: the runner's task list and each `agent_call` step's `environment_refs`. Saving the workflow while the run is in progress never changes a step of that run. A version covers the whole workflow spec except who can see the runs; a workflow saved before versioning has no pin, and its runs read the current definition.
+
+Who can see the run is the workflow's `spec.execution_visibility`: the person who started it (the default), or every member of the organization when the workflow's owner has set it to `workflow_execution_visibility_organization`.
 
 ### trigger_message
 
@@ -155,13 +153,14 @@ spec:
 
 ### runtime_env
 
-Execution-scoped environment variables. These override values from the WorkflowInstance's environments for this run only.
+Execution-scoped environment variables, for this run only.
 
-**Merge priority (highest to lowest):**
-1. `runtime_env` (this field) — execution-specific overrides
-2. Environment values (from `WorkflowInstance.environment_refs`, in order; a later ref wins)
+**Where a run's values come from:**
+1. `runtime_env` (this field)
+2. The keys declared in `Workflow.spec.env` decide what the run receives: the workflow env map is a declaration whitelist (name + `is_secret` + `optional`), never a value source. Undeclared keys are dropped.
+3. Every declared key still missing is read from the personal environment of the person who started the run, when the workflow belongs to the run's organization. A workflow of another organization reads no one's personal environment.
 
-The merged result is filtered to the keys declared in `Workflow.spec.env` — the workflow env map is a declaration whitelist (name + `is_secret` + `optional`), never a value source. Undeclared keys are dropped; a missing required key logs a warning but does not fail the run.
+A missing required key logs a warning but does not fail the run. A key the whole team uses has no shared binding for workflow runs: each person keeps it in their own personal environment or passes it here. An `agent_call` step's own `environment_refs` supply the keys its agent declares.
 
 ```yaml
 spec:
@@ -181,19 +180,6 @@ spec:
 
 Tasks access these values as `{{env.VARIABLE_NAME}}`.
 
-### Async Token Handshake
-
-`spec.callback_token` enables the Temporal async activity completion pattern for workflow-calling-workflow scenarios:
-
-1. Parent workflow (caller) extracts its Temporal task token
-2. Passes the token in `callback_token` when creating WorkflowExecution
-3. Caller returns `activity.ErrResultPending` — worker thread released
-4. Child workflow executes (potentially hours later)
-5. Child workflow calls `ActivityCompletionClient.complete(token, result)`
-6. Temporal resumes the paused parent activity with the result
-
-When `callback_token` is empty, execution is fire-and-forget (normal API/CLI use case).
-
 ## Status Fields
 
 `WorkflowExecutionStatus` is system-managed. Never set these fields when creating an execution.
@@ -206,6 +192,7 @@ When `callback_token` is empty, execution is fire-and-forget (normal API/CLI use
 | `status.error` | Error description. Only populated when `phase == EXECUTION_FAILED`. |
 | `status.started_at` | ISO 8601 timestamp when execution started (PENDING → IN_PROGRESS transition). |
 | `status.completed_at` | ISO 8601 timestamp when execution reached a terminal state. |
+| `status.workflow_version_hash` | The workflow version this run was pinned to at create. Empty for a workflow saved before versioning. |
 | `status.temporal_workflow_id` | Correlation ID for the Temporal workflow engine. Useful for advanced debugging. |
 | `status.pending_approvals` | Approval requests from child agent executions. See [HITL Approvals](hitl-approvals.md). |
 | `status.audit` | Standard audit record: `created_at`, `updated_at`, `created_by`. |
@@ -382,10 +369,6 @@ stigmer run workflow customer-onboarding \
   --message "New signup: john.doe@example.com" \
   --env CUSTOMER_EMAIL=john.doe@example.com
 
-# Trigger using a specific WorkflowInstance
-stigmer run workflow-instance wfi-customer-onboarding-prod \
-  --message "New signup: john.doe@example.com"
-
 # Get execution details
 stigmer get workflow-execution wfx-abc123xyz456
 stigmer get workflow-execution wfx-abc123xyz456 --output yaml
@@ -402,9 +385,6 @@ stigmer list workflow-executions --phase failed
 
 # List executions for a specific workflow
 stigmer list workflow-executions --workflow customer-onboarding
-
-# List executions for a specific WorkflowInstance
-stigmer list workflow-executions --workflow-instance wfi-customer-onboarding-prod
 
 # Watch real-time updates
 stigmer watch workflow-execution wfx-abc123xyz456
@@ -444,7 +424,6 @@ stigmer delete workflow-execution wfx-abc123xyz456
 | `--message <text>` | — | Trigger message passed as `spec.trigger_message`. |
 | `--env KEY=VALUE` | — | Runtime environment variable. Repeatable. Plain-text values only. |
 | `--secret KEY=secret-ref` | — | Runtime secret reference. Repeatable. |
-| `--workflow-instance <id>` | — | Target a specific WorkflowInstance by ID. |
 | `--org <org>` | CLI context | Organization to run in. |
 | `--dry-run` | `false` | Validate inputs without creating the execution. |
 | `--watch` | `false` | Subscribe to live updates after creating the execution. |

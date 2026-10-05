@@ -575,7 +575,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
       {/* Comparison picker dialog */}
       <ExecutionComparisonPicker
         open={showComparePicker}
-        workflowId={execution.spec?.workflowId ?? execution.spec?.workflowInstanceId ?? ""}
+        workflowId={execution.spec?.workflowId ?? ""}
         baseExecutionId={executionId}
         basePhase={phase ?? 0}
         onConfirm={handleCompareConfirm}

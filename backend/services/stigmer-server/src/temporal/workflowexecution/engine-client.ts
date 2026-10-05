@@ -198,9 +198,6 @@ export class TemporalWorkflowExecutionEngine
     );
     return {
       execution_id: input.executionId,
-      ...(input.workflowInstanceId !== ""
-        ? { workflow_instance_id: input.workflowInstanceId }
-        : {}),
       ...(input.workflowId !== "" ? { workflow_id: input.workflowId } : {}),
       ...(input.orgId !== "" ? { org_id: input.orgId } : {}),
       ...(input.recoveryMode ? { recovery_mode: true } : {}),

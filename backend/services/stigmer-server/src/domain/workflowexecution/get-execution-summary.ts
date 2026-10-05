@@ -130,11 +130,7 @@ export async function getExecutionSummary(
       continue;
     }
 
-    if (
-      workflowFilter !== "" &&
-      execution.spec?.workflowId !== workflowFilter &&
-      execution.spec?.workflowInstanceId !== workflowFilter
-    ) {
+    if (workflowFilter !== "" && execution.spec?.workflowId !== workflowFilter) {
       continue;
     }
 

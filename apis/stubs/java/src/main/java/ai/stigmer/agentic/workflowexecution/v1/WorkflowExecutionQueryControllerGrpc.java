@@ -11,7 +11,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * Authorization:
  * - get: Standard authorization - user must have "get" permission on the specific WorkflowExecution
  * - list: Custom authorization - filters results based on user's owner scope and permissions
- * - list_by_workflow: Custom authorization - verifies user has access to the Workflow/WorkflowInstance
+ * - list_by_workflow: Custom authorization - verifies user has access to the Workflow
  * - subscribe: Standard authorization - user must have "get" permission to subscribe to updates
  * Service Options:
  * - api_resource_kind: workflow_execution - Links this service to the WorkflowExecution resource
@@ -341,7 +341,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
    * Authorization:
    * - get: Standard authorization - user must have "get" permission on the specific WorkflowExecution
    * - list: Custom authorization - filters results based on user's owner scope and permissions
-   * - list_by_workflow: Custom authorization - verifies user has access to the Workflow/WorkflowInstance
+   * - list_by_workflow: Custom authorization - verifies user has access to the Workflow
    * - subscribe: Standard authorization - user must have "get" permission to subscribe to updates
    * Service Options:
    * - api_resource_kind: workflow_execution - Links this service to the WorkflowExecution resource
@@ -353,7 +353,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * <pre>
      * Get a single workflow execution by ID.
      * Retrieves the complete WorkflowExecution resource including:
-     * - spec: User inputs (workflow_instance_id, trigger_message, etc.)
+     * - spec: User inputs (workflow_id, trigger_message, etc.)
      * - status: Current execution state (phase, tasks, progress_events, output/error)
      * - metadata: Resource identification (id, name, labels, tags)
      * </pre>
@@ -377,7 +377,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all executions for a specific Workflow or WorkflowInstance.
+     * List all executions for a specific Workflow.
      * Returns executions filtered by a specific Workflow ID.
      * This is useful for viewing execution history of a particular workflow.
      * </pre>
@@ -466,7 +466,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
    * Authorization:
    * - get: Standard authorization - user must have "get" permission on the specific WorkflowExecution
    * - list: Custom authorization - filters results based on user's owner scope and permissions
-   * - list_by_workflow: Custom authorization - verifies user has access to the Workflow/WorkflowInstance
+   * - list_by_workflow: Custom authorization - verifies user has access to the Workflow
    * - subscribe: Standard authorization - user must have "get" permission to subscribe to updates
    * Service Options:
    * - api_resource_kind: workflow_execution - Links this service to the WorkflowExecution resource
@@ -490,7 +490,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
    * Authorization:
    * - get: Standard authorization - user must have "get" permission on the specific WorkflowExecution
    * - list: Custom authorization - filters results based on user's owner scope and permissions
-   * - list_by_workflow: Custom authorization - verifies user has access to the Workflow/WorkflowInstance
+   * - list_by_workflow: Custom authorization - verifies user has access to the Workflow
    * - subscribe: Standard authorization - user must have "get" permission to subscribe to updates
    * Service Options:
    * - api_resource_kind: workflow_execution - Links this service to the WorkflowExecution resource
@@ -513,7 +513,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * <pre>
      * Get a single workflow execution by ID.
      * Retrieves the complete WorkflowExecution resource including:
-     * - spec: User inputs (workflow_instance_id, trigger_message, etc.)
+     * - spec: User inputs (workflow_id, trigger_message, etc.)
      * - status: Current execution state (phase, tasks, progress_events, output/error)
      * - metadata: Resource identification (id, name, labels, tags)
      * </pre>
@@ -539,7 +539,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all executions for a specific Workflow or WorkflowInstance.
+     * List all executions for a specific Workflow.
      * Returns executions filtered by a specific Workflow ID.
      * This is useful for viewing execution history of a particular workflow.
      * </pre>
@@ -634,7 +634,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
    * Authorization:
    * - get: Standard authorization - user must have "get" permission on the specific WorkflowExecution
    * - list: Custom authorization - filters results based on user's owner scope and permissions
-   * - list_by_workflow: Custom authorization - verifies user has access to the Workflow/WorkflowInstance
+   * - list_by_workflow: Custom authorization - verifies user has access to the Workflow
    * - subscribe: Standard authorization - user must have "get" permission to subscribe to updates
    * Service Options:
    * - api_resource_kind: workflow_execution - Links this service to the WorkflowExecution resource
@@ -657,7 +657,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * <pre>
      * Get a single workflow execution by ID.
      * Retrieves the complete WorkflowExecution resource including:
-     * - spec: User inputs (workflow_instance_id, trigger_message, etc.)
+     * - spec: User inputs (workflow_id, trigger_message, etc.)
      * - status: Current execution state (phase, tasks, progress_events, output/error)
      * - metadata: Resource identification (id, name, labels, tags)
      * </pre>
@@ -681,7 +681,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all executions for a specific Workflow or WorkflowInstance.
+     * List all executions for a specific Workflow.
      * Returns executions filtered by a specific Workflow ID.
      * This is useful for viewing execution history of a particular workflow.
      * </pre>
@@ -774,7 +774,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
    * Authorization:
    * - get: Standard authorization - user must have "get" permission on the specific WorkflowExecution
    * - list: Custom authorization - filters results based on user's owner scope and permissions
-   * - list_by_workflow: Custom authorization - verifies user has access to the Workflow/WorkflowInstance
+   * - list_by_workflow: Custom authorization - verifies user has access to the Workflow
    * - subscribe: Standard authorization - user must have "get" permission to subscribe to updates
    * Service Options:
    * - api_resource_kind: workflow_execution - Links this service to the WorkflowExecution resource
@@ -797,7 +797,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * <pre>
      * Get a single workflow execution by ID.
      * Retrieves the complete WorkflowExecution resource including:
-     * - spec: User inputs (workflow_instance_id, trigger_message, etc.)
+     * - spec: User inputs (workflow_id, trigger_message, etc.)
      * - status: Current execution state (phase, tasks, progress_events, output/error)
      * - metadata: Resource identification (id, name, labels, tags)
      * </pre>
@@ -821,7 +821,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all executions for a specific Workflow or WorkflowInstance.
+     * List all executions for a specific Workflow.
      * Returns executions filtered by a specific Workflow ID.
      * This is useful for viewing execution history of a particular workflow.
      * </pre>
@@ -912,7 +912,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
    * Authorization:
    * - get: Standard authorization - user must have "get" permission on the specific WorkflowExecution
    * - list: Custom authorization - filters results based on user's owner scope and permissions
-   * - list_by_workflow: Custom authorization - verifies user has access to the Workflow/WorkflowInstance
+   * - list_by_workflow: Custom authorization - verifies user has access to the Workflow
    * - subscribe: Standard authorization - user must have "get" permission to subscribe to updates
    * Service Options:
    * - api_resource_kind: workflow_execution - Links this service to the WorkflowExecution resource
@@ -935,7 +935,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * <pre>
      * Get a single workflow execution by ID.
      * Retrieves the complete WorkflowExecution resource including:
-     * - spec: User inputs (workflow_instance_id, trigger_message, etc.)
+     * - spec: User inputs (workflow_id, trigger_message, etc.)
      * - status: Current execution state (phase, tasks, progress_events, output/error)
      * - metadata: Resource identification (id, name, labels, tags)
      * </pre>
@@ -961,7 +961,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all executions for a specific Workflow or WorkflowInstance.
+     * List all executions for a specific Workflow.
      * Returns executions filtered by a specific Workflow ID.
      * This is useful for viewing execution history of a particular workflow.
      * </pre>

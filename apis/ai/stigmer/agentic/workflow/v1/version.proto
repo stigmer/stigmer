@@ -8,16 +8,16 @@ import "google/protobuf/timestamp.proto";
 
 // WorkflowVersionEntry represents a single historical version of a workflow.
 //
-// Each apply/update that changes the generated CNCF YAML (and passes validation)
+// Each apply/update that changes the workflow's spec (and passes validation)
 // creates a new immutable version entry. The version is identified by its content
-// hash (SHA-256 of the validated YAML).
+// hash (the canonical hash of the spec, run visibility excluded).
 //
 // @internal
 // Stored in the resource_audit table (OSS SQLite) or workflow_audit collection
 // (Cloud MongoDB). Entries are immutable after creation — a version's content
 // never changes, only its tag can be reassigned via tagVersion.
 message WorkflowVersionEntry {
-  // SHA-256 hash of the CNCF YAML — the immutable version identifier.
+  // Content hash of the version's spec — the immutable version identifier.
   string version_hash = 1;
 
   // When this version was created (the apply/update timestamp).

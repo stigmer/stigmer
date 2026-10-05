@@ -73,7 +73,6 @@ async function seed(phase: ExecutionPhase, org = "acme"): Promise<string> {
       metadata: { id, name: id, org },
       spec: {
         workflowId: `wf_${counter}`,
-        workflowInstanceId: `wfi_${counter}`,
       },
       status: { phase },
     }),

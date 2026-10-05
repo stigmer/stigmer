@@ -29,8 +29,7 @@
  *     cleanupResource; every other kind is a no-op.
  *
  *   The rest of the contract
- *   - onVisibilityChanged is a no-op; onDefaultInstanceLinked is not
- *     defined (absent = no structural link, the interface's own word);
+ *   - onVisibilityChanged is a no-op;
  *   - onPolicyGranted / onPolicyRevoked are NOT defined: those hooks are a
  *     composed driver's tuple half, fired by the grant path, and the grant
  *     path's lifecycle is that driver (undefined in open source) — never
@@ -334,7 +333,7 @@ describe("onResourceDeleted: the rows die with the resource", () => {
 });
 
 describe("the rest of the contract", () => {
-  it("onVisibilityChanged is a no-op and onDefaultInstanceLinked is not defined", async () => {
+  it("onVisibilityChanged is a no-op", async () => {
     const recorded: RecordedEvent[] = [];
     const { lifecycle } = lifecycleOver(recorded);
 
@@ -348,7 +347,6 @@ describe("the rest of the contract", () => {
     });
 
     expect(recorded).toEqual([]);
-    expect(lifecycle.onDefaultInstanceLinked).toBeUndefined();
   });
 
   it("defines neither policy hook — it sits on top of the grant path, never inside it", () => {

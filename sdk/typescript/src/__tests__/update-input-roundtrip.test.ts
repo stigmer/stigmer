@@ -66,14 +66,10 @@ import { WorkflowSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/
 import {
   WorkflowTaskKind,
   BudgetExceededPolicy,
+  WorkflowExecutionVisibility,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/spec_pb";
-import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import {
-  WorkflowInstanceSpecSchema,
-  WorkflowExecutionVisibility,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 
 import { buildAgentProto, toAgentUpdateInput } from "../gen/agent";
 import { buildAgentChannelProto, toAgentChannelUpdateInput } from "../gen/agentchannel";
@@ -92,7 +88,6 @@ import { buildScheduleProto, toScheduleUpdateInput } from "../gen/schedule";
 import { buildSessionProto, toSessionUpdateInput } from "../gen/session";
 import { buildWorkflowProto, toWorkflowUpdateInput } from "../gen/workflow";
 import { buildWorkflowExecutionProto, toWorkflowExecutionUpdateInput } from "../gen/workflowexecution";
-import { buildWorkflowInstanceProto, toWorkflowInstanceUpdateInput } from "../gen/workflowinstance";
 
 /**
  * Systematic wipe-bug guard for every generated toXxxUpdateInput mapper
@@ -889,6 +884,7 @@ describe("toWorkflowUpdateInput", () => {
           maxDurationSeconds: 1800,
           onExceeded: BudgetExceededPolicy.budget_exceeded_human_review,
         },
+        executionVisibility: WorkflowExecutionVisibility.organization,
       },
     });
 
@@ -904,6 +900,17 @@ describe("toWorkflowUpdateInput", () => {
       buildWorkflowProto(toWorkflowUpdateInput(original)),
     );
   });
+
+  it("preserves execution_visibility when only the description changes", () => {
+    const rebuilt = buildWorkflowProto({
+      ...toWorkflowUpdateInput(fixture()),
+      description: "Nightly triage, revised.",
+    });
+    expect(rebuilt.spec?.executionVisibility).toBe(
+      WorkflowExecutionVisibility.organization,
+    );
+    expect(rebuilt.spec?.description).toBe("Nightly triage, revised.");
+  });
 });
 
 describe("toWorkflowExecutionUpdateInput", () => {
@@ -911,12 +918,10 @@ describe("toWorkflowExecutionUpdateInput", () => {
     create(WorkflowExecutionSchema, {
       metadata: META,
       spec: {
-        workflowInstanceId: "wfi-1",
         workflowId: "wf-1",
         triggerMessage: "Manual run.",
         triggerMetadata: { source: "console" },
         runtimeEnv: { TOKEN: { value: "shh", isSecret: true } },
-        callbackToken: new Uint8Array([9, 8, 7]),
         executionTarget: ExecutionTarget.CLOUD,
       },
     });
@@ -932,45 +937,5 @@ describe("toWorkflowExecutionUpdateInput", () => {
       original,
       buildWorkflowExecutionProto(toWorkflowExecutionUpdateInput(original)),
     );
-  });
-});
-
-describe("toWorkflowInstanceUpdateInput", () => {
-  const fixture = () =>
-    create(WorkflowInstanceSchema, {
-      metadata: META,
-      spec: {
-        workflowId: "wf-1",
-        description: "Prod instance.",
-        environmentRefs: [
-          { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
-        ],
-        executionVisibility: WorkflowExecutionVisibility.organization,
-      },
-    });
-
-  it("fixture covers every WorkflowInstanceSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(WorkflowInstanceSpecSchema, fixture().spec!);
-  });
-
-  it("round-trips the full spec and metadata through the builder", () => {
-    const original = fixture();
-    assertSpecRoundTrip(
-      WorkflowInstanceSpecSchema,
-      original,
-      buildWorkflowInstanceProto(toWorkflowInstanceUpdateInput(original)),
-    );
-  });
-
-  it("preserves execution_visibility when only environments change (live wipe bug)", () => {
-    const original = fixture();
-    const rebuilt = buildWorkflowInstanceProto({
-      ...toWorkflowInstanceUpdateInput(original),
-      environmentRefs: [{ org: "acme", slug: "staging", kind: ApiResourceKind.environment }],
-    });
-    expect(rebuilt.spec?.executionVisibility).toBe(
-      WorkflowExecutionVisibility.organization,
-    );
-    expect(rebuilt.spec?.environmentRefs.map((r) => r.slug)).toEqual(["staging"]);
   });
 });

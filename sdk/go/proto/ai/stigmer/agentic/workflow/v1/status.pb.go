@@ -28,16 +28,11 @@ type WorkflowStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
-	// ID of the default workflow instance created automatically for this workflow.
-	// Every workflow has exactly one default instance that requires no configuration.
-	// This instance has no environment bindings and uses all workflow defaults.
-	// Created automatically when the workflow is created.
-	DefaultInstanceId string `protobuf:"bytes,1,opt,name=default_instance_id,json=defaultInstanceId,proto3" json:"default_instance_id,omitempty"`
 	// Serverless Workflow YAML generation and validation state.
 	// Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
 	// Check this field to determine whether a workflow is valid before executing it.
 	ServerlessWorkflowValidation *serverless.ServerlessWorkflowValidation `protobuf:"bytes,2,opt,name=serverless_workflow_validation,json=serverlessWorkflowValidation,proto3" json:"serverless_workflow_validation,omitempty"`
-	// SHA-256 hash of the generated CNCF YAML for the current valid version.
+	// SHA-256 content hash of the workflow's current valid version.
 	VersionHash   string `protobuf:"bytes,3,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -80,13 +75,6 @@ func (x *WorkflowStatus) GetAudit() *apiresource.ApiResourceAudit {
 	return nil
 }
 
-func (x *WorkflowStatus) GetDefaultInstanceId() string {
-	if x != nil {
-		return x.DefaultInstanceId
-	}
-	return ""
-}
-
 func (x *WorkflowStatus) GetServerlessWorkflowValidation() *serverless.ServerlessWorkflowValidation {
 	if x != nil {
 		return x.ServerlessWorkflowValidation
@@ -105,12 +93,11 @@ var File_ai_stigmer_agentic_workflow_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/workflow/v1/status.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a:ai/stigmer/agentic/workflow/v1/serverless/validation.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\xbb\x02\n" +
+	"+ai/stigmer/agentic/workflow/v1/status.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a:ai/stigmer/agentic/workflow/v1/serverless/validation.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\xa6\x02\n" +
 	"\x0eWorkflowStatus\x12F\n" +
-	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12.\n" +
-	"\x13default_instance_id\x18\x01 \x01(\tR\x11defaultInstanceId\x12\x8d\x01\n" +
+	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12\x8d\x01\n" +
 	"\x1eserverless_workflow_validation\x18\x02 \x01(\v2G.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidationR\x1cserverlessWorkflowValidation\x12!\n" +
-	"\fversion_hash\x18\x03 \x01(\tR\vversionHashB\xa4\x02\n" +
+	"\fversion_hash\x18\x03 \x01(\tR\vversionHashJ\x04\b\x01\x10\x02R\x13default_instance_idB\xa4\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\vStatusProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (

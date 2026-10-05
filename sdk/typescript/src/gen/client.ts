@@ -30,7 +30,6 @@ import { SubscriptionClient } from "./subscription.js";
 import { TeamClient } from "./team.js";
 import { WorkflowClient } from "./workflow.js";
 import { WorkflowExecutionClient } from "./workflowexecution.js";
-import { WorkflowInstanceClient } from "./workflowinstance.js";
 
 /** Aggregate client with all resource-specific sub-clients. */
 export class GeneratedClient {
@@ -63,7 +62,6 @@ export class GeneratedClient {
   readonly team: TeamClient;
   readonly workflow: WorkflowClient;
   readonly workflowExecution: WorkflowExecutionClient;
-  readonly workflowInstance: WorkflowInstanceClient;
 
   constructor(transport: Transport) {
     this.agent = new AgentClient(transport);
@@ -95,7 +93,6 @@ export class GeneratedClient {
     this.team = new TeamClient(transport);
     this.workflow = new WorkflowClient(transport);
     this.workflowExecution = new WorkflowExecutionClient(transport);
-    this.workflowInstance = new WorkflowInstanceClient(transport);
   }
 }
 
@@ -157,7 +154,5 @@ export { WorkflowClient } from "./workflow.js";
 export { type WorkflowInput, type WorkflowDocumentInput, type WorkflowTaskInput, type ExportInput, type FlowControlInput, type WorkflowBudgetInput } from "./workflow.js";
 export { WorkflowExecutionClient } from "./workflowexecution.js";
 export { type WorkflowExecutionInput } from "./workflowexecution.js";
-export { WorkflowInstanceClient } from "./workflowinstance.js";
-export { type WorkflowInstanceInput } from "./workflowinstance.js";
 export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvSpecInput, type EnvVarInput, type Page } from "./types.js";
 export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable, isUnimplemented } from "./errors.js";

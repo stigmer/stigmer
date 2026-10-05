@@ -211,3 +211,29 @@ enum BudgetExceededPolicy {
   // Useful for monitoring/alerting without interrupting production workflows.
   budget_exceeded_warn = 3;
 }
+
+// WorkflowExecutionVisibility controls who can observe the runs (executions)
+// of a workflow.
+//
+// This is a SEPARATE axis from the workflow's own visibility
+// (metadata.visibility, which governs who can SEE and RUN the workflow).
+// Keeping them separate means making a workflow org-runnable never exposes
+// other people's run inputs and outputs. See workflow_execution.fga and
+// workflow.fga (the `execution_viewer` relation) for how this maps to
+// authorization tuples.
+//
+// Only PRIVATE and ORGANIZATION are meaningful: a run is either visible to
+// just the person who started it, or to every member of the owning
+// organization. Public/platform run observability is deliberately unsupported.
+enum WorkflowExecutionVisibility {
+  // Unset. Treated as PRIVATE — each execution is visible only to the user
+  // who triggered it.
+  workflow_execution_visibility_unspecified = 0;
+
+  // Each execution is visible only to the user who triggered it (its owner).
+  workflow_execution_visibility_private = 1;
+
+  // Every member of the owning organization can observe all executions of
+  // this workflow.
+  workflow_execution_visibility_organization = 2;
+}

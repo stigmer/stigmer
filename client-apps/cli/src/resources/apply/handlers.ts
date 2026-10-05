@@ -17,7 +17,7 @@
 // CLI_EXTRA_HANDLERS carries the kinds the CLI applies but the SDK's
 // manifest engine deliberately does not treat as manifest kinds:
 // Organization (not org-scoped — the bootstrap resource every other kind
-// lives inside) and the runtime-instance kinds (WorkflowInstance, Session).
+// lives inside) and Session, a runtime kind rather than a blueprint.
 // A kind added here must also declare Apply in the registry's verb matrix —
 // the conformance test in registry/registry.test.ts enforces both
 // directions, so an entry without a matrix line (or vice versa) fails CI.
@@ -27,11 +27,6 @@ import type { Client } from "@connectrpc/connect";
 import type { RenameInput, UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { type Session, SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import {
-  type WorkflowInstance,
-  WorkflowInstanceSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { type Organization, OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -50,7 +45,7 @@ export interface ApplyHandler {
    * Position in the dependency apply order (ascending) — referenced kinds
    * apply before their dependents. Manifest kinds carry the SDK registry's
    * value; the CLI extras slot around them (organization first, the
-   * runtime-instance kinds after every blueprint they can reference).
+   * session after every blueprint it can reference).
    */
   readonly applyOrder: number;
   /** Drive the controller's `apply` RPC with the full resource message. */
@@ -82,14 +77,6 @@ const CLI_EXTRA_HANDLERS: readonly ApplyHandler[] = [
     applyOrder: 0,
     apply: (c, m) => c(OrganizationCommandController).apply(m as Organization),
     rename: (c, i) => c(OrganizationCommandController).rename(i),
-  },
-  {
-    kind: ApiResourceKind.workflow_instance,
-    displayName: "Workflow Instance",
-    schema: WorkflowInstanceSchema,
-    applyOrder: 13,
-    apply: (c, m) => c(WorkflowInstanceCommandController).apply(m as WorkflowInstance),
-    updateVisibility: (c, i) => c(WorkflowInstanceCommandController).updateVisibility(i),
   },
   {
     kind: ApiResourceKind.session,

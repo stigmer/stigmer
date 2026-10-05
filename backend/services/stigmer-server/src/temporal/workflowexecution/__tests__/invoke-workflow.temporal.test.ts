@@ -113,7 +113,6 @@ async function startOrchestrator(
   workflowSeq++;
   const input: InvokeWorkflowExecutionWorkflowInput = {
     execution_id: executionId,
-    workflow_instance_id: "wfi-1",
     workflow_id: "wf-1",
     org_id: "org-1",
     ...overrides,

@@ -70,8 +70,7 @@
 //
 // Deliberately OUT of this suite: memories (every open-source memory row
 // carries an empty subject today and is nobody's under enforcement — the
-// runner entry fills it); executions and instances (a Class A target
-// stages no run, and the instance create lane is the parent's finding);
+// runner entry fills it); executions (a Class A target stages no run);
 // the run gate (run-gate.conformance.test.ts), list isolation for an
 // outsider (list-read-scoping), the direct handlers
 // (direct-handler-authorization) and the IamPolicy RPCs (iampolicy) — each

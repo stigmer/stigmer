@@ -7,8 +7,9 @@
  * workflow engine (which expects a parsed {@link ExecuteServerlessWorkflowInput}).
  *
  * Hydration chain:
- *   1. Fetch WorkflowExecution → extract trigger_message
- *   2. Resolve Workflow → extract pre-validated YAML from status
+ *   1. Fetch WorkflowExecution → extract trigger_message and the pinned version
+ *   2. Read the workflow's YAML at the version the run pinned (the live
+ *      workflow only for a run saved before versioning, which pins none)
  *   3. Fetch ExecutionContext → flatten env data
  *   4. Parse YAML → WorkflowModel
  *   5. Assemble ExecuteServerlessWorkflowInput
@@ -23,7 +24,6 @@ import type { ExecuteServerlessWorkflowInput } from "../workflows/engine-core.js
 
 export interface HydrateInput {
   readonly execution_id: string;
-  readonly workflow_instance_id: string;
   readonly workflow_id: string;
   readonly org_id: string;
 }
@@ -49,28 +49,29 @@ export async function hydrateWorkflowExecution(
   input: HydrateInput,
   client: StigmerClient,
 ): Promise<ExecuteServerlessWorkflowInput> {
-  const { execution_id, workflow_instance_id, workflow_id, org_id } = input;
+  const { execution_id, workflow_id, org_id } = input;
+  if (!workflow_id) {
+    throw ApplicationFailure.nonRetryable(
+      `WorkflowExecution '${execution_id}' names no workflow — cannot resolve its workflow`,
+      "MISSING_WORKFLOW_REFERENCE",
+    );
+  }
 
   // 1. Fetch WorkflowExecution for trigger_message and version hash
   const workflowExecution = await fetchWorkflowExecution(client, execution_id);
   const triggerMessage = workflowExecution.spec?.triggerMessage ?? "";
   const versionHash = workflowExecution.status?.workflowVersionHash;
 
-  // 2. Resolve workflow ID — prefer direct workflow_id, fall back to instance lookup
-  const resolvedWorkflowId = await resolveWorkflowId(
-    client, workflow_id, workflow_instance_id,
-  );
+  // 2. Fetch workflow YAML at the pinned version; the live workflow only when unpinned
+  const yaml = await fetchWorkflowYaml(client, workflow_id, versionHash);
 
-  // 3. Fetch workflow YAML — use pinned version if available, otherwise live workflow
-  const yaml = await fetchWorkflowYaml(client, resolvedWorkflowId, versionHash);
+  // 3. Parse YAML into WorkflowModel
+  const model = parseWorkflowYaml(yaml, workflow_id);
 
-  // 4. Parse YAML into WorkflowModel
-  const model = parseWorkflowYaml(yaml, resolvedWorkflowId);
-
-  // 5. Fetch ExecutionContext and flatten env
+  // 4. Fetch ExecutionContext and flatten env
   const env = await fetchAndFlattenEnv(client, execution_id);
 
-  // 6. Parse trigger_message as workflow_input
+  // 5. Parse trigger_message as workflow_input
   const workflow_input = parseTriggerMessage(triggerMessage);
 
   return {
@@ -79,11 +80,37 @@ export async function hydrateWorkflowExecution(
     env,
     metadata: {
       execution_id,
-      workflow_id: resolvedWorkflowId,
-      workflow_instance_id,
+      workflow_id,
       org_id,
     },
   };
+}
+
+/** A gRPC NOT_FOUND in any of the shapes a ConnectError or a test double carries. */
+function isNotFound(err: unknown): boolean {
+  const code = (err as { code?: number | string })?.code;
+  return code === 5 || code === "not_found" || code === "NOT_FOUND";
+}
+
+/**
+ * A refusal or a malformed request (gRPC INVALID_ARGUMENT, PERMISSION_DENIED
+ * or FAILED_PRECONDITION): a retry gets the same answer, so the run fails at
+ * once naming what it pinned.
+ */
+function isPermanent(err: unknown): boolean {
+  const code = (err as { code?: number | string })?.code;
+  return (
+    code === 3 || code === 7 || code === 9 ||
+    code === "invalid_argument" || code === "permission_denied" ||
+    code === "failed_precondition" ||
+    code === "INVALID_ARGUMENT" || code === "PERMISSION_DENIED" ||
+    code === "FAILED_PRECONDITION"
+  );
+}
+
+/** A version hash shortened for messages and logs: the first 12 hex characters. */
+function truncateHash(hash: string): string {
+  return hash.length > 12 ? hash.slice(0, 12) + "..." : hash;
 }
 
 async function fetchWorkflowExecution(
@@ -93,8 +120,7 @@ async function fetchWorkflowExecution(
   try {
     return await client.getWorkflowExecution(executionId);
   } catch (err: unknown) {
-    const code = (err as { code?: number | string })?.code;
-    if (code === 5 || code === "not_found" || code === "NOT_FOUND") {
+    if (isNotFound(err)) {
       throw ApplicationFailure.nonRetryable(
         `WorkflowExecution '${executionId}' not found`,
         "WORKFLOW_EXECUTION_NOT_FOUND",
@@ -104,82 +130,58 @@ async function fetchWorkflowExecution(
   }
 }
 
-async function resolveWorkflowId(
-  client: StigmerClient,
-  workflowId: string,
-  workflowInstanceId: string,
-): Promise<string> {
-  if (workflowId) return workflowId;
-
-  if (!workflowInstanceId) {
-    throw ApplicationFailure.nonRetryable(
-      "Neither workflow_id nor workflow_instance_id provided — cannot resolve workflow",
-      "MISSING_WORKFLOW_REFERENCE",
-    );
-  }
-
-  try {
-    const instance = await client.getWorkflowInstance(workflowInstanceId);
-    const resolved = instance.spec?.workflowId;
-    if (!resolved) {
-      throw ApplicationFailure.nonRetryable(
-        `WorkflowInstance '${workflowInstanceId}' has no workflow_id in spec`,
-        "INVALID_WORKFLOW_INSTANCE",
-      );
-    }
-    return resolved;
-  } catch (err: unknown) {
-    if (err instanceof ApplicationFailure) throw err;
-    const code = (err as { code?: number | string })?.code;
-    if (code === 5 || code === "not_found" || code === "NOT_FOUND") {
-      throw ApplicationFailure.nonRetryable(
-        `WorkflowInstance '${workflowInstanceId}' not found`,
-        "WORKFLOW_INSTANCE_NOT_FOUND",
-      );
-    }
-    throw err;
-  }
-}
-
 /**
- * Fetches the CNCF YAML for a workflow, using version pinning when available.
+ * Fetches the CNCF YAML a run executes: the version it pinned at create.
  *
- * Resolution strategy:
- * 1. If versionHash is provided, fetch the specific version entry's YAML
- * 2. If version fetch fails or versionHash is absent, fall back to live workflow
- *
- * This ensures backward compatibility with pre-versioning executions while
- * providing correctness for versioned executions.
+ * Only a run that pins no version (its workflow was saved before versioning)
+ * reads the live workflow. A pinned run never does: a NOT_FOUND (the
+ * workflow or its pinned version is gone; the server's answer does not say
+ * which in a code), a refusal and a malformed request fail the run
+ * non-retryably, naming the workflow and the version; any other error is
+ * rethrown for the activity's retry policy. Answering any of them with the
+ * head would run steps the run did not start on.
  */
 async function fetchWorkflowYaml(
   client: StigmerClient,
   workflowId: string,
   versionHash: string | undefined,
 ): Promise<string> {
-  // Path 1: Versioned execution — fetch YAML from the pinned version entry
-  if (versionHash) {
-    try {
-      const versionEntry = await client.getWorkflowVersion(workflowId, versionHash);
-      if (versionEntry?.validatedYaml) {
-        console.log(
-          `[hydrate] Resolved workflow YAML from pinned version: hash=${versionHash.slice(0, 12)}...`,
-        );
-        return versionEntry.validatedYaml;
-      }
-    } catch (err: unknown) {
-      // Version entry not found — fall through to live workflow fetch.
-      // This handles the edge case of data migration (execution created after
-      // versioning enabled, but audit entry not yet backfilled).
-      console.warn(
-        `[hydrate] Failed to fetch workflow version ${versionHash.slice(0, 12)}... ` +
-        `— falling back to live workflow fetch`,
-        err,
-      );
-    }
+  if (!versionHash) {
+    return fetchAndValidateWorkflowYamlLive(client, workflowId);
   }
 
-  // Path 2: Legacy execution or version fetch failed — use live workflow
-  return fetchAndValidateWorkflowYamlLive(client, workflowId);
+  let versionEntry;
+  try {
+    versionEntry = await client.getWorkflowVersion(workflowId, versionHash);
+  } catch (err: unknown) {
+    if (isNotFound(err)) {
+      throw ApplicationFailure.nonRetryable(
+        `Workflow '${workflowId}' at version ${truncateHash(versionHash)} is gone ` +
+        `(the workflow or that version was deleted) — the run is pinned to it ` +
+        `and does not run another version`,
+        "WORKFLOW_VERSION_NOT_FOUND",
+      );
+    }
+    if (isPermanent(err)) {
+      throw ApplicationFailure.nonRetryable(
+        `Workflow '${workflowId}' version ${truncateHash(versionHash)} could not be read: ` +
+        `${err instanceof Error ? err.message : String(err)}`,
+        "WORKFLOW_VERSION_UNREADABLE",
+      );
+    }
+    throw err;
+  }
+
+  if (!versionEntry.validatedYaml) {
+    throw ApplicationFailure.nonRetryable(
+      `Workflow '${workflowId}' version ${truncateHash(versionHash)} has no validated YAML`,
+      "WORKFLOW_VERSION_YAML_EMPTY",
+    );
+  }
+  console.log(
+    `[hydrate] Resolved workflow YAML from pinned version: hash=${truncateHash(versionHash)}`,
+  );
+  return versionEntry.validatedYaml;
 }
 
 async function fetchAndValidateWorkflowYamlLive(
@@ -190,8 +192,7 @@ async function fetchAndValidateWorkflowYamlLive(
   try {
     workflow = await client.getWorkflow(workflowId);
   } catch (err: unknown) {
-    const code = (err as { code?: number | string })?.code;
-    if (code === 5 || code === "not_found" || code === "NOT_FOUND") {
+    if (isNotFound(err)) {
       throw ApplicationFailure.nonRetryable(
         `Workflow '${workflowId}' not found`,
         "WORKFLOW_NOT_FOUND",
@@ -282,8 +283,7 @@ async function fetchAndFlattenEnv(
   } catch (err: unknown) {
     // ConnectError uses numeric Code.NotFound (5); match the pattern
     // from shared/env-resolver.ts.
-    const code = (err as { code?: number | string })?.code;
-    if (code === 5 || code === "not_found" || code === "NOT_FOUND") {
+    if (isNotFound(err)) {
       console.log(
         `[hydrate] No ExecutionContext found for execution ${executionId} — ` +
         `proceeding with empty environment`,

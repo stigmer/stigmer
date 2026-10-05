@@ -83,14 +83,6 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     { name: "Schedule", displayName: "Schedule", idPrefix: "sch" },
   ],
   [
-    ApiResourceKind.workflow_instance,
-    {
-      name: "WorkflowInstance",
-      displayName: "Workflow Instance",
-      idPrefix: "win",
-    },
-  ],
-  [
     ApiResourceKind.session,
     { name: "Session", displayName: "Session", idPrefix: "ses" },
   ],
@@ -122,7 +114,6 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.agent_channel,
   ApiResourceKind.channel_app,
   ApiResourceKind.schedule,
-  ApiResourceKind.workflow_instance,
   ApiResourceKind.session,
 ];
 
@@ -138,6 +129,10 @@ export const RETIRED_KINDS: ReadonlyMap<string, string> = new Map([
   [
     "AgentInstance",
     "is no longer a Stigmer resource. A conversation starts on the agent itself: run `stigmer run <org>/<agent>`, and delete this file.",
+  ],
+  [
+    "WorkflowInstance",
+    "is no longer a Stigmer resource. A run starts on the workflow itself: run `stigmer run workflow <org>/<workflow>`, pass the keys its steps read with `--env` (`--secret` for a secret) or keep them in your personal environment, and delete this file. Who can see a workflow's runs is set on the workflow.",
   ],
   [
     "Project",

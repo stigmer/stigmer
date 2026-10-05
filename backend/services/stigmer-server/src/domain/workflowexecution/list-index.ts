@@ -1,7 +1,8 @@
 /**
  * The workflow-execution list index (store/list-index.ts): a run names
- * its workflow and, when it ran through one, its instance;
- * `listByWorkflow` accepts either id, so it reads both keys at once.
+ * its workflow, and `listByWorkflow` reads that one key. Revision 2
+ * dropped the instance key when the instance kind was removed; a row
+ * indexed at another revision is repaired on read.
  *
  * A change to `keys` bumps `revision` (boot/__tests__/list-indexes.test.ts
  * pins the pair).
@@ -14,9 +15,8 @@ import { declareListIndex, field } from "../../store/list-index.js";
 export const workflowExecutionListIndex = declareListIndex({
   kind: ApiResourceKind.workflow_execution,
   schema: WorkflowExecutionSchema,
-  revision: 1,
+  revision: 2,
   keys: {
     workflow: field("spec.workflow_id"),
-    workflow_instance: field("spec.workflow_instance_id"),
   },
 });

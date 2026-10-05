@@ -1,13 +1,16 @@
 // WorkflowExecution conformance — the ENGINELESS surface (Class A): the
-// create-time engine gate and every read RPC's zero-record/validation
-// contract.
+// create-time checks that stand before the engine gate, the gate itself,
+// and every read RPC's zero-record/validation contract.
 // Domain: conformance suites.
 //
 // This target runs no Temporal, so no execution record can ever exist here
 // — the create pipeline's EnsureEngineAvailable step (step 4, deliberately
 // BEFORE any side effect) refuses with Unavailable, which is itself the
 // first pin: the acknowledged boundary the Class B suite explicitly scopes
-// out (its target always has an engine). Everything else asserts what the
+// out (its target always has an engine). A run names its workflow
+// (`spec.workflow_id`) and nothing else; a request that names none is
+// refused by the proto rule before any engine check, so this class pins it
+// on every target. Everything else asserts what the
 // read surfaces truthfully answer when NOTHING has ever run:
 //
 //   - getExecutionSummary's zero shape, including the success_rate -1
@@ -57,6 +60,19 @@ afterEach(async () => {
 
 afterAll(async () => {
   await target?.teardown();
+});
+
+describe("WorkflowExecution conformance — a run names its workflow (Class A)", () => {
+  it("[rpc:WorkflowExecutionCommandController.create] a run naming no workflow is refused InvalidArgument before any engine check", async () => {
+    const { org } = await target.provisionTenancy();
+    // Code only: the proto validation layer answers, so the message is the
+    // interceptor's rendering, not a contract.
+    await expectGrpcCode(
+      () => clients.workflowExecutionCommand.create(makeWorkflowExecution({ org, name: uniqueName("no-target") })),
+      Code.InvalidArgument,
+      "create naming no workflow",
+    );
+  });
 });
 
 describe("WorkflowExecution conformance — the engine gate (Class A)", () => {

@@ -3,7 +3,7 @@
  * normalization (trimming, clamps), the 500-char boundary, the three-mode
  * contract, and the #440 arm — named-but-unsearchable kinds yield an EMPTY
  * effective set, never a discover fallback. The kind_meta derivation is
- * pinned here too: the 12 searchable kinds.
+ * pinned here too: the 11 searchable kinds.
  */
 import { describe, expect, it } from "vitest";
 
@@ -38,7 +38,7 @@ function criteria(overrides?: {
 }
 
 describe("searchIndexedKinds derivation (kind_meta)", () => {
-  it("derives exactly the 12 searchable kinds, plugin included", () => {
+  it("derives exactly the 11 searchable kinds, plugin included", () => {
     // Go's SearchableKinds map, pinned by its invariant test against the
     // same kind_meta derivation.
     expect([...searchIndexedKinds()].sort((a, b) => a - b)).toEqual(
@@ -53,7 +53,6 @@ describe("searchIndexedKinds derivation (kind_meta)", () => {
         ApiResourceKind.execution_context,
         ApiResourceKind.organization,
         ApiResourceKind.workflow_execution,
-        ApiResourceKind.workflow_instance,
         ApiResourceKind.plugin,
       ].sort((a, b) => a - b),
     );

@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { WorkflowSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_api } from "./api_pb.js";
-import type { WorkflowIdSchema } from "./io_pb.js";
+import type { UpdateWorkflowExecutionVisibilityInputSchema, WorkflowIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_io } from "./io_pb.js";
 import type { ServerlessWorkflowValidationSchema } from "./serverless/validation_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_serverless_validation } from "./serverless/validation_pb.js";
@@ -21,7 +21,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/workflow/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMpEJChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93ErYBChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyJBwrgYPQgwEDIiC3Jlc291cmNlX2lkKip1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93IHZpc2liaWxpdHkSkAEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd0lkGiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93IjDCuBgsCAMQMiIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBkZWxldGUgd29ya2Zsb3cS0QEKDHZhbGlkYXRlU3BlYxIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxpHLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5zZXJ2ZXJsZXNzLlNlcnZlcmxlc3NXb3JrZmxvd1ZhbGlkYXRpb24iTsK4GEoIBxAeIgxtZXRhZGF0YS5vcmcqNnVuYXV0aG9yaXplZCB0byB2YWxpZGF0ZSB3b3JrZmxvdyBpbiB0aGlzIG9yZ2FuaXphdGlvbhKsAQoKdGFnVmVyc2lvbhI3LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5UYWdXb3JrZmxvd1ZlcnNpb25JbnB1dBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI7wrgYNwgCEDIiC3dvcmtmbG93X2lkKiR1bmF1dGhvcml6ZWQgdG8gdGFnIHdvcmtmbG93IHZlcnNpb24aBKD/KzJiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_agentic_workflow_v1_serverless_validation, file_ai_stigmer_agentic_workflow_v1_version, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMu4KChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93ErYBChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyJBwrgYPQgwEDIiC3Jlc291cmNlX2lkKip1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93IHZpc2liaWxpdHkS2gEKGXVwZGF0ZUV4ZWN1dGlvblZpc2liaWxpdHkSRi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuVXBkYXRlV29ya2Zsb3dFeGVjdXRpb25WaXNpYmlsaXR5SW5wdXQaKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciS8K4GEcIMBAyIgtyZXNvdXJjZV9pZCo0dW5hdXRob3JpemVkIHRvIHVwZGF0ZSB3b3JrZmxvdyBleGVjdXRpb24gdmlzaWJpbGl0eRKQAQoGZGVsZXRlEiouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93SWQaKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciMMK4GCwIAxAyIgV2YWx1ZSofdW5hdXRob3JpemVkIHRvIGRlbGV0ZSB3b3JrZmxvdxLRAQoMdmFsaWRhdGVTcGVjEiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GkcuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnNlcnZlcmxlc3MuU2VydmVybGVzc1dvcmtmbG93VmFsaWRhdGlvbiJOwrgYSggHEB4iDG1ldGFkYXRhLm9yZyo2dW5hdXRob3JpemVkIHRvIHZhbGlkYXRlIHdvcmtmbG93IGluIHRoaXMgb3JnYW5pemF0aW9uEqwBCgp0YWdWZXJzaW9uEjcuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLlRhZ1dvcmtmbG93VmVyc2lvbklucHV0GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93IjvCuBg3CAIQMiILd29ya2Zsb3dfaWQqJHVuYXV0aG9yaXplZCB0byB0YWcgd29ya2Zsb3cgdmVyc2lvbhoEoP8rMmIGcHJvdG8z", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_agentic_workflow_v1_serverless_validation, file_ai_stigmer_agentic_workflow_v1_version, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -79,6 +79,25 @@ export const WorkflowCommandController: GenService<{
     output: typeof WorkflowSchema;
   },
   /**
+   * Update who can observe the runs (executions) of this workflow.
+   *
+   * This is a SEPARATE axis from updateVisibility: it controls run
+   * observability (who sees execution inputs and outputs), not who can see or
+   * run the workflow itself. Making a workflow org-runnable does NOT expose
+   * other people's runs; that requires this opt-in. The setting covers every
+   * run of the workflow, past runs included.
+   *
+   * Supported levels: PRIVATE (only the person who started each run) and
+   * ORGANIZATION (all org members). Platform is unsupported.
+   *
+   * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateExecutionVisibility
+   */
+  updateExecutionVisibility: {
+    methodKind: "unary";
+    input: typeof UpdateWorkflowExecutionVisibilityInputSchema;
+    output: typeof WorkflowSchema;
+  },
+  /**
    * Delete a workflow.
    *
    * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.delete
@@ -105,7 +124,7 @@ export const WorkflowCommandController: GenService<{
    *
    * gRPC errors are limited to input that cannot be validated at all (a missing
    * workflow or spec) and to genuine internal faults. This RPC does NOT persist,
-   * authorize, or create instances. It is a pure validation endpoint suitable for
+   * or authorize. It is a pure validation endpoint suitable for
    * iterative authoring where the caller needs fast feedback before committing.
    *
    * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.validateSpec

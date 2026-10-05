@@ -5,7 +5,9 @@
  * the Organization column renders that id through `OrgSlugText` (which shows
  * the slug), and every way out of a row (opening it, View details, Copy ID,
  * an MCP server's Connect dialog) carries the slug of the resource's own
- * organization, never the id and never the active organization's slug. The
+ * organization, never the id and never the active organization's slug. A
+ * row's Delete on the agents and workflows lists confirms in the words of
+ * that resource's detail page, the same confirmation for the same act. The
  * workbench, the action menu and the dialogs are pinned in @stigmer/react.
  */
 import type { ComponentType, ReactNode } from "react";
@@ -44,6 +46,7 @@ interface ConnectDialogProps {
 const page = vi.hoisted(() => ({
   workbench: [] as WorkbenchProps[],
   connect: [] as ConnectDialogProps[],
+  confirms: [] as Array<{ title: string; description: string }>,
   // A resource shared into the viewer's library from another organization:
   // its org id resolves to that organization's slug, not the active one's.
   item: {
@@ -98,7 +101,15 @@ vi.mock("@stigmer/react", () => {
     },
     ApplyManifestDialog: () => null,
     ConfirmDialog: () => null,
-    useConfirmAction: () => ({ confirmState: null, confirm: noop, handleConfirm: noop, handleCancel: noop }),
+    useConfirmAction: () => ({
+      confirmState: null,
+      confirm: async (options: { title: string; description: string }) => {
+        page.confirms.push(options);
+        return false;
+      },
+      handleConfirm: noop,
+      handleCancel: noop,
+    }),
     useStigmer: () => ({
       agent: resourceClient,
       skill: resourceClient,
@@ -119,6 +130,8 @@ import SkillListPage from "../library/SkillListPage";
 import PluginListPage from "../library/PluginListPage";
 import McpServerListPage from "../library/McpServerListPage";
 import WorkflowListPage from "../workflow/WorkflowListPage";
+import { AGENT_DELETE_DESCRIPTION } from "../library/agent-delete-confirmation";
+import { WORKFLOW_DELETE_DESCRIPTION } from "../workflow/workflow-delete-confirmation";
 
 function LocationProbe() {
   return <span data-testid="location">{useLocation().pathname}</span>;
@@ -142,6 +155,7 @@ function location(): string | null {
 beforeEach(() => {
   page.workbench.length = 0;
   page.connect.length = 0;
+  page.confirms.length = 0;
   toast.success.mockClear();
 });
 
@@ -187,6 +201,21 @@ describe.each(MENU_PAGES)("desktop $name — organizations", ({ Page, segment, c
     expect(writeText).toHaveBeenCalledWith("shared-team/triage");
     expect(toast.success).toHaveBeenCalledWith(copied);
     writeText.mockRestore();
+  });
+});
+
+describe.each([
+  { name: "AgentListPage", Page: AgentListPage, description: AGENT_DELETE_DESCRIPTION },
+  { name: "WorkflowListPage", Page: WorkflowListPage, description: WORKFLOW_DELETE_DESCRIPTION },
+])("desktop $name — delete", ({ Page, description }) => {
+  it("confirms a row's delete in the detail page's words, naming the resource alone", () => {
+    renderPage(Page);
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(page.confirms).toHaveLength(1);
+    expect(page.confirms[0]!.description).toBe(description);
+    expect(page.confirms[0]!.description).not.toMatch(/instance/);
   });
 });
 

@@ -185,6 +185,12 @@ declare from these sources, in order:
 When the run declares any keys, a key nobody declared is dropped, whatever its
 source.
 
+A [Workflow run](/docs/concepts/workflows#where-a-run-gets-its-values) binds no
+Environments of its own. It reads the values passed with it, then, for the keys
+the Workflow declares that are still missing, the personal Environment of the
+person who started it. An `agent_call` step's own `environment_refs` reach that
+step's Agent, wherever the step sits in the Workflow.
+
 <Callout type="warn">
   The keys an Agent declares reach its tools and its shell, and those follow the
   instructions the Agent's author wrote. When you send a message to an Agent a

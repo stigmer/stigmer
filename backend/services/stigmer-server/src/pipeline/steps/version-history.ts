@@ -475,13 +475,73 @@ export interface VersionLookup {
   readonly versionHash: string;
 }
 
+/** One version of a resource, read by its hash. */
+export interface LoadedVersion<Desc extends DescMessage> {
+  /** The live head when it is the version, else the archived snapshot with the audit column's tag written on. */
+  readonly resource: MessageShape<Desc>;
+  /** Whether `resource` is the live head. */
+  readonly isCurrent: boolean;
+  /** The version's tag: the head's live tag, or the audit column's. */
+  readonly tag: string;
+}
+
 /**
- * One version of a resource by its hash, as the kind's entry: the live
- * head when the hash is the head's (is_current, its live tag, which a tag
- * move keeps reconciled with the audit column), else the archived row with
- * the column's tag. A missing resource and a missing version are both
- * NotFound, naming which; a store fault is Internal. The caller has already
- * asked the annotation's can_view on the resource id.
+ * One version of a resource by its hash: the live head when the hash is
+ * the head's, else the archived row. The one reader of a version by hash,
+ * shared by getVersion (getVersionEntry) and every server-side read of
+ * what a run pinned, so the two can never disagree about what a version
+ * holds. A missing resource and a missing version are both NotFound,
+ * naming which; a store fault is Internal. Asks no authorization.
+ */
+export async function loadVersion<Desc extends DescMessage>(
+  store: Store,
+  binding: VersionedResourceBinding<Desc>,
+  resourceId: string,
+  versionHash: string,
+): Promise<LoadedVersion<Desc>> {
+  let head: MessageShape<Desc>;
+  try {
+    head = await store.getResource(binding.kind, resourceId, binding.schema);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError(binding.noun, resourceId);
+    }
+    throw internalError(error, `failed to load ${binding.noun}`);
+  }
+
+  if (binding.headHashOf(head) === versionHash) {
+    return { resource: head, isCurrent: true, tag: binding.liveTagOf(head) };
+  }
+
+  let record: AuditRecord;
+  try {
+    record = await store.getAuditRecordByHash(
+      binding.kind,
+      resourceId,
+      versionHash,
+    );
+  } catch (error) {
+    if (error instanceof AuditNotFoundError) {
+      throw notFoundError(`${binding.noun} version`, truncateHash(versionHash));
+    }
+    throw internalError(
+      error,
+      `failed to load ${binding.noun} version from audit`,
+    );
+  }
+  return {
+    resource: decodeArchived(binding, record),
+    isCurrent: false,
+    tag: record.tag,
+  };
+}
+
+/**
+ * One version of a resource by its hash, as the kind's entry (loadVersion,
+ * mapped): the live head with is_current and its live tag, which a tag
+ * move keeps reconciled with the audit column, else the archived row with
+ * the column's tag. The caller has already asked the annotation's
+ * can_view on the resource id.
  */
 export async function getVersionEntry<
   Desc extends DescMessage,
@@ -493,40 +553,13 @@ export async function getVersionEntry<
   binding: VersionHistoryBinding<Desc, InputDesc, Entry, Response>,
   lookup: VersionLookup,
 ): Promise<Entry> {
-  let head: MessageShape<Desc>;
-  try {
-    head = await store.getResource(binding.kind, lookup.resourceId, binding.schema);
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      throw notFoundError(binding.noun, lookup.resourceId);
-    }
-    throw internalError(error, `failed to load ${binding.noun}`);
-  }
-
-  if (binding.headHashOf(head) === lookup.versionHash) {
-    return binding.mapEntry(head, true, binding.liveTagOf(head));
-  }
-
-  let record: AuditRecord;
-  try {
-    record = await store.getAuditRecordByHash(
-      binding.kind,
-      lookup.resourceId,
-      lookup.versionHash,
-    );
-  } catch (error) {
-    if (error instanceof AuditNotFoundError) {
-      throw notFoundError(
-        `${binding.noun} version`,
-        truncateHash(lookup.versionHash),
-      );
-    }
-    throw internalError(
-      error,
-      `failed to load ${binding.noun} version from audit`,
-    );
-  }
-  return binding.mapEntry(decodeArchived(binding, record), false, record.tag);
+  const version = await loadVersion(
+    store,
+    binding,
+    lookup.resourceId,
+    lookup.versionHash,
+  );
+  return binding.mapEntry(version.resource, version.isCurrent, version.tag);
 }
 
 /** A hash shortened for messages and logs: the first 12 hex characters. */

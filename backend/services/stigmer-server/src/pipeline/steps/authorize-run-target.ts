@@ -3,12 +3,12 @@
  * this record targets?
  *
  * Every create that starts or continues a run names a target — a blueprint
- * (`agent`, `workflow`), a workflow instance (`workflow_instance`) or a
- * conversation (`session`) — and until this step nothing asked whether
+ * (`agent`, `workflow`) or a conversation (`session`) — and until this
+ * step nothing asked whether
  * the caller may use it: session-create authorized only the organization's
  * `can_create_session`, agent- and workflow-execution create are
  * `is_skip_authorization`, and `can_execute` was defined on every blueprint
- * and instance type of the FGA model and checked nowhere. The invariant the
+ * type of the FGA model and checked nowhere. The invariant the
  * model states ("you can run what you can read") is enforced here.
  *
  * One shared step, one domain resolver: the shape of IndexSearch (a shared
@@ -21,9 +21,9 @@
  * mid-chain resolved-id form (the ListVersions and listByChannel
  * precedent) for lanes the position-1 annotation cannot express. A
  * resolver that answers no target makes NO check: the chain's own
- * invariant guards (EnsureSessionOrAgentResolved,
- * ValidateWorkflowOrInstance) own the shape-less arm, and this step never
- * second-guesses them.
+ * invariant guards (EnsureSessionOrAgentResolved; ValidateProto, which
+ * refuses a workflow run naming no workflow) own the shape-less arm, and
+ * this step never second-guesses them.
  *
  * Position, in every chain: immediately after the step that guarantees the
  * target reference exists — before EnsureEngineAvailable (a denied caller
@@ -65,8 +65,7 @@ export interface RunGateCheck {
 /**
  * The run-gate check set — exactly the pairs a resolver can produce. Each
  * is the FGA model's own relation for "may run this": `can_execute` on the
- * blueprints and the workflow instance (`agent.fga` `can_execute: viewer`;
- * the workflow twins), and
+ * blueprints (`agent.fga` and `workflow.fga`, `can_execute: viewer`), and
  * `can_create_execution_in` on a session (`session.fga`: adding a turn to a
  * conversation is the session's own permission, not the agent's).
  */
@@ -82,10 +81,6 @@ export const RUN_GATE_CHECKS = {
   workflow: {
     permission: IamPermission.can_execute,
     resourceKind: ApiResourceKind.workflow,
-  },
-  workflowInstance: {
-    permission: IamPermission.can_execute,
-    resourceKind: ApiResourceKind.workflow_instance,
   },
 } as const satisfies Record<string, RunGateCheck>;
 

@@ -500,7 +500,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
     it("can_manage_audience is the Authorizer's answer on every kind, where can_grant_access is false outside the scope — the console's audience controls stay the owner's on open source (stigmer#1495)", async () => {
       for (const [kind, id] of [
         ["agent", "agt_01hzzzzzzzzzzzzzzzzzzzzzzz"],
-        ["workflow_instance", "win_01hzzzzzzzzzzzzzzzzzzzzzzz"],
+        ["workflow", "wfl_01hzzzzzzzzzzzzzzzzzzzzzzz"],
       ] as const) {
         const resource = create(ApiResourceRefSchema, { kind, id });
         const audience = await query.checkMyPermission({ resource, relation: "can_manage_audience" });

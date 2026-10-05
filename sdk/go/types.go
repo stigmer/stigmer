@@ -37,7 +37,6 @@ type SubscriptionClient = gen.SubscriptionClient
 type TeamClient = gen.TeamClient
 type WorkflowClient = gen.WorkflowClient
 type WorkflowExecutionClient = gen.WorkflowExecutionClient
-type WorkflowInstanceClient = gen.WorkflowInstanceClient
 
 // Input types for resource mutation (Create, Update, Apply).
 type AgentInput = gen.AgentInput
@@ -109,7 +108,6 @@ type ExportInput = gen.ExportInput
 type FlowControlInput = gen.FlowControlInput
 type WorkflowBudgetInput = gen.WorkflowBudgetInput
 type WorkflowExecutionInput = gen.WorkflowExecutionInput
-type WorkflowInstanceInput = gen.WorkflowInstanceInput
 
 // Streaming types.
 type AgentExecutionSubscribeStream = gen.AgentExecutionSubscribeStream

@@ -61,6 +61,12 @@ class WorkflowClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def update_execution_visibility(self, input: io_pb2.UpdateWorkflowExecutionVisibilityInput) -> api_pb2.Workflow:
+        try:
+            return self._command.updateExecutionVisibility(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, id: str) -> api_pb2.Workflow:
         try:
             return self._command.delete(io_pb2.WorkflowId(value=id))
@@ -149,10 +155,12 @@ class WorkflowInput:
     tasks: list[WorkflowTaskInput] = field(default_factory=list)
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
     budget: WorkflowBudgetInput | None = None
+    execution_visibility: int = 0
 
     def _to_proto(self) -> api_pb2.Workflow:
         spec = spec_pb2.WorkflowSpec(
             description=self.description,
+            execution_visibility=self.execution_visibility,
         )
         if self.document is not None:
             spec.document.CopyFrom(self.document._to_proto())

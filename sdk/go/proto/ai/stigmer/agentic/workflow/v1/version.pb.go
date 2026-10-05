@@ -26,12 +26,12 @@ const (
 
 // WorkflowVersionEntry represents a single historical version of a workflow.
 //
-// Each apply/update that changes the generated CNCF YAML (and passes validation)
+// Each apply/update that changes the workflow's spec (and passes validation)
 // creates a new immutable version entry. The version is identified by its content
-// hash (SHA-256 of the validated YAML).
+// hash (the canonical hash of the spec, run visibility excluded).
 type WorkflowVersionEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// SHA-256 hash of the CNCF YAML — the immutable version identifier.
+	// Content hash of the version's spec — the immutable version identifier.
 	VersionHash string `protobuf:"bytes,1,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
 	// When this version was created (the apply/update timestamp).
 	AppliedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=applied_at,json=appliedAt,proto3" json:"applied_at,omitempty"`

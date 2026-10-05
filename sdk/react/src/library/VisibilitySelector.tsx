@@ -63,8 +63,8 @@ export interface VisibilitySelectorProps {
 }
 
 /**
- * The single control for resource visibility across blueprints AND
- * instances. Offered levels are pure data ({@link VisibilityLevelOption});
+ * The single control for resource visibility across blueprints and
+ * environments. Offered levels are pure data ({@link VisibilityLevelOption});
  * per-kind level sets live in `visibilityLevels.ts`, so this component
  * carries no kind-specific logic.
  *
@@ -76,7 +76,7 @@ export interface VisibilitySelectorProps {
  * de-escalation applies instantly, an Organization escalation shows a light
  * inline prompt, and a Child organizations escalation opens a blocking
  * {@link ConfirmDialog} that names the exact audience. Confirmation is owned
- * here so every consumer — blueprint detail, instance detail, and any
+ * here so every consumer — blueprint detail, environment detail, and any
  * standalone embed — behaves identically.
  *
  * In `"create"` mode it renders an inline radio list that applies

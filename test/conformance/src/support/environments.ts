@@ -20,8 +20,6 @@ import type { InitShape } from "./init-shape";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import type { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { EnvironmentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 export const ENVIRONMENT_API_VERSION = "agentic.stigmer.ai/v1";
 export const ENVIRONMENT_KIND = "Environment";
@@ -52,22 +50,12 @@ export function makeEnvDeclarations(
   );
 }
 
-// A reference to an Environment resource by org + slug, as carried in an
-// instance's environment_refs. An explicit org is required because the execution
-// engine resolves each ref via GetByReference on org/slug (see resolveEnvironments
-// in create_execution_context_step.go) rather than normalizing an empty org.
+// A reference to an Environment resource by org + slug, as an agent_call
+// step's environment_refs carry it. An explicit org keeps the reference
+// independent of where the step's workflow is written.
 export interface EnvironmentRefInit {
   org: string;
   slug: string;
-}
-
-// Projects environment references into the proto ApiResourceReference init shape,
-// fixing kind to environment (the CEL constraint on environment_refs, e.g.
-// WorkflowInstanceSpec's).
-export function makeEnvironmentRefs(
-  refs: EnvironmentRefInit[],
-): InitShape<typeof ApiResourceReferenceSchema>[] {
-  return refs.map((ref) => ({ org: ref.org, slug: ref.slug, kind: ApiResourceKind.environment }));
 }
 
 // A single spec.data entry. `value` is the configuration or secret string;

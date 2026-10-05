@@ -62,7 +62,7 @@ const access = useManageAccess({
 
 The single drop-in, visible trigger for the unified Manage access dialog —
 used by surfaces that render a button in a header or panel (session and
-workflow-execution viewers, instance panels) rather than a kebab menu (those
+workflow-execution viewers) rather than a kebab menu (those
 use [`useManageAccess`](#usemanageaccess)).
 
 Self-gates on `can_view_access`: the button renders only for users who may
@@ -134,7 +134,7 @@ only when you own the open-state.
 
 <TypeTable
   type={{
-    extraSection: { type: "AccessExtraSection", description: "An optional resource-specific section appended below People (e.g. workflow-instance run observability).", typeDescriptionLink: "#accessextrasection" },
+    extraSection: { type: "AccessExtraSection", description: "An optional resource-specific section appended below People (e.g. a workflow's run visibility).", typeDescriptionLink: "#accessextrasection" },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
     resource: { type: "AccessResource", description: "The resource whose access is managed.", required: true, typeDescriptionLink: "#accessresource" },
@@ -160,8 +160,8 @@ const [open, setOpen] = useState(false);
 ### AccessExtraSection
 
 A generic, resource-specific access section appended below People — the
-escape hatch for the rare per-kind axis (today: workflow-instance run
-observability) without baking that knowledge into a generic dialog.
+escape hatch for the rare per-kind axis (today: a workflow's run
+visibility) without baking that knowledge into a generic dialog.
 
 <TypeTable
   type={{
@@ -203,7 +203,7 @@ the `can_manage_audience` gate.
     current: { type: "ApiResourceVisibility", description: "Current visibility of the resource.", required: true },
     kind: { type: "VisibilityResourceKind", description: "Resource kind, selecting both the updateVisibility RPC and FGA type.", required: true, typeDescriptionLink: "/docs/sdk/react/library#visibilityresourcekind" },
     onChanged: { type: "() => void", description: "Called after a successful visibility change so the host can refetch." },
-    org: { type: "string", description: "Slug of the owning org (`metadata.org`); gates the Platform option for blueprints. Omit for instances and where Platform should not be offered." },
+    org: { type: "string", description: "Slug of the owning org (`metadata.org`); gates the Platform option for blueprints. Omit where Platform should not be offered." },
   }}
 />
 

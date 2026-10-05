@@ -40,7 +40,7 @@ import { applySortField } from "./execution-filter.js";
 import { workflowExecutionListIndex } from "./list-index.js";
 
 /** The keys the workflow-execution index declares. */
-export type WorkflowExecutionListKey = "workflow" | "workflow_instance";
+export type WorkflowExecutionListKey = "workflow";
 
 /** A stored row, or undefined (logged) when it does not decode. */
 export function decodeWorkflowExecution(

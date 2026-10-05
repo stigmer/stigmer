@@ -177,9 +177,9 @@ export function newPopulateWorkflowVersionStep(): PipelineStep<WorkflowDesc> {
 
 /**
  * SaveVersionAudit — repoint or archive, then the single-holder tag. The
- * create path archives after its last write (the snapshot must carry
- * default_instance_id), so it re-persists a revert itself; the update path
- * persists after the archive.
+ * create path archives after its persist (the snapshot is the stored
+ * row), so it re-persists a revert itself; the update path persists after
+ * the archive.
  */
 export function newSaveVersionAuditStep(
   store: Store,

@@ -191,10 +191,10 @@ func (x *WorkflowExecutionId) GetValue() string {
 	return ""
 }
 
-// WorkflowId wraps a workflow or workflow instance identifier for filtering.
+// WorkflowId wraps a workflow identifier for filtering.
 type WorkflowId struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Workflow or WorkflowInstance identifier.
+	// Workflow identifier.
 	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -430,7 +430,7 @@ func (x *ListWorkflowExecutionsRequest) GetOrg() string {
 // ListWorkflowExecutionsByWorkflowRequest lists executions for a specific workflow.
 type ListWorkflowExecutionsByWorkflowRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Workflow or WorkflowInstance ID to filter by.
+	// Workflow ID to filter by.
 	WorkflowId string `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
 	// The most executions to return, at most 100; zero returns them all.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`

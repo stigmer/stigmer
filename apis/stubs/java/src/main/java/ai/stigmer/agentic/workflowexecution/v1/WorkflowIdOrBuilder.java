@@ -12,7 +12,7 @@ public interface WorkflowIdOrBuilder extends
 
   /**
    * <pre>
-   * Workflow or WorkflowInstance identifier.
+   * Workflow identifier.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface WorkflowIdOrBuilder extends
   java.lang.String getValue();
   /**
    * <pre>
-   * Workflow or WorkflowInstance identifier.
+   * Workflow identifier.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>

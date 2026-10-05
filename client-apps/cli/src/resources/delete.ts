@@ -78,7 +78,6 @@ export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<
 >([
   [ApiResourceKind.agent, (c, id) => c.agent.delete(id)],
   [ApiResourceKind.workflow, (c, id) => c.workflow.delete(id)],
-  [ApiResourceKind.workflow_instance, (c, id) => c.workflowInstance.delete(id)],
   [
     ApiResourceKind.mcp_server,
     (c, id, force) => c.mcpServer.delete({ resourceId: id, force }),

@@ -75,10 +75,10 @@
  * and its row is never read — the facts are exactly what the derivation
  * reads (facts.ts). The seed stands in for the row only where the row
  * would have been read for FACTS; a declaration's `derived` rule reads
- * the row it needs through the loader as before (`default_of` reads the
- * instance's blueprint pointer, `execution_viewer` the instance's level —
- * spec fields the facts do not carry), so listing the two instance kinds
- * costs one row read per candidate, stated in the scope's cost pins.
+ * the row it needs through the loader as before (`execution_viewer` reads
+ * the workflow's run-visibility level, a spec field the facts do not
+ * carry), so listing workflows costs one row read per candidate, stated
+ * in the scope's cost pins.
  *
  * A row is read where the composition keeps it. Open source's kinds are
  * read through the generic Store. An `identity_account` object is read

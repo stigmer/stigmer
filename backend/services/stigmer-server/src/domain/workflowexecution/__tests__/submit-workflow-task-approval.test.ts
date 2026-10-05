@@ -72,7 +72,6 @@ async function seedGate(): Promise<string> {
       metadata: { id, name: id, org: "acme" },
       spec: {
         workflowId: `wf_${counter}`,
-        workflowInstanceId: `wfi_${counter}`,
       },
       status: {
         phase: ExecutionPhase.EXECUTION_IN_PROGRESS,

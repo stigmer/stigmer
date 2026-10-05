@@ -49,7 +49,6 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     agent_channel: _ClassVar[ApiResourceKind]
     channel_app: _ClassVar[ApiResourceKind]
     workflow: _ClassVar[ApiResourceKind]
-    workflow_instance: _ClassVar[ApiResourceKind]
     workflow_execution: _ClassVar[ApiResourceKind]
     environment: _ClassVar[ApiResourceKind]
     artifact: _ClassVar[ApiResourceKind]
@@ -89,7 +88,6 @@ agent_share: ApiResourceKind
 agent_channel: ApiResourceKind
 channel_app: ApiResourceKind
 workflow: ApiResourceKind
-workflow_instance: ApiResourceKind
 workflow_execution: ApiResourceKind
 environment: ApiResourceKind
 artifact: ApiResourceKind

@@ -3,9 +3,8 @@
 // The contract: a caller may START or CONTINUE a run only on what they can
 // see. The three create chains — session, agent execution, workflow
 // execution — ask the edition's Authorizer about the record's run target
-// (agent#can_execute, session#can_create_execution_in, workflow#can_execute,
-// workflow_instance#can_execute) before any engine check, gate slot or side
-// effect. A session names its agent by reference and pins the agent it
+// (agent#can_execute, session#can_create_execution_in, workflow#can_execute)
+// before any engine check, gate slot or side effect. A session names its agent by reference and pins the agent it
 // resolves to (status.agent_id), so the gate judges that resolved id, and
 // asks it again whenever a write introduces or changes the agent. A turn
 // asks two questions: the session's own permission, then whether the caller
@@ -36,6 +35,12 @@
 //     the session: a forbidden session answers the session's own denial
 //     whatever its agent's state, an unknown one NOT_FOUND naming only the
 //     id (the authorizer's existence probe, stigmer#224);
+//   - a workflow run names its workflow alone, and the gate judges that id:
+//     a member who cannot see the workflow is refused with the workflow
+//     copy, and an unknown id answers NOT_FOUND naming only the id it was
+//     sent, the session's order (an unknown id under the trusted-local
+//     posture meets the run's version pin instead, pinned in the execution
+//     class);
 //   - a workflow parent link the caller cannot vouch for is refused with
 //     INVALID_ARGUMENT (the trusted-local posture's admission of the same
 //     link is pinned in the agentexecution suite).
@@ -279,6 +284,27 @@ describe("run gate — a member may run only what they can see (on the enforcing
     expect(denied.rawMessage).toBe(
       `unauthorized to run workflow '${workflowId}'`,
     );
+  });
+
+  it("[rpc:WorkflowExecutionCommandController.create] a workflow run naming an unknown workflow answers NOT_FOUND naming only the id it was sent", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const context = await tenancy(lane);
+    const member = await lane.provisionMember(context);
+    const missing = `wfl_${uniqueName("missing").replaceAll("-", "")}`;
+
+    const notFound = await expectGrpcCode(
+      () =>
+        member.workflowExecutionCommand.create(
+          makeWorkflowExecution({
+            org: context.org,
+            name: uniqueName("member-wf-exec"),
+            workflowId: missing,
+          }),
+        ),
+      Code.NotFound,
+      "a member's run of an unknown workflow",
+    );
+    expect(notFound.rawMessage).toContain(missing);
   });
 
   it("[rpc:SessionCommandController.create] session create on an ORG-visible agent is allowed and pins it (the positive arm)", async (ctx) => {

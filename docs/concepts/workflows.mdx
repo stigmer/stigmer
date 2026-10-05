@@ -84,36 +84,103 @@ Each section of the Workflow definition serves a purpose:
 Like Agents, a Workflow definition is a **blueprint**. It contains no secrets,
 no environment-specific values, and no runtime state.
 
-The runtime resources that bring a Workflow to life form a chain:
+You run the Workflow itself. Each run is a **Workflow Execution**:
 
 {/* prettier-ignore */}
 <Mermaid
   chart={`
 graph LR
-  W["Workflow<br/>(blueprint)"] --> WI["Workflow Instance<br/>(deployment)"]
-  WI --> WE["Workflow Execution<br/>(single run)"]
+  W["Workflow<br/>(blueprint)"] --> WE["Workflow Execution<br/>(single run)"]
 `}
 />
 
-| Resource               | What it represents                                                                | Analogy                          |
-| ---------------------- | --------------------------------------------------------------------------------- | -------------------------------- |
-| **Workflow**           | The definition — tasks, flow, budgets                                             | A recipe                         |
-| **Workflow Instance**  | A deployed copy bound to [Environments](/docs/concepts/environments) with secrets | A kitchen set up for that recipe |
-| **Workflow Execution** | One run of the Instance from start to finish                                      | Cooking one batch                |
+| Resource               | What it represents                                    | Analogy           |
+| ---------------------- | ----------------------------------------------------- | ----------------- |
+| **Workflow**           | The definition — tasks, flow, budgets                 | A recipe          |
+| **Workflow Execution** | One run of the Workflow, at the version it started on | Cooking one batch |
 
-A **Workflow Instance** binds the blueprint to Environments where secrets and
-configuration values are resolved. You can have multiple instances — one for
-staging with test credentials, another for production.
-
-A **Workflow Execution** is a single run. Create one to start the workflow, then
+Start a run from the console, with `stigmer run workflow <name>`, with the MCP
+server's `run_workflow` tool, or from an SDK by creating a Workflow Execution
+whose `spec.workflow_id` names the Workflow. Then
 [subscribe](/docs/sdk/streaming#subscribe-to-a-workflow-execution) to track
 progress task by task.
+
+## Versions
+
+Every change to a Workflow's definition is kept. A version covers the whole
+definition: the tasks, each step's Environments, the declared `env`, the budget
+and the description. When you save a Workflow whose definition passes validation
+and differs from every version it has had, Stigmer records a new version.
+Changing who can see its runs records no version.
+
+```bash
+stigmer get workflow content-review-pipeline --version-history
+```
+
+Every run is pinned to the version the Workflow had when the run started, and
+every step reads that version. If someone edits the Workflow while your run is
+in progress, the steps still to come run as they were when you started it.
+
+## Where a run gets its values
+
+The `env` map declares the keys a Workflow needs, never their values. When a run
+starts, Stigmer fills them in this order:
+
+1. **Values passed with the run.** The `--env` flags, the run form in the
+   console, or the request's `runtime_env`.
+2. **The Workflow's declarations decide what the run receives.** When the
+   Workflow declares any keys, a key it does not declare is dropped.
+3. **Your personal Environment, for declared keys still missing.** Every
+   declared key nothing passed is read from the
+   [personal Environment](/docs/concepts/environments#how-a-run-gets-its-values)
+   of the person who started the run, when the Workflow belongs to the
+   Organization the run is in. A Workflow of another Organization reads no one's
+   personal Environment.
+
+Before you start a run, the console's run form says where each declared key will
+come from: what you type, your personal Environment, or nowhere yet.
+
+<Callout type="warn">
+  The keys a Workflow declares reach its steps, and those follow what the
+  Workflow's author wrote: an `http_call` step can send a value anywhere. When
+  you run a Workflow a teammate in your Organization wrote, the keys it declares
+  that only your personal Environment holds go to that run. A Workflow from
+  another Organization never receives them. The console's run form names each
+  key before you start; the CLI, the MCP server and the SDKs fill the same keys
+  without asking.
+</Callout>
+
+A key the whole team uses, such as a shared webhook URL, cannot yet be bound
+once for everyone: each person who runs the Workflow saves it in their own
+personal Environment or passes it with the run. An `agent_call` step can still
+name Environments of its own in `environment_refs`; they supply the keys its
+Agent declares.
+
+## Who can see the runs
+
+Who can see a Workflow and who can see its runs are separate settings. Letting
+your Organization see and run a Workflow never shows anyone else's runs. The run
+visibility setting does:
+
+| Setting                   | Who sees each run                                           |
+| ------------------------- | ----------------------------------------------------------- |
+| **Private** (the default) | The person who started it                                   |
+| **Organization**          | Every member of the Organization, with its input and output |
+
+The setting covers every run of the Workflow, past runs included. Only the
+Workflow's owner can change it, on the Workflow's page in the console or with
+the `updateExecutionVisibility` call on the Workflow. People who can edit the
+Workflow cannot change it, and saving or applying the Workflow keeps the stored
+setting. When a Workflow's runs are visible to the Organization, the run form
+says so before you start a run.
 
 ## Tasks
 
 Every step in a Workflow is a **task**. Each task has a `name` (unique within
 the workflow), a `kind` (what type of work it does), and a `task_config` (the
-kind-specific configuration).
+kind-specific configuration). An `agent_call` task's name is unique across the
+whole Workflow, the tasks inside `for_each`, `fork` and `try_catch` and every
+`compensate` list included.
 
 ```yaml
 - name: classify_ticket

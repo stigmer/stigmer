@@ -116,14 +116,12 @@ class WorkflowExecutionEvent(_message.Message):
     def __init__(self, event_id: _Optional[str] = ..., event_type: _Optional[_Union[WorkflowEventType, str]] = ..., sequence_number: _Optional[int] = ..., occurred_at: _Optional[str] = ..., task_name: _Optional[str] = ..., execution_started: _Optional[_Union[ExecutionStartedPayload, _Mapping]] = ..., execution_completed: _Optional[_Union[ExecutionCompletedPayload, _Mapping]] = ..., execution_failed: _Optional[_Union[ExecutionFailedPayload, _Mapping]] = ..., execution_paused: _Optional[_Union[ExecutionPausedPayload, _Mapping]] = ..., execution_resumed: _Optional[_Union[ExecutionResumedPayload, _Mapping]] = ..., execution_cancelled: _Optional[_Union[ExecutionCancelledPayload, _Mapping]] = ..., execution_terminated: _Optional[_Union[ExecutionTerminatedPayload, _Mapping]] = ..., task_started: _Optional[_Union[TaskStartedPayload, _Mapping]] = ..., task_completed: _Optional[_Union[TaskCompletedPayload, _Mapping]] = ..., task_failed: _Optional[_Union[TaskFailedPayload, _Mapping]] = ..., task_skipped: _Optional[_Union[TaskSkippedPayload, _Mapping]] = ..., task_retrying: _Optional[_Union[TaskRetryingPayload, _Mapping]] = ..., agent_call_started: _Optional[_Union[AgentCallStartedPayload, _Mapping]] = ..., agent_call_progress: _Optional[_Union[AgentCallProgressPayload, _Mapping]] = ..., agent_call_completed: _Optional[_Union[AgentCallCompletedPayload, _Mapping]] = ..., approval_requested: _Optional[_Union[ApprovalRequestedPayload, _Mapping]] = ..., approval_resolved: _Optional[_Union[ApprovalResolvedPayload, _Mapping]] = ..., budget_checkpoint: _Optional[_Union[BudgetCheckpointPayload, _Mapping]] = ..., signal_received: _Optional[_Union[SignalReceivedPayload, _Mapping]] = ..., event_emitted: _Optional[_Union[EventEmittedPayload, _Mapping]] = ..., artifact_created: _Optional[_Union[ArtifactCreatedPayload, _Mapping]] = ...) -> None: ...
 
 class ExecutionStartedPayload(_message.Message):
-    __slots__ = ("total_tasks", "workflow_id", "workflow_instance_id")
+    __slots__ = ("total_tasks", "workflow_id")
     TOTAL_TASKS_FIELD_NUMBER: _ClassVar[int]
     WORKFLOW_ID_FIELD_NUMBER: _ClassVar[int]
-    WORKFLOW_INSTANCE_ID_FIELD_NUMBER: _ClassVar[int]
     total_tasks: int
     workflow_id: str
-    workflow_instance_id: str
-    def __init__(self, total_tasks: _Optional[int] = ..., workflow_id: _Optional[str] = ..., workflow_instance_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, total_tasks: _Optional[int] = ..., workflow_id: _Optional[str] = ...) -> None: ...
 
 class ExecutionCompletedPayload(_message.Message):
     __slots__ = ("output_summary", "duration_ms", "total_cost_micros", "total_tokens")

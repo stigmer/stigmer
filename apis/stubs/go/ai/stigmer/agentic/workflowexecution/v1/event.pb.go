@@ -598,12 +598,10 @@ type ExecutionStartedPayload struct {
 	// Total number of top-level tasks in the workflow definition.
 	// Enables progress calculation (completed_count / total_tasks).
 	TotalTasks int32 `protobuf:"varint,1,opt,name=total_tasks,json=totalTasks,proto3" json:"total_tasks,omitempty"`
-	// Workflow ID (wf_{slug}) resolved for this execution.
-	WorkflowId string `protobuf:"bytes,2,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
-	// WorkflowInstance ID (wfi_{slug}) resolved for this execution.
-	WorkflowInstanceId string `protobuf:"bytes,3,opt,name=workflow_instance_id,json=workflowInstanceId,proto3" json:"workflow_instance_id,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Workflow ID the execution runs.
+	WorkflowId    string `protobuf:"bytes,2,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ExecutionStartedPayload) Reset() {
@@ -646,13 +644,6 @@ func (x *ExecutionStartedPayload) GetTotalTasks() int32 {
 func (x *ExecutionStartedPayload) GetWorkflowId() string {
 	if x != nil {
 		return x.WorkflowId
-	}
-	return ""
-}
-
-func (x *ExecutionStartedPayload) GetWorkflowInstanceId() string {
-	if x != nil {
-		return x.WorkflowInstanceId
 	}
 	return ""
 }
@@ -2238,13 +2229,12 @@ const file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDesc = "" +
 	"\x0fsignal_received\x18< \x01(\v2>.ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayloadH\x00R\x0esignalReceived\x12c\n" +
 	"\revent_emitted\x18= \x01(\v2<.ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayloadH\x00R\feventEmitted\x12l\n" +
 	"\x10artifact_created\x18F \x01(\v2?.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayloadH\x00R\x0fartifactCreatedB\t\n" +
-	"\apayload\"\x8d\x01\n" +
+	"\apayload\"w\n" +
 	"\x17ExecutionStartedPayload\x12\x1f\n" +
 	"\vtotal_tasks\x18\x01 \x01(\x05R\n" +
 	"totalTasks\x12\x1f\n" +
 	"\vworkflow_id\x18\x02 \x01(\tR\n" +
-	"workflowId\x120\n" +
-	"\x14workflow_instance_id\x18\x03 \x01(\tR\x12workflowInstanceId\"\xcb\x01\n" +
+	"workflowIdJ\x04\b\x03\x10\x04R\x14workflow_instance_id\"\xcb\x01\n" +
 	"\x19ExecutionCompletedPayload\x12>\n" +
 	"\x0eoutput_summary\x18\x01 \x01(\v2\x17.google.protobuf.StructR\routputSummary\x12\x1f\n" +
 	"\vduration_ms\x18\x02 \x01(\x03R\n" +

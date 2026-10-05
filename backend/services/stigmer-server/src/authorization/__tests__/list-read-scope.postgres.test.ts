@@ -12,10 +12,9 @@
  * and nothing personal; the founder — an admin — sees the organization's
  * blueprints and NOT its members' sessions, keys, environments or
  * memories (the model's own line, now list-visible); an execution is its session's and
- * an orphaned execution is nobody's; a run whose instance is
+ * an orphaned execution is nobody's; a run whose workflow is
  * org-observable reaches the organization's viewers; a memory with no
- * subject is nobody's; an instance reaches whoever reads its blueprint
- * only when it is the default. Then the contract: a scope only narrows
+ * subject is nobody's. Then the contract: a scope only narrows
  * and never reorders; the `internal` class is the in-process skip on the
  * enumeration verb and a loud consumer bug on the restrict verb (the
  * shared helper answers the class before any driver, stigmer#1207); an
@@ -23,12 +22,12 @@
  * fault throws and is never an empty answer; an undeclared kind is a
  * consumer bug, loud; the enumeration verb equals the restrict verb over
  * the whole kind; and the reads are counted — distinct parents, never
- * candidates.
+ * candidates, and a run's workflow row read once for its run audience.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -88,7 +87,6 @@ const SEEDED_KINDS = [
   ApiResourceKind.agent,
   ApiResourceKind.session,
   ApiResourceKind.agent_execution,
-  ApiResourceKind.workflow_instance,
   ApiResourceKind.workflow_execution,
   ApiResourceKind.memory,
   ApiResourceKind.api_key,
@@ -170,12 +168,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
         function rowsOf(kind: ApiResourceKind): object[] {
           return [...(rows.get(kind)?.values() ?? [])];
-        }
-
-        /** The two instances of `wfl_org`, its default and the member's personal one, offered as a lane holds them. */
-        function instancesOfWorkflow(): object[] {
-          const held = rows.get(ApiResourceKind.workflow_instance);
-          return ["wfi_default", "wfi_member"].map((id) => held!.get(id)!);
         }
 
         async function grant(spec: ReturnType<typeof orgRole>) {
@@ -352,10 +344,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             });
           }
 
-          // Runs: the member's run of an org-observable instance and the
-          // founder's run of a private one.
-          await save("workflow_instance", {
-            id: "wfi_observable",
+          // Runs: the member's run of an org-observable workflow and the
+          // founder's run of a private one; both workflows are private
+          // themselves, so a run is reached only through its audience.
+          await save("workflow", {
+            id: "wfl_observable",
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: MEMBER,
@@ -363,8 +356,8 @@ describe.each(driverFixtures(SEEDED_KINDS))(
               executionVisibility: WorkflowExecutionVisibility.organization,
             },
           });
-          await save("workflow_instance", {
-            id: "wfi_private",
+          await save("workflow", {
+            id: "wfl_private",
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: FOUNDER,
@@ -375,14 +368,14 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: MEMBER,
-            spec: { workflowInstanceId: "wfi_observable" },
+            spec: { workflowId: "wfl_observable" },
           });
           await save("workflow_execution", {
             id: "wex_founder_private",
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: FOUNDER,
-            spec: { workflowInstanceId: "wfi_private" },
+            spec: { workflowId: "wfl_private" },
           });
 
           // Memories: one with no subject (every open-source memory row
@@ -402,29 +395,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             spec: { subjectIdentityAccountId: MEMBER },
           });
 
-          // Instances of an org-visible workflow: its default (the
-          // blueprint's pointer names it) and the member's personal one.
-          await save("workflow", {
-            id: "wfl_org",
-            org: ORG,
-            visibility: ApiResourceVisibility.visibility_org,
-            createdBy: FOUNDER,
-            status: { defaultInstanceId: "wfi_default" },
-          });
-          await save("workflow_instance", {
-            id: "wfi_default",
-            org: ORG,
-            visibility: ApiResourceVisibility.visibility_private,
-            createdBy: FOUNDER,
-            spec: { workflowId: "wfl_org" },
-          });
-          await save("workflow_instance", {
-            id: "wfi_member",
-            org: ORG,
-            visibility: ApiResourceVisibility.visibility_private,
-            createdBy: MEMBER,
-            spec: { workflowId: "wfl_org" },
-          });
           storeReads = { rows: 0, scans: 0 };
           accountReads = 0;
         });
@@ -501,7 +471,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             ).toEqual([]);
           });
 
-          it("a run of an org-observable instance reaches the organization's viewers through `execution_viewer`; a run of a private instance is its triggerer's alone", async () => {
+          it("a run of an org-observable workflow reaches the organization's viewers through `execution_viewer`; a run of a private one is its starter's alone", async () => {
             expect(
               await listAs(
                 resolved(VIEWER),
@@ -531,29 +501,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             ).toEqual(["mem_member"]);
           });
 
-          it("an instance reaches whoever reads its blueprint only when it is the DEFAULT (`viewer from default_of`); a personal instance is its owner's", async () => {
-            expect(
-              await listAs(
-                resolved(VIEWER),
-                ApiResourceKind.workflow_instance,
-                instancesOfWorkflow(),
-              ),
-            ).toEqual(["wfi_default"]);
-            expect(
-              await listAs(
-                resolved(MEMBER),
-                ApiResourceKind.workflow_instance,
-                instancesOfWorkflow(),
-              ),
-            ).toEqual(["wfi_default", "wfi_member"]);
-            expect(
-              await listAs(
-                resolved(FOUNDER),
-                ApiResourceKind.workflow_instance,
-                instancesOfWorkflow(),
-              ),
-            ).toEqual(["wfi_default"]);
-          });
         });
 
         describe("the seam's contract", () => {
@@ -816,16 +763,16 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             expect(principalReads).toBe(1);
           });
 
-          it("a list of instances reads each instance row once beside the blueprint — the `default_of` rule reads the pointer's spec, which a candidate's facts do not carry (stated, not hidden)", async () => {
-            // The viewer owns neither instance, so `viewer from default_of`
-            // is evaluated for both: two instance rows, the one blueprint,
-            // the one organization.
+          it("a list of runs reads each run's workflow row once beside the organization — the `execution_viewer` rule reads the workflow's run audience, which a candidate's facts do not carry (stated, not hidden)", async () => {
+            // The viewer started neither run, so `execution_viewer from
+            // workflow` is evaluated for both: the two workflow rows, the
+            // one organization.
             await listAs(
               resolved(VIEWER),
-              ApiResourceKind.workflow_instance,
-              instancesOfWorkflow(),
+              ApiResourceKind.workflow_execution,
+              rowsOf(ApiResourceKind.workflow_execution),
             );
-            expect(storeReads).toEqual({ rows: 4, scans: 0 });
+            expect(storeReads).toEqual({ rows: 3, scans: 0 });
           });
 
           it("the enumeration verb scans the kind exactly once", async () => {

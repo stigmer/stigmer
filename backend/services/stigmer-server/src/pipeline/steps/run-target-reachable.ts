@@ -1,7 +1,7 @@
 /**
  * RunTargetReachable — a run's credential is bound to the run's
  * organization (runnerauth/runner-subject-verifier.ts), so the runner reads
- * the run's target (the agent, workflow or workflow instance it executes)
+ * the run's target (the agent or workflow it executes)
  * as that binding. A target that binding cannot read would let the create
  * succeed and the run fail at its first read. This step asks the binding
  * the runner's question at create instead: the target must be inside the

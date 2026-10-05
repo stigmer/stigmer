@@ -69,7 +69,8 @@ export interface AgentSpecOptions {
   skillRefs?: string[];
   // Blueprint env-var declarations projected into spec.env — the least-privilege
   // key whitelist the execution engine filters the merged environment against.
-  // Declarations carry no value (that is the instance/runtime job); see envmerge.
+  // Declarations carry no value (a run's layers and its person's personal
+  // environment supply values); see envmerge.
   env?: Record<string, EnvVarDeclarationInit>;
   // The author's run defaults (spec.run_config) and the engine they were
   // chosen for (spec.harness). A model needs an engine; the server checks

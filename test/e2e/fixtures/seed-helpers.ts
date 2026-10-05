@@ -168,33 +168,6 @@ export async function createTestWorkflow(
   };
 }
 
-export interface TestWorkflowInstanceResult {
-  id: string;
-  slug: string;
-  cleanup: () => Promise<void>;
-}
-
-/** A workflow instance (private, the kind's default) of an existing workflow. */
-export async function createTestWorkflowInstance(
-  client: Stigmer,
-  workflow: { id: string; org: string },
-): Promise<TestWorkflowInstanceResult> {
-  const name = `e2e-wi-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  const instance = await client.workflowInstance.create({
-    name,
-    org: workflow.org,
-    workflowId: workflow.id,
-  });
-  const id = instance.metadata!.id;
-  return {
-    id,
-    slug: instance.metadata!.slug,
-    cleanup: async () => {
-      await client.workflowInstance.delete(id).catch(() => {});
-    },
-  };
-}
-
 export interface TestWorkflowExecutionResult {
   id: string;
   workflowId: string;

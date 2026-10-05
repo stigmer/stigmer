@@ -228,7 +228,7 @@ describe("GuardReservedLabels", () => {
   it("internal callers skip — server-composed requests stamp by design", async () => {
     const step = newGuardReservedLabelsStep<typeof AgentSchema>(denying());
     const ctx = agentCtx(
-      { "stigmer.ai/default-instance": "true" },
+      { "stigmer.ai/system-managed": "true" },
       {
         identityId: "internal",
         callerClass: "internal",

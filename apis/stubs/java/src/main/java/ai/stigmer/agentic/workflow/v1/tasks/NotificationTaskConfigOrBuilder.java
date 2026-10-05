@@ -18,7 +18,7 @@ public interface NotificationTaskConfigOrBuilder extends
    *
    * This is a string (not an enum) for extensibility — new channels can
    * be added without proto changes. The runtime resolves the channel to
-   * its configured provider in the workflow instance's environment.
+   * its configured provider in the workflow run's environment.
    * </pre>
    *
    * <code>string channel = 1 [json_name = "channel", (.buf.validate.field) = { ... }</code>
@@ -33,7 +33,7 @@ public interface NotificationTaskConfigOrBuilder extends
    *
    * This is a string (not an enum) for extensibility — new channels can
    * be added without proto changes. The runtime resolves the channel to
-   * its configured provider in the workflow instance's environment.
+   * its configured provider in the workflow run's environment.
    * </pre>
    *
    * <code>string channel = 1 [json_name = "channel", (.buf.validate.field) = { ... }</code>
@@ -184,7 +184,7 @@ public interface NotificationTaskConfigOrBuilder extends
   /**
    * <pre>
    * Named template reference for rendering the notification.
-   * When set, the runtime looks up this template in the workflow instance's
+   * When set, the runtime looks up this template in the workflow run's
    * environment and uses it for rendering, with the workflow context as
    * template data. The body field is used as fallback if the template
    * cannot be resolved.
@@ -200,7 +200,7 @@ public interface NotificationTaskConfigOrBuilder extends
   /**
    * <pre>
    * Named template reference for rendering the notification.
-   * When set, the runtime looks up this template in the workflow instance's
+   * When set, the runtime looks up this template in the workflow run's
    * environment and uses it for rendering, with the workflow context as
    * template data. The body field is used as fallback if the template
    * cannot be resolved.

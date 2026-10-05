@@ -81,7 +81,6 @@ from ._gen._workflow import (
     WorkflowTaskInput,
 )
 from ._gen._workflowexecution import WorkflowExecutionClient, WorkflowExecutionInput
-from ._gen._workflowinstance import WorkflowInstanceClient, WorkflowInstanceInput
 
 # --- Shared types (generated) ----------------------------------------------
 
@@ -162,7 +161,6 @@ __all__ = [
     "MAX_INLINE_ARTIFACT_BYTES",
     "WorkflowClient",
     "WorkflowExecutionClient",
-    "WorkflowInstanceClient",
     # Input types
     "AgentInput",
     "AgentExecutionInput",
@@ -194,7 +192,6 @@ __all__ = [
     "WorkflowDocumentInput",
     "WorkflowExecutionInput",
     "WorkflowInput",
-    "WorkflowInstanceInput",
     "WorkflowTaskInput",
     "WorkspaceEntryInput",
     "WorkspaceSourceInput",

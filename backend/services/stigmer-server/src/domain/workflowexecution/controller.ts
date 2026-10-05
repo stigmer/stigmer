@@ -95,12 +95,9 @@ import { submitApproval } from "./submit-approval.js";
 import type { AgentExecutionFileDecisionForwarderProvider } from "./submit-file-decision.js";
 import { submitFileDecision } from "./submit-file-decision.js";
 import { submitWorkflowTaskApproval } from "./submit-workflow-task-approval.js";
-import type { ExecutionWorkflowInstanceCreatorProvider } from "./create-steps.js";
 import {
-  newCreateDefaultInstanceIfNeededStep,
   newSetInitialPhaseStep,
   newStartWorkflowStep,
-  newValidateWorkflowOrInstanceStep,
 } from "./create-steps.js";
 import type { WorkflowExecutionContextBuilderDeps } from "./create-execution-context-step.js";
 import { newCreateExecutionContextStep } from "./create-execution-context-step.js";
@@ -117,7 +114,6 @@ import {
   resumeExecution,
   terminateExecution,
 } from "./lifecycle.js";
-import { newNormalizeWorkflowRefStep } from "./normalize-workflow-ref-step.js";
 import { newPinWorkflowVersionStep } from "./pin-workflow-version-step.js";
 import { sendSignal } from "./send-signal.js";
 import { getEventLog } from "./get-event-log.js";
@@ -175,11 +171,9 @@ export interface WorkflowExecutionControllerDeps {
   readonly recoverSerializer: KeyedSerializer;
   /**
    * The in-process edges (lazy providers — the routes↔clients cycle
-   * resolves at request time): the default-instance creator, the two
-   * HITL forwarding edges into the agentexecution controller, and the
-   * EC-builder loaders.
+   * resolves at request time): the two HITL forwarding edges into the
+   * agentexecution controller.
    */
-  readonly workflowInstanceCreator: ExecutionWorkflowInstanceCreatorProvider;
   readonly approvalForwarder: AgentExecutionApprovalForwarderProvider;
   readonly fileDecisionForwarder: AgentExecutionFileDecisionForwarderProvider;
   /** The shared EC-builder deps (create's step 12 + recover's recreate). */
@@ -259,21 +253,19 @@ export function registerWorkflowExecutionServices(
 }
 
 /**
- * Create — create.go buildCreatePipeline, step-for-step (the numbered
- * 15-step chain): validation (proto → visibility → slug →
- * workflow-or-instance presence, the #196 InvalidArgument contrast) →
- * the run gate (AuthorizeRunTarget: the first step after
- * the target reference is guaranteed, asking workflow_instance#can_execute
- * or workflow#can_execute by request shape — before the engine gate so a
- * denied caller learns nothing about engine state, and before the workflow
- * lookup, so a denial reads nothing) →
- * the ENGINE GATE at its pinned position (before every side effect — a
- * down engine orphans nothing; Go's unit test pins that it precedes even
- * the workflow lookup) → default-instance resolution → the standard
- * build → PENDING phase → workflow-ref denormalization → version pin →
- * the ExecutionContext with merged env (runtime_env consumed and
- * cleared) → Persist → IndexSearch → StartWorkflow (after persist; a
- * start failure marks the execution FAILED, recoverable via Recover).
+ * Create — create.go buildCreatePipeline: validation (proto, which
+ * refuses a run naming no workflow, → visibility → slug) → the run gate
+ * (AuthorizeRunTarget: workflow#can_execute on the workflow the run
+ * names — before the engine gate so a denied caller learns nothing about
+ * engine state, and before the workflow lookup, so a denial reads
+ * nothing) → the ENGINE GATE (before every side effect — a down engine
+ * orphans nothing; Go's unit test pins that it precedes even the workflow
+ * lookup) → the standard build → the version pin (the one workflow load;
+ * an unknown workflow is NOT_FOUND, before the gate slot) → PENDING phase
+ * → the ExecutionContext from the pinned row's declarations (runtime_env
+ * consumed and cleared) → Persist → IndexSearch → StartWorkflow (after
+ * persist; a start failure marks the execution FAILED, recoverable via
+ * Recover).
  */
 async function createExecution(
   deps: WorkflowExecutionControllerDeps,
@@ -300,7 +292,6 @@ async function createExecution(
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
-    .addStep(newValidateWorkflowOrInstanceStep())
     .addStep(
       newAuthorizeRunTargetStep(deps.authorizer, workflowExecutionRunTarget),
     )
@@ -311,24 +302,17 @@ async function createExecution(
       ),
     )
     .addStep(newEnsureEngineAvailableStep(deps.engineState))
-    .addStep(
-      newCreateDefaultInstanceIfNeededStep({
-        store: deps.store,
-        logger: deps.logger,
-        workflowInstanceCreator: deps.workflowInstanceCreator,
-        authorizationLifecycle: deps.authorizationLifecycle,
-      }),
-    )
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store, deps.authorizer));
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newPinWorkflowVersionStep(deps.store, deps.logger));
   // The sandbox-acquisition gate slot: the Java-verified capacity-gate
-  // position — after Authorize and every
-  // resolution step (the default instance, like Java's, side-effects
-  // pre-gate: orphan-on-refusal is inherited semantics), before the
-  // phase stamp and every later side effect, pre-provision. Empty in OSS.
+  // position — after Authorize and every resolution step (the version
+  // pin's load included, so an unknown workflow is refused before any
+  // capacity is reserved), before the phase stamp and every later side
+  // effect, pre-provision. Empty in OSS.
   for (const step of stepsForSlot<typeof WorkflowExecutionSchema>(
     deps.gateSteps,
     "sandbox-acquisition:gate",
@@ -337,8 +321,6 @@ async function createExecution(
   }
   await builder
     .addStep(newSetInitialPhaseStep())
-    .addStep(newNormalizeWorkflowRefStep(deps.store, deps.logger))
-    .addStep(newPinWorkflowVersionStep(deps.store, deps.logger))
     .addStep(newCreateExecutionContextStep(deps.executionContextBuilder))
     // The workflow-lane sandbox ensure: CRITICAL and
     // pre-persist — a provisioning refusal answers Unavailable with zero
@@ -542,10 +524,9 @@ async function list(
 }
 
 /**
- * ListByWorkflow — list_by_workflow.go: the request field accepts either
- * a Workflow ID or a WorkflowInstance ID, so both of the index's keys are
- * read. Same filter, scope and order as list (bounded by the workflow id,
- * org never consulted).
+ * ListByWorkflow — list_by_workflow.go: the runs of one workflow, through
+ * the index's workflow key. Same filter, scope and order as list (bounded
+ * by the workflow id, org never consulted).
  */
 async function listByWorkflow(
   deps: WorkflowExecutionControllerDeps,
@@ -560,12 +541,7 @@ async function listByWorkflow(
     logger: deps.logger,
     listReadScope: deps.listReadScope,
     identity,
-    query: {
-      anyKey: [
-        { name: "workflow", value: req.workflowId },
-        { name: "workflow_instance", value: req.workflowId },
-      ],
-    },
+    query: { anyKey: [{ name: "workflow", value: req.workflowId }] },
     request: req,
     sortField: req.sortField,
     sortAscending: req.sortAscending,

@@ -1,10 +1,18 @@
 "use client";
 
+/**
+ * The run dialog: {@link useRunWorkflowFlow} and {@link WorkflowRunForm}
+ * in a modal, reset on every open. A run names its workflow alone, so the
+ * dialog takes the workflow and the organization the run is created in,
+ * nothing more.
+ *
+ * Pinned by `__tests__/WorkflowRunDialog.test.tsx`.
+ */
+
 import { useCallback, useEffect } from "react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { useRunWorkflowFlow } from "./useRunWorkflowFlow.js";
 import { WorkflowRunForm } from "./WorkflowRunForm.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -15,26 +23,10 @@ export interface WorkflowRunDialogProps {
   readonly open: boolean;
   /** Called when the dialog should close (cancel, backdrop click, Escape). */
   readonly onOpenChange: (open: boolean) => void;
-  /** Id of the organization that owns the workflow (a slug is also accepted). */
+  /** Id of the organization the run is created in (a slug is also accepted). */
   readonly org: string;
-  /** The workflow blueprint to run. */
+  /** The workflow to run. */
   readonly workflow: Workflow;
-  /** Available workflow instances for the instance selector. */
-  readonly instances: readonly WorkflowInstance[];
-  /**
-   * The platform-managed default instance ID (from workflow.status.defaultInstanceId).
-   * Passed through to the form's instance picker to control visibility threshold.
-   */
-  readonly defaultInstanceId?: string;
-  /**
-   * Instance to preselect when the dialog opens — wire this from a
-   * row-level "Run" action so the form reflects the instance the user
-   * clicked. Applied on each open transition (after the form resets);
-   * ignored when the id is not in `instances`, so a stale id degrades
-   * to the default option. Omit (or pass `null`) for the
-   * server-resolved default.
-   */
-  readonly initialInstanceId?: string | null;
   /**
    * Called after the execution is created successfully.
    * Receives the execution ID — use for navigation.
@@ -52,7 +44,10 @@ export interface WorkflowRunDialogProps {
  *
  * Composes {@link useRunWorkflowFlow} with {@link WorkflowRunForm}
  * inside a native `<dialog>` element. Manages the full lifecycle:
- * form fields, validation, submission, error display, and close.
+ * form fields, validation, submission, error display, and close. The
+ * form marks where each declared key will come from and, when the
+ * workflow's runs are visible to its organization, says so before the run
+ * starts.
  *
  * Uses the same `<dialog>` + `showModal()` pattern as
  * {@link ConfirmDialog} — built-in focus trapping, Escape key
@@ -65,7 +60,6 @@ export interface WorkflowRunDialogProps {
  *   onOpenChange={setShowRunDialog}
  *   org="acme"
  *   workflow={workflow}
- *   instances={instances}
  *   onSuccess={(id) => router.push(`/workflows/executions/${id}`)}
  *   onError={(msg) => toast.error(msg)}
  * />
@@ -76,9 +70,6 @@ export function WorkflowRunDialog({
   onOpenChange,
   org,
   workflow,
-  instances,
-  defaultInstanceId,
-  initialInstanceId,
   onSuccess,
   onError,
 }: WorkflowRunDialogProps) {
@@ -93,7 +84,6 @@ export function WorkflowRunDialog({
   const flow = useRunWorkflowFlow({
     org,
     workflow,
-    instances,
     onSuccess: handleSuccess,
     onError,
   });
@@ -102,23 +92,7 @@ export function WorkflowRunDialog({
   useEffect(() => {
     if (!open) return;
     flow.reset();
-    // Preselection must follow reset (reset clears the selection back to
-    // the server-resolved default). Guarded against stale ids: an instance
-    // deleted between the caller capturing the id and this open falls back
-    // to the default option instead of a <select> value with no option.
-    if (
-      initialInstanceId &&
-      instances.some((i) => i.metadata?.id === initialInstanceId)
-    ) {
-      flow.setSelectedInstanceId(initialInstanceId);
-    }
-  }, [
-    open,
-    flow.reset,
-    flow.setSelectedInstanceId,
-    initialInstanceId,
-    instances,
-  ]);
+  }, [open, flow.reset]);
 
   const workflowName =
     workflow.metadata?.name || workflow.metadata?.slug || "Workflow";
@@ -159,11 +133,8 @@ export function WorkflowRunDialog({
             envDeclarations={flow.envDeclarations}
             runtimeEnv={flow.runtimeEnv}
             onEnvVarChange={flow.setEnvVar}
-            instances={instances}
-            selectedInstanceId={flow.selectedInstanceId}
-            onInstanceChange={flow.setSelectedInstanceId}
-            defaultInstanceId={defaultInstanceId}
-            instanceEnvKeys={flow.instanceEnvKeys}
+            envKeySources={flow.envKeySources}
+            runsVisibleToOrganization={flow.runsVisibleToOrganization}
             showTriggerMessage={flow.showTriggerMessage}
             onShowTriggerMessageChange={flow.setShowTriggerMessage}
             errors={flow.fieldErrors}

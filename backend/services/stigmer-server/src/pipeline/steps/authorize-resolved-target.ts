@@ -31,8 +31,7 @@
  * apply, because the caller IS the enforcement the annotation opted out of.
  *
  * Two contracts a resolver keeps. It returns an EMPTY list only for an arm
- * the lane has modelled as "nothing to ask" (a default instance the server
- * composed for the run's human, whose access already follows the parent);
+ * the lane has modelled as "nothing to ask";
  * an absent stash, a parent the chain guaranteed and did not deliver, is a
  * chain invariant broken and the resolver THROWS, so a mis-ordered chain
  * fails loudly instead of silently reopening the lane. And it names the

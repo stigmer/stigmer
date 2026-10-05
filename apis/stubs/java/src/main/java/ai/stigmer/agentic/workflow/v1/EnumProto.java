@@ -49,12 +49,16 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "xceededPolicy\022&\n\"budget_exceeded_policy_" +
       "unspecified\020\000\022\035\n\031budget_exceeded_termina" +
       "te\020\001\022 \n\034budget_exceeded_human_review\020\002\022\030" +
-      "\n\024budget_exceeded_warn\020\003B\250\001B\tEnumProtoP\001" +
-      "\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow.V1" +
-      "\312\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\S" +
-      "tigmer\\Agentic\\Workflow\\V1\\GPBMetadata\352\002" +
-      "\"Ai::Stigmer::Agentic::Workflow::V1b\006pro" +
-      "to3"
+      "\n\024budget_exceeded_warn\020\003*\247\001\n\033WorkflowExe" +
+      "cutionVisibility\022-\n)workflow_execution_v" +
+      "isibility_unspecified\020\000\022)\n%workflow_exec" +
+      "ution_visibility_private\020\001\022.\n*workflow_e" +
+      "xecution_visibility_organization\020\002B\250\001B\tE" +
+      "numProtoP\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.W" +
+      "orkflow.V1\312\002\036Ai\\Stigmer\\Agentic\\Workflow" +
+      "\\V1\342\002*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPB" +
+      "Metadata\352\002\"Ai::Stigmer::Agentic::Workflo" +
+      "w::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

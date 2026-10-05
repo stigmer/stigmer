@@ -45,9 +45,20 @@ type WorkflowSpec struct {
 	// for overall credit exhaustion; workflow budgets prevent individual
 	// workflows from consuming more than intended.
 	// Optional — when not set, no workflow-level budget is enforced.
-	Budget        *WorkflowBudget `protobuf:"bytes,5,opt,name=budget,proto3" json:"budget,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Budget *WorkflowBudget `protobuf:"bytes,5,opt,name=budget,proto3" json:"budget,omitempty"`
+	// Who can observe the runs (executions) of this workflow.
+	//
+	// Independent of the workflow's own visibility: making a workflow
+	// org-visible lets teammates see and run it, but does NOT expose each
+	// other's run inputs and outputs unless this is set to ORGANIZATION.
+	//
+	// Defaults to PRIVATE (unspecified is treated as private): each run is
+	// visible only to the person who started it. Set at create; afterwards it
+	// changes only through WorkflowCommandController.updateExecutionVisibility,
+	// and update and apply keep the stored level.
+	ExecutionVisibility WorkflowExecutionVisibility `protobuf:"varint,6,opt,name=execution_visibility,json=executionVisibility,proto3,enum=ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility" json:"execution_visibility,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *WorkflowSpec) Reset() {
@@ -113,6 +124,13 @@ func (x *WorkflowSpec) GetBudget() *WorkflowBudget {
 		return x.Budget
 	}
 	return nil
+}
+
+func (x *WorkflowSpec) GetExecutionVisibility() WorkflowExecutionVisibility {
+	if x != nil {
+		return x.ExecutionVisibility
+	}
+	return WorkflowExecutionVisibility_workflow_execution_visibility_unspecified
 }
 
 // WorkflowBudget declares cost, token, and duration limits for a workflow execution.
@@ -483,13 +501,14 @@ var File_ai_stigmer_agentic_workflow_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/workflow/v1/spec.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xd3\x03\n" +
+	")ai/stigmer/agentic/workflow/v1/spec.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xcd\x04\n" +
 	"\fWorkflowSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12T\n" +
 	"\bdocument\x18\x02 \x01(\v20.ai.stigmer.agentic.workflow.v1.WorkflowDocumentB\x06\xbaH\x03\xc8\x01\x01R\bdocument\x12L\n" +
 	"\x05tasks\x18\x03 \x03(\v2,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\b\xbaH\x05\x92\x01\x02\b\x01R\x05tasks\x12G\n" +
 	"\x03env\x18\x04 \x03(\v25.ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntryR\x03env\x12F\n" +
-	"\x06budget\x18\x05 \x01(\v2..ai.stigmer.agentic.workflow.v1.WorkflowBudgetR\x06budget\x1al\n" +
+	"\x06budget\x18\x05 \x01(\v2..ai.stigmer.agentic.workflow.v1.WorkflowBudgetR\x06budget\x12x\n" +
+	"\x14execution_visibility\x18\x06 \x01(\x0e2;.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibilityB\b\xbaH\x05\x82\x01\x02\x10\x01R\x13executionVisibility\x1al\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
 	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01\"\xeb\x01\n" +
@@ -535,35 +554,37 @@ func file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_workflow_v1_spec_proto_goTypes = []any{
-	(*WorkflowSpec)(nil),         // 0: ai.stigmer.agentic.workflow.v1.WorkflowSpec
-	(*WorkflowBudget)(nil),       // 1: ai.stigmer.agentic.workflow.v1.WorkflowBudget
-	(*WorkflowDocument)(nil),     // 2: ai.stigmer.agentic.workflow.v1.WorkflowDocument
-	(*WorkflowTask)(nil),         // 3: ai.stigmer.agentic.workflow.v1.WorkflowTask
-	(*Export)(nil),               // 4: ai.stigmer.agentic.workflow.v1.Export
-	(*FlowControl)(nil),          // 5: ai.stigmer.agentic.workflow.v1.FlowControl
-	nil,                          // 6: ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry
-	(BudgetExceededPolicy)(0),    // 7: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
-	(WorkflowTaskKind)(0),        // 8: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
-	(*structpb.Struct)(nil),      // 9: google.protobuf.Struct
-	(*v1.EnvVarDeclaration)(nil), // 10: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(*WorkflowSpec)(nil),             // 0: ai.stigmer.agentic.workflow.v1.WorkflowSpec
+	(*WorkflowBudget)(nil),           // 1: ai.stigmer.agentic.workflow.v1.WorkflowBudget
+	(*WorkflowDocument)(nil),         // 2: ai.stigmer.agentic.workflow.v1.WorkflowDocument
+	(*WorkflowTask)(nil),             // 3: ai.stigmer.agentic.workflow.v1.WorkflowTask
+	(*Export)(nil),                   // 4: ai.stigmer.agentic.workflow.v1.Export
+	(*FlowControl)(nil),              // 5: ai.stigmer.agentic.workflow.v1.FlowControl
+	nil,                              // 6: ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry
+	(WorkflowExecutionVisibility)(0), // 7: ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility
+	(BudgetExceededPolicy)(0),        // 8: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+	(WorkflowTaskKind)(0),            // 9: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	(*structpb.Struct)(nil),          // 10: google.protobuf.Struct
+	(*v1.EnvVarDeclaration)(nil),     // 11: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_workflow_v1_spec_proto_depIdxs = []int32{
 	2,  // 0: ai.stigmer.agentic.workflow.v1.WorkflowSpec.document:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowDocument
 	3,  // 1: ai.stigmer.agentic.workflow.v1.WorkflowSpec.tasks:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTask
 	6,  // 2: ai.stigmer.agentic.workflow.v1.WorkflowSpec.env:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry
 	1,  // 3: ai.stigmer.agentic.workflow.v1.WorkflowSpec.budget:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowBudget
-	7,  // 4: ai.stigmer.agentic.workflow.v1.WorkflowBudget.on_exceeded:type_name -> ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
-	8,  // 5: ai.stigmer.agentic.workflow.v1.WorkflowTask.kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
-	9,  // 6: ai.stigmer.agentic.workflow.v1.WorkflowTask.task_config:type_name -> google.protobuf.Struct
-	4,  // 7: ai.stigmer.agentic.workflow.v1.WorkflowTask.export:type_name -> ai.stigmer.agentic.workflow.v1.Export
-	5,  // 8: ai.stigmer.agentic.workflow.v1.WorkflowTask.flow:type_name -> ai.stigmer.agentic.workflow.v1.FlowControl
-	3,  // 9: ai.stigmer.agentic.workflow.v1.WorkflowTask.compensate:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTask
-	10, // 10: ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	7,  // 4: ai.stigmer.agentic.workflow.v1.WorkflowSpec.execution_visibility:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility
+	8,  // 5: ai.stigmer.agentic.workflow.v1.WorkflowBudget.on_exceeded:type_name -> ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+	9,  // 6: ai.stigmer.agentic.workflow.v1.WorkflowTask.kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	10, // 7: ai.stigmer.agentic.workflow.v1.WorkflowTask.task_config:type_name -> google.protobuf.Struct
+	4,  // 8: ai.stigmer.agentic.workflow.v1.WorkflowTask.export:type_name -> ai.stigmer.agentic.workflow.v1.Export
+	5,  // 9: ai.stigmer.agentic.workflow.v1.WorkflowTask.flow:type_name -> ai.stigmer.agentic.workflow.v1.FlowControl
+	3,  // 10: ai.stigmer.agentic.workflow.v1.WorkflowTask.compensate:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTask
+	11, // 11: ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflow_v1_spec_proto_init() }

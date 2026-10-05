@@ -6,24 +6,17 @@
   "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/spec.proto",
   "fields": [
     {
-      "name": "WorkflowInstanceId",
-      "jsonName": "workflowInstanceId",
-      "protoField": "workflow_instance_id",
-      "type": {
-        "kind": "string"
-      },
-      "description": "ID of the WorkflowInstance to execute.",
-      "required": false
-    },
-    {
       "name": "WorkflowId",
       "jsonName": "workflowId",
       "protoField": "workflow_id",
       "type": {
         "kind": "string"
       },
-      "description": "ID of the Workflow template to execute (alternative to workflow_instance_id).",
-      "required": false
+      "description": "ID of the Workflow to run.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
     },
     {
       "name": "TriggerMessage",
@@ -65,17 +58,7 @@
           "messageType": "ExecutionValue"
         }
       },
-      "description": "Execution-scoped environment variables and secrets, available only to this\n execution. Values here take the highest merge priority, overriding values\n from Environments bound via the instance's environment_refs. A key must be\n declared in Workflow.spec.env to survive the merge: the workflow env map is\n a declaration whitelist (name + is_secret + optional), never a value source\n — undeclared keys are dropped.",
-      "required": false
-    },
-    {
-      "name": "CallbackToken",
-      "jsonName": "callbackToken",
-      "protoField": "callback_token",
-      "type": {
-        "kind": "bytes"
-      },
-      "description": "Opaque callback token for asynchronous completion by a parent orchestrator.",
+      "description": "Execution-scoped environment variables and secrets, available only to this\n execution. Values here take the highest merge priority. A key must be\n declared in Workflow.spec.env to survive the merge: the workflow env map is\n a declaration whitelist (name + is_secret + optional), never a value source\n — undeclared keys are dropped.",
       "required": false
     },
     {

@@ -4,23 +4,19 @@ import {
   WorkflowDetailView,
   WorkflowEditorView,
   WorkflowRunDialog,
-  CreateWorkflowInstanceDialog,
   useWorkflow,
   useWorkflowYaml,
-  useWorkflowInstances,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
-  useDeleteWorkflowInstance,
   useElkLayoutEngine,
   ConfirmDialog,
   useBreadcrumbOverride,
   toast,
   type DetailAction,
   type AdditionalTab,
-  useActiveOrgId,
 } from "@stigmer/react";
-import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
+import { WORKFLOW_DELETE_DESCRIPTION } from "./workflow-delete-confirmation";
 
 const elkWorkerFactory = () =>
   new Worker(new URL("elkjs/lib/elk-worker.min.js", import.meta.url));
@@ -42,25 +38,13 @@ export default function WorkflowDetailPage() {
     resourceName,
   );
   const { yaml: initialYaml } = useWorkflowYaml(org ?? "", slug ?? "");
-  const { workflow } = useWorkflow(org ?? "", slug ?? "");
-  const viewerOrg = useActiveOrgId();
-  // Scoped to the active org so the run dialog's instance picker offers
-  // the same rows as the Instances tab (falls back to the workflow's org
-  // when no org context is active). This is a separate fetch from the
-  // Instances tab's own list, so instance create/delete must refetch it
-  // explicitly (alongside the instancesRefreshKey bump) or the picker
-  // drifts stale.
-  const { instances, refetch: refetchInstances } = useWorkflowInstances(
-    workflow?.metadata?.id,
-    viewerOrg || org,
+  // The run dialog's own copy: refreshed whenever the detail view saves a
+  // change, so the dialog never reads a stale run audience or env.
+  const { workflow, refetch: refetchWorkflow } = useWorkflow(
+    org ?? "",
+    slug ?? "",
   );
-  const { deleteInstance } = useDeleteWorkflowInstance();
   const [showRunDialog, setShowRunDialog] = useState(false);
-  const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
-  const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
-  // Instance targeted by a row-level "Run" — preselects the run dialog's
-  // picker. null means the header Run button (server-resolved default).
-  const [runInstanceId, setRunInstanceId] = useState<string | null>(null);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -91,49 +75,10 @@ export default function WorkflowDetailPage() {
         ? {
             id: "run",
             label: "Run",
-            onAction: () => {
-              setRunInstanceId(null);
-              setShowRunDialog(true);
-            },
+            onAction: () => setShowRunDialog(true),
           }
         : undefined,
     [workflow],
-  );
-
-  const handleInstanceRun = useCallback((instance: WorkflowInstance) => {
-    setRunInstanceId(instance.metadata?.id ?? null);
-    setShowRunDialog(true);
-  }, []);
-
-  const handleInstanceDelete = useCallback(
-    async (instance: WorkflowInstance) => {
-      const name =
-        instance.metadata?.name || instance.metadata?.slug || "this instance";
-      // Honest copy: instance deletion does NOT cascade to executions on
-      // either edition — they stay visible on the workflow's Executions tab
-      // (spec.workflow_id is denormalized onto every execution at create).
-      const confirmed = await confirm({
-        title: `Delete ${name}?`,
-        description:
-          "This permanently removes the instance and its environment bindings. " +
-          "Executions already run against it are preserved in the workflow's execution history. " +
-          "This action cannot be undone.",
-        confirmLabel: "Delete",
-        variant: "destructive",
-      });
-      if (!confirmed) return;
-      const id = instance.metadata?.id;
-      if (!id) return;
-      try {
-        await deleteInstance(id);
-        toast.success("Instance deleted");
-        setInstancesRefreshKey((k) => k + 1);
-        refetchInstances();
-      } catch {
-        toast.error("Failed to delete instance");
-      }
-    },
-    [confirm, deleteInstance, refetchInstances],
   );
 
   const handleSaveSuccess = useCallback(() => {
@@ -158,10 +103,7 @@ export default function WorkflowDetailPage() {
   const handleDelete = useCallback(async () => {
     const confirmed = await confirm({
       title: `Delete ${resourceName}?`,
-      description:
-        "This permanently removes the workflow and all of its instances. " +
-        "Past executions are preserved in the execution history. " +
-        "This action cannot be undone.",
+      description: WORKFLOW_DELETE_DESCRIPTION,
       confirmLabel: "Delete",
       variant: "destructive",
     });
@@ -246,8 +188,8 @@ export default function WorkflowDetailPage() {
         <WorkflowDetailView
           org={org}
           slug={slug}
-          viewerOrg={viewerOrg}
           onResourceLoad={handleResourceLoad}
+          onResourceUpdated={refetchWorkflow}
           editable
           primaryAction={primaryAction}
           actions={actions}
@@ -255,12 +197,8 @@ export default function WorkflowDetailPage() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onExecutionClick={(id) => navigate(`/executions/${id}`)}
-          onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
-          onInstanceRunClick={handleInstanceRun}
-          onInstanceDeleteClick={handleInstanceDelete}
           onOpenInEditor={handleOpenInEditor}
           onViewLatestRun={handleViewLatestRun}
-          instancesRefreshKey={instancesRefreshKey}
         />
       </div>
       <ConfirmDialog
@@ -274,24 +212,8 @@ export default function WorkflowDetailPage() {
           onOpenChange={setShowRunDialog}
           org={org}
           workflow={workflow}
-          instances={instances}
-          defaultInstanceId={workflow.status?.defaultInstanceId}
-          initialInstanceId={runInstanceId}
           onSuccess={handleRunSuccess}
           onError={handleRunError}
-        />
-      )}
-      {workflow?.metadata?.id && (
-        <CreateWorkflowInstanceDialog
-          open={showCreateInstanceDialog}
-          onOpenChange={setShowCreateInstanceDialog}
-          org={org}
-          workflowId={workflow.metadata.id}
-          onCreated={() => {
-            toast.success("Instance created");
-            setInstancesRefreshKey((k) => k + 1);
-            refetchInstances();
-          }}
         />
       )}
     </>

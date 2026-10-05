@@ -233,8 +233,7 @@ public enum IamPermission
    * reserved stigmer.ai/&#42; key namespace through client-facing write
    * boundaries. Gated to platform operators (the seeding machine
    * account): reserved labels carry platform semantics the server acts
-   * on (the personal-environment marker, the default-instance marker,
-   * plugin membership and lineage) — so ordinary requests may echo or
+   * on (the personal-environment marker, plugin membership and lineage) — so ordinary requests may echo or
    * remove them but never write them.
    * </pre>
    *
@@ -558,8 +557,7 @@ public enum IamPermission
    * reserved stigmer.ai/&#42; key namespace through client-facing write
    * boundaries. Gated to platform operators (the seeding machine
    * account): reserved labels carry platform semantics the server acts
-   * on (the personal-environment marker, the default-instance marker,
-   * plugin membership and lineage) — so ordinary requests may echo or
+   * on (the personal-environment marker, plugin membership and lineage) — so ordinary requests may echo or
    * remove them but never write them.
    * </pre>
    *

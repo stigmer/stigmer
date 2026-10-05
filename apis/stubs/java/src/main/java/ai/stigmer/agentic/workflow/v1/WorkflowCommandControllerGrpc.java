@@ -139,6 +139,37 @@ public final class WorkflowCommandControllerGrpc {
     return getUpdateVisibilityMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput,
+      ai.stigmer.agentic.workflow.v1.Workflow> getUpdateExecutionVisibilityMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateExecutionVisibility",
+      requestType = ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput.class,
+      responseType = ai.stigmer.agentic.workflow.v1.Workflow.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput,
+      ai.stigmer.agentic.workflow.v1.Workflow> getUpdateExecutionVisibilityMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput, ai.stigmer.agentic.workflow.v1.Workflow> getUpdateExecutionVisibilityMethod;
+    if ((getUpdateExecutionVisibilityMethod = WorkflowCommandControllerGrpc.getUpdateExecutionVisibilityMethod) == null) {
+      synchronized (WorkflowCommandControllerGrpc.class) {
+        if ((getUpdateExecutionVisibilityMethod = WorkflowCommandControllerGrpc.getUpdateExecutionVisibilityMethod) == null) {
+          WorkflowCommandControllerGrpc.getUpdateExecutionVisibilityMethod = getUpdateExecutionVisibilityMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput, ai.stigmer.agentic.workflow.v1.Workflow>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateExecutionVisibility"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.Workflow.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("updateExecutionVisibility"))
+              .build();
+        }
+      }
+    }
+    return getUpdateExecutionVisibilityMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.WorkflowId,
       ai.stigmer.agentic.workflow.v1.Workflow> getDeleteMethod;
 
@@ -347,6 +378,23 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update who can observe the runs (executions) of this workflow.
+     * This is a SEPARATE axis from updateVisibility: it controls run
+     * observability (who sees execution inputs and outputs), not who can see or
+     * run the workflow itself. Making a workflow org-runnable does NOT expose
+     * other people's runs; that requires this opt-in. The setting covers every
+     * run of the workflow, past runs included.
+     * Supported levels: PRIVATE (only the person who started each run) and
+     * ORGANIZATION (all org members). Platform is unsupported.
+     * </pre>
+     */
+    default void updateExecutionVisibility(ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateExecutionVisibilityMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow.
      * </pre>
      */
@@ -370,7 +418,7 @@ public final class WorkflowCommandControllerGrpc {
      *   - FAILED: internal validation fault (reserved; not a user error)
      * gRPC errors are limited to input that cannot be validated at all (a missing
      * workflow or spec) and to genuine internal faults. This RPC does NOT persist,
-     * authorize, or create instances. It is a pure validation endpoint suitable for
+     * or authorize. It is a pure validation endpoint suitable for
      * iterative authoring where the caller needs fast feedback before committing.
      * </pre>
      */
@@ -479,6 +527,24 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update who can observe the runs (executions) of this workflow.
+     * This is a SEPARATE axis from updateVisibility: it controls run
+     * observability (who sees execution inputs and outputs), not who can see or
+     * run the workflow itself. Making a workflow org-runnable does NOT expose
+     * other people's runs; that requires this opt-in. The setting covers every
+     * run of the workflow, past runs included.
+     * Supported levels: PRIVATE (only the person who started each run) and
+     * ORGANIZATION (all org members). Platform is unsupported.
+     * </pre>
+     */
+    public void updateExecutionVisibility(ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateExecutionVisibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow.
      * </pre>
      */
@@ -503,7 +569,7 @@ public final class WorkflowCommandControllerGrpc {
      *   - FAILED: internal validation fault (reserved; not a user error)
      * gRPC errors are limited to input that cannot be validated at all (a missing
      * workflow or spec) and to genuine internal faults. This RPC does NOT persist,
-     * authorize, or create instances. It is a pure validation endpoint suitable for
+     * or authorize. It is a pure validation endpoint suitable for
      * iterative authoring where the caller needs fast feedback before committing.
      * </pre>
      */
@@ -596,6 +662,23 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update who can observe the runs (executions) of this workflow.
+     * This is a SEPARATE axis from updateVisibility: it controls run
+     * observability (who sees execution inputs and outputs), not who can see or
+     * run the workflow itself. Making a workflow org-runnable does NOT expose
+     * other people's runs; that requires this opt-in. The setting covers every
+     * run of the workflow, past runs included.
+     * Supported levels: PRIVATE (only the person who started each run) and
+     * ORGANIZATION (all org members). Platform is unsupported.
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.Workflow updateExecutionVisibility(ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateExecutionVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow.
      * </pre>
      */
@@ -619,7 +702,7 @@ public final class WorkflowCommandControllerGrpc {
      *   - FAILED: internal validation fault (reserved; not a user error)
      * gRPC errors are limited to input that cannot be validated at all (a missing
      * workflow or spec) and to genuine internal faults. This RPC does NOT persist,
-     * authorize, or create instances. It is a pure validation endpoint suitable for
+     * or authorize. It is a pure validation endpoint suitable for
      * iterative authoring where the caller needs fast feedback before committing.
      * </pre>
      */
@@ -710,6 +793,23 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update who can observe the runs (executions) of this workflow.
+     * This is a SEPARATE axis from updateVisibility: it controls run
+     * observability (who sees execution inputs and outputs), not who can see or
+     * run the workflow itself. Making a workflow org-runnable does NOT expose
+     * other people's runs; that requires this opt-in. The setting covers every
+     * run of the workflow, past runs included.
+     * Supported levels: PRIVATE (only the person who started each run) and
+     * ORGANIZATION (all org members). Platform is unsupported.
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.Workflow updateExecutionVisibility(ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateExecutionVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow.
      * </pre>
      */
@@ -733,7 +833,7 @@ public final class WorkflowCommandControllerGrpc {
      *   - FAILED: internal validation fault (reserved; not a user error)
      * gRPC errors are limited to input that cannot be validated at all (a missing
      * workflow or spec) and to genuine internal faults. This RPC does NOT persist,
-     * authorize, or create instances. It is a pure validation endpoint suitable for
+     * or authorize. It is a pure validation endpoint suitable for
      * iterative authoring where the caller needs fast feedback before committing.
      * </pre>
      */
@@ -828,6 +928,24 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update who can observe the runs (executions) of this workflow.
+     * This is a SEPARATE axis from updateVisibility: it controls run
+     * observability (who sees execution inputs and outputs), not who can see or
+     * run the workflow itself. Making a workflow org-runnable does NOT expose
+     * other people's runs; that requires this opt-in. The setting covers every
+     * run of the workflow, past runs included.
+     * Supported levels: PRIVATE (only the person who started each run) and
+     * ORGANIZATION (all org members). Platform is unsupported.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.Workflow> updateExecutionVisibility(
+        ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateExecutionVisibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow.
      * </pre>
      */
@@ -852,7 +970,7 @@ public final class WorkflowCommandControllerGrpc {
      *   - FAILED: internal validation fault (reserved; not a user error)
      * gRPC errors are limited to input that cannot be validated at all (a missing
      * workflow or spec) and to genuine internal faults. This RPC does NOT persist,
-     * authorize, or create instances. It is a pure validation endpoint suitable for
+     * or authorize. It is a pure validation endpoint suitable for
      * iterative authoring where the caller needs fast feedback before committing.
      * </pre>
      */
@@ -881,9 +999,10 @@ public final class WorkflowCommandControllerGrpc {
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_UPDATE_VISIBILITY = 3;
-  private static final int METHODID_DELETE = 4;
-  private static final int METHODID_VALIDATE_SPEC = 5;
-  private static final int METHODID_TAG_VERSION = 6;
+  private static final int METHODID_UPDATE_EXECUTION_VISIBILITY = 4;
+  private static final int METHODID_DELETE = 5;
+  private static final int METHODID_VALIDATE_SPEC = 6;
+  private static final int METHODID_TAG_VERSION = 7;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -916,6 +1035,10 @@ public final class WorkflowCommandControllerGrpc {
           break;
         case METHODID_UPDATE_VISIBILITY:
           serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow>) responseObserver);
+          break;
+        case METHODID_UPDATE_EXECUTION_VISIBILITY:
+          serviceImpl.updateExecutionVisibility((ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -976,6 +1099,13 @@ public final class WorkflowCommandControllerGrpc {
               ai.stigmer.commons.apiresource.UpdateVisibilityInput,
               ai.stigmer.agentic.workflow.v1.Workflow>(
                 service, METHODID_UPDATE_VISIBILITY)))
+        .addMethod(
+          getUpdateExecutionVisibilityMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput,
+              ai.stigmer.agentic.workflow.v1.Workflow>(
+                service, METHODID_UPDATE_EXECUTION_VISIBILITY)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1049,6 +1179,7 @@ public final class WorkflowCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateVisibilityMethod())
+              .addMethod(getUpdateExecutionVisibilityMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getValidateSpecMethod())
               .addMethod(getTagVersionMethod())

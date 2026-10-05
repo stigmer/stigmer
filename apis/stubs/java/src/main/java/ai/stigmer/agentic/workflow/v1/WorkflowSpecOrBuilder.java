@@ -209,4 +209,41 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
    */
   ai.stigmer.agentic.workflow.v1.WorkflowBudgetOrBuilder getBudgetOrBuilder();
+
+  /**
+   * <pre>
+   * Who can observe the runs (executions) of this workflow.
+   *
+   * Independent of the workflow's own visibility: making a workflow
+   * org-visible lets teammates see and run it, but does NOT expose each
+   * other's run inputs and outputs unless this is set to ORGANIZATION.
+   *
+   * Defaults to PRIVATE (unspecified is treated as private): each run is
+   * visible only to the person who started it. Set at create; afterwards it
+   * changes only through WorkflowCommandController.updateExecutionVisibility,
+   * and update and apply keep the stored level.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 6 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for executionVisibility.
+   */
+  int getExecutionVisibilityValue();
+  /**
+   * <pre>
+   * Who can observe the runs (executions) of this workflow.
+   *
+   * Independent of the workflow's own visibility: making a workflow
+   * org-visible lets teammates see and run it, but does NOT expose each
+   * other's run inputs and outputs unless this is set to ORGANIZATION.
+   *
+   * Defaults to PRIVATE (unspecified is treated as private): each run is
+   * visible only to the person who started it. Set at create; afterwards it
+   * changes only through WorkflowCommandController.updateExecutionVisibility,
+   * and update and apply keep the stored level.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 6 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
+   * @return The executionVisibility.
+   */
+  ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility getExecutionVisibility();
 }

@@ -1,5 +1,5 @@
-A WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
-It captures the full lifecycle of a workflow run — from trigger through task-by-task
+A WorkflowExecution represents a single run of a Workflow, pinned to the version
+the Workflow had when the run started. It captures the full lifecycle of a workflow run — from trigger through task-by-task
 execution to completion or failure. Create a WorkflowExecution to start a workflow,
 then read its status to track progress.
 
@@ -9,7 +9,7 @@ kind: WorkflowExecution
 metadata:
   name: onboarding-20250111-143022
 spec:
-  workflow_instance_id: wfi-customer-onboarding-prod
+  workflow_id: wfl_01customeronboarding
   trigger_message: "New signup: john.doe@example.com"
   trigger_metadata:
     source: api

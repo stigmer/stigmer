@@ -54,7 +54,7 @@ export type Workflow = Message<"ai.stigmer.agentic.workflow.v1.Workflow"> & {
   spec?: WorkflowSpec;
 
   /**
-   * System-managed state including audit trail and default instance ID.
+   * System-managed state including audit trail, validation and version hash.
    *
    * @generated from field: ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5;
    */

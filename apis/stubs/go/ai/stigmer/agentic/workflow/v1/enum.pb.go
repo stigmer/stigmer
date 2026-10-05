@@ -215,6 +215,73 @@ func (BudgetExceededPolicy) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescGZIP(), []int{1}
 }
 
+// WorkflowExecutionVisibility controls who can observe the runs (executions)
+// of a workflow.
+//
+// This is a SEPARATE axis from the workflow's own visibility
+// (metadata.visibility, which governs who can SEE and RUN the workflow).
+// Keeping them separate means making a workflow org-runnable never exposes
+// other people's run inputs and outputs. See workflow_execution.fga and
+// workflow.fga (the `execution_viewer` relation) for how this maps to
+// authorization tuples.
+//
+// Only PRIVATE and ORGANIZATION are meaningful: a run is either visible to
+// just the person who started it, or to every member of the owning
+// organization. Public/platform run observability is deliberately unsupported.
+type WorkflowExecutionVisibility int32
+
+const (
+	// Unset. Treated as PRIVATE — each execution is visible only to the user
+	// who triggered it.
+	WorkflowExecutionVisibility_workflow_execution_visibility_unspecified WorkflowExecutionVisibility = 0
+	// Each execution is visible only to the user who triggered it (its owner).
+	WorkflowExecutionVisibility_workflow_execution_visibility_private WorkflowExecutionVisibility = 1
+	// Every member of the owning organization can observe all executions of
+	// this workflow.
+	WorkflowExecutionVisibility_workflow_execution_visibility_organization WorkflowExecutionVisibility = 2
+)
+
+// Enum value maps for WorkflowExecutionVisibility.
+var (
+	WorkflowExecutionVisibility_name = map[int32]string{
+		0: "workflow_execution_visibility_unspecified",
+		1: "workflow_execution_visibility_private",
+		2: "workflow_execution_visibility_organization",
+	}
+	WorkflowExecutionVisibility_value = map[string]int32{
+		"workflow_execution_visibility_unspecified":  0,
+		"workflow_execution_visibility_private":      1,
+		"workflow_execution_visibility_organization": 2,
+	}
+)
+
+func (x WorkflowExecutionVisibility) Enum() *WorkflowExecutionVisibility {
+	p := new(WorkflowExecutionVisibility)
+	*p = x
+	return p
+}
+
+func (x WorkflowExecutionVisibility) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WorkflowExecutionVisibility) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_workflow_v1_enum_proto_enumTypes[2].Descriptor()
+}
+
+func (WorkflowExecutionVisibility) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_workflow_v1_enum_proto_enumTypes[2]
+}
+
+func (x WorkflowExecutionVisibility) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WorkflowExecutionVisibility.Descriptor instead.
+func (WorkflowExecutionVisibility) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescGZIP(), []int{2}
+}
+
 var File_ai_stigmer_agentic_workflow_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
@@ -250,7 +317,11 @@ const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\"budget_exceeded_policy_unspecified\x10\x00\x12\x1d\n" +
 	"\x19budget_exceeded_terminate\x10\x01\x12 \n" +
 	"\x1cbudget_exceeded_human_review\x10\x02\x12\x18\n" +
-	"\x14budget_exceeded_warn\x10\x03B\xa0\x02\n" +
+	"\x14budget_exceeded_warn\x10\x03*\xa7\x01\n" +
+	"\x1bWorkflowExecutionVisibility\x12-\n" +
+	")workflow_execution_visibility_unspecified\x10\x00\x12)\n" +
+	"%workflow_execution_visibility_private\x10\x01\x12.\n" +
+	"*workflow_execution_visibility_organization\x10\x02B\xa0\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\tEnumProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (
@@ -265,10 +336,11 @@ func file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflow_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_ai_stigmer_agentic_workflow_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_ai_stigmer_agentic_workflow_v1_enum_proto_goTypes = []any{
-	(WorkflowTaskKind)(0),     // 0: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
-	(BudgetExceededPolicy)(0), // 1: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+	(WorkflowTaskKind)(0),            // 0: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	(BudgetExceededPolicy)(0),        // 1: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+	(WorkflowExecutionVisibility)(0), // 2: ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility
 }
 var file_ai_stigmer_agentic_workflow_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -288,7 +360,7 @@ func file_ai_stigmer_agentic_workflow_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      3,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

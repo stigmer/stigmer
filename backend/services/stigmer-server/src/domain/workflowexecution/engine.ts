@@ -46,12 +46,11 @@ import { ENGINE_UNAVAILABLE_MESSAGE } from "./constants.js";
  * the slim-input doctrine keeps secrets out of Temporal history (they were
  * already consumed into the ExecutionContext). executionTarget feeds
  * the engine's dispatch resolution ("global" → stigmer_runner, "execution" →
- * wfexec:{id}); the cloud-only CallbackToken/InvokerIdentityAccountID
- * fields have no OSS producer and are not modeled.
+ * wfexec:{id}); the cloud-only InvokerIdentityAccountID field has no OSS
+ * producer and is not modeled.
  */
 export interface StartWorkflowExecutionInput {
   readonly executionId: string;
-  readonly workflowInstanceId: string;
   readonly workflowId: string;
   readonly orgId: string;
   readonly recoveryMode: boolean;
@@ -149,11 +148,11 @@ export type WorkflowExecutionEngineStateProvider =
 /**
  * EnsureEngineAvailable — create.go ensureEngineAvailableStep: rejects the
  * create fast — before any persistence or side effect — when the engine is
- * not connected. Pinned position: step 4, after ValidateWorkflowOrInstance
- * (a malformed request still answers InvalidArgument first) and before
- * CreateDefaultInstanceIfNeeded (a down engine orphans nothing — no
- * default instance, no ExecutionContext, no execution record). Go's unit
- * test pins the precedence: engine-unavailable beats workflow lookup.
+ * not connected. Pinned position: after ValidateProto (a run naming no
+ * workflow still answers InvalidArgument first) and the run gate, and
+ * before every side effect (a down engine orphans nothing — no
+ * ExecutionContext, no execution record). Go's unit test pins the
+ * precedence: engine-unavailable beats workflow lookup.
  */
 export function newEnsureEngineAvailableStep(
   engineState: WorkflowExecutionEngineStateProvider,

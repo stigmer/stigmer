@@ -13,12 +13,12 @@ import {
   VisibilityBadge,
 } from "../VisibilitySelector";
 import {
-  instanceVisibilityLevels,
   blueprintVisibilityLevels,
   type VisibilityLevelOption,
 } from "../visibilityLevels";
 
-const INSTANCE_VISIBILITY_LEVELS = instanceVisibilityLevels();
+// A two-level list (Private / Organization), the shape most kinds offer.
+const TWO_LEVELS = blueprintVisibilityLevels({ offersChildOrgs: false });
 
 // Base UI's Popover positioner observes its anchor; happy-dom lacks
 // ResizeObserver, so provide a no-op shim.
@@ -56,7 +56,7 @@ describe("VisibilitySelector — create mode (inline list)", () => {
       <VisibilitySelector
         mode="create"
         visibility={ApiResourceVisibility.visibility_private}
-        options={INSTANCE_VISIBILITY_LEVELS}
+        options={TWO_LEVELS}
         onVisibilityChange={() => {}}
       />,
     );
@@ -75,7 +75,7 @@ describe("VisibilitySelector — create mode (inline list)", () => {
       <VisibilitySelector
         mode="create"
         visibility={ApiResourceVisibility.visibility_private}
-        options={INSTANCE_VISIBILITY_LEVELS}
+        options={TWO_LEVELS}
         onVisibilityChange={onChange}
       />,
     );
@@ -91,7 +91,7 @@ describe("VisibilitySelector — create mode (inline list)", () => {
       <VisibilitySelector
         mode="create"
         visibility={ApiResourceVisibility.visibility_child_orgs}
-        options={INSTANCE_VISIBILITY_LEVELS}
+        options={TWO_LEVELS}
         onVisibilityChange={() => {}}
       />,
     );
@@ -110,7 +110,7 @@ describe("VisibilitySelector — create mode (inline list)", () => {
       <VisibilitySelector
         mode="create"
         visibility={ApiResourceVisibility.visibility_public}
-        options={INSTANCE_VISIBILITY_LEVELS}
+        options={TWO_LEVELS}
         onVisibilityChange={onChange}
       />,
     );
@@ -131,7 +131,7 @@ describe("VisibilitySelector — create mode (inline list)", () => {
         mode="create"
         disabled
         visibility={ApiResourceVisibility.visibility_private}
-        options={INSTANCE_VISIBILITY_LEVELS}
+        options={TWO_LEVELS}
         onVisibilityChange={onChange}
       />,
     );

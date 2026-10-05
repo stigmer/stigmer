@@ -1358,8 +1358,7 @@ const authorizationLifecycle: ResourceAuthorizationLifecycle = {
   },
   onExecutionVisibilityChanged: (event: ExecutionVisibilityChangedEvent) => {
     const audience: ReadonlyArray<ExecutionAudienceShape> = event.shapes;
-    void event.instanceKind;
-    void event.instanceId;
+    void event.workflowId;
     void event.orgId;
     void audience;
     return Promise.resolve();

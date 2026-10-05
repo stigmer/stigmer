@@ -45,9 +45,8 @@ const PINNED: Readonly<
       "session{agent=field:status.agent_id,channel=label:stigmer.ai/channel-id}",
   },
   workflow_execution: {
-    revision: 1,
-    fingerprint:
-      "workflow_execution{workflow=field:spec.workflow_id,workflow_instance=field:spec.workflow_instance_id}",
+    revision: 2,
+    fingerprint: "workflow_execution{workflow=field:spec.workflow_id}",
   },
 };
 

@@ -32,7 +32,6 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private WorkflowStatus() {
-    defaultInstanceId_ = "";
     versionHash_ = "";
   }
 
@@ -93,59 +92,6 @@ private static final long serialVersionUID = 0L;
     return audit_ == null ? ai.stigmer.commons.apiresource.ApiResourceAudit.getDefaultInstance() : audit_;
   }
 
-  public static final int DEFAULT_INSTANCE_ID_FIELD_NUMBER = 1;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object defaultInstanceId_ = "";
-  /**
-   * <pre>
-   * ID of the default workflow instance created automatically for this workflow.
-   * Every workflow has exactly one default instance that requires no configuration.
-   * This instance has no environment bindings and uses all workflow defaults.
-   * Created automatically when the workflow is created.
-   * </pre>
-   *
-   * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-   * @return The defaultInstanceId.
-   */
-  @java.lang.Override
-  public java.lang.String getDefaultInstanceId() {
-    java.lang.Object ref = defaultInstanceId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      defaultInstanceId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * ID of the default workflow instance created automatically for this workflow.
-   * Every workflow has exactly one default instance that requires no configuration.
-   * This instance has no environment bindings and uses all workflow defaults.
-   * Created automatically when the workflow is created.
-   * </pre>
-   *
-   * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-   * @return The bytes for defaultInstanceId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getDefaultInstanceIdBytes() {
-    java.lang.Object ref = defaultInstanceId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      defaultInstanceId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
   public static final int SERVERLESS_WORKFLOW_VALIDATION_FIELD_NUMBER = 2;
   private ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverlessWorkflowValidation_;
   /**
@@ -195,7 +141,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object versionHash_ = "";
   /**
    * <pre>
-   * SHA-256 hash of the generated CNCF YAML for the current valid version.
+   * SHA-256 content hash of the workflow's current valid version.
    * </pre>
    *
    * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -216,7 +162,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * SHA-256 hash of the generated CNCF YAML for the current valid version.
+   * SHA-256 content hash of the workflow's current valid version.
    * </pre>
    *
    * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -251,9 +197,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultInstanceId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, defaultInstanceId_);
-    }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(2, getServerlessWorkflowValidation());
     }
@@ -272,9 +215,6 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultInstanceId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, defaultInstanceId_);
-    }
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, getServerlessWorkflowValidation());
@@ -306,8 +246,6 @@ private static final long serialVersionUID = 0L;
       if (!getAudit()
           .equals(other.getAudit())) return false;
     }
-    if (!getDefaultInstanceId()
-        .equals(other.getDefaultInstanceId())) return false;
     if (hasServerlessWorkflowValidation() != other.hasServerlessWorkflowValidation()) return false;
     if (hasServerlessWorkflowValidation()) {
       if (!getServerlessWorkflowValidation()
@@ -330,8 +268,6 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + AUDIT_FIELD_NUMBER;
       hash = (53 * hash) + getAudit().hashCode();
     }
-    hash = (37 * hash) + DEFAULT_INSTANCE_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getDefaultInstanceId().hashCode();
     if (hasServerlessWorkflowValidation()) {
       hash = (37 * hash) + SERVERLESS_WORKFLOW_VALIDATION_FIELD_NUMBER;
       hash = (53 * hash) + getServerlessWorkflowValidation().hashCode();
@@ -485,7 +421,6 @@ private static final long serialVersionUID = 0L;
         auditBuilder_.dispose();
         auditBuilder_ = null;
       }
-      defaultInstanceId_ = "";
       serverlessWorkflowValidation_ = null;
       if (serverlessWorkflowValidationBuilder_ != null) {
         serverlessWorkflowValidationBuilder_.dispose();
@@ -533,15 +468,12 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000001;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.defaultInstanceId_ = defaultInstanceId_;
-      }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.serverlessWorkflowValidation_ = serverlessWorkflowValidationBuilder_ == null
             ? serverlessWorkflowValidation_
             : serverlessWorkflowValidationBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
+      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.versionHash_ = versionHash_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -562,17 +494,12 @@ private static final long serialVersionUID = 0L;
       if (other.hasAudit()) {
         mergeAudit(other.getAudit());
       }
-      if (!other.getDefaultInstanceId().isEmpty()) {
-        defaultInstanceId_ = other.defaultInstanceId_;
-        bitField0_ |= 0x00000002;
-        onChanged();
-      }
       if (other.hasServerlessWorkflowValidation()) {
         mergeServerlessWorkflowValidation(other.getServerlessWorkflowValidation());
       }
       if (!other.getVersionHash().isEmpty()) {
         versionHash_ = other.versionHash_;
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000004;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -601,21 +528,16 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 10: {
-              defaultInstanceId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000002;
-              break;
-            } // case 10
             case 18: {
               input.readMessage(
                   internalGetServerlessWorkflowValidationFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 18
             case 26: {
               versionHash_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000004;
               break;
             } // case 26
             case 794: {
@@ -799,113 +721,6 @@ private static final long serialVersionUID = 0L;
       return auditBuilder_;
     }
 
-    private java.lang.Object defaultInstanceId_ = "";
-    /**
-     * <pre>
-     * ID of the default workflow instance created automatically for this workflow.
-     * Every workflow has exactly one default instance that requires no configuration.
-     * This instance has no environment bindings and uses all workflow defaults.
-     * Created automatically when the workflow is created.
-     * </pre>
-     *
-     * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-     * @return The defaultInstanceId.
-     */
-    public java.lang.String getDefaultInstanceId() {
-      java.lang.Object ref = defaultInstanceId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        defaultInstanceId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the default workflow instance created automatically for this workflow.
-     * Every workflow has exactly one default instance that requires no configuration.
-     * This instance has no environment bindings and uses all workflow defaults.
-     * Created automatically when the workflow is created.
-     * </pre>
-     *
-     * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-     * @return The bytes for defaultInstanceId.
-     */
-    public com.google.protobuf.ByteString
-        getDefaultInstanceIdBytes() {
-      java.lang.Object ref = defaultInstanceId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        defaultInstanceId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the default workflow instance created automatically for this workflow.
-     * Every workflow has exactly one default instance that requires no configuration.
-     * This instance has no environment bindings and uses all workflow defaults.
-     * Created automatically when the workflow is created.
-     * </pre>
-     *
-     * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-     * @param value The defaultInstanceId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDefaultInstanceId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      defaultInstanceId_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the default workflow instance created automatically for this workflow.
-     * Every workflow has exactly one default instance that requires no configuration.
-     * This instance has no environment bindings and uses all workflow defaults.
-     * Created automatically when the workflow is created.
-     * </pre>
-     *
-     * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearDefaultInstanceId() {
-      defaultInstanceId_ = getDefaultInstance().getDefaultInstanceId();
-      bitField0_ = (bitField0_ & ~0x00000002);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the default workflow instance created automatically for this workflow.
-     * Every workflow has exactly one default instance that requires no configuration.
-     * This instance has no environment bindings and uses all workflow defaults.
-     * Created automatically when the workflow is created.
-     * </pre>
-     *
-     * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-     * @param value The bytes for defaultInstanceId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDefaultInstanceIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      defaultInstanceId_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-
     private ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverlessWorkflowValidation_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation, ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation.Builder, ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidationOrBuilder> serverlessWorkflowValidationBuilder_;
@@ -920,7 +735,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the serverlessWorkflowValidation field is set.
      */
     public boolean hasServerlessWorkflowValidation() {
-      return ((bitField0_ & 0x00000004) != 0);
+      return ((bitField0_ & 0x00000002) != 0);
     }
     /**
      * <pre>
@@ -957,7 +772,7 @@ private static final long serialVersionUID = 0L;
       } else {
         serverlessWorkflowValidationBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -977,7 +792,7 @@ private static final long serialVersionUID = 0L;
       } else {
         serverlessWorkflowValidationBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -992,7 +807,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeServerlessWorkflowValidation(ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation value) {
       if (serverlessWorkflowValidationBuilder_ == null) {
-        if (((bitField0_ & 0x00000004) != 0) &&
+        if (((bitField0_ & 0x00000002) != 0) &&
           serverlessWorkflowValidation_ != null &&
           serverlessWorkflowValidation_ != ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation.getDefaultInstance()) {
           getServerlessWorkflowValidationBuilder().mergeFrom(value);
@@ -1003,7 +818,7 @@ private static final long serialVersionUID = 0L;
         serverlessWorkflowValidationBuilder_.mergeFrom(value);
       }
       if (serverlessWorkflowValidation_ != null) {
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000002;
         onChanged();
       }
       return this;
@@ -1018,7 +833,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2 [json_name = "serverlessWorkflowValidation"];</code>
      */
     public Builder clearServerlessWorkflowValidation() {
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       serverlessWorkflowValidation_ = null;
       if (serverlessWorkflowValidationBuilder_ != null) {
         serverlessWorkflowValidationBuilder_.dispose();
@@ -1037,7 +852,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2 [json_name = "serverlessWorkflowValidation"];</code>
      */
     public ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation.Builder getServerlessWorkflowValidationBuilder() {
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return internalGetServerlessWorkflowValidationFieldBuilder().getBuilder();
     }
@@ -1084,7 +899,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object versionHash_ = "";
     /**
      * <pre>
-     * SHA-256 hash of the generated CNCF YAML for the current valid version.
+     * SHA-256 content hash of the workflow's current valid version.
      * </pre>
      *
      * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -1104,7 +919,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * SHA-256 hash of the generated CNCF YAML for the current valid version.
+     * SHA-256 content hash of the workflow's current valid version.
      * </pre>
      *
      * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -1125,7 +940,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * SHA-256 hash of the generated CNCF YAML for the current valid version.
+     * SHA-256 content hash of the workflow's current valid version.
      * </pre>
      *
      * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -1136,13 +951,13 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       versionHash_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * SHA-256 hash of the generated CNCF YAML for the current valid version.
+     * SHA-256 content hash of the workflow's current valid version.
      * </pre>
      *
      * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -1150,13 +965,13 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearVersionHash() {
       versionHash_ = getDefaultInstance().getVersionHash();
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * SHA-256 hash of the generated CNCF YAML for the current valid version.
+     * SHA-256 content hash of the workflow's current valid version.
      * </pre>
      *
      * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -1168,7 +983,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       versionHash_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }

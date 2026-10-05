@@ -49,7 +49,7 @@ export type CallerClass =
  * server code can reach that transport, so the marker is unspoofable —
  * and it survives caller PROPAGATION: a request-origin in-process call
  * carries the ORIGINAL caller's identity with this origin, letting the
- * server compose requests as the user (default-instance factories,
+ * server compose requests as the user (a conversation a turn creates,
  * managed environments) without those requests being mistaken for
  * client-boundary writes. Absent means the wire.
  */
@@ -161,8 +161,8 @@ export function isPlatformPipelineCaller(caller: CallerIdentity): boolean {
  * code rather than presented on the wire: the `internal` class (the server
  * acting as itself) or ANY identity that entered through the in-process
  * transport (a propagated person the server is building a request for,
- * such as the default-instance self-heal that creates as the run's human
- * for attribution). The serving chassis strips the propagation header, so
+ * such as the session a turn creates as the run's human for
+ * attribution). The serving chassis strips the propagation header, so
  * the wire cannot claim this.
  *
  * This is the trust arm the label guard, the memory-capture gate and the
@@ -171,8 +171,8 @@ export function isPlatformPipelineCaller(caller: CallerIdentity): boolean {
  * entry-point request already passed its own gate. It is NARROWER than
  * `isPlatformPipelineCaller`: a wire `machine` account is one of the
  * platform's pipelines but its request is still the wire's, so a step
- * that trusts server-composed state (a reserved label, a default
- * instance's provenance) must key on this predicate and never on that one.
+ * that trusts server-composed state (a reserved label the server stamped)
+ * must key on this predicate and never on that one.
  */
 export function isServerComposedRequest(caller: CallerIdentity): boolean {
   return caller.callerClass === "internal" || caller.origin === "in-process";

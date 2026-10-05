@@ -91,7 +91,7 @@ message EmitEventSpec {
 //             ticket_id: "${ $context.ticket.id }"
 //             severity: "${ $context.triage.severity }"
 //             category: "${ $context.triage.category }"
-//             classified_by: "${ $context.workflow_instance_id }"
+//             classified_by: "${ $context.workflow_id }"
 //       export:
 //         as: "${ . }"
 //

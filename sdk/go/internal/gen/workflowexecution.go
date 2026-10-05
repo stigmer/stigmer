@@ -183,19 +183,17 @@ type WorkflowExecutionInput struct {
 	// set from a loaded resource. Required for updates to platform-scoped
 	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
 	// on create: the server assigns every new resource's id.
-	Id                 string
-	Name               string
-	Slug               string
-	Org                string
-	Labels             map[string]string
-	Visibility         apiresource.ApiResourceVisibility
-	WorkflowInstanceId string
-	WorkflowId         string
-	TriggerMessage     string
-	TriggerMetadata    map[string]string
-	RuntimeEnv         map[string]EnvVarInput
-	CallbackToken      []byte
-	ExecutionTarget    sessionv1.ExecutionTarget
+	Id              string
+	Name            string
+	Slug            string
+	Org             string
+	Labels          map[string]string
+	Visibility      apiresource.ApiResourceVisibility
+	WorkflowId      string
+	TriggerMessage  string
+	TriggerMetadata map[string]string
+	RuntimeEnv      map[string]EnvVarInput
+	ExecutionTarget sessionv1.ExecutionTarget
 }
 
 func (i *WorkflowExecutionInput) toProto() (*workflowexecutionv1.WorkflowExecution, error) {
@@ -212,7 +210,6 @@ func (i *WorkflowExecutionInput) toProto() (*workflowexecutionv1.WorkflowExecuti
 		},
 		Spec: &workflowexecutionv1.WorkflowExecutionSpec{},
 	}
-	resource.Spec.WorkflowInstanceId = i.WorkflowInstanceId
 	resource.Spec.WorkflowId = i.WorkflowId
 	resource.Spec.TriggerMessage = i.TriggerMessage
 	resource.Spec.TriggerMetadata = i.TriggerMetadata
@@ -222,7 +219,6 @@ func (i *WorkflowExecutionInput) toProto() (*workflowexecutionv1.WorkflowExecuti
 			resource.Spec.RuntimeEnv[k] = &executioncontextv1.ExecutionValue{Value: v.Value, IsSecret: v.IsSecret}
 		}
 	}
-	resource.Spec.CallbackToken = i.CallbackToken
 	resource.Spec.ExecutionTarget = i.ExecutionTarget
 	return resource, nil
 }
@@ -242,7 +238,6 @@ func WorkflowExecutionInputFromProto(p *workflowexecutionv1.WorkflowExecution) *
 		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
-		input.WorkflowInstanceId = s.GetWorkflowInstanceId()
 		input.WorkflowId = s.GetWorkflowId()
 		input.TriggerMessage = s.GetTriggerMessage()
 		input.TriggerMetadata = s.GetTriggerMetadata()
@@ -252,7 +247,6 @@ func WorkflowExecutionInputFromProto(p *workflowexecutionv1.WorkflowExecution) *
 				input.RuntimeEnv[k] = EnvVarInput{Value: v.GetValue(), IsSecret: v.GetIsSecret()}
 			}
 		}
-		input.CallbackToken = s.GetCallbackToken()
 		input.ExecutionTarget = s.GetExecutionTarget()
 	}
 	return input

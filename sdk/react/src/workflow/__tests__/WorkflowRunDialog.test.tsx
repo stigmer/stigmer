@@ -1,13 +1,32 @@
-// Tests for WorkflowRunDialog's `initialInstanceId` preselection (issue
-// #582): a row-level "Run" must open the dialog with that instance already
-// selected, while reopening without one resets to the server-resolved
-// default. Selection is asserted through the rendered instance <select> —
-// the observable surface — with the real useRunWorkflowFlow underneath.
+/**
+ * Pins the run dialog as a person sees it, with the real run flow and form
+ * underneath and only the client faked:
+ *
+ * - there is no picker of any kind, and Run creates the run with the
+ *   workflow's id alone;
+ * - every declared key carries its source: typed here (passed with the
+ *   run), held by the person's personal environment, or missing;
+ * - while the personal environment is being read, or when it cannot be
+ *   read, an untyped key says so instead of claiming missing, and the run
+ *   is not blocked on it;
+ * - a workflow of another organization than the run's marks no key as
+ *   coming from the personal environment, since the server fills none;
+ * - when the workflow's runs are visible to its organization, the dialog
+ *   says so before the run starts, and says nothing otherwise.
+ */
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
-import type { ReactNode } from "react";
+import {
+  render,
+  screen,
+  cleanup,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import type { Stigmer } from "@stigmer/sdk";
+import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { WorkflowRunDialog } from "../WorkflowRunDialog";
 
@@ -26,102 +45,208 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function makeWorkflow() {
+const DECLARED_ENV = {
+  TYPED_KEY: { optional: false, isSecret: false },
+  SAVED_KEY: { optional: false, isSecret: true },
+  ABSENT_KEY: { optional: true, isSecret: false },
+};
+
+function makeWorkflow(overrides?: {
+  org?: string;
+  executionVisibility?: WorkflowExecutionVisibility;
+}): Workflow {
   return {
-    metadata: { id: "wf_1", name: "my-workflow", slug: "my-workflow" },
-    spec: { env: {} },
-  } as never;
+    metadata: {
+      id: "wf_1",
+      name: "nightly-triage",
+      slug: "nightly-triage",
+      org: overrides?.org ?? "org_acme",
+    },
+    spec: {
+      env: DECLARED_ENV,
+      executionVisibility:
+        overrides?.executionVisibility ?? WorkflowExecutionVisibility.private,
+    },
+  } as unknown as Workflow;
 }
 
-function makeInstance(id: string, name: string) {
-  return {
-    metadata: { id, name, slug: name },
-    spec: { environmentRefs: [] },
-  } as never;
+function makeClient(
+  personalKeys: readonly string[],
+  read: "answers" | "hangs" | "fails" = "answers",
+) {
+  const create = vi.fn(async () => ({ metadata: { id: "wex_1" } }));
+  const answer = {
+    items: [
+      {
+        metadata: { id: "env_personal", org: "org_acme" },
+        spec: {
+          data: Object.fromEntries(
+            personalKeys.map((k) => [k, { value: "", isSecret: true }]),
+          ),
+        },
+      },
+    ],
+    totalCount: 1,
+  };
+  const list = vi.fn(() =>
+    read === "hangs"
+      ? new Promise<typeof answer>(() => {})
+      : read === "fails"
+        ? Promise.reject(new Error("environments unavailable"))
+        : Promise.resolve(answer),
+  );
+  const client = {
+    workflowExecution: { create },
+    environment: { list },
+  } as unknown as Stigmer;
+  return { client, create, list };
 }
 
-// Two user instances so the picker always renders (it needs >= 1 user
-// instance when defaultInstanceId is provided).
-const DEFAULT_INSTANCE_ID = "wfi_default";
-const INSTANCES = [
-  makeInstance("wfi_a", "instance-a"),
-  makeInstance("wfi_b", "instance-b"),
-];
-
-const mockClient = {
-  workflowExecution: { create: vi.fn() },
-  environment: { getByReference: vi.fn() },
-} as unknown as Stigmer;
-
-function renderDialog(props?: {
-  open?: boolean;
-  initialInstanceId?: string | null;
-}) {
-  const ui = (dialogProps?: {
-    open?: boolean;
-    initialInstanceId?: string | null;
-  }) => (
-    <StigmerContext.Provider value={mockClient}>
+function renderDialog(workflow: Workflow, client: Stigmer) {
+  const onSuccess = vi.fn();
+  render(
+    <StigmerContext.Provider value={client}>
       <WorkflowRunDialog
-        open={dialogProps?.open ?? true}
+        open
         onOpenChange={vi.fn()}
-        org="acme"
-        workflow={makeWorkflow()}
-        instances={INSTANCES}
-        defaultInstanceId={DEFAULT_INSTANCE_ID}
-        initialInstanceId={dialogProps?.initialInstanceId}
-        onSuccess={vi.fn()}
+        org="org_acme"
+        workflow={workflow}
+        onSuccess={onSuccess}
         onError={vi.fn()}
       />
-    </StigmerContext.Provider>
+    </StigmerContext.Provider>,
   );
-  const result = render(ui(props));
-  return {
-    ...result,
-    rerenderDialog: (nextProps?: {
-      open?: boolean;
-      initialInstanceId?: string | null;
-    }) => result.rerender(ui(nextProps)),
-  };
+  return { onSuccess };
 }
 
-function instanceSelect(): HTMLSelectElement {
-  return screen.getByLabelText("Instance") as HTMLSelectElement;
+/** The source marker rendered beside a key's label. */
+function markerOf(key: string): string | null {
+  const field = screen.getByLabelText(new RegExp(`^${key}`));
+  const group = field.parentElement as HTMLElement;
+  return group.querySelector("[data-source]")?.getAttribute("data-source") ?? null;
 }
 
-describe("WorkflowRunDialog initialInstanceId", () => {
-  it("preselects the requested instance when the dialog opens", () => {
-    renderDialog({ initialInstanceId: "wfi_b" });
+describe("WorkflowRunDialog", () => {
+  it("offers no picker and creates the run with the workflow's id alone", async () => {
+    const { client, create } = makeClient(["SAVED_KEY"]);
+    const { onSuccess } = renderDialog(makeWorkflow(), client);
 
-    expect(instanceSelect().value).toBe("wfi_b");
+    expect(screen.queryByRole("combobox")).toBeNull();
+
+    await waitFor(() => expect(markerOf("SAVED_KEY")).toBe("personal"));
+    fireEvent.change(screen.getByLabelText(/^TYPED_KEY/), {
+      target: { value: "typed-value" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Run Workflow" }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith("wex_1"));
+    const input = (create.mock.calls[0] as unknown as [Record<string, unknown>])[0];
+    expect(input.workflowId).toBe("wf_1");
+    expect(input.org).toBe("org_acme");
+    expect(Object.keys(input)).not.toContain("workflowInstanceId");
+    expect(input.runtimeEnv).toEqual({
+      TYPED_KEY: { value: "typed-value", isSecret: false },
+    });
   });
 
-  it("defaults to the server-resolved option when omitted", () => {
-    renderDialog();
+  it("marks each declared key typed, from the personal environment, or missing", async () => {
+    const { client } = makeClient(["SAVED_KEY"]);
+    renderDialog(makeWorkflow(), client);
 
-    // "" is the "Default (no specific configuration)" option.
-    expect(instanceSelect().value).toBe("");
+    await waitFor(() => expect(markerOf("SAVED_KEY")).toBe("personal"));
+    expect(markerOf("TYPED_KEY")).toBe("missing");
+    expect(markerOf("ABSENT_KEY")).toBe("missing");
+
+    fireEvent.change(screen.getByLabelText(/^TYPED_KEY/), {
+      target: { value: "typed-value" },
+    });
+    expect(markerOf("TYPED_KEY")).toBe("typed");
+
+    const saved = screen.getByLabelText(/^SAVED_KEY/).parentElement as HTMLElement;
+    expect(within(saved).getByText("From your personal environment")).toBeTruthy();
+    expect(screen.getAllByText("Missing")).toHaveLength(1);
+    expect(screen.getByText("Passed with this run")).toBeTruthy();
   });
 
-  it("falls back to the default option when the id is stale", () => {
-    renderDialog({ initialInstanceId: "wfi_deleted" });
+  it("does not demand a required key the personal environment holds", async () => {
+    const { client, create } = makeClient(["SAVED_KEY", "TYPED_KEY"]);
+    const { onSuccess } = renderDialog(makeWorkflow(), client);
 
-    expect(instanceSelect().value).toBe("");
+    await waitFor(() => expect(markerOf("TYPED_KEY")).toBe("personal"));
+    fireEvent.click(screen.getByRole("button", { name: "Run Workflow" }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/is required/)).toBeNull();
   });
 
-  it("applies the fresh preselection on each open transition", () => {
-    const { rerenderDialog } = renderDialog({ initialInstanceId: "wfi_a" });
-    expect(instanceSelect().value).toBe("wfi_a");
+  it("says it is checking the personal environment while it is read, and does not block the run on it", async () => {
+    const { client, create, list } = makeClient([], "hangs");
+    const { onSuccess } = renderDialog(makeWorkflow(), client);
 
-    // Close, then reopen targeting a different instance (a second row's
-    // Run click) — the reset-then-preselect path must apply the new id.
-    rerenderDialog({ open: false, initialInstanceId: "wfi_a" });
-    rerenderDialog({ open: true, initialInstanceId: "wfi_b" });
-    expect(instanceSelect().value).toBe("wfi_b");
+    await waitFor(() => expect(list).toHaveBeenCalled());
+    expect(markerOf("SAVED_KEY")).toBe("pending");
+    expect(screen.getAllByText("Checking your personal environment…")).toHaveLength(3);
+    expect(screen.queryByText("Missing")).toBeNull();
+    expect(screen.queryByLabelText("required")).toBeNull();
 
-    // Reopen with none (the header Run button) — back to the default.
-    rerenderDialog({ open: false, initialInstanceId: "wfi_b" });
-    rerenderDialog({ open: true, initialInstanceId: null });
-    expect(instanceSelect().value).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Run Workflow" }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith("wex_1"));
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/is required/)).toBeNull();
+  });
+
+  it("says the personal environment could not be read, and leaves its keys to the server", async () => {
+    const { client, create } = makeClient([], "fails");
+    const { onSuccess } = renderDialog(makeWorkflow(), client);
+
+    await waitFor(() => expect(markerOf("SAVED_KEY")).toBe("unknown"));
+    const saved = screen.getByLabelText(/^SAVED_KEY/).parentElement as HTMLElement;
+    expect(within(saved).getByText("Unknown")).toBeTruthy();
+    const hint = saved.textContent ?? "";
+    expect(hint).toContain("Couldn't read your personal environment");
+    expect(hint).toContain("the server will fill it if you saved it");
+    expect(screen.queryByText("Missing")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Run Workflow" }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith("wex_1"));
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/is required/)).toBeNull();
+  });
+
+  it("marks no key from the personal environment for a workflow of another organization", async () => {
+    const { client, create, list } = makeClient(["SAVED_KEY"]);
+    renderDialog(makeWorkflow({ org: "org_parent" }), client);
+
+    expect(markerOf("SAVED_KEY")).toBe("missing");
+    expect(screen.queryByText("From your personal environment")).toBeNull();
+    expect(list).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Run Workflow" }));
+    expect(await screen.findByText("SAVED_KEY is required")).toBeTruthy();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("says before the run starts that runs visible to the organization include this one", () => {
+    const { client } = makeClient([]);
+    renderDialog(
+      makeWorkflow({
+        executionVisibility: WorkflowExecutionVisibility.organization,
+      }),
+      client,
+    );
+
+    const notice = screen.getByRole("note");
+    expect(notice.textContent).toContain("visible to everyone in its organization");
+    expect(notice.textContent).toContain("input and output");
+  });
+
+  it("says nothing about organization visibility when runs are private", () => {
+    const { client } = makeClient([]);
+    renderDialog(makeWorkflow(), client);
+
+    expect(screen.queryByRole("note")).toBeNull();
   });
 });

@@ -1,9 +1,9 @@
 /**
  * Whose run is this — the person an execution's person-scoped reads act
  * for. Today one read asks it: the personal-environment fill-ins of the
- * execution-context builder (a session's git clone token and its own MCP
- * servers' declared keys), which must read the run's person's saved
- * values and never a teammate's.
+ * execution-context builders (an agent turn's declared keys and its
+ * session's git clone token; a workflow run's declared keys), which must
+ * read the run's person's saved values and never a teammate's.
  *
  * The person is the execution's creator stamp
  * (`status.audit.spec_audit.created_by.id`), which the server stamped from
@@ -31,8 +31,14 @@
  * `agent_call` child's stamp is the person who started the workflow. Under
  * trusted-local the operator, the server's internal class and every row
  * share one stamp, so the single user keeps every fill-in.
+ *
+ * A workflow run's person is read the same way, from the run's own stamp
+ * (`workflowRunPersonOf`): whoever started the run, never the workflow's
+ * author. No schedule starts a workflow run (the schedule's workflow arm
+ * is reserved), so no schedule label applies to it.
  */
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 
 import { createdByOf } from "../../pipeline/steps/authorization-facts.js";
 
@@ -49,6 +55,14 @@ export function runPersonOf(execution: AgentExecution): string | undefined {
   if ((execution.metadata?.labels[SCHEDULE_ID_LABEL_KEY] ?? "") !== "") {
     return undefined;
   }
+  const stamp = createdByOf(execution);
+  return stamp === "" ? undefined : stamp;
+}
+
+/** A workflow run's person's creator stamp, or `undefined` when the run has none. */
+export function workflowRunPersonOf(
+  execution: WorkflowExecution,
+): string | undefined {
   const stamp = createdByOf(execution);
   return stamp === "" ? undefined : stamp;
 }

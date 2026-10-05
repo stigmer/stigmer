@@ -58,11 +58,9 @@ export interface CredentialBinding {
    * candidate carries and, for a blueprint another organization shares with
    * its children, the bound organization's parent (one read per request,
    * memoised). Such a blueprint is kept, for the inner scope to decide, only
-   * when that parent shares it. Two answers differ from `verdict` because
-   * they would need a row the candidate does not carry: the default instance
-   * of the parent's shared workflow is left out of a bound caller's list (a
-   * get by id still admits it), and the owner's API keys are all listed
-   * (managing one still needs it limited where the caller is).
+   * when that parent shares it. One answer differs from `verdict` because it
+   * would need a row the candidate does not carry: the owner's API keys are
+   * all listed (managing one still needs it limited where the caller is).
    */
   keepsEntry(
     caller: CallerIdentity,

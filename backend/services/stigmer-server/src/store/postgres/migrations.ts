@@ -68,6 +68,17 @@ import {
   PUBLIC_ROW_KINDS_AT_RETIREMENT,
   movePublicRowToOrg,
 } from "../public-visibility-retired.js";
+import {
+  RETIRED_WORKFLOW_INSTANCE_KIND,
+  WORKFLOW_EXECUTION_KIND,
+  WORKFLOW_RETIREMENT_PAGE_SIZE,
+  WORKFLOW_RETIREMENT_POLICY_KIND,
+  migrateWorkflowExecutionRow,
+  policyNamesRetiredWorkflowInstance,
+  unreadableWorkflowRowError,
+  workflowInstanceWorkflowIdOf,
+} from "../workflow-instance-retired.js";
+import type { MigratedRun } from "../workflow-instance-retired.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -88,9 +99,11 @@ export const SCHEMA_VERSION_9 = 9;
 export const SCHEMA_VERSION_10 = 10;
 /** v11: the organization deletion table (DDL only). */
 export const SCHEMA_VERSION_11 = 11;
+/** v12: workflow runs name their workflow directly; the workflow instance rows removed. */
+export const SCHEMA_VERSION_12 = 12;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_11;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_12;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -141,6 +154,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_9, migrateToV9],
       [SCHEMA_VERSION_10, migrateToV10],
       [SCHEMA_VERSION_11, migrateToV11],
+      [SCHEMA_VERSION_12, migrateToV12],
     ];
 
     for (const [version, migrate] of chain) {
@@ -788,4 +802,120 @@ async function migrateToV11(client: PoolClient): Promise<void> {
       last_error TEXT NOT NULL DEFAULT ''
     );
   `);
+}
+
+/**
+ * v12: the workflow instance kind is removed (workflow-instance-retired.ts
+ * says what each run becomes and why an unreadable row fails the step).
+ *
+ * - Every instance row is read in keyset pages on `(kind, id)` for the
+ *   workflow it names; the map of instance to workflow is ids only, so it
+ *   stays small beside the rows.
+ * - Every run is read in keyset pages and rewritten when it carries a
+ *   retired field. A run that gained its workflow id has `updated_at`
+ *   bumped the way the store's writes bump it, so the list index
+ *   re-derives the key it is found by the way it re-derives any unproven
+ *   row; a run that only lost a retired field keeps its stamp.
+ * - Every IamPolicy row is read in keyset pages, and the ones naming an
+ *   instance as resource or principal are deleted with their list keys,
+ *   their history kept, as the store deletes a policy.
+ * - The instance rows, their history and their list keys are then
+ *   deleted; the search index is left to boot's RebuildIndex, which
+ *   re-indexes only the registered kinds (the v9 precedent).
+ *
+ * Each page compares and orders `id` under the column's own collation, so
+ * the keyset is consistent whatever the database's locale and the primary
+ * key serves it. The chain's advisory lock keeps a second instance's boot
+ * out of the step, and the transaction makes it whole or nothing.
+ */
+async function migrateToV12(client: PoolClient): Promise<void> {
+  /** Every row of a kind, in keyset pages, in id order. */
+  const forEachRow = async (
+    kind: string,
+    visit: (row: { id: string; data: Buffer }) => Promise<void> | void,
+  ): Promise<void> => {
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources
+           WHERE kind = $1 AND id > $2
+           ORDER BY id
+           LIMIT $3`,
+          [kind, after, WORKFLOW_RETIREMENT_PAGE_SIZE],
+        )
+      ).rows;
+      for (const row of rows) {
+        await visit(row);
+      }
+      if (rows.length < WORKFLOW_RETIREMENT_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+
+  const instanceWorkflows = new Map<string, string>();
+  await forEachRow(RETIRED_WORKFLOW_INSTANCE_KIND, (row) => {
+    try {
+      instanceWorkflows.set(
+        row.id,
+        workflowInstanceWorkflowIdOf(new Uint8Array(row.data)),
+      );
+    } catch (error) {
+      throw unreadableWorkflowRowError(
+        RETIRED_WORKFLOW_INSTANCE_KIND,
+        row.id,
+        error,
+      );
+    }
+  });
+  const workflowOf = (instanceId: string): string | undefined =>
+    instanceWorkflows.get(instanceId);
+
+  await forEachRow(WORKFLOW_EXECUTION_KIND, async (row) => {
+    let migrated: MigratedRun | undefined;
+    try {
+      migrated = migrateWorkflowExecutionRow(
+        new Uint8Array(row.data),
+        workflowOf,
+      );
+    } catch (error) {
+      throw unreadableWorkflowRowError(WORKFLOW_EXECUTION_KIND, row.id, error);
+    }
+    if (migrated !== undefined) {
+      await client.query(
+        migrated.workflowIdFilled
+          ? `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`
+          : `UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`,
+        [Buffer.from(migrated.data), WORKFLOW_EXECUTION_KIND, row.id],
+      );
+    }
+  });
+
+  const retiredPolicies: string[] = [];
+  await forEachRow(WORKFLOW_RETIREMENT_POLICY_KIND, (row) => {
+    try {
+      if (policyNamesRetiredWorkflowInstance(new Uint8Array(row.data))) {
+        retiredPolicies.push(row.id);
+      }
+    } catch (error) {
+      throw unreadableWorkflowRowError(
+        WORKFLOW_RETIREMENT_POLICY_KIND,
+        row.id,
+        error,
+      );
+    }
+  });
+  for (const table of ["resource_list_keys", "resources"]) {
+    await client.query(
+      `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
+      [WORKFLOW_RETIREMENT_POLICY_KIND, retiredPolicies],
+    );
+  }
+
+  for (const table of ["resource_audit", "resource_list_keys", "resources"]) {
+    await client.query(`DELETE FROM ${table} WHERE kind = $1`, [
+      RETIRED_WORKFLOW_INSTANCE_KIND,
+    ]);
+  }
 }

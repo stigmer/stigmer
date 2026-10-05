@@ -22,7 +22,6 @@ const PY_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["skill", "skills"],
   ["workflow", "workflows"],
   ["workflowexecution", "workflow_executions"],
-  ["workflowinstance", "workflow_instances"],
 ]);
 
 export function pyClientFieldName(resource: string): string {

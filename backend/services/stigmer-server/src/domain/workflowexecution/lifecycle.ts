@@ -41,17 +41,12 @@ import type {
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
-import {
-  filterByDeclaredKeys,
-  mergeEnvironmentLayers,
-} from "../../envmerge/envmerge.js";
 import {
   failedPreconditionError,
   goWrappedStatusError,
@@ -84,6 +79,9 @@ import { ensureWorkflowSandboxForExecution } from "../../sandbox/steps.js";
 import type { WorkflowExecutionTemporalConfig } from "./temporal/config.js";
 import { deleteExecutionContextForExecution } from "../executioncontext/internal-delete.js";
 import type { WorkflowExecutionContextBuilderDeps } from "./create-execution-context-step.js";
+import { workflowRunEnvironment } from "./create-execution-context-step.js";
+import { loadVersion } from "../../pipeline/steps/version-history.js";
+import { workflowVersionBinding } from "../workflow/version-resolution.js";
 import { EngineWorkflowNotFoundError } from "./engine.js";
 import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
 import type { StreamBroker } from "./stream-broker.js";
@@ -424,17 +422,43 @@ function newTerminateExistingWorkflowStep<Desc extends DescMessage>(
 }
 
 /**
+ * RequireRunWorkflow — a run that names no workflow cannot be recovered:
+ * there is nothing to hydrate. Only a run recorded before runs named
+ * their workflow directly, whose workflow instance was gone when the
+ * store moved its runs onto their workflows, holds no workflow id; its
+ * history stays readable. Refused before the first side effect.
+ */
+function newRequireRunWorkflowStep<Desc extends DescMessage>(): PipelineStep<Desc> {
+  return {
+    name: "RequireRunWorkflow",
+    execute(ctx) {
+      if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
+        return;
+      }
+      const execution = loadedExecution(ctx);
+      if ((execution.spec?.workflowId ?? "") === "") {
+        throw failedPreconditionError(
+          `workflow execution ${execution.metadata?.id ?? ""} names no workflow and cannot be recovered`,
+        );
+      }
+    },
+  };
+}
+
+/**
  * RecreateExecutionContext — recreate_execution_context_step.go: the
  * previous run's orchestrator deleted the EC on exit; a recovered
  * workflow hydrating with an empty environment would fail every task
- * needing secrets. Env is re-resolved from the CURRENT instance refs and
- * workflow declarations ("fix the config, then recover" works by
- * design); the original runtime_env overrides were stripped at create
- * and are not preserved (documented limitation).
+ * needing secrets. The environment is rebuilt by create's own rule
+ * (create-execution-context-step.ts `workflowRunEnvironment`) over the
+ * declarations of the version the run pinned and the run's person's
+ * CURRENT personal environment ("fix the key, then recover" works by
+ * design); the original runtime_env overrides were stripped at create and
+ * are not preserved (documented limitation).
  *
  * Failure posture: DEGRADE GRACEFULLY (the opposite of the create step) —
- * missing instance/workflow/env refs warn and proceed without an EC; only
- * the EC create call itself fails the recover.
+ * a workflow or version that cannot be read warns and proceeds without an
+ * EC; only the EC create call itself fails the recover.
  */
 function newRecreateExecutionContextStep<Desc extends DescMessage>(
   deps: LifecycleDeps,
@@ -449,7 +473,8 @@ function newRecreateExecutionContextStep<Desc extends DescMessage>(
       const execution = loadedExecution(ctx);
       const executionId = execution.metadata?.id ?? "";
       const executionOrg = execution.metadata?.org ?? "";
-      const workflowInstanceId = execution.spec?.workflowInstanceId ?? "";
+      const workflowId = execution.spec?.workflowId ?? "";
+      const versionHash = execution.status?.workflowVersionHash ?? "";
 
       // Delete a stale EC left by the interrupted run (best-effort; no
       // TTL sweep exists — a leftover row stays until deleted, oss#892).
@@ -465,34 +490,26 @@ function newRecreateExecutionContextStep<Desc extends DescMessage>(
         "recover",
       );
 
-      let instance: WorkflowInstance;
-      try {
-        instance = await builder
-          .workflowInstanceLoader()
-          .get(workflowInstanceId);
-      } catch (error) {
-        deps.logger.warn(
-          "WorkflowInstance not found during recovery EC recreation. Proceeding without environment — workflow tasks may fail if they need env vars.",
-          {
-            executionId,
-            workflowInstanceId,
-            error: error instanceof Error ? error.message : String(error),
-          },
-        );
-        return;
-      }
-
-      const workflowId = instance.spec?.workflowId ?? "";
       let workflow: Workflow;
       try {
-        workflow = await builder.store.getResource(
-          ApiResourceKind.workflow,
-          workflowId,
-          WorkflowSchema,
-        );
+        workflow =
+          versionHash === ""
+            ? await builder.store.getResource(
+                ApiResourceKind.workflow,
+                workflowId,
+                WorkflowSchema,
+              )
+            : (
+                await loadVersion(
+                  builder.store,
+                  workflowVersionBinding,
+                  workflowId,
+                  versionHash,
+                )
+              ).resource;
       } catch (error) {
         deps.logger.warn(
-          "Workflow not found during recovery EC recreation. Proceeding without environment.",
+          "Workflow version not readable during recovery EC recreation. Proceeding without environment — workflow tasks may fail if they need env vars.",
           {
             executionId,
             workflowId,
@@ -502,31 +519,14 @@ function newRecreateExecutionContextStep<Desc extends DescMessage>(
         return;
       }
 
-      const environments = [];
-      for (const ref of instance.spec?.environmentRefs ?? []) {
-        try {
-          environments.push(
-            await builder.environmentResolution.resolveByReference(ref),
-          );
-        } catch (error) {
-          deps.logger.warn(
-            "Failed to resolve environments during recovery. Proceeding without environment.",
-            {
-              executionId,
-              error: error instanceof Error ? error.message : String(error),
-            },
-          );
-          return;
-        }
-      }
-
       // No runtime_env layer — it was stripped at create time.
-      const merged = mergeEnvironmentLayers(environments, {});
-      const { filtered } = filterByDeclaredKeys(
-        merged,
-        workflow.spec?.env ?? {},
+      const environment = await workflowRunEnvironment(
+        builder,
+        workflow,
+        execution,
+        {},
       );
-      if (filtered.size === 0) {
+      if (environment.size === 0) {
         deps.logger.info(
           "No environment variables to recreate for recovered execution",
           { executionId },
@@ -538,7 +538,7 @@ function newRecreateExecutionContextStep<Desc extends DescMessage>(
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "ExecutionContext",
         metadata: { name: `exec-ctx-${executionId}`, org: executionOrg },
-        spec: { executionId, data: Object.fromEntries(filtered) },
+        spec: { executionId, data: Object.fromEntries(environment) },
       });
 
       try {
@@ -548,7 +548,7 @@ function newRecreateExecutionContextStep<Desc extends DescMessage>(
         deps.logger.info("Recreated ExecutionContext for recovered execution", {
           executionContextId: created.metadata?.id ?? "",
           executionId,
-          dataEntries: filtered.size,
+          dataEntries: environment.size,
         });
       } catch (error) {
         const prefix = `recreate execution context for recovered execution ${executionId}`;
@@ -585,7 +585,6 @@ function newStartFreshWorkflowStep<Desc extends DescMessage>(
       try {
         await engineState.engine.startInvokeWorkflow({
           executionId,
-          workflowInstanceId: execution.spec?.workflowInstanceId ?? "",
           workflowId: execution.spec?.workflowId ?? "",
           orgId: execution.metadata?.org ?? "",
           recoveryMode: true,
@@ -907,6 +906,7 @@ function runRecoverPipeline(
         (phase) =>
           `cannot recover execution in phase ${phase}; only FAILED executions can be recovered`,
       ),
+      newRequireRunWorkflowStep(),
       // The sandbox-acquisition gate slot: after load/authorize/phase
       // validation, before the first
       // side effect (the terminate) — recover re-provisions a

@@ -12,7 +12,7 @@ public interface WorkflowVersionEntryOrBuilder extends
 
   /**
    * <pre>
-   * SHA-256 hash of the CNCF YAML — the immutable version identifier.
+   * Content hash of the version's spec — the immutable version identifier.
    * </pre>
    *
    * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -21,7 +21,7 @@ public interface WorkflowVersionEntryOrBuilder extends
   java.lang.String getVersionHash();
   /**
    * <pre>
-   * SHA-256 hash of the CNCF YAML — the immutable version identifier.
+   * Content hash of the version's spec — the immutable version identifier.
    * </pre>
    *
    * <code>string version_hash = 1 [json_name = "versionHash"];</code>

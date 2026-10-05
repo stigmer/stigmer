@@ -1,22 +1,16 @@
 /**
- * Create-pipeline steps — ports create.go's inline steps: the
- * workflow-or-instance presence validation (the #196 InvalidArgument
- * contrast to agentexecution's Internal invariant), the self-healing
- * default-instance resolution, the initial PENDING phase, and the
- * post-persist Temporal start whose failure marks the execution FAILED
- * (recoverable via Recover).
+ * Create-pipeline steps — the initial PENDING phase and the post-persist
+ * Temporal start, whose failure marks the execution FAILED (recoverable
+ * via Recover). A run names its workflow (`spec.workflow_id`, required by
+ * the proto rule ValidateProto enforces); the workflow is loaded and the
+ * run pinned by PinWorkflowVersion (pin-workflow-version-step.ts).
  *
  * The engine gate itself lives in engine.ts (shared shape with the
- * sibling domain); its pinned position is step 4 of the create chain.
+ * sibling domain); its pinned position is before every side effect of the
+ * create chain.
  */
 import { create } from "@bufbuild/protobuf";
-import { ConnectError } from "@connectrpc/connect";
 
-import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/status_pb";
 import {
   WorkflowExecutionSchema,
   WorkflowExecutionStatusSchema,
@@ -25,262 +19,13 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecu
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import type { CallerIdentity } from "../../extensions/identity.js";
-import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
-import {
-  goWrappedStatusError,
-  internalError,
-  invalidArgumentError,
-  notFoundError,
-} from "../../pipeline/errors.js";
+import { internalError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
-import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { fromBinary } from "@bufbuild/protobuf";
-
-import { defaultWorkflowInstanceSlug } from "../workflowinstance/defaultinstance.js";
-import { buildDefaultWorkflowInstanceRequest } from "../workflowinstance/defaultinstance.js";
 
 import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
 
 type ExecutionDesc = typeof WorkflowExecutionSchema;
-
-/**
- * The narrow workflowinstance CREATE edge — as the ORIGINAL caller (the
- * Java createAsCaller posture): real owner
- * attribution for the created instance under an enforcing Authorizer.
- */
-export interface ExecutionWorkflowInstanceCreator {
-  createAsCaller(
-    instance: WorkflowInstance,
-    caller: CallerIdentity,
-  ): Promise<WorkflowInstance>;
-}
-export type ExecutionWorkflowInstanceCreatorProvider =
-  () => ExecutionWorkflowInstanceCreator;
-
-/**
- * ValidateWorkflowOrInstance — at least one of workflow_id /
- * workflow_instance_id must be provided. Matches the cloud
- * WorkflowExecutionCreateHandler. AgentExecution differs on purpose: its
- * all-empty shape is legal (the built-in assistant), so it has no such
- * step; a workflow execution has no built-in workflow to fall back to
- * (issue #196).
- */
-export function newValidateWorkflowOrInstanceStep(): PipelineStep<ExecutionDesc> {
-  return {
-    name: "ValidateWorkflowOrInstance",
-    execute(ctx) {
-      const spec = ctx.input.spec;
-      if (
-        (spec?.workflowInstanceId ?? "") === "" &&
-        (spec?.workflowId ?? "") === ""
-      ) {
-        throw invalidArgumentError(
-          "either workflow_id or workflow_instance_id must be provided",
-        );
-      }
-    },
-  };
-}
-
-export interface CreateDefaultInstanceDeps {
-  readonly store: Store;
-  readonly logger: Logger;
-  readonly workflowInstanceCreator: ExecutionWorkflowInstanceCreatorProvider;
-  readonly authorizationLifecycle?: ResourceAuthorizationLifecycle;
-}
-
-/**
- * CreateDefaultInstanceIfNeeded — create.go: when only workflow_id is
- * provided, resolve (or provision) the workflow's default instance:
- *
- *   1. load the workflow (NotFound if missing);
- *   2. use status.default_instance_id when set;
- *   3. else look the instance up by its deterministic slug — the
- *      self-heal for a past run where the instance was created but the
- *      workflow status write failed (prevents duplicate-slug errors);
- *   4. else create it via the in-process client (CreateAsSystem) and
- *      write default_instance_id back onto the workflow.
- *
- * Every path stamps the resolved id onto execution.spec.
- * workflow_instance_id, which downstream steps (EC creation, workflow
- * start) read.
- */
-export function newCreateDefaultInstanceIfNeededStep(
-  deps: CreateDefaultInstanceDeps,
-): PipelineStep<ExecutionDesc> {
-  return {
-    name: "CreateDefaultInstanceIfNeeded",
-    async execute(ctx) {
-      const input = ctx.input;
-      if ((input.spec?.workflowInstanceId ?? "") !== "") {
-        return;
-      }
-      const workflowId = input.spec?.workflowId ?? "";
-      const execution = ctx.newState;
-
-      let workflow: Workflow;
-      try {
-        workflow = await deps.store.getResource(
-          ApiResourceKind.workflow,
-          workflowId,
-          WorkflowSchema,
-        );
-      } catch (error) {
-        if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("Workflow", workflowId);
-        }
-        throw internalError(error, "failed to load workflow");
-      }
-
-      const defaultInstanceId = workflow.status?.defaultInstanceId ?? "";
-      if (defaultInstanceId !== "") {
-        setInstanceId(execution, defaultInstanceId);
-        return;
-      }
-
-      // Self-heal: the instance may exist even though the workflow status
-      // write failed on a previous run.
-      const slug = defaultWorkflowInstanceSlug(workflow.metadata?.slug ?? "");
-      let existingInstance: WorkflowInstance | undefined;
-      try {
-        existingInstance = await findInstanceBySlug(deps, slug);
-      } catch (error) {
-        throw internalError(
-          error,
-          "failed to look up existing default instance",
-        );
-      }
-
-      if (existingInstance !== undefined) {
-        const existingId = existingInstance.metadata?.id ?? "";
-        deps.logger.info(
-          "Found existing default instance, updating workflow status",
-          { instanceId: existingId, workflowId },
-        );
-        await backfillDefaultInstanceId(
-          deps,
-          workflow,
-          workflowId,
-          existingId,
-          "failed to update workflow with existing default instance",
-        );
-        setInstanceId(execution, existingId);
-        return;
-      }
-
-      deps.logger.info("Default instance not found, creating new one", {
-        workflowId,
-      });
-      const instanceRequest = buildDefaultWorkflowInstanceRequest(
-        workflow.metadata!,
-      );
-      let createdInstance: WorkflowInstance;
-      // The default instance is the workflow's own, filed in the workflow's
-      // organization, not a write of the caller's: a credential bound to the
-      // run's organization (running a workflow shared across organizations)
-      // creates it unbound, so the persist backstop leaves it alone.
-      const { boundOrg: _bound, ...instanceCreator } = ctx.callerIdentity;
-      try {
-        createdInstance = await deps
-          .workflowInstanceCreator()
-          .createAsCaller(instanceRequest, instanceCreator);
-      } catch (error) {
-        if (error instanceof ConnectError) {
-          // Go wraps the client error with %w — the inner gRPC code
-          // survives to the wire (oss#852 convention).
-          throw goWrappedStatusError(
-            "failed to create default workflow instance",
-            error,
-          );
-        }
-        throw internalError(error, "failed to create default workflow instance");
-      }
-
-      const createdId = createdInstance.metadata?.id ?? "";
-      await backfillDefaultInstanceId(
-        deps,
-        workflow,
-        workflowId,
-        createdId,
-        "failed to update workflow with default instance",
-      );
-      setInstanceId(execution, createdId);
-      deps.logger.info("Successfully created and registered default instance", {
-        instanceId: createdId,
-        workflowId,
-      });
-    },
-  };
-}
-
-function setInstanceId(
-  execution: { spec?: { workflowInstanceId: string } },
-  instanceId: string,
-): void {
-  if (execution.spec !== undefined) {
-    execution.spec.workflowInstanceId = instanceId;
-  }
-}
-
-async function backfillDefaultInstanceId(
-  deps: CreateDefaultInstanceDeps,
-  workflow: Workflow,
-  workflowId: string,
-  instanceId: string,
-  failureMessage: string,
-): Promise<void> {
-  const status = workflow.status ?? create(WorkflowStatusSchema);
-  workflow.status = status;
-  status.defaultInstanceId = instanceId;
-  try {
-    await deps.store.saveResource(
-      ApiResourceKind.workflow,
-      workflowId,
-      WorkflowSchema,
-      workflow,
-    );
-  } catch (error) {
-    throw internalError(error, failureMessage);
-  }
-  // The default_of invariant rides the pointer persist.
-  await notifyDefaultInstanceLinked(deps.authorizationLifecycle, {
-    instanceKind: ApiResourceKind.workflow_instance,
-    instanceId,
-    blueprintKind: ApiResourceKind.workflow,
-    blueprintId: workflowId,
-  });
-}
-
-/**
- * Go findInstanceBySlug: a full workflow_instance scan matched on
- * metadata.slug; malformed rows are skipped.
- */
-async function findInstanceBySlug(
-  deps: CreateDefaultInstanceDeps,
-  slug: string,
-): Promise<WorkflowInstance | undefined> {
-  const rows = await deps.store.listResources(
-    ApiResourceKind.workflow_instance,
-  );
-  for (const data of rows) {
-    let instance: WorkflowInstance;
-    try {
-      instance = fromBinary(WorkflowInstanceSchema, data);
-    } catch {
-      deps.logger.warn(
-        "Failed to unmarshal workflow instance during slug lookup",
-      );
-      continue;
-    }
-    if (instance.metadata?.slug === slug) {
-      return instance;
-    }
-  }
-  return undefined;
-}
 
 /**
  * SetInitialPhase — PENDING before the Temporal workflow starts, so the
@@ -307,7 +52,7 @@ export interface StartWorkflowDeps {
 
 /**
  * StartWorkflow — create.go startWorkflowStep: runs AFTER persist. Engine
- * availability was guaranteed by the step-4 gate, so a failure here is a
+ * availability was guaranteed by the create gate, so a failure here is a
  * live/transient Temporal error: the execution is marked FAILED with the
  * error text and persisted (recoverable via Recover), then the RPC
  * answers Internal. Dispatch-queue resolution lives inside the engine
@@ -323,8 +68,7 @@ export function newStartWorkflowStep(
       const executionId = execution.metadata?.id ?? "";
 
       const engineState = deps.engineState();
-      // Reached only if the engine disconnects between the gate (step 4)
-      // and here; modeled the same way Go's non-nil assumption is — a
+      // Reached only if the engine disconnects between the gate and here; modeled the same way Go's non-nil assumption is — a
       // loud failure, not a silent skip.
       let startError: Error | undefined;
       if (!engineState.connected) {
@@ -335,7 +79,6 @@ export function newStartWorkflowStep(
         try {
           await engineState.engine.startInvokeWorkflow({
             executionId,
-            workflowInstanceId: execution.spec?.workflowInstanceId ?? "",
             workflowId: execution.spec?.workflowId ?? "",
             orgId: execution.metadata?.org ?? "",
             recoveryMode: false,

@@ -45,7 +45,6 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
     recordLlmCallUsage: vi.fn().mockResolvedValue({}),
     getWorkflowExecution: vi.fn().mockResolvedValue({}),
     getWorkflow: vi.fn().mockResolvedValue({}),
-    getWorkflowInstance: vi.fn().mockResolvedValue({}),
     updateWorkflowExecutionStatus: vi.fn().mockResolvedValue({}),
     getAgentByReference: vi.fn().mockResolvedValue({}),
     createSession: vi.fn().mockResolvedValue({}),

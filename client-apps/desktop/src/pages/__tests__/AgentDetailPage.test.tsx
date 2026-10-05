@@ -13,7 +13,8 @@
  *
  * And pins the page's own actions: Start session opens the new-session
  * screen on the agent itself (no instance to bind), and Delete warns that
- * conversations on the agent cannot continue, deleting only once confirmed.
+ * conversations on the agent cannot continue, in the same words as the
+ * agents list's row Delete, deleting only once confirmed.
  */
 import type { ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -101,6 +102,7 @@ vi.mock("@stigmer/react", () => ({
 }));
 
 import AgentDetailPage from "../library/AgentDetailPage";
+import { AGENT_DELETE_DESCRIPTION } from "../library/agent-delete-confirmation";
 
 const AGENT = { metadata: { id: "agt_1", org: ACME_ID, slug: "helper" } };
 
@@ -243,6 +245,7 @@ describe("desktop AgentDetailPage — actions", () => {
     expect(page.confirmations[0]!.description).toContain(
       "conversations on it cannot continue",
     );
+    expect(page.confirmations[0]!.description).toBe(AGENT_DELETE_DESCRIPTION);
     expect(page.deletes).toBe(0);
     expect(screen.getByTestId("location").textContent).toBe("/library/agents/acme/helper");
   });

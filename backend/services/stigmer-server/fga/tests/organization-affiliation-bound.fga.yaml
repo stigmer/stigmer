@@ -16,7 +16,7 @@
 # made; `stays` and `back` keep what they authored; a system account that
 # holds only `guest` keeps the session it owns; a memory's subject reaches
 # the memory only while in the organization; environment's `creator` and
-# a workflow instance's `execution_viewer` are bounded the same way.
+# a workflow's `execution_viewer` are bounded the same way.
 name: organization-affiliation-bound
 model_file: ../../src/authorization/model/data/authorization-model.json
 
@@ -76,11 +76,6 @@ tuples:
   - {user: identity_account:left, relation: owner, object: artifact:x}
   - {user: identity_account:back, relation: owner, object: artifact:x}
   - {user: identity_account:left, relation: viewer, object: artifact:x}
-  - {user: organization:acme, relation: organization, object: workflow_instance:x}
-  - {user: identity_account:stays, relation: owner, object: workflow_instance:x}
-  - {user: identity_account:left, relation: owner, object: workflow_instance:x}
-  - {user: identity_account:back, relation: owner, object: workflow_instance:x}
-  - {user: identity_account:left, relation: viewer, object: workflow_instance:x}
   - {user: organization:acme, relation: organization, object: environment:x}
   - {user: identity_account:stays, relation: owner, object: environment:x}
   - {user: identity_account:left, relation: owner, object: environment:x}
@@ -111,7 +106,7 @@ tuples:
   - {user: identity_account:left, relation: editor, object: mcp_server:x}
   - {user: identity_account:left, relation: creator, object: environment:x}
   - {user: identity_account:stays, relation: creator, object: environment:x}
-  - {user: identity_account:left, relation: execution_viewer, object: workflow_instance:x}
+  - {user: identity_account:left, relation: execution_viewer, object: workflow:x}
   - {user: organization:acme, relation: organization, object: session:guest-chat}
   - {user: identity_account:sys-guest, relation: owner, object: session:guest-chat}
   - {user: organization:acme, relation: organization, object: memory:x}
@@ -135,7 +130,6 @@ tests:
       - {user: identity_account:left, object: channel_app:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: schedule:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: artifact:x, assertions: {owner: false, viewer: false, can_view: false}}
-      - {user: identity_account:left, object: workflow_instance:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: environment:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: session:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: workflow_execution:x, assertions: {owner: false, viewer: false, can_view: false}}
@@ -147,7 +141,7 @@ tests:
       - {user: identity_account:left, object: workflow:x, assertions: {editor: false, can_edit: false}}
       - {user: identity_account:left, object: mcp_server:x, assertions: {editor: false, can_edit: false}}
       - {user: identity_account:left, object: environment:x, assertions: {creator: false}}
-      - {user: identity_account:left, object: workflow_instance:x, assertions: {execution_viewer: false}}
+      - {user: identity_account:left, object: workflow:x, assertions: {execution_viewer: false}}
       - {user: identity_account:left, object: memory:left, assertions: {can_view: false, can_edit: false, can_delete: false}}
   - name: a member keeps what they authored
     check:
@@ -161,7 +155,6 @@ tests:
       - {user: identity_account:stays, object: channel_app:x, assertions: {viewer: true, can_view: true}}
       - {user: identity_account:stays, object: schedule:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: artifact:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:stays, object: workflow_instance:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: environment:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: session:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: workflow_execution:x, assertions: {owner: true, can_view: true}}
@@ -181,7 +174,6 @@ tests:
       - {user: identity_account:back, object: agent_share:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: schedule:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: artifact:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:back, object: workflow_instance:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: environment:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: session:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: workflow_execution:x, assertions: {owner: true, can_view: true}}

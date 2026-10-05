@@ -335,7 +335,7 @@ export interface ListIndexCursor {
 /**
  * One indexed read. Every predicate is optional and they AND together;
  * `anyKey` matches a row whose value for ANY listed key equals the given
- * value (a workflow run names its workflow or its instance).
+ * value.
  */
 export interface ListIndexQuery<K extends string = string> {
   /** One organization's rows; "" or absent reads every organization. */

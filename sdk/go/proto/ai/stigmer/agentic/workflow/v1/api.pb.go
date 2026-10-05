@@ -34,7 +34,7 @@ type Workflow struct {
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Configurable properties: document metadata, tasks, and environment variables.
 	Spec *WorkflowSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// System-managed state including audit trail and default instance ID.
+	// System-managed state including audit trail, validation and version hash.
 	Status        *WorkflowStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -122,7 +122,7 @@ Execution starts
     │
     ▼
 Execution engine resolves environment_refs from what started the run
-(schedule, agent_call task, PlatformClient; WorkflowInstance for a workflow run)
+(schedule, agent_call task, PlatformClient; a workflow run has none)
     │
     ▼
 Engine merges resolved values (later refs override earlier) + any B2B runtime-injected values,

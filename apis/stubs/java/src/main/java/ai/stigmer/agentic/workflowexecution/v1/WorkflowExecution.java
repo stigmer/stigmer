@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
 
 /**
  * <pre>
- * WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
+ * WorkflowExecution represents a single runtime invocation of a Workflow.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution}
@@ -479,7 +479,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
+   * WorkflowExecution represents a single runtime invocation of a Workflow.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution}

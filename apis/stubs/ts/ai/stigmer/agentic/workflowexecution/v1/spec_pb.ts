@@ -8,13 +8,14 @@ import type { ExecutionValue } from "../../executioncontext/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_executioncontext_v1_spec } from "../../executioncontext/v1/spec_pb.js";
 import type { ExecutionTarget } from "../../session/v1/enum_pb.js";
 import { file_ai_stigmer_agentic_session_v1_enum } from "../../session/v1/enum_pb.js";
+import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/workflowexecution/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_workflowexecution_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvc3BlYy5wcm90bxInYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxIrwEChVXb3JrZmxvd0V4ZWN1dGlvblNwZWMSHAoUd29ya2Zsb3dfaW5zdGFuY2VfaWQYASABKAkSEwoLd29ya2Zsb3dfaWQYBiABKAkSFwoPdHJpZ2dlcl9tZXNzYWdlGAMgASgJEm0KEHRyaWdnZXJfbWV0YWRhdGEYBCADKAsyUy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TcGVjLlRyaWdnZXJNZXRhZGF0YUVudHJ5EmMKC3J1bnRpbWVfZW52GAUgAygLMk4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uU3BlYy5SdW50aW1lRW52RW50cnkSFgoOY2FsbGJhY2tfdG9rZW4YByABKAwSSAoQZXhlY3V0aW9uX3RhcmdldBgIIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV4ZWN1dGlvblRhcmdldBo2ChRUcmlnZ2VyTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGmkKD1J1bnRpbWVFbnZFbnRyeRILCgNrZXkYASABKAkSRQoFdmFsdWUYAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25WYWx1ZToCOAFiBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_agentic_session_v1_enum]);
+  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvc3BlYy5wcm90bxInYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxIsEEChVXb3JrZmxvd0V4ZWN1dGlvblNwZWMSHAoLd29ya2Zsb3dfaWQYBiABKAlCB7pIBHICEAESFwoPdHJpZ2dlcl9tZXNzYWdlGAMgASgJEm0KEHRyaWdnZXJfbWV0YWRhdGEYBCADKAsyUy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TcGVjLlRyaWdnZXJNZXRhZGF0YUVudHJ5EmMKC3J1bnRpbWVfZW52GAUgAygLMk4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uU3BlYy5SdW50aW1lRW52RW50cnkSSAoQZXhlY3V0aW9uX3RhcmdldBgIIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV4ZWN1dGlvblRhcmdldBo2ChRUcmlnZ2VyTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGmkKD1J1bnRpbWVFbnZFbnRyeRILCgNrZXkYASABKAkSRQoFdmFsdWUYAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25WYWx1ZToCOAFKBAgBEAJKBAgHEAhSFHdvcmtmbG93X2luc3RhbmNlX2lkUg5jYWxsYmFja190b2tlbmIGcHJvdG8z", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_buf_validate_validate]);
 
 /**
  * WorkflowExecutionSpec defines the user-provided inputs for a workflow execution.
@@ -23,14 +24,7 @@ export const file_ai_stigmer_agentic_workflowexecution_v1_spec: GenFile = /*@__P
  */
 export type WorkflowExecutionSpec = Message<"ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec"> & {
   /**
-   * ID of the WorkflowInstance to execute.
-   *
-   * @generated from field: string workflow_instance_id = 1;
-   */
-  workflowInstanceId: string;
-
-  /**
-   * ID of the Workflow template to execute (alternative to workflow_instance_id).
+   * ID of the Workflow to run.
    *
    * @generated from field: string workflow_id = 6;
    */
@@ -52,8 +46,7 @@ export type WorkflowExecutionSpec = Message<"ai.stigmer.agentic.workflowexecutio
 
   /**
    * Execution-scoped environment variables and secrets, available only to this
-   * execution. Values here take the highest merge priority, overriding values
-   * from Environments bound via the instance's environment_refs. A key must be
+   * execution. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
@@ -61,13 +54,6 @@ export type WorkflowExecutionSpec = Message<"ai.stigmer.agentic.workflowexecutio
    * @generated from field: map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 5;
    */
   runtimeEnv: { [key: string]: ExecutionValue };
-
-  /**
-   * Opaque callback token for asynchronous completion by a parent orchestrator.
-   *
-   * @generated from field: bytes callback_token = 7;
-   */
-  callbackToken: Uint8Array;
 
   /**
    * Where workflow activities are executed — shared runner pool or dedicated sandbox.

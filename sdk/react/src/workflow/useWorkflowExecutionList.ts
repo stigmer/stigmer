@@ -34,7 +34,7 @@ export interface UseWorkflowExecutionListOptions {
   /** Opaque page token the first page starts from; `loadMore` continues after it. */
   readonly pageToken?: string;
   /**
-   * Workflow or WorkflowInstance ID to scope executions.
+   * Workflow ID to scope executions.
    * When omitted, lists all executions across all workflows.
    */
   readonly workflowId?: string | null;

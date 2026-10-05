@@ -22,14 +22,12 @@ module agentic
 # - Other org members must be explicitly granted viewer access
 # - Org admins have NO implicit access (personal resource)
 #
-# CHANNEL SESSIONS (structural read-only observability — the default_of
-# idiom, composed narrower): sessions created by the channel runtime
+# CHANNEL SESSIONS (structural read-only observability, a parent link
+# composed narrowly): sessions created by the channel runtime
 # (Slack/WhatsApp turns, owned by the per-org system-channel account) carry
 # a single session#channel@agent_channel:<id> tuple and inherit the parent
-# channel's viewer set (connector + org admins) into can_view ONLY. Unlike
-# a workflow instance's default_of — which composes into full `viewer`
-# because default instances must be runnable — the channel link deliberately bypasses `viewer` so
-# channel observers never gain can_create_execution_in (injecting a console
+# channel's viewer set (connector + org admins) into can_view ONLY. The
+# channel link deliberately bypasses `viewer` so channel observers never gain can_create_execution_in (injecting a console
 # message into a live external conversation would run an execution whose
 # reply never reaches the channel). Console sessions never get a channel
 # tuple, so the personal-resource invariant above is untouched.

@@ -2,8 +2,7 @@ syntax = "proto3";
 
 // Package ai.stigmer.agentic.workflowexecution.v1 contains the API definition for WorkflowExecution.
 //
-// WorkflowExecution is the "Execution" layer in the Template→Instance→Execution pattern.
-// It represents a single runtime invocation of a WorkflowInstance, capturing the complete
+// WorkflowExecution represents a single runtime invocation of a Workflow, capturing the complete
 // execution lifecycle from trigger to completion.
 //
 // This package belongs to the "agentic" bounded context, which encompasses all AI agent
@@ -18,15 +17,14 @@ import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
-// WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
+// WorkflowExecution represents a single runtime invocation of a Workflow.
 //
 // @internal
-// WorkflowExecution is the "Execution" layer in the Template→Instance→Execution pattern.
 // It captures the complete lifecycle of a workflow run, from initial trigger through
 // task-by-task execution to final completion or failure.
 //
 // A WorkflowExecution:
-// - References a WorkflowInstance (which contains configuration and environment bindings)
+// - Names the Workflow it runs, pinned to the version current at create
 // - Is triggered by a user action, API call, webhook, or scheduled event
 // - Executes tasks sequentially or in parallel based on the workflow definition
 // - Tracks real-time progress through tasks and phases
@@ -34,15 +32,14 @@ import "google/protobuf/struct.proto";
 // - Is ephemeral - deleted after completion based on retention policies
 //
 // Execution Pattern:
-// Workflow "customer-onboarding" (template)
-//   → WorkflowInstance "acme-onboarding" (with prod-env)
-//     → WorkflowExecution "acme-onboarding-20250111-143022" (specific run)
-//       - Phase: IN_PROGRESS
-//       - Tasks: [validate_email: COMPLETED, create_account: IN_PROGRESS, send_welcome: PENDING]
-//       - Progress: 1/3 tasks completed
+// Workflow "customer-onboarding"
+//   → WorkflowExecution "customer-onboarding-20250111-143022" (specific run)
+//     - Phase: IN_PROGRESS
+//     - Tasks: [validate_email: COMPLETED, create_account: IN_PROGRESS, send_welcome: PENDING]
+//     - Progress: 1/3 tasks completed
 //
 // Separation of Concerns:
-// - User Inputs (spec): workflow_instance_id, trigger_message, trigger_metadata, runtime_env
+// - User Inputs (spec): workflow_id, trigger_message, trigger_metadata, runtime_env
 // - System State (status): phase, tasks, output, timestamps, errors
 //
 // This separation ensures:
@@ -72,11 +69,11 @@ message WorkflowExecution {
   //
   // Naming Pattern:
   // - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
-  // - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
+  // - Name Format: "{workflow_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
   // - Slug Format: Same as name, URL-safe
   //
   // Labels and Tags:
-  // - Labels: workflow_instance_id, workflow_id, trigger_source
+  // - Labels: workflow_id, trigger_source
   // - Tags: environment names, team names, execution metadata
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
@@ -84,7 +81,7 @@ message WorkflowExecution {
   //
   // @internal
   // Contains:
-  // - workflow_instance_id: Which WorkflowInstance to execute (required)
+  // - workflow_id: Which Workflow to run (required)
   // - trigger_message: Input message or payload for the workflow (optional)
   // - trigger_metadata: Metadata about who/what triggered the execution (optional)
   // - runtime_env: Execution-specific environment variables and secrets (optional)
@@ -94,7 +91,7 @@ message WorkflowExecution {
   //
   // Example:
   // spec {
-  //   workflow_instance_id: "wfi_customer-onboarding-prod"
+  //   workflow_id: "wfl_customer-onboarding"
   //   trigger_message: "New customer: customer-email@example.com"
   //   trigger_metadata: {
   //     "source": "api"
@@ -267,8 +264,8 @@ message WorkflowExecutionStatus {
   // - Querying Temporal directly (for advanced troubleshooting)
   // - Signaling or cancelling Temporal workflows
   //
-  // Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-  // Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
+  // Format: Typically "{workflow_id}-{execution_id}" or a UUID
+  // Example: "wfl_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
   //
   // This field is optional and only relevant when Temporal is used as the execution engine.
   // Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
@@ -435,7 +432,7 @@ message WorkflowTask {
   // Examples: "task-1", "task-validate-email", "task-send-notification"
   //
   // The task_id is unique within this WorkflowExecution but may repeat across
-  // different executions of the same WorkflowInstance (same task, different run).
+  // different executions of the same Workflow (same task, different run).
   string task_id = 1;
 
   // Human-readable task name.

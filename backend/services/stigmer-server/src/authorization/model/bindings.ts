@@ -20,10 +20,8 @@
  * rather than leaving a hole; the tuple source never loads a row for it
  * and the list scope never lists it.
  *
- * The derived rules: on the workflow instance, `default_of`, which the
- * workflow's default-instance pointer decides (default-of.ts), and
- * `execution_viewer`, which its execution visibility decides
- * (execution-viewer.ts); on the organization, `parent_org` and
+ * The derived rules: on the workflow, `execution_viewer`, which its
+ * execution visibility decides (execution-viewer.ts); on the organization, `parent_org` and
  * `child_org`, which a child's `spec.parent_org` decides
  * (child-organizations.ts).
  */
@@ -45,7 +43,6 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -58,7 +55,6 @@ import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { childOrg, parentOrg } from "./child-organizations.js";
-import { defaultOfBlueprint } from "./default-of.js";
 import { executionViewer } from "./execution-viewer.js";
 import type { DerivedRelation } from "./rewrite.js";
 
@@ -107,20 +103,9 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.schedule, { schema: ScheduleSchema }],
   [ApiResourceKind.session, { schema: SessionSchema }],
   [ApiResourceKind.skill, { schema: SkillSchema }],
-  [ApiResourceKind.workflow, { schema: WorkflowSchema }],
   [
-    ApiResourceKind.workflow_instance,
-    {
-      schema: WorkflowInstanceSchema,
-      derived: {
-        default_of: defaultOfBlueprint({
-          kind: ApiResourceKind.workflow,
-          schema: WorkflowSchema,
-          defaultInstanceIdOf: (workflow) => workflow.status?.defaultInstanceId ?? "",
-        }),
-        execution_viewer: executionViewer,
-      },
-    },
+    ApiResourceKind.workflow,
+    { schema: WorkflowSchema, derived: { execution_viewer: executionViewer } },
   ],
   [ApiResourceKind.workflow_execution, { schema: WorkflowExecutionSchema }],
 ]);

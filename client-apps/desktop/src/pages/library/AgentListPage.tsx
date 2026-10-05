@@ -23,6 +23,7 @@ import {
   type WorkbenchColumnDef,
 } from "@stigmer/react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { AGENT_DELETE_DESCRIPTION } from "./agent-delete-confirmation";
 
 const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:agents:viewMode";
 
@@ -81,10 +82,7 @@ export default function AgentListPage() {
     async (item: SearchResult) => {
       const confirmed = await confirm({
         title: `Delete ${item.name || item.slug}?`,
-        description:
-          "This permanently removes the agent and all of its instances. " +
-          "Past sessions and executions are preserved. " +
-          "This action cannot be undone.",
+        description: AGENT_DELETE_DESCRIPTION,
         confirmLabel: "Delete",
         variant: "destructive",
       });

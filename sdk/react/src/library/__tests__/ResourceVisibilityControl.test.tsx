@@ -98,7 +98,6 @@ const KINDS: ReadonlyArray<[VisibilityResourceKind, string]> = [
   ["mcpServer", "mcp_server"],
   ["skill", "skill"],
   ["plugin", "plugin"],
-  ["workflowInstance", "workflow_instance"],
 ];
 
 describe("ResourceVisibilityControl", () => {
@@ -157,10 +156,5 @@ describe("ResourceVisibilityControl's child-organizations level", () => {
   it("is not offered while the owning organization is unknown", () => {
     state.owner = null;
     expect(offered()).toEqual(["Private", "Organization"]);
-  });
-
-  it("is never offered on an instance", () => {
-    state.owner = organization("");
-    expect(offered("workflowInstance")).toEqual(["Private", "Organization"]);
   });
 });

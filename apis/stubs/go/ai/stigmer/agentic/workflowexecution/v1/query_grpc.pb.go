@@ -42,7 +42,7 @@ const (
 // Authorization:
 // - get: Standard authorization - user must have "get" permission on the specific WorkflowExecution
 // - list: Custom authorization - filters results based on user's owner scope and permissions
-// - list_by_workflow: Custom authorization - verifies user has access to the Workflow/WorkflowInstance
+// - list_by_workflow: Custom authorization - verifies user has access to the Workflow
 // - subscribe: Standard authorization - user must have "get" permission to subscribe to updates
 //
 // Service Options:
@@ -51,7 +51,7 @@ type WorkflowExecutionQueryControllerClient interface {
 	// Get a single workflow execution by ID.
 	//
 	// Retrieves the complete WorkflowExecution resource including:
-	// - spec: User inputs (workflow_instance_id, trigger_message, etc.)
+	// - spec: User inputs (workflow_id, trigger_message, etc.)
 	// - status: Current execution state (phase, tasks, progress_events, output/error)
 	// - metadata: Resource identification (id, name, labels, tags)
 	Get(ctx context.Context, in *WorkflowExecutionId, opts ...grpc.CallOption) (*WorkflowExecution, error)
@@ -60,7 +60,7 @@ type WorkflowExecutionQueryControllerClient interface {
 	// Returns a paginated list of WorkflowExecution resources that the user has access to.
 	// Results are automatically filtered based on user's permissions and owner scope.
 	List(ctx context.Context, in *ListWorkflowExecutionsRequest, opts ...grpc.CallOption) (*WorkflowExecutionList, error)
-	// List all executions for a specific Workflow or WorkflowInstance.
+	// List all executions for a specific Workflow.
 	//
 	// Returns executions filtered by a specific Workflow ID.
 	// This is useful for viewing execution history of a particular workflow.
@@ -219,7 +219,7 @@ func (c *workflowExecutionQueryControllerClient) ListPendingApprovals(ctx contex
 // Authorization:
 // - get: Standard authorization - user must have "get" permission on the specific WorkflowExecution
 // - list: Custom authorization - filters results based on user's owner scope and permissions
-// - list_by_workflow: Custom authorization - verifies user has access to the Workflow/WorkflowInstance
+// - list_by_workflow: Custom authorization - verifies user has access to the Workflow
 // - subscribe: Standard authorization - user must have "get" permission to subscribe to updates
 //
 // Service Options:
@@ -228,7 +228,7 @@ type WorkflowExecutionQueryControllerServer interface {
 	// Get a single workflow execution by ID.
 	//
 	// Retrieves the complete WorkflowExecution resource including:
-	// - spec: User inputs (workflow_instance_id, trigger_message, etc.)
+	// - spec: User inputs (workflow_id, trigger_message, etc.)
 	// - status: Current execution state (phase, tasks, progress_events, output/error)
 	// - metadata: Resource identification (id, name, labels, tags)
 	Get(context.Context, *WorkflowExecutionId) (*WorkflowExecution, error)
@@ -237,7 +237,7 @@ type WorkflowExecutionQueryControllerServer interface {
 	// Returns a paginated list of WorkflowExecution resources that the user has access to.
 	// Results are automatically filtered based on user's permissions and owner scope.
 	List(context.Context, *ListWorkflowExecutionsRequest) (*WorkflowExecutionList, error)
-	// List all executions for a specific Workflow or WorkflowInstance.
+	// List all executions for a specific Workflow.
 	//
 	// Returns executions filtered by a specific Workflow ID.
 	// This is useful for viewing execution history of a particular workflow.

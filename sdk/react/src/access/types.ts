@@ -36,7 +36,7 @@ export interface AccessVisibility {
   readonly current: ApiResourceVisibility;
   /**
    * Slug of the owning org (`metadata.org`); gates the Platform option for
-   * blueprints. Omit for instances and where Platform should not be offered.
+   * blueprints. Omit where Platform should not be offered.
    */
   readonly org?: string;
   /** Called after a successful visibility change so the host can refetch. */
@@ -45,8 +45,8 @@ export interface AccessVisibility {
 
 /**
  * A generic, resource-specific access section appended below People — the
- * escape hatch for the rare per-kind axis (today: workflow-instance run
- * observability) without baking that knowledge into a generic dialog.
+ * escape hatch for the rare per-kind axis (today: a workflow's run
+ * visibility) without baking that knowledge into a generic dialog.
  */
 export interface AccessExtraSection {
   /** Section heading. */

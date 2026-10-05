@@ -132,25 +132,6 @@ export function blueprintVisibilityLevels(
 }
 
 /**
- * The levels an instance (workflow_instance) selector
- * offers, in escalation order: Private / Organization.
- *
- * Child organizations are deliberately absent — instances are
- * tenant-isolated by design (each child organization instantiates shared
- * blueprints inside its own boundary). Descriptions are execution-oriented because org visibility on
- * an instance is about who can run it and see its executions.
- */
-export function instanceVisibilityLevels(): readonly VisibilityLevelOption[] {
-  return [
-    PRIVATE_OPTION,
-    {
-      ...ORG_OPTION,
-      description: "All org members can view executions",
-    },
-  ];
-}
-
-/**
  * The levels an environment selector offers, in escalation order:
  * Private / Organization. The child-organizations level is structurally absent —
  * secret values never leave the org boundary (the backend rejects it via

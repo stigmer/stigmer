@@ -1,22 +1,24 @@
 /**
  * Workflow controller — ports pkg/domain/workflow/controller (command +
  * query sides): the workflow authoring/validation/versioning surface.
- * Create runs the 14-step pipeline (Layer-2 validation gate, canonical CNCF
- * YAML, version hash chain, default-instance choreography through the
- * in-process workflowinstance client, v1 archived AFTER
- * default_instance_id); an unchanged Update archives nothing and still
- * moves a newly named tag (the shared version-metadata rule); Delete
- * cascades ALL instances (oss#592); versions resolve by hash or tag
- * through the audit store with the tag COLUMN as the source of truth;
- * tagVersion moves tags single-holder (oss#341). Every version step is the
- * shared machinery, bound in version-resolution.ts.
+ * Create runs the pipeline (Layer-2 validation gate, canonical CNCF YAML,
+ * the version hash over the whole spec, v1 archived last); an unchanged
+ * Update archives nothing and still moves a newly named tag (the shared
+ * version-metadata rule); Delete removes the workflow and leaves its runs
+ * (oss#582); versions resolve by hash or tag through the audit store with
+ * the tag COLUMN as the source of truth; tagVersion moves tags
+ * single-holder (oss#341). Every version step is the shared machinery,
+ * bound in version-resolution.ts. Who observes the workflow's runs is
+ * `spec.execution_visibility`, set at create and changed only by
+ * updateExecutionVisibility (execution-visibility.ts).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by workflow.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/.
  *
- * Every chain opens with Authorize; create, delete and updateVisibility run
- * the shared tuple-lifecycle steps against the composed lifecycle;
+ * Every chain opens with Authorize; create, delete, updateVisibility and
+ * updateExecutionVisibility run the shared tuple-lifecycle steps against
+ * the composed lifecycle;
  * getByReference and listVersions authorize the resolved workflow as `get`
  * would. getVersion evaluates its annotation through authorizeDirect;
  * validateSpec deliberately does not, since it persists nothing. Per-RPC
@@ -30,7 +32,10 @@ import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/a
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
-import type { WorkflowId } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
+import type {
+  UpdateWorkflowExecutionVisibilityInput,
+  WorkflowId,
+} from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import {
   ServerlessWorkflowValidationSchema,
   ValidationState,
@@ -145,14 +150,21 @@ import { formatViolation } from "./validation/format-violation.js";
 import type { InProcessValidator } from "./validation/validator.js";
 import { workflowSearchExtractor } from "./search-extractor.js";
 import {
-  newCascadeDeleteWorkflowInstancesStep,
   newComputeVersionHashStep,
-  newCreateDefaultInstanceStep,
   newPopulateServerlessValidationStep,
   newPopulateServerlessValidationStepForUpdate,
-  newUpdateWorkflowStatusWithDefaultInstanceStep,
   newValidateWorkflowSpecStep,
 } from "./steps.js";
+import {
+  UPDATE_EXECUTION_VISIBILITY_WORKFLOW_KEY,
+  newCreateExecutionVisibilityTuplesStep,
+  newIndexWorkflowAfterExecutionVisibilityUpdateStep,
+  newLoadWorkflowForExecutionVisibilityUpdateStep,
+  newPersistWorkflowForExecutionVisibilityUpdateStep,
+  newPreserveExecutionVisibilityStep,
+  newSetWorkflowExecutionVisibilityStep,
+  newUpdateExecutionVisibilityTuplesStep,
+} from "./execution-visibility.js";
 import {
   TAG_VERSION_RESULT_KEY,
   TAG_VERSION_WORKFLOW_KEY,
@@ -165,7 +177,6 @@ import {
   newTagWorkflowVersionStep,
   workflowVersionBinding,
 } from "./version-resolution.js";
-import type { WorkflowInstanceCreatorProvider } from "./steps.js";
 
 export interface WorkflowControllerDeps {
   readonly store: Store;
@@ -176,13 +187,6 @@ export interface WorkflowControllerDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The Layer-2 validator (converter + structural checks + registry). */
   readonly validator: InProcessValidator;
-  /**
-   * The workflowinstance in-process edge — a lazy provider because
-   * workflow↔workflowinstance is a true dependency cycle (the server's DI
-   * breaks cycles with `() => client` closures resolved
-   * at call time, never at construction).
-   */
-  readonly workflowInstanceCreator: WorkflowInstanceCreatorProvider;
 }
 
 /** Registers both workflow services on the router (routes stage). */
@@ -195,6 +199,8 @@ export function registerWorkflowServices(
     create: (workflow, ctx) => createWorkflow(deps, workflow, ctx),
     update: (workflow, ctx) => update(deps, workflow, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
+    updateExecutionVisibility: (input, ctx) =>
+      updateExecutionVisibility(deps, input, ctx),
     delete: (id, ctx) => deleteWorkflow(deps, id, ctx),
     // validateSpec deliberately evaluates NO authorization despite its
     // can_create_workflow annotation: nothing is loaded or persisted, and
@@ -221,12 +227,11 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 // ---------------------------------------------------------------------------
 
 /**
- * Create — chain per Go buildCreatePipeline: the default instance is
- * created via the in-process client AFTER Persist (children need the
- * parent's id), status.default_instance_id lands in an explicit second
- * persist, and v1 archives LAST so the snapshot captures it (the audit
- * step re-persists either of its reverts, a stripped hash or a cleared
- * tag, because no Persist follows it here).
+ * Create — chain per Go buildCreatePipeline: v1 archives after the
+ * persist and the tuple steps (the audit step re-persists either of its
+ * reverts, a stripped hash or a cleared tag, because no Persist follows it
+ * here). A run audience the request names reaches the driver after the
+ * archive, so its fault never leaves the first version unarchived.
  */
 async function createWorkflow(
   deps: WorkflowControllerDeps,
@@ -268,17 +273,12 @@ async function createWorkflow(
         deps.logger,
       ),
     )
-    .addStep(
-      newCreateDefaultInstanceStep(deps.workflowInstanceCreator, deps.logger),
-    )
-    .addStep(
-      newUpdateWorkflowStatusWithDefaultInstanceStep(
-        deps.store,
-        deps.logger,
-        deps.authorizationLifecycle,
-      ),
-    )
     .addStep(newSaveVersionAuditStep(deps.store, deps.logger, true))
+    // After the archive: a driver fault here fails the request with v1
+    // already archived, so a run pinned to the head's hash always resolves.
+    .addStep(
+      newCreateExecutionVisibilityTuplesStep(deps.authorizationLifecycle),
+    )
     .addStep(
       newIndexSearchStep(deps.store, workflowSearchExtractor, deps.logger),
     )
@@ -320,6 +320,7 @@ async function update(
     // STORED labels and the plugin row's existence).
     .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newPreserveExecutionVisibilityStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
@@ -378,9 +379,12 @@ async function apply(
 }
 
 /**
- * Delete — cascades ALL instances before the workflow row (oss#592);
- * executions and version/audit rows deliberately survive (oss#582 — see
- * steps.ts). Returns the deleted workflow (the audit-trail convention).
+ * Delete — the workflow row, its access and its search entry. Its runs
+ * and its version/audit rows deliberately survive (oss#582): runs carry
+ * spec.workflow_id and remain viewable, and they render their historical
+ * graphs through getVersion(workflow_id, version_hash), so deleting
+ * version rows would break the viewer for exactly the runs that survive.
+ * Returns the deleted workflow (the audit-trail convention).
  */
 async function deleteWorkflow(
   deps: WorkflowControllerDeps,
@@ -407,13 +411,6 @@ async function deleteWorkflow(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, WorkflowSchema))
     .addStep(newGuardPluginManagedStep(deps.store))
-    .addStep(
-      newCascadeDeleteWorkflowInstancesStep(
-        deps.store,
-        deps.authorizationLifecycle,
-        deps.logger,
-      ),
-    )
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
@@ -618,6 +615,74 @@ function newIndexWorkflowAfterVisibilityUpdateStep(
       }
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// updateExecutionVisibility — who observes the workflow's runs: a targeted
+// spec update (only spec.execution_visibility changes) and the one door
+// that changes it after create. can_manage_audience is the owner's, never
+// an editor's. Open source authorizes run reads from the row itself, so
+// the persisted level is the grant; a composed tuple driver hears the
+// audience the new level names after the persist. The level is not part
+// of the version, so nothing here touches the version machinery.
+// ---------------------------------------------------------------------------
+
+type UpdateExecutionVisibilityDesc =
+  typeof WorkflowCommandController.method.updateExecutionVisibility.input;
+
+async function updateExecutionVisibility(
+  deps: WorkflowControllerDeps,
+  input: UpdateWorkflowExecutionVisibilityInput,
+  ctx: HandlerContext,
+): Promise<Workflow> {
+  const reqCtx = new RequestContext(
+    WorkflowCommandController.method.updateExecutionVisibility.input,
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<UpdateExecutionVisibilityDesc>(
+    "workflow-update-execution-visibility",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowCommandController.method.updateExecutionVisibility,
+        deps.authorizer,
+      ),
+    )
+    .addStep(newValidateProtoStep())
+    .addStep(
+      newLoadWorkflowForExecutionVisibilityUpdateStep<UpdateExecutionVisibilityDesc>(
+        deps.store,
+        (c) => c.input.resourceId,
+      ),
+    )
+    .addStep(
+      newSetWorkflowExecutionVisibilityStep<UpdateExecutionVisibilityDesc>(
+        (c) => c.input.executionVisibility,
+      ),
+    )
+    .addStep(
+      newPersistWorkflowForExecutionVisibilityUpdateStep<UpdateExecutionVisibilityDesc>(
+        deps.store,
+      ),
+    )
+    .addStep(
+      newUpdateExecutionVisibilityTuplesStep<UpdateExecutionVisibilityDesc>(
+        deps.authorizationLifecycle,
+      ),
+    )
+    .addStep(
+      newIndexWorkflowAfterExecutionVisibilityUpdateStep<UpdateExecutionVisibilityDesc>(
+        deps.store,
+        deps.logger,
+      ),
+    )
+    .build()
+    .execute(reqCtx);
+
+  return reqCtx.get(UPDATE_EXECUTION_VISIBILITY_WORKFLOW_KEY) as Workflow;
 }
 
 // ---------------------------------------------------------------------------
