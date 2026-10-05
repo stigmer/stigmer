@@ -24,9 +24,9 @@
  *      the primary key guarantees one row, so a failed create with a row
  *      underneath it is a win, not an error.
  *
- * Step 4 of the cloud's flow (the personal organization) is not core: it
- * fires on the `identity-account-provision:post-persist` slot in the
- * composition, wired by the controller.
+ * Step 4 of the cloud's flow (the organization it creates at sign-up) is
+ * not core: it fires on the `identity-account-provision:post-persist` slot
+ * in the composition, wired by the controller.
  *
  * The answer says whether THIS call created the row (`ProvisionedAccount.
  * created`): the idempotent early return and the

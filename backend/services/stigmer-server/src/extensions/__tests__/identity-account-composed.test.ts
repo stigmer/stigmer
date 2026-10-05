@@ -661,8 +661,8 @@ describe("identity-account points (composed server, declared posture: the provis
     readonly auditEvent: string;
   }
   const firings: Firing[] = [];
-  let failNextPersonalOrganization = false;
-  const GATE_FAILURE_MESSAGE = "fake personal-organization ensure failed";
+  let failNextFirstOrganization = false;
+  const GATE_FAILURE_MESSAGE = "fake first-organization step failed";
 
   function recordingGate(name: string): PipelineStep<DescMessage> {
     return {
@@ -676,10 +676,10 @@ describe("identity-account points (composed server, declared posture: the provis
           auditEvent: account.status?.audit?.specAudit?.event ?? "",
         });
         if (
-          name === "FakePersonalOrganization" &&
-          failNextPersonalOrganization
+          name === "FakeFirstOrganization" &&
+          failNextFirstOrganization
         ) {
-          failNextPersonalOrganization = false;
+          failNextFirstOrganization = false;
           throw new ConnectError(GATE_FAILURE_MESSAGE, Code.FailedPrecondition);
         }
       },
@@ -698,7 +698,7 @@ describe("identity-account points (composed server, declared posture: the provis
       >([
         [
           "identity-account-provision:post-persist",
-          [recordingGate("FakePersonalOrganization")],
+          [recordingGate("FakeFirstOrganization")],
         ],
       ]),
     };
@@ -751,7 +751,7 @@ describe("identity-account points (composed server, declared posture: the provis
     expect(account.metadata?.id).toBe(id);
     expect(firings).toEqual([
       {
-        gate: "FakePersonalOrganization",
+        gate: "FakeFirstOrganization",
         accountId: id,
         callerIdentityId: id,
         auditEvent: "created",
@@ -774,7 +774,7 @@ describe("identity-account points (composed server, declared posture: the provis
     const again = await commandAs(sub).provisionMyAccount({});
     expect(again.metadata?.id).toBe(accountIdFor(sub));
     expect(firings.map((firing) => firing.gate)).toEqual([
-      "FakePersonalOrganization",
+      "FakeFirstOrganization",
       "FakeProvisionAudit",
     ]);
   });
@@ -797,13 +797,13 @@ describe("identity-account points (composed server, declared posture: the provis
   it("a gate that throws fails the request with its own code and copy; the row survives and the next call heals", async () => {
     firings.length = 0;
     const sub = "fake|gate-fails";
-    failNextPersonalOrganization = true;
+    failNextFirstOrganization = true;
     const error = await connectErrorOf(commandAs(sub).provisionMyAccount({}));
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toBe(GATE_FAILURE_MESSAGE);
     // The first gate fired and threw; the second never ran.
     expect(firings.map((firing) => firing.gate)).toEqual([
-      "FakePersonalOrganization",
+      "FakeFirstOrganization",
     ]);
 
     // Non-transactional: the account persisted before the slot ran.
@@ -814,7 +814,7 @@ describe("identity-account points (composed server, declared posture: the provis
     const healed = await commandAs(sub).provisionMyAccount({});
     expect(healed.metadata?.id).toBe(accountIdFor(sub));
     expect(firings.map((firing) => firing.gate)).toEqual([
-      "FakePersonalOrganization",
+      "FakeFirstOrganization",
       "FakeProvisionAudit",
     ]);
   });

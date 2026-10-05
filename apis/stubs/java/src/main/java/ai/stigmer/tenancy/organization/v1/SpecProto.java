@@ -47,29 +47,28 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n-ai/stigmer/tenancy/organization/v1/spe" +
       "c.proto\022\"ai.stigmer.tenancy.organization" +
-      ".v1\032\033buf/validate/validate.proto\"\231\004\n\020Org" +
+      ".v1\032\033buf/validate/validate.proto\"\213\004\n\020Org" +
       "anizationSpec\022*\n\013description\030\001 \001(\tB\010\272H\005r" +
       "\003\030\364\003R\013description\022#\n\010logo_url\030\002 \001(\tB\010\272H\005" +
       "r\003\030\200\020R\007logoUrl\022)\n\013external_id\030\005 \001(\tB\010\272H\005" +
-      "r\003\030\200\002R\nexternalId\022\037\n\013is_personal\030\006 \001(\010R\n" +
-      "isPersonal\022]\n\013preferences\030\007 \001(\0132;.ai.sti" +
-      "gmer.tenancy.organization.v1.Organizatio" +
-      "nPreferencesR\013preferences\022&\n\nparent_org\030" +
-      "\010 \001(\tB\007\272H\004r\002\030@R\tparentOrg:\254\001\272H\250\001\032\245\001\n,org" +
-      "anization.external_id_requires_parent_or" +
-      "g\022Dexternal_id is set only on a child or" +
-      "ganization: name its parent_org\032/this.ex" +
-      "ternal_id == \'\' || this.parent_org != \'\'" +
-      "J\004\010\003\020\004J\004\010\004\020\005R\017management_modeR\025identity_" +
-      "provider_ref\"u\n\027OrganizationPreferences\022" +
-      "3\n\020standing_context\030\001 \001(\tB\010\272H\005r\003\030\320\017R\017sta" +
-      "ndingContext\022%\n\016memory_enabled\030\002 \001(\010R\rme" +
-      "moryEnabledB\270\001B\tSpecProtoP\001\242\002\004ASTO\252\002\"Ai." +
-      "Stigmer.Tenancy.Organization.V1\312\002\"Ai\\Sti" +
-      "gmer\\Tenancy\\Organization\\V1\342\002.Ai\\Stigme" +
-      "r\\Tenancy\\Organization\\V1\\GPBMetadata\352\002&" +
-      "Ai::Stigmer::Tenancy::Organization::V1b\006" +
-      "proto3"
+      "r\003\030\200\002R\nexternalId\022]\n\013preferences\030\007 \001(\0132;" +
+      ".ai.stigmer.tenancy.organization.v1.Orga" +
+      "nizationPreferencesR\013preferences\022&\n\npare" +
+      "nt_org\030\010 \001(\tB\007\272H\004r\002\030@R\tparentOrg:\254\001\272H\250\001\032" +
+      "\245\001\n,organization.external_id_requires_pa" +
+      "rent_org\022Dexternal_id is set only on a c" +
+      "hild organization: name its parent_org\032/" +
+      "this.external_id == \'\' || this.parent_or" +
+      "g != \'\'J\004\010\003\020\004J\004\010\004\020\005J\004\010\006\020\007R\017management_mo" +
+      "deR\025identity_provider_refR\013is_personal\"u" +
+      "\n\027OrganizationPreferences\0223\n\020standing_co" +
+      "ntext\030\001 \001(\tB\010\272H\005r\003\030\320\017R\017standingContext\022%" +
+      "\n\016memory_enabled\030\002 \001(\010R\rmemoryEnabledB\270\001" +
+      "B\tSpecProtoP\001\242\002\004ASTO\252\002\"Ai.Stigmer.Tenanc" +
+      "y.Organization.V1\312\002\"Ai\\Stigmer\\Tenancy\\O" +
+      "rganization\\V1\342\002.Ai\\Stigmer\\Tenancy\\Orga" +
+      "nization\\V1\\GPBMetadata\352\002&Ai::Stigmer::T" +
+      "enancy::Organization::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -81,7 +80,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_tenancy_organization_v1_OrganizationSpec_descriptor,
-        new java.lang.String[] { "Description", "LogoUrl", "ExternalId", "IsPersonal", "Preferences", "ParentOrg", });
+        new java.lang.String[] { "Description", "LogoUrl", "ExternalId", "Preferences", "ParentOrg", });
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_fieldAccessorTable = new

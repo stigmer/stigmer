@@ -112,7 +112,7 @@ function RunnerAdapterBridge({
  * 1. AppUpdaterProvider   — update checks run whatever the gates below show
  * 2. TokenBridge          — keeps the embedded runner's token fresh, gates or not
  * 3. IdentityAccountGate  — the person's account exists (provisioned on a first
- *                           sign-in, with the personal organization on Cloud)
+ *                           sign-in, with its first organization on Cloud)
  * 4. FetchCacheProvider   — above OrgProvider so an org switch can clear it
  * 5. OrgProvider          — asks for the person's organizations, which is why
  *                           the identity gate must come first

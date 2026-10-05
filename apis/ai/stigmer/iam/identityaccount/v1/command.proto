@@ -127,8 +127,8 @@ service IdentityAccountCommandController {
   // @internal
   // The core creates the account and nothing else. Edition steps ride the
   // `identity-account-provision:post-persist` gate slot, after the account
-  // persists and before the reply; Stigmer Cloud's personal organization is
-  // one such step, not this RPC's contract.
+  // persists and before the reply; the organization Stigmer Cloud creates
+  // when someone signs up is one such step, not this RPC's contract.
   rpc provisionMyAccount(google.protobuf.Empty) returns (IdentityAccount) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

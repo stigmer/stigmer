@@ -7,20 +7,18 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class OrganizationSpec(_message.Message):
-    __slots__ = ("description", "logo_url", "external_id", "is_personal", "preferences", "parent_org")
+    __slots__ = ("description", "logo_url", "external_id", "preferences", "parent_org")
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     LOGO_URL_FIELD_NUMBER: _ClassVar[int]
     EXTERNAL_ID_FIELD_NUMBER: _ClassVar[int]
-    IS_PERSONAL_FIELD_NUMBER: _ClassVar[int]
     PREFERENCES_FIELD_NUMBER: _ClassVar[int]
     PARENT_ORG_FIELD_NUMBER: _ClassVar[int]
     description: str
     logo_url: str
     external_id: str
-    is_personal: bool
     preferences: OrganizationPreferences
     parent_org: str
-    def __init__(self, description: _Optional[str] = ..., logo_url: _Optional[str] = ..., external_id: _Optional[str] = ..., is_personal: bool = ..., preferences: _Optional[_Union[OrganizationPreferences, _Mapping]] = ..., parent_org: _Optional[str] = ...) -> None: ...
+    def __init__(self, description: _Optional[str] = ..., logo_url: _Optional[str] = ..., external_id: _Optional[str] = ..., preferences: _Optional[_Union[OrganizationPreferences, _Mapping]] = ..., parent_org: _Optional[str] = ...) -> None: ...
 
 class OrganizationPreferences(_message.Message):
     __slots__ = ("standing_context", "memory_enabled")

@@ -25,7 +25,7 @@ import { OIDC_ISSUER, OIDC_STACK } from "../../fixtures/oidc";
 
 const API_PORT = process.env.STIGMER_E2E_API_PORT ?? "7234";
 
-// The old org gate polled for a personal organization for 10 s before it
+// The old org gate polled for a sign-up organization for 10 s before it
 // let the app render. The app must render well inside that.
 const NO_DEAD_WAIT_MS = 8_000;
 

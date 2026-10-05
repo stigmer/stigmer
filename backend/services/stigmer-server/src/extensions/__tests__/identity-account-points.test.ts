@@ -116,7 +116,7 @@ describe("the identity-account-provision:post-persist slot", () => {
         gateSteps: new Map<GateSlotName, PipelineStep<DescMessage>[]>([
           [
             "identity-account-provision:post-persist",
-            [step("EnsurePersonalOrganization")],
+            [step("EnsureFirstOrganization")],
           ],
         ]),
       },
@@ -125,6 +125,6 @@ describe("the identity-account-provision:post-persist slot", () => {
       resolved.gateSteps
         .get("identity-account-provision:post-persist")
         ?.map((s) => s.name),
-    ).toEqual(["EnsurePersonalOrganization"]);
+    ).toEqual(["EnsureFirstOrganization"]);
   });
 });

@@ -106,7 +106,6 @@ export interface OrganizationInput {
   description?: string;
   logoUrl?: string;
   externalId?: string;
-  isPersonal?: boolean;
   preferences?: OrganizationPreferencesInput;
   parentOrg?: string;
 }
@@ -141,7 +140,6 @@ export function buildOrganizationProto(input: OrganizationInput): Organization {
       description: input.description,
       logoUrl: input.logoUrl,
       externalId: input.externalId,
-      isPersonal: input.isPersonal,
       preferences,
       parentOrg: input.parentOrg,
     })),
@@ -182,7 +180,6 @@ export function toOrganizationUpdateInput(resource: Organization): OrganizationI
     description: spec.description || undefined,
     logoUrl: spec.logoUrl || undefined,
     externalId: spec.externalId || undefined,
-    isPersonal: spec.isPersonal || undefined,
     preferences: spec.preferences ? toOrganizationPreferencesInput(spec.preferences) : undefined,
     parentOrg: spec.parentOrg || undefined,
   };

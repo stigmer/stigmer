@@ -284,7 +284,6 @@ const organization = await stigmer.organization.apply({
   description: "...",
   logoUrl: "...",
   externalId: "...",
-  isPersonal: false,
   preferences: {},
   parentOrg: "...",
 });
@@ -299,7 +298,6 @@ organization, err := client.Organization.Apply(ctx, &stigmer.OrganizationInput{
   Description: "...",
   LogoUrl:     "...",
   ExternalId:  "...",
-  IsPersonal:  false,
   Preferences: &stigmer.OrganizationPreferencesInput{},
   ParentOrg:   "...",
 })
@@ -314,7 +312,6 @@ organization = client.organizations.apply(OrganizationInput(
     description="...",
     logo_url="...",
     external_id="...",
-    is_personal=False,
     preferences=None,
     parent_org="...",
 ))
@@ -329,7 +326,6 @@ Organization organization = client.organizations().apply(OrganizationInput.build
     .description("...")
     .logoUrl("...")
     .externalId("...")
-    .isPersonal(false)
     .preferences(null)
     .parentOrg("...")
     .build());
@@ -375,7 +371,6 @@ const organization = await stigmer.organization.create({
   description: "...",
   logoUrl: "...",
   externalId: "...",
-  isPersonal: false,
   preferences: {},
   parentOrg: "...",
 });
@@ -390,7 +385,6 @@ organization, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
   Description: "...",
   LogoUrl:     "...",
   ExternalId:  "...",
-  IsPersonal:  false,
   Preferences: &stigmer.OrganizationPreferencesInput{},
   ParentOrg:   "...",
 })
@@ -405,7 +399,6 @@ organization = client.organizations.create(OrganizationInput(
     description="...",
     logo_url="...",
     external_id="...",
-    is_personal=False,
     preferences=None,
     parent_org="...",
 ))
@@ -420,7 +413,6 @@ Organization organization = client.organizations().create(OrganizationInput.buil
     .description("...")
     .logoUrl("...")
     .externalId("...")
-    .isPersonal(false)
     .preferences(null)
     .parentOrg("...")
     .build());
@@ -448,7 +440,6 @@ const organization = await stigmer.organization.update({
   description: "...",
   logoUrl: "...",
   externalId: "...",
-  isPersonal: false,
   preferences: {},
   parentOrg: "...",
 });
@@ -463,7 +454,6 @@ organization, err := client.Organization.Update(ctx, &stigmer.OrganizationInput{
   Description: "...",
   LogoUrl:     "...",
   ExternalId:  "...",
-  IsPersonal:  false,
   Preferences: &stigmer.OrganizationPreferencesInput{},
   ParentOrg:   "...",
 })
@@ -478,7 +468,6 @@ organization = client.organizations.update(OrganizationInput(
     description="...",
     logo_url="...",
     external_id="...",
-    is_personal=False,
     preferences=None,
     parent_org="...",
 ))
@@ -493,7 +482,6 @@ Organization organization = client.organizations().update(OrganizationInput.buil
     .description("...")
     .logoUrl("...")
     .externalId("...")
-    .isPersonal(false)
     .preferences(null)
     .parentOrg("...")
     .build());
@@ -611,7 +599,6 @@ Input for creating or updating an Organization.
     description: { type: "string", description: "Human-readable description of the organization." },
     logoUrl: { type: "string", description: "Public URL for the organization logo." },
     externalId: { type: "string", description: "The parent's own identifier for this organization, such as the customer id an integrator keeps for it (\"cust-4411\")." },
-    isPersonal: { type: "boolean", description: "Whether this is a personal organization, auto-created during identity provisioning." },
     preferences: { type: "OrganizationPreferencesInput", description: "Standing preferences declared by the organization.", typeDescriptionLink: "#organizationpreferencesinput" },
     parentOrg: { type: "string", description: "The organization this one is a child of, by id or slug; empty for an organization that has no parent." },
   }}

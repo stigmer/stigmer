@@ -41,12 +41,11 @@ message OrganizationSpec {
   // carries this value is bound to the child.
   string external_id = 5 [(buf.validate.field).string.max_len = 256];
 
-  // Whether this is a personal organization, auto-created during identity provisioning.
-  //
-  // @internal
-  // Personal orgs serve as the user's default workspace (like GitHub personal accounts).
-  // Immutable after creation. Set by the server — clients cannot set this to true.
-  bool is_personal = 6;
+  // 6 was is_personal, a mark on the organization Stigmer Cloud created when
+  // someone signed up. That organization is now an ordinary organization,
+  // so there is one kind of organization and nothing to mark.
+  reserved 6;
+  reserved "is_personal";
 
   // Standing preferences declared by the organization.
   OrganizationPreferences preferences = 7;
