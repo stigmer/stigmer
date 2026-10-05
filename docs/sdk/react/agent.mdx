@@ -396,6 +396,7 @@ function useRunAgentSpec(agentRef: ResourceRef | null, versionHash: string): Use
 <TypeTable
   type={{
     agent: { type: "Agent | null", description: "The agent as it is now; `null` with no agent, while loading, or when it cannot be read." },
+    isLoading: { type: "boolean", description: "`true` while the agent itself is being read." },
     spec: { type: "AgentSpec | undefined", description: "The spec of the version the next message runs; `undefined` until it is known." },
   }}
 />
