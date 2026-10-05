@@ -41,7 +41,7 @@ const silentLogger = createLogger({
 
 function harness(
   deleting: ReadonlySet<string> | Error,
-  options: { readonly blobGoneAfterSave?: boolean } = {},
+  options: { readonly blobGoneAfterSave?: boolean; readonly existsFault?: Error } = {},
 ) {
   const uploads: string[] = [];
   const saved: string[] = [];
@@ -87,7 +87,10 @@ function harness(
           },
           // A purge of another organization deleting the shared blob
           // between this create's upload and its row.
-          exists: async () => options.blobGoneAfterSave !== true || uploads.length > 1,
+          exists: async () => {
+            if (options.existsFault !== undefined) throw options.existsFault;
+            return options.blobGoneAfterSave !== true || uploads.length > 1;
+          },
         } as never,
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
@@ -134,6 +137,13 @@ describe("artifact create for an execution of an organization being deleted", ()
     const artifact = await h.createFor("aex_live");
     expect(h.saved).toEqual([artifact.metadata?.id]);
     expect(h.uploads, "the upload, then the re-upload after the row").toHaveLength(2);
+  });
+
+  it("answers INTERNAL when the blob store cannot say whether its blob is still there", async () => {
+    const h = harness(new Set(), { existsFault: new Error("bucket down") });
+    const error = await h.createFor("aex_live").catch((e: unknown) => e);
+    expect((error as ConnectError).code).toBe(Code.Internal);
+    expect((error as ConnectError).rawMessage).toBe("failed to upload artifact content");
   });
 
   it("answers INTERNAL, with nothing uploaded, when the deletion table cannot be read", async () => {
