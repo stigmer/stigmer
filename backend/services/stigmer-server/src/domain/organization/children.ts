@@ -35,8 +35,8 @@
  *   - PreserveChildLink (update): `parent_org` and `external_id` stay as
  *     stored; a manifest carries both, so apply is idempotent.
  *   - RefuseDeletingParent (delete, before and again after the deletion
- *     mark): an organization that still has a child not being deleted is
- *     not deleted (ORGANIZATION_HAS_CHILDREN). A parent whose children are
+ *     mark): an organization that still has a child whose delete is not
+ *     accepted is not deleted (ORGANIZATION_HAS_CHILDREN). A parent whose children are
  *     all being deleted may be; its purge waits for theirs (deletion.ts
  *     says how the two checks and the create's re-read close the race).
  *
@@ -280,17 +280,27 @@ export function newChildOrganizations(store: Store): ChildOrganizations {
   };
 }
 
-/** Every child of `parentId` that is not being deleted, newest first. */
+/**
+ * Every child of `parentId` that is not being deleted, newest first. A
+ * child whose delete is only pending is being deleted for every lane
+ * (`gone: "marked"`, the default); for the parent's own delete it is still
+ * live (`gone: "accepted"`), because that delete may yet be refused and
+ * unmark the child, and a parent accepted over a live child would wait in
+ * its purge's children stage for good.
+ */
 export async function liveChildrenOf(
   store: Store,
   parentId: string,
+  gone: "marked" | "accepted" = "marked",
 ): Promise<Organization[]> {
   const children = await childrenOf(store, parentId);
   if (children.length === 0) {
     return children;
   }
   const deleting = new Set(
-    (await store.organizationDeletions.list()).map((row) => row.org),
+    (await store.organizationDeletions.list())
+      .filter((row) => gone === "marked" || row.phase === "accepted")
+      .map((row) => row.org),
   );
   return children.filter((child) => !deleting.has(child.metadata?.id ?? ""));
 }
@@ -578,7 +588,7 @@ export function newRefuseDeletingParentStep<Desc extends DescMessage>(
       }
       let live: Organization[];
       try {
-        live = await liveChildrenOf(store, id);
+        live = await liveChildrenOf(store, id, "accepted");
       } catch (error) {
         throw internalError(error, "failed to read the organization's child organizations");
       }

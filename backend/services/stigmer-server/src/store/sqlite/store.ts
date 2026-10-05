@@ -1134,6 +1134,13 @@ export class SqliteStore implements Store {
     return Number(result.changes);
   }
 
+  async deleteScheduleRunsByOrg(org: string): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM schedule_runs WHERE org = ?`)
+      .run(org);
+    return Number(result.changes);
+  }
+
   async pruneScheduleRuns(recordedBefore: string): Promise<number> {
     const db = this.open();
     const result = db
@@ -1188,6 +1195,16 @@ export class SqliteStore implements Store {
     db.prepare(
       `DELETE FROM search_index WHERE kind = ? AND resource_id = ?`,
     ).run(apiResourceKindName(kind), resourceId);
+  }
+
+  async deleteSearchIndexByOrg(org: string): Promise<number> {
+    if (org === "") {
+      return 0;
+    }
+    const result = this.open()
+      .prepare(`DELETE FROM search_index WHERE org = ?`)
+      .run(org);
+    return Number(result.changes);
   }
 
   async querySearchIndex(

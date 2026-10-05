@@ -1092,6 +1092,14 @@ export class PostgresStore implements Store {
     return result.rowCount ?? 0;
   }
 
+  async deleteScheduleRunsByOrg(org: string): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM schedule_runs WHERE org = $1`,
+      [org],
+    );
+    return result.rowCount ?? 0;
+  }
+
   async pruneScheduleRuns(recordedBefore: string): Promise<number> {
     const result = await this.open().query(
       `DELETE FROM schedule_runs WHERE recorded_at < $1`,
@@ -1145,6 +1153,17 @@ export class PostgresStore implements Store {
       `DELETE FROM search_index WHERE kind = $1 AND resource_id = $2`,
       [apiResourceKindName(kind), resourceId],
     );
+  }
+
+  async deleteSearchIndexByOrg(org: string): Promise<number> {
+    if (org === "") {
+      return 0;
+    }
+    const result = await this.open().query(
+      `DELETE FROM search_index WHERE org = $1`,
+      [org],
+    );
+    return result.rowCount ?? 0;
   }
 
   async querySearchIndex(

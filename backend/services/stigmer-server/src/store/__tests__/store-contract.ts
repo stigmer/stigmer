@@ -1954,6 +1954,44 @@ export function describeStoreContract(
   });
 
   describe("removal by organization (a purge's side-store writes)", () => {
+    it("the search index and the fire ledger remove one organization's rows only", async () => {
+      for (const org of ["org_a", "org_b"]) {
+        await fx.store.upsertSearchIndex(ApiResourceKind.agent, `agt_${org}`, {
+          name: "kubernetes helper",
+          description: "",
+          tags: "",
+          org,
+          visibility: "visibility_private",
+          createdAt: 1_700_000_000,
+        });
+        await fx.store.upsertScheduleRun({
+          scheduleId: `sch_${org}`,
+          org,
+          nominalFireTime: "2026-08-20T00:00:00Z",
+          origin: "cron",
+          outcome: "started",
+          reason: "",
+          executionId: "",
+          recordedAt: "2026-08-20T00:00:01Z",
+          completedAt: "",
+        });
+      }
+      expect(await fx.store.deleteSearchIndexByOrg("org_a")).toBe(1);
+      expect(await fx.store.deleteSearchIndexByOrg("")).toBe(0);
+      expect(await fx.store.deleteScheduleRunsByOrg("org_a")).toBe(1);
+      expect((await fx.store.listScheduleRuns("sch_org_a", 0, 0)).total).toBe(0);
+      expect((await fx.store.listScheduleRuns("sch_org_b", 0, 0)).total).toBe(1);
+      const left = await fx.store.querySearchIndex({
+        kinds: ["agent"],
+        terms: ["kubernetes"],
+        orgFilter: "",
+        limit: 20,
+        offset: 0,
+      });
+      expect(left.totalCount).toBe(1);
+      expect(JSON.stringify(left)).toContain("agt_org_b");
+    });
+
     it("signal dedupe, OAuth grants and pending OAuth states remove one organization's records only", async () => {
       for (const org of ["org_a", "org_b"]) {
         await fx.store.signalDedupe.claim(

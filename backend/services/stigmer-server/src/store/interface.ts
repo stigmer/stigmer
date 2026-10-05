@@ -1008,6 +1008,9 @@ export interface Store {
   /** Delete-cascade twin, called after the resource row delete succeeds. */
   deleteScheduleRunsBySchedule(scheduleId: string): Promise<number>;
 
+  /** Removes every ledger row of an organization's schedules (its purge's sweep); returns the count. */
+  deleteScheduleRunsByOrg(org: string): Promise<number>;
+
   /**
    * Removes ledger rows recorded before the cutoff (RFC-3339, compared
    * lexicographically) — the retention policy the table was born with.
@@ -1031,6 +1034,9 @@ export interface Store {
 
   /** Removes a resource's search-index row (post-delete). */
   deleteSearchIndex(kind: ApiResourceKind, resourceId: string): Promise<void>;
+
+  /** Removes every search-index row of an organization's resources (its purge's sweep); returns the count. */
+  deleteSearchIndexByOrg(org: string): Promise<number>;
 
   /**
    * One search-index read: full counts per kind, short-circuiting to an

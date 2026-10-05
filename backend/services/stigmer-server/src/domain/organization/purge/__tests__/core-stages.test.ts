@@ -407,6 +407,32 @@ describe("the final stage", () => {
     expect(await store.organizationDeletions.isDeleting(ORG)).toBe(false);
   });
 
+  it("sweeps the search entries and fire-ledger rows that name the organization", async () => {
+    await store.upsertSearchIndex(ApiResourceKind.agent, "agt_left", {
+      name: "left behind",
+      description: "",
+      tags: "",
+      org: ORG,
+      visibility: "visibility_private",
+      createdAt: 1_700_000_000,
+    });
+    await store.upsertScheduleRun({
+      scheduleId: "sch_left",
+      org: ORG,
+      nominalFireTime: "2026-08-20T00:00:00Z",
+      origin: "cron",
+      outcome: "started",
+      reason: "",
+      executionId: "",
+      recordedAt: "2026-08-20T00:00:01Z",
+      completedAt: "",
+    });
+    const { stage } = rig();
+    await stage.run(context);
+    expect(await store.deleteSearchIndexByOrg(ORG)).toBe(0);
+    expect((await store.listScheduleRuns("sch_left", 0, 0)).total).toBe(0);
+  });
+
   it("finishes when the row is already gone", async () => {
     const now = new Date().toISOString();
     await store.resourceNames.claim(

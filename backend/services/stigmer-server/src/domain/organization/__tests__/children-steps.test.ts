@@ -111,8 +111,10 @@ function fakeStore(
     resolved?: ResourceNameEntry | Error;
     claim?: ReadonlyArray<{ claimed: boolean; entry: ResourceNameEntry } | Error>;
     releaseFault?: Error;
-    /** Organizations the deletion table holds. */
+    /** Organizations the deletion table holds, accepted. */
     deleting?: ReadonlyArray<string>;
+    /** Organizations the deletion table holds whose delete is still pending. */
+    pending?: ReadonlyArray<string>;
   } = {},
 ): FakeStore {
   const released: string[] = [];
@@ -145,10 +147,13 @@ function fakeStore(
     },
     organizationDeletions: {
       async isDeleting(org: string) {
-        return (options.deleting ?? []).includes(org);
+        return [...(options.deleting ?? []), ...(options.pending ?? [])].includes(org);
       },
       async list() {
-        return (options.deleting ?? []).map((org) => ({ org }));
+        return [
+          ...(options.deleting ?? []).map((org) => ({ org, phase: "accepted" })),
+          ...(options.pending ?? []).map((org) => ({ org, phase: "pending" })),
+        ];
       },
     },
     resourceNames: {
@@ -475,6 +480,12 @@ describe("the link, update and delete steps", () => {
     await newRefuseDeletingParentStep<typeof OrganizationIdSchema>(
       fakeStore({ indexed, deleting: ["org_c1", "org_c2"] }).store,
     ).execute(deleteContext(org("org_p")));
+    const pending = await refusal(() =>
+      newRefuseDeletingParentStep<typeof OrganizationIdSchema>(
+        fakeStore({ indexed, deleting: ["org_c1"], pending: ["org_c2"] }).store,
+      ).execute(deleteContext(org("org_p"))),
+    );
+    expect(pending.code, "a child whose own delete may still be refused").toBe(Code.FailedPrecondition);
   });
 
   it("ReleaseExternalId logs a release fault and lets the delete stand", async () => {

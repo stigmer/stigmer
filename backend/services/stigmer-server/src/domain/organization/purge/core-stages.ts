@@ -25,7 +25,10 @@
  *              a parent may be deleted once every child is being deleted,
  *              and its purge finishes after theirs.
  *   final    — the organization's policy rows (failing closed), the
- *              composed lifecycle's organization arm, the search entry,
+ *              composed lifecycle's organization arm, a sweep of the
+ *              search entries and fire-ledger rows that name it (the kind
+ *              purges' own removals of those log a fault and go on), the
+ *              search entry,
  *              the row, then its names, then its deletion mark. The names
  *              follow the row on purpose: while the row stands the claim
  *              rule holds them (names.ts), so the slug is free exactly when
@@ -348,6 +351,11 @@ export function newFinalStage(deps: FinalStageDeps): OrganizationPurgeStage {
       );
       ctx.set(RESOURCE_ID_KEY, id);
       ctx.set(EXISTING_RESOURCE_KEY, organization);
+      // The kind purges remove each row's search entry and each schedule's
+      // fire ledger through steps that log a fault and go on; both tables
+      // name the organization, so a sweep here leaves neither behind.
+      await deps.store.deleteSearchIndexByOrg(id);
+      await deps.store.deleteScheduleRunsByOrg(id);
       await newPipeline<DeleteInput>("organization-purge-final", deps.logger)
         .addStep(newRevokeOrganizationPoliciesStep<DeleteInput>(deps.grantPath))
         .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
