@@ -6,7 +6,8 @@
  * most, and an inline block held to the rules a plugin's hooks are held to
  * at install: Claude Code's format, the two tool-call events, a matcher
  * the library accepts, an `if` in a permission rule's shape, no
- * fail_closed. An omitted format is filled with Claude Code's; a valid
+ * fail_closed, and `${user_config.*}` only in a handler with args (bash
+ * would not substitute it). An omitted format is filled with Claude Code's; a valid
  * block passes unchanged otherwise. The step is driven directly over a
  * request context; the chains that run it are pinned in agent.test.ts.
  */
@@ -52,6 +53,7 @@ interface GroupInit {
   matcher?: string;
   handlers?: Array<{
     command: string;
+    args?: string[];
     condition?: string;
     failClosed?: boolean;
   }>;
@@ -88,6 +90,21 @@ function inlineOf(
 }
 
 describe("ValidateHooks", () => {
+  it("passes user_config in a handler with args", () => {
+    expect(() =>
+      newValidateHooksStep().execute(
+        contextWith([
+          inline([
+            {
+              event: "PreToolUse",
+              handlers: [{ command: "check", args: ["${user_config.API_TOKEN}"] }],
+            },
+          ]),
+        ]),
+      ),
+    ).not.toThrow();
+  });
+
   it("passes plugins with distinct slugs and one valid inline block, filling Claude Code's format", () => {
     const ctx = contextWith([
       inline([
@@ -174,6 +191,18 @@ describe("ValidateHooks", () => {
         ]),
       ],
       "the agent's PostToolUse hook sets fail_closed, which Claude Code hooks do not have: a Claude Code hook that fails lets the call through",
+    ],
+    [
+      "user_config in a command without args",
+      [
+        inline([
+          {
+            event: "PreToolUse",
+            handlers: [{ command: "check ${user_config.API_TOKEN}" }],
+          },
+        ]),
+      ],
+      "the agent's PreToolUse hook reads ${user_config.*} in a command without args, which runs in bash where the value is not substituted; pass it in args",
     ],
   ])("refuses %s with InvalidArgument", (_case, hooks, message) => {
     const error = refusal(hooks);

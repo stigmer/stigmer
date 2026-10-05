@@ -264,6 +264,11 @@ function checkInlineHooks(block: HookConfig): void {
           `the agent's ${group.event} hook sets fail_closed, which Claude Code hooks do not have: a Claude Code hook that fails lets the call through`,
         );
       }
+      if (handler.args.length === 0 && handler.command.includes("${user_config.")) {
+        throw invalidArgumentError(
+          `the agent's ${group.event} hook reads \${user_config.*} in a command without args, which runs in bash where the value is not substituted; pass it in args`,
+        );
+      }
     }
   }
 }

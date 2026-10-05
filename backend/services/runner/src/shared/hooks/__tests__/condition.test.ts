@@ -268,6 +268,9 @@ describe("conditionVerdict: sure, unsure, or no", () => {
     ["Bash(npm test *)", "/tmp/evil/npm test", "unsure"],
     ["Bash(npm test *)", "eval \"$CMD\"", "unsure"],
     ["Bash(npm test *)", "ls -la", "no"],
+    ["Bash(rm *)", "RM -rf build", "unsure"],
+    ["Bash(rm *)", "/BIN/RM -rf build", "unsure"],
+    ["Bash(rm *)", "LS -la", "no"],
   ])("%s on %j is %s", (rule, command, expected) => {
     expect(conditionVerdict(rule, bash(command), CTX)).toBe(expected);
   });

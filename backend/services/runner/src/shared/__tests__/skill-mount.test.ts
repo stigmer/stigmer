@@ -134,6 +134,17 @@ describe("writeSkillMount — marker mechanics", () => {
     expect(statSync(join(skillDir, "scripts", "run.py")).mode & 0o111).not.toBe(0);
     expect(statSync(join(skillDir, "references", "notes.md")).mode & 0o111).toBe(0);
   });
+
+  it("makes an extensionless script executable by its #! line", async () => {
+    const artifact = buildZip([
+      { name: "scripts/check", content: "#!/usr/bin/env bash\necho ok\n" },
+      { name: "scripts/README", content: "plain text" },
+    ]);
+    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+
+    expect(statSync(join(skillDir, "scripts", "check")).mode & 0o111).not.toBe(0);
+    expect(statSync(join(skillDir, "scripts", "README")).mode & 0o111).toBe(0);
+  });
 });
 
 // ─── downloadArtifact — transfer lane routing (#675) ─────────────────────

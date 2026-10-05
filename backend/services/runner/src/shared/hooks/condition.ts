@@ -144,7 +144,13 @@ function bashVerdict(spec: string, command: unknown): ConditionVerdict {
       // Only the command as written can match for sure: a peeled form is
       // the matcher's reading of what runs, and an assignment (`PATH=…`) or
       // a path can change which program that is.
-      return strongest(forms.map((form) => (form === words ? formVerdict(patterns, form) : atMostUnsure(formVerdict(patterns, form)))));
+      const verdict = strongest(forms.map((form) => (form === words ? formVerdict(patterns, form) : atMostUnsure(formVerdict(patterns, form)))));
+      if (verdict !== "no") return verdict;
+      // On a case-insensitive disk `RM -rf build` runs `rm`: a match that
+      // holds only ignoring case is unsure.
+      const lower = patterns.map((pattern) => pattern.toLowerCase());
+      const folded = forms.map((form) => form.map((word) => ({ ...word, text: word.text.toLowerCase() })));
+      return folded.some((form) => formVerdict(lower, form) !== "no") ? "unsure" : "no";
     }),
   );
 }

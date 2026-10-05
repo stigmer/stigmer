@@ -11,7 +11,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ACTIVITY_PULSE_MS, activityPulseFor, hookTimeoutMs, OUTPUT_CAP_BYTES, runHookProcess, type HookProcessSpec } from "../run.js";
+import { ACTIVITY_PULSE_MS, activityPulseFor, CappedText, hookTimeoutMs, OUTPUT_CAP_BYTES, runHookProcess, type HookProcessSpec } from "../run.js";
 
 let dir: string;
 beforeEach(() => {
@@ -51,6 +51,14 @@ describe("runHookProcess", () => {
   it("runs exec form with no shell: its arguments are not re-parsed", async () => {
     const result = await runHookProcess(spec({ command: "printf", args: ["%s", "$HOME; echo injected"] }), {});
     expect(result.stdout).toBe("$HOME; echo injected");
+  });
+
+  it("keeps a stream's text up to the cap: cuts the chunk that crosses it, drops what follows", () => {
+    const text = new CappedText();
+    text.add(Buffer.alloc(OUTPUT_CAP_BYTES - 2, "a"));
+    text.add(Buffer.from("bbbb"));
+    text.add(Buffer.from("cccc"));
+    expect(text.text()).toBe(`${"a".repeat(OUTPUT_CAP_BYTES - 2)}bb`);
   });
 
   it("caps each output stream", async () => {

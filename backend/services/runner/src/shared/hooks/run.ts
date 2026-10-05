@@ -171,8 +171,8 @@ export const runHookProcess: HookProcessRunner = (spec, options) =>
     if (options.signal?.aborted) killGroup();
   });
 
-/** A stream's text, kept up to {@link OUTPUT_CAP_BYTES}. */
-class CappedText {
+/** A stream's text, kept up to {@link OUTPUT_CAP_BYTES}; exported for its test. */
+export class CappedText {
   private readonly chunks: Buffer[] = [];
   private size = 0;
 

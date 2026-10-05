@@ -142,7 +142,7 @@ A hook is also code the agent's author chose, and it runs without asking anyone:
 What holds:
 
 - The native engine runs Claude Code-format hooks, in the Cloud and on a laptop. The Cursor engine refuses a turn whose agent has hooks, and a plugin whose hooks are in Cursor's format is not run yet.
-- Apply checks an inline block: events must be `PreToolUse` or `PostToolUse`, and every matcher and condition must have the shape Claude Code accepts. It fills an omitted format with Claude Code's, so a block never names one. Apply also refuses two plugin references with the same slug and more than one inline block.
+- Apply checks an inline block: events must be `PreToolUse` or `PostToolUse`, every matcher and condition must have the shape Claude Code accepts, and `${user_config.KEY}` may appear only in a handler with `args`. It fills an omitted format with Claude Code's, so a block never names one. Apply also refuses two plugin references with the same slug and more than one inline block.
 - Installing a plugin whose hooks are in Claude Code's format adds the plugin's own reference to the agent the install composes, and declares in its `env` every variable those hooks read.
 - A plugin reference with no `version` follows the plugin's installed version. A hook that reads a variable the run does not have refuses the turn, naming the variable.
 - A hook reads a plugin setting by passing `${user_config.KEY}` in its `args`; a command without `args` that names one refuses the turn, since the shell would re-read the value. Only a setting passed that way is also exported to the plugin's hooks as `CLAUDE_PLUGIN_OPTION_<KEY>`; a hook whose script reads `CLAUDE_PLUGIN_OPTION_<KEY>` for any other setting finds it unset, where Claude Code would set it.
