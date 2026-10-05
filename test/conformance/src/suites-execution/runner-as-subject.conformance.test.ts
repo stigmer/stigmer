@@ -681,7 +681,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
         mock,
         people.founder,
         people.org,
-        agent.metadata!.id,
+        agentRefOf(agent),
         "operator",
       );
 

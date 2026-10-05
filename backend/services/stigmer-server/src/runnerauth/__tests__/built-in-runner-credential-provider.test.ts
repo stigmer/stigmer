@@ -121,7 +121,7 @@ const NOBODYS_RUN = create(AgentExecutionSchema, {
 /** A run whose row names no organization: no credential may be bound to nothing. */
 const ORGLESS_RUN = create(AgentExecutionSchema, {
   metadata: { id: "aex_orgless_run", name: "aex_orgless_run", org: "" },
-  spec: { sessionId: "ses_orgless" },
+  spec: { target: { case: "sessionId", value: "ses_orgless" } },
   status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS, ...stampedBy(HUMAN) },
 });
 

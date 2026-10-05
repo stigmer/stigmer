@@ -336,28 +336,51 @@ describe("the rule, for a caller bound to one organization", () => {
     ).toBe("outside");
   });
 
+  it("admits connecting to an MCP server shared at platform visibility, never editing it", async () => {
+    const f = fixture([
+      row("mcp_server", "mcps_shared", BETA, {
+        visibility: ApiResourceVisibility.visibility_platform,
+      }),
+    ]);
+    const binding = newCredentialBinding(f.deps);
+    const verdictOf = (permission: string) =>
+      binding.verdict(boundTo(ALPHA), {
+        kind: ApiResourceKind.mcp_server,
+        id: "mcps_shared",
+        permission,
+      });
+    expect(await verdictOf(IamPermission[IamPermission.can_connect])).toBe(
+      "admitted",
+    );
+    expect(await verdictOf(EDIT)).toBe("outside");
+  });
+
   it("admits the default instance of a shared blueprint, and no other instance", async () => {
     const f = fixture([
-      row("agent", "agent-1", BETA, {
+      row("workflow", "wfl_shared", BETA, {
         visibility: ApiResourceVisibility.visibility_platform,
-        status: { defaultInstanceId: "ain_default" },
+        status: { defaultInstanceId: "wfi_default" },
       }),
-      row("agent_instance", "ain_default", BETA),
-      row("agent_instance", "ain_personal", BETA),
+      row("workflow_instance", "wfi_default", BETA, {
+        spec: { workflowId: "wfl_shared" },
+      }),
+      row("workflow_instance", "wfi_personal", BETA, {
+        spec: { workflowId: "wfl_shared" },
+      }),
     ]);
     const binding = newCredentialBinding(f.deps);
     const caller = boundTo(ALPHA);
     expect(
       await binding.verdict(caller, {
-        kind: ApiResourceKind.agent_instance,
-        id: "ain_default",
+        kind: ApiResourceKind.workflow_instance,
+        id: "wfi_default",
         permission: EXECUTE,
       }),
     ).toBe("admitted");
     expect(
       await binding.verdict(caller, {
-        kind: ApiResourceKind.agent_instance,
-        id: "ain_personal",
+        kind: ApiResourceKind.workflow_instance,
+        id: "wfi_personal",
         permission: VIEW,
       }),
     ).toBe("outside");
@@ -365,16 +388,18 @@ describe("the rule, for a caller bound to one organization", () => {
 
   it("refuses an instance that names no blueprint, or whose blueprint is gone", async () => {
     const f = fixture([
-      row("agent_instance", "ain_orphan", BETA, { spec: { agentId: "" } }),
-      row("agent_instance", "ain_gone", BETA, {
-        spec: { agentId: "agt_gone" },
+      row("workflow_instance", "wfi_orphan", BETA, {
+        spec: { workflowId: "" },
+      }),
+      row("workflow_instance", "wfi_gone", BETA, {
+        spec: { workflowId: "wfl_gone" },
       }),
     ]);
     const binding = newCredentialBinding(f.deps);
-    for (const id of ["ain_orphan", "ain_gone"]) {
+    for (const id of ["wfi_orphan", "wfi_gone"]) {
       expect(
         await binding.verdict(boundTo(ALPHA), {
-          kind: ApiResourceKind.agent_instance,
+          kind: ApiResourceKind.workflow_instance,
           id,
           permission: VIEW,
         }),

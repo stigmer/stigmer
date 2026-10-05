@@ -35,8 +35,9 @@
  * It is ADMITTED OUTSIDE only along the model's one path across
  * organizations, and only for a permission that reads or runs: a
  * blueprint (agent, MCP server, plugin, skill, workflow) shared at
- * `visibility_platform`, and an agent's or workflow's default instance when
- * its blueprint is (the instance's `viewer from default_of`). The inner
+ * `visibility_platform` (connecting is how an MCP server runs), and a
+ * workflow's default instance when its workflow is (the instance's
+ * `viewer from default_of`). The inner
  * driver then decides as it always does. Everything else is OUTSIDE and
  * answers `deny` with `BOUND_ELSEWHERE_DENY_REASON`.
  *
@@ -116,7 +117,7 @@ const SHARED_BLUEPRINTS: ReadonlyMap<
   ApiResourceKind,
   ApiResourceKind | undefined
 > = new Map([
-  [ApiResourceKind.agent, ApiResourceKind.agent_instance],
+  [ApiResourceKind.agent, undefined],
   [ApiResourceKind.workflow, ApiResourceKind.workflow_instance],
   [ApiResourceKind.mcp_server, undefined],
   [ApiResourceKind.plugin, undefined],
@@ -129,10 +130,6 @@ const DEFAULT_INSTANCE_BLUEPRINTS: ReadonlyMap<
   { readonly blueprint: ApiResourceKind; readonly relation: string }
 > = new Map([
   [
-    ApiResourceKind.agent_instance,
-    { blueprint: ApiResourceKind.agent, relation: "agent" },
-  ],
-  [
     ApiResourceKind.workflow_instance,
     { blueprint: ApiResourceKind.workflow, relation: "workflow" },
   ],
@@ -140,11 +137,16 @@ const DEFAULT_INSTANCE_BLUEPRINTS: ReadonlyMap<
 
 const CAN_VIEW = IamPermission[IamPermission.can_view];
 
-/** The permissions that read or run: the only ones admitted outside. */
+/**
+ * The permissions that read or run: the only ones admitted outside. An MCP
+ * server is run by connecting to it (its model derives `can_connect` from
+ * `viewer`, and it has no `can_execute`); the connect lanes still refuse
+ * writing into another organization (refuse-bound-elsewhere.ts).
+ */
 const READ_OR_RUN_PERMISSIONS: ReadonlySet<string> = new Set([
   CAN_VIEW,
   IamPermission[IamPermission.can_execute],
-  IamPermission[IamPermission.can_create_instance],
+  IamPermission[IamPermission.can_connect],
 ]);
 
 export interface CredentialBindingDeps {

@@ -36,7 +36,7 @@ import {
   API_KEY_KIND,
   plaintextKeyOf,
 } from "../support/apikeys";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentExecution } from "../support/agentexecutions";
 import { makeEnvironment } from "../support/environments";
 import { makeMcpServer } from "../support/mcpservers";
@@ -483,7 +483,7 @@ describe("credential binding — a credential that names an organization works t
           makeAgentExecution({
             org: b.org,
             name: uniqueName("binding-aex"),
-            agentId: agent.metadata?.id ?? "",
+            agentRef: agentRefOf(agent),
             message: "Say hello.",
           }),
         ),
