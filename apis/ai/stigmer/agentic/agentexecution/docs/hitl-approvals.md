@@ -260,7 +260,7 @@ To enforce a timeout in your workflows, implement external monitoring and call `
 
 Some surfaces have **no approver present at the conversation**: a WhatsApp or Slack channel user is a customer, not an org member, and a guest visiting a shared agent link is anonymous. An interactive pause would park the execution in `EXECUTION_WAITING_FOR_APPROVAL` forever — nobody on that surface is authorized to decide.
 
-These surfaces stamp `ExecutionConfig.approval_mode = APPROVAL_MODE_UNATTENDED` when they create the execution (the channel session broker, the guest execution scope step — never the external user). In unattended mode:
+The server records `status.approval_mode = APPROVAL_MODE_UNATTENDED` on these turns (the hosted edition's channel and shared-agent guest turns), and on every schedule fire, where nobody is present either. The mode is a fact of the lane the turn came through: no request field sets it, so neither the external user nor any other caller can choose it. Every other turn is `APPROVAL_MODE_INTERACTIVE`, a workflow step's included (its workflow takes the approval request). In unattended mode:
 
 - **What is gated is unchanged.** The same default decides which tools ask; only the *resolution* differs.
 - A gated tool is resolved as an **automatic SKIP**: the tool does not run, the model is told the action requires an approval that is not available in this conversation, and the turn continues to normal completion. The user gets a plain-language explanation — never tool or approval vocabulary.

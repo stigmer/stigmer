@@ -152,10 +152,16 @@ export function deriveActiveLeases(execution: AgentExecution): ActiveLeases {
 
 /**
  * Whether this execution runs in UNATTENDED approval mode
- * (ExecutionConfig.approval_mode): the creating surface — a messaging
- * channel, a guest share — has no approver, so a gated tool is resolved as
- * an automatic skip (the model is told to adapt) instead of pausing the
- * execution for a decision that can never arrive.
+ * (`status.approval_mode`): the lane the turn came through — a schedule, a
+ * messaging channel, a guest share — has no approver, so a gated tool is
+ * resolved as an automatic skip (the model is told to adapt) instead of
+ * pausing the execution for a decision that can never arrive.
+ *
+ * The mode is a fact of the lane, recorded by the control plane at create;
+ * the request carries none, so a caller can never switch a turn's gates to
+ * skipping. Anything but UNATTENDED (INTERACTIVE, and UNSPECIFIED on a record
+ * written before the field existed) pauses for a decision: the safe default
+ * is the one that asks.
  *
  * The mode changes HOW a gate resolves, never WHAT is gated: the default
  * below is identical in both modes. Both harnesses read the
@@ -164,7 +170,7 @@ export function deriveActiveLeases(execution: AgentExecution): ActiveLeases {
  * so the surfaces can never diverge on what "unattended" means.
  */
 export function isUnattendedApprovalMode(execution: AgentExecution): boolean {
-  return execution.spec?.executionConfig?.approvalMode === ApprovalMode.UNATTENDED;
+  return execution.status?.approvalMode === ApprovalMode.UNATTENDED;
 }
 
 /**

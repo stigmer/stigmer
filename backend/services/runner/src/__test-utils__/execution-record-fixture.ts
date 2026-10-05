@@ -5,6 +5,13 @@
  * create; the session naming the same agent by reference), as an
  * `ExecutionRecord` the hermetic client answers from.
  *
+ * The turn's settings sit where the control plane writes them: the
+ * resolved settings on `status.run_config` and the lane's approval mode on
+ * `status.approval_mode`, both stamped at create; the message's own intents
+ * (the structured-output schema) on the spec. `requestRunConfig` fills the
+ * request's `spec.run_config`, which the runner must never read, so a test
+ * can make the request and the resolution disagree.
+ *
  * Harness-agnostic: the record is the control plane's, and the runtime's
  * phases read it the same way whatever engine runs the turn. A harness's
  * driver supplies its own fixture ids and model (`execute-cursor/__test-
@@ -19,7 +26,9 @@ import {
   AgentExecutionStatusSchema,
   type AgentExecution,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema, ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -59,18 +68,18 @@ export interface ExecutionRecordOptions {
   readonly instructions?: string;
   /** Session workspace entries (a `local_path` entry turns on capture mode). */
   readonly workspaceEntries?: WorkspaceEntry[];
-  /** The requested model; the pinned fixture model when omitted. */
+  /** The model the turn runs with (`status.run_config.model_name`); the pinned fixture model when omitted. */
   readonly modelName?: string;
   readonly autoApproveAll?: boolean;
   /**
-   * `ExecutionConfig.max_cost_usd`: the per-message cost budget the runtime
+   * `status.run_config.max_cost_usd`: the per-message cost budget the runtime
    * enforces as a hard stop (cost-guard.ts). Omitted or 0 = no cap, the
    * proto's default. Priced against the registry fixture's round numbers, so
    * a scenario can state its overrun exactly (600 000 input tokens = $0.60).
    */
   readonly maxCostUsd?: number;
   /**
-   * `ExecutionConfig.max_tool_rounds`: the hard tool-round budget the engine
+   * `status.run_config.max_tool_rounds`: the hard tool-round budget the engine
    * enforces (native: the execution budget middleware's round count,
    * `shared/tool-rounds.ts`).
    * Omitted or 0 = unlimited, the proto's default. Clamped to the floor of 10
@@ -78,8 +87,14 @@ export interface ExecutionRecordOptions {
    * that keeps calling tools (`repeatLast`).
    */
   readonly maxToolRounds?: number;
-  /** `ExecutionConfig.structured_output_schema`: a JSON schema the agent's answer must match. */
+  /** `status.run_config.max_tool_result_chars`: the tool-result truncation bound; 0 = the platform default. */
+  readonly maxToolResultChars?: number;
+  /** `spec.structured_output_schema`: a JSON schema the agent's answer must match. */
   readonly structuredOutputSchema?: JsonObject;
+  /** `status.approval_mode`, the lane's fact; UNSPECIFIED (the safe, asking default) when omitted. */
+  readonly approvalMode?: ApprovalMode;
+  /** The request's own `spec.run_config`; absent when omitted. The runner must never read it. */
+  readonly requestRunConfig?: RunConfig;
   /** The agent's declared sub-agents (`AgentSpec.sub_agents`). */
   readonly subAgents?: SubAgent[];
   /** The agent's `AgentSpec.tools` ("only these"), in Claude Code's names. */
@@ -107,17 +122,20 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       target: { case: "sessionId", value: ids.sessionId },
       message: options.message,
       autoApproveAll: options.autoApproveAll ?? false,
-      executionConfig: create(ExecutionConfigSchema, {
-        modelName: options.modelName ?? FIXTURE_MODEL,
-        maxCostUsd: options.maxCostUsd ?? 0,
-        maxToolRounds: options.maxToolRounds ?? 0,
-        // A `google.protobuf.Struct` field is a plain `JsonObject` in protobuf-es.
-        structuredOutputSchema: options.structuredOutputSchema,
-      }),
+      runConfig: options.requestRunConfig,
+      // A `google.protobuf.Struct` field is a plain `JsonObject` in protobuf-es.
+      structuredOutputSchema: options.structuredOutputSchema,
     }),
     status: create(AgentExecutionStatusSchema, {
       agentId: builtIn ? "" : ids.agentId,
       agentVersionHash: builtIn ? "" : ids.agentVersionHash,
+      runConfig: create(RunConfigSchema, {
+        modelName: options.modelName ?? FIXTURE_MODEL,
+        maxCostUsd: options.maxCostUsd ?? 0,
+        maxToolRounds: options.maxToolRounds ?? 0,
+        maxToolResultChars: options.maxToolResultChars ?? 0,
+      }),
+      approvalMode: options.approvalMode ?? ApprovalMode.UNSPECIFIED,
     }),
   });
   const session: Session = create(SessionSchema, {

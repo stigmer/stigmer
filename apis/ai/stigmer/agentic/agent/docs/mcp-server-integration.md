@@ -32,7 +32,7 @@ spec:
 
 ## McpServerUsage Fields
 
-Defined by `McpServerUsage` in `ai/stigmer/agentic/agent/v1/spec.proto`.
+Defined by `McpServerUsage` in `ai/stigmer/agentic/mcpserver/v1/usage.proto` (package `ai.stigmer.agentic.mcpserver.v1`), shared by agents and sessions. Earlier releases declared it in the `ai.stigmer.agentic.agent.v1` package; the move changed SDK import paths only, never the wire or JSON form.
 
 | Field            | Required | Description                                                                                                            |
 | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |

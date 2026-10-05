@@ -1,12 +1,14 @@
 /**
- * Pins validate-thinking-mode.ts: fail-closed create-time validation of
- * ExecutionConfig.thinking_mode (#772) against the BUNDLED registry, judged
- * on the harness the execution will run on (#1280). The harness comes from
- * the stored session for a turn on an existing session — the row
- * ValidateSessionOrganization recorded under STORED_SESSION_KEY, so the
- * step never reads the store itself — else the new conversation's
- * session_spec, UNSPECIFIED read as native; a session id with no recorded
- * row (a dangling id) is judged on the default harness. The bundled rows it leans on: claude-opus-4-6 declares
+ * Pins validate-thinking-mode.ts: fail-closed create-time validation of the
+ * thinking mode a turn resolved (#772) against the BUNDLED registry, judged
+ * on the harness the conversation runs on (#1280). Each case runs
+ * ResolveRunConfig first, as the chain does, over a turn with no agent, so
+ * the resolved settings are the request's own. The harness comes from the
+ * stored session for a turn on an existing session — the row
+ * ValidateSessionOrganization recorded under STORED_SESSION_KEY, so neither
+ * step reads the store for it — else the new conversation's session_spec,
+ * UNSPECIFIED read as native; a session id with no recorded row (a dangling
+ * id) is judged on the default harness. The bundled rows it leans on: claude-opus-4-6 declares
  * `thinking` on its cursor entry and composer-2.5 declares none;
  * claude-sonnet-5 is adaptive on its native entry and claude-haiku-4.5 is
  * budget-shaped; claude-fable-5's native entry requires thinking.
@@ -33,7 +35,16 @@ import { RequestContext } from "../../../pipeline/request-context.js";
 import { bundledModelRegistryDocument } from "../../workflow/registry/bundled.js";
 import { ModelRegistryStore } from "../../workflow/registry/model-registry-store.js";
 import { STORED_SESSION_KEY } from "../session-binding.js";
+import type { Store } from "../../../store/interface.js";
+import { newResolveRunConfigStep } from "../resolve-run-config.js";
 import { newValidateThinkingModeStep } from "../validate-thinking-mode.js";
+
+/** The resolution's deps for a turn with no agent: nothing is read. */
+const unreadStore = {
+  store: {} as Store,
+  runLanes: undefined,
+  scheduleProfile: undefined,
+};
 
 const silentLogger = createLogger({
   level: "error",
@@ -49,12 +60,12 @@ const registry = new ModelRegistryStore({
 });
 
 type SpecInit = MessageInitShape<typeof AgentExecutionSpecSchema>;
-type ExecutionConfigInit = NonNullable<SpecInit["executionConfig"]>;
+type RunConfigInit = NonNullable<SpecInit["runConfig"]>;
 
 type TargetInit = SpecInit["target"];
 
 function contextFor(
-  config: ExecutionConfigInit | undefined,
+  config: RunConfigInit | undefined,
   target: TargetInit,
   recorded: Session | undefined,
 ): RequestContext<typeof AgentExecutionSchema> {
@@ -64,7 +75,7 @@ function contextFor(
       spec: {
         message: "hello",
         target,
-        ...(config === undefined ? {} : { executionConfig: config }),
+        ...(config === undefined ? {} : { runConfig: config }),
       },
     }),
     testCallerIdentity(),
@@ -86,17 +97,17 @@ const onNative: TargetInit = {
 };
 
 async function passes(
-  config: ExecutionConfigInit | undefined,
+  config: RunConfigInit | undefined,
   target: TargetInit = { case: undefined },
   recorded?: Session,
 ): Promise<void> {
-  await newValidateThinkingModeStep(registry).execute(
-    contextFor(config, target, recorded),
-  );
+  const ctx = contextFor(config, target, recorded);
+  await newResolveRunConfigStep(unreadStore).execute(ctx);
+  await newValidateThinkingModeStep(registry).execute(ctx);
 }
 
 async function refusal(
-  config: ExecutionConfigInit,
+  config: RunConfigInit,
   target: TargetInit = { case: undefined },
   recorded?: Session,
 ): Promise<ConnectError> {
@@ -123,7 +134,7 @@ function inSession(sessionId: string): TargetInit {
 }
 
 describe("ValidateThinkingMode: modes that need no harness", () => {
-  it("no execution_config passes", async () => {
+  it("no run_config passes", async () => {
     await expect(passes(undefined)).resolves.toBeUndefined();
   });
 
@@ -151,7 +162,7 @@ describe("ValidateThinkingMode on the cursor harness", () => {
   it("ENABLED without model_name fails closed, naming the cursor models that think", async () => {
     const err = await refusal({ thinkingMode: ThinkingMode.ENABLED }, onCursor);
     expect(err.code).toBe(Code.InvalidArgument);
-    expect(err.rawMessage).toContain("requires execution_config.model_name");
+    expect(err.rawMessage).toContain("requires a model_name");
     expect(err.rawMessage).toContain("claude-opus-4-6");
   });
 

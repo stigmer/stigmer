@@ -11,6 +11,8 @@
 // Agent->McpServer reference invariant lives in
 // agent-mcpserver-references.conformance.test.ts.
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -250,6 +252,69 @@ describe("Agent conformance — negative paths", () => {
       const error = await expectGrpcCode(call, Code.NotFound, `${lane} into a missing organization`);
       expect(error.rawMessage, lane).toBe(`Organization not found: ${missing}`);
     }
+  });
+});
+
+describe("Agent conformance — run defaults", () => {
+  // An agent's run defaults (spec.run_config) are judged at save on the
+  // engine they name (spec.harness): each engine lists its own models.
+  // Existence is checked only here, never when a turn starts.
+  it("[rpc:AgentCommandController.create] [rpc:AgentQueryController.getVersion] stores run defaults and their engine, versioned with the agent", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await clients.agentCommand.create(
+      makeAgent({
+        org,
+        name: uniqueName("defaults"),
+        harness: Harness.NATIVE,
+        runConfig: { modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.ENABLED, maxCostUsd: 2 },
+      }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+
+    expect(agent.spec?.harness).toBe(Harness.NATIVE);
+    expect(agent.spec?.runConfig?.modelName).toBe("claude-sonnet-5");
+    const version = await clients.agentQuery.getVersion({
+      agentId: agent.metadata!.id,
+      versionHash: agent.status!.versionHash,
+    });
+    expect(version.specSnapshot?.runConfig?.maxCostUsd).toBe(2);
+    expect(version.specSnapshot?.harness).toBe(Harness.NATIVE);
+  });
+
+  it("[rpc:AgentCommandController.create] accepts an engine with no model, and bounds with no engine", async () => {
+    const { org } = await target.provisionTenancy();
+    for (const spec of [{ harness: Harness.CURSOR }, { runConfig: { maxCostUsd: 1, maxToolRounds: 30 } }]) {
+      const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("defaults-ok"), ...spec }));
+      fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    }
+  });
+
+  it.each<[string, Parameters<typeof makeAgent>[0]["runConfig"], Harness | undefined, string]>([
+    ["a model with no engine", { modelName: "claude-sonnet-5" }, undefined, "requires spec.harness"],
+    ["a model the engine does not list", { modelName: "claude-sonnet-4.6" }, Harness.CURSOR, "cursor harness"],
+    ["fast with no model", { serviceTier: ServiceTier.FAST }, Harness.CURSOR, "requires spec.run_config.model_name"],
+    [
+      "thinking on a model that cannot think on the engine",
+      { modelName: "composer-2.5", thinkingMode: ThinkingMode.ENABLED },
+      Harness.CURSOR,
+      "no thinking capability",
+    ],
+  ])("[rpc:AgentCommandController.create] refuses %s (InvalidArgument)", async (what, runConfig, harness, says) => {
+    const { org } = await target.provisionTenancy();
+    const err = await expectGrpcCode(
+      () =>
+        clients.agentCommand.create(
+          makeAgent({
+            org,
+            name: uniqueName("defaults-bad"),
+            runConfig,
+            ...(harness !== undefined ? { harness } : {}),
+          }),
+        ),
+      Code.InvalidArgument,
+      what,
+    );
+    expect(err.rawMessage).toContain(says);
   });
 });
 

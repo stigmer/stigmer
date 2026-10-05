@@ -119,8 +119,8 @@ export interface EnhancedPromptOptions {
   downloadUrlKind?: DownloadUrlKind;
   interactionMode?: InteractionMode;
   /**
-   * The execution is a Build-from-plan turn (spec.execution_config
-   * .build_from_plan): inject the implement-plan directive so the model reads
+   * The execution is a Build-from-plan turn (spec.build_from_plan):
+   * inject the implement-plan directive so the model reads
    * the attached approved plan (or falls back to the conversation's plan).
    * The user message itself is just a short label ("Build from plan").
    */
@@ -788,8 +788,7 @@ export interface BuildPromptInput {
   appliedToolCallIds?: ReadonlySet<string>;
   interactionMode?: InteractionMode;
   /**
-   * The execution is a Build-from-plan turn (spec.execution_config
-   * .build_from_plan): both prompt paths carry the implement-plan directive.
+   * The execution is a Build-from-plan turn (spec.build_from_plan): both prompt paths carry the implement-plan directive.
    */
   buildFromPlan?: boolean;
   /**

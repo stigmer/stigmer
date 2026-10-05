@@ -21,11 +21,13 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import type {
   AttachmentSchema,
-  ExecutionConfigSchema,
   WorkflowParentSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import type { JsonObject } from "@bufbuild/protobuf";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ConformanceClients } from "../harness/clients";
@@ -69,9 +71,16 @@ export interface AgentExecutionOptions {
   // Execution-scoped env overrides (spec.runtime_env) — the highest-precedence
   // layer of the env merge, materialized into the ExecutionContext at create.
   runtimeEnv?: Record<string, ExecutionValueInit>;
-  // Execution-time overrides (spec.execution_config) — model pin, service
-  // tier, interaction mode. Left unset by default (the runner picks defaults).
-  executionConfig?: MessageInitShape<typeof ExecutionConfigSchema>;
+  // The settings this message asks for (spec.run_config): model, tier,
+  // thinking, bounds. Left unset by default: the agent's defaults and the
+  // engine's choose; the server records what the turn ran with on
+  // status.run_config.
+  runConfig?: MessageInitShape<typeof RunConfigSchema>;
+  // The per-message intents (spec.interaction_mode, spec.build_from_plan,
+  // spec.structured_output_schema).
+  interactionMode?: InteractionMode;
+  buildFromPlan?: boolean;
+  structuredOutputSchema?: JsonObject;
   // Input attachments (spec.attachments). Each carries a storage_key from
   // uploadAttachment; the runner materializes them under .stigmer/inputs/.
   attachments?: MessageInitShape<typeof AttachmentSchema>[];
@@ -80,7 +89,7 @@ export interface AgentExecutionOptions {
   workspaceFileRefs?: string[];
 }
 
-// A complete, valid AgentExecution create request. execution_config is left unset
+// A complete, valid AgentExecution create request. run_config is left unset
 // unless provided, so the only variable inputs are the target, the message,
 // and the optional overrides.
 export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeof AgentExecutionSchema> {
@@ -98,7 +107,12 @@ export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeo
       message: opts.message ?? "Say hello.",
       ...(opts.autoApproveAll !== undefined ? { autoApproveAll: opts.autoApproveAll } : {}),
       ...(opts.runtimeEnv !== undefined ? { runtimeEnv: makeExecutionValues(opts.runtimeEnv) } : {}),
-      ...(opts.executionConfig !== undefined ? { executionConfig: opts.executionConfig } : {}),
+      ...(opts.runConfig !== undefined ? { runConfig: opts.runConfig } : {}),
+      ...(opts.interactionMode !== undefined ? { interactionMode: opts.interactionMode } : {}),
+      ...(opts.buildFromPlan !== undefined ? { buildFromPlan: opts.buildFromPlan } : {}),
+      ...(opts.structuredOutputSchema !== undefined
+        ? { structuredOutputSchema: opts.structuredOutputSchema }
+        : {}),
       ...(opts.attachments !== undefined ? { attachments: opts.attachments } : {}),
       ...(opts.workspaceFileRefs !== undefined ? { workspaceFileRefs: opts.workspaceFileRefs } : {}),
     },

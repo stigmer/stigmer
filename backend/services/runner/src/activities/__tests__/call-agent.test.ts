@@ -16,13 +16,18 @@
  *     task's execution id wins over the environment's unless it is empty,
  *     and the turn is refused before anything is written when neither has
  *     one;
- *   - run_config, workspace entries, provenance labels and env forwarding
- *     map onto the request as the module header describes.
+ *   - the step's run_config becomes the child's request (`spec.run_config`)
+ *     field for field, unset staying unset, with the output schema at the
+ *     spec's top level and no approval mode (the server's fact of the
+ *     lane);
+ *   - workspace entries, provenance labels and env forwarding map onto the
+ *     request as the module header describes.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 
 let mockGetAgentByReference: ReturnType<typeof vi.fn>;
 let mockCreateSession: ReturnType<typeof vi.fn>;
@@ -65,6 +70,11 @@ const appConfig = testConfig({ stigmerTokenRef: { current: "test-token" } });
 
 /** The workflow execution every step below runs in, unless a test says otherwise. */
 const WEX = "wex_test1";
+
+/** The AgentExecution the activity handed the control plane's create. */
+function createdExecution(): AgentExecution {
+  return mockCreateAgentExecution.mock.calls[0][0] as AgentExecution;
+}
 
 /** The agent every reference resolves to: its own organization (an id) and slug. */
 const RESOLVED_AGENT = { metadata: { id: "agt_test123", org: "org_agents", slug: "my-agent" } };
@@ -375,8 +385,9 @@ describe("callAgentAction", () => {
     });
   });
 
-  describe("run_config → ExecutionConfig mapping (#358)", () => {
-    it("maps model_name, max_cost_usd, and max_tool_rounds onto ExecutionConfig", async () => {
+  describe("run_config → the child turn's request (spec.run_config)", () => {
+    it("carries all six settings onto spec.runConfig, the output schema at the spec's top level, and no approval mode", async () => {
+      const schema = { type: "object", required: ["verdict"], properties: { verdict: { type: "string" } } };
       await expect(
         callAgentAction(
           {
@@ -386,7 +397,11 @@ describe("callAgentAction", () => {
               model_name: "claude-sonnet-4-6",
               max_cost_usd: 0.75,
               max_tool_rounds: 15,
+              max_tool_result_chars: 12_000,
+              service_tier: "SERVICE_TIER_FAST",
+              thinking_mode: "THINKING_MODE_ENABLED",
             },
+            output: { schema },
           },
           { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
@@ -394,30 +409,20 @@ describe("callAgentAction", () => {
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
-      const execution = mockCreateAgentExecution.mock.calls[0][0];
-      expect(execution.spec.executionConfig).toBeDefined();
-      expect(execution.spec.executionConfig.modelName).toBe("claude-sonnet-4-6");
-      expect(execution.spec.executionConfig.maxCostUsd).toBe(0.75);
-      expect(execution.spec.executionConfig.maxToolRounds).toBe(15);
-    });
-
-    it("maps a canonical service_tier onto ExecutionConfig.serviceTier (#357)", async () => {
-      await expect(
-        callAgentAction(
-          {
-            agent: "my-agent",
-            message: "Hello",
-            run_config: { service_tier: "SERVICE_TIER_FAST" },
-          },
-          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
-          "wfl_parent",
-          appConfig,
-        ),
-      ).rejects.toThrow("CompleteAsyncError");
-
-      const execution = mockCreateAgentExecution.mock.calls[0][0];
-      expect(execution.spec.executionConfig).toBeDefined();
-      expect(execution.spec.executionConfig.serviceTier).toBe(ServiceTier.FAST);
+      const execution = createdExecution();
+      const runConfig = execution.spec?.runConfig;
+      expect(runConfig).toBeDefined();
+      expect(runConfig?.modelName).toBe("claude-sonnet-4-6");
+      expect(runConfig?.maxCostUsd).toBe(0.75);
+      expect(runConfig?.maxToolRounds).toBe(15);
+      expect(runConfig?.maxToolResultChars).toBe(12_000);
+      expect(runConfig?.serviceTier).toBe(ServiceTier.FAST);
+      expect(runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
+      expect(execution.spec?.structuredOutputSchema).toEqual(schema);
+      // The approval mode is the server's fact of the lane: the request
+      // carries none, and the runner never stamps the status it does not own.
+      expect(execution.status?.approvalMode ?? ApprovalMode.UNSPECIFIED).toBe(ApprovalMode.UNSPECIFIED);
+      expect(execution.status?.runConfig).toBeUndefined();
     });
 
     it("fails loudly on a service_tier value with no proto mapping", async () => {
@@ -440,7 +445,24 @@ describe("callAgentAction", () => {
       );
     });
 
-    it("omits ExecutionConfig entirely when run_config and output are absent", async () => {
+    it("fails loudly on a thinking_mode value with no proto mapping", async () => {
+      await expect(
+        callAgentAction(
+          {
+            agent: "my-agent",
+            message: "Hello",
+            run_config: { thinking_mode: "THINKING_MODE_MAX" },
+          },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
+          "wfl_parent",
+          appConfig,
+        ),
+      ).rejects.toThrow(
+        "call:agent run_config.thinking_mode 'THINKING_MODE_MAX' has no proto mapping",
+      );
+    });
+
+    it("leaves spec.runConfig and the output schema unset when the step has neither", async () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "Hello" },
@@ -450,17 +472,18 @@ describe("callAgentAction", () => {
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
-      const execution = mockCreateAgentExecution.mock.calls[0][0];
-      expect(execution.spec.executionConfig).toBeUndefined();
+      const execution = createdExecution();
+      expect(execution.spec?.runConfig).toBeUndefined();
+      expect(execution.spec?.structuredOutputSchema).toBeUndefined();
     });
 
-    it("treats zero bounds as no override", async () => {
+    it("carries an unset setting as unset, never inventing a value", async () => {
       await expect(
         callAgentAction(
           {
             agent: "my-agent",
             message: "Hello",
-            run_config: { model_name: "claude-sonnet-4-6", max_cost_usd: 0, max_tool_rounds: 0 },
+            run_config: { model_name: "claude-sonnet-4-6", max_cost_usd: 0 },
           },
           { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
@@ -468,13 +491,15 @@ describe("callAgentAction", () => {
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
-      const execution = mockCreateAgentExecution.mock.calls[0][0];
-      expect(execution.spec.executionConfig.modelName).toBe("claude-sonnet-4-6");
-      // Proto zero values: unset numerics read back as 0, but nothing was
-      // deliberately written — the guards must not have set them from a
-      // zero "no override" input.
-      expect(execution.spec.executionConfig.maxCostUsd).toBe(0);
-      expect(execution.spec.executionConfig.maxToolRounds).toBe(0);
+      const runConfig = createdExecution().spec?.runConfig;
+      expect(runConfig?.modelName).toBe("claude-sonnet-4-6");
+      // Zero and UNSPECIFIED are "not set at this layer": the server's
+      // resolution fills them from the agent's defaults, not this activity.
+      expect(runConfig?.maxCostUsd).toBe(0);
+      expect(runConfig?.maxToolRounds).toBe(0);
+      expect(runConfig?.maxToolResultChars).toBe(0);
+      expect(runConfig?.serviceTier).toBe(ServiceTier.UNSPECIFIED);
+      expect(runConfig?.thinkingMode).toBe(ThinkingMode.UNSPECIFIED);
     });
   });
 

@@ -295,7 +295,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   // ── The engine's turn and its outcome ─────────────────────────────────────
 
   async function runEngineTurn(turn: TurnInput): Promise<Settled> {
-    const maxCostUsd = turn.execution.spec?.executionConfig?.maxCostUsd ?? 0;
+    const maxCostUsd = turn.execution.status?.runConfig?.maxCostUsd ?? 0;
     const accumulator = new UsageAccumulator(turn.model.serviceTier, turn.model.thinkingMode);
     usage = accumulator;
 
@@ -544,7 +544,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
       // Plan mode: publish the final plan message as a plan artifact (named
       // from the plan's title); the only artifact path a harness without an
       // auto-publish pipeline has.
-      const interactionMode = turn.execution.spec?.executionConfig?.interactionMode ?? InteractionMode.UNSPECIFIED;
+      const interactionMode = turn.execution.spec?.interactionMode ?? InteractionMode.UNSPECIFIED;
       if (interactionMode === InteractionMode.PLAN && finalText && turn.artifactStorage) {
         try {
           await publishPlanArtifact({ status, executionId, planText: finalText, artifactStorage: turn.artifactStorage });

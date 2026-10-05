@@ -54,7 +54,7 @@
 // deliberately NOT asserted here: OSS never produces that state, so they belong to
 // the gated/cloud contract, not the edition-agnostic negatives.
 import { Code } from "@connectrpc/connect";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   ExecutionPhase,
   WorkflowTaskStatus,
@@ -325,6 +325,11 @@ describe.skipIf(!forwarderEnabled)(
         decidedByOf(decidedChild, pending.approval!.toolCallId),
         "the child's decision names the caller who decided through the parent",
       ).toBe(creator);
+      // A workflow step's turn is interactive: its gate waits for the
+      // decision forwarded through the parent, never skipped as unattended.
+      expect(decidedChild.status?.approvalMode, "the child turn's approval mode").toBe(
+        ApprovalMode.INTERACTIVE,
+      );
 
       // The child resumes and the workflow continues — the downstream task running
       // is the proof the forwarded approval reached the child and unblocked it.

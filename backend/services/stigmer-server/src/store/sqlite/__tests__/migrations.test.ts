@@ -41,6 +41,10 @@ import { create, fromBinary, fromJson, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import {
+  ApprovalMode,
+  InteractionMode,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
@@ -56,6 +60,7 @@ import {
   SCHEMA_VERSION_12,
   SCHEMA_VERSION_13,
   SCHEMA_VERSION_14,
+  SCHEMA_VERSION_15,
   getSchemaVersion,
   runMigrations,
 } from "../migrations.js";
@@ -66,6 +71,10 @@ import {
   retiredSessionRow,
   sessionBytes,
 } from "../../__tests__/retired-instance-rows.js";
+import {
+  executionBytes,
+  retiredExecutionRow,
+} from "../../__tests__/retired-execution-rows.js";
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
 import { materializeGoFixture } from "./support.js";
@@ -225,7 +234,7 @@ describe("fresh database", () => {
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     ]);
   });
 
@@ -1251,5 +1260,88 @@ describe("v14: sessions name their agent and the agent instance rows leave", () 
 
     runMigrations(db, SCHEMA_VERSION_14);
     expect(count(db, "resources", "agent_instance")).toBe(0);
+  });
+});
+
+describe("v15: a turn's settings leave the retired execution_config", () => {
+  const metadata = (id: string) => ({ id, org: "org_1", slug: id });
+
+  function v14Database(): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_15 - 1);
+    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_15 - 1);
+    return { dbPath, db: setup };
+  }
+
+  function insert(db: DatabaseSync, id: string, data: Uint8Array): void {
+    db.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES ('agent_execution', ?, ?, '2026-09-01 00:00:00')`,
+    ).run(id, data);
+  }
+
+  function row(db: DatabaseSync, id: string): { data: Uint8Array; updated_at: string } {
+    return db
+      .prepare(`SELECT data, updated_at FROM resources WHERE kind = 'agent_execution' AND id = ?`)
+      .get(id) as { data: Uint8Array; updated_at: string };
+  }
+
+  it("rewrites every turn into the current shape and leaves its stamp alone", () => {
+    const { dbPath, db: setup } = v14Database();
+    insert(
+      setup,
+      "aex_plan",
+      retiredExecutionRow({
+        metadata: metadata("aex_plan"),
+        config: {
+          modelName: "claude-sonnet-5",
+          maxCostUsd: 2,
+          interactionMode: InteractionMode.PLAN,
+          approvalMode: ApprovalMode.UNATTENDED,
+        },
+      }),
+    );
+    insert(setup, "aex_bare", retiredExecutionRow({ metadata: metadata("aex_bare") }));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_15);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_15);
+
+    const plan = row(db, "aex_plan");
+    expect(plan.data).toEqual(
+      executionBytes({
+        metadata: metadata("aex_plan"),
+        spec: {
+          message: "hello",
+          runConfig: { modelName: "claude-sonnet-5", maxCostUsd: 2 },
+          interactionMode: InteractionMode.PLAN,
+        },
+        status: {
+          runConfig: { modelName: "claude-sonnet-5", maxCostUsd: 2 },
+          approvalMode: ApprovalMode.UNATTENDED,
+        },
+      }),
+    );
+    expect(plan.updated_at).toBe("2026-09-01 00:00:00");
+    expect(row(db, "aex_bare").data).toEqual(
+      executionBytes({
+        metadata: metadata("aex_bare"),
+        spec: { message: "hello" },
+        status: { runConfig: {}, approvalMode: ApprovalMode.INTERACTIVE },
+      }),
+    );
+  });
+
+  it("an unreadable turn fails the step and leaves the database at v14", () => {
+    const { dbPath, db: setup } = v14Database();
+    insert(setup, "aex_bad", new Uint8Array([0xff, 0xff, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_15)).toThrow("agent_execution 'aex_bad'");
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_15 - 1);
   });
 });

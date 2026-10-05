@@ -426,6 +426,7 @@ do:
           model_name: claude-3-5-sonnet
           max_cost_usd: 0.5
           max_tool_rounds: 15
+          max_tool_result_chars: 12000
           service_tier: fast
         output:
           schema:
@@ -449,6 +450,7 @@ do:
         expect(task.with.run_config?.model_name).toBe("claude-3-5-sonnet");
         expect(task.with.run_config?.max_cost_usd).toBe(0.5);
         expect(task.with.run_config?.max_tool_rounds).toBe(15);
+        expect(task.with.run_config?.max_tool_result_chars).toBe(12000);
         expect(task.with.run_config?.service_tier).toBe("SERVICE_TIER_FAST");
         expect(task.with.output?.schema.type).toBe("object");
         expect(task.with.output?.on_invalid).toBe("ON_INVALID_RETRY");

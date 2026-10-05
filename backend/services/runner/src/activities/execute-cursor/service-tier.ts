@@ -8,11 +8,12 @@
  * base rates, claude-haiku-4-5 to thinking=true), and that default follows
  * an out-of-band account setting. This module pins every user-selectable
  * variant parameter the model declares, so the served variant is a
- * deterministic function of the execution config:
+ * deterministic function of the turn's resolved settings
+ * (`status.run_config`):
  *
- * - fast: pinned from ExecutionConfig.service_tier (FAST → true).
+ * - fast: pinned from RunConfig.service_tier (FAST → true).
  *   Price-bearing — the fast variant bills at pricingVariants.fast rates.
- * - thinking: pinned from ExecutionConfig.thinking_mode (ENABLED → true).
+ * - thinking: pinned from RunConfig.thinking_mode (ENABLED → true).
  *   Per-token price-neutral (ledger-verified 2026-08-15: thinking wire ids
  *   bill exactly base rates; thinking+fast bills exactly the fast rate) —
  *   pinned anyway because the served variant must never follow the account

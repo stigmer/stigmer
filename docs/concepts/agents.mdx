@@ -144,12 +144,12 @@ recovers and resumes from where it left off.
 ## Versions
 
 Every change to an Agent's definition is kept. The definition is what the Agent
-runs with: its instructions, Skills, tools, Sub-Agents and variables. When you
-apply an Agent whose definition differs from every version it has had, Stigmer
-records a new version under a fingerprint of its content. Applying it unchanged
-records nothing, applying an earlier definition again points the Agent back at
-that version, and renaming it or changing its labels or visibility records no
-version.
+runs with: its instructions, Skills, tools, Sub-Agents, variables and
+[run settings](#run-settings). When you apply an Agent whose definition differs
+from every version it has had, Stigmer records a new version under a fingerprint
+of its content. Applying it unchanged records nothing, applying an earlier
+definition again points the Agent back at that version, and renaming it or
+changing its labels or visibility records no version.
 
 You can list an Agent's versions, open any of them, and give one a tag such as
 `stable`, the same way [Workflows](/docs/concepts/workflows) are versioned:
@@ -174,6 +174,92 @@ under the people in it; they reach an open conversation when someone updates it
 to the current version. Schedules, channels, and shares start each conversation
 on the version their reference names, or on the current version when it names
 none.
+
+## Run settings
+
+An Agent can carry the settings its conversations run with: the model, whether
+the model thinks before it answers, its speed tier, and limits on what one
+message may spend. They live in `run_config`, next to `harness`, the
+[Harness](/docs/concepts/harnesses) they were chosen for:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: pr-reviewer
+  visibility: visibility_org
+spec:
+  description: Reviews pull requests for correctness and risk.
+  instructions: |
+    You review pull requests. Read the diff and the files it touches, then
+    report bugs, risky changes and missing tests, most severe first.
+  tools: [Read, Grep, Glob]
+  harness: HARNESS_NATIVE
+  run_config:
+    model_name: claude-sonnet-4.5
+    thinking_mode: THINKING_MODE_ENABLED
+    max_cost_usd: 2
+```
+
+Every message to this Agent runs on Claude Sonnet 4.5 with thinking on, and
+stops once its estimated cost reaches $2, keeping the work done so far. The next
+message starts a fresh count.
+
+| Field                   | What it sets                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `model_name`            | The model, by its name in the model catalog. It must be one the named Harness lists.                          |
+| `thinking_mode`         | `THINKING_MODE_ENABLED` turns on the model's extended reasoning. Needs a model that can think.                |
+| `service_tier`          | `SERVICE_TIER_FAST` runs at the model's fast tier and bills at its fast rates. Needs a model that offers one. |
+| `max_cost_usd`          | Stops a message once its estimated cost reaches this many dollars.                                            |
+| `max_tool_rounds`       | Stops a message after this many rounds of tool calls (native Harness only).                                   |
+| `max_tool_result_chars` | Cuts a single tool result longer than this; 30,000 characters when no one sets it.                            |
+
+### Where each setting comes from
+
+A message's settings are worked out once, when it is sent, from three layers,
+most specific first:
+
+1. **The message**, or the surface it came through: the saved `run_config` of a
+   Schedule, a channel, a share or a Workflow's `agent_call` step.
+2. **The Agent**: its `run_config`.
+3. **The operator**: the defaults the operator set for that kind of run.
+
+Two rules combine them:
+
+- **Choices come from the most specific layer that makes one.** That covers the
+  model, the tier and thinking. A channel that names a model replaces the
+  Agent's; a channel that names none runs the Agent's. A tier or thinking
+  setting belongs to its model: it comes from the layer that chose the model or
+  a more specific one, never from a layer whose model was replaced. When no
+  layer names a model, the Harness picks: native uses its default model, Cursor
+  uses Auto.
+- **Limits are the tightest any layer sets.** That covers cost, tool rounds and
+  result size. A message or a channel can lower this Agent's $2 cap to $0.50,
+  but cannot raise it to $5.
+
+The settings a message ran with are recorded on its Agent Execution
+(`status.run_config`), so its history and its bill read the same answer.
+
+### In the console
+
+The model picker in a conversation opens on **Agent default** and the model the
+Agent names. A person can switch any one message to another model, or turn
+thinking off for it, without changing the Agent.
+
+### Harnesses and versions
+
+- Run settings are versioned with the Agent. A conversation runs the version it
+  started on, so it keeps that version's model after the author picks another.
+- A new conversation on the Agent starts on the Agent's `harness`, unless the
+  person or the surface starting it names another. On the other Harness the
+  Agent's model, tier and thinking are left out, since each Harness lists its
+  own models, and only its limits apply.
+- Stigmer checks the settings when the Agent is saved: a model needs a
+  `harness`, the model must be one that Harness lists, and a fast tier or
+  thinking needs a model that supports it there.
+- Saved settings stand on their own. An Agent, Schedule, channel, share or
+  Workflow step that sets a fast tier or thinking also names the model it is
+  for. Only a message may set them alone, to adjust the model it is given.
 
 ## The built-in assistant
 

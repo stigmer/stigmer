@@ -28,7 +28,8 @@ AgentExecution is more than a log record. It provides active runtime control:
 - **Human-in-the-Loop (HITL) approvals**: pause mid-run at a tool approval gate and wait for a human decision (approve, skip, or reject) before continuing
 - **File attachments**: inject input files into the agent's sandbox before execution starts
 - **Execution artifacts**: download files and directories created by the agent during execution
-- **Context management**: automatic context window summarization for long-running conversations
+- **Run settings**: one `run_config` per message (model, speed tier, thinking, cost and tool limits), resolved with the agent's defaults and recorded on `status.run_config`; see [agent-execution-resource-guide.md](agent-execution-resource-guide.md#run-settings-run_config)
+- **Context management**: automatic context window summarization for long-running conversations, by the model's Model Registry entry
 - **Usage metrics**: real-time token and LLM call tracking per execution and per sub-agent
 - **Resolved context visibility**: see exactly which MCP servers, environment keys, and skills the agent had access to
 - **Async workflow integration**: Temporal token handshake for workflow-invoked agents, through the vouched `parent` link
@@ -41,7 +42,6 @@ AgentExecution is more than a log record. It provides active runtime control:
 | [execution-lifecycle.md](execution-lifecycle.md) | Phase state machine — cancel, terminate, pause/resume, recover |
 | [hitl-approvals.md](hitl-approvals.md) | Human-in-the-Loop approval gates — approve, skip, reject, batch approvals |
 | [attachments-and-artifacts.md](attachments-and-artifacts.md) | Input file attachments and output execution artifacts |
-| [context-management.md](context-management.md) | Context window management and automatic summarization |
 | [examples.md](examples.md) | Complete examples from minimal trigger to full-featured execution |
 | [async-workflow-integration.md](async-workflow-integration.md) | Temporal token handshake for pipeline-invoked agents |
 
@@ -52,7 +52,8 @@ All types in this package are defined in `ai/stigmer/agentic/agentexecution/v1/`
 | File | Contents |
 |---|---|
 | `api.proto` | `AgentExecution`, `AgentExecutionStatus`, `ToolCall`, `SubAgentExecution`, `UsageMetrics`, `ContextInfo`, `ExecutionArtifact`, `PendingApproval` |
-| `spec.proto` | `AgentExecutionSpec`, `WorkflowParent`, `ExecutionConfig`, `ContextManagementConfig`, `Attachment` |
+| `spec.proto` | `AgentExecutionSpec`, `WorkflowParent`, `Attachment` |
+| `invocation.proto` | `RunConfig` (the settings message every run, surface and agent shares), `AgentInvocation` |
 | `enum.proto` | `ExecutionPhase`, `MessageType`, `ToolCallStatus`, `TodoStatus`, `SubAgentStatus`, `ExecutionArtifactKind`, `ApprovalAction` |
 | `command.proto` | `AgentExecutionCommandController` — create, update, cancel, terminate, pause, resume, recover, submitApproval, uploadAttachment |
 | `query.proto` | `AgentExecutionQueryController` — get, list, listBySession, subscribe, getArtifactDownloadUrl |

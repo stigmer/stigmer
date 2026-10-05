@@ -26,7 +26,7 @@
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { FileDecisionAction, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { makeAgentExecution, sessionIdOf } from "../support/agentexecutions";
@@ -107,7 +107,7 @@ interface TurnRequest {
 /* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
 async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnRequest, io: SessionIo): Promise<MeasuredTurn> {
   const { clients } = stack;
-  const executionConfig: MessageInitShape<typeof ExecutionConfigSchema> | undefined =
+  const runConfig: MessageInitShape<typeof RunConfigSchema> | undefined =
     plan.modelRequested === null
       ? undefined
       : {
@@ -125,7 +125,7 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
         ...(turn.sessionId === undefined ? { agentRef: plan.agentRef, sessionSpec: plan.sessionSpec } : { sessionId: turn.sessionId }),
         message: turn.prompt,
         autoApproveAll: true,
-        ...(executionConfig !== undefined ? { executionConfig } : {}),
+        ...(runConfig !== undefined ? { runConfig } : {}),
       }),
     );
   } catch (error) {

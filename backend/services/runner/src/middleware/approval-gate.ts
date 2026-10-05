@@ -150,9 +150,9 @@ export interface ApprovalGateConfig {
    */
   readonly captureDeleteBefore?: (rawPath: string) => Promise<void>;
   /**
-   * Unattended approval mode (ExecutionConfig.approval_mode = UNATTENDED):
-   * the creating surface — a messaging channel, a guest share — has no
-   * approver, so a gated tool is resolved as an automatic SKIP (the model is
+   * Unattended approval mode (`status.approval_mode` = UNATTENDED):
+   * the lane the turn came through — a schedule, a messaging channel, a
+   * guest share — has no approver, so a gated tool is resolved as an automatic SKIP (the model is
    * told to adapt) instead of `interrupt()`. The execution never enters
    * WAITING_FOR_APPROVAL. What is gated is unchanged — only the resolution
    * differs.

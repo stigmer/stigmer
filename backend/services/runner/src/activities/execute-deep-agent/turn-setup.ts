@@ -167,10 +167,11 @@ export type DeepAgentGraphInput =
 // ── Steps ───────────────────────────────────────────────────────────────────
 
 /**
- * The registry id the turn runs on: what the execution asked for, as the
- * runtime already resolved it (`input.model.requested`, `"default"` when the
- * spec named none — the one reader of `spec.executionConfig.modelName`, which
- * the Cursor adapter reads too), or the registry's default for `"default"`.
+ * The registry id the turn runs on: the model the turn's resolved settings
+ * name, as the runtime already read it (`input.model.requested`, `"default"` when the
+ * turn's resolved settings name none — the runtime is the one reader of
+ * `status.runConfig.modelName`, and the Cursor adapter reads the same
+ * value), or the registry's default for `"default"`.
  * The same reading the runtime's attachment phase made for the vision budget,
  * so the model that sees the images is the model that runs. (Until #1096 this
  * read the spec field beside the runtime's resolved copy.)
@@ -289,7 +290,6 @@ export function readGateState(input: TurnInput, tools: DeepAgentTools): DeepAgen
  */
 export function composeSystemPrompt(input: TurnInput, recalledMemories: RecalledMemoriesContent | undefined): string {
   const spec = input.execution.spec!;
-  const execConfig = spec.executionConfig;
   const primaryDir = input.workspace.primaryDir;
   return buildEnhancedSystemPrompt({
     instructions: input.blueprint.instructions,
@@ -301,9 +301,9 @@ export function composeSystemPrompt(input: TurnInput, recalledMemories: Recalled
     channelTemplatesPromptSection: input.mcp.channelMessaging.length > 0
       ? formatChannelTemplatesSection(input.mcp.channelMessaging) || undefined
       : undefined,
-    interactionMode: execConfig?.interactionMode,
-    buildFromPlan: execConfig?.buildFromPlan,
-    ...(execConfig?.buildFromPlan
+    interactionMode: spec.interactionMode,
+    buildFromPlan: spec.buildFromPlan,
+    ...(spec.buildFromPlan
       ? { approvedPlanPath: findApprovedPlanPath(input.attachments.results.map((f) => f.relativePath)) }
       : {}),
     contextBridge: input.standing.contextBridge,
@@ -365,7 +365,11 @@ export async function buildEngine(
 ): Promise<DeepAgentEngine> {
   const { modelName, checkpointer, workspace, tools, gate } = args;
   const { executionId, sessionId, blueprint, artifactStorage } = input;
-  const execConfig = input.execution.spec!.executionConfig;
+  // The bounds the turn runs with: the control plane's one resolution
+  // (`status.run_config`), never the request's own settings. The mode is the
+  // message's intent, on the spec.
+  const runConfig = input.execution.status?.runConfig;
+  const interactionMode = input.execution.spec!.interactionMode;
   const primaryDir = input.workspace.primaryDir;
 
   // The model. Resolution to the provider API id happens inside
@@ -412,7 +416,7 @@ export async function buildEngine(
 
   await ensurePricingLoaded();
   const pricing = getModelPricing(modelName);
-  const isPlanMode = execConfig?.interactionMode === InteractionMode.PLAN;
+  const isPlanMode = interactionMode === InteractionMode.PLAN;
   const shellEnv = isPlanMode
     ? undefined
     : buildShellEnv(
@@ -466,12 +470,12 @@ export async function buildEngine(
       }
     : null;
 
-  const maxCostUsd = execConfig?.maxCostUsd ?? 0;
-  const toolRoundLimit = resolveToolRoundLimit(execConfig?.maxToolRounds);
+  const maxCostUsd = runConfig?.maxCostUsd ?? 0;
+  const toolRoundLimit = resolveToolRoundLimit(runConfig?.maxToolRounds);
   const { middleware, costAdvisory } = buildMiddlewareStack({
     loopDetection: { historySize: 20, consecutiveThreshold: 7, totalThreshold: 20 },
     executionBudget: { maxToolRounds: toolRoundLimit, warningPct: 80 },
-    toolTruncation: { maxChars: execConfig?.maxToolResultChars || 30_000 },
+    toolTruncation: { maxChars: runConfig?.maxToolResultChars || 30_000 },
     costAdvisory: maxCostUsd > 0
       ? {
           maxCostUsd,

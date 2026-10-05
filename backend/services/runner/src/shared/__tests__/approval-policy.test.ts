@@ -4,7 +4,9 @@
  * destructive, nothing else — what a lease clears, the provenance each
  * verdict stamps (UNSPECIFIED for a call that needed none), the card
  * wording, the placeholder resolution with its secret redaction, the
- * derivation of leases from persisted decisions, and the engine version.
+ * derivation of leases from persisted decisions, the engine version, and
+ * where the approval mode is read: the lane's fact on the status, with
+ * anything but UNATTENDED asking.
  */
 
 import { describe, it, expect } from "vitest";
@@ -18,13 +20,15 @@ import {
   resolveToolApproval,
   toProtoPolicySource,
   POLICY_ENGINE_VERSION,
+  isUnattendedApprovalMode,
   type ActiveLeases,
   type McpApprovalDefault,
 } from "../approval-policy.js";
 import type { ToolApprovalCategory } from "../tool-kind.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { create } from "@bufbuild/protobuf";
+import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 /** No active leases. */
 const NO_LEASES: ActiveLeases = { global: false, categories: new Set(), servers: new Set() };
@@ -431,5 +435,26 @@ describe("toProtoPolicySource", () => {
 describe("POLICY_ENGINE_VERSION", () => {
   it("is default-1: the default alone decides", () => {
     expect(POLICY_ENGINE_VERSION).toBe("default-1");
+  });
+});
+
+describe("isUnattendedApprovalMode", () => {
+  const withMode = (approvalMode: ApprovalMode | undefined): AgentExecution =>
+    create(AgentExecutionSchema, {
+      spec: { message: "hi" },
+      ...(approvalMode === undefined ? {} : { status: { approvalMode } }),
+    });
+
+  it("reads UNATTENDED from the status the control plane stamped", () => {
+    expect(isUnattendedApprovalMode(withMode(ApprovalMode.UNATTENDED))).toBe(true);
+  });
+
+  it("asks on INTERACTIVE", () => {
+    expect(isUnattendedApprovalMode(withMode(ApprovalMode.INTERACTIVE))).toBe(false);
+  });
+
+  it("asks on UNSPECIFIED and on a record with no status: the safe default is the one that pauses", () => {
+    expect(isUnattendedApprovalMode(withMode(ApprovalMode.UNSPECIFIED))).toBe(false);
+    expect(isUnattendedApprovalMode(withMode(undefined))).toBe(false);
   });
 });

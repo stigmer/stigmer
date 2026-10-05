@@ -56,6 +56,7 @@ import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agen
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
@@ -711,11 +712,16 @@ export async function assertStallFailsTheTurn(harness: RuntimeContractHarness, l
 /**
  * The cost cap: usage the adapter priced above the message's budget
  * TERMINATES the turn with the budget copy, the priced sum on the status,
- * and the step after the overrun never processed.
+ * and the step after the overrun never processed. The budget is the one the
+ * control plane resolved (`status.run_config`); the request asks for a far
+ * larger one (`spec.run_config`), which the runtime must not read.
  */
 export async function assertCostCapTerminates(harness: RuntimeContractHarness, label = "rt-cost-cap"): Promise<RuntimeArmResult> {
   const { subject } = harness;
-  const driver = new RuntimeExecutionDriver(harness, label, { maxCostUsd: COST_CAP_BUDGET_USD });
+  const driver = new RuntimeExecutionDriver(harness, label, {
+    maxCostUsd: COST_CAP_BUDGET_USD,
+    requestRunConfig: create(RunConfigSchema, { maxCostUsd: COST_CAP_BUDGET_USD * 1_000 }),
+  });
 
   const invocation = await driver.turn([
     scenario.say("Reading the whole repository first."),

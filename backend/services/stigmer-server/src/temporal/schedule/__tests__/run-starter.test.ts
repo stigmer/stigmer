@@ -1,8 +1,9 @@
 /**
  * Pins the RunStarter against Go's runstarter_test.go: the deterministic
  * execution name (THE idempotency key, byte-pinned on both editions), the
- * fire-context message rendering (the model's only "today"), the
- * owner-vs-platform clamps, the find-before-create idempotency, the
+ * fire-context message rendering (the model's only "today"), the schedule's
+ * saved settings written as the turn's own (the server's one resolution
+ * caps and places them), the find-before-create idempotency, the
  * refusal-code partition, and the execution-request shape: a new
  * conversation on the schedule's agent, its session_spec naming the agent
  * at the version the schedule names.
@@ -18,10 +19,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import {
-  ApprovalMode,
-  ServiceTier,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -35,7 +34,6 @@ import {
   RunStarter,
   SCHEDULE_ID_LABEL_KEY,
   SESSION_SUBJECT_PREFIX,
-  clampedRunBound,
   composeMessage,
   scheduledExecutionName,
 } from "../run-starter.js";
@@ -141,19 +139,6 @@ describe("composeMessage — the fire-context line (byte contract)", () => {
   });
 });
 
-describe("clampedRunBound — min(owner, platform), zero = unset", () => {
-  it.each([
-    [0, 20, 20], // owner unset → platform
-    [5, 20, 5], // both set → lower wins
-    [50, 20, 20], // owner cannot raise past the platform
-    [5, 0, 5], // platform unset → owner stands
-    [0, 0, 0], // both unset
-    [-1, 20, 20], // negative reads as unset
-  ])("owner=%d platform=%d → %d", (owner, platform, want) => {
-    expect(clampedRunBound(owner, platform)).toBe(want);
-  });
-});
-
 describe("RunStarter.startRun — against a real store", () => {
   let dir: string;
   let store: SqliteStore;
@@ -206,7 +191,7 @@ describe("RunStarter.startRun — against a real store", () => {
     });
   }
 
-  it("shapes the execution request: name, org, label, UNATTENDED, subject prefix, fire-context message", async () => {
+  it("shapes the execution request: name, org, label, subject prefix, fire-context message", async () => {
     let seen: AgentExecution | undefined;
     const runStarter = starter(async (execution) => {
       seen = execution;
@@ -240,16 +225,11 @@ describe("RunStarter.startRun — against a real store", () => {
     expect(sessionSpec?.agentRef?.version).toBe("");
     expect(seen?.spec?.message).toContain("(Scheduled fire time: ");
     expect(sessionSpec?.subject).toBe(`${SESSION_SUBJECT_PREFIX}daily`);
-    expect(seen?.spec?.executionConfig?.approvalMode).toBe(
-      ApprovalMode.UNATTENDED,
-    );
-    // Platform profile applies when the owner set nothing.
-    expect(seen?.spec?.executionConfig?.maxToolRounds).toBe(20);
-    expect(seen?.spec?.executionConfig?.maxCostUsd).toBe(1.0);
-    // Unset tier/model stay unset (never stamped).
-    expect(seen?.spec?.executionConfig?.modelName).toBe("");
-    expect(seen?.spec?.executionConfig?.serviceTier).toBe(
-      ServiceTier.UNSPECIFIED,
+    // The schedule saved no settings: the turn asks for none. The schedule
+    // lane's profile and its unattended approval mode are the server's to
+    // apply (resolve-run-config.ts), never written into the request.
+    expect(seen?.spec?.runConfig ?? create(RunConfigSchema)).toEqual(
+      create(RunConfigSchema),
     );
 
     // Success stamped last_execution_id on the row.
@@ -555,7 +535,7 @@ describe("RunStarter.startRun — against a real store", () => {
     await store.deleteResource(ApiResourceKind.agent_execution, "aex_01winner");
   });
 
-  it("clamps owner run bounds by the platform profile and stamps owner-set tier/model", async () => {
+  it("writes the schedule's saved settings as the turn's run_config, unchanged", async () => {
     let seen: AgentExecution | undefined;
     const runStarter = starter(async (execution) => {
       seen = execution;
@@ -565,16 +545,18 @@ describe("RunStarter.startRun — against a real store", () => {
     });
     await runStarter.startRun(
       scheduleWith({
-        maxToolRounds: 50, // above the platform 20 → clamped
+        maxToolRounds: 50, // above the profile's 20: the server caps it
         maxCostUsd: 0.25, // below the platform 1.00 → stands
         modelName: " gpt-x ",
         serviceTier: ServiceTier.FAST,
       }),
       new Date("2026-08-27T09:30:00Z"),
     );
-    expect(seen?.spec?.executionConfig?.maxToolRounds).toBe(20);
-    expect(seen?.spec?.executionConfig?.maxCostUsd).toBe(0.25);
-    expect(seen?.spec?.executionConfig?.modelName).toBe("gpt-x");
-    expect(seen?.spec?.executionConfig?.serviceTier).toBe(ServiceTier.FAST);
+    // No clamp here: the server's one resolution caps the turn by the
+    // schedule profile (resolve-run-config.test.ts pins it).
+    expect(seen?.spec?.runConfig?.maxToolRounds).toBe(50);
+    expect(seen?.spec?.runConfig?.maxCostUsd).toBe(0.25);
+    expect(seen?.spec?.runConfig?.modelName).toBe(" gpt-x ");
+    expect(seen?.spec?.runConfig?.serviceTier).toBe(ServiceTier.FAST);
   });
 });

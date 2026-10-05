@@ -217,10 +217,12 @@ spec:
     model_name: composer-2.5
 ```
 
-The pin overrides the platform's default model for every conversation this
-channel serves, which makes each conversation's price deterministic — an
-unpinned model would follow whatever the serving account's default resolves to
-at that moment.
+The channel's settings come before the Agent's own
+[run settings](/docs/concepts/agents#run-settings): the pin replaces the Agent's
+default model for every conversation this channel serves, and leaving
+`run_config` out runs the Agent's defaults. Pinning a model somewhere, on the
+channel or on the Agent, makes each conversation's price deterministic; with no
+model named anywhere, the Harness picks one at that moment.
 
 The pinned name is validated against the platform's model registry when you
 apply the manifest: a name the registry does not know is refused with a
@@ -233,8 +235,10 @@ You can also edit the pin without YAML: the channel card's **Run settings**
 action in the console opens the same model picker the composer uses — including
 the fast-tier and thinking switches for models that support them
 (`run_config.service_tier` / `run_config.thinking_mode`) — plus a per-run budget
-cap. Thinking bills at the model's base per-token rates; enabled turns simply
-produce more output (reasoning) tokens.
+cap. A fast tier or thinking saved on the channel names its model, and a budget
+cap here can lower the Agent's cap but never raise it. Thinking bills at the
+model's base per-token rates; enabled turns simply produce more output
+(reasoning) tokens.
 
 ## Limitations
 

@@ -140,7 +140,8 @@ async function runAgentTurn(
     message?: string;
     attachments?: Parameters<typeof makeAgentExecution>[0]["attachments"];
     workspaceFileRefs?: string[];
-    executionConfig?: Parameters<typeof makeAgentExecution>[0]["executionConfig"];
+    runConfig?: Parameters<typeof makeAgentExecution>[0]["runConfig"];
+    structuredOutputSchema?: Parameters<typeof makeAgentExecution>[0]["structuredOutputSchema"];
     reply?: AnthropicMessageBody;
   } = {},
 ): Promise<{ final: AgentExecution; request: AnthropicRequestBody; body: unknown }> {
@@ -155,7 +156,8 @@ async function runAgentTurn(
       autoApproveAll: true,
       ...(turn.attachments !== undefined ? { attachments: turn.attachments } : {}),
       ...(turn.workspaceFileRefs !== undefined ? { workspaceFileRefs: turn.workspaceFileRefs } : {}),
-      ...(turn.executionConfig !== undefined ? { executionConfig: turn.executionConfig } : {}),
+      ...(turn.runConfig !== undefined ? { runConfig: turn.runConfig } : {}),
+      ...(turn.structuredOutputSchema !== undefined ? { structuredOutputSchema: turn.structuredOutputSchema } : {}),
     }),
   );
   const executionId = execution.metadata!.id;
@@ -346,7 +348,7 @@ describe("AgentExecution request shape — thinking, per the model's native regi
     const { org, agentRef } = await createBareAgent();
 
     const { request } = await runAgentTurn(org, agentRef, undefined, {
-      executionConfig: { modelName: ADAPTIVE_MODEL, thinkingMode: ThinkingMode.ENABLED },
+      runConfig: { modelName: ADAPTIVE_MODEL, thinkingMode: ThinkingMode.ENABLED },
     });
 
     expect(request.thinking).toEqual({ type: "adaptive", display: "summarized" });
@@ -360,7 +362,7 @@ describe("AgentExecution request shape — thinking, per the model's native regi
     const { org, agentRef } = await createBareAgent();
 
     const { request } = await runAgentTurn(org, agentRef, undefined, {
-      executionConfig: { modelName: BUDGET_MODEL, thinkingMode: ThinkingMode.ENABLED },
+      runConfig: { modelName: BUDGET_MODEL, thinkingMode: ThinkingMode.ENABLED },
     });
 
     expect(request.thinking).toEqual({ type: "enabled", budget_tokens: 16000 });
@@ -372,7 +374,7 @@ describe("AgentExecution request shape — thinking, per the model's native regi
     const { org, agentRef } = await createBareAgent();
 
     const { request } = await runAgentTurn(org, agentRef, undefined, {
-      executionConfig: { modelName: ADAPTIVE_MODEL, thinkingMode: ThinkingMode.DISABLED },
+      runConfig: { modelName: ADAPTIVE_MODEL, thinkingMode: ThinkingMode.DISABLED },
     });
 
     expect(request.thinking).toEqual({ type: "disabled" });
@@ -385,7 +387,7 @@ describe("AgentExecution request shape — thinking, per the model's native regi
     const { org, agentRef } = await createBareAgent();
 
     const { request } = await runAgentTurn(org, agentRef, undefined, {
-      executionConfig: { modelName: THINKING_REQUIRED_MODEL },
+      runConfig: { modelName: THINKING_REQUIRED_MODEL },
     });
 
     expect(request.thinking, "never disabled: the model refuses it").toEqual({ type: "adaptive", display: "summarized" });
@@ -397,14 +399,14 @@ describe("AgentExecution request shape — thinking, per the model's native regi
     const answer = { summary: "hello", score: 1 };
 
     const { final, request } = await runAgentTurn(org, agentRef, undefined, {
-      executionConfig: {
+      runConfig: {
         modelName: ADAPTIVE_MODEL,
         thinkingMode: ThinkingMode.ENABLED,
-        structuredOutputSchema: {
-          type: "object",
-          properties: { summary: { type: "string" }, score: { type: "number" } },
-          required: ["summary", "score"],
-        },
+      },
+      structuredOutputSchema: {
+        type: "object",
+        properties: { summary: { type: "string" }, score: { type: "number" } },
+        required: ["summary", "score"],
       },
       reply: anthropicText(JSON.stringify(answer)),
     });

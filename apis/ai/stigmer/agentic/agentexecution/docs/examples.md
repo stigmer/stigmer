@@ -52,9 +52,9 @@ spec:
 
 ---
 
-## Override the Model
+## Choose the Model for One Message
 
-Use a specific LLM model for this execution, regardless of the agent's default.
+Ask for a specific model for this message. It replaces the agent's default model for this message only; the agent's cost and tool-round caps still apply, since a message can lower a cap but never raise it.
 
 **CLI:**
 
@@ -72,8 +72,18 @@ spec:
       org: acme
       slug: my-agent
   message: "Analyze this code"
-  execution_config:
+  run_config:
     model_name: "claude-sonnet-4.5"
+```
+
+**Adjust the agent's model without replacing it** — a message may set thinking or the speed tier alone, and they apply to the model the agent's defaults chose:
+
+```yaml
+spec:
+  session_id: ses_abc123
+  message: "Quick question: which file defines the retry policy?"
+  run_config:
+    thinking_mode: THINKING_MODE_DISABLED
 ```
 
 ---
@@ -215,26 +225,9 @@ spec:
 
 ---
 
-## Custom Context Management
+## Cap the Cost of One Message
 
-Disable summarization for a short task, or use custom thresholds for a long-running analysis.
-
-**Disable summarization:**
-
-```yaml
-spec:
-  session_spec:
-    agent_ref:
-      kind: agent
-      org: acme
-      slug: my-agent
-  message: "Quick lookup: what is the current time in Tokyo?"
-  execution_config:
-    context_management:
-      disable_summarization: true
-```
-
-**Aggressive summarization for long tasks:**
+Stop the message once its estimated cost reaches the cap; the work done so far is kept. A cap tighter than the agent's applies; a looser one leaves the agent's cap in force.
 
 ```yaml
 spec:
@@ -244,18 +237,18 @@ spec:
       org: acme
       slug: my-agent
   message: "Analyze all PRs from the past 6 months and identify patterns"
-  execution_config:
-    model_name: "claude-sonnet-4.5"
-    context_management:
-      custom_trigger_threshold: 60000   # summarize at 30% of 200K window
-      custom_target_tokens: 40000       # reduce to 20%
+  run_config:
+    max_cost_usd: 0.50
+    max_tool_result_chars: 20000
 ```
+
+Context summarization needs no settings: it follows the model's Model Registry entry, and `status.context_info` reports it.
 
 ---
 
 ## Full-Featured Execution Spec
 
-An execution with all optional fields populated — model override, custom context management, runtime secrets, attachments, and workspace refs.
+An execution with all optional fields populated — run settings, runtime secrets, attachments, and workspace refs.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -277,11 +270,10 @@ spec:
     Validate the migration against the schema spec before applying.
     Report any conflicts or warnings.
 
-  execution_config:
+  run_config:
     model_name: "claude-sonnet-4.5"
-    context_management:
-      custom_trigger_threshold: 100000
-      custom_target_tokens: 80000
+    thinking_mode: THINKING_MODE_ENABLED
+    max_cost_usd: 3.00
 
   runtime_env:
     DATABASE_URL:

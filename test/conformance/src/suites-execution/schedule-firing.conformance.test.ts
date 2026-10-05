@@ -29,10 +29,14 @@
 // hash): the fire starts a conversation pinned to that version, so an
 // author saving a new head never changes what an unattended schedule runs
 // until its owner moves the reference. The real-run block pins that a fire
-// honours the version it names, read off the fired turn and its session.
+// honours the version it names, read off the fired turn and its session,
+// that a fired turn runs unattended within the schedule profile, and that
+// an unattended fire that would run Cursor with no model is refused.
 import { create } from "@bufbuild/protobuf";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalMode, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   ScheduleRunOrigin,
   ScheduleRunOutcome,
@@ -267,5 +271,60 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
         `execution ${result.executionId} did not complete within ${timeoutMs}ms; ` +
         `last phase: ${last?.status?.phase}`,
     );
+  });
+
+  it("[rpc:ScheduleCommandController.trigger] a fired turn runs unattended, its saved settings capped by the schedule profile", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("sched-settings-target") }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const input = create(ScheduleSchema, makeSchedule(org, uniqueName("sched-settings"), agent.metadata!.slug));
+    if (input.spec?.target.case !== "agent") {
+      throw new Error("makeSchedule builds an agent target");
+    }
+    // Far above any profile an edition ships: the fire may lower it, never
+    // honour it.
+    input.spec.target.value.runConfig = create(RunConfigSchema, { maxToolRounds: 1000 });
+    const schedule = await clients.scheduleCommand.create(input);
+    fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
+
+    target.llmProxy!().enqueue(anthropicText("Reminders sent."));
+    const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
+    expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(ScheduleRunOutcome.STARTED);
+
+    const execution = await clients.agentExecutionQuery.get({ value: result.executionId });
+    expect(execution.spec?.runConfig?.maxToolRounds, "the turn asks for what the schedule saved").toBe(1000);
+    expect(execution.status?.approvalMode, "nobody is present at a fire to approve").toBe(ApprovalMode.UNATTENDED);
+    const rounds = execution.status?.runConfig?.maxToolRounds ?? 0;
+    expect(rounds, "the schedule profile caps the saved value").toBeGreaterThan(0);
+    expect(rounds).toBeLessThan(1000);
+
+    await pollUntil(
+      () => clients.agentExecutionQuery.get({ value: result.executionId }),
+      (e) => e.status?.phase === ExecutionPhase.EXECUTION_COMPLETED,
+      (last, timeoutMs) =>
+        `execution ${result.executionId} did not complete within ${timeoutMs}ms; ` +
+        `last phase: ${last?.status?.phase}`,
+    );
+  });
+
+  it("[rpc:ScheduleCommandController.trigger] a schedule naming no engine, on an agent whose engine is Cursor with no model, is refused at fire with the pin-presence copy", async () => {
+    const { org } = await target.provisionTenancy();
+    // The agent starts its conversations on Cursor and names no model; the
+    // schedule names neither, so its unattended fire would run Auto.
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("sched-cursor-target"), harness: Harness.CURSOR }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const schedule = await clients.scheduleCommand.create(
+      makeSchedule(org, uniqueName("sched-cursor"), agent.metadata!.slug),
+    );
+    fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
+
+    const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
+
+    expect(result.outcome).toBe(ScheduleRunOutcome.REFUSED);
+    expect(result.refusalReason).toContain("must name a model");
+    expect(result.refusalReason).toContain("stigmer/stigmer#362");
+    expect(result.executionId).toBe("");
   });
 });

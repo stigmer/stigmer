@@ -86,7 +86,7 @@ describe("AgentExecution recover — happy path", () => {
     mock.enqueue(anthropicText("Recovered successfully."));
 
     const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-recover-happy"), agentRef }),
+      makeAgentExecution({ org, name: uniqueName("aex-recover-happy"), agentRef, runConfig: { maxCostUsd: 3 } }),
     );
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -107,6 +107,9 @@ describe("AgentExecution recover — happy path", () => {
 
     const completed = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_COMPLETED);
     expect(completed.status?.error, "a completed run carries no error").toBeFalsy();
+    // Recover runs the turn again with the settings it was created with.
+    expect(completed.status?.runConfig?.maxCostUsd, "recover keeps the resolved settings").toBe(3);
+    expect(completed.status?.runConfig).toEqual(failed.status?.runConfig);
 
     // Proof recovery re-dispatched: the recovery turn was consumed. Before the
     // fix (issue #200) consumed stayed at 1 and remaining stayed at 1 — the run

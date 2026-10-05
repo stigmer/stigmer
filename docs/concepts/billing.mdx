@@ -162,7 +162,9 @@ models can cost an order of magnitude more per token than economy ones. Use a
 small, cheap model for routine work (classification, short replies, summaries)
 and reserve premium models for genuinely hard reasoning. The
 [pricing page](https://stigmer.ai/pricing) and `getCustomerModelPricing` list
-the current per-token rate for every model.
+the current per-token rate for every model. Set the model once in the Agent's
+[run settings](/docs/concepts/agents#run-settings), and every conversation on it
+starts there.
 
 ### Manage Session and turn length
 
@@ -186,6 +188,9 @@ Stigmer caps spend automatically so a runaway Agent cannot drain your balance:
   [Low balance and stop behavior](#low-balance-and-stop-behavior).
 - [Automatic recharge](#automatic-recharge) with a **monthly cap** keeps you
   topped up without unbounded spend.
+- A per-message cost cap (`max_cost_usd` in an Agent's
+  [run settings](/docs/concepts/agents#run-settings)) stops one message once its
+  estimated cost reaches the cap.
 
 ## Execution billing lifecycle
 
