@@ -171,6 +171,12 @@ describe("Cursor's view of a native call", () => {
     expect(views.viewsOf({ name: "send_message", args: {}, serverSlug: "channel" })).toEqual({});
   });
 
+  it("shows a grep with no path as one, and takes it back without one", () => {
+    const view = views.viewsOf({ name: "grep", args: { pattern: "x" }, serverSlug: "" }).cursor;
+    expect(view?.toolInput).toEqual({ pattern: "x" });
+    expect(back("grep", view!.toolInput, "cursor")).toEqual({ pattern: "x" });
+  });
+
   it("takes back a shell rewrite in the workspace, and refuses one that moves the command", () => {
     expect(back("execute", { command: "ls", cwd: ROOT }, "cursor")).toEqual({ command: "ls" });
     expect(back("execute", { command: "ls", cwd: "/elsewhere" }, "cursor")).toMatch(/another directory/);

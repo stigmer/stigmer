@@ -114,11 +114,6 @@ export class HookSet {
     return this.entries;
   }
 
-  /** The entries for some events, in source order. */
-  forEvents(events: ReadonlySet<HookEvent>): readonly HookEntry[] {
-    return this.entries.filter((entry) => events.has(entry.event));
-  }
-
   /** Whether any entry runs a handler in shell form (no `args`), which needs `bash`; every Cursor handler does. */
   get needsShell(): boolean {
     return this.entries.some((entry) => entry.handlers.some((handler) => handler.args.length === 0));

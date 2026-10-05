@@ -125,15 +125,15 @@ export async function claudeSettingsRewrites(folders: readonly WorkspaceFolder[]
   return rewrites;
 }
 
-/** Snapshot the rewrites under the gate directory, then write each file. */
+/**
+ * Snapshot the rewrites under the gate directory, then write each file. The
+ * install restores any earlier snapshot first, so this one is the turn's own.
+ */
 export async function rewriteWorkspaceFiles(gateDir: string, rewrites: readonly WorkspaceFileRewrite[]): Promise<void> {
-  if (rewrites.length === 0) return;
   const snapshotPath = join(gateDir, SNAPSHOT_FILE);
-  const existing = await readSnapshot(snapshotPath);
-  const merged = [...existing.filter((e) => !rewrites.some((r) => r.path === e.path)), ...rewrites];
   await mkdir(gateDir, { recursive: true });
   const tmp = `${snapshotPath}.${process.pid}.tmp`;
-  await writeFile(tmp, JSON.stringify(merged), "utf-8");
+  await writeFile(tmp, JSON.stringify(rewrites), "utf-8");
   await rename(tmp, snapshotPath);
   for (const rewrite of rewrites) await writeFile(rewrite.path, rewrite.written, "utf-8");
 }
@@ -175,9 +175,8 @@ async function restoreOne(rewrite: WorkspaceFileRewrite, isGateEntry: (entry: un
   console.log(`[workspace hooks] ${rewrite.path} was changed during the turn; the change is kept, with the gate's own change undone`);
 }
 
-/** The agent's edit of a settings file, with the `hooks` key the gate set aside put back. */
+/** The agent's edit of a settings file, with the `hooks` key the gate set aside put back (the gate rewrites only a file that has one). */
 function withOriginalHooks(edited: Record<string, unknown>, original: Record<string, unknown>): Record<string, unknown> {
-  if (!("hooks" in original)) return edited;
   return { ...edited, hooks: original["hooks"] };
 }
 

@@ -14,12 +14,12 @@
  */
 
 import { mkdirSync, mkdtempSync, rmSync, statSync, existsSync } from "node:fs";
-import { createConnection } from "node:net";
+import { createConnection, createServer, Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
 import { HookSet } from "../../../shared/hooks/hook-set.js";
 import type { HookRunResult } from "../../../shared/hooks/run.js";
@@ -231,5 +231,126 @@ describe("the socket", () => {
       else process.env["TMPDIR"] = realTmp;
       rmSync(dirname(long), { recursive: true, force: true });
     }
+  });
+});
+
+describe("the hook server's edges", () => {
+  it("drops a connection whose socket fails", () => {
+    const { h } = handler(evaluator(() => decide("allow")));
+    const socket = new Socket();
+    h.serve(socket);
+    socket.emit("error", new Error("ECONNRESET"));
+    expect(socket.destroyed).toBe(true);
+  });
+
+  it("refuses a token that is not a string", async () => {
+    const { h } = handler(evaluator(() => decide("allow")));
+    expect(await h.answer(JSON.stringify({ token: 7, mode: "pre", payload: shellPayload("ls") }))).toEqual({ error: "unauthorized" });
+  });
+
+  it("lets a write stay put, or move off a secret path when nothing captures it", async () => {
+    const write = { hook_event_name: "preToolUse", tool_name: "Write", tool_input: { file_path: "/w/a.txt", content: "x" } };
+    const kept = handler(evaluator(() => decide("allow")));
+    expect(((await kept.h.answer(request(write))) as Record<string, string>)["decision"]).toBe("allow");
+    const same = handler(evaluator(() => decide("allow", { updatedInput: { file_path: "/w/a.txt", content: "x" } })));
+    expect(((await same.h.answer(request(write))) as Record<string, string>)["decision"]).toBe("allow");
+    const del = { hook_event_name: "preToolUse", tool_name: "Delete", tool_input: { file_path: "/w/a.txt" } };
+    const ontoEnv = handler(evaluator(() => decide("allow", { updatedInput: { file_path: "/w/.env" } })), new Map(), false);
+    expect(((await ontoEnv.h.answer(request(del))) as Record<string, string>)["decision"]).toBe("deny");
+  });
+
+  it("answers none for an MCP call whose payload names no server, and finds the server of a repeated call", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const ev = new HookEvaluator({
+      set: HookSet.of([{
+        source: { plugin: "audit", root: "", data: "", options: new Map() },
+        groups: [create(HookGroupSchema, { event: "PostToolUse", matcher: "", handlers: [create(HookHandlerSchema, { command: "post" })] })],
+      }]),
+      views: new CursorEngineToolViews({ workspaceRoot: "/w", pluginServers: new Map(), platformServerSlugs: new Set() }),
+      sessionId: "ses_1",
+      workspaceRoot: "/w",
+      permissionMode: "default",
+      baseEnv: {},
+      homeDir: "/home",
+      leases: new Set(),
+      run: async () => ({ exitCode: 1, stdout: "", stderr: "broken", timedOut: false }),
+    });
+    const { h } = handler(ev);
+    expect(await h.answer(request({ hook_event_name: "beforeMCPExecution", tool_name: "search", tool_input: "{}" }))).toEqual({ decision: "none" });
+    const before = { hook_event_name: "beforeMCPExecution", tool_name: "search", tool_input: { q: "a" }, mcp_server_name: "github" };
+    await h.answer(request(before));
+    await h.answer(request(before));
+    const post = (output: unknown) =>
+      h.answer(JSON.stringify({ token: "tok", mode: "post", payload: { hook_event_name: "postToolUse", tool_name: "MCP:search", tool_input: { q: "a" }, tool_output: output } }));
+    // A failing PostToolUse hook adds nothing and is logged, for both runs of the call.
+    expect(await post("not json")).toEqual({ response: "{}" });
+    expect(await post(42)).toEqual({ response: "{}" });
+    expect(await post("{}"), "no server is left for a third").toEqual({ response: "{}" });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("a PostToolUse hook failed"));
+    warn.mockRestore();
+  });
+
+  it("serves a request that arrives in pieces, drops an oversized one, survives a reset, and drops a request it cannot answer", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const broken = new HookEvaluator({
+      set: HookSet.of([{ source: { plugin: "p", root: "", data: "", options: new Map() }, groups: [create(HookGroupSchema, { event: "PreToolUse", matcher: "", handlers: [create(HookHandlerSchema, { command: "x" })] })] }]),
+      views: new CursorEngineToolViews({ workspaceRoot: "/w", pluginServers: new Map(), platformServerSlugs: new Set() }),
+      sessionId: "s",
+      workspaceRoot: "/w",
+      permissionMode: "default",
+      baseEnv: {},
+      homeDir: "/h",
+      leases: new Set(),
+      run: async () => {
+        throw new Error("the runner broke");
+      },
+    });
+    const serve = (h: HookRequestHandler) =>
+      new Promise<{ path: string; close: () => Promise<void> }>((resolve) => {
+        const dir = mkdtempSync(join(tmpdir(), "hs-"));
+        const path = join(dir, "s.sock");
+        const server = createServer((socket) => h.serve(socket));
+        server.listen(path, () =>
+          resolve({ path, close: () => new Promise((done) => server.close(() => { rmSync(dir, { recursive: true, force: true }); done(); })) }),
+        );
+      });
+    const talk = (path: string, pieces: string[], reset = false) =>
+      new Promise<string>((resolve) => {
+        const socket = createConnection(path);
+        let out = "";
+        socket.setEncoding("utf-8");
+        socket.on("data", (chunk: string) => (out += chunk));
+        socket.on("close", () => resolve(out));
+        socket.on("error", () => resolve(out));
+        socket.on("connect", async () => {
+          for (const piece of pieces) {
+            socket.write(piece);
+            await new Promise((r) => setTimeout(r, 20));
+          }
+          if (reset) socket.destroy();
+        });
+      });
+
+    const ok = await serve(new HookRequestHandler(evaluator(() => decide("allow")), new Map(), new HookDecisionLog(), "tok"));
+    const line = JSON.stringify({ token: "tok", mode: "pre", payload: shellPayload("ls"), identity: "", coarse: "" });
+    expect(JSON.parse(await talk(ok.path, [line.slice(0, 10), `${line.slice(10)}\n`]))).toMatchObject({ decision: "allow" });
+    await ok.close();
+
+    // A client that hangs up before a slow hook answers: the reply meets a closed pipe.
+    const slow = await serve(new HookRequestHandler(evaluator(() => decide("allow")), new Map(), new HookDecisionLog(), "tok"));
+    await talk(slow.path, [`${line}\n`], true);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(JSON.parse(await talk(slow.path, [`${line}\n`])), "still serving after a client hung up").toMatchObject({ decision: "allow" });
+    await slow.close();
+
+    const small = await serve(new HookRequestHandler(evaluator(() => decide("allow")), new Map(), new HookDecisionLog(), "tok", false, 16));
+    expect(await talk(small.path, ["x".repeat(40)]), "an oversized request gets no answer").toBe("");
+    await small.close();
+
+    const failing = await serve(new HookRequestHandler(broken, new Map(), new HookDecisionLog(), "tok"));
+    expect(await talk(failing.path, [`${line}\n`])).toBe("");
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("the hook server could not answer"));
+    await failing.close();
+    warn.mockRestore();
   });
 });

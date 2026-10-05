@@ -160,19 +160,14 @@ export async function startHookServer(params: HookServerParams): Promise<HookSer
   const decisions = new HookDecisionLog();
   const handler = new HookRequestHandler(params.evaluator, params.refusals, decisions, token, params.captureMode);
   const server = createServer((socket) => handler.serve(socket));
-  try {
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-      server.listen(socketPath, () => {
-        server.off("error", reject);
-        resolve();
-      });
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(socketPath, () => {
+      server.off("error", reject);
+      resolve();
     });
-    await chmod(socketPath, 0o600);
-  } catch (err) {
-    await rm(socketDir, { recursive: true, force: true });
-    throw err;
-  }
+  });
+  await chmod(socketPath, 0o600);
 
   let closed = false;
   return {
@@ -204,6 +199,7 @@ export class HookRequestHandler {
     private readonly decisions: HookDecisionLog,
     token: string,
     private readonly captureMode = false,
+    private readonly maxRequestBytes = MAX_REQUEST_BYTES,
   ) {
     this.tokenBytes = Buffer.from(token, "utf-8");
   }
@@ -214,7 +210,7 @@ export class HookRequestHandler {
     socket.on("error", () => socket.destroy());
     socket.on("data", (chunk: string) => {
       buffer += chunk;
-      if (buffer.length > MAX_REQUEST_BYTES) {
+      if (buffer.length > this.maxRequestBytes) {
         socket.destroy();
         return;
       }

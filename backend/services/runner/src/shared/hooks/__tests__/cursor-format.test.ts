@@ -174,6 +174,7 @@ describe("a pre-execution answer", () => {
 
   it("refuses output that is not JSON, fail-closed or not", () => {
     expect(parseCursorPre(ran({ stdout: "nope" }), open)).toMatchObject({ decision: "deny", error: "the answer is not JSON" });
+    expect(parseCursorPre(ran({ stdout: "{nope}" }), open)).toMatchObject({ decision: "deny", error: "the answer is not JSON" });
   });
 
   it("decides nothing on a failure unless the hook fails closed, which refuses", () => {

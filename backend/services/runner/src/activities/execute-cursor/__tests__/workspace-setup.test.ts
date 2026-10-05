@@ -11,7 +11,7 @@
  * restore of a crashed turn's snapshot.
  */
 
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   mkdtempSync,
   mkdirSync,
@@ -20,6 +20,7 @@ import {
   existsSync,
   rmSync,
   statSync,
+  chmodSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -128,6 +129,12 @@ describe("buildMergedConfig", () => {
     expect(parsed.note).toBe("the repository's own field");
     // Restore is byte-identical to the user's original.
     expect(restoreTo).toBe(original);
+  });
+
+  it("replaces a hooks.json that is not an object, and keeps an event that is not a list", () => {
+    expect(buildMergedConfig("[]", pre("/abs/hitl/stigmer-approval.sh")).restoreTo).toBe("[]");
+    const original = JSON.stringify({ version: 1, hooks: { odd: "not a list", preToolUse: [{ command: "/h/.stigmer/x/stigmer-approval.sh" }] } });
+    expect(JSON.parse(buildMergedConfig(original, pre("/abs/hitl/stigmer-approval.sh")).restoreTo!).hooks).toEqual({ odd: "not a list", preToolUse: [] });
   });
 
   it("gives each entry the timeout it is asked for", () => {
@@ -561,6 +568,23 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     await removeHitlGate(handle);
     expect(readFileSync(settings, "utf-8")).toBe(original);
     expect(readFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "utf-8")).toBe("{ half written");
+  });
+
+  it("keeps restoring the rest when one file cannot be written back, and reads a corrupt snapshot as none", async () => {
+    const { workspaceRoot, hitlDir, gateDir, settings } = workspace();
+    const folders = workspaceFolders([workspaceRoot], []);
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    rmSync(settings, { force: true });
+    chmodSync(join(workspaceRoot, ".claude"), 0o500);
+    await removeHitlGate(handle);
+    chmodSync(join(workspaceRoot, ".claude"), 0o700);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("could not restore"));
+    expect(existsSync(join(workspaceRoot, ".cursor", "hooks.json")), "the hooks file still came back").toBe(false);
+    warn.mockRestore();
+    writeFileSync(join(gateDir, "workspace-files.json"), "{ corrupt", "utf-8");
+    const next = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    await removeHitlGate(next);
   });
 
   it("restores a crashed turn's set-aside files at the next install, before anything else", async () => {
