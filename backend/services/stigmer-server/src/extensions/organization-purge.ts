@@ -92,7 +92,10 @@ export interface OrganizationRows {
   /**
    * At most `limit` ids of the organization's rows of `kind`, decoded with
    * `schema` (the kind's resource message). `after` is "" for the first
-   * page, then the previous page's `next`.
+   * page, then the previous page's `next`. Rows are matched on
+   * `metadata.org`; a kind that names its organization elsewhere or lives
+   * behind a port (API keys, policy rows, identity accounts, platform
+   * clients) is refused, as is a limit that is not a positive integer.
    */
   ids(
     kind: ApiResourceKind,

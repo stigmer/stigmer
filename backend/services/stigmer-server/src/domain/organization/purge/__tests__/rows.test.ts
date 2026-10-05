@@ -5,7 +5,8 @@
  * kind read through its list index (sessions) and for one with no list
  * index (agents, read in keyset pages, past a full scan page). The
  * indexed read never touches another organization's rows: a store whose
- * keyset read throws still answers.
+ * keyset read throws still answers. A kind metadata.org does not place,
+ * a bad limit and a foreign cursor are refused.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -13,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 
 import { LIST_INDEXES } from "../../../../boot/list-indexes.js";
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
@@ -104,6 +106,28 @@ describe("the purge stages' row reader", () => {
     const read = await allPages(rows, ApiResourceKind.agent, AgentSchema, 3);
     expect(read.ids).toEqual(mine);
     expect(read.pages).toBe(2);
+  });
+
+  it("refuses a kind metadata.org does not place, a limit that is not a positive integer, and a cursor it did not answer", async () => {
+    const rows = newOrganizationRows(fx.store, LIST_INDEXES, ORG);
+    await expect(
+      rows.ids(ApiResourceKind.api_key, ApiKeySchema, { after: "", limit: 5 }),
+    ).rejects.toThrow("does not name its organization in metadata.org");
+    for (const limit of [0, -1, 1.5]) {
+      for (const [kind, schema] of [
+        [ApiResourceKind.session, SessionSchema],
+        [ApiResourceKind.agent, AgentSchema],
+      ] as const) {
+        await expect(rows.ids(kind, schema, { after: "", limit })).rejects.toThrow(
+          "a page's limit is a positive integer",
+        );
+      }
+    }
+    for (const after of ["agt_x", "{}", '{"createdAt":1,"id":"x"}']) {
+      await expect(
+        rows.ids(ApiResourceKind.session, SessionSchema, { after, limit: 5 }),
+      ).rejects.toThrow("is not a page's `next`");
+    }
   });
 
   it("answers an empty last page for an organization with no rows of the kind", async () => {
