@@ -87,6 +87,10 @@ describe("conditionMatches: Bash rules (any subcommand)", () => {
     ["Bash(rm *)", ">out rm -rf build", true],
     ["Bash(rm *)", "2>/dev/null rm -rf build", true],
     ["Bash(rm *)", "coproc rm -rf build", true],
+    ["Bash(rm *)", "find . -name '*.o' -exec rm -rf {} +", true],
+    ["Bash(rm *)", "find . -okdir rm {} ;", true],
+    ["Bash(rm *)", "busybox rm -rf build", true],
+    ["Bash(rm *)", "find . -name rm", false],
     ["Bash(npm run build)", "npm run build > build.log", true],
     ["Bash(git push *)", "echo {a,b}", false],
     ["Bash(git push *)", "echo hi > out", false],
@@ -273,6 +277,9 @@ describe("conditionVerdict: sure, unsure, or no", () => {
     expect(conditionVerdict("Bash", bash("ls"), CTX)).toBe("match");
     expect(conditionVerdict("Read(/src/**)", { toolName: "Grep", toolInput: { pattern: "x" } }, CTX)).toBe("unsure");
     expect(conditionVerdict("Read(/src/**)", file("Read", "/ws/src/a.ts"), CTX)).toBe("match");
+    expect(conditionVerdict("Edit(.env)", file("Write", "/ws/.ENV"), CTX), "the same file on a case-insensitive disk").toBe("unsure");
+    expect(conditionVerdict("Edit(.env)", file("Write", "/ws/.envrc"), CTX)).toBe("no");
+    expect(conditionVerdict("WebFetch(domain:evil.com)", { toolName: "WebFetch", toolInput: { url: "https://evil.com./x" } }, CTX)).toBe("match");
     expect(conditionVerdict("WebFetch(domain:example.com)", { toolName: "WebFetch", toolInput: { url: "::" } }, CTX)).toBe("unsure");
     expect(conditionVerdict("Agent(explore)", { toolName: "Agent", toolInput: {} }, CTX)).toBe("unsure");
     expect(conditionVerdict("Grep(nested:x)", { toolName: "Grep", toolInput: { nested: {} } }, CTX)).toBe("unsure");

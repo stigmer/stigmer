@@ -11,9 +11,11 @@
  *    The wrappers are Claude's (`timeout`, `time`, `nice`, `nohup`,
  *    `stdbuf`, `command`, `builtin`, `noglob`, `xargs`) and a few more that
  *    run their arguments (`exec`, `env`, `sudo`, `doas`, `setsid`,
- *    `ionice`, `chrt`, `taskset`, `watch`); since their options may take
- *    arguments, every word after one is tried as the command's start. A
- *    command named by path (`/bin/rm`) is also tried by its last segment.
+ *    `ionice`, `chrt`, `taskset`, `watch`, `busybox`); since their options
+ *    may take arguments, every word after one is tried as the command's
+ *    start, as is the word after `find`'s `-exec`, `-execdir`, `-ok` and
+ *    `-okdir`. A command named by path (`/bin/rm`) is also tried by its
+ *    last segment.
  *    `*` is any text; a trailing ` *` also matches the bare command, so
  *    `git *` matches `git`, and the older `:*` is a prefix. A word the shell
  *    would expand (`$x`, `$(…)`, a glob, a brace list, a redirection) could
@@ -120,8 +122,11 @@ function toolMatches(tool: string, toolName: string): boolean {
 
 const WRAPPERS = new Set([
   "timeout", "time", "nice", "nohup", "stdbuf", "command", "builtin", "noglob", "xargs",
-  "exec", "env", "sudo", "doas", "setsid", "ionice", "chrt", "taskset", "watch",
+  "exec", "env", "sudo", "doas", "setsid", "ionice", "chrt", "taskset", "watch", "busybox",
 ]);
+
+/** `find`'s actions that run the words after them as a command. */
+const FIND_ACTIONS = new Set(["-exec", "-execdir", "-ok", "-okdir"]);
 const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
 
 /** How many forms of one simple command are tried, at most; past it the command matches. */
@@ -211,6 +216,8 @@ function commandForms(words: ShellCommand): (readonly ShellWord[])[] | null {
     if (head.literal && WRAPPERS.has(head.text)) {
       if (forms.length + pending.length + form.length > MAX_FORMS) return null;
       for (let start = 1; start < form.length; start++) pending.push(form.slice(start));
+    } else if (head.literal && head.text === "find") {
+      for (let i = 1; i < form.length - 1; i++) if (FIND_ACTIONS.has(form[i]!.text)) pending.push(form.slice(i + 1));
     }
   }
   return forms;
@@ -265,8 +272,10 @@ function pathVerdict(spec: string, view: ToolView, ctx: ConditionContext): Condi
   const target = view.toolInput["file_path"] ?? view.toolInput["notebook_path"];
   if (typeof target !== "string") return "unsure";
   const pattern = absolutePattern(spec, ctx);
-  const isMatch = picomatch([pattern, `${pattern.replace(/\/+$/, "")}/**`], { dot: true });
-  return sure(isMatch(target));
+  const patterns = [pattern, `${pattern.replace(/\/+$/, "")}/**`];
+  if (picomatch(patterns, { dot: true })(target)) return "match";
+  // On a case-insensitive filesystem `/ws/.ENV` is `/ws/.env`.
+  return picomatch(patterns, { dot: true, nocase: true })(target) ? "unsure" : "no";
 }
 
 /** A gitignore-style rule path as an absolute glob. */
@@ -289,6 +298,8 @@ function domainVerdict(domain: string, url: unknown): ConditionVerdict {
   } catch {
     return "unsure";
   }
+  // `evil.com.` is the same host as `evil.com`.
+  if (host.endsWith(".")) host = host.slice(0, -1);
   const want = domain.trim().toLowerCase();
   return sure(want.startsWith("*.") ? host.endsWith(want.slice(1)) : host === want);
 }

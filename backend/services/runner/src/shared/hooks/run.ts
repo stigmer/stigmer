@@ -23,7 +23,7 @@
  * default timeout is ten). The hook's own timeout bounds the wait instead.
  */
 
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 
 /** Claude Code's default command-hook timeout. */
 export const DEFAULT_HOOK_TIMEOUT_SECONDS = 600;
@@ -102,9 +102,16 @@ export type HookProcessRunner = (spec: HookProcessSpec, options: HookRunOptions)
 
 export const runHookProcess: HookProcessRunner = (spec, options) =>
   new Promise((resolve) => {
-    const child = spec.args === null
-      ? spawn(HOOK_SHELL, ["-c", spec.command], { cwd: spec.cwd, env: spec.env, detached: true, stdio: "pipe" })
-      : spawn(spec.command, [...spec.args], { cwd: spec.cwd, env: spec.env, detached: true, stdio: "pipe" });
+    let child: ChildProcessWithoutNullStreams;
+    try {
+      child = spec.args === null
+        ? spawn(HOOK_SHELL, ["-c", spec.command], { cwd: spec.cwd, env: spec.env, detached: true, stdio: "pipe" })
+        : spawn(spec.command, [...spec.args], { cwd: spec.cwd, env: spec.env, detached: true, stdio: "pipe" });
+    } catch (err) {
+      // A command Node refuses outright (a NUL byte in it) never starts.
+      resolve({ exitCode: null, stdout: "", stderr: "", timedOut: false, spawnError: err instanceof Error ? err.message : String(err) });
+      return;
+    }
 
     const stdout = new CappedText();
     const stderr = new CappedText();

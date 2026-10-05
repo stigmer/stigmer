@@ -103,6 +103,12 @@ describe("runHookProcess", () => {
     expect(result.spawnError).toContain("ENOENT");
   });
 
+  it("says when Node refuses a command outright, without throwing", async () => {
+    const result = await runHookProcess(spec({ command: "/bin/echo", args: ["a\u0000b"] }), {});
+    expect(result.exitCode).toBeNull();
+    expect(result.spawnError).toMatch(/null bytes/);
+  });
+
   it("says when a command cannot start", async () => {
     const result = await runHookProcess(spec({ command: join(dir, "missing"), args: ["x"] }), {});
     expect(result.spawnError).toContain("ENOENT");
