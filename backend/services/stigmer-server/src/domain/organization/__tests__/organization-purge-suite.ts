@@ -17,7 +17,8 @@
  * second organization holds the same shapes and must keep all of them.
  *
  * A unit's stage runs twice: in its place and again in the final stage's
- * sweep, for a row written after it first passed.
+ * sweep, for a row written after it first passed; it reads the
+ * organization's sessions through its context's row reader.
  *
  * Between the delete and the purge, the organization answers not-found on
  * the wire and on the in-process lane, where server code starts work
@@ -40,6 +41,7 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
@@ -132,6 +134,10 @@ export function describeOrganizationPurge(
     const held = new Set<string>();
     /** How often the unit's stage finished for each organization. */
     const finished = new Map<string, number>();
+    /** The sessions the unit's stage read through its context's row reader, by organization. */
+    const sessionsRead = new Map<string, ReadonlyArray<string>>();
+    /** The session each seeded organization holds. */
+    const sessionIds = new Map<string, string>();
     const holding: ServerExtension = {
       name: "purge-hold",
       orgPurge: {
@@ -143,6 +149,13 @@ export function describeOrganizationPurge(
                 return { more: true, wait: true };
               }
               finished.set(context.org.id, (finished.get(context.org.id) ?? 0) + 1);
+              if (!sessionsRead.has(context.org.id)) {
+                const page = await context.rows.ids(ApiResourceKind.session, SessionSchema, {
+                  after: "",
+                  limit: 10,
+                });
+                sessionsRead.set(context.org.id, page.ids);
+              }
               return { more: false };
             },
           },
@@ -232,6 +245,7 @@ export function describeOrganizationPurge(
       });
       const sessionId = session.metadata?.id ?? "";
       ids.add(sessionId);
+      sessionIds.set(org, sessionId);
       await platform.bootstrapPolicy(
         triple({ kind: "identity_account", id: "ida_purge_reader" }, "viewer", {
           kind: "agent",
@@ -354,6 +368,10 @@ export function describeOrganizationPurge(
         finished.get(doomed.org),
         "the unit's stage runs in its place and again in the final stage's sweep",
       ).toBe(2);
+      expect(
+        sessionsRead.get(doomed.org),
+        "the stage reads the organization's sessions, and no other's, through its context",
+      ).toEqual([sessionIds.get(doomed.org)]);
 
       const census = await database().census(dir);
       try {

@@ -7,6 +7,8 @@
  *   - an accepted purge runs every stage in order, a stage again while it
  *     answers `more`, and releases nothing itself (the final stage does);
  *   - a purge resumes at the stage its record names;
+ *   - a stage's context reads the organization's rows through the
+ *     composition's list indexes;
  *   - a stage that answers `wait` ends the purge's turn, and the next
  *     pass of the same pod goes on although its own heartbeat is fresh;
  *   - a fault records the stage and the fixed copy, backs off, and the
@@ -32,7 +34,12 @@ import type {
   OrganizationPurgeProgress,
   OrganizationPurgeStage,
 } from "../../../../extensions/organization-purge.js";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
 import { createLogger } from "../../../../boot/logger.js";
+import { sessionListIndex } from "../../../session/list-index.js";
+import type { ListIndexQuery } from "../../../../store/list-index.js";
 import { silentLogger } from "../../../../extensions/__tests__/composed-support.js";
 import { SqliteStore } from "../../../../store/sqlite/store.js";
 import {
@@ -104,6 +111,41 @@ describe("the organization purge runner", () => {
     ]).runPass();
     expect(calls).toEqual([`a:${ORG}`, `a:${ORG}`, `b:${ORG}`]);
     expect((await store.organizationDeletions.get(ORG))?.stage).toBe("b");
+  });
+
+  it("hands each stage a row reader over the composition's list indexes", async () => {
+    await accepted();
+    const queries: Array<{ index: string; query: ListIndexQuery }> = [];
+    const spied = Object.create(store) as SqliteStore;
+    spied.queryResources = (declaration, query) => {
+      queries.push({ index: String(declaration.kind), query });
+      return Promise.resolve([]);
+    };
+    spied.findResourcesRawOrderedAfter = () =>
+      Promise.reject(new Error("an indexed kind was scanned"));
+    let read: unknown;
+    await new OrganizationPurgeRunner({
+      store: spied,
+      logger: silentLogger,
+      listIndexes: [sessionListIndex],
+      stages: [
+        {
+          name: "reads",
+          async run(context) {
+            read = await context.rows.ids(ApiResourceKind.session, SessionSchema, {
+              after: "",
+              limit: 5,
+            });
+            return { more: false };
+          },
+        },
+      ],
+      now: () => clock,
+    }).runPass();
+    expect(read).toEqual({ ids: [], next: undefined });
+    expect(queries).toEqual([
+      { index: String(sessionListIndex.kind), query: { org: ORG, limit: 5 } },
+    ]);
   });
 
   it("resumes at the stage its record names", async () => {

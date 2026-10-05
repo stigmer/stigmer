@@ -154,6 +154,8 @@ export type {
   OrganizationPurgeProgress,
   OrganizationPurgeStage,
   OrganizationPurgeTarget,
+  OrganizationRowPage,
+  OrganizationRows,
   RetainedRows,
 } from "./extensions/organization-purge.js";
 export type {
