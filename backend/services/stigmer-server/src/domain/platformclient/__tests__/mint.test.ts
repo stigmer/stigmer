@@ -228,7 +228,8 @@ const SUBJECT = platformClientSubject("acme", "user-7");
 
 /**
  * The organizations the mint may read: acme's child, an unrelated
- * organization, and another parent's child. Anything else is absent.
+ * organization, and another parent's child; org_unreadable's read
+ * fails. Anything else is absent.
  */
 const ORGANIZATIONS = new Map([
   ["org_acmecust", { id: "org_acmecust", parentOrg: "acme" }],
@@ -238,6 +239,9 @@ const ORGANIZATIONS = new Map([
 
 const organizationRows: Pick<Store, "getResource"> = {
   getResource: (async (_kind: unknown, id: string) => {
+    if (id === "org_unreadable") {
+      throw new Error("store down");
+    }
     const known = ORGANIZATIONS.get(id);
     if (known === undefined) {
       throw new ResourceNotFoundError(`organization ${id}`);
@@ -312,6 +316,16 @@ describe("mintUserToken — the server and the client", () => {
       expect(h.events, orgId).toEqual([]);
     }
     await mintUserToken(harness().deps, request({ orgId: "acme" }));
+  });
+
+  it("answers a fault reading the requested organization INTERNAL, before any user is resolved", async () => {
+    const h = harness();
+    const fault = await refusal(
+      mintUserToken(h.deps, request({ orgId: "org_unreadable" })),
+    );
+    expect(fault.code).toBe(Code.Internal);
+    expect(fault.rawMessage).toContain("failed to read the requested organization");
+    expect(h.events).toEqual([]);
   });
 
   it("mints into a child of the owning organization: the account is the child's own, its sign-in role is granted there, and the token names the child", async () => {

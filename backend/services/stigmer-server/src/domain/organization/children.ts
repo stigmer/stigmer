@@ -63,6 +63,7 @@ import {
   alreadyExistsError,
   failedPreconditionError,
   internalError,
+  notFoundError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
@@ -187,38 +188,80 @@ export async function childrenOf(
   });
   const children: Organization[] = [];
   for (const row of rows) {
-    const child = fromBinary(OrganizationSchema, row.data);
+    const child = decodeOrganization(row.data);
     // The index narrows; the row's own field keeps the answer exact.
-    if (parentOrgOf(child) === parentId) {
+    if (child !== undefined && parentOrgOf(child) === parentId) {
       children.push(child);
     }
   }
   return children;
 }
 
+/** A stored organization row decoded, or undefined for bytes that are not one (the list pages drop it). */
+export function decodeOrganization(data: Uint8Array): Organization | undefined {
+  try {
+    return fromBinary(OrganizationSchema, data);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The child of `parentId` whose external id is `externalId`: the name
+ * table's claim, then the child's row, which must still name both. A
+ * claim whose create never stored its row, or whose child is gone and
+ * whose release failed, answers undefined. Faults propagate.
+ */
+async function findChildByExternalId(
+  store: Store,
+  parentId: string,
+  externalId: string,
+): Promise<Organization | undefined> {
+  if (parentId === "" || externalId === "") {
+    return undefined;
+  }
+  const entry = await store.resourceNames.resolve(
+    externalIdNameKey(parentId, externalId),
+    new Date().toISOString(),
+  );
+  if (entry === undefined) {
+    return undefined;
+  }
+  const child = await loadOrganization(store, entry.id);
+  return child !== undefined &&
+    parentOrgOf(child) === parentId &&
+    (child.spec?.externalId ?? "") === externalId
+    ? child
+    : undefined;
+}
+
+/**
+ * The getByExternalId lane's read, after its Authorize step: the child,
+ * one NotFound for every miss (no claim, a claim whose child is gone,
+ * another parent's child), INTERNAL for a fault.
+ */
+export async function getChildByExternalId(
+  store: Store,
+  parentId: string,
+  externalId: string,
+): Promise<Organization> {
+  let child: Organization | undefined;
+  try {
+    child = await findChildByExternalId(store, parentId, externalId);
+  } catch (error) {
+    throw internalError(error, "failed to find the child organization");
+  }
+  if (child === undefined) {
+    throw notFoundError("Organization", externalId);
+  }
+  return child;
+}
+
 /** The lookups a composition receives (extensions/child-organizations.ts). */
 export function newChildOrganizations(store: Store): ChildOrganizations {
   return {
-    async findByExternalId(parentId, externalId) {
-      if (parentId === "" || externalId === "") {
-        return undefined;
-      }
-      const entry = await store.resourceNames.resolve(
-        externalIdNameKey(parentId, externalId),
-        new Date().toISOString(),
-      );
-      if (entry === undefined) {
-        return undefined;
-      }
-      const child = await loadOrganization(store, entry.id);
-      // A claim whose create never stored its row, or whose child is gone
-      // and whose release failed, answers nothing.
-      return child !== undefined &&
-        parentOrgOf(child) === parentId &&
-        (child.spec?.externalId ?? "") === externalId
-        ? child
-        : undefined;
-    },
+    findByExternalId: (parentId, externalId) =>
+      findChildByExternalId(store, parentId, externalId),
     async listIds(parentId) {
       return (await childrenOf(store, parentId)).map(
         (child) => child.metadata?.id ?? "",

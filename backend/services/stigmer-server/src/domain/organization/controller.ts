@@ -61,7 +61,7 @@ import type { OrganizationDirectory } from "../../extensions/organization-direct
 import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
-import { internalError, notFoundError } from "../../pipeline/errors.js";
+import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
@@ -101,7 +101,8 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
   childOwnerAttribution,
-  externalIdNameKey,
+  decodeOrganization,
+  getChildByExternalId,
   newClaimExternalIdStep,
   newLinkChildOrganizationStep,
   newPreserveChildLinkStep,
@@ -735,36 +736,7 @@ async function getByExternalId(
     .build()
     .execute(reqCtx);
 
-  const entry = await (async () => {
-    try {
-      return await deps.store.resourceNames.resolve(
-        externalIdNameKey(input.parentOrg, input.externalId),
-        new Date().toISOString(),
-      );
-    } catch (error) {
-      throw internalError(error, "failed to find the child organization");
-    }
-  })();
-  if (entry === undefined) {
-    throw notFoundError("Organization", input.externalId);
-  }
-  let child: Organization;
-  try {
-    child = await deps.store.getResource(
-      ApiResourceKind.organization,
-      entry.id,
-      OrganizationSchema,
-    );
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      throw notFoundError("Organization", input.externalId);
-    }
-    throw internalError(error, "failed to load organization");
-  }
-  if (parentOrgOf(child) !== input.parentOrg) {
-    throw notFoundError("Organization", input.externalId);
-  }
-  return child;
+  return getChildByExternalId(deps.store, input.parentOrg, input.externalId);
 }
 
 /**
@@ -804,13 +776,7 @@ async function listChildOrgs(
     query: { anyKey: [{ name: "parent_org", value: input.org }] },
     request: { pageSize: input.pageSize, pageToken: input.pageToken },
     fingerprint: input.org,
-    decode: (data) => {
-      try {
-        return fromBinary(OrganizationSchema, data);
-      } catch {
-        return undefined;
-      }
-    },
+    decode: decodeOrganization,
     keep: (child) => parentOrgOf(child) === input.org,
     scope: (rows) => Promise.resolve(rows),
     failure: "failed to list child organizations",

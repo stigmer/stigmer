@@ -882,6 +882,26 @@ describe("the step over a store", () => {
     expect(local.writerParentOrg).toBe("");
   });
 
+  it("answers a fault reading the writer's organization INTERNAL, never a refusal", async () => {
+    await seedSkill("skl_s", "globex", "shared", V.visibility_child_orgs);
+    const faulty: Store = Object.create(store);
+    faulty.getResource = ((kind: ApiResourceKind, ...rest: unknown[]) =>
+      kind === K.organization
+        ? Promise.reject(new Error("store down"))
+        : (store.getResource as (...args: unknown[]) => unknown)(kind, ...rest)) as Store["getResource"];
+    const error = await loadReferenceTargets(
+      faulty,
+      [ref(K.skill, "globex", "shared")],
+      "acme",
+    ).then(
+      () => undefined,
+      (caught: unknown) => caught,
+    );
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.Internal);
+    expect((error as ConnectError).rawMessage).toContain("failed to read the writing organization");
+  });
+
   it("the loaded targets are indexed by (org, slug): the same slug in another organization is another row", async () => {
     await seedSkill("skl_a", "acme", "shared-name", V.visibility_org);
     await seedSkill("skl_g", "globex", "shared-name", V.visibility_child_orgs);
