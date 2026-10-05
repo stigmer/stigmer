@@ -12,9 +12,15 @@
  *   - a row already in the current shape is left alone (undefined);
  *   - the last occurrence of the field wins, as proto reads a singular
  *     field;
+ *   - a retired field written with another wire type than its own is
+ *     skipped, never misread;
  *   - bytes that do not decode throw, and the step's error names the row.
  */
+import { toBinary, create } from "@bufbuild/protobuf";
+import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { describe, expect, it } from "vitest";
+
+import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 
 import {
   ApprovalMode,
@@ -135,6 +141,37 @@ describe("migrateExecutionRow", () => {
     expect(() => migrateExecutionRow(new Uint8Array([0xff, 0xff, 0xff]))).toThrow();
     expect(unreadableExecutionError("aex_bad", new Error("boom")).message).toContain(
       "agent_execution 'aex_bad'",
+    );
+  });
+
+  it("skips a retired field written with another wire type than its own", () => {
+    // Every field at a wire type its schema never wrote: a string as a
+    // varint, a varint as bytes, a double as a varint, a bool as bytes, a
+    // Struct as a varint.
+    const config = new BinaryWriter()
+      .tag(1, WireType.Varint).int32(7)
+      .tag(3, WireType.LengthDelimited).string("x")
+      .tag(5, WireType.Varint).int32(9)
+      .tag(8, WireType.LengthDelimited).string("y")
+      .tag(7, WireType.Varint).int32(1)
+      .finish();
+    const spec = new BinaryWriter()
+      .raw(toBinary(AgentExecutionSpecSchema, create(AgentExecutionSpecSchema, { message: "hello" })))
+      .tag(4, WireType.LengthDelimited)
+      .bytes(config)
+      .finish();
+    const row = new BinaryWriter()
+      .tag(2, WireType.LengthDelimited)
+      .string("AgentExecution")
+      .tag(4, WireType.LengthDelimited)
+      .bytes(spec)
+      .finish();
+    expect(migrateExecutionRow(row)).toEqual(
+      executionBytes({
+        apiVersion: "",
+        spec: { message: "hello", runConfig: {} },
+        status: { runConfig: {}, approvalMode: ApprovalMode.INTERACTIVE },
+      }),
     );
   });
 });

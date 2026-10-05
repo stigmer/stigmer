@@ -73,6 +73,7 @@ import {
   executionBytes,
   retiredExecutionRow,
 } from "../../__tests__/retired-execution-rows.js";
+import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { sessionListIndex } from "../../../domain/session/list-index.js";
 import { PostgresStore } from "../store.js";
 import {
@@ -1280,6 +1281,27 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
               metadata: metadata("aex_bare"),
               spec: { message: "hello" },
               status: { runConfig: {}, approvalMode: ApprovalMode.INTERACTIVE },
+            }),
+          );
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads every page of turns", async () => {
+        const client = await v9Client();
+        try {
+          for (let i = 0; i <= EXECUTION_CONFIG_PAGE_SIZE; i++) {
+            const id = `aex_${String(i).padStart(4, "0")}`;
+            await insert(client, id, retiredExecutionRow({ metadata: metadata(id), config: { maxCostUsd: 1 } }));
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_10);
+          const last = `aex_${String(EXECUTION_CONFIG_PAGE_SIZE).padStart(4, "0")}`;
+          expect((await row(client, last)).data).toEqual(
+            executionBytes({
+              metadata: metadata(last),
+              spec: { message: "hello", runConfig: { maxCostUsd: 1 } },
+              status: { runConfig: { maxCostUsd: 1 }, approvalMode: ApprovalMode.INTERACTIVE },
             }),
           );
         } finally {

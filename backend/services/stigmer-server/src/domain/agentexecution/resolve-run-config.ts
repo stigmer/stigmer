@@ -249,6 +249,7 @@ export function runConfigLayerName(
       return "the lane's operator profile";
     case undefined:
       return "no layer";
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const unreachable: never = layer;
       return unreachable;

@@ -21,7 +21,11 @@
  * status.run_config and status.approval_mode, overwriting anything there;
  * and refuses an unattended Cursor turn that would run with no model, while
  * passing an attended one. reResolveRunConfig resolves again over another
- * pinned version and leaves an unchanged pin alone.
+ * pinned version and leaves an unchanged pin alone; CreateSessionIfNeeded
+ * judges the re-resolved settings by the same checks (a fast tier the new
+ * version cannot price, an unattended Cursor turn left with no model).
+ * Refusals name the layer that chose each value, the profile and "no
+ * layer" included.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -56,14 +60,27 @@ import { RequestContext } from "../../../pipeline/request-context.js";
 import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 
+import { createLogger } from "../../../boot/logger.js";
+import { bundledModelRegistryDocument } from "../../workflow/registry/bundled.js";
+import { ModelRegistryStore } from "../../workflow/registry/model-registry-store.js";
+import { newCreateSessionIfNeededStep } from "../create-steps.js";
+import { serviceTierRefusal } from "../validate-service-tier.js";
 import {
   agentLayerFor,
   conversationHarness,
   newResolveRunConfigStep,
   reResolveRunConfig,
   resolveRunConfig,
+  runConfigLayerName,
   runConfigPlacementOf,
 } from "../resolve-run-config.js";
+
+const REGISTRY = new ModelRegistryStore({
+  bundledDocument: bundledModelRegistryDocument(),
+  upstreamOrigin: "http://unused.test",
+  refreshEnabled: false,
+  logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+});
 import { SCHEDULE_ID_LABEL_KEY } from "../run-person.js";
 
 type RunConfigInit = MessageInitShape<typeof RunConfigSchema>;
@@ -492,5 +509,98 @@ describe("ResolveRunConfig over a real store", () => {
     expect(moved?.agentVersionHash).toBe(HEAD);
     expect(exec.status?.runConfig).toEqual(rc({ modelName: "claude-haiku-4.5" }));
     expect(runConfigPlacementOf(ctx)).toBe(moved);
+  });
+
+  it("names the profile, and no layer, in a refusal", async () => {
+    const ctx = await resolve(
+      execution({ spec: { message: "hi" } }),
+      {
+        runLanes: {
+          laneOf: () =>
+            Promise.resolve({
+              settingsName: "the share's run_config",
+              profile: rc({ modelName: "claude-sonnet-4.6", serviceTier: ServiceTier.FAST }),
+              approvalMode: ApprovalMode.UNATTENDED,
+            }),
+        },
+      },
+    );
+    const placement = runConfigPlacementOf(ctx)!;
+    expect(serviceTierRefusal(REGISTRY, placement)).toContain("from the lane's operator profile");
+    const bare = await resolve(execution({ spec: { message: "hi", runConfig: { serviceTier: ServiceTier.FAST } } }));
+    expect(serviceTierRefusal(REGISTRY, runConfigPlacementOf(bare)!)).toContain("from the request's run_config");
+    expect(runConfigLayerName(runConfigPlacementOf(bare)!, undefined)).toBe("no layer");
+  });
+
+  describe("CreateSessionIfNeeded judges a re-resolution by the same checks", () => {
+    const FAST_UNPRICED = "e".repeat(64);
+
+    beforeEach(async () => {
+      // A version saved between the two resolutions whose defaults ask for
+      // fast on a model with no fast price.
+      await store.saveAudit(
+        ApiResourceKind.agent,
+        AGENT,
+        AgentSchema,
+        create(AgentSchema, {
+          metadata: { id: AGENT, org: "acme", slug: "reviewer" },
+          spec: {
+            harness: Harness.NATIVE,
+            runConfig: { modelName: "claude-sonnet-4.6", serviceTier: ServiceTier.FAST },
+          },
+          status: { versionHash: FAST_UNPRICED },
+        }),
+        FAST_UNPRICED,
+        "",
+      );
+    });
+
+    async function createSessionPinning(
+      ctx: RequestContext<typeof AgentExecutionSchema>,
+      session: { harness: Harness; versionHash: string },
+    ): Promise<unknown> {
+      return Promise.resolve(newCreateSessionIfNeededStep({
+        logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+        sessionCreator: () => ({
+          createAsCaller: () =>
+            Promise.resolve(
+              create(SessionSchema, {
+                metadata: { id: "ses_new" },
+                spec: { harness: session.harness },
+                status: { agentId: AGENT, agentVersionHash: session.versionHash },
+              }),
+            ),
+        }),
+        store,
+        modelRegistry: REGISTRY,
+      }).execute(ctx))
+        .then(
+          () => undefined,
+          (error: unknown) => error,
+        );
+    }
+
+    it("refuses a tier the re-resolved version cannot price", async () => {
+      const ctx = await resolve(
+        execution({ spec: { message: "hi" }, status: { agentId: AGENT, agentVersionHash: PINNED } }),
+      );
+      const err = await createSessionPinning(ctx, { harness: Harness.NATIVE, versionHash: FAST_UNPRICED });
+      expect(err).toBeInstanceOf(ConnectError);
+      expect((err as ConnectError).code).toBe(Code.InvalidArgument);
+      expect((err as ConnectError).rawMessage).toContain("from the agent's run defaults");
+    });
+
+    it("refuses an unattended turn the created session leaves on Cursor with no model", async () => {
+      const ctx = await resolve(
+        execution({
+          metadata: { labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_1" } },
+          spec: { message: "hi" },
+          status: { agentId: AGENT, agentVersionHash: PINNED },
+        }),
+      );
+      const err = await createSessionPinning(ctx, { harness: Harness.CURSOR, versionHash: PINNED });
+      expect(err).toBeInstanceOf(ConnectError);
+      expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
+    });
   });
 });

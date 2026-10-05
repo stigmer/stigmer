@@ -550,6 +550,28 @@ do:
       );
     });
 
+    it("rejects a negative or non-numeric run_config.max_tool_result_chars", () => {
+      const withChars = (value: string): string => `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+      with:
+        agent: reviewer
+        message: Review
+        run_config:
+          max_tool_result_chars: ${value}
+`;
+      expect(() => loadWorkflowFromYaml(withChars("-1"))).toThrow(
+        "call:agent 'run_config.max_tool_result_chars' must be a number >= 0",
+      );
+      expect(() => loadWorkflowFromYaml(withChars("lots"))).toThrow(
+        "call:agent 'run_config.max_tool_result_chars' must be a number >= 0",
+      );
+    });
+
     it("parses git workspace entries", () => {
       const yaml = `
 document:

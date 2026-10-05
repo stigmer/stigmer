@@ -48,6 +48,7 @@ function makeSchedule(overrides?: {
     modelName?: string;
     maxCostUsd?: number;
     maxToolRounds?: number;
+    maxToolResultChars?: number;
   };
 }): Schedule {
   return create(ScheduleSchema, {
@@ -574,11 +575,11 @@ describe("ScheduleDetailView", () => {
     expect(doc.message.spec?.timeZone).toBe("Asia/Kolkata");
   });
 
-  it("saves an edited budget, preserving the model and the API-only tool rounds", async () => {
+  it("saves an edited budget, preserving the model and the API-only tool bounds", async () => {
     const client = makeClient(
       makeSchedule({
         harness: Harness.CURSOR,
-        runConfig: { modelName: "composer-2", maxToolRounds: 15 },
+        runConfig: { modelName: "composer-2", maxToolRounds: 15, maxToolResultChars: 12000 },
       }),
     );
     renderView(client, { editable: true });
@@ -601,6 +602,7 @@ describe("ScheduleDetailView", () => {
     // run config stores survives the save.
     expect(target?.runConfig?.modelName).toBe("composer-2");
     expect(target?.runConfig?.maxToolRounds).toBe(15);
+    expect(target?.runConfig?.maxToolResultChars).toBe(12000);
     expect(target?.harness).toBe(Harness.CURSOR);
   });
 

@@ -75,6 +75,7 @@ import {
   executionBytes,
   retiredExecutionRow,
 } from "../../__tests__/retired-execution-rows.js";
+import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
 import { materializeGoFixture } from "./support.js";
@@ -1330,6 +1331,27 @@ describe("v15: a turn's settings leave the retired execution_config", () => {
         metadata: metadata("aex_bare"),
         spec: { message: "hello" },
         status: { runConfig: {}, approvalMode: ApprovalMode.INTERACTIVE },
+      }),
+    );
+  });
+
+  it("reads every page of turns", () => {
+    const { dbPath, db: setup } = v14Database();
+    for (let i = 0; i <= EXECUTION_CONFIG_PAGE_SIZE; i++) {
+      const id = `aex_${String(i).padStart(4, "0")}`;
+      insert(setup, id, retiredExecutionRow({ metadata: metadata(id), config: { maxCostUsd: 1 } }));
+    }
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_15);
+    const last = `aex_${String(EXECUTION_CONFIG_PAGE_SIZE).padStart(4, "0")}`;
+    expect(row(db, last).data).toEqual(
+      executionBytes({
+        metadata: metadata(last),
+        spec: { message: "hello", runConfig: { maxCostUsd: 1 } },
+        status: { runConfig: { maxCostUsd: 1 }, approvalMode: ApprovalMode.INTERACTIVE },
       }),
     );
   });

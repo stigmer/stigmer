@@ -9,7 +9,8 @@
  * Pins: the "Agent default: <model>" label and the agent's tier and
  * thinking as the switches' state; nothing sent untouched; an explicit
  * off sent alone; a picked model replacing the default and keeping the
- * switches' shown state as explicit choices.
+ * switches' shown state (the agent's thinking, and its fast tier on a
+ * model that runs one) as explicit choices.
  */
 import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
@@ -58,6 +59,19 @@ const HAIKU: ModelInfo = {
   thinkingCapable: true,
 };
 
+const OPUS: ModelInfo = {
+  modelId: "claude-opus-4-1",
+  provider: "anthropic",
+  displayName: "Opus 4.1",
+  shortDescription: "Deep Claude",
+  speedTier: "slow",
+  costTier: "premium",
+  harness: "native",
+  featured: true,
+  serviceTiers: ["fast"],
+  thinkingCapable: true,
+};
+
 const AGENT_DEFAULTS: AgentRunDefaults = {
   modelName: "claude-sonnet-4-6",
   thinkingMode: "enabled",
@@ -78,7 +92,7 @@ function createWrapper() {
     return (
       <StigmerContext.Provider value={client}>
         <ModelRegistryContext.Provider
-          value={{ models: [HAIKU, SONNET], isLoading: false, error: null, refetch: vi.fn() }}
+          value={{ models: [HAIKU, SONNET, OPUS], isLoading: false, error: null, refetch: vi.fn() }}
         >
           {children}
         </ModelRegistryContext.Provider>
@@ -156,6 +170,22 @@ describe("SessionComposer — the agent's run defaults", () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     expect(onSubmit.mock.calls[0][1]).toBe("claude-haiku-4-5");
     expect(onSubmit.mock.calls[0][2]?.thinkingMode).toBe("enabled");
+  });
+
+  it("a picked model keeps the agent's fast tier as a choice when it runs one", async () => {
+    const { onSubmit } = renderComposer({
+      agentRunDefaults: { modelName: "claude-sonnet-4-6", serviceTier: "fast" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Agent default: Sonnet 4\.6/ }));
+    expect((await screen.findByRole("switch", { name: "Fast tier" })).getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(await screen.findByRole("option", { name: /Opus 4\.1/ }));
+    submitMessage("On Opus, still fast");
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit.mock.calls[0][1]).toBe("claude-opus-4-1");
+    expect(onSubmit.mock.calls[0][2]?.serviceTier).toBe("fast");
+    expect(onSubmit.mock.calls[0][2]?.thinkingMode).toBeUndefined();
   });
 
   it("a conversation's own last pick wins over the agent's default", async () => {

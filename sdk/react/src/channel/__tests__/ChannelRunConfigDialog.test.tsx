@@ -1,3 +1,10 @@
+/**
+ * The channel's run-settings dialog: what a save writes to the channel's
+ * run_config. The fields the dialog does not edit (the tool-round and
+ * tool-result bounds) ride through a save verbatim, an emptied draft clears
+ * the block, and the tier and thinking switches are carried only when
+ * actively chosen with a model.
+ */
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -56,6 +63,7 @@ function makeChannel(runConfig?: {
   modelName?: string;
   maxCostUsd?: number;
   maxToolRounds?: number;
+  maxToolResultChars?: number;
   serviceTier?: ServiceTier;
   thinkingMode?: ThinkingMode;
 }) {
@@ -78,6 +86,7 @@ function makeChannel(runConfig?: {
               modelName: runConfig.modelName ?? "",
               maxCostUsd: runConfig.maxCostUsd ?? 0,
               maxToolRounds: runConfig.maxToolRounds ?? 0,
+              maxToolResultChars: runConfig.maxToolResultChars ?? 0,
               serviceTier: runConfig.serviceTier ?? ServiceTier.UNSPECIFIED,
               thinkingMode: runConfig.thinkingMode ?? ThinkingMode.UNSPECIFIED,
             },
@@ -145,6 +154,20 @@ describe("ChannelRunConfigDialog", () => {
     const input = apply.mock.calls[0][0] as AgentChannelInput;
     expect(input.runConfig?.maxToolRounds).toBe(25);
     expect(input.runConfig?.modelName).toBe("claude-haiku-4-5");
+  });
+
+  it("preserves max_tool_result_chars verbatim even though it never renders", async () => {
+    const { apply } = renderDialog(
+      makeChannel({ modelName: "claude-haiku-4-5", maxToolResultChars: 16000 }),
+    );
+
+    expect(screen.queryByText(/tool result/i)).toBeNull();
+    await save();
+
+    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
+    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    expect(input.runConfig?.maxToolResultChars).toBe(16000);
+    expect(input.runConfig?.maxToolRounds).toBeUndefined();
   });
 
   it("clears run_config entirely when the draft is emptied (empty = inherit)", async () => {

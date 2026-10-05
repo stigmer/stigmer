@@ -6,7 +6,9 @@
  *
  * Pins: the read view; one save carrying harness and run_config with the
  * tool bounds intact; switching the engine dropping the model; "No
- * engine" clearing both; the refusal message shown.
+ * engine" clearing both; "Choose an engine" starting an agent with no
+ * engine on native; Cancel leaving the edit unsaved; the refusal message
+ * shown.
  */
 import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
@@ -157,6 +159,41 @@ describe("AgentRunDefaultsSection", () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
     expect(onSave.mock.calls[0][0]).toEqual({ harness: undefined, runConfig: undefined });
+  });
+
+  it("starts an agent with no engine on native when an engine is chosen", async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    render(
+      <AgentRunDefaultsSection
+        spec={create(AgentSpecSchema, {})}
+        editable
+        isSaving={false}
+        onSave={onSave}
+      />,
+      { wrapper: Wrapper },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Edit run defaults" }));
+    fireEvent.click(screen.getByRole("button", { name: "Choose an engine" }));
+    expect(screen.getByRole("button", { name: "No engine" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onSave.mock.calls[0][0]).toEqual({ harness: Harness.NATIVE, runConfig: undefined });
+  });
+
+  it("Cancel returns to the read view without saving", () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    render(
+      <AgentRunDefaultsSection spec={SPEC} editable isSaving={false} onSave={onSave} />,
+      { wrapper: Wrapper },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Edit run defaults" }));
+    fireEvent.change(screen.getByPlaceholderText("No cap"), { target: { value: "9" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.getByText("$2 per message")).toBeTruthy();
   });
 
   it("shows the server's refusal under the section", () => {

@@ -1,14 +1,15 @@
 // Tests for openSession's organization (stigmer/stigmer#1580): a resumed
 // session is continued in the session's own organization, never the CLI's
 // context organization, both when the latest turn is still live (re-attach)
-// and when the session is replayed into the interactive composer. The
-// session reads, the stream and the Ink view are doubles, so only the
+// and when the session is replayed into the interactive composer. The mode
+// a resume continues in is the explicit --mode, else plan when the latest
+// turn ran in plan mode, else the agent default. The session reads, the stream and the Ink view are doubles, so only the
 // organization handed onward is observed.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { BackendClient } from "../../../client/index.js";
 
@@ -29,9 +30,13 @@ import { openSession } from "../resume.js";
 
 const client = { stigmer: {} } as unknown as BackendClient;
 
-function executionIn(phase: ExecutionPhase) {
+function executionIn(
+  phase: ExecutionPhase,
+  interactionMode: InteractionMode = InteractionMode.UNSPECIFIED,
+) {
   return create(AgentExecutionSchema, {
     metadata: { id: "aex_1", org: "acme" },
+    spec: { interactionMode },
     status: { phase },
   });
 }
@@ -81,5 +86,35 @@ describe("openSession", () => {
     expect(ink).toHaveBeenCalledWith(
       expect.objectContaining({ sessionId: "ses_1", org: "acme" }),
     );
+  });
+
+  it("continues a session whose latest turn ran in plan mode in plan mode", async () => {
+    session.executions.mockResolvedValue([
+      executionIn(ExecutionPhase.EXECUTION_IN_PROGRESS, InteractionMode.PLAN),
+    ]);
+
+    await openSession({ client, sessionId: "ses_1", mode: "", outputMode: "json" });
+
+    expect(stream).toHaveBeenCalledWith(expect.objectContaining({ mode: "plan" }));
+  });
+
+  it("an explicit --mode outranks the latest turn's plan mode", async () => {
+    session.executions.mockResolvedValue([
+      executionIn(ExecutionPhase.EXECUTION_IN_PROGRESS, InteractionMode.PLAN),
+    ]);
+
+    await openSession({ client, sessionId: "ses_1", mode: "agent", outputMode: "json" });
+
+    expect(stream).toHaveBeenCalledWith(expect.objectContaining({ mode: "agent" }));
+  });
+
+  it("continues in the agent default when the latest turn named no mode", async () => {
+    session.executions.mockResolvedValue([
+      executionIn(ExecutionPhase.EXECUTION_IN_PROGRESS),
+    ]);
+
+    await openSession({ client, sessionId: "ses_1", mode: "", outputMode: "json" });
+
+    expect(stream).toHaveBeenCalledWith(expect.objectContaining({ mode: "" }));
   });
 });

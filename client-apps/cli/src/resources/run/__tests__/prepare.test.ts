@@ -389,6 +389,24 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
     );
     expect(prepared.model).toBe("default");
   });
+
+  it("an agent naming the native engine outranks an account that prefers cursor", async () => {
+    const prepared = await prepareAgentExec(
+      BASE_FLAGS,
+      clientWithPreferences({ ...ACCOUNT, defaultHarness: "cursor" }),
+      "acme",
+      undefined,
+      {
+        ...SERVED_RUN_OPTIONS,
+        agentSpec: create(AgentSpecSchema, {
+          harness: Harness.NATIVE,
+          runConfig: { modelName: "claude-opus-4-1" },
+        }),
+      },
+    );
+    expect(prepared.harness).toBe("native");
+    expect(prepared.model).toBe("");
+  });
 });
 
 describe("prepareAgentExec harness-aware model fill (oss#293)", () => {

@@ -7,7 +7,7 @@
  *   - the head's hash reads the head, an archived hash the archived spec
  *     (not the head's);
  *   - a version the agent does not hold, and an agent that is gone, are
- *     NotFound.
+ *     NotFound; any other store fault is Internal.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -78,5 +78,12 @@ describe("readRunAgentSpec", () => {
   it("answers NotFound for a version the agent does not hold, and for an agent that is gone", async () => {
     expect(await code(readRunAgentSpec(store, AGENT, "f".repeat(64)))).toBe(Code.NotFound);
     expect(await code(readRunAgentSpec(store, "agt_gone", ""))).toBe(Code.NotFound);
+  });
+
+  it("answers Internal for a store fault reading the head", async () => {
+    const faulty = {
+      getResource: () => Promise.reject(new Error("disk on fire")),
+    } as unknown as Store;
+    expect(await code(readRunAgentSpec(faulty, AGENT, ""))).toBe(Code.Internal);
   });
 });
