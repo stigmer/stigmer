@@ -27,8 +27,9 @@
  * not finish on the creating call (the cloud's first-organization step,
  * whose failed create is not fatal) retries on the idempotent path, which
  * is exactly why a slot was chosen over the tuple lifecycle's
- * onResourceCreated (never fired for a row that already exists). Never on the create RPC and never at the
- * boot-time operator ensure, which take the create path, not this one.
+ * onResourceCreated (never fired for a row that already exists). Never on
+ * the create RPC and never at the boot-time operator ensure, which take
+ * the create path, not this one.
  * Non-transactional in the `org-create:post-persist` sense: a gate
  * failure fails the request, the row survives, the next call heals.
  *

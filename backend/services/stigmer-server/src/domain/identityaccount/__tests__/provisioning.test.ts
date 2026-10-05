@@ -24,8 +24,8 @@
  * account and never on the idempotent path.
  *
  * Step 4 of the cloud's flow (the organization it creates at sign-up) is
- * not core: it
- * fires on `identity-account-provision:post-persist` in the composition.
+ * not core: it fires on `identity-account-provision:post-persist` in the
+ * composition.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
