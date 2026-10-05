@@ -44,7 +44,6 @@ private static final long serialVersionUID = 0L;
     name_ = "";
     description_ = "";
     iconUrl_ = "";
-    defaultInstanceId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -65,6 +64,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.class, ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.Builder.class);
   }
 
+  private int bitField0_;
   public static final int ORG_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private volatile java.lang.Object org_ = "";
@@ -306,55 +306,54 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int DEFAULT_INSTANCE_ID_FIELD_NUMBER = 6;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object defaultInstanceId_ = "";
+  public static final int AGENT_REF_FIELD_NUMBER = 7;
+  private ai.stigmer.commons.apiresource.ApiResourceReference agentRef_;
   /**
    * <pre>
-   * ID of the referenced agent's default instance, used by the hosted chat
-   * page to create sessions. This is an identifier, not a capability —
-   * session creation still requires an authorized token.
+   * The share's agent reference (spec.agent_ref): the hosted chat page
+   * starts the visitor's session on exactly this reference, version
+   * included. This is a name, not a capability — session creation still
+   * requires an authorized token, and the edition's guest gate admits a
+   * session only on this reference and the agent the share pins.
    * </pre>
    *
-   * <code>string default_instance_id = 6 [json_name = "defaultInstanceId"];</code>
-   * @return The defaultInstanceId.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+   * @return Whether the agentRef field is set.
    */
   @java.lang.Override
-  public java.lang.String getDefaultInstanceId() {
-    java.lang.Object ref = defaultInstanceId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      defaultInstanceId_ = s;
-      return s;
-    }
+  public boolean hasAgentRef() {
+    return ((bitField0_ & 0x00000001) != 0);
   }
   /**
    * <pre>
-   * ID of the referenced agent's default instance, used by the hosted chat
-   * page to create sessions. This is an identifier, not a capability —
-   * session creation still requires an authorized token.
+   * The share's agent reference (spec.agent_ref): the hosted chat page
+   * starts the visitor's session on exactly this reference, version
+   * included. This is a name, not a capability — session creation still
+   * requires an authorized token, and the edition's guest gate admits a
+   * session only on this reference and the agent the share pins.
    * </pre>
    *
-   * <code>string default_instance_id = 6 [json_name = "defaultInstanceId"];</code>
-   * @return The bytes for defaultInstanceId.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+   * @return The agentRef.
    */
   @java.lang.Override
-  public com.google.protobuf.ByteString
-      getDefaultInstanceIdBytes() {
-    java.lang.Object ref = defaultInstanceId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      defaultInstanceId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
+  public ai.stigmer.commons.apiresource.ApiResourceReference getAgentRef() {
+    return agentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : agentRef_;
+  }
+  /**
+   * <pre>
+   * The share's agent reference (spec.agent_ref): the hosted chat page
+   * starts the visitor's session on exactly this reference, version
+   * included. This is a name, not a capability — session creation still
+   * requires an authorized token, and the edition's guest gate admits a
+   * session only on this reference and the agent the share pins.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAgentRefOrBuilder() {
+    return agentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : agentRef_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -386,8 +385,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(iconUrl_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 5, iconUrl_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultInstanceId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 6, defaultInstanceId_);
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(7, getAgentRef());
     }
     getUnknownFields().writeTo(output);
   }
@@ -413,8 +412,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(iconUrl_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(5, iconUrl_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultInstanceId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(6, defaultInstanceId_);
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(7, getAgentRef());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -441,8 +441,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDescription())) return false;
     if (!getIconUrl()
         .equals(other.getIconUrl())) return false;
-    if (!getDefaultInstanceId()
-        .equals(other.getDefaultInstanceId())) return false;
+    if (hasAgentRef() != other.hasAgentRef()) return false;
+    if (hasAgentRef()) {
+      if (!getAgentRef()
+          .equals(other.getAgentRef())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -464,8 +467,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getDescription().hashCode();
     hash = (37 * hash) + ICON_URL_FIELD_NUMBER;
     hash = (53 * hash) + getIconUrl().hashCode();
-    hash = (37 * hash) + DEFAULT_INSTANCE_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getDefaultInstanceId().hashCode();
+    if (hasAgentRef()) {
+      hash = (37 * hash) + AGENT_REF_FIELD_NUMBER;
+      hash = (53 * hash) + getAgentRef().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -596,13 +601,19 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetAgentRefFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -613,7 +624,11 @@ private static final long serialVersionUID = 0L;
       name_ = "";
       description_ = "";
       iconUrl_ = "";
-      defaultInstanceId_ = "";
+      agentRef_ = null;
+      if (agentRefBuilder_ != null) {
+        agentRefBuilder_.dispose();
+        agentRefBuilder_ = null;
+      }
       return this;
     }
 
@@ -662,9 +677,14 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.iconUrl_ = iconUrl_;
       }
+      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.defaultInstanceId_ = defaultInstanceId_;
+        result.agentRef_ = agentRefBuilder_ == null
+            ? agentRef_
+            : agentRefBuilder_.build();
+        to_bitField0_ |= 0x00000001;
       }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -704,10 +724,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000010;
         onChanged();
       }
-      if (!other.getDefaultInstanceId().isEmpty()) {
-        defaultInstanceId_ = other.defaultInstanceId_;
-        bitField0_ |= 0x00000020;
-        onChanged();
+      if (other.hasAgentRef()) {
+        mergeAgentRef(other.getAgentRef());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -760,11 +778,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
-            case 50: {
-              defaultInstanceId_ = input.readStringRequireUtf8();
+            case 58: {
+              input.readMessage(
+                  internalGetAgentRefFieldBuilder().getBuilder(),
+                  extensionRegistry);
               bitField0_ |= 0x00000020;
               break;
-            } // case 50
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1257,106 +1277,197 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object defaultInstanceId_ = "";
+    private ai.stigmer.commons.apiresource.ApiResourceReference agentRef_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> agentRefBuilder_;
     /**
      * <pre>
-     * ID of the referenced agent's default instance, used by the hosted chat
-     * page to create sessions. This is an identifier, not a capability —
-     * session creation still requires an authorized token.
+     * The share's agent reference (spec.agent_ref): the hosted chat page
+     * starts the visitor's session on exactly this reference, version
+     * included. This is a name, not a capability — session creation still
+     * requires an authorized token, and the edition's guest gate admits a
+     * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>string default_instance_id = 6 [json_name = "defaultInstanceId"];</code>
-     * @return The defaultInstanceId.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     * @return Whether the agentRef field is set.
      */
-    public java.lang.String getDefaultInstanceId() {
-      java.lang.Object ref = defaultInstanceId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        defaultInstanceId_ = s;
-        return s;
+    public boolean hasAgentRef() {
+      return ((bitField0_ & 0x00000020) != 0);
+    }
+    /**
+     * <pre>
+     * The share's agent reference (spec.agent_ref): the hosted chat page
+     * starts the visitor's session on exactly this reference, version
+     * included. This is a name, not a capability — session creation still
+     * requires an authorized token, and the edition's guest gate admits a
+     * session only on this reference and the agent the share pins.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     * @return The agentRef.
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference getAgentRef() {
+      if (agentRefBuilder_ == null) {
+        return agentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : agentRef_;
       } else {
-        return (java.lang.String) ref;
+        return agentRefBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * ID of the referenced agent's default instance, used by the hosted chat
-     * page to create sessions. This is an identifier, not a capability —
-     * session creation still requires an authorized token.
+     * The share's agent reference (spec.agent_ref): the hosted chat page
+     * starts the visitor's session on exactly this reference, version
+     * included. This is a name, not a capability — session creation still
+     * requires an authorized token, and the edition's guest gate admits a
+     * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>string default_instance_id = 6 [json_name = "defaultInstanceId"];</code>
-     * @return The bytes for defaultInstanceId.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
      */
-    public com.google.protobuf.ByteString
-        getDefaultInstanceIdBytes() {
-      java.lang.Object ref = defaultInstanceId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        defaultInstanceId_ = b;
-        return b;
+    public Builder setAgentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (agentRefBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        agentRef_ = value;
       } else {
-        return (com.google.protobuf.ByteString) ref;
+        agentRefBuilder_.setMessage(value);
       }
-    }
-    /**
-     * <pre>
-     * ID of the referenced agent's default instance, used by the hosted chat
-     * page to create sessions. This is an identifier, not a capability —
-     * session creation still requires an authorized token.
-     * </pre>
-     *
-     * <code>string default_instance_id = 6 [json_name = "defaultInstanceId"];</code>
-     * @param value The defaultInstanceId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDefaultInstanceId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      defaultInstanceId_ = value;
       bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * ID of the referenced agent's default instance, used by the hosted chat
-     * page to create sessions. This is an identifier, not a capability —
-     * session creation still requires an authorized token.
+     * The share's agent reference (spec.agent_ref): the hosted chat page
+     * starts the visitor's session on exactly this reference, version
+     * included. This is a name, not a capability — session creation still
+     * requires an authorized token, and the edition's guest gate admits a
+     * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>string default_instance_id = 6 [json_name = "defaultInstanceId"];</code>
-     * @return This builder for chaining.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
      */
-    public Builder clearDefaultInstanceId() {
-      defaultInstanceId_ = getDefaultInstance().getDefaultInstanceId();
+    public Builder setAgentRef(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (agentRefBuilder_ == null) {
+        agentRef_ = builderForValue.build();
+      } else {
+        agentRefBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The share's agent reference (spec.agent_ref): the hosted chat page
+     * starts the visitor's session on exactly this reference, version
+     * included. This is a name, not a capability — session creation still
+     * requires an authorized token, and the edition's guest gate admits a
+     * session only on this reference and the agent the share pins.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     */
+    public Builder mergeAgentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (agentRefBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0) &&
+          agentRef_ != null &&
+          agentRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
+          getAgentRefBuilder().mergeFrom(value);
+        } else {
+          agentRef_ = value;
+        }
+      } else {
+        agentRefBuilder_.mergeFrom(value);
+      }
+      if (agentRef_ != null) {
+        bitField0_ |= 0x00000020;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The share's agent reference (spec.agent_ref): the hosted chat page
+     * starts the visitor's session on exactly this reference, version
+     * included. This is a name, not a capability — session creation still
+     * requires an authorized token, and the edition's guest gate admits a
+     * session only on this reference and the agent the share pins.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     */
+    public Builder clearAgentRef() {
       bitField0_ = (bitField0_ & ~0x00000020);
+      agentRef_ = null;
+      if (agentRefBuilder_ != null) {
+        agentRefBuilder_.dispose();
+        agentRefBuilder_ = null;
+      }
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * ID of the referenced agent's default instance, used by the hosted chat
-     * page to create sessions. This is an identifier, not a capability —
-     * session creation still requires an authorized token.
+     * The share's agent reference (spec.agent_ref): the hosted chat page
+     * starts the visitor's session on exactly this reference, version
+     * included. This is a name, not a capability — session creation still
+     * requires an authorized token, and the edition's guest gate admits a
+     * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>string default_instance_id = 6 [json_name = "defaultInstanceId"];</code>
-     * @param value The bytes for defaultInstanceId to set.
-     * @return This builder for chaining.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
      */
-    public Builder setDefaultInstanceIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      defaultInstanceId_ = value;
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getAgentRefBuilder() {
       bitField0_ |= 0x00000020;
       onChanged();
-      return this;
+      return internalGetAgentRefFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The share's agent reference (spec.agent_ref): the hosted chat page
+     * starts the visitor's session on exactly this reference, version
+     * included. This is a name, not a capability — session creation still
+     * requires an authorized token, and the edition's guest gate admits a
+     * session only on this reference and the agent the share pins.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAgentRefOrBuilder() {
+      if (agentRefBuilder_ != null) {
+        return agentRefBuilder_.getMessageOrBuilder();
+      } else {
+        return agentRef_ == null ?
+            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : agentRef_;
+      }
+    }
+    /**
+     * <pre>
+     * The share's agent reference (spec.agent_ref): the hosted chat page
+     * starts the visitor's session on exactly this reference, version
+     * included. This is a name, not a capability — session creation still
+     * requires an authorized token, and the edition's guest gate admits a
+     * session only on this reference and the agent the share pins.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetAgentRefFieldBuilder() {
+      if (agentRefBuilder_ == null) {
+        agentRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                getAgentRef(),
+                getParentForChildren(),
+                isClean());
+        agentRef_ = null;
+      }
+      return agentRefBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentshare.v1.SharedAgentProfile)

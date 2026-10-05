@@ -37,7 +37,7 @@ const sessions = declareListIndex({
   schema: SessionSchema,
   revision: 1,
   keys: {
-    agent_instance: field("spec.agent_instance_id"),
+    agent: field("status.agent_id"),
     channel: label("stigmer.ai/channel-id"),
   },
 });
@@ -63,10 +63,10 @@ describe("declareListIndex", () => {
         kind: ApiResourceKind.session,
         schema: SessionSchema,
         revision: 1,
-        keys: { wrong: field("spec.agent_instance") },
+        keys: { wrong: field("spec.agent_id") },
       }),
     ).toThrow(
-      "list index for session, key 'wrong': 'spec.agent_instance' has no field 'agent_instance'",
+      "list index for session, key 'wrong': 'spec.agent_id' has no field 'agent_id'",
     );
   });
 
@@ -87,11 +87,9 @@ describe("declareListIndex", () => {
         kind: ApiResourceKind.session,
         schema: SessionSchema,
         revision: 1,
-        keys: { deep: field("spec.agent_instance_id.nested") },
+        keys: { deep: field("spec.subject.nested") },
       }),
-    ).toThrow(
-      "'agent_instance_id' in 'spec.agent_instance_id.nested' is not a message",
-    );
+    ).toThrow("'subject' in 'spec.subject.nested' is not a message");
   });
 
   it("refuses a revision that is not a positive integer", () => {
@@ -114,8 +112,8 @@ describe("listIndexFactsOf", () => {
         org: "acme",
         labels: { "stigmer.ai/channel-id": "ach_1" },
       },
-      spec: { agentInstanceId: "ain_1" },
       status: {
+        agentId: "agt_1",
         audit: {
           specAudit: { createdAt: { seconds: 1_790_000_000n, nanos: 5 } },
         },
@@ -126,7 +124,7 @@ describe("listIndexFactsOf", () => {
       createdAt: "2026-09-21T14:13:20.000000005Z",
       revision: 1,
       keys: [
-        { key: "agent_instance", value: "ain_1" },
+        { key: "agent", value: "agt_1" },
         { key: "channel", value: "ach_1" },
       ],
     });
@@ -222,7 +220,7 @@ describe("matchesListIndexQuery", () => {
     expect(
       matchesListIndexQuery("x", withChannel, {
         anyKey: [
-          { name: "agent_instance", value: "ain_9" },
+          { name: "agent", value: "agt_9" },
           { name: "channel", value: "ach_1" },
         ],
       }),

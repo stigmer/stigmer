@@ -40,7 +40,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { makeAgent } from "../support/agents";
+import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
@@ -65,49 +65,45 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// Provision an Agent and return its default instance id (Session's required ref).
-async function provisionAgentInstance(org: string): Promise<string> {
+// Provision an Agent and return the reference a session names it by.
+async function provisionAgentRef(org: string): Promise<AgentRefInit> {
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-imm") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-  const agentInstanceId = agent.status?.defaultInstanceId;
-  if (agentInstanceId === undefined || agentInstanceId === "") {
-    throw new Error("agent create did not provision a default instance id");
-  }
-  return agentInstanceId;
+  return agentRefOf(agent);
 }
 
 describe("[rpc:SessionCommandController.apply] Session immutability — harness", () => {
   it("is freely mutable while the harness_state_id sentinel is empty", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     const name = uniqueName("session-imm");
 
     // No harness_state_id: harness changes are unrestricted.
     const created = await clients.sessionCommand.apply(
-      makeSession({ org, name, agentInstanceId, harness: Harness.NATIVE }),
+      makeSession({ org, name, agentRef, harness: Harness.NATIVE }),
     );
     fixtures.defer(() => clients.sessionCommand.delete({ value: created.metadata!.id }));
 
     const toCursor = await clients.sessionCommand.apply(
-      makeSession({ org, name, agentInstanceId, harness: Harness.CURSOR }),
+      makeSession({ org, name, agentRef, harness: Harness.CURSOR }),
     );
     expect(toCursor.spec?.harness, "harness change is allowed before the sentinel is set").toBe(Harness.CURSOR);
 
     const backToNative = await clients.sessionCommand.apply(
-      makeSession({ org, name, agentInstanceId, harness: Harness.NATIVE }),
+      makeSession({ org, name, agentRef, harness: Harness.NATIVE }),
     );
     expect(backToNative.spec?.harness).toBe(Harness.NATIVE);
   });
 
   it("is immutable once harness_state_id is set", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     const name = uniqueName("session-imm");
 
     // Seed the sentinel directly and confirm it round-trips, so the immutability
     // assertions below rest on a genuinely-set sentinel.
     const seeded = await clients.sessionCommand.apply(
-      makeSession({ org, name, agentInstanceId, harness: Harness.NATIVE, harnessStateId: SEED_STATE }),
+      makeSession({ org, name, agentRef, harness: Harness.NATIVE, harnessStateId: SEED_STATE }),
     );
     fixtures.defer(() => clients.sessionCommand.delete({ value: seeded.metadata!.id }));
     expect(seeded.spec?.harnessStateId, "harness_state_id must persist for this test to be meaningful").toBe(
@@ -118,7 +114,7 @@ describe("[rpc:SessionCommandController.apply] Session immutability — harness"
     await expectGrpcCode(
       () =>
         clients.sessionCommand.apply(
-          makeSession({ org, name, agentInstanceId, harness: Harness.CURSOR, harnessStateId: SEED_STATE }),
+          makeSession({ org, name, agentRef, harness: Harness.CURSOR, harnessStateId: SEED_STATE }),
         ),
       Code.FailedPrecondition,
       "change harness after the sentinel is set",
@@ -126,20 +122,20 @@ describe("[rpc:SessionCommandController.apply] Session immutability — harness"
 
     // Re-applying the same harness is a no-op change and is accepted.
     const sameHarness = await clients.sessionCommand.apply(
-      makeSession({ org, name, agentInstanceId, harness: Harness.NATIVE, harnessStateId: SEED_STATE }),
+      makeSession({ org, name, agentRef, harness: Harness.NATIVE, harnessStateId: SEED_STATE }),
     );
     expect(sameHarness.spec?.harness).toBe(Harness.NATIVE);
   });
 
   it("treats UNSPECIFIED harness as NATIVE for the immutability comparison", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     const name = uniqueName("session-imm");
 
     // Seed with UNSPECIFIED harness (the server normalizes it to NATIVE only at
     // dispatch, not at rest) plus the sentinel.
     const seeded = await clients.sessionCommand.apply(
-      makeSession({ org, name, agentInstanceId, harnessStateId: SEED_STATE }),
+      makeSession({ org, name, agentRef, harnessStateId: SEED_STATE }),
     );
     fixtures.defer(() => clients.sessionCommand.delete({ value: seeded.metadata!.id }));
     expect(seeded.spec?.harness).toBe(Harness.UNSPECIFIED);
@@ -147,7 +143,7 @@ describe("[rpc:SessionCommandController.apply] Session immutability — harness"
     // Applying explicit NATIVE is the same logical value (UNSPECIFIED == NATIVE):
     // accepted.
     const toNative = await clients.sessionCommand.apply(
-      makeSession({ org, name, agentInstanceId, harness: Harness.NATIVE, harnessStateId: SEED_STATE }),
+      makeSession({ org, name, agentRef, harness: Harness.NATIVE, harnessStateId: SEED_STATE }),
     );
     expect(toNative.spec?.harness).toBe(Harness.NATIVE);
 
@@ -155,7 +151,7 @@ describe("[rpc:SessionCommandController.apply] Session immutability — harness"
     await expectGrpcCode(
       () =>
         clients.sessionCommand.apply(
-          makeSession({ org, name, agentInstanceId, harness: Harness.CURSOR, harnessStateId: SEED_STATE }),
+          makeSession({ org, name, agentRef, harness: Harness.CURSOR, harnessStateId: SEED_STATE }),
         ),
       Code.FailedPrecondition,
       "change UNSPECIFIED(==NATIVE) harness to CURSOR after the sentinel is set",
@@ -166,16 +162,16 @@ describe("[rpc:SessionCommandController.apply] Session immutability — harness"
 describe("[rpc:SessionCommandController.apply] Session immutability — execution_target", () => {
   it("is freely mutable while the harness_state_id sentinel is empty", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     const name = uniqueName("session-imm");
 
     const created = await clients.sessionCommand.apply(
-      makeSession({ org, name, agentInstanceId, executionTarget: ExecutionTarget.LOCAL }),
+      makeSession({ org, name, agentRef, executionTarget: ExecutionTarget.LOCAL }),
     );
     fixtures.defer(() => clients.sessionCommand.delete({ value: created.metadata!.id }));
 
     const toCloud = await clients.sessionCommand.apply(
-      makeSession({ org, name, agentInstanceId, executionTarget: ExecutionTarget.CLOUD }),
+      makeSession({ org, name, agentRef, executionTarget: ExecutionTarget.CLOUD }),
     );
     expect(toCloud.spec?.executionTarget, "execution_target change is allowed before the sentinel is set").toBe(
       ExecutionTarget.CLOUD,
@@ -184,14 +180,14 @@ describe("[rpc:SessionCommandController.apply] Session immutability — executio
 
   it("is immutable once harness_state_id is set", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     const name = uniqueName("session-imm");
 
     const seeded = await clients.sessionCommand.apply(
       makeSession({
         org,
         name,
-        agentInstanceId,
+        agentRef,
         executionTarget: ExecutionTarget.LOCAL,
         harnessStateId: SEED_STATE,
       }),
@@ -207,7 +203,7 @@ describe("[rpc:SessionCommandController.apply] Session immutability — executio
           makeSession({
             org,
             name,
-            agentInstanceId,
+            agentRef,
             executionTarget: ExecutionTarget.CLOUD,
             harnessStateId: SEED_STATE,
           }),
@@ -221,7 +217,7 @@ describe("[rpc:SessionCommandController.apply] Session immutability — executio
       makeSession({
         org,
         name,
-        agentInstanceId,
+        agentRef,
         executionTarget: ExecutionTarget.LOCAL,
         harnessStateId: SEED_STATE,
       }),

@@ -66,10 +66,13 @@ describe("supportsVisibility", () => {
 
   it("an instance kind holds org but never platform (tenant isolation)", () => {
     expect(
-      supportsVisibility(ApiResourceKind.agent_instance, V.visibility_org),
+      supportsVisibility(ApiResourceKind.workflow_instance, V.visibility_org),
     ).toBe(true);
     expect(
-      supportsVisibility(ApiResourceKind.agent_instance, V.visibility_platform),
+      supportsVisibility(
+        ApiResourceKind.workflow_instance,
+        V.visibility_platform,
+      ),
     ).toBe(false);
   });
 
@@ -97,7 +100,7 @@ describe("supportedVisibilityLevels (the copy fragment)", () => {
     expect(supportedVisibilityLevels(ApiResourceKind.agent)).toBe(
       "visibility_private, visibility_org, visibility_platform",
     );
-    expect(supportedVisibilityLevels(ApiResourceKind.agent_instance)).toBe(
+    expect(supportedVisibilityLevels(ApiResourceKind.workflow_instance)).toBe(
       "visibility_private, visibility_org",
     );
     expect(supportedVisibilityLevels(ApiResourceKind.session)).toBe(

@@ -27,8 +27,8 @@ export const file_ai_stigmer_agentic_agentexecution_v1_command: GenFile = /*@__P
  */
 export const AgentExecutionCommandController: GenService<{
   /**
-   * Create and trigger a new agent execution.
-   * Session is optional — can be provided or auto-created from agent_id.
+   * Create and trigger a new agent execution: a turn in an existing session,
+   * or the first turn of a new one created from session_spec.
    *
    * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.create
    */

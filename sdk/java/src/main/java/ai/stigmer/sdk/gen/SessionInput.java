@@ -25,7 +25,7 @@ public final class SessionInput {
     private final String slug;
     private final java.util.Map<String, String> labels;
     private final ApiResourceVisibility visibility;
-    private final String agentInstanceId;
+    private final ResourceRef agentRef;
     private final String subject;
     private final String harnessStateId;
     private final java.util.List<String> harnessStateIdHistory;
@@ -44,7 +44,7 @@ public final class SessionInput {
         this.slug = builder.slug;
         this.labels = builder.labels;
         this.visibility = builder.visibility;
-        this.agentInstanceId = builder.agentInstanceId;
+        this.agentRef = builder.agentRef;
         this.subject = builder.subject;
         this.harnessStateId = builder.harnessStateId;
         this.harnessStateIdHistory = builder.harnessStateIdHistory;
@@ -59,8 +59,9 @@ public final class SessionInput {
 
     Session toProto() {
         SessionSpec.Builder spec = SessionSpec.newBuilder();
-        if (this.agentInstanceId != null) {
-            spec.setAgentInstanceId(this.agentInstanceId);
+        if (this.agentRef != null && this.agentRef.hasIdentifier()) {
+            spec.setAgentRef(this.agentRef.toProto().toBuilder()
+                .setKind(ApiResourceKind.agent).build());
         }
         if (this.subject != null) {
             spec.setSubject(this.subject);
@@ -133,7 +134,7 @@ public final class SessionInput {
         private String slug;
         private java.util.Map<String, String> labels;
         private ApiResourceVisibility visibility;
-        private String agentInstanceId;
+        private ResourceRef agentRef;
         private String subject;
         private String harnessStateId;
         private java.util.List<String> harnessStateIdHistory;
@@ -158,7 +159,7 @@ public final class SessionInput {
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
-        public Builder agentInstanceId(String agentInstanceId) { this.agentInstanceId = agentInstanceId; return this; }
+        public Builder agentRef(ResourceRef agentRef) { this.agentRef = agentRef; return this; }
         public Builder subject(String subject) { this.subject = subject; return this; }
         public Builder harnessStateId(String harnessStateId) { this.harnessStateId = harnessStateId; return this; }
         public Builder harnessStateIdHistory(java.util.List<String> harnessStateIdHistory) { this.harnessStateIdHistory = harnessStateIdHistory; return this; }
@@ -221,11 +222,11 @@ public final class SessionInput {
 
         WorkspaceSource toProto() {
             WorkspaceSource.Builder builder = WorkspaceSource.newBuilder();
-            if (this.gitRepo != null) {
-                builder.setGitRepo(this.gitRepo.toProto());
-            }
             if (this.localPath != null) {
                 builder.setLocalPath(this.localPath.toProto());
+            }
+            if (this.gitRepo != null) {
+                builder.setGitRepo(this.gitRepo.toProto());
             }
             return builder.build();
         }

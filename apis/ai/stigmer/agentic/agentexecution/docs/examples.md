@@ -6,7 +6,7 @@ Complete examples from minimal trigger to full-featured execution spec. All CLI 
 
 ## Minimal Execution — Just a Message
 
-The simplest way to trigger an execution. Provide an `agent_id` and a `message`. A session is auto-created.
+The simplest way to trigger an execution. Name the agent in `session_spec.agent_ref` and provide a `message`. A session is created on the agent's current version; omit `session_spec` and the built-in assistant answers.
 
 **CLI:**
 
@@ -20,9 +20,13 @@ stigmer run my-agent "What files are in the current directory?"
 apiVersion: agentic.stigmer.ai/v1
 kind: AgentExecution
 metadata:
-  org: default
+  org: acme
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "What files are in the current directory?"
 ```
 
@@ -62,7 +66,11 @@ stigmer run my-agent "Analyze this code" --model claude-sonnet-4.5
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Analyze this code"
   execution_config:
     model_name: "claude-sonnet-4.5"
@@ -84,7 +92,11 @@ stigmer run config-validator "Validate this configuration" --attach ./app-config
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Validate this configuration file and report any issues"
   attachments:
     - filename: "app-config.yaml"
@@ -108,7 +120,11 @@ stigmer run data-processor "Validate data against the schema using the rules fil
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Validate data against the schema using the rules file"
   attachments:
     - filename: "data.csv"
@@ -134,7 +150,11 @@ stigmer run code-reviewer "Review this project for security vulnerabilities" --a
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Review this project for security vulnerabilities"
   attachments:
     - filename: "src.zip"
@@ -151,7 +171,11 @@ Inject secrets or configuration at execution time. These are available only for 
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Query the production database and summarize recent errors"
   runtime_env:
     DATABASE_URL:
@@ -180,7 +204,11 @@ stigmer run deployment-agent "Deploy version 2.4.1 to staging" --auto-approve
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Deploy version 2.4.1 to staging"
   auto_approve_all: true
 ```
@@ -195,7 +223,11 @@ Disable summarization for a short task, or use custom thresholds for a long-runn
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Quick lookup: what is the current time in Tokyo?"
   execution_config:
     context_management:
@@ -206,7 +238,11 @@ spec:
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Analyze all PRs from the past 6 months and identify patterns"
   execution_config:
     model_name: "claude-sonnet-4.5"
@@ -231,7 +267,11 @@ metadata:
     triggered-by: ci-pipeline
     environment: staging
 spec:
-  agent_id: agt_migration-agent
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: migration-agent
   message: |
     Migrate the database schema using the provided migration file.
     Validate the migration against the schema spec before applying.

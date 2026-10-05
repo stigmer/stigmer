@@ -9,13 +9,11 @@ import ai.stigmer.agentic.agentexecution.v1.ApprovalMode;
 import ai.stigmer.agentic.agentexecution.v1.Attachment;
 import ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig;
 import ai.stigmer.agentic.agentexecution.v1.ConversationCatchup;
-import ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences;
 import ai.stigmer.agentic.agentexecution.v1.ExecutionConfig;
 import ai.stigmer.agentic.agentexecution.v1.InteractionMode;
-import ai.stigmer.agentic.agentexecution.v1.RecalledMemories;
-import ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact;
 import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
 import ai.stigmer.agentic.agentexecution.v1.ThinkingMode;
+import ai.stigmer.agentic.agentexecution.v1.WorkflowParent;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
 import ai.stigmer.agentic.session.v1.CursorMode;
 import ai.stigmer.agentic.session.v1.ExecutionTarget;
@@ -41,21 +39,16 @@ public final class AgentExecutionInput {
     private final java.util.Map<String, String> labels;
     private final ApiResourceVisibility visibility;
     private final String sessionId;
-    private final String agentId;
     private final SessionSpecInput sessionSpec;
     private final String message;
     private final ExecutionConfigInput executionConfig;
     private final java.util.Map<String, EnvVarInput> runtimeEnv;
-    private final byte[] callbackToken;
     private final boolean autoApproveAll;
-    private final String parentWorkflowId;
     private final java.util.List<AttachmentInput> attachments;
     private final java.util.List<String> workspaceFileRefs;
-    private final String activityTaskQueue;
     private final String supersedesExecutionId;
     private final ConversationCatchupInput conversationCatchup;
-    private final DeclaredPreferencesInput declaredPreferences;
-    private final RecalledMemoriesInput recalledMemories;
+    private final WorkflowParentInput parent;
 
     private AgentExecutionInput(Builder builder) {
         this.id = builder.id;
@@ -65,33 +58,25 @@ public final class AgentExecutionInput {
         this.labels = builder.labels;
         this.visibility = builder.visibility;
         this.sessionId = builder.sessionId;
-        this.agentId = builder.agentId;
         this.sessionSpec = builder.sessionSpec;
         this.message = builder.message;
         this.executionConfig = builder.executionConfig;
         this.runtimeEnv = builder.runtimeEnv;
-        this.callbackToken = builder.callbackToken;
         this.autoApproveAll = builder.autoApproveAll;
-        this.parentWorkflowId = builder.parentWorkflowId;
         this.attachments = builder.attachments;
         this.workspaceFileRefs = builder.workspaceFileRefs;
-        this.activityTaskQueue = builder.activityTaskQueue;
         this.supersedesExecutionId = builder.supersedesExecutionId;
         this.conversationCatchup = builder.conversationCatchup;
-        this.declaredPreferences = builder.declaredPreferences;
-        this.recalledMemories = builder.recalledMemories;
+        this.parent = builder.parent;
     }
 
     AgentExecution toProto() {
         AgentExecutionSpec.Builder spec = AgentExecutionSpec.newBuilder();
-        if (this.sessionId != null) {
-            spec.setSessionId(this.sessionId);
-        }
-        if (this.agentId != null) {
-            spec.setAgentId(this.agentId);
-        }
         if (this.sessionSpec != null) {
             spec.setSessionSpec(this.sessionSpec.toProto());
+        }
+        if (this.sessionId != null && !this.sessionId.isEmpty()) {
+            spec.setSessionId(this.sessionId);
         }
         if (this.message != null) {
             spec.setMessage(this.message);
@@ -107,13 +92,7 @@ public final class AgentExecutionInput {
                     .build());
             }
         }
-        if (this.callbackToken != null) {
-            spec.setCallbackToken(com.google.protobuf.ByteString.copyFrom(this.callbackToken));
-        }
         spec.setAutoApproveAll(this.autoApproveAll);
-        if (this.parentWorkflowId != null) {
-            spec.setParentWorkflowId(this.parentWorkflowId);
-        }
         if (this.attachments != null) {
             for (AttachmentInput item : this.attachments) {
                 spec.addAttachments(item.toProto());
@@ -122,20 +101,14 @@ public final class AgentExecutionInput {
         if (this.workspaceFileRefs != null && !this.workspaceFileRefs.isEmpty()) {
             spec.addAllWorkspaceFileRefs(this.workspaceFileRefs);
         }
-        if (this.activityTaskQueue != null) {
-            spec.setActivityTaskQueue(this.activityTaskQueue);
-        }
         if (this.supersedesExecutionId != null) {
             spec.setSupersedesExecutionId(this.supersedesExecutionId);
         }
         if (this.conversationCatchup != null) {
             spec.setConversationCatchup(this.conversationCatchup.toProto());
         }
-        if (this.declaredPreferences != null) {
-            spec.setDeclaredPreferences(this.declaredPreferences.toProto());
-        }
-        if (this.recalledMemories != null) {
-            spec.setRecalledMemories(this.recalledMemories.toProto());
+        if (this.parent != null) {
+            spec.setParent(this.parent.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -172,21 +145,16 @@ public final class AgentExecutionInput {
         private java.util.Map<String, String> labels;
         private ApiResourceVisibility visibility;
         private String sessionId;
-        private String agentId;
         private SessionSpecInput sessionSpec;
         private String message;
         private ExecutionConfigInput executionConfig;
         private java.util.Map<String, EnvVarInput> runtimeEnv;
-        private byte[] callbackToken;
         private boolean autoApproveAll;
-        private String parentWorkflowId;
         private java.util.List<AttachmentInput> attachments;
         private java.util.List<String> workspaceFileRefs;
-        private String activityTaskQueue;
         private String supersedesExecutionId;
         private ConversationCatchupInput conversationCatchup;
-        private DeclaredPreferencesInput declaredPreferences;
-        private RecalledMemoriesInput recalledMemories;
+        private WorkflowParentInput parent;
 
         private Builder() {}
 
@@ -202,28 +170,23 @@ public final class AgentExecutionInput {
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder sessionId(String sessionId) { this.sessionId = sessionId; return this; }
-        public Builder agentId(String agentId) { this.agentId = agentId; return this; }
         public Builder sessionSpec(SessionSpecInput sessionSpec) { this.sessionSpec = sessionSpec; return this; }
         public Builder message(String message) { this.message = message; return this; }
         public Builder executionConfig(ExecutionConfigInput executionConfig) { this.executionConfig = executionConfig; return this; }
         public Builder runtimeEnv(java.util.Map<String, EnvVarInput> runtimeEnv) { this.runtimeEnv = runtimeEnv; return this; }
-        public Builder callbackToken(byte[] callbackToken) { this.callbackToken = callbackToken; return this; }
         public Builder autoApproveAll(boolean autoApproveAll) { this.autoApproveAll = autoApproveAll; return this; }
-        public Builder parentWorkflowId(String parentWorkflowId) { this.parentWorkflowId = parentWorkflowId; return this; }
         public Builder attachments(java.util.List<AttachmentInput> attachments) { this.attachments = attachments; return this; }
         public Builder workspaceFileRefs(java.util.List<String> workspaceFileRefs) { this.workspaceFileRefs = workspaceFileRefs; return this; }
-        public Builder activityTaskQueue(String activityTaskQueue) { this.activityTaskQueue = activityTaskQueue; return this; }
         public Builder supersedesExecutionId(String supersedesExecutionId) { this.supersedesExecutionId = supersedesExecutionId; return this; }
         public Builder conversationCatchup(ConversationCatchupInput conversationCatchup) { this.conversationCatchup = conversationCatchup; return this; }
-        public Builder declaredPreferences(DeclaredPreferencesInput declaredPreferences) { this.declaredPreferences = declaredPreferences; return this; }
-        public Builder recalledMemories(RecalledMemoriesInput recalledMemories) { this.recalledMemories = recalledMemories; return this; }
+        public Builder parent(WorkflowParentInput parent) { this.parent = parent; return this; }
 
         public AgentExecutionInput build() { return new AgentExecutionInput(this); }
     }
 
     /** SDK input type for SessionSpec. */
     public static final class SessionSpecInput {
-        private final String agentInstanceId;
+        private final ResourceRef agentRef;
         private final String subject;
         private final String harnessStateId;
         private final java.util.List<String> harnessStateIdHistory;
@@ -236,7 +199,7 @@ public final class AgentExecutionInput {
         private final ExecutionTarget executionTarget;
 
         private SessionSpecInput(Builder builder) {
-            this.agentInstanceId = builder.agentInstanceId;
+            this.agentRef = builder.agentRef;
             this.subject = builder.subject;
             this.harnessStateId = builder.harnessStateId;
             this.harnessStateIdHistory = builder.harnessStateIdHistory;
@@ -251,8 +214,9 @@ public final class AgentExecutionInput {
 
         SessionSpec toProto() {
             SessionSpec.Builder builder = SessionSpec.newBuilder();
-            if (this.agentInstanceId != null) {
-                builder.setAgentInstanceId(this.agentInstanceId);
+            if (this.agentRef != null && this.agentRef.hasIdentifier()) {
+                builder.setAgentRef(this.agentRef.toProto().toBuilder()
+                    .setKind(ApiResourceKind.agent).build());
             }
             if (this.subject != null) {
                 builder.setSubject(this.subject);
@@ -297,7 +261,7 @@ public final class AgentExecutionInput {
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
-            private String agentInstanceId;
+            private ResourceRef agentRef;
             private String subject;
             private String harnessStateId;
             private java.util.List<String> harnessStateIdHistory;
@@ -311,7 +275,7 @@ public final class AgentExecutionInput {
 
             private Builder() {}
 
-            public Builder agentInstanceId(String agentInstanceId) { this.agentInstanceId = agentInstanceId; return this; }
+            public Builder agentRef(ResourceRef agentRef) { this.agentRef = agentRef; return this; }
             public Builder subject(String subject) { this.subject = subject; return this; }
             public Builder harnessStateId(String harnessStateId) { this.harnessStateId = harnessStateId; return this; }
             public Builder harnessStateIdHistory(java.util.List<String> harnessStateIdHistory) { this.harnessStateIdHistory = harnessStateIdHistory; return this; }
@@ -375,11 +339,11 @@ public final class AgentExecutionInput {
 
         WorkspaceSource toProto() {
             WorkspaceSource.Builder builder = WorkspaceSource.newBuilder();
-            if (this.gitRepo != null) {
-                builder.setGitRepo(this.gitRepo.toProto());
-            }
             if (this.localPath != null) {
                 builder.setLocalPath(this.localPath.toProto());
+            }
+            if (this.gitRepo != null) {
+                builder.setGitRepo(this.gitRepo.toProto());
             }
             return builder.build();
         }
@@ -745,59 +709,28 @@ public final class AgentExecutionInput {
         }
     }
 
-    /** SDK input type for DeclaredPreferences. */
-    public static final class DeclaredPreferencesInput {
-        private final String orgContext;
-        private final String userContext;
+    /** SDK input type for WorkflowParent. */
+    public static final class WorkflowParentInput {
+        private final String workflowExecutionId;
+        private final String signalWorkflowId;
+        private final byte[] callbackToken;
 
-        private DeclaredPreferencesInput(Builder builder) {
-            this.orgContext = builder.orgContext;
-            this.userContext = builder.userContext;
+        private WorkflowParentInput(Builder builder) {
+            this.workflowExecutionId = builder.workflowExecutionId;
+            this.signalWorkflowId = builder.signalWorkflowId;
+            this.callbackToken = builder.callbackToken;
         }
 
-        DeclaredPreferences toProto() {
-            DeclaredPreferences.Builder builder = DeclaredPreferences.newBuilder();
-            if (this.orgContext != null) {
-                builder.setOrgContext(this.orgContext);
+        WorkflowParent toProto() {
+            WorkflowParent.Builder builder = WorkflowParent.newBuilder();
+            if (this.workflowExecutionId != null) {
+                builder.setWorkflowExecutionId(this.workflowExecutionId);
             }
-            if (this.userContext != null) {
-                builder.setUserContext(this.userContext);
+            if (this.signalWorkflowId != null) {
+                builder.setSignalWorkflowId(this.signalWorkflowId);
             }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String orgContext;
-            private String userContext;
-
-            private Builder() {}
-
-            public Builder orgContext(String orgContext) { this.orgContext = orgContext; return this; }
-            public Builder userContext(String userContext) { this.userContext = userContext; return this; }
-
-            public DeclaredPreferencesInput build() { return new DeclaredPreferencesInput(this); }
-        }
-    }
-
-    /** SDK input type for RecalledMemories. */
-    public static final class RecalledMemoriesInput {
-        private final boolean enabled;
-        private final java.util.List<RecalledMemoryFactInput> facts;
-
-        private RecalledMemoriesInput(Builder builder) {
-            this.enabled = builder.enabled;
-            this.facts = builder.facts;
-        }
-
-        RecalledMemories toProto() {
-            RecalledMemories.Builder builder = RecalledMemories.newBuilder();
-            builder.setEnabled(this.enabled);
-            if (this.facts != null) {
-                for (RecalledMemoryFactInput item : this.facts) {
-                    builder.addFacts(item.toProto());
-                }
+            if (this.callbackToken != null) {
+                builder.setCallbackToken(com.google.protobuf.ByteString.copyFrom(this.callbackToken));
             }
             return builder.build();
         }
@@ -805,51 +738,17 @@ public final class AgentExecutionInput {
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
-            private boolean enabled;
-            private java.util.List<RecalledMemoryFactInput> facts;
+            private String workflowExecutionId;
+            private String signalWorkflowId;
+            private byte[] callbackToken;
 
             private Builder() {}
 
-            public Builder enabled(boolean enabled) { this.enabled = enabled; return this; }
-            public Builder facts(java.util.List<RecalledMemoryFactInput> facts) { this.facts = facts; return this; }
+            public Builder workflowExecutionId(String workflowExecutionId) { this.workflowExecutionId = workflowExecutionId; return this; }
+            public Builder signalWorkflowId(String signalWorkflowId) { this.signalWorkflowId = signalWorkflowId; return this; }
+            public Builder callbackToken(byte[] callbackToken) { this.callbackToken = callbackToken; return this; }
 
-            public RecalledMemoriesInput build() { return new RecalledMemoriesInput(this); }
-        }
-    }
-
-    /** SDK input type for RecalledMemoryFact. */
-    public static final class RecalledMemoryFactInput {
-        private final String memoryId;
-        private final String content;
-
-        private RecalledMemoryFactInput(Builder builder) {
-            this.memoryId = builder.memoryId;
-            this.content = builder.content;
-        }
-
-        RecalledMemoryFact toProto() {
-            RecalledMemoryFact.Builder builder = RecalledMemoryFact.newBuilder();
-            if (this.memoryId != null) {
-                builder.setMemoryId(this.memoryId);
-            }
-            if (this.content != null) {
-                builder.setContent(this.content);
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String memoryId;
-            private String content;
-
-            private Builder() {}
-
-            public Builder memoryId(String memoryId) { this.memoryId = memoryId; return this; }
-            public Builder content(String content) { this.content = content; return this; }
-
-            public RecalledMemoryFactInput build() { return new RecalledMemoryFactInput(this); }
+            public WorkflowParentInput build() { return new WorkflowParentInput(this); }
         }
     }
 }

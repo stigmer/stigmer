@@ -13,7 +13,7 @@ public interface RecalledMemoriesReportOrBuilder extends
   /**
    * <pre>
    * Whether semantic selection was active for this execution's prompt.
-   * False means wholesale: the full spec.recalled_memories snapshot was
+   * False means wholesale: the full status.recalled_memories snapshot was
    * injected.
    * </pre>
    *

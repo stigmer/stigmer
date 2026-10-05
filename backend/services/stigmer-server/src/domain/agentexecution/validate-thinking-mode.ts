@@ -28,21 +28,22 @@
  * The harness is the one CreateSessionIfNeeded and dispatch will use: the
  * stored session's for a turn on an existing session, else the bootstrap
  * session_spec's, UNSPECIFIED read as native (harnessName; the Cloud
- * billing gate resolves the same way). Reading a stored session is why the
- * step runs after the run gate: the caller is authorized to add a turn to
- * that session before anything about it is read, so a refusal never tells
- * an unauthorized caller which harness a session uses. It is still a pure
- * step, before any side effect.
+ * billing gate resolves the same way). The stored session is the row
+ * ValidateSessionOrganization read (STORED_SESSION_KEY), which is why the
+ * step runs after it and after the run gate: the caller is authorized to
+ * add a turn to that session before anything about it is read, so a
+ * refusal never tells an unauthorized caller which harness a session uses.
+ * A session id that names no row is the loading steps' refusal to make,
+ * with its own NotFound; it is judged on the default harness, as dispatch
+ * does. It is a pure step, before any side effect.
  */
 import type { AgentExecution, AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
+import { invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
-import { ResourceNotFoundError, type Store } from "../../store/interface.js";
 import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
 import {
   ADAPTIVE_THINKING_CAPABILITY_KEY,
@@ -51,9 +52,11 @@ import {
 } from "../workflow/registry/model-registry-store.js";
 import { harnessName } from "../workflow/registry/pin-validation.js";
 
+import { storedSessionOf } from "./session-binding.js";
+import { newSessionSpecOf, sessionIdOf } from "./target.js";
+
 export function newValidateThinkingModeStep(
   registry: ModelCatalogProvider,
-  store: Store,
 ): PipelineStep<typeof AgentExecutionSchema> {
   return {
     name: "ValidateThinkingMode",
@@ -68,7 +71,7 @@ export function newValidateThinkingModeStep(
         return;
       }
 
-      const harness = await executionHarness(ctx.newState, store);
+      const harness = executionHarness(ctx.newState, storedSessionOf(ctx));
 
       if (mode === ThinkingMode.DISABLED) {
         if (registry.hasCapabilityForHarness(harness, modelName, THINKING_REQUIRED_CAPABILITY_KEY)) {
@@ -101,23 +104,11 @@ export function newValidateThinkingModeStep(
 }
 
 /** The registry section name of the harness this execution will run on. */
-async function executionHarness(execution: AgentExecution, store: Store): Promise<string> {
-  const sessionId = execution.spec?.sessionId ?? "";
-  if (sessionId === "") {
-    return harnessName(execution.spec?.sessionSpec?.harness ?? Harness.UNSPECIFIED);
+function executionHarness(execution: AgentExecution, stored: Session | undefined): string {
+  if (sessionIdOf(execution.spec) === "") {
+    return harnessName(newSessionSpecOf(execution.spec)?.harness ?? Harness.UNSPECIFIED);
   }
-  try {
-    const session = await store.getResource(ApiResourceKind.session, sessionId, SessionSchema);
-    return harnessName(session.spec?.harness ?? Harness.UNSPECIFIED);
-  } catch (error) {
-    // A dangling session id is the loading steps' refusal to make, with
-    // its own NotFound; judge it on the default harness, as dispatch does.
-    // Any other failure is a store fault, never a reading of the session.
-    if (error instanceof ResourceNotFoundError) {
-      return harnessName(Harness.UNSPECIFIED);
-    }
-    throw internalError(error, "failed to load session for thinking-mode validation");
-  }
+  return harnessName(stored?.spec?.harness ?? Harness.UNSPECIFIED);
 }
 
 function canThink(registry: ModelCatalogProvider, harness: string, modelName: string): boolean {

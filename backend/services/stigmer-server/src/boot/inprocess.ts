@@ -1,6 +1,6 @@
 /**
  * In-process ConnectRPC clients — the TS twin of Go's pkg/downstream/*
- * packages (agent, agentinstance), which serve cross-domain calls through
+ * packages (agent, workflowinstance), which serve cross-domain calls through
  * the same *grpc.Server over an in-memory bufconn so EVERY interceptor
  * executes: an internal call is validated, logged, and kind-tagged exactly
  * like an external one. Here the bufconn equivalent is ConnectRPC's
@@ -13,7 +13,7 @@
  * interceptor runs, in registration order, and a chain rejection
  * short-circuits with a ConnectError the in-process caller sees.
  *
- * The agent↔agentinstance true cycle is broken at the CONSUMERS with lazy
+ * The workflow↔workflowinstance true cycle is broken at the CONSUMERS with lazy
  * providers (`() => client`) resolved at call time; this module only
  * supplies the client objects those providers close over.
  */
@@ -31,9 +31,6 @@ import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { SkillIdSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
-import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
-import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
-import { AgentInstanceIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
@@ -47,15 +44,11 @@ import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agen
 import { WorkflowInstanceIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/io_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 
-import type { AgentInstanceApplier } from "../domain/agent/steps.js";
-import type { ParentAgentLoader } from "../domain/agentinstance/steps.js";
 import type {
   AgentLoader,
-  ExecutionAgentInstanceCreator,
   SessionCreator,
 } from "../domain/agentexecution/create-steps.js";
 import type {
-  AgentInstanceLoader,
   EnvironmentReader,
   ExecutionContextCreator,
   SessionLoader,
@@ -92,16 +85,12 @@ import type { CallOptions } from "@connectrpc/connect";
 
 /** The narrow in-process surfaces the domains consume. */
 export interface InProcessClients {
-  readonly agentInstanceApplier: AgentInstanceApplier;
-  readonly parentAgentLoader: ParentAgentLoader;
   readonly workflowInstanceCreator: WorkflowInstanceCreator;
   readonly parentWorkflowLoader: ParentWorkflowLoader;
   // The agentexecution create/EC-builder edges (server.go 565–566: the
-  // controller's agent/agentinstance/session/environment/executioncontext
+  // controller's agent/session/environment/executioncontext
   // in-process clients).
   readonly executionAgentLoader: AgentLoader;
-  readonly executionAgentInstanceLoader: AgentInstanceLoader;
-  readonly executionAgentInstanceCreator: ExecutionAgentInstanceCreator;
   readonly executionSessionLoader: SessionLoader;
   readonly executionSessionCreator: SessionCreator;
   /**
@@ -213,14 +202,6 @@ export function createInProcessClients(
     },
   });
 
-  const agentInstanceCommand = createClient(
-    AgentInstanceCommandController,
-    transport,
-  );
-  const agentInstanceQuery = createClient(
-    AgentInstanceQueryController,
-    transport,
-  );
   const agentQuery = createClient(AgentQueryController, transport);
   const sessionCommand = createClient(SessionCommandController, transport);
   const sessionQuery = createClient(SessionQueryController, transport);
@@ -267,22 +248,10 @@ export function createInProcessClients(
   });
 
   const clients: InProcessClients = {
-    // The Apply RPC AS THE ORIGINAL CALLER (Java applyAsCaller): the default
-    // instance's owner attribution lands on
-    // the requesting user, so it stays manageable under an enforcing
-    // Authorizer. Before caller propagation this lane minted the
-    // internal class (Go's
-    // ApplyAsSystem shape) — the recorded attribution gap.
-    agentInstanceApplier: {
-      applyAsCaller: (instance, caller) =>
-        agentInstanceCommand.apply(instance, asCaller(caller)),
-    },
-    parentAgentLoader: {
-      get: (agentId) =>
-        agentQuery.get(create(AgentIdSchema, { value: agentId })),
-    },
-    // CREATE (not apply) for the same AlreadyExists posture — as the
-    // original caller, matching the agent edge above.
+    // CREATE (not apply) for the AlreadyExists posture — AS THE ORIGINAL
+    // CALLER (Java createAsCaller): the default instance's owner
+    // attribution lands on the requesting user, so it stays manageable
+    // under an enforcing Authorizer.
     workflowInstanceCreator: {
       createAsCaller: (instance, caller) =>
         workflowInstanceCommand.create(instance, asCaller(caller)),
@@ -294,9 +263,9 @@ export function createInProcessClients(
         workflowQuery.get(create(WorkflowIdSchema, { value: workflowId })),
     },
     // The agentexecution edges: reads stay under the internal class (the
-    // daemon-safe default); the CREATES propagate the original caller
-    // so instances and sessions born during execution create
-    // carry their real owner.
+    // daemon-safe default); the session CREATE propagates the original
+    // caller so a session born during execution create carries its real
+    // owner.
     executionAgentLoader: {
       get: (agentId) =>
         agentQuery.get(create(AgentIdSchema, { value: agentId })),
@@ -304,16 +273,6 @@ export function createInProcessClients(
         agentQuery.getVersion(
           create(GetAgentVersionInputSchema, { agentId, versionHash }),
         ),
-    },
-    executionAgentInstanceLoader: {
-      get: (instanceId) =>
-        agentInstanceQuery.get(
-          create(AgentInstanceIdSchema, { value: instanceId }),
-        ),
-    },
-    executionAgentInstanceCreator: {
-      createAsCaller: (instance, caller) =>
-        agentInstanceCommand.create(instance, asCaller(caller)),
     },
     executionSessionLoader: {
       get: (sessionId) =>

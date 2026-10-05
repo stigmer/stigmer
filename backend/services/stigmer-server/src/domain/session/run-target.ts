@@ -1,14 +1,22 @@
 /**
- * The session run-target resolver: a session bound to an
- * agent instance has that instance as its run target —
- * agent_instance#can_execute on spec.agent_instance_id.
+ * The session run-target resolver: a session that names an agent has that
+ * agent as its run target — agent#can_execute on status.agent_id, the id
+ * ResolveSessionAgent pinned from spec.agent_ref (a slug cannot be checked
+ * by a pure resolver; the resolved id is the mid-chain form).
  *
- * Pure over the record being built. An empty id is the built-in assistant
- * (session/v1/spec.proto): there is no blueprint to spend, so the answer is
- * "no target" and the gate makes no check. What admits the conversation is
- * the Authorize step ahead of the gate — can_create_session on the
- * organization — and each turn is admitted by the session's own
- * can_create_execution_in on the execution chain.
+ * Asked whenever the write changes the pin: a create that names an agent,
+ * or an update whose pinned agent or version differs from the stored
+ * row's (a move to another version is answered only to a caller who may
+ * run the agent, so its versions are never probed through a session). An
+ * update that keeps the pin (an echo) is not re-asked; every turn asks it
+ * again anyway (agent-execution's AuthorizeRunAgent), so a person who lost
+ * the agent gains nothing by editing a session they still own.
+ *
+ * No agent is the built-in assistant (session/v1/spec.proto): there is no
+ * blueprint to spend, so the answer is "no target" and the gate makes no
+ * check. What admits the conversation is the Authorize step ahead of the
+ * gate — can_create_session on the organization on create, the session's
+ * own can_edit on update. Pure over the two records.
  */
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
@@ -16,16 +24,24 @@ import {
   RUN_GATE_CHECKS,
   type RunTarget,
 } from "../../pipeline/steps/authorize-run-target.js";
-import { runAgentInstanceDeniedMessage } from "./constants.js";
+import { runAgentDeniedMessage } from "./constants.js";
 
-export function sessionRunTarget(session: Session): RunTarget | undefined {
-  const agentInstanceId = session.spec?.agentInstanceId ?? "";
-  if (agentInstanceId === "") {
+export function sessionRunTarget(
+  session: Session,
+  stored: Session | undefined,
+): RunTarget | undefined {
+  const agentId = session.status?.agentId ?? "";
+  if (
+    agentId === "" ||
+    (agentId === (stored?.status?.agentId ?? "") &&
+      (session.status?.agentVersionHash ?? "") ===
+        (stored?.status?.agentVersionHash ?? ""))
+  ) {
     return undefined;
   }
   return {
-    ...RUN_GATE_CHECKS.agentInstance,
-    resourceId: agentInstanceId,
-    deniedMessage: runAgentInstanceDeniedMessage(agentInstanceId),
+    ...RUN_GATE_CHECKS.agent,
+    resourceId: agentId,
+    deniedMessage: runAgentDeniedMessage(agentId),
   };
 }

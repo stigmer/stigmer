@@ -1,11 +1,18 @@
 /**
  * Unit tests for the hand-written session utilities: the pinned
- * session-context metadata key and the typed-context merge semantics.
+ * session-context metadata key, the typed-context merge semantics, and
+ * `isBuiltInAssistant`, the one reading of whether a session runs the
+ * built-in assistant (it names no agent in `spec.agentRef` and pins none in
+ * `status.agentId`; a session pinning an agent since deleted is not it).
  */
 
 import { describe, it, expect } from "vitest";
+import { create } from "@bufbuild/protobuf";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   SESSION_CONTEXT_METADATA_KEY,
+  isBuiltInAssistant,
   mergeSessionContext,
 } from "../session.js";
 
@@ -62,5 +69,24 @@ describe("mergeSessionContext", () => {
     const metadata = { "acme/tenant": "t-1" };
     mergeSessionContext(metadata, "Role: admin");
     expect(metadata).toEqual({ "acme/tenant": "t-1" });
+  });
+});
+
+describe("isBuiltInAssistant", () => {
+  it("is true for a session that names and pins no agent, and before one loads", () => {
+    expect(isBuiltInAssistant(create(SessionSchema, { spec: {} }))).toBe(true);
+    expect(isBuiltInAssistant(undefined)).toBe(true);
+  });
+
+  it("is false for a session that names an agent", () => {
+    const session = create(SessionSchema, {
+      spec: { agentRef: { org: "acme", slug: "reviewer", kind: ApiResourceKind.agent } },
+    });
+    expect(isBuiltInAssistant(session)).toBe(false);
+  });
+
+  it("is false for a session that pins an agent its spec no longer names", () => {
+    const session = create(SessionSchema, { spec: {}, status: { agentId: "agt_1" } });
+    expect(isBuiltInAssistant(session)).toBe(false);
   });
 });

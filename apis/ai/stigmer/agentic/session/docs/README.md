@@ -4,18 +4,17 @@ Comprehensive documentation for the `agentic.stigmer.ai/v1` Session resource.
 
 ## What Is a Session?
 
-A Session is the third layer in Stigmer's four-resource runtime stack. It is a durable, named conversation context that groups multiple AgentExecutions together, preserving message history and a persistent workspace across every run within that conversation.
+A Session is the second layer in Stigmer's three-resource runtime stack. It is a durable, named conversation context that groups multiple AgentExecutions together, preserving message history and a persistent workspace across every run within that conversation.
 
 ```
-Agent ──► AgentInstance ──► Session ──► AgentExecution
+Agent ──► Session ──► AgentExecution
 ```
 
 | Resource | Analogy | Purpose |
 |---|---|---|
 | **Agent** | Docker image | Declares capabilities and configuration. Immutable template. |
-| **AgentInstance** | Container config | Binds an Agent to an Environment — provides secrets, credentials, and runtime values. |
-| **Session** | Terminal session | Groups related executions into a conversational context. Maintains message history and workspace state across runs. |
-| **AgentExecution** | `docker run` | A single invocation of an agent instance within a session. Produces messages, tool calls, and results. |
+| **Session** | Terminal session | Names its agent (`agent_ref`) and pins the version it resolved. Groups related executions into a conversational context. Maintains message history and workspace state across runs. |
+| **AgentExecution** | `docker run` | A single invocation of the session's agent, at the pinned version. Produces messages, tool calls, and results. |
 
 A Session is not ephemeral. It is a resource you create explicitly (or let the platform create automatically) and that persists until you delete it. Everything the agent does across multiple turns — the conversation thread, the files it creates, the sandbox environment — is anchored to the Session.
 
@@ -27,6 +26,8 @@ A Session is not ephemeral. It is a resource you create explicitly (or let the p
 
 **Workspace sources** — A session can be backed by a `GitRepoSource` (clone a repo on first execution) or a `LocalPathSource` (use an existing directory on the host, local mode only). When no workspace source is specified, the agent runs in an empty directory.
 
+**The agent and its version** — `spec.agent_ref` names the agent (`org/slug`, optional `version`); empty means the built-in assistant. On create, update and apply the server resolves the reference and records `status.agent_id` and `status.agent_version_hash`. A reference naming `latest`, or none on a new or changed reference, pins the agent's current version; a tag or hash pins that version; an update that echoes the stored reference with no version keeps the pin. So an author's later saves never change an open conversation until someone updates it with `version: latest`. Naming or changing the agent needs `can_execute` on it, and every execution asks again. Another organization's agent is accepted only at `visibility_platform`.
+
 **One session, many executions** — A single session can contain an unlimited number of AgentExecutions. Each execution adds to the thread. The session itself does not "run" — it is the context within which executions run.
 
 ## Session in the Platform Lifecycle
@@ -36,7 +37,7 @@ Sessions are scoped to an organization and are always `visibility_private`. They
 Sessions are created in two ways:
 
 1. **Explicitly** — You create a session via `stigmer session create` or `apply`, then pass the `session_id` when triggering executions.
-2. **Automatically** — When you trigger an execution with only an `agent_id` (no `session_id`), the platform auto-creates a session backed by the agent's default instance.
+2. **Automatically** — When you trigger an execution with `session_spec` instead of `session_id`, the platform creates the session from that spec (its `agent_ref` names the agent) and runs the first message in the same request.
 
 ## Documentation Index
 
@@ -53,16 +54,15 @@ All types in this package are defined in `ai/stigmer/agentic/session/v1/`:
 
 | File | Contents |
 |---|---|
-| `api.proto` | `Session` resource with metadata and status |
-| `spec.proto` | `SessionSpec` — `agent_instance_id`, `subject`, `thread_id`, `sandbox_id`, `metadata`, `workspace_source` |
+| `api.proto` | `Session` resource with metadata and `SessionStatus` (`agent_id`, `agent_version_hash`) |
+| `spec.proto` | `SessionSpec` — `agent_ref`, `subject`, `harness_state_id`, `metadata`, `workspace_entries`, `mcp_server_usages`, `skill_refs`, `harness`, `execution_target` |
 | `workspace.proto` | `WorkspaceSource`, `GitRepoSource`, `LocalPathSource` |
 | `command.proto` | `SessionCommandController` — apply, create, update, delete |
-| `query.proto` | `SessionQueryController` — get, list, listByAgentInstance |
+| `query.proto` | `SessionQueryController` — get, list, listByAgent |
 | `io.proto` | Input/output messages for all RPCs |
 
 ## Further Reading
 
 - [What is a Session?](../../../../../docs/product/what-is-session.md) — Conceptual overview, the problem it solves, and getting started
 - [AgentExecution docs](../agentexecution/docs/README.md) — Executions that run within a session
-- [AgentInstance docs](../agentinstance/docs/README.md) — The instance a session is bound to
 - [Agent docs](../agent/docs/README.md) — The template at the top of the stack

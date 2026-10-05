@@ -123,10 +123,6 @@ public enum IamPermission
    */
   can_create_execution_in(13),
   /**
-   * <code>can_create_instance = 14;</code>
-   */
-  can_create_instance(14),
-  /**
    * <pre>
    * Execution permission.
    * </pre>
@@ -306,15 +302,6 @@ public enum IamPermission
   can_create_mcp_server(43),
   /**
    * <pre>
-   * Organization-level permission to create an agent instance in the
-   * organization.
-   * </pre>
-   *
-   * <code>can_create_agent_instance = 44;</code>
-   */
-  can_create_agent_instance(44),
-  /**
-   * <pre>
    * Organization-level permission to create a team in the organization.
    * </pre>
    *
@@ -441,10 +428,6 @@ public enum IamPermission
    * <code>can_create_execution_in = 13;</code>
    */
   public static final int can_create_execution_in_VALUE = 13;
-  /**
-   * <code>can_create_instance = 14;</code>
-   */
-  public static final int can_create_instance_VALUE = 14;
   /**
    * <pre>
    * Execution permission.
@@ -625,15 +608,6 @@ public enum IamPermission
   public static final int can_create_mcp_server_VALUE = 43;
   /**
    * <pre>
-   * Organization-level permission to create an agent instance in the
-   * organization.
-   * </pre>
-   *
-   * <code>can_create_agent_instance = 44;</code>
-   */
-  public static final int can_create_agent_instance_VALUE = 44;
-  /**
-   * <pre>
    * Organization-level permission to create a team in the organization.
    * </pre>
    *
@@ -694,7 +668,6 @@ public enum IamPermission
       case 23: return can_create_oauth_app;
       case 24: return can_create_platform_client;
       case 13: return can_create_execution_in;
-      case 14: return can_create_instance;
       case 15: return can_execute;
       case 16: return can_read_secrets;
       case 17: return can_bootstrap_iam;
@@ -713,7 +686,6 @@ public enum IamPermission
       case 41: return can_manage_plans;
       case 42: return can_issue_license;
       case 43: return can_create_mcp_server;
-      case 44: return can_create_agent_instance;
       case 45: return can_create_team;
       case 46: return can_manage_credits;
       default: return null;

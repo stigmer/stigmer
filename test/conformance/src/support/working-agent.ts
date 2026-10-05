@@ -52,7 +52,7 @@ import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/sessi
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
 import { LOOKUP_ORDER_TOOL_NAME, type FixtureTool } from "../harness/mcp-server";
-import { makeAgent } from "./agents";
+import { type AgentRefInit, agentRefOf, makeAgent } from "./agents";
 import { makeHttpMcpServer } from "./mcpservers";
 import { provisionOrgWithFacts } from "./memories";
 import { localWorkspaceEntries, type LocalWorkspaceOption } from "./sessions";
@@ -93,7 +93,8 @@ export const WORKING_AGENT_FACTS: readonly string[] = [
 
 export interface WorkingAgent {
   org: string;
-  agentId: string;
+  /** The agent a session starts on. */
+  agentRef: AgentRefInit;
   /** The seeded workspace, as the session mounts it. */
   workspace: LocalWorkspaceOption;
   mcpServerSlug: string;
@@ -155,7 +156,7 @@ export async function provisionWorkingAgent(
 
   return {
     org,
-    agentId: agent.metadata!.id,
+    agentRef: agentRefOf(agent),
     workspace: { name: WORKING_AGENT_WORKSPACE_NAME, path: opts.workspaceDir },
     mcpServerSlug: mcpServer.metadata!.slug,
     skillSlugs,

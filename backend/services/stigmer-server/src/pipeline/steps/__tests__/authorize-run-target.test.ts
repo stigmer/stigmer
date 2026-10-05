@@ -5,7 +5,11 @@
  * own the shape-less arm); a resolved target reaches the Authorizer
  * verbatim; deny carries the RESOLVER's copy; not-found answers the
  * load-first NOT_FOUND; unavailable is INTERNAL; the internal caller class
- * skips. Also pins isRunGateCheck: exactly the five (kind, permission)
+ * skips. The resolver is handed the record being built and, on an update,
+ * the stored row (EXISTING_RESOURCE_KEY), so it can ask only about what a
+ * write introduces; the step runs as AuthorizeRunTarget, or as
+ * AuthorizeRunAgent for a chain's second question. Also pins
+ * isRunGateCheck: exactly the four (kind, permission)
  * pairs the resolvers can produce, and nothing adjacent — the cloud's
  * lane-admission decorator keys on this predicate, so a drift here would
  * either deny a schedule fire or admit a lane to a check it never owned.
@@ -26,6 +30,7 @@ import type {
 import { testCallerIdentity } from "../../__tests__/support.js";
 import { RequestContext } from "../../request-context.js";
 import { AUTHORIZATION_UNAVAILABLE_MESSAGE } from "../authorize.js";
+import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import {
   RUN_GATE_CHECKS,
   isRunGateCheck,
@@ -61,9 +66,9 @@ async function captureError(
 }
 
 const TARGET: RunTarget = {
-  ...RUN_GATE_CHECKS.agentInstance,
-  resourceId: "agi_01target",
-  deniedMessage: "unauthorized to run agent instance 'agi_01target'",
+  ...RUN_GATE_CHECKS.agent,
+  resourceId: "agt_01target",
+  deniedMessage: "unauthorized to run agent 'agt_01target'",
 };
 
 function sessionCtx(callerClass?: string) {
@@ -78,13 +83,20 @@ function sessionCtx(callerClass?: string) {
 }
 
 describe("AuthorizeRunTarget — the step shell", () => {
-  it("is named AuthorizeRunTarget in every chain (shared vocabulary)", () => {
+  it("is named AuthorizeRunTarget in every chain, and AuthorizeRunAgent for a chain's second question (shared vocabulary)", () => {
     const { authorizer } = fakeAuthorizer({ kind: "allow" });
     const step = newAuthorizeRunTargetStep<typeof SessionSchema>(
       authorizer,
       () => TARGET,
     );
     expect(step.name).toBe("AuthorizeRunTarget");
+    expect(
+      newAuthorizeRunTargetStep<typeof SessionSchema>(
+        authorizer,
+        () => TARGET,
+        "AuthorizeRunAgent",
+      ).name,
+    ).toBe("AuthorizeRunAgent");
   });
 
   it("makes NO check when the resolver answers no target", async () => {
@@ -102,8 +114,8 @@ describe("AuthorizeRunTarget — the step shell", () => {
     const seen: unknown[] = [];
     const step = newAuthorizeRunTargetStep<typeof SessionSchema>(
       authorizer,
-      (record) => {
-        seen.push(record);
+      (record, stored) => {
+        seen.push([record, stored]);
         return TARGET;
       },
     );
@@ -112,13 +124,33 @@ describe("AuthorizeRunTarget — the step shell", () => {
     expect(checks).toEqual([
       {
         permission: IamPermission.can_execute,
-        resourceKind: ApiResourceKind.agent_instance,
-        resourceId: "agi_01target",
+        resourceKind: ApiResourceKind.agent,
+        resourceId: "agt_01target",
       },
     ]);
     // The resolver reads the record being BUILT (newState), where the
-    // chain's own resolution steps write, never the immutable input.
-    expect(seen).toEqual([ctx.newState]);
+    // chain's own resolution steps write, never the immutable input; a
+    // create has no stored row.
+    expect(seen).toEqual([[ctx.newState, undefined]]);
+  });
+
+  it("hands an update's resolver the stored row the chain loaded", async () => {
+    const { authorizer } = fakeAuthorizer({ kind: "allow" });
+    const seen: unknown[] = [];
+    const step = newAuthorizeRunTargetStep<typeof SessionSchema>(
+      authorizer,
+      (record, stored) => {
+        seen.push([record, stored]);
+        return undefined;
+      },
+    );
+    const ctx = sessionCtx();
+    const stored = create(SessionSchema, {
+      metadata: { id: "ses_01stored", name: "s", org: "acme" },
+    });
+    ctx.set(EXISTING_RESOURCE_KEY, stored);
+    await step.execute(ctx);
+    expect(seen).toEqual([[ctx.newState, stored]]);
   });
 
   it("deny → PERMISSION_DENIED carrying the resolver's copy", async () => {
@@ -143,7 +175,7 @@ describe("AuthorizeRunTarget — the step shell", () => {
     );
     const err = await captureError(() => step.execute(sessionCtx()));
     expect(err.code).toBe(Code.NotFound);
-    expect(err.rawMessage).toContain("agi_01target");
+    expect(err.rawMessage).toContain("agt_01target");
   });
 
   it("unavailable → INTERNAL, never a softened denial", async () => {
@@ -193,11 +225,6 @@ describe("AuthorizeRunTarget — the step shell", () => {
 describe("isRunGateCheck — the one definition of the run-gate check set", () => {
   const pairs: ReadonlyArray<[string, ApiResourceKind, IamPermission]> = [
     ["agent", ApiResourceKind.agent, IamPermission.can_execute],
-    [
-      "agent_instance",
-      ApiResourceKind.agent_instance,
-      IamPermission.can_execute,
-    ],
     ["session", ApiResourceKind.session, IamPermission.can_create_execution_in],
     ["workflow", ApiResourceKind.workflow, IamPermission.can_execute],
     [
@@ -216,15 +243,9 @@ describe("isRunGateCheck — the one definition of the run-gate check set", () =
     },
   );
 
-  it("names exactly five checks, one per entry the resolvers draw from", () => {
+  it("names exactly four checks, one per entry the resolvers draw from", () => {
     expect(Object.keys(RUN_GATE_CHECKS).sort()).toEqual(
-      [
-        "agent",
-        "agentInstance",
-        "session",
-        "workflow",
-        "workflowInstance",
-      ].sort(),
+      ["agent", "session", "workflow", "workflowInstance"].sort(),
     );
     for (const [, resourceKind, permission] of pairs) {
       expect(

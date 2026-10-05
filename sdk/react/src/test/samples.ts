@@ -29,11 +29,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import {
-  AgentInstanceSchema,
-  type AgentInstance,
-} from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { AgentInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/spec_pb";
-import {
   EnvironmentSchema,
   type Environment,
 } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
@@ -166,7 +161,8 @@ export interface SessionOverrides {
   readonly org?: string;
   readonly slug?: string;
   readonly subject?: string;
-  readonly agentInstanceId?: string;
+  /** The agent the session names; `null` for the built-in assistant. Defaults to the demo agent. */
+  readonly agentRef?: { readonly org: string; readonly slug: string } | null;
 }
 
 export interface AgentOverrides {
@@ -209,14 +205,6 @@ export interface EnvironmentOverrides {
   readonly name?: string;
   readonly org?: string;
   readonly slug?: string;
-}
-
-export interface AgentInstanceOverrides {
-  readonly id?: string;
-  readonly name?: string;
-  readonly org?: string;
-  readonly slug?: string;
-  readonly agentId?: string;
 }
 
 export interface ApiKeyOverrides {
@@ -289,6 +277,8 @@ export const samples = {
    * Default: `demo-session` in org `demo` with subject "Demo conversation".
    */
   session(o?: SessionOverrides): Session {
+    const sessionAgentRef =
+      o?.agentRef === undefined ? { org: "demo", slug: "demo-agent" } : o.agentRef;
     return create(SessionSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Session",
@@ -300,8 +290,9 @@ export const samples = {
       }),
       spec: create(SessionSpecSchema, {
         subject: o?.subject ?? "Demo conversation",
-        agentInstanceId:
-          o?.agentInstanceId ?? "ain-00000000-0000-0000-0000-000000000001",
+        ...(sessionAgentRef !== null && {
+          agentRef: { ...sessionAgentRef, kind: ApiResourceKind.agent },
+        }),
       }),
     });
   },
@@ -352,11 +343,14 @@ export const samples = {
         org: "demo",
       }),
       spec: create(AgentExecutionSpecSchema, {
-        sessionId: o?.sessionId ?? "ses-00000000-0000-0000-0000-000000000001",
-        agentId: o?.agentId ?? "agt-00000000-0000-0000-0000-000000000001",
+        target: {
+          case: "sessionId",
+          value: o?.sessionId ?? "ses-00000000-0000-0000-0000-000000000001",
+        },
         message: msgs[0]?.content ?? "",
       }),
       status: create(AgentExecutionStatusSchema, {
+        agentId: o?.agentId ?? "agt-00000000-0000-0000-0000-000000000001",
         phase: o?.phase ?? ExecutionPhase.EXECUTION_COMPLETED,
         messages: msgs,
         artifacts: o?.artifacts ?? [],
@@ -422,26 +416,6 @@ export const samples = {
         name: o?.name ?? "demo-env",
         slug: o?.slug ?? o?.name ?? "demo-env",
         org: o?.org ?? "demo",
-      }),
-    });
-  },
-
-  /**
-   * An agent instance resource.
-   * Default: `demo-instance` in org `demo` referencing the default demo agent.
-   */
-  agentInstance(o?: AgentInstanceOverrides): AgentInstance {
-    return create(AgentInstanceSchema, {
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentInstance",
-      metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "ain-00000000-0000-0000-0000-000000000001",
-        name: o?.name ?? "demo-instance",
-        slug: o?.slug ?? o?.name ?? "demo-instance",
-        org: o?.org ?? "demo",
-      }),
-      spec: create(AgentInstanceSpecSchema, {
-        agentId: o?.agentId ?? "agt-00000000-0000-0000-0000-000000000001",
       }),
     });
   },

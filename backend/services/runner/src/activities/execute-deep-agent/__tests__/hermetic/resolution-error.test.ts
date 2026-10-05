@@ -1,6 +1,6 @@
 /**
  * Hermetic golden: a RESOLUTION ERROR — the control plane rejects a read the
- * setup depends on (`client.getAgent`) before any graph exists.
+ * setup depends on (`client.getSession`) before any graph exists.
  *
  * Invariant pinned: the runtime's blueprint phase throws, the runtime's
  * catch takes its generic-error arm (`terminal-table.ts` `unexpectedErrorArm`),
@@ -55,7 +55,7 @@ import {
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
 
-const CONTROL_PLANE_FAULT = "hermetic fault injected at getAgent";
+const CONTROL_PLANE_FAULT = "hermetic fault injected at getSession";
 
 describe("ExecuteDeepAgent hermetic — resolution error", () => {
   let env: HermeticEnvironment;
@@ -85,7 +85,7 @@ describe("ExecuteDeepAgent hermetic — resolution error", () => {
         throw new Error("the model must never be asked on a resolution failure");
       },
       clientOverrides: {
-        getAgent: vi.fn(async () => {
+        getSession: vi.fn(async () => {
           throw new Error(CONTROL_PLANE_FAULT);
         }),
       },

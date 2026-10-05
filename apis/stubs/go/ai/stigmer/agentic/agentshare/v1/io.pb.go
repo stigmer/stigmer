@@ -8,6 +8,7 @@ package agentsharev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	rpc "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -394,12 +395,14 @@ type SharedAgentProfile struct {
 	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	// Icon URL for the chat page header.
 	IconUrl string `protobuf:"bytes,5,opt,name=icon_url,json=iconUrl,proto3" json:"icon_url,omitempty"`
-	// ID of the referenced agent's default instance, used by the hosted chat
-	// page to create sessions. This is an identifier, not a capability —
-	// session creation still requires an authorized token.
-	DefaultInstanceId string `protobuf:"bytes,6,opt,name=default_instance_id,json=defaultInstanceId,proto3" json:"default_instance_id,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// The share's agent reference (spec.agent_ref): the hosted chat page
+	// starts the visitor's session on exactly this reference, version
+	// included. This is a name, not a capability — session creation still
+	// requires an authorized token, and the edition's guest gate admits a
+	// session only on this reference and the agent the share pins.
+	AgentRef      *apiresource.ApiResourceReference `protobuf:"bytes,7,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SharedAgentProfile) Reset() {
@@ -467,18 +470,18 @@ func (x *SharedAgentProfile) GetIconUrl() string {
 	return ""
 }
 
-func (x *SharedAgentProfile) GetDefaultInstanceId() string {
+func (x *SharedAgentProfile) GetAgentRef() *apiresource.ApiResourceReference {
 	if x != nil {
-		return x.DefaultInstanceId
+		return x.AgentRef
 	}
-	return ""
+	return nil
 }
 
 var File_ai_stigmer_agentic_agentshare_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/agentshare/v1/io.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"1\n" +
+	")ai/stigmer/agentic/agentshare/v1/io.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"1\n" +
 	"\fAgentShareId\x12!\n" +
 	"\x05value\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x05value\"\x92\x01\n" +
 	"\x1cGetAgentSharesByAgentRequest\x12!\n" +
@@ -502,14 +505,14 @@ const file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDesc = "" +
 	"\x17GetSharedProfileRequest\x12&\n" +
 	"\bshare_id\x18\x04 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\ashareId\x12'\n" +
 	"\n" +
-	"link_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tlinkTokenJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x03orgR\x04slug\"\xbb\x01\n" +
+	"link_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tlinkTokenJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x03orgR\x04slug\"\xf9\x01\n" +
 	"\x12SharedAgentProfile\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\x12\x12\n" +
 	"\x04slug\x18\x02 \x01(\tR\x04slug\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x19\n" +
-	"\bicon_url\x18\x05 \x01(\tR\aiconUrl\x12.\n" +
-	"\x13default_instance_id\x18\x06 \x01(\tR\x11defaultInstanceIdB\xac\x02\n" +
+	"\bicon_url\x18\x05 \x01(\tR\aiconUrl\x12Q\n" +
+	"\tagent_ref\x18\a \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\bagentRefJ\x04\b\x06\x10\aR\x13default_instance_idB\xac\x02\n" +
 	"$com.ai.stigmer.agentic.agentshare.v1B\aIoProtoP\x01ZVgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1;agentsharev1\xa2\x02\x04ASAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3"
 
 var (
@@ -526,27 +529,29 @@ func file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_agentshare_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ai_stigmer_agentic_agentshare_v1_io_proto_goTypes = []any{
-	(*AgentShareId)(nil),                 // 0: ai.stigmer.agentic.agentshare.v1.AgentShareId
-	(*GetAgentSharesByAgentRequest)(nil), // 1: ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest
-	(*AgentShareList)(nil),               // 2: ai.stigmer.agentic.agentshare.v1.AgentShareList
-	(*ListAgentSharesRequest)(nil),       // 3: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest
-	(*RotateShareLinkInput)(nil),         // 4: ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput
-	(*GetSharedProfileRequest)(nil),      // 5: ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest
-	(*SharedAgentProfile)(nil),           // 6: ai.stigmer.agentic.agentshare.v1.SharedAgentProfile
-	nil,                                  // 7: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.LabelsEntry
-	(*rpc.PageInfo)(nil),                 // 8: ai.stigmer.commons.rpc.PageInfo
-	(*AgentShare)(nil),                   // 9: ai.stigmer.agentic.agentshare.v1.AgentShare
+	(*AgentShareId)(nil),                     // 0: ai.stigmer.agentic.agentshare.v1.AgentShareId
+	(*GetAgentSharesByAgentRequest)(nil),     // 1: ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest
+	(*AgentShareList)(nil),                   // 2: ai.stigmer.agentic.agentshare.v1.AgentShareList
+	(*ListAgentSharesRequest)(nil),           // 3: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest
+	(*RotateShareLinkInput)(nil),             // 4: ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput
+	(*GetSharedProfileRequest)(nil),          // 5: ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest
+	(*SharedAgentProfile)(nil),               // 6: ai.stigmer.agentic.agentshare.v1.SharedAgentProfile
+	nil,                                      // 7: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.LabelsEntry
+	(*rpc.PageInfo)(nil),                     // 8: ai.stigmer.commons.rpc.PageInfo
+	(*AgentShare)(nil),                       // 9: ai.stigmer.agentic.agentshare.v1.AgentShare
+	(*apiresource.ApiResourceReference)(nil), // 10: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_agentic_agentshare_v1_io_proto_depIdxs = []int32{
-	8, // 0: ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	9, // 1: ai.stigmer.agentic.agentshare.v1.AgentShareList.items:type_name -> ai.stigmer.agentic.agentshare.v1.AgentShare
-	7, // 2: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.labels:type_name -> ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.LabelsEntry
-	8, // 3: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	8,  // 0: ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	9,  // 1: ai.stigmer.agentic.agentshare.v1.AgentShareList.items:type_name -> ai.stigmer.agentic.agentshare.v1.AgentShare
+	7,  // 2: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.labels:type_name -> ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.LabelsEntry
+	8,  // 3: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	10, // 4: ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5,  // [5:5] is the sub-list for method output_type
+	5,  // [5:5] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentshare_v1_io_proto_init() }

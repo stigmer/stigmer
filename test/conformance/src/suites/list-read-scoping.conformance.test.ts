@@ -38,7 +38,7 @@ import {
 } from "../targets";
 import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode } from "../contract/errors";
-import { makeAgent } from "../support/agents";
+import { makeAgent, agentRefOf } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeEnvironment } from "../support/environments";
 import { makeSession } from "../support/sessions";
@@ -92,7 +92,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
       makeSession({
         org,
         name: uniqueName("iso-session"),
-        agentInstanceId: agent.status!.defaultInstanceId,
+        agentRef: agentRefOf(agent),
         subject: "isolation probe",
       }),
     );
@@ -126,7 +126,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
         makeSession({
           org,
           name: uniqueName("iso-paged"),
-          agentInstanceId: agent.status!.defaultInstanceId,
+          agentRef: agentRefOf(agent),
           subject: "paged isolation probe",
         }),
       );
@@ -252,7 +252,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
       makeSession({
         org,
         name: uniqueName("iso-recents"),
-        agentInstanceId: agent.status!.defaultInstanceId,
+        agentRef: agentRefOf(agent),
         subject: "recents probe",
       }),
     );

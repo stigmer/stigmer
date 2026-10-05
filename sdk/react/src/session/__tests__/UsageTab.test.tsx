@@ -57,7 +57,7 @@ function usageWith(overrides: Partial<UseSessionUsageReturn>): UseSessionUsageRe
 function executionWithTier(id: string, tier?: ServiceTier) {
   return create(AgentExecutionSchema, {
     metadata: { id },
-    spec: { sessionId: "ses_1" },
+    spec: { target: { case: "sessionId", value: "ses_1" } },
     status: {
       streamingUsage: {
         totalTokens: 100n,

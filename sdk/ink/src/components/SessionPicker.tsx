@@ -73,7 +73,7 @@ function filterSessions(sessions: readonly Session[], query: string): readonly S
 }
 
 function sessionHaystack(session: Session): string {
-  return [sessionSubject(session), session.spec?.agentInstanceId ?? "", session.metadata?.id ?? ""]
+  return [sessionSubject(session), sessionAgent(session), session.metadata?.id ?? ""]
     .join(" ")
     .toLowerCase();
 }
@@ -83,9 +83,15 @@ function toSessionItem(session: Session): PickerItem {
   return {
     id: session.metadata?.id ?? "",
     title: sessionSubject(session),
-    subtitle: session.spec?.agentInstanceId ?? "",
+    subtitle: sessionAgent(session),
     meta: relativeTime(session.status?.audit?.specAudit?.createdAt),
   };
+}
+
+// The agent the session names, by slug (its reference names the organization
+// by id); empty for the built-in assistant.
+function sessionAgent(session: Session): string {
+  return session.spec?.agentRef?.slug ?? "";
 }
 
 // The session's display subject, suppressing the backend's auto-create

@@ -12,7 +12,7 @@
         "kind": "message",
         "messageType": "ApiResourceReference"
       },
-      "description": "Reference to the agent to run.\n\n The reference names no version (or \"latest\"): this runs the agent's\n current version, and a reference naming another version is refused.",
+      "description": "Reference to the agent to run.\n\n A version on the reference (a tag or a content hash) is the version\n each run starts on; none, or \"latest\", runs the agent's current version\n when the run starts.",
       "required": true,
       "referenceKind": 40,
       "validation": {
@@ -73,7 +73,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "References to Environment resources whose values are provided to\n the runs this invocation creates.\n\n This is how a tool-using agent becomes runnable unattended: bind\n an org-shared environment holding the needed credentials (for\n example an MCP server's shared secret), and the runs receive its\n values at runtime. The agent and its default instance stay\n untouched.",
+      "description": "References to Environment resources whose values are provided to\n the runs this invocation creates.\n\n This is how a tool-using agent becomes runnable unattended: bind\n an org-shared environment holding the needed credentials (for\n example an MCP server's shared secret), and the runs receive its\n values at runtime. The agent itself stays untouched.",
       "required": false,
       "referenceKind": 53
     },

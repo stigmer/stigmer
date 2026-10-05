@@ -19,8 +19,10 @@ public interface AgentShareSpecOrBuilder extends
    * with tool credentials bound from it. To share another organization's
    * agent, install the plugin that carries it and share the installed copy.
    *
-   * The reference names no version (or "latest"): a share runs the agent's
-   * current version, and a reference naming another version is refused.
+   * A version on the reference (a tag or a content hash) is the version
+   * each new conversation through this share runs; none, or "latest", runs
+   * the agent's current version when the conversation starts. A started
+   * conversation keeps the version it started on.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -36,8 +38,10 @@ public interface AgentShareSpecOrBuilder extends
    * with tool credentials bound from it. To share another organization's
    * agent, install the plugin that carries it and share the installed copy.
    *
-   * The reference names no version (or "latest"): a share runs the agent's
-   * current version, and a reference naming another version is refused.
+   * A version on the reference (a tag or a content hash) is the version
+   * each new conversation through this share runs; none, or "latest", runs
+   * the agent's current version when the conversation starts. A started
+   * conversation keeps the version it started on.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -53,8 +57,10 @@ public interface AgentShareSpecOrBuilder extends
    * with tool credentials bound from it. To share another organization's
    * agent, install the plugin that carries it and share the installed copy.
    *
-   * The reference names no version (or "latest"): a share runs the agent's
-   * current version, and a reference naming another version is refused.
+   * A version on the reference (a tag or a content hash) is the version
+   * each new conversation through this share runs; none, or "latest", runs
+   * the agent's current version when the conversation starts. A started
+   * conversation keeps the version it started on.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -204,7 +210,7 @@ public interface AgentShareSpecOrBuilder extends
    * This is how a tool-using agent becomes chattable over a share link:
    * bind an org-shared environment holding the needed credentials (for
    * example a read-only API token), and guest executions receive its
-   * values at runtime. The agent and its default instance stay untouched.
+   * values at runtime. The agent itself stays untouched.
    * Valid on public-audience shares only.
    * </pre>
    *
@@ -220,7 +226,7 @@ public interface AgentShareSpecOrBuilder extends
    * This is how a tool-using agent becomes chattable over a share link:
    * bind an org-shared environment holding the needed credentials (for
    * example a read-only API token), and guest executions receive its
-   * values at runtime. The agent and its default instance stay untouched.
+   * values at runtime. The agent itself stays untouched.
    * Valid on public-audience shares only.
    * </pre>
    *
@@ -235,7 +241,7 @@ public interface AgentShareSpecOrBuilder extends
    * This is how a tool-using agent becomes chattable over a share link:
    * bind an org-shared environment holding the needed credentials (for
    * example a read-only API token), and guest executions receive its
-   * values at runtime. The agent and its default instance stay untouched.
+   * values at runtime. The agent itself stays untouched.
    * Valid on public-audience shares only.
    * </pre>
    *
@@ -250,7 +256,7 @@ public interface AgentShareSpecOrBuilder extends
    * This is how a tool-using agent becomes chattable over a share link:
    * bind an org-shared environment holding the needed credentials (for
    * example a read-only API token), and guest executions receive its
-   * values at runtime. The agent and its default instance stay untouched.
+   * values at runtime. The agent itself stays untouched.
    * Valid on public-audience shares only.
    * </pre>
    *
@@ -266,7 +272,7 @@ public interface AgentShareSpecOrBuilder extends
    * This is how a tool-using agent becomes chattable over a share link:
    * bind an org-shared environment holding the needed credentials (for
    * example a read-only API token), and guest executions receive its
-   * values at runtime. The agent and its default instance stay untouched.
+   * values at runtime. The agent itself stays untouched.
    * Valid on public-audience shares only.
    * </pre>
    *

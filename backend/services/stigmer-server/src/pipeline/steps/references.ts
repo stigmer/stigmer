@@ -104,17 +104,24 @@
  * that door — a dependency that has since left or stopped being shared was
  * judged when the row was written and is the run's to refuse.
  *
- * A reference that names a VERSION of a kind whose row says the version
- * may not be named (`mayNameVersion`) is refused as malformed input, before
- * any other clause, when the write introduces it: a stored row that already
- * carries the reference with that version keeps it (checkReferenceVersion). Agents are versioned, and every field that references
- * one (an agent channel's, a share's, a schedule's invocation) is a surface
- * that runs the agent's current version and has no way to honour another:
- * accepting the version and running the current one would be a promise the
- * reference contract makes and the surface breaks. A surface that honours a
- * pinned version lifts its kind's refusal. Every other kind keeps the
- * contract's word for a version on a reference: a skill's is honoured, and
+ * A version on a reference is the contract's word, never this rule's: the
+ * rule judges the row a reference names, whichever version it names. Every
+ * surface that references a versioned kind honours the version (an agent's
+ * through the session it starts, which pins it; a skill's at run start), and
  * an unversioned kind's is ignored.
+ *
+ * A chain whose stored row is rewritten by machines as well as people (a
+ * session, whose harness state the runner writes back with the whole row)
+ * asks ValidateReferences to judge only the references a write introduces
+ * (`judge: "introduced"`): a reference the stored row already carries was
+ * judged when it was written, and one that has since left or stopped being
+ * shared is the run's to refuse, the escalation door's posture above. Every
+ * other chain judges every reference, as it always has.
+ *
+ * ValidateReferences records what it resolved on the request context under
+ * RESOLVED_REFERENCE_TARGETS_KEY, so a later step that needs a reference's
+ * id (a session pinning its agent) reads the answer this write already paid
+ * for instead of scanning again.
  *
  * REFERENCE_TARGET_KINDS is the one explicit table of kinds a spec may
  * reference, with each kind's schema and its `readByRun` flag: the
@@ -190,12 +197,6 @@ export interface ReferenceTargetKind {
    * existence and the floor alone.
    */
   readonly writerMust: IamPermission | undefined;
-  /**
-   * Whether a stored reference to this kind may name a version (the module
-   * header): false where every field referencing the kind runs its current
-   * version and cannot honour another.
-   */
-  readonly mayNameVersion: boolean;
 }
 
 export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
@@ -206,7 +207,6 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "skill(s)",
     listHint: "stigmer list skills",
     writerMust: undefined,
-    mayNameVersion: true,
   },
   {
     kind: ApiResourceKind.mcp_server,
@@ -215,7 +215,6 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "MCP server(s)",
     listHint: "stigmer get mcp-servers",
     writerMust: undefined,
-    mayNameVersion: true,
   },
   {
     kind: ApiResourceKind.agent,
@@ -224,7 +223,6 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "agent(s)",
     listHint: "stigmer list agents",
     writerMust: undefined,
-    mayNameVersion: false,
   },
   {
     kind: ApiResourceKind.environment,
@@ -233,7 +231,6 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "environment(s)",
     listHint: "stigmer list environments",
     writerMust: IamPermission.can_view,
-    mayNameVersion: true,
   },
   {
     kind: ApiResourceKind.channel_app,
@@ -242,7 +239,6 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "channel app(s)",
     listHint: "stigmer list channel-app",
     writerMust: undefined,
-    mayNameVersion: true,
   },
   {
     kind: ApiResourceKind.oauth_app,
@@ -251,7 +247,6 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "OAuth app(s)",
     listHint: undefined,
     writerMust: undefined,
-    mayNameVersion: true,
   },
 ];
 
@@ -292,8 +287,6 @@ export type ReferenceVerdict =
   | { readonly kind: "ok" }
   /** Clause (i): the reference names no organization. */
   | { readonly kind: "no-org" }
-  /** The reference names a version its kind's references may not name. */
-  | { readonly kind: "version-named" }
   /** Clause (ii): the same-organization target does not exist. */
   | { readonly kind: "missing" }
   /** Clause (ii): the target exists and is less visible than the resource. */
@@ -399,36 +392,6 @@ export function checkReference(
     return { kind: "below-floor", targetVisibility: target };
   }
   return { kind: "ok" };
-}
-
-/**
- * The version clause (the module header) for one reference a write carries:
- * `version-named` when it names a version its kind's references may not
- * name and the stored row does not already carry it exactly so. A row
- * written before the clause existed keeps its reference through an
- * unrelated edit, as the writer clause keeps an attachment someone else
- * made; only a write that introduces or changes such a version is refused.
- * Asked on the write path alone: the escalation door judges the floor, and
- * a version says nothing about a level.
- */
-export function checkReferenceVersion(
-  ref: SpecReference,
-  stored: ReadonlyArray<SpecReference>,
-): ReferenceVerdict | undefined {
-  const version = (ref.version ?? "").trim();
-  if (
-    version === "" ||
-    // "latest" is the contract's explicit name for the current version,
-    // which is what these surfaces run.
-    version === "latest" ||
-    referenceTargetKind(ref.kind)?.mayNameVersion !== false ||
-    stored.some(
-      (held) => sameReference(held, ref) && (held.version ?? "") === version,
-    )
-  ) {
-    return undefined;
-  }
-  return { kind: "version-named" };
 }
 
 /** The writer a write's references are judged for (the module header's writer clause). */
@@ -546,14 +509,6 @@ export function noOrgReferenceMessage(
   return `referenced ${entry.label} '${slug}' names no organization; a reference is 'org/slug', or 'slug' for a resource of this organization.`;
 }
 
-/** The sentence for a reference naming a version its kind's references may not name. */
-export function versionNamedMessage(
-  entry: ReferenceTargetKind,
-  ref: SpecReference,
-): string {
-  return `referenced ${singular(entry)} '${ref.slug}' names version '${ref.version ?? ""}', but this runs the ${singular(entry)}'s current version and cannot run another; omit the version.`;
-}
-
 /**
  * Clause (ii)'s sentence for the targets not found, one per kind. The MCP
  * server form is the wire contract that predates the rule; the others are
@@ -629,8 +584,7 @@ function plural(entry: ReferenceTargetKind): string {
  * Missing same-organization targets are grouped per kind into one sentence
  * (the contract's shape); every other refusal is its own sentence; the
  * sentences are joined in the order the references were read. A no-org
- * reference, and one naming a version its kind's references may not name,
- * is malformed input (INVALID_ARGUMENT); a target the writer may
+ * reference is malformed input (INVALID_ARGUMENT); a target the writer may
  * not attach is PERMISSION_DENIED (the writer clause); everything else is
  * a precondition the store does not meet (FAILED_PRECONDITION), the code
  * the MCP-server contract already answers. The first that applies, in
@@ -671,10 +625,6 @@ export function referenceRefusal(
       case "no-org":
         malformed = true;
         sentences.push(noOrgReferenceMessage(entry, ref.slug));
-        break;
-      case "version-named":
-        malformed = true;
-        sentences.push(versionNamedMessage(entry, ref));
         break;
       case "missing":
         if (!groupedKindsSaid.has(ref.kind)) {
@@ -752,14 +702,45 @@ export function newNormalizeReferencesStep<
 }
 
 /**
- * ValidateReferences: every reference the spec carries, judged for the
+ * The request-context key ValidateReferences records its resolved targets
+ * under (a ReferenceTargets), read through resolvedReferenceTargets by a
+ * later step of the same chain that needs a reference's id. Absent when the
+ * spec carries no reference.
+ */
+export const RESOLVED_REFERENCE_TARGETS_KEY = "resolvedReferenceTargets";
+
+/** The targets ValidateReferences resolved on this request, or undefined when it resolved none. */
+export function resolvedReferenceTargets<Desc extends DescMessage>(
+  ctx: RequestContext<Desc>,
+): ReferenceTargets | undefined {
+  return ctx.get(RESOLVED_REFERENCE_TARGETS_KEY) as
+    | ReferenceTargets
+    | undefined;
+}
+
+/** Which references ValidateReferences judges (the module header). */
+export interface ValidateReferencesOptions {
+  /**
+   * `every` (the default): every reference the spec carries. `introduced`:
+   * only those the stored row does not already carry (by kind,
+   * organization and slug); a create judges every one either way.
+   */
+  readonly judge?: "every" | "introduced";
+}
+
+/**
+ * ValidateReferences: the references the spec carries, judged for the
  * request's caller against the stored row (EXISTING_RESOURCE_KEY on an
  * update; none on a create) — the module header's clauses and its writer
- * clause.
+ * clause. Records the targets it resolved for every reference
+ * (RESOLVED_REFERENCE_TARGETS_KEY), judged or not — and, under
+ * `introduced`, loads and records nothing when the write introduces no
+ * reference.
  */
 export function newValidateReferencesStep<Desc extends DescMessage>(
   store: Store,
   authorizer: Authorizer,
+  options: ValidateReferencesOptions = {},
 ): PipelineStep<Desc> {
   return {
     name: "ValidateReferences",
@@ -782,25 +763,39 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
         visibility: metadata.visibility,
       };
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined;
-      const refusal = await checkReferences(store, parent, refs, {
+      const stored =
+        existing === undefined
+          ? []
+          : collectSpecReferences(ctx.schema, existing);
+      const judged =
+        options.judge === "introduced"
+          ? refs.filter(
+              (ref) => !stored.some((held) => sameReference(held, ref)),
+            )
+          : refs;
+      if (judged.length === 0 && options.judge === "introduced") {
+        // Nothing new to judge, and a reference the stored row carries is
+        // the later step's to read by the id the row already holds.
+        return;
+      }
+      const targets = await loadReferenceTargets(store, refs);
+      const refusal = await judgeReferences(targets, store, parent, judged, {
         authorizer,
         caller: ctx.callerIdentity,
-        stored:
-          existing === undefined
-            ? []
-            : collectSpecReferences(ctx.schema, existing),
+        stored,
       });
       if (refusal !== undefined) {
         throw refusal;
       }
+      ctx.set(RESOLVED_REFERENCE_TARGETS_KEY, targets);
     },
   };
 }
 
 /**
  * The rule over a collected list for one writer: load once, check each
- * against the version clause, the three clauses and then the writer
- * clause, render the refusal.
+ * against the three clauses and then the writer clause, render the
+ * refusal.
  */
 export async function checkReferences(
   store: Store,
@@ -808,12 +803,26 @@ export async function checkReferences(
   refs: ReadonlyArray<SpecReference>,
   writer: ReferenceWriter,
 ): Promise<ReturnType<typeof referenceRefusal>> {
-  const targets = await loadReferenceTargets(store, refs);
+  return judgeReferences(
+    await loadReferenceTargets(store, refs),
+    store,
+    parent,
+    refs,
+    writer,
+  );
+}
+
+/** checkReferences over targets already loaded. */
+async function judgeReferences(
+  targets: ReferenceTargets,
+  store: Store,
+  parent: ReferenceParent,
+  refs: ReadonlyArray<SpecReference>,
+  writer: ReferenceWriter,
+): Promise<ReturnType<typeof referenceRefusal>> {
   const verdicts: Array<{ ref: SpecReference; verdict: ReferenceVerdict }> = [];
   for (const ref of refs) {
-    const verdict =
-      checkReferenceVersion(ref, writer.stored) ??
-      checkReference(targets, parent, ref);
+    const verdict = checkReference(targets, parent, ref);
     verdicts.push({
       ref,
       verdict:

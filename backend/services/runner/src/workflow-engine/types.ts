@@ -792,10 +792,13 @@ export interface AgentCallOutputContract {
   readonly fallback_task?: string;
 }
 
+/**
+ * What a call:agent task hands the engine: only its own name. The ids
+ * that link the child to the run (its workflow id and execution id) are
+ * the engine's own, so no workflow task can steer them.
+ */
 export interface CallAgentMetadata {
-  readonly parentWorkflowId: string;
   readonly taskName: string;
-  readonly workflowExecutionId: string;
 }
 
 export interface AgentCallResult {

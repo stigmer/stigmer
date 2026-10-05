@@ -22,7 +22,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitTerminal,
   makeAgentExecution,
@@ -75,7 +75,7 @@ async function runExecution(org: string) {
 
   mock.enqueue(anthropicText("Done."));
   const execution = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ org, name: uniqueName("aex"), agentId: agent.metadata!.id }),
+    makeAgentExecution({ org, name: uniqueName("aex"), agentRef: agentRefOf(agent) }),
   );
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: execution.metadata!.id }));
 
@@ -89,7 +89,7 @@ describe("AgentExecution memory retrieval (no-embedder posture)", () => {
     const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, 1, fund);
     const settled = await runExecution(org);
 
-    const snapshot = settled.spec?.recalledMemories;
+    const snapshot = settled.status?.recalledMemories;
     expect(snapshot?.enabled).toBe(true);
     expect(snapshot?.facts).toHaveLength(1);
 
@@ -108,9 +108,9 @@ describe("AgentExecution memory retrieval (no-embedder posture)", () => {
     const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD + 1, fund);
     const settled = await runExecution(org);
 
-    // The candidate set is intact on the spec — selection never rewrites
+    // The candidate set is intact on the status snapshot — selection never rewrites
     // the audit snapshot, and here it could not select at all.
-    expect(settled.spec?.recalledMemories?.facts).toHaveLength(
+    expect(settled.status?.recalledMemories?.facts).toHaveLength(
       RETRIEVAL_ACTIVATION_THRESHOLD + 1,
     );
 
@@ -143,7 +143,7 @@ describe("AgentExecution memory retrieval (no-embedder posture)", () => {
 
     const settled = await runExecution(org.metadata!.slug);
 
-    expect(settled.spec?.recalledMemories?.enabled ?? false).toBe(false);
+    expect(settled.status?.recalledMemories?.enabled ?? false).toBe(false);
     expect(settled.status?.recalledMemoriesReport).toBeUndefined();
   });
 });

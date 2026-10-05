@@ -1,6 +1,6 @@
-// Parent-gated create authorization: the seven create lanes whose target is
+// Parent-gated create authorization: the six create lanes whose target is
 // not a request field — a parent loaded from a reference (an agent to
-// schedule, share, channel-bind or instantiate; a workflow to instantiate),
+// schedule, share or channel-bind; a workflow to instantiate),
 // or the organization a blueprint or memory lands in. Each RPC is
 // `is_skip_authorization` on the wire where the target is loaded, and the
 // handler asks the bar its proto states once its resolve step has loaded
@@ -8,9 +8,6 @@
 //
 //   - McpServer.create: the admin bar (`can_create_mcp_server`), so a member
 //     is refused and an outsider naming the organization is refused;
-//   - AgentInstance.create: a member instantiates an org-visible agent in
-//     their organization, is refused a private one with the parent's copy,
-//     and an outsider naming the organization is refused with its copy;
 //   - WorkflowInstance.create: a member instantiates an org-visible
 //     workflow and is refused a private one;
 //   - Schedule, AgentShare, AgentChannel: `can_edit` on the referenced agent,
@@ -21,7 +18,7 @@
 //     turned memory on, the memory filed under the member;
 //   - an environment reference: a write may attach only an environment its
 //     writer can view, so a member naming a teammate's private environment
-//     on an instance is refused PERMISSION_DENIED with the rule's sentence,
+//     on a workflow instance is refused PERMISSION_DENIED with the rule's sentence,
 //     while the owner may attach their own and anyone an org-visible one.
 //
 // Every refusal is asserted by code AND copy, because the copy is the wire
@@ -39,7 +36,6 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeAgentInstance } from "../support/agentinstances";
 import { makeEnvironment } from "../support/environments";
 import { makeAgentShare } from "../support/agentshares";
 import { makeMcpServer } from "../support/mcpservers";
@@ -113,10 +109,6 @@ async function castOf(lane: EnforcingLane): Promise<Cast> {
 // the annotation family's where the check is new.
 const MCP_SERVER_ORG_DENIED =
   "unauthorized to create mcp server in this organization";
-const INSTANCE_ORG_DENIED =
-  "unauthorized to create agent instance in this organization";
-const INSTANCE_PARENT_DENIED =
-  "You don't have permission to create instances of this agent";
 const WORKFLOW_INSTANCE_PARENT_DENIED =
   "You don't have permission to create instances of this workflow";
 const SCHEDULE_DENIED = "You don't have permission to schedule this agent";
@@ -183,62 +175,14 @@ describe("McpServer.create asks the blueprint bar", () => {
   });
 });
 
-describe("AgentInstance.create asks the organization's bar, then the parent's", () => {
-  it("[rpc:AgentInstanceCommandController.create] a member instantiates an org-visible agent in their organization", async (ctx) => {
-    const c = await castOf(laneOrSkip(ctx));
-    const agent = await seedAgent(c, ORG_VISIBLE);
-    const created = await c.member.agentInstanceCommand.create(
-      makeAgentInstance({
-        org: c.org,
-        name: uniqueName("gate-inst"),
-        agentId: agent.metadata!.id,
-      }),
-    );
-    fixtures.defer(() =>
-      c.owner.agentInstanceCommand.delete({ value: created.metadata!.id }),
-    );
-    expect(created.metadata?.org).toBe(c.org);
-  });
-
-  it("[rpc:AgentInstanceCommandController.create] a member is refused a PRIVATE agent with the parent's copy; an outsider naming the organization hears the organization's copy first", async (ctx) => {
-    const c = await castOf(laneOrSkip(ctx));
-    const privateAgent = await seedAgent(c, PRIVATE);
-    const orgAgent = await seedAgent(c, ORG_VISIBLE);
-    await expectDenied(
-      () =>
-        c.member.agentInstanceCommand.create(
-          makeAgentInstance({
-            org: c.org,
-            name: uniqueName("gate-inst"),
-            agentId: privateAgent.metadata!.id,
-          }),
-        ),
-      INSTANCE_PARENT_DENIED,
-      "member instantiates a private agent",
-    );
-    await expectDenied(
-      () =>
-        c.outsider.agentInstanceCommand.create(
-          makeAgentInstance({
-            org: c.org,
-            name: uniqueName("gate-inst"),
-            agentId: orgAgent.metadata!.id,
-          }),
-        ),
-      INSTANCE_ORG_DENIED,
-      "outsider instantiates into a foreign organization",
-    );
-  });
-});
-
 describe("an instance attaches only environments its writer can view", () => {
   const notViewable = (org: string, slug: string) =>
     `referenced environment '${org}/${slug}' is not one you can view; ` +
     "attach an environment you own or one shared with the organization.";
 
-  it("[rpc:AgentInstanceCommandController.create] a member naming the owner's private environment is refused; the owner attaches it, and a member attaches an org-visible one", async (ctx) => {
+  it("[rpc:WorkflowInstanceCommandController.create] a member naming the owner's private environment is refused; the owner attaches it, and a member attaches an org-visible one", async (ctx) => {
     const c = await castOf(laneOrSkip(ctx));
-    const agent = await seedAgent(c, ORG_VISIBLE);
+    const workflow = await seedWorkflow(c, ORG_VISIBLE);
     const ownersKeys = await c.owner.environmentCommand.create(
       makeEnvironment({
         org: c.org,
@@ -266,16 +210,16 @@ describe("an instance attaches only environments its writer can view", () => {
       visibility: ORG_VISIBLE,
     });
     const instanceNaming = (slug: string) =>
-      makeAgentInstance({
+      makeWorkflowInstance({
         org: c.org,
         name: uniqueName("gate-env-inst"),
-        agentId: agent.metadata!.id,
+        workflowId: workflow.metadata!.id,
         environmentRefs: [{ org: c.org, slug }],
       });
 
     await expectDenied(
       () =>
-        c.member.agentInstanceCommand.create(
+        c.member.workflowInstanceCommand.create(
           instanceNaming(ownersKeys.metadata!.slug),
         ),
       notViewable(await organizationSlug(c.owner.organizationQuery, c.org), ownersKeys.metadata!.slug),
@@ -290,11 +234,11 @@ describe("an instance attaches only environments its writer can view", () => {
       ],
       ["member, an org-visible environment", c.member, teamKeys.metadata!.slug],
     ] as const) {
-      const created = await using.agentInstanceCommand.create(
+      const created = await using.workflowInstanceCommand.create(
         instanceNaming(slug),
       );
       fixtures.defer(() =>
-        c.owner.agentInstanceCommand.delete({ value: created.metadata!.id }),
+        c.owner.workflowInstanceCommand.delete({ value: created.metadata!.id }),
       );
       expect(
         created.spec?.environmentRefs.map((r) => r.slug),

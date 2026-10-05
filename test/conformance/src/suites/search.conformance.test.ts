@@ -120,20 +120,19 @@ describe("Search conformance — search mode (text query)", () => {
 
     const response = await clients.search.search({ query: token, org });
 
-    // Four hits from two creates: agent and workflow creates each spawn a
+    // Three hits from two creates: a workflow create spawns a
     // system-managed default INSTANCE named for its parent, and instances
     // are search-indexed by kind_meta — discover truthfully surfaces all
-    // of them. Compared on the NON-ZERO entries: whether zero-count kinds
+    // of them (an agent spawns nothing; it is run directly). Compared on the NON-ZERO entries: whether zero-count kinds
     // appear in the map is an edition presentation difference (the
     // multi-tenant edition enumerates every kind at 0; local omits them),
     // while the non-zero membership is the shared contract.
-    expect(response.totalCount).toBe(4);
+    expect(response.totalCount).toBe(3);
     const nonZeroCounts = Object.fromEntries(
       Object.entries(response.countsByKind).filter(([, count]) => count > 0),
     );
     expect(nonZeroCounts).toEqual({
       agent: 1,
-      agent_instance: 1,
       workflow: 1,
       workflow_instance: 1,
     });

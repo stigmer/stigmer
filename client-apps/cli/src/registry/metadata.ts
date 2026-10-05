@@ -83,10 +83,6 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     { name: "Schedule", displayName: "Schedule", idPrefix: "sch" },
   ],
   [
-    ApiResourceKind.agent_instance,
-    { name: "AgentInstance", displayName: "Agent Instance", idPrefix: "ain" },
-  ],
-  [
     ApiResourceKind.workflow_instance,
     {
       name: "WorkflowInstance",
@@ -126,7 +122,6 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.agent_channel,
   ApiResourceKind.channel_app,
   ApiResourceKind.schedule,
-  ApiResourceKind.agent_instance,
   ApiResourceKind.workflow_instance,
   ApiResourceKind.session,
 ];
@@ -140,6 +135,10 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
  * declared it; the value is the sentence that follows the kind's name.
  */
 export const RETIRED_KINDS: ReadonlyMap<string, string> = new Map([
+  [
+    "AgentInstance",
+    "is no longer a Stigmer resource. A conversation starts on the agent itself: run `stigmer run <org>/<agent>`, and delete this file.",
+  ],
   [
     "Project",
     "is no longer a Stigmer resource. A folder of resources that belong together is a plugin: run `stigmer push plugin <dir>` to install it as one, or apply each resource file with `stigmer apply -f <file>`.",

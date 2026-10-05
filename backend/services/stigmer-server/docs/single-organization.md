@@ -60,17 +60,6 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | AgentExecutionQueryController.getOrgUsageReport | org |
 | AgentExecutionQueryController.list | org |
 
-## `ai.stigmer.agentic.agentinstance.v1`
-
-| Method | Fills |
-|---|---|
-| AgentInstanceCommandController.apply | metadata.org |
-| AgentInstanceCommandController.create | metadata.org |
-| AgentInstanceCommandController.update | metadata.org |
-| AgentInstanceQueryController.getByAgent | org |
-| AgentInstanceQueryController.getByReference | org |
-| AgentInstanceQueryController.list | org |
-
 ## `ai.stigmer.agentic.agentshare.v1`
 
 | Method | Fills |

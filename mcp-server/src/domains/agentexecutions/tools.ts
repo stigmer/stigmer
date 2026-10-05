@@ -27,7 +27,8 @@ export function registerAgentExecutionTools(server: McpServer, target: BackendTa
         "Start an agent execution (asynchronous). Returns immediately with the created execution " +
         "(aex_* ID) while the run continues in the background — poll get_agent_execution to observe " +
         "progress, pending approvals, and the final result. Omit session_id to start a fresh " +
-        "conversation; pass one to send a follow-up message into an existing session.",
+        "conversation on the agent; pass one to send a follow-up message into an existing session, " +
+        "which runs the agent the session started on.",
       inputSchema: {
         org: z
           .string()
@@ -44,8 +45,10 @@ export function registerAgentExecutionTools(server: McpServer, target: BackendTa
           .optional()
           .describe(
             "Existing session ID to continue a conversation (from a previous execution's " +
-              "spec.session_id). Omit to start a new session. A turn in a session belongs to " +
-              "that session's organization, which the server applies; `org` still names the agent.",
+              "spec.session_id). Omit to start a new session. A turn in a session runs the agent " +
+              "the session started on and belongs to that session's organization, which the server " +
+              "applies. `agent` (and `org`, when given) must name the session's agent, or the call " +
+              "is refused; neither is sent with the turn.",
           ),
         runtime_env: z
           .record(z.string())

@@ -91,7 +91,11 @@ import {
   type HermeticEnvironment,
   type InvocationControls,
 } from "../../../__test-utils__/hermetic-activity.js";
-import { executionRecordFixture, type ExecutionRecordOptions } from "../../../__test-utils__/execution-record-fixture.js";
+import {
+  DEFAULT_RECORD_IDS,
+  executionRecordFixture,
+  type ExecutionRecordOptions,
+} from "../../../__test-utils__/execution-record-fixture.js";
 import { FIXTURE_NATIVE_MODEL } from "../../../__test-utils__/model-registry-fixture.js";
 import { ScriptedModel, type ScriptSelector, type ScriptedTurnInfo } from "./scripted-model.js";
 import { bindScriptedModel } from "./scripted-model-module.js";
@@ -106,9 +110,10 @@ export const FIXTURE = {
   org: "hermetic-org",
   executionId: "aex_hermetic_0001",
   sessionId: SESSION_ID,
-  agentInstanceId: "ain_hermetic_0001",
   agentId: "agt_hermetic_0001",
   agentName: "hermetic-agent",
+  /** The agent version every fixture turn is stamped with. */
+  agentVersionHash: DEFAULT_RECORD_IDS.agentVersionHash,
   /** The pinned model; in the registry document as the native entry. */
   model: FIXTURE_NATIVE_MODEL,
   /** The LangGraph thread id the control plane sends on every invocation (`ensure-thread.ts`). */
@@ -122,7 +127,7 @@ export const FIXTURE = {
 /** The record's knobs; the ids and the default model are this harness's fixture. */
 export type DeepAgentRecordOptions = Omit<ExecutionRecordOptions, "ids">;
 
-/** The four resources of one execution, wired by id into a chain, under the native fixture ids. */
+/** The three resources of one execution, wired by id, under the native fixture ids. */
 export function deepAgentExecutionRecord(options: DeepAgentRecordOptions): ExecutionRecord {
   return executionRecordFixture({
     ...options,
@@ -131,9 +136,9 @@ export function deepAgentExecutionRecord(options: DeepAgentRecordOptions): Execu
       org: FIXTURE.org,
       executionId: FIXTURE.executionId,
       sessionId: FIXTURE.sessionId,
-      agentInstanceId: FIXTURE.agentInstanceId,
       agentId: FIXTURE.agentId,
       agentName: FIXTURE.agentName,
+      agentVersionHash: FIXTURE.agentVersionHash,
     },
   });
 }

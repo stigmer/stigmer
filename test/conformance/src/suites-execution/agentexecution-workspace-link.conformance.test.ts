@@ -30,7 +30,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { GitWorkspace, requireGit } from "../harness/git-workspace";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { pollUntil } from "../support/execution-poll";
 import { uniqueName } from "../support/naming";
@@ -128,16 +128,12 @@ describe("the workspace .stigmer link on a skill turn", () => {
       makeAgent({ org, name: uniqueName("agent-link"), skillRefs: [pushed.metadata!.slug] }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    const instanceId = agent.status?.defaultInstanceId;
-    if (instanceId === undefined || instanceId === "") {
-      throw new Error("agent create did not provision a default instance");
-    }
 
     const session = await clients.sessionCommand.create(
       makeSession({
         org,
         name: uniqueName("ses-link"),
-        agentInstanceId: instanceId,
+        agentRef: agentRefOf(agent),
         harness: Harness.NATIVE,
         localWorkspaces: [{ name: "repo", path: workspace.dir }],
       }),

@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
+import type { SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { NewSessionViewer } from "../session/NewSessionViewer.js";
 import { SessionViewer } from "../session/SessionViewer.js";
 import { useSharedAgentProfile } from "./useSharedAgentProfile.js";
@@ -66,10 +67,12 @@ export interface SharedAgentChatProps {
  * the organism behind a shared agent's hosted page and embeds.
  *
  * Resolves the agent's public profile (name, description, icon, and
- * the pinned deployment) via {@link useSharedAgentProfile}, then
+ * the share's agent reference) via {@link useSharedAgentProfile}, then
  * renders the session organisms with `audience="guest"`: a pure chat
- * surface with no configuration pickers, pinned to the shared agent's
- * default instance so the session binds synchronously on mount.
+ * surface with no configuration pickers, pinned to the share's agent
+ * reference exactly as the profile gives it, version included, so the
+ * session binds synchronously on mount and runs the version the share
+ * names.
  *
  * Handles all states: loading, unavailable (the agent does not exist
  * or is not shared — indistinguishable by design), transient errors
@@ -110,6 +113,11 @@ export function SharedAgentChat({
     audience: sharingAudience,
     linkToken,
   });
+  // Memoized so the launcher's mount-time pin sees one stable reference.
+  const agentRef = useMemo(
+    () => (profile ? shareAgentRef(profile) : null),
+    [profile],
+  );
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -147,9 +155,9 @@ export function SharedAgentChat({
 
   // NOT_FOUND covers both "no such agent" and "sharing disabled" — the
   // server keeps them indistinguishable so a revoked link leaks nothing.
-  // A profile without a default instance is equally unusable: there is
-  // no deployment to chat with, so it presents as the same state.
-  if (!profile || !profile.defaultInstanceId) {
+  // A profile that names no agent is equally unusable: there is nothing
+  // to chat with, so it presents as the same state.
+  if (!profile || !agentRef) {
     return (
       <div className={cn("stg:flex stg:h-full stg:w-full stg:items-center stg:justify-center", className)}>
         <StateCard
@@ -205,8 +213,7 @@ export function SharedAgentChat({
           <NewSessionViewer
             org={org}
             audience="guest"
-            initialAgentRef={{ org, slug }}
-            initialInstanceId={profile.defaultInstanceId}
+            initialAgentRef={agentRef}
             enableGitHub={false}
             heading={heading ?? `Chat with ${profile.name || slug}`}
             placeholder={placeholder ?? "Ask anything\u2026"}
@@ -240,6 +247,23 @@ export function SharedAgentChat({
       )}
     </div>
   );
+}
+
+/**
+ * The share's agent reference as the session flow takes it: organization,
+ * slug and version copied as the profile gives them (the edition's guest
+ * gate admits a session only on the share's own reference), or `null`
+ * when the profile names no agent.
+ */
+function shareAgentRef(profile: SharedAgentProfile): ResourceRef | null {
+  const ref = profile.agentRef;
+  if (ref === undefined || ref.slug === "") return null;
+  return {
+    org: ref.org,
+    slug: ref.slug,
+    ...(ref.version !== "" && { version: ref.version }),
+    kind: ref.kind,
+  };
 }
 
 // ---------------------------------------------------------------------------

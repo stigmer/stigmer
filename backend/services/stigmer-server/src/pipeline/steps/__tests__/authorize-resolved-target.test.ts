@@ -76,17 +76,17 @@ async function captureError(
 }
 
 const ORG_QUESTION: AuthorizationTarget = {
-  permission: IamPermission.can_create_agent_instance,
+  permission: IamPermission.can_create_agent_share,
   resourceKind: ApiResourceKind.organization,
   resourceId: "acme",
-  deniedMessage: "unauthorized to create agent instance in this organization",
+  deniedMessage: "unauthorized to create agent share in this organization",
 };
 
 const PARENT_QUESTION: AuthorizationTarget = {
-  permission: IamPermission.can_create_instance,
+  permission: IamPermission.can_execute,
   resourceKind: ApiResourceKind.agent,
   resourceId: "agt_01parent",
-  deniedMessage: "You don't have permission to create instances of this agent",
+  deniedMessage: "unauthorized to run agent 'agt_01parent'",
 };
 
 function agentCtx(caller = testCallerIdentity()) {
@@ -132,12 +132,12 @@ describe("AuthorizeResolvedTarget — the step shell", () => {
     ]).execute(agentCtx());
     expect(checks).toEqual([
       {
-        permission: IamPermission.can_create_agent_instance,
+        permission: IamPermission.can_create_agent_share,
         resourceKind: ApiResourceKind.organization,
         resourceId: "acme",
       },
       {
-        permission: IamPermission.can_create_instance,
+        permission: IamPermission.can_execute,
         resourceKind: ApiResourceKind.agent,
         resourceId: "agt_01parent",
       },

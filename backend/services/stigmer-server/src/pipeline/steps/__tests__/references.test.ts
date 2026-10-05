@@ -6,13 +6,17 @@
  * each kind — no org refused, a same-organization target must exist, the
  * floor applies to the kinds the run reads as the person and to no other,
  * a relative reference's floor is capped at org and its target must still
- * exist in the resource's organization, a version a write introduces on a
- * reference to a kind whose references may not name one (agents) is
- * malformed input while one the stored row already carries is kept, a cross-organization target is admitted only at platform visibility with
+ * exist in the resource's organization, a version on a reference is never
+ * the rule's to judge (an agent's included), a cross-organization target
+ * is admitted only at platform visibility with
  * ONE sentence whether it is missing or merely not shared; the MCP-server
  * copy that predates the rule is byte-identical and its siblings take its
  * shape; the walk reads a reference's kind from its field, not from the
- * message; the step over a real store loads each referenced kind once; and
+ * message; the step over a real store loads each referenced kind once,
+ * records the targets it resolved (RESOLVED_REFERENCE_TARGETS_KEY) for
+ * every reference, and under `judge: "introduced"` judges only the
+ * references the stored row does not already carry, loading nothing when
+ * the write introduces none; and
  * the escalation door asks the floor alone — a dependency that has left is
  * not its question — and only when the level is being raised.
  */
@@ -25,7 +29,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
@@ -52,7 +55,6 @@ import {
   REFERENCE_TARGET_KINDS,
   belowFloorMessage,
   checkReference,
-  checkReferenceVersion,
   checkReferences,
   collectSpecReferences,
   loadReferenceTargets,
@@ -64,7 +66,7 @@ import {
   notViewableReferenceMessage,
   referenceRefusal,
   referenceTargetKind,
-  versionNamedMessage,
+  resolvedReferenceTargets,
 } from "../references.js";
 import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import { newPermissiveSingleTeamAuthorizer } from "../authorize.js";
@@ -98,7 +100,6 @@ const SCHEMAS_UNDER_THE_RULE: ReadonlyArray<DescMessage> = [
   AgentSchema,
   McpServerSchema,
   WorkflowSchema,
-  AgentInstanceSchema,
   WorkflowInstanceSchema,
   EnvironmentSchema,
   ScheduleSchema,
@@ -276,41 +277,34 @@ describe("checkReference", () => {
     ).toEqual({ kind: "no-org" });
   });
 
-  it("a version clause on the write path: a version a write introduces on an agent reference is refused, and only for agents", () => {
-    const versioned = (kind: ApiResourceKind, slug: string, version = "stable"): SpecReference => ({
-      kind,
-      org: "acme",
-      slug,
-      version,
-    });
-    expect(checkReferenceVersion(versioned(K.agent, "reviewer"), [])).toEqual({ kind: "version-named" });
-    expect(checkReferenceVersion(versioned(K.skill, "org-skill"), [])).toBeUndefined();
-    expect(checkReferenceVersion(versioned(K.mcp_server, "github"), [])).toBeUndefined();
-    expect(checkReferenceVersion({ kind: K.agent, org: "acme", slug: "reviewer" }, [])).toBeUndefined();
-    expect(checkReferenceVersion(versioned(K.agent, "reviewer", "latest"), [])).toBeUndefined();
-    expect(
-      REFERENCE_TARGET_KINDS.filter((e) => !e.mayNameVersion).map((e) => e.kind),
-    ).toEqual([K.agent]);
-    const refusal = referenceRefusal(ACME_ORG, [
-      { ref: versioned(K.agent, "reviewer"), verdict: { kind: "version-named" } },
+  it("a version on a reference is the contract's word, never this rule's: a versioned agent reference is judged by the row it names", () => {
+    const withAgent = targetsOf([
+      {
+        kind: K.agent,
+        org: "acme",
+        slug: "reviewer",
+        visibility: V.visibility_org,
+      },
     ]);
-    expect(refusal?.code).toBe(Code.InvalidArgument);
-    expect(refusal?.rawMessage).toBe(
-      versionNamedMessage(referenceTargetKind(K.agent)!, versioned(K.agent, "reviewer")),
-    );
-  });
-
-  it("the version clause keeps what the stored row already carries: an unrelated edit passes, a changed version does not", () => {
-    const stored = [{ kind: K.agent, org: "acme", slug: "reviewer", version: "stable" }];
+    for (const version of ["stable", "latest", "a".repeat(64)]) {
+      expect(
+        checkReference(withAgent, ACME_ORG, {
+          kind: K.agent,
+          org: "acme",
+          slug: "reviewer",
+          version,
+        }),
+        version,
+      ).toEqual({ kind: "ok" });
+    }
     expect(
-      checkReferenceVersion({ kind: K.agent, org: "acme", slug: "reviewer", version: "stable" }, stored),
-    ).toBeUndefined();
-    expect(
-      checkReferenceVersion({ kind: K.agent, org: "acme", slug: "reviewer", version: "canary" }, stored),
-    ).toEqual({ kind: "version-named" });
-    expect(
-      checkReferenceVersion({ kind: K.agent, org: "acme", slug: "other", version: "stable" }, stored),
-    ).toEqual({ kind: "version-named" });
+      checkReference(withAgent, ACME_ORG, {
+        kind: K.agent,
+        org: "acme",
+        slug: "ghost",
+        version: "stable",
+      }),
+    ).toEqual({ kind: "missing" });
   });
 
   it("the three clauses say nothing about a version, so the escalation door still judges a versioned reference's floor", () => {
@@ -678,6 +672,158 @@ describe("the step over a store", () => {
     );
   });
 
+  it("the step records the targets it resolved, so a later step reads a reference's id without scanning again", async () => {
+    await seedSkill("skl_1", "acme", "one", V.visibility_org);
+    const ctx = new RequestContext(
+      AgentSchema,
+      agentWith(V.visibility_org, [{ org: "acme", slug: "one" }]),
+      testCallerIdentity(),
+      K.agent,
+    );
+    expect(resolvedReferenceTargets(ctx)).toBeUndefined();
+    await newValidateReferencesStep<typeof AgentSchema>(
+      store,
+      newPermissiveSingleTeamAuthorizer(),
+    ).execute(ctx);
+    expect(resolvedReferenceTargets(ctx)?.idOf(ref(K.skill, "acme", "one"))).toBe(
+      "skl_1",
+    );
+  });
+
+  describe('judge: "introduced" — only the references the stored row does not already carry', () => {
+    // The stored row carries `kept` (still there) and `gone` (deleted
+    // since it was written); the write echoes both and adds `added`.
+    function update(added: string) {
+      const ctx = new RequestContext(
+        AgentSchema,
+        agentWith(V.visibility_org, [
+          { org: "acme", slug: "kept" },
+          { org: "acme", slug: "gone" },
+          { org: "acme", slug: added },
+        ]),
+        testCallerIdentity(),
+        K.agent,
+      );
+      ctx.set(
+        EXISTING_RESOURCE_KEY,
+        agentWith(V.visibility_org, [
+          { org: "acme", slug: "kept" },
+          { org: "acme", slug: "gone" },
+        ]),
+      );
+      return ctx;
+    }
+
+    beforeEach(async () => {
+      await seedSkill("skl_kept", "acme", "kept", V.visibility_org);
+      await seedSkill("skl_added", "acme", "added", V.visibility_org);
+    });
+
+    it("passes an echoed reference whose target has gone, and records the targets of every reference", async () => {
+      const ctx = update("added");
+      await newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+        { judge: "introduced" },
+      ).execute(ctx);
+      const targets = resolvedReferenceTargets(ctx);
+      expect(targets?.idOf(ref(K.skill, "acme", "kept"))).toBe("skl_kept");
+      expect(targets?.idOf(ref(K.skill, "acme", "added"))).toBe("skl_added");
+      expect(targets?.idOf(ref(K.skill, "acme", "gone"))).toBeUndefined();
+    });
+
+    it("loads nothing and records nothing when the write introduces no reference", async () => {
+      const ctx = new RequestContext(
+        AgentSchema,
+        agentWith(V.visibility_org, [
+          { org: "acme", slug: "kept" },
+          { org: "acme", slug: "gone" },
+        ]),
+        testCallerIdentity(),
+        K.agent,
+      );
+      ctx.set(
+        EXISTING_RESOURCE_KEY,
+        agentWith(V.visibility_org, [
+          { org: "acme", slug: "kept" },
+          { org: "acme", slug: "gone" },
+        ]),
+      );
+      const listed: ApiResourceKind[] = [];
+      const counting = new Proxy(store, {
+        get(target, prop, receiver) {
+          if (prop === "listResources") {
+            return (kind: ApiResourceKind) => {
+              listed.push(kind);
+              return target.listResources(kind);
+            };
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      });
+      await newValidateReferencesStep<typeof AgentSchema>(
+        counting,
+        newPermissiveSingleTeamAuthorizer(),
+        { judge: "introduced" },
+      ).execute(ctx);
+      expect(listed).toEqual([]);
+      expect(resolvedReferenceTargets(ctx)).toBeUndefined();
+    });
+
+    it("still refuses a newly added reference whose target is missing", async () => {
+      const error = await failureOf(() =>
+        newValidateReferencesStep<typeof AgentSchema>(
+          store,
+          newPermissiveSingleTeamAuthorizer(),
+          { judge: "introduced" },
+        ).execute(update("ghost")),
+      );
+      expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
+      expect((error as ConnectError).rawMessage).toBe(
+        missingReferencesMessage(referenceTargetKind(K.skill)!, [
+          { slug: "ghost", org: "acme" },
+        ]),
+      );
+    });
+
+    it("the default judges every reference: the echoed one whose target has gone is refused, and the targets are recorded all the same", async () => {
+      const ctx = update("added");
+      const error = await failureOf(() =>
+        newValidateReferencesStep<typeof AgentSchema>(
+          store,
+          newPermissiveSingleTeamAuthorizer(),
+        ).execute(ctx),
+      );
+      expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
+      expect((error as ConnectError).rawMessage).toBe(
+        missingReferencesMessage(referenceTargetKind(K.skill)!, [
+          { slug: "gone", org: "acme" },
+        ]),
+      );
+
+      const passing = new RequestContext(
+        AgentSchema,
+        agentWith(V.visibility_org, [
+          { org: "acme", slug: "kept" },
+          { org: "acme", slug: "added" },
+        ]),
+        testCallerIdentity(),
+        K.agent,
+      );
+      passing.set(
+        EXISTING_RESOURCE_KEY,
+        agentWith(V.visibility_org, [{ org: "acme", slug: "kept" }]),
+      );
+      await newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(passing);
+      const targets = resolvedReferenceTargets(passing);
+      expect(targets?.idOf(ref(K.skill, "acme", "kept"))).toBe("skl_kept");
+      expect(targets?.idOf(ref(K.skill, "acme", "added"))).toBe("skl_added");
+    });
+  });
+
   it("the loaded targets are indexed by (org, slug): the same slug in another organization is another row", async () => {
     await seedSkill("skl_a", "acme", "shared-name", V.visibility_org);
     await seedSkill("skl_g", "globex", "shared-name", V.visibility_platform);
@@ -887,16 +1033,16 @@ describe("the writer clause: a write may introduce only an environment its write
   }
 
   function instanceNaming(...slugs: string[]) {
-    return create(AgentInstanceSchema, {
+    return create(WorkflowInstanceSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentInstance",
+      kind: "WorkflowInstance",
       metadata: {
         name: "Team helper",
         org: "acme",
         visibility: V.visibility_org,
       },
       spec: {
-        agentId: "agt_helper",
+        workflowId: "wfl_helper",
         environmentRefs: slugs.map((slug) => ({
           kind: K.environment,
           org: "acme",
@@ -914,19 +1060,19 @@ describe("the writer clause: a write may introduce only an environment its write
     readonly checks?: string[];
   }): Promise<unknown> {
     const ctx = new RequestContext(
-      AgentInstanceSchema,
+      WorkflowInstanceSchema,
       instanceNaming(...opts.names),
       testCallerIdentity({
         identityId: opts.writer,
         callerClass: opts.callerClass ?? "user",
       }),
-      K.agent_instance,
+      K.workflow_instance,
     );
     if (opts.stored !== undefined) {
       ctx.set(EXISTING_RESOURCE_KEY, instanceNaming(...opts.stored));
     }
     return failureOf(() =>
-      newValidateReferencesStep<typeof AgentInstanceSchema>(
+      newValidateReferencesStep<typeof WorkflowInstanceSchema>(
         store,
         environmentViews(opts.checks ?? []),
       ).execute(ctx),
@@ -1013,21 +1159,21 @@ describe("the writer clause: a write may introduce only an environment its write
 
   it("a malformed reference beside a refused one still answers INVALID_ARGUMENT first", async () => {
     const ctx = new RequestContext(
-      AgentInstanceSchema,
-      create(AgentInstanceSchema, {
+      WorkflowInstanceSchema,
+      create(WorkflowInstanceSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
-        kind: "AgentInstance",
+        kind: "WorkflowInstance",
         metadata: { name: "No org", org: "", visibility: V.visibility_org },
         spec: {
-          agentId: "agt_helper",
+          workflowId: "wfl_helper",
           environmentRefs: [{ kind: K.environment, org: "", slug: "ana-keys" }],
         },
       }),
       testCallerIdentity({ identityId: "acc_ben" }),
-      K.agent_instance,
+      K.workflow_instance,
     );
     const error = await failureOf(() =>
-      newValidateReferencesStep<typeof AgentInstanceSchema>(
+      newValidateReferencesStep<typeof WorkflowInstanceSchema>(
         store,
         environmentViews([]),
       ).execute(ctx),

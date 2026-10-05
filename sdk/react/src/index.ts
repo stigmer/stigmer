@@ -160,7 +160,10 @@ export {
   useWorkspaceReadRefs,
   useSessionFileChanges,
   useSessionUsage,
-  useAgentRefFromSession,
+  agentRefOfSession,
+  isSameAgent,
+  useSessionAgentVersion,
+  AgentVersionNotice,
   useNewSessionFlow,
   useSessionPageFlow,
   usePersistedModel,
@@ -213,7 +216,9 @@ export type {
   ModelCostEntry,
   UseSessionUsageReturn,
   ExecutionUsageEntry,
-  UseAgentRefFromSessionReturn,
+  UseSessionAgentVersionOptions,
+  UseSessionAgentVersionReturn,
+  AgentVersionNoticeProps,
   UseNewSessionFlowOptions,
   UseNewSessionFlowReturn,
   UseSessionPageFlowOptions,
@@ -555,6 +560,7 @@ export { FILE_REF_MIME } from "./internal/file-tree/index.js";
 export {
   useComposer,
   SessionComposer,
+  PersonalKeyDisclosure,
   InteractionModePicker,
 } from "./composer/index.js";
 export type {
@@ -563,6 +569,7 @@ export type {
   SessionComposerHandle,
   SessionComposerProps,
   SessionComposerSubmitContext,
+  PersonalKeyDisclosureProps,
   InteractionModePickerProps,
   InteractionModeOption,
 } from "./composer/index.js";
@@ -853,6 +860,7 @@ export {
   AgentDetailView,
   useAgentVersions,
   useAgentVersionCount,
+  agentVersionLabel,
   AgentVersionsTab,
   AgentEnvForm,
   diffEnv,
@@ -1868,35 +1876,6 @@ export type {
   DateRange,
   DateRangePreset,
 } from "./usage/index.js";
-
-// Agent Instance — data hooks, mutation hooks, management components, and behavior hook
-export {
-  useAgentInstance,
-  useAgentInstanceList,
-  useAgentInstances,
-  usePersonalAgentInstance,
-  useCreateAgentInstance,
-  useUpdateAgentInstance,
-  useDeleteAgentInstance,
-  AgentInstanceList,
-  AgentInstanceEmptyState,
-  CreateAgentInstanceDialog,
-  AgentInstanceDetailPanel,
-} from "./agent-instance/index.js";
-export type {
-  UseAgentInstanceReturn,
-  UseAgentInstanceListReturn,
-  UseAgentInstancesReturn,
-  GetOrCreatePersonalInstanceInput,
-  UsePersonalAgentInstanceReturn,
-  UseCreateAgentInstanceReturn,
-  UseUpdateAgentInstanceReturn,
-  UseDeleteAgentInstanceReturn,
-  AgentInstanceListProps,
-  AgentInstanceEmptyStateProps,
-  CreateAgentInstanceDialogProps,
-  AgentInstanceDetailPanelProps,
-} from "./agent-instance/index.js";
 
 // Tabs — accessible tabbed panel primitive
 export { Tabs } from "./tabs/index.js";

@@ -81,16 +81,15 @@ IdentityProvider, `kind: identity_provider` | Identity Provider |
 | **Identity Account** | --- | --- | Identity Account | IdentityAccount,
 `kind: identity_account` | Identity Account | | **PlatformClient** | --- | --- |
 PlatformClient | PlatformClient, `kind: platform_client` | PlatformClient | |
-**Agent Instance** | --- | Agent Instance | Agent Instance | AgentInstance,
-`kind: AgentInstance` | Agent Instance | | **Agent Execution** | --- | run,
-execution | Agent Execution | AgentExecution, `kind: AgentExecution` | Agent
-Execution | | **Workflow Execution** | --- | run, execution | Workflow Execution
-| WorkflowExecution, `kind: WorkflowExecution` | Workflow Execution | |
-**Sub-Agent** | --- | --- | Sub-Agent | SubAgent, `sub_agents` | Sub-Agent | |
-**Agent Channel** | --- | --- | channel, Agent Channel | AgentChannel,
-`kind: AgentChannel` | Agent Channel | | **Channel App** | --- | --- | Channel
-App | ChannelApp, `kind: ChannelApp` | Channel App | | **Schedule** | --- | ---
-| schedule, Schedule | Schedule, `kind: Schedule` | Schedule |
+**Agent Execution** | --- | run, execution | Agent Execution | AgentExecution,
+`kind: AgentExecution` | Agent Execution | | **Workflow Execution** | --- | run,
+execution | Workflow Execution | WorkflowExecution, `kind: WorkflowExecution` |
+Workflow Execution | | **Sub-Agent** | --- | --- | Sub-Agent | SubAgent,
+`sub_agents` | Sub-Agent | | **Agent Channel** | --- | --- | channel, Agent
+Channel | AgentChannel, `kind: AgentChannel` | Agent Channel | | **Channel App**
+| --- | --- | Channel App | ChannelApp, `kind: ChannelApp` | Channel App | |
+**Schedule** | --- | --- | schedule, Schedule | Schedule, `kind: Schedule` |
+Schedule |
 
 Dash (—) means the term should not appear in that context.
 
@@ -349,10 +348,12 @@ An ongoing conversation with an Agent across multiple messages.
 - **Capitalize**: Yes, when referring to the Stigmer resource.
 - **API surface**: `kind: Session`, prefix `ses`. proto: `session/v1/api.proto`,
   `session/v1/spec.proto`.
-- **Key fields**: `thread_id` (persists across executions), `subject` (display
-  title), `workspace_entries`, `sandbox_id`. Sessions can add
-  `mcp_server_usages` and `skill_refs` to the Agent's; the Agent's tool lists
-  still govern every tool.
+- **Key fields**: `agent_ref` (the Agent the conversation runs; empty for the
+  built-in assistant), `status.agent_version_hash` (the Agent version the
+  conversation runs until someone updates it), `thread_id` (persists across
+  executions), `subject` (display title), `workspace_entries`, `sandbox_id`.
+  Sessions can add `mcp_server_usages` and `skill_refs` to the Agent's; the
+  Agent's tool lists still govern every tool.
 - **Related terms**: A Session contains multiple Agent Executions. Each message
   exchange within a Session is one execution. The proto also uses `MessageType`
   (HUMAN, AI, TOOL, SYSTEM) for individual messages.
@@ -662,7 +663,7 @@ per-action control exists.
   `OrganizationSpec.preferences` (`OrganizationPreferences`) and
   `IdentityAccountSpec.preferences` (`IdentityAccountPreferences`), each with
   `standing_context`. The server snapshots the texts onto
-  `AgentExecutionSpec.declared_preferences` at execution create.
+  `AgentExecutionStatus.declared_preferences` at execution create.
 - **Boundaries**: a Preference is not a **Skill** (Agent knowledge), not an
   **Environment** (workload config and secrets), not a **Session** (conversation
   state), and not a **Memory** (a learned fact an agent proposed and you
@@ -858,20 +859,6 @@ engine.
   been introduced.
 - **Related terms**: Harness (the parent concept), cursor-runner (the Temporal
   worker that implements it, architecture only).
-
----
-
-#### Agent Instance
-
-A deployed copy of an Agent running in a specific Environment with its own
-configuration and secrets.
-
-- **Capitalize**: Yes.
-- **API surface**: `kind: AgentInstance`, prefix `ain`. proto:
-  `agentinstance/v1/spec.proto`.
-- **Key fields**: `agent_id`, `environment_refs`.
-- **Context rule**: Do not use on the sales site or in quickstart. Introduce in
-  concepts docs as part of the Agent lifecycle. Explain in reference docs.
 
 ---
 
@@ -1212,6 +1199,27 @@ moves every row that carried it to Organization visibility.
   describing "publishing to the marketplace" or "a public Skill another
   Organization can reference" is describing the retired level; point it at
   Plugin, or at Platform when the two Organizations share an Identity Provider.
+
+---
+
+#### Agent Instance
+
+Retired term. A `kind: AgentInstance` (prefix `ain`) was a deployed copy of an
+Agent bound to Environments, and a Session named an instance rather than its
+Agent; every Agent carried a default one. The kind and its CLI verbs were
+removed: a Session names its Agent directly (`agent_ref`) and runs the version
+it started on, and Environments are bound to what starts a run (a Schedule, a
+Workflow `agent_call` task, a PlatformClient), with the personal Environment of
+the person sending the message filling the Agent's declared keys that nothing
+else supplies when the Agent belongs to the run's own Organization (an Agent
+another Organization published reads none, and an MCP Server's OAuth variable
+comes only from the sign-in to that server).
+
+- **Capitalize**: Yes, when naming the retired kind in an upgrade note.
+- **Context rule**: Do not use in new writing. A reader still meets the word in
+  the sentence `stigmer apply -f` and `stigmer validate -f` print for a manifest
+  that still carries `kind: AgentInstance`, which says what happened and names
+  `stigmer run`. "Workflow Instance" is a different, current kind.
 
 ---
 

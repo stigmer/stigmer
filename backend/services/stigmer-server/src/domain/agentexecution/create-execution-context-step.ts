@@ -5,48 +5,48 @@
  * (newCreateExecutionContextStep) and the recover pipeline
  * (lifecycle.ts's recreate step): recovery must rebuild the EC because
  * the failed run's workflow cleanup deleted it, and re-resolving from the
- * CURRENT instance and environment configuration is the desired semantics
- * ("fix the API key, then recover"). The agent is not re-resolved: it is
- * the agent and version the turn recorded at create (status.agent_id,
- * agent_version_hash, stamped by ResolveRunAgent), read through
- * getVersion, so recovery after an author's edit, or after the session was
- * repointed, rebuilds from the agent the turn ran.
+ * CURRENT environment configuration is the desired semantics ("fix the API
+ * key, then recover"). The agent is not re-resolved: it is the agent and
+ * version the turn recorded (status.agent_id, agent_version_hash, stamped
+ * by ResolveRunAgent), read through getVersion, so recovery after an
+ * author's edit, or after the session was repointed, rebuilds from the
+ * agent the turn ran.
  *
- * Resolution chain:
- *   - Path A (preResolvedInstanceId): agentInstanceLoader → the agent
- *   - Path B (session_id): sessionLoader → session.agent_instance_id →
- *     agentInstanceLoader → the agent; an EMPTY agent_instance_id is the
- *     built-in assistant (session/v1/spec.proto): no instance, no agent,
- *     no instance layers, and the session's own MCP servers are the whole
- *     tool set.
- *   - The agent: the stamped version's spec (agentLoader.getVersion); a
- *     turn with no stamped version (created before agents were versioned,
- *     or on an agent with no recorded version) reads the stamped agent, or
- *     the instance's when nothing is stamped, as it is now. A stamped
- *     version that no longer resolves refuses, naming it: running the
- *     agent's current version would run and record something nobody
- *     asked for.
+ * Resolution: the session by the execution's session_id (its workspace
+ * entries and its own MCP servers shape the environment), and the agent
+ * from the stamp alone: the stamped version's spec (agentLoader.getVersion),
+ * or the stamped agent as it is now when the turn recorded no version (an
+ * agent written before agents were versioned, or with no recorded
+ * version). A stamped version that no longer resolves refuses, naming it:
+ * running the agent's current version would run and record something
+ * nobody asked for. No stamp is the built-in assistant
+ * (session/v1/spec.proto): no agent, and the session's own MCP servers are
+ * the whole tool set.
  *
  * Merge priority (lowest to highest): the minting PlatformClient's
  * environment_refs, for an execution a PlatformClient-minted user created
  * (#1256) → schedule/workflow-task environment_refs (the
- * share/channel/schedule/agent_call layering) → instance environment_refs
- * (via the environment RuntimeResolutionService — decrypted, the RPC
- * surface redacts, oss#405) → spec.runtime_env. Every layer is keyed on
- * the persisted execution alone (its labels, its audit), never on the
+ * share/channel/schedule/agent_call layering; resolved through the
+ * environment RuntimeResolutionService — decrypted, the RPC surface
+ * redacts, oss#405) → spec.runtime_env. Every layer is keyed on the
+ * persisted execution alone (its labels, its audit), never on the
  * request's caller, so recovery rebuilds exactly what create built.
  *
  * Then ONE declaration rule for every shape: the run declares what its
  * agent declares and what its session's MCP servers declare, and the
- * least-privilege filter keeps exactly those keys. A session server rides
- * no agent instance, so its declared variables have no environment_refs
- * to arrive through; the ones still missing after the merge are resolved
- * the way the MCP connect lane resolves them — OAuth tokens from the
- * managed grant, the rest from the run's person's personal environment,
- * by declared key only (domain/environment/personal.ts). The built-in
- * assistant is the case with no agent half, not an arm of its own.
- * Around that rule: the workspace-provisioning re-injection, and the
- * required-keys warning.
+ * least-privilege filter keeps exactly those keys. The declared keys still
+ * missing after the merge are resolved the way the MCP connect lane
+ * resolves them — OAuth tokens from the managed grant, the rest from the
+ * run's person's personal environment, by declared key only
+ * (domain/environment/personal.ts), after every layer. The built-in
+ * assistant is the case with no agent half, not an arm of its own. The
+ * person's values reach what the agent's author wrote (its shell receives
+ * exactly the keys it declares) as they reach MCP servers a session's
+ * owner chose, but only for an agent of the run's own organization: an
+ * agent another organization published reads none of the person's keys.
+ * The console names the keys an agent will read before the first
+ * message. Around that rule: the workspace-provisioning
+ * re-injection, and the required-keys warning.
  *
  * Every personal read is the RUN'S PERSON'S (run-person.ts): the
  * execution's own creator, read from the persisted row like every layer
@@ -59,7 +59,6 @@ import type {
   AgentSpec,
   McpServerUsage,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
@@ -117,9 +116,9 @@ import { refreshTokenIfExpired } from "../mcpserver/oauth/refresh.js";
 import type { PlatformClientStore } from "../platformclient/store.js";
 import { unmarshalTaskConfig } from "../workflow/converter/unmarshal.js";
 
-import { DEFAULT_INSTANCE_ID_KEY } from "./create-steps.js";
 import type { AgentLoader } from "./create-steps.js";
 import { runPersonOf, SCHEDULE_ID_LABEL_KEY } from "./run-person.js";
+import { sessionIdOf } from "./target.js";
 
 export { SCHEDULE_ID_LABEL_KEY };
 
@@ -146,9 +145,6 @@ export const WORKSPACE_PROVISIONING_KEYS = ["GITHUB_TOKEN"];
 // The narrow in-process edges the builder consumes (lazy providers).
 // ---------------------------------------------------------------------------
 
-export interface AgentInstanceLoader {
-  get(instanceId: string): Promise<AgentInstance>;
-}
 export interface SessionLoader {
   get(sessionId: string): Promise<Session>;
 }
@@ -165,7 +161,6 @@ export interface ExecutionContextBuilderDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly agentLoader: () => AgentLoader;
-  readonly agentInstanceLoader: () => AgentInstanceLoader;
   readonly sessionLoader: () => SessionLoader;
   readonly environmentReader: () => EnvironmentReader;
   readonly environmentResolution: RuntimeResolutionService;
@@ -202,18 +197,7 @@ export function newCreateExecutionContextStep(
     async execute(ctx) {
       const execution = ctx.newState;
 
-      // Path A: the instance resolved by CreateDefaultInstanceIfNeeded,
-      // when the request came in by agent_id. Empty for session-first
-      // requests, which the builder resolves via the session (Path B).
-      const resolved = ctx.get(DEFAULT_INSTANCE_ID_KEY);
-      const preResolvedInstanceId =
-        typeof resolved === "string" ? resolved : "";
-
-      await buildAndPersistExecutionContext(
-        deps,
-        execution,
-        preResolvedInstanceId,
-      );
+      await buildAndPersistExecutionContext(deps, execution);
 
       if (Object.keys(execution.spec?.runtimeEnv ?? {}).length > 0) {
         deps.logger.debug(
@@ -233,57 +217,36 @@ export function newCreateExecutionContextStep(
 
 /**
  * Resolves the environment for the execution and persists a fresh
- * ExecutionContext (Go buildAndPersist). preResolvedInstanceId
- * short-circuits instance resolution; "" resolves via the execution's
- * session_id (the only path recover needs). Failures throw — the create
- * pipeline surfaces them as-is; the wrapping context matches Go's %w
- * chains in the logged (never wire) message.
+ * ExecutionContext (Go buildAndPersist), via the execution's session_id
+ * and its agent stamp — the same inputs on create and on recover. Failures
+ * throw — the create pipeline surfaces them as-is; the wrapping context
+ * matches Go's %w chains in the logged (never wire) message.
  */
 export async function buildAndPersistExecutionContext(
   deps: ExecutionContextBuilderDeps,
   execution: AgentExecution,
-  preResolvedInstanceId: string,
 ): Promise<void> {
   const executionId = execution.metadata?.id ?? "";
   const executionOrg = execution.metadata?.org ?? "";
 
-  // 1. Resolve the target: the instance the run is bound to, and the
-  // session when Path B loaded it on the way. An empty instance id with a
-  // session is the built-in assistant.
-  let target: ResolvedTarget;
+  // 1. The session: its workspace entries and its own MCP servers shape
+  // the environment below.
+  let session: Session;
   try {
-    target = await resolveTarget(deps, execution, preResolvedInstanceId);
+    session = await loadRunSession(deps, execution);
   } catch (error) {
-    chainError("resolve agent instance", error);
+    chainError("resolve session", error);
   }
-  const { agentInstanceId } = target;
-  let session = target.session;
 
-  // 2.–3. Load the instance (environment_refs + agent_id), then the
-  // agent's spec (env declarations, MCP usages) — in-process, full chain
-  // traversal, at the version the turn recorded. The agent is the recorded
-  // one whenever the turn recorded one, even if the session has since been
-  // moved to the built-in assistant: the runner runs the recorded agent, so
-  // the context declares for it too. Load failures keep the inner status
-  // code with Go's wrap prefix. Neither exists for a turn of the built-in
-  // assistant.
-  let instance: AgentInstance | undefined;
+  // 2. The agent's spec (env declarations, MCP usages) at the version the
+  // turn recorded — in-process, full chain traversal. The agent is the
+  // recorded one even if the session has since been moved to another
+  // agent or to the built-in assistant: the runner runs the recorded
+  // agent, so the context declares for it too. Load failures keep the
+  // inner status code with Go's wrap prefix. None for a turn of the
+  // built-in assistant.
+  const agentId = execution.status?.agentId ?? "";
   let agentSpec: AgentSpec | undefined;
-  if (agentInstanceId !== "") {
-    try {
-      instance = await deps.agentInstanceLoader().get(agentInstanceId);
-    } catch (error) {
-      if (error instanceof ConnectError) {
-        throw goWrappedStatusError(
-          `load agent instance ${agentInstanceId}`,
-          error,
-        );
-      }
-      chainError(`load agent instance ${agentInstanceId}`, error);
-    }
-  }
-  const agentId =
-    execution.status?.agentId || (instance?.spec?.agentId ?? "");
   if (agentId !== "") {
     agentSpec = await loadRunAgentSpec(
       deps,
@@ -291,56 +254,23 @@ export async function buildAndPersistExecutionContext(
       execution.status?.agentVersionHash ?? "",
     );
   }
-
-  // 3.5 The session, when Path A did not load it: its workspace entries
-  // and its own MCP servers shape the environment below. A failed load is
-  // non-fatal for an agent-bound run (the agent's declarations still
-  // stand); the built-in assistant always arrives through Path B, so its
-  // session is already in hand or the resolve above refused.
-  const sessionId = execution.spec?.sessionId ?? "";
-  if (session === undefined && sessionId !== "") {
-    try {
-      session = await deps.sessionLoader().get(sessionId);
-    } catch (error) {
-      deps.logger.warn(
-        "Failed to load session for environment resolution (non-fatal)",
-        {
-          executionId,
-          error: error instanceof Error ? error.message : String(error),
-        },
-      );
-    }
-  }
   const sessionMcpServers = await loadSessionMcpServers(
     deps,
     session,
     executionOrg,
   );
 
-  // 4. Resolve environments from instance environment_refs.
-  let environments = await resolveEnvironments(
-    deps,
-    instance?.spec?.environmentRefs ?? [],
-  );
-
-  // 4.5 Schedule-created executions: the schedule's own environment_refs
-  // merge BELOW instance refs (lowest priority — the AgentShare/
-  // AgentChannel layering). This is how a tool-using agent
+  // 3. Schedule-created executions: the schedule's own environment_refs
+  // (the AgentShare/AgentChannel layering). This is how a tool-using agent
   // becomes schedulable: the schedule binds the credentials its
-  // unattended runs need without touching the agent or its instance.
-  const scheduleEnvironments = await resolveScheduleEnvironments(
-    deps,
-    execution,
-  );
-  if (scheduleEnvironments.length > 0) {
-    environments = [...scheduleEnvironments, ...environments];
-  }
+  // unattended runs need without touching the agent.
+  let environments = await resolveScheduleEnvironments(deps, execution);
 
-  // 4.6 Workflow-created executions (agent_call): the task's own
-  // environment_refs, same lowest-priority layering — fourth in the
-  // share/channel/schedule lineage (issue #358). At most one of
-  // 4.5/4.6 applies: an execution is created by a schedule fire or by a
-  // workflow task, never both.
+  // 4. Workflow-created executions (agent_call): the task's own
+  // environment_refs, the same layering — fourth in the
+  // share/channel/schedule lineage (issue #358). At most one of 3 and 4
+  // applies: an execution is created by a schedule fire or by a workflow
+  // task, never both.
   const workflowEnvironments = await resolveWorkflowTaskEnvironments(
     deps,
     execution,
@@ -349,7 +279,7 @@ export async function buildAndPersistExecutionContext(
     environments = [...workflowEnvironments, ...environments];
   }
 
-  // 4.7 PlatformClient-minted executions: the minting client's own
+  // 4.5 PlatformClient-minted executions: the minting client's own
   // environment_refs, BELOW every other layer — the fifth application of
   // the connection-resource mechanism (#381, restored by #1256). The key
   // is the execution's audit created_by, which the server stamped from
@@ -398,23 +328,21 @@ export async function buildAndPersistExecutionContext(
       { executionId },
     );
   }
-  if (session !== undefined) {
-    filtered = injectWorkspaceProvisioningKeys(
-      deps.logger,
-      filtered,
-      merged,
-      session,
-      executionId,
-    );
-    filtered = await injectFromPersonalEnvironment(
-      deps,
-      filtered,
-      session,
-      executionOrg,
-      person,
-      executionId,
-    );
-  }
+  filtered = injectWorkspaceProvisioningKeys(
+    deps.logger,
+    filtered,
+    merged,
+    session,
+    executionId,
+  );
+  filtered = await injectFromPersonalEnvironment(
+    deps,
+    filtered,
+    session,
+    executionOrg,
+    person,
+    executionId,
+  );
 
   // 6.8 Inject OAuth tokens from managed environments — iterated
   // over the merged agent + session MCP usages so session-level servers
@@ -425,6 +353,7 @@ export async function buildAndPersistExecutionContext(
     agentSpec,
     session,
   );
+  const oauthTargets = new Set<string>();
   try {
     filtered = await injectMcpOAuthFromManagedEnvironment(
       deps,
@@ -432,6 +361,7 @@ export async function buildAndPersistExecutionContext(
       mergedMcpUsages,
       executionOrg,
       executionId,
+      oauthTargets,
     );
   } catch (error) {
     throw failedPreconditionError(
@@ -439,15 +369,28 @@ export async function buildAndPersistExecutionContext(
     );
   }
 
-  // 6.85 The session servers' declared variables the chain did not carry
-  // (no instance layer ever could): the run's person's personal
-  // environment, by declared key. Non-fatal — the run fails at the tool
-  // with a clearer error if a key is truly required, the posture of every
-  // fallback here.
-  filtered = await injectSessionServerDeclaredFromPersonalEnvironment(
+  // 6.85 The run's declared variables the layers did not carry, the
+  // agent's and the session servers' alike: the run's person's personal
+  // environment, by declared key, after every layer. Never an OAuth
+  // target of any server the run uses (the managed grant's alone), and
+  // never a key an agent of another organization declares. Non-fatal —
+  // the run fails at the tool with a clearer error if a key is truly
+  // required, the posture of every fallback here.
+  for (const server of sessionMcpServers) {
+    const target = server.spec?.auth?.targetEnvVar ?? "";
+    if (target !== "") {
+      oauthTargets.add(target);
+    }
+  }
+  filtered = await injectDeclaredFromPersonalEnvironment(
     deps,
     filtered,
-    sessionMcpServers,
+    declarations,
+    {
+      oauthTargets,
+      agentId,
+      agentEnv: agentSpec?.env ?? {},
+    },
     executionOrg,
     person,
     executionId,
@@ -467,8 +410,8 @@ export async function buildAndPersistExecutionContext(
     executionId,
     mergedCount: merged.size,
     filteredCount: filtered.size,
-    environmentRefsCount: instance?.spec?.environmentRefs.length ?? 0,
-    builtInAssistant: agentInstanceId === "",
+    environmentLayerCount: environments.length,
+    builtInAssistant: agentId === "",
   });
 
   // 7. Build and persist the ExecutionContext through the in-process
@@ -525,31 +468,18 @@ function chainError(prefix: string, error: unknown): never {
 }
 
 /**
- * The run's target (Go resolveAgentInstanceID, widened): Path A answers
- * the pre-resolved instance alone; Path B loads the session and answers
- * its instance, which is "" for the built-in assistant, together with the
- * session so the caller does not load it twice. A persisted execution
- * always carries session_id (lifecycle.ts recover), so the no-session arm
+ * The run's session, by the execution's session_id. A persisted execution
+ * always carries one (CreateSessionIfNeeded gives every turn its session,
+ * and lifecycle.ts recover reads persisted turns), so the no-session arm
  * is an invariant, not a shape.
  */
-interface ResolvedTarget {
-  readonly agentInstanceId: string;
-  readonly session: Session | undefined;
-}
-
-async function resolveTarget(
+async function loadRunSession(
   deps: ExecutionContextBuilderDeps,
   execution: AgentExecution,
-  preResolvedInstanceId: string,
-): Promise<ResolvedTarget> {
-  if (preResolvedInstanceId !== "") {
-    return { agentInstanceId: preResolvedInstanceId, session: undefined };
-  }
-  const sessionId = execution.spec?.sessionId ?? "";
+): Promise<Session> {
+  const sessionId = sessionIdOf(execution.spec);
   if (sessionId === "") {
-    throw new Error(
-      "neither a pre-resolved instance id nor session_id on execution",
-    );
+    throw new Error("no session_id on execution");
   }
   let session: Session;
   try {
@@ -562,7 +492,7 @@ async function resolveTarget(
       `load session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
-  return { agentInstanceId: session.spec?.agentInstanceId ?? "", session };
+  return session;
 }
 
 /**
@@ -654,32 +584,47 @@ function unionDeclarations(
   return union;
 }
 
+/** What the personal-environment fill must leave alone. */
+interface PersonalFillLimits {
+  /** Every OAuth target variable of a server the run uses: the managed grant's alone. */
+  readonly oauthTargets: ReadonlySet<string>;
+  /** The run's agent ("" for the built-in assistant). */
+  readonly agentId: string;
+  /** The keys that agent declares, at the version the run records. */
+  readonly agentEnv: { readonly [key: string]: EnvVarDeclaration };
+}
+
 /**
- * Resolves the session servers' declared variables still missing after
- * the merge and the OAuth injection from the run's person's personal
- * environment, by declared key. OAuth-target variables are left to the
- * managed grant (an absent grant is the sign-in the console asks for, not
- * a personal-environment lookup). A run with no person reads none. Every
- * failure is non-fatal here: a missing key is logged and the run meets
- * the tool's own error.
+ * Resolves the run's declared variables still missing after every layer
+ * and the OAuth injection — the agent's and its session servers' (the one
+ * declared set, unionDeclarations) — from the run's person's personal
+ * environment, by declared key. Left alone:
+ *   - every OAuth-target variable of a server the run uses, the agent's
+ *     and the session's (an absent grant is the sign-in the console asks
+ *     for, not a personal-environment lookup);
+ *   - every key the agent declares when the agent belongs to another
+ *     organization than the run: a person's values reach an agent their
+ *     own organization holds, never one another organization published.
+ *     The agent's organization is read only when it declares a wanted key;
+ *     an agent that cannot be read counts as another organization's.
+ * A run with no person reads none. Every failure is non-fatal here: a
+ * missing key is logged and the run meets the tool's own error.
  */
-async function injectSessionServerDeclaredFromPersonalEnvironment(
+async function injectDeclaredFromPersonalEnvironment(
   deps: ExecutionContextBuilderDeps,
   filtered: Map<string, ExecutionValue>,
-  sessionMcpServers: readonly McpServer[],
+  declarations: { readonly [key: string]: EnvVarDeclaration },
+  limits: PersonalFillLimits,
   executionOrg: string,
   person: string | undefined,
   executionId: string,
 ): Promise<Map<string, ExecutionValue>> {
   const wanted: { [key: string]: EnvVarDeclaration } = {};
-  for (const server of sessionMcpServers) {
-    const oauthKey = server.spec?.auth?.targetEnvVar ?? "";
-    for (const [key, decl] of Object.entries(server.spec?.env ?? {})) {
-      if (key === oauthKey || filtered.has(key)) {
-        continue;
-      }
-      wanted[key] = decl;
+  for (const [key, decl] of Object.entries(declarations)) {
+    if (limits.oauthTargets.has(key) || filtered.has(key)) {
+      continue;
     }
+    wanted[key] = decl;
   }
   if (
     Object.keys(wanted).length === 0 ||
@@ -687,6 +632,22 @@ async function injectSessionServerDeclaredFromPersonalEnvironment(
     person === undefined
   ) {
     return filtered;
+  }
+  const agentKeys = Object.keys(limits.agentEnv).filter((key) => key in wanted);
+  if (
+    agentKeys.length > 0 &&
+    (await agentOrgOf(deps, limits.agentId)) !== executionOrg
+  ) {
+    for (const key of agentKeys) {
+      delete wanted[key];
+    }
+    deps.logger.info(
+      "The run's agent belongs to another organization; its declared keys are not read from the personal environment",
+      { executionId, agentId: limits.agentId, keys: agentKeys.sort() },
+    );
+    if (Object.keys(wanted).length === 0) {
+      return filtered;
+    }
   }
 
   let resolution: PersonalEnvironmentResolution;
@@ -701,7 +662,7 @@ async function injectSessionServerDeclaredFromPersonalEnvironment(
     );
   } catch (error) {
     deps.logger.warn(
-      "Failed to resolve session servers' variables from the personal environment (non-fatal)",
+      "Failed to resolve declared variables from the personal environment (non-fatal)",
       {
         executionId,
         error: error instanceof Error ? error.message : String(error),
@@ -711,14 +672,14 @@ async function injectSessionServerDeclaredFromPersonalEnvironment(
   }
   if (resolution.kind === "no-personal-environment") {
     deps.logger.debug(
-      "No personal environment — session servers' declared variables stay unresolved",
+      "No personal environment — declared variables stay unresolved",
       { executionId, keys: Object.keys(wanted).sort() },
     );
     return filtered;
   }
   if (resolution.missing.length > 0) {
     deps.logger.warn(
-      "Session servers declare required variables the personal environment does not hold",
+      "The run declares required variables the personal environment does not hold",
       { executionId, missing: [...resolution.missing].sort() },
     );
   }
@@ -731,10 +692,26 @@ async function injectSessionServerDeclaredFromPersonalEnvironment(
     out.set(key, value);
   }
   deps.logger.info(
-    "Injected session servers' declared variables from the run's person's personal environment",
+    "Injected declared variables from the run's person's personal environment",
     { executionId, keys: entries.map(([key]) => key).sort() },
   );
   return out;
+}
+
+/**
+ * The organization an agent belongs to, or "" when it cannot be read. Only
+ * asked for an agent that declares keys, so never for the built-in
+ * assistant.
+ */
+async function agentOrgOf(
+  deps: ExecutionContextBuilderDeps,
+  agentId: string,
+): Promise<string> {
+  try {
+    return (await deps.agentLoader().get(agentId)).metadata?.org ?? "";
+  } catch {
+    return "";
+  }
 }
 
 /**
@@ -1220,7 +1197,9 @@ export function mergeAgentAndSessionMcpUsages(
 
 /**
  * Reads OAuth-managed access tokens from managed environments for MCP
- * servers with spec.auth: grant lookup by (identity="", server_id, org) —
+ * servers with spec.auth (recording each such server's target variable in
+ * `oauthTargets`, grant or none, for the personal-environment fill to
+ * leave alone): grant lookup by (identity="", server_id, org) —
  * OSS single-user — then inline pre-flight refresh if expired, then the
  * token read. Refresh failures THROW (fatal; the caller maps to
  * FailedPrecondition); read failures are non-fatal skips (Go
@@ -1232,6 +1211,7 @@ async function injectMcpOAuthFromManagedEnvironment(
   mcpServerUsages: McpServerUsage[],
   executionOrg: string,
   executionId: string,
+  oauthTargets?: Set<string>,
 ): Promise<Map<string, ExecutionValue>> {
   if (mcpServerUsages.length === 0) {
     return filtered;
@@ -1267,6 +1247,10 @@ async function injectMcpOAuthFromManagedEnvironment(
     }
     if (mcpServer === undefined || mcpServer.spec?.auth === undefined) {
       continue;
+    }
+    const target = mcpServer.spec.auth.targetEnvVar;
+    if (target !== "") {
+      oauthTargets?.add(target);
     }
 
     const mcpServerId = mcpServer.metadata?.id ?? "";

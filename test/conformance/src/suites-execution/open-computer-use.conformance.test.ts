@@ -22,7 +22,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
@@ -90,7 +90,7 @@ describe.skipIf(!ENABLED)("Open Computer Use — desktop tool dispatch (local-on
       makeAgentExecution({
         org,
         name: uniqueName("aex-ocu"),
-        agentId: agent.metadata!.id,
+        agentRef: agentRefOf(agent),
         autoApproveAll: true,
       }),
     );

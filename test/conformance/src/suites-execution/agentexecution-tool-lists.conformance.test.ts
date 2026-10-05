@@ -35,7 +35,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { DESTRUCTIVE_ECHO_TOOL_NAME, ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
 import { readAnthropicRequest } from "@stigmer/test-support/llm-wire";
 import { anthropicText, anthropicToolUses, type MockLlmProxy } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import {
   allToolCalls,
   createConnectedMcpServer,
@@ -113,7 +113,7 @@ describe("AgentExecution tool lists — out of scope is refused, never gated", (
     mock.enqueue(anthropicText("Done."));
 
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-lists"), agentId: agent.metadata!.id, autoApproveAll }),
+      makeAgentExecution({ org, name: uniqueName("aex-lists"), agentRef: agentRefOf(agent), autoApproveAll }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

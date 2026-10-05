@@ -53,13 +53,16 @@ import { SharedAgentChat } from "../SharedAgentChat";
 
 const SHARE_ID = "ash_01j9z3k8f2q4m6n7p8r9s0t1v2";
 
+/** The share's agent reference, version included, as the profile gives it. */
+const SHARE_AGENT_REF = { org: "org_acme", slug: "support-bot", version: "v2", kind: 40 };
+
 const PROFILE = {
   org: "org_acme",
   slug: "support-agent",
   name: "Support Agent",
   description: "Answers support questions",
   iconUrl: "",
-  defaultInstanceId: "inst_1",
+  agentRef: SHARE_AGENT_REF,
 } as never;
 
 function setProfileState(state: Partial<UseSharedAgentProfileReturn>) {
@@ -126,9 +129,9 @@ describe("SharedAgentChat", () => {
     expect(newSessionViewerProps).toHaveLength(0);
   });
 
-  it("renders the unavailable state when the profile has no default instance", () => {
+  it("renders the unavailable state when the profile names no agent", () => {
     setProfileState({
-      profile: { ...(PROFILE as object), defaultInstanceId: "" } as never,
+      profile: { ...(PROFILE as object), agentRef: undefined } as never,
     });
     render(<SharedAgentChat shareId={SHARE_ID} />);
 
@@ -144,7 +147,7 @@ describe("SharedAgentChat", () => {
     ]);
   });
 
-  it("renders the agent header and a guest launcher pinned to the shared instance", () => {
+  it("renders the agent header and a guest launcher pinned to the share's agent reference", () => {
     setProfileState({ profile: PROFILE });
     render(<SharedAgentChat shareId={SHARE_ID} />);
 
@@ -153,14 +156,15 @@ describe("SharedAgentChat", () => {
 
     expect(newSessionViewerProps).toHaveLength(1);
     // The organization and agent come from the profile the share id
-    // resolved to.
+    // resolved to: the share's agent reference exactly, version included —
+    // never the share's own slug.
     expect(newSessionViewerProps[0]).toMatchObject({
       org: "org_acme",
       audience: "guest",
-      initialAgentRef: { org: "org_acme", slug: "support-agent" },
-      initialInstanceId: "inst_1",
       enableGitHub: false,
     });
+    expect(newSessionViewerProps[0].initialAgentRef).toEqual(SHARE_AGENT_REF);
+    expect(newSessionViewerProps[0]).not.toHaveProperty("initialInstanceId");
   });
 
   it("hands off to a guest SessionViewer once the session is created", () => {

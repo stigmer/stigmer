@@ -19,10 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SessionQueryController_Get_FullMethodName                 = "/ai.stigmer.agentic.session.v1.SessionQueryController/get"
-	SessionQueryController_List_FullMethodName                = "/ai.stigmer.agentic.session.v1.SessionQueryController/list"
-	SessionQueryController_ListByAgentInstance_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgentInstance"
-	SessionQueryController_ListByChannel_FullMethodName       = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByChannel"
+	SessionQueryController_Get_FullMethodName           = "/ai.stigmer.agentic.session.v1.SessionQueryController/get"
+	SessionQueryController_List_FullMethodName          = "/ai.stigmer.agentic.session.v1.SessionQueryController/list"
+	SessionQueryController_ListByAgent_FullMethodName   = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgent"
+	SessionQueryController_ListByChannel_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByChannel"
 )
 
 // SessionQueryControllerClient is the client API for SessionQueryController service.
@@ -35,8 +35,10 @@ type SessionQueryControllerClient interface {
 	Get(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error)
 	// List all sessions with pagination and optional filtering.
 	List(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*SessionList, error)
-	// List all sessions for a specific agent instance.
-	ListByAgentInstance(ctx context.Context, in *ListSessionsByAgentInstanceRequest, opts ...grpc.CallOption) (*SessionList, error)
+	// List the conversations on one agent, whichever version each runs.
+	//
+	// Results are filtered to the sessions the caller can view.
+	ListByAgent(ctx context.Context, in *ListSessionsByAgentRequest, opts ...grpc.CallOption) (*SessionList, error)
 	// List the conversations an agent channel created.
 	//
 	// Returns the sessions the channel runtime (Slack, WhatsApp) created for
@@ -74,10 +76,10 @@ func (c *sessionQueryControllerClient) List(ctx context.Context, in *ListSession
 	return out, nil
 }
 
-func (c *sessionQueryControllerClient) ListByAgentInstance(ctx context.Context, in *ListSessionsByAgentInstanceRequest, opts ...grpc.CallOption) (*SessionList, error) {
+func (c *sessionQueryControllerClient) ListByAgent(ctx context.Context, in *ListSessionsByAgentRequest, opts ...grpc.CallOption) (*SessionList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SessionList)
-	err := c.cc.Invoke(ctx, SessionQueryController_ListByAgentInstance_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, SessionQueryController_ListByAgent_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -104,8 +106,10 @@ type SessionQueryControllerServer interface {
 	Get(context.Context, *SessionId) (*Session, error)
 	// List all sessions with pagination and optional filtering.
 	List(context.Context, *ListSessionsRequest) (*SessionList, error)
-	// List all sessions for a specific agent instance.
-	ListByAgentInstance(context.Context, *ListSessionsByAgentInstanceRequest) (*SessionList, error)
+	// List the conversations on one agent, whichever version each runs.
+	//
+	// Results are filtered to the sessions the caller can view.
+	ListByAgent(context.Context, *ListSessionsByAgentRequest) (*SessionList, error)
 	// List the conversations an agent channel created.
 	//
 	// Returns the sessions the channel runtime (Slack, WhatsApp) created for
@@ -128,8 +132,8 @@ func (UnimplementedSessionQueryControllerServer) Get(context.Context, *SessionId
 func (UnimplementedSessionQueryControllerServer) List(context.Context, *ListSessionsRequest) (*SessionList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
-func (UnimplementedSessionQueryControllerServer) ListByAgentInstance(context.Context, *ListSessionsByAgentInstanceRequest) (*SessionList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListByAgentInstance not implemented")
+func (UnimplementedSessionQueryControllerServer) ListByAgent(context.Context, *ListSessionsByAgentRequest) (*SessionList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListByAgent not implemented")
 }
 func (UnimplementedSessionQueryControllerServer) ListByChannel(context.Context, *ListSessionsByChannelRequest) (*SessionList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListByChannel not implemented")
@@ -190,20 +194,20 @@ func _SessionQueryController_List_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SessionQueryController_ListByAgentInstance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListSessionsByAgentInstanceRequest)
+func _SessionQueryController_ListByAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSessionsByAgentRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SessionQueryControllerServer).ListByAgentInstance(ctx, in)
+		return srv.(SessionQueryControllerServer).ListByAgent(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SessionQueryController_ListByAgentInstance_FullMethodName,
+		FullMethod: SessionQueryController_ListByAgent_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SessionQueryControllerServer).ListByAgentInstance(ctx, req.(*ListSessionsByAgentInstanceRequest))
+		return srv.(SessionQueryControllerServer).ListByAgent(ctx, req.(*ListSessionsByAgentRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -242,8 +246,8 @@ var SessionQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SessionQueryController_List_Handler,
 		},
 		{
-			MethodName: "listByAgentInstance",
-			Handler:    _SessionQueryController_ListByAgentInstance_Handler,
+			MethodName: "listByAgent",
+			Handler:    _SessionQueryController_ListByAgent_Handler,
 		},
 		{
 			MethodName: "listByChannel",

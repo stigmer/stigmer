@@ -67,7 +67,7 @@ function params(
   pageSize: number,
   pageToken: string,
   scope: (rows: Session[]) => Session[] = (rows) => rows,
-): ListPageParams<Session, "agent_instance" | "channel"> {
+): ListPageParams<Session, "agent" | "channel"> {
   return {
     store: temp.store,
     declaration: sessionListIndex,

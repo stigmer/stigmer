@@ -200,7 +200,7 @@ describe("registry — completeness", () => {
 
   // buildRegistry's byAlias.set is last-wins: a collision between two kinds'
   // alias sets would silently shadow the earlier kind. The one collision found
-  // by hand ("Agent Instance" nearly stealing "agent") is prevented inside
+  // by hand (a multi-word "Agent ..." name nearly stealing "agent") is prevented inside
   // generateAliases; this pin makes the whole class a red test instead of a
   // hand-check as future kinds (and their derived forms) are added.
   it("no two kinds share an alias (silent last-wins shadowing guard)", () => {

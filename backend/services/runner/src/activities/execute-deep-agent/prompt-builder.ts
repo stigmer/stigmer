@@ -195,14 +195,14 @@ export interface PromptBuilderInput {
   /**
    * Platform-declared standing preferences (stigmer/stigmer#293): the org's
    * and user's standing context, server-snapshotted onto the execution
-   * spec's `declared_preferences` at create. Injected on EVERY turn like
+   * status's `declared_preferences` at create. Injected on EVERY turn like
    * the bridge — the native system prompt is rebuilt per invocation, so an
    * edited preference reaches the very next turn.
    */
   declaredPreferences?: DeclaredPreferencesContent;
   /**
    * The subject's confirmed memories (stigmer/stigmer#293):
-   * consent-gated facts server-snapshotted onto the execution spec's
+   * consent-gated facts server-snapshotted onto the execution status's
    * `recalled_memories` at create. Injected on EVERY turn like the
    * preferences — the native system prompt is rebuilt per invocation, so a
    * deleted memory is gone from the very next turn.

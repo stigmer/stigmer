@@ -63,7 +63,15 @@
 //     fixture's tools: the connect's ExecutionContext is created as the
 //     member and the connect token admits the runner as the member for the
 //     secret read from the member's personal environment (stigmer#1137's
-//     connect half). A member's run with memory
+//     connect half). A key the run's agent declares and no layer carries
+//     is filled from the TURN SENDER's personal environment: a member's
+//     turn on the founder's org-visible agent reads the member's saved
+//     value, never the founder's saved after it. (The sharper form, a
+//     teammate's turn in someone else's session reading the teammate's
+//     value, needs a per-session viewer grant, which open source's
+//     organization-only grant scope refuses; the server's
+//     personal-environment-reach unit arms pin that the person is the
+//     turn's creator.) A member's run with memory
 //     on, whose agent calls `remember`, writes a Memory whose subject is the
 //     member and whose provenance session is the run's, which the operator —
 //     an organization owner — cannot list (stigmer#1147: the stdio child
@@ -118,11 +126,12 @@ import {
 } from "@stigmer/test-support/llm-wire";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitTerminal,
   makeAgentExecution,
   requireMcpFixture,
+  sessionIdOf,
 } from "../support/agentexecutions";
 import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
 import { makePersonalEnvironment } from "../support/environments";
@@ -257,7 +266,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       return agent;
     }
 
-    // A run dispatched by `by` on `agentId`, scripted on the lane's runner with
+    // A run dispatched by `by` on `agent`, scripted on the lane's runner with
     // `script` — one text turn unless an arm needs a tool call first (the mock
     // answers the runner's background title call out of band, so a run costs
     // exactly its scripted turns).
@@ -265,7 +274,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       mock: MockLlmProxy,
       by: ConformanceClients,
       org: string,
-      agentId: string,
+      agentRef: AgentRefInit,
       label: string,
       script: AnthropicMessageBody[] = [
         anthropicText(`Hello from the ${label} run.`),
@@ -276,7 +285,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
         makeAgentExecution({
           org,
           name: uniqueName(label),
-          agentId,
+          agentRef,
           message: "Say hello.",
           autoApproveAll: true,
         }),
@@ -452,14 +461,14 @@ describe.skipIf(!runnerActsAsRunCreator)(
         mock,
         people.member,
         people.org,
-        agent.metadata!.id,
+        agentRefOf(agent),
         "member",
       );
       const founderRun = await dispatchRun(
         mock,
         people.founder,
         people.org,
-        agent.metadata!.id,
+        agentRefOf(agent),
         "operator",
       );
 
@@ -488,7 +497,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       // wrote the member's session, which the operator's key alone could not.
       const session = await awaitTitled(
         people.member,
-        memberFinal.spec?.sessionId ?? "",
+        sessionIdOf(memberFinal),
       );
       expect(session.spec?.subject).not.toBe(UNTITLED_SESSION_SUBJECT);
     });
@@ -505,7 +514,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
         mock,
         people.member,
         people.org,
-        agent.metadata!.id,
+        agentRefOf(agent),
         "member",
       );
 
@@ -542,14 +551,14 @@ describe.skipIf(!runnerActsAsRunCreator)(
         mock,
         people.member,
         people.org,
-        agent.metadata!.id,
+        agentRefOf(agent),
         "member",
       );
       const founderRun = await dispatchRun(
         mock,
         people.founder,
         people.org,
-        agent.metadata!.id,
+        agentRefOf(agent),
         "operator",
       );
 
@@ -605,21 +614,21 @@ describe.skipIf(!runnerActsAsRunCreator)(
         mock,
         people.member,
         people.org,
-        agent.metadata!.id,
+        agentRefOf(agent),
         "member-x",
       );
       const runY = await dispatchRun(
         mock,
         people.member,
         people.org,
-        agent.metadata!.id,
+        agentRefOf(agent),
         "member-y",
       );
       const founderRun = await dispatchRun(
         mock,
         people.founder,
         people.org,
-        agent.metadata!.id,
+        agentRefOf(agent),
         "operator",
       );
 
@@ -759,7 +768,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
         "the parent's creator, for the record",
       ).toBe(people.memberId);
       const childSession = await people.member.sessionQuery.get({
-        value: child.spec?.sessionId ?? "",
+        value: sessionIdOf(child),
       });
       expect(
         childSession.status?.audit?.specAudit?.createdBy?.id,
@@ -1067,6 +1076,72 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(new Set(carried)).toEqual(new Set(["member-credential"]));
     });
 
+    it("[rpc:AgentExecutionCommandController.create] a key the agent declares and no layer carries is filled from the turn sender's personal environment, never the agent author's saved after it", async (ctx) => {
+      const { lane, mock } = laneOrSkip(ctx);
+      const people = await provisionPeople(lane);
+
+      // Both people save the key the agent declares, the founder (the agent's
+      // author) LAST: a fill that took the organization's newest personal
+      // environment, or the author's, would hand the member the founder's.
+      for (const [who, client, value] of [
+        ["member", people.member, "member-value"],
+        ["founder", people.founder, "founder-value"],
+      ] as const) {
+        const personal = await client.environmentCommand.create(
+          makePersonalEnvironment({
+            org: people.org,
+            name: uniqueName(`ras-bridge-${who}-personal`),
+            data: { RAS_BRIDGE_KEY: { value, isSecret: false } },
+          }),
+        );
+        fixtures.defer(() =>
+          client.environmentCommand.delete({
+            resourceId: personal.metadata!.id,
+          }),
+        );
+      }
+      const input = makeAgent({
+        org: people.org,
+        name: uniqueName("ras-bridge-agent"),
+        env: { RAS_BRIDGE_KEY: { isSecret: false } },
+      });
+      input.metadata = {
+        ...input.metadata,
+        visibility: ApiResourceVisibility.visibility_org,
+      };
+      const agent = await people.founder.agentCommand.create(input);
+      fixtures.defer(() =>
+        people.founder.agentCommand.delete({ value: agent.metadata!.id }),
+      );
+
+      // The turn is held so its ExecutionContext outlives the read; the
+      // member reads the context of their own turn (its owner).
+      mock.enqueue(anthropicText("Working..."), { delayMs: 30_000 });
+      const created = await people.member.agentExecutionCommand.create(
+        makeAgentExecution({
+          org: people.org,
+          name: uniqueName("ras-bridge"),
+          agentRef: agentRefOf(agent),
+        }),
+      );
+      fixtures.defer(async () => {
+        mock.releaseHolds();
+        await awaitTerminal(people.member, created.metadata!.id);
+        await people.member.agentExecutionCommand.delete({
+          value: created.metadata!.id,
+        });
+      });
+
+      const context =
+        await people.member.executionContextQuery.getByExecutionId({
+          executionId: created.metadata!.id,
+        });
+      expect(
+        context.spec?.data.RAS_BRIDGE_KEY?.value,
+        "the declared key is the turn sender's",
+      ).toBe("member-value");
+    });
+
     it("a member's run with memory on proposes a memory that is the member's: the stdio remember child acts as the run's person, and the operator cannot list it", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
@@ -1092,7 +1167,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
         mock,
         people.member,
         people.org,
-        agent.metadata!.id,
+        agentRefOf(agent),
         "member-remember",
         [
           anthropicToolUse("toolu_remember", "remember", { fact }),
@@ -1120,7 +1195,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
         people.member.memoryCommand.delete({ value: memory.metadata!.id }),
       );
       expect(memory.spec?.subjectIdentityAccountId).toBe(people.memberId);
-      expect(memory.spec?.provenance?.sessionId).toBe(settled.spec?.sessionId);
+      expect(memory.spec?.provenance?.sessionId).toBe(sessionIdOf(settled));
       expect(memory.spec?.provenance?.agentExecutionId).toBe(run.metadata!.id);
 
       // The operator — an organization owner, whose key the runner holds —

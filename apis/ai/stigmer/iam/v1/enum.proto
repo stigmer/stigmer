@@ -59,7 +59,11 @@ enum IamPermission {
 
   // Resource-level create permissions.
   can_create_execution_in = 13;
-  can_create_instance = 14;
+
+  // Value 14 was the permission to create an agent instance from an agent,
+  // removed with the instance kind.
+  reserved 14;
+  reserved "can_create_instance";
 
   // Execution permission.
   can_execute = 15;
@@ -198,16 +202,10 @@ enum IamPermission {
   // one; the annotation now names this relation on metadata.org.
   can_create_mcp_server = 43;
 
-  // Organization-level permission to create an agent instance in the
-  // organization.
-  //
-  // @internal
-  // Asked beside can_create_instance on the parent agent: a personal
-  // instance's organization is the caller's, not the agent's (the
-  // marketplace case keeps cross-org instances), so the parent's permission
-  // alone would leave any metadata.org open. Member-level, the bar of
-  // can_create_session, since an instance exists to be conversed with.
-  can_create_agent_instance = 44;
+  // Value 44 was the organization-level permission to create an agent
+  // instance, removed with the instance kind.
+  reserved 44;
+  reserved "can_create_agent_instance";
 
   // Organization-level permission to create a team in the organization.
   //

@@ -147,8 +147,9 @@ message WorkflowExecutionSpec {
   // - CLOUD: server provisions a dedicated sandbox with per-execution queue
   //
   // When CLOUD: all call:agent tasks within this workflow share the same sandbox.
-  // Child agent executions inherit this sandbox via activity_task_queue propagation
-  // on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+  // Child agent executions inherit this sandbox: the server routes each child
+  // turn's activities to the queue it derives from the turn's vouched
+  // AgentExecutionSpec.parent link, avoiding N separate sandbox cold starts.
   //
   // Immutable after creation (sandbox provisioning is a one-time operation).
   ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8;

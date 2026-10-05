@@ -427,8 +427,10 @@ export function transcriptToMarkdown(
   const title = resolvedSubject(session.spec?.subject) ?? `Session ${sessionId}`;
   out.push(`# ${title}`, "");
   out.push(`- Session: \`${sessionId}\``);
-  const agentInstanceId = session.spec?.agentInstanceId;
-  if (agentInstanceId) out.push(`- Agent instance: \`${agentInstanceId}\``);
+  const agentRef = session.spec?.agentRef;
+  if (agentRef !== undefined && agentRef.slug !== "") {
+    out.push(`- Agent: \`${agentRef.org}/${agentRef.slug}\``);
+  }
   out.push(`- Turns: ${turns.length}`);
   if (transcript.includesSuperseded) {
     out.push("- Includes superseded (edited-and-resubmitted) turns");

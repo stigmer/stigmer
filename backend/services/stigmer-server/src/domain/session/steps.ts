@@ -4,17 +4,19 @@
  * validate_harness_immutability.go,
  * validate_execution_target_immutability.go,
  * record_harness_state_history.go) and its steps/ package
- * (filter_by_agent_instance.go, filter_by_channel.go). Shared steps stay
+ * (filter_by_channel.go; FilterByAgent reads the pinned agent). Shared
+ * steps stay
  * in src/pipeline/steps/; these exist because they embody
  * session-specific contracts: the harness/execution-target immutability
  * sentinels, the server-owned harness-state history, the active-execution
  * delete guard with its execution cascade, and the list filters.
  *
- * An empty spec.agent_instance_id is a legal shape and stays empty: the
- * session runs the built-in assistant (session/v1/spec.proto). No step here
- * resolves it into an instance, and no step guards it on update, because
- * a conversation may gain an agent or drop back to the assistant; the
- * immutable fields are the harness and the execution target below.
+ * An empty spec.agent_ref is a legal shape and stays empty: the session
+ * runs the built-in assistant (session/v1/spec.proto). No step here guards
+ * it on update, because a conversation may gain an agent, change it or drop
+ * back to the assistant (resolve-session-agent.ts pins it, and the run gate
+ * asks about the agent a write introduces); the immutable fields are the
+ * harness and the execution target below.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -465,30 +467,28 @@ export function newListAllSessionsStep(
 }
 
 /**
- * FilterByAgentInstance — steps/filter_by_agent_instance.go: one page of
- * the sessions whose spec.agent_instance_id matches, newest first.
+ * FilterByAgent: one page of the sessions whose pinned agent
+ * (status.agent_id) matches, newest first, whichever version each runs.
  */
-export function newFilterByAgentInstanceStep(
+export function newFilterByAgentStep(
   store: Store,
   logger: Logger,
   listReadScope: ListReadScope | undefined,
-): PipelineStep<
-  typeof SessionQueryController.method.listByAgentInstance.input
-> {
+): PipelineStep<typeof SessionQueryController.method.listByAgent.input> {
   return {
-    name: "FilterByAgentInstance",
+    name: "FilterByAgent",
     async execute(
       ctx: RequestContext<
-        typeof SessionQueryController.method.listByAgentInstance.input
+        typeof SessionQueryController.method.listByAgent.input
       >,
     ): Promise<void> {
-      const agentInstanceId = ctx.input.agentInstanceId;
-      if (agentInstanceId === "") {
-        throw invalidArgumentError("agent_instance_id is required");
+      const agentId = ctx.input.agentId;
+      if (agentId === "") {
+        throw invalidArgumentError("agent_id is required");
       }
 
-      // The instance's sessions through its key, the scope last (census
-      // lane 2): a composed driver is asked about one instance's rows.
+      // The agent's sessions through its key, the scope last (census
+      // lane 2): a composed driver is asked about one agent's rows.
       const page = await readSessionPage(
         store,
         logger,
@@ -497,9 +497,9 @@ export function newFilterByAgentInstanceStep(
         ctx.input,
         {
           query: {
-            anyKey: [{ name: "agent_instance", value: agentInstanceId }],
+            anyKey: [{ name: "agent", value: agentId }],
           },
-          fingerprint: { lane: "session.listByAgentInstance", agentInstanceId },
+          fingerprint: { lane: "session.listByAgent", agentId },
         },
       );
       ctx.set(LIST_RESULT_KEY, page);
@@ -590,7 +590,7 @@ async function readSessionPage(
   caller: CallerIdentity,
   request: ListPageRequest,
   lane: {
-    readonly query: ListIndexQuery<"agent_instance" | "channel">;
+    readonly query: ListIndexQuery<"agent" | "channel">;
     readonly fingerprint: Readonly<Record<string, unknown>>;
   },
 ): Promise<SessionList> {

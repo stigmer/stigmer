@@ -447,9 +447,8 @@ private static final long serialVersionUID = 0L;
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
    * API secret), and minted-user executions receive its values at
-   * runtime, at the lowest priority, so the agent instance's environments
-   * and the request's runtime values win on a key conflict. The agent and
-   * its default instance stay untouched.
+   * runtime, at the lowest priority, so the request's runtime values win on
+   * a key conflict. The agent stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -465,9 +464,8 @@ private static final long serialVersionUID = 0L;
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
    * API secret), and minted-user executions receive its values at
-   * runtime, at the lowest priority, so the agent instance's environments
-   * and the request's runtime values win on a key conflict. The agent and
-   * its default instance stay untouched.
+   * runtime, at the lowest priority, so the request's runtime values win on
+   * a key conflict. The agent stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -484,9 +482,8 @@ private static final long serialVersionUID = 0L;
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
    * API secret), and minted-user executions receive its values at
-   * runtime, at the lowest priority, so the agent instance's environments
-   * and the request's runtime values win on a key conflict. The agent and
-   * its default instance stay untouched.
+   * runtime, at the lowest priority, so the request's runtime values win on
+   * a key conflict. The agent stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -502,9 +499,8 @@ private static final long serialVersionUID = 0L;
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
    * API secret), and minted-user executions receive its values at
-   * runtime, at the lowest priority, so the agent instance's environments
-   * and the request's runtime values win on a key conflict. The agent and
-   * its default instance stay untouched.
+   * runtime, at the lowest priority, so the request's runtime values win on
+   * a key conflict. The agent stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -520,9 +516,8 @@ private static final long serialVersionUID = 0L;
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
    * API secret), and minted-user executions receive its values at
-   * runtime, at the lowest priority, so the agent instance's environments
-   * and the request's runtime values win on a key conflict. The agent and
-   * its default instance stay untouched.
+   * runtime, at the lowest priority, so the request's runtime values win on
+   * a key conflict. The agent stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2069,9 +2064,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2090,9 +2084,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2111,9 +2104,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2132,9 +2124,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2160,9 +2151,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2185,9 +2175,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2212,9 +2201,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2240,9 +2228,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2265,9 +2252,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2290,9 +2276,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2316,9 +2301,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2340,9 +2324,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2364,9 +2347,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2382,9 +2364,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2403,9 +2384,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2425,9 +2405,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2443,9 +2422,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2462,9 +2440,8 @@ private static final long serialVersionUID = 0L;
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
      * API secret), and minted-user executions receive its values at
-     * runtime, at the lowest priority, so the agent instance's environments
-     * and the request's runtime values win on a key conflict. The agent and
-     * its default instance stay untouched.
+     * runtime, at the lowest priority, so the request's runtime values win on
+     * a key conflict. The agent stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>

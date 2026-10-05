@@ -3,8 +3,7 @@
  * pkg/domain/agent/controller/ (create.go, delete_cascade.go,
  * get_default.go, merge_mcp_env_specs.go).
  * Shared steps stay in src/pipeline/steps/; these exist because they
- * embody agent-specific contracts: the default-instance choreography, the
- * cascade rules and MCP env merging.
+ * embody agent-specific contracts: the cascade rules and MCP env merging.
  *
  * The agent's tool lists (spec.tools, spec.disallowed_tools and each
  * sub-agent's pair) have no step here on purpose: their shape is the
@@ -23,8 +22,6 @@ import type {
   Agent,
   AgentSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
@@ -40,60 +37,26 @@ import {
 } from "../../pipeline/errors.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import {
-  cleanUpDeletedResource,
-  notifyDefaultInstanceLinked,
-} from "../../pipeline/steps/authorization-tuples.js";
+import { cleanUpDeletedResource } from "../../pipeline/steps/authorization-tuples.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import type { Store } from "../../store/interface.js";
-import { buildDefaultInstanceRequest } from "../agentinstance/defaultinstance.js";
-
-/** Context key carrying the applied default instance's id (Go DefaultInstanceIDKey). */
-const DEFAULT_INSTANCE_ID_KEY = "default_instance_id";
-
 type AgentDesc = typeof AgentSchema;
-
-/**
- * The narrow in-process surface the agent domain needs from agentinstance —
- * consumer-defined so the dependency reads at the domain boundary (the Go
- * twin is pkg/downstream/agentinstance.Client). Calls ride the in-process
- * router transport, traversing the full interceptor chain.
- */
-export interface AgentInstanceApplier {
-  /**
-   * Applies AS THE ORIGINAL CALLER: the propagated identity gives the
-   * default instance real owner attribution, so its creator can manage it
-   * under an enforcing Authorizer. Run as the internal class instead, the
-   * instance would have no owner, since a tuple driver deliberately never
-   * attributes the internal class.
-   */
-  applyAsCaller(
-    instance: AgentInstance,
-    caller: CallerIdentity,
-  ): Promise<AgentInstance>;
-}
-
-/**
- * Lazy provider for the agent↔agentinstance true cycle — resolved at call
- * time, never at construction.
- */
-export type AgentInstanceApplierProvider = () => AgentInstanceApplier;
 
 // ---------------------------------------------------------------------------
 // MergeMcpServerEnvSpecs — merge_mcp_env_specs.go: merges env DECLARATIONS
 // from referenced MCP servers into the agent's env at create/update time,
-// so the UI/CLI can show what the agent needs, AgentInstance configuration
-// knows which vars to supply, and execution-time validation has the
+// so the UI/CLI can show what the agent needs, a person knows which vars to
+// keep in their personal environment, and execution-time validation has the
 // complete schema.
 //
 // Merge semantics: agent-declared entries always take precedence (user
 // intent is preserved); among MCP servers, first-encountered wins for
 // overlapping keys; only declaration fields (description, is_secret,
-// optional) are merged — actual values come from
-// AgentInstance.environment_refs at runtime.
+// optional) are merged — actual values come from the environments a run
+// resolves at runtime.
 //
 // Lenient by design: a server that cannot be found (not yet created,
 // different org, …) logs a warning and is skipped. The authoritative
@@ -201,152 +164,6 @@ export function newMergeMcpServerEnvSpecsStep(
 }
 
 // ---------------------------------------------------------------------------
-// CreateDefaultInstance + UpdateAgentStatusWithDefaultInstance — create.go's
-// post-persist choreography. Split in two so the second database persist is
-// explicit in the chain (Go's stated rationale).
-// ---------------------------------------------------------------------------
-
-/**
- * Applies (not creates — idempotency) the agent's default instance through
- * the in-process client. Agent delete cascades the default instance, so
- * this normally routes to CREATE; the UPDATE route remains as self-heal for
- * pre-cascade legacy orphans (self-hosters upgrading from a release
- * before the cascade), which Apply recovers by re-pointing agent_id at the
- * new agent.
- *
- * Versus Go: no nil-client skip — the provider is a required dependency
- * (the staged composition root eliminates the nil-then-inject window whose
- * silent no-op the domain inventory flags).
- */
-export function newCreateDefaultInstanceStep(
-  applierProvider: AgentInstanceApplierProvider,
-  logger: Logger,
-): PipelineStep<AgentDesc> {
-  return {
-    name: "CreateDefaultInstance",
-    async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
-      const agent = ctx.newState;
-      const metadata = agent.metadata;
-      if (metadata === undefined) {
-        throw internalError(
-          new Error("agent metadata is nil after persist"),
-          "agent metadata is nil after persist",
-        );
-      }
-
-      logger.info("Creating default instance for agent", {
-        agentId: metadata.id,
-        slug: metadata.slug,
-        org: metadata.org,
-      });
-
-      const instanceRequest = buildDefaultInstanceRequest(metadata);
-
-      // Go create.go:124-127 wraps the downstream error with fmt.Errorf
-      // ("failed to apply default instance: %w") and PipelineError
-      // .GRPCStatus's errors.As branch keeps the inner CODE but rewrites
-      // the wire MESSAGE to the wrapped text — transport formatting
-      // (`rpc error: code = X desc = ...`) included. Mirrored byte-for-
-      // byte via goWrappedStatusError; the leak is stigmer/stigmer#852
-      // (both-editions post-cutover fix). Unstatused failures fall to the
-      // pipeline's Internal fallback, exactly Go's plain-error path.
-      let applied: AgentInstance;
-      try {
-        applied = await applierProvider().applyAsCaller(
-          instanceRequest,
-          ctx.callerIdentity,
-        );
-      } catch (error) {
-        if (error instanceof ConnectError) {
-          throw goWrappedStatusError("failed to apply default instance", error);
-        }
-        throw new Error(
-          `failed to apply default instance: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-
-      logger.info("Successfully applied default instance for agent", {
-        instanceId: applied.metadata?.id ?? "",
-        agentId: metadata.id,
-      });
-
-      ctx.set(DEFAULT_INSTANCE_ID_KEY, applied.metadata?.id ?? "");
-    },
-  };
-}
-
-/**
- * Writes status.default_instance_id onto the just-persisted agent and
- * re-persists. Reads the id from context (set by CreateDefaultInstance).
- * Fires the driver's default-instance link event AFTER the pointer
- * persists (the default_of invariant rides the pointer).
- */
-export function newUpdateAgentStatusWithDefaultInstanceStep(
-  store: Store,
-  logger: Logger,
-  authorizationLifecycle?: ResourceAuthorizationLifecycle,
-): PipelineStep<AgentDesc> {
-  return {
-    name: "UpdateAgentStatusWithDefaultInstance",
-    async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
-      const agent = ctx.newState;
-      const agentId = agent.metadata?.id ?? "";
-
-      const defaultInstanceId = ctx.get(DEFAULT_INSTANCE_ID_KEY);
-      if (typeof defaultInstanceId !== "string" || defaultInstanceId === "") {
-        // Unreachable with the required provider (Go's skip existed for its
-        // nil-client test mode); loud beats silent per the boot idiom.
-        throw internalError(
-          new Error(
-            "no default instance id in context (CreateDefaultInstance must run first)",
-          ),
-          "no default instance id in context (CreateDefaultInstance must run first)",
-        );
-      }
-
-      if (agent.status === undefined) {
-        agent.status = create(AgentStatusSchema, {});
-      }
-      agent.status.defaultInstanceId = defaultInstanceId;
-
-      try {
-        await store.saveResource(
-          ctx.apiResourceKind,
-          agentId,
-          ctx.schema,
-          agent,
-        );
-      } catch (error) {
-        logger.error("Failed to persist agent with default_instance_id", {
-          agentId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        throw new Error(
-          `failed to persist agent with default instance: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-
-      await notifyDefaultInstanceLinked(authorizationLifecycle, {
-        instanceKind: ApiResourceKind.agent_instance,
-        instanceId: defaultInstanceId,
-        blueprintKind: ApiResourceKind.agent,
-        blueprintId: agentId,
-      });
-
-      ctx.setNewState(agent);
-
-      logger.info(
-        "Successfully updated agent status with default_instance_id",
-        {
-          defaultInstanceId,
-          agentId,
-        },
-      );
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Cascade steps — delete_cascade.go. Children before parent, so a
 // mid-failure retry converges. Each child's access goes with its row: the
 // composed driver hears the child's own delete event right after the row
@@ -355,109 +172,11 @@ export function newUpdateAgentStatusWithDefaultInstanceStep(
 // reaches its organization through (stigmer#1603). What deliberately
 // SURVIVES an agent delete, and must never be swept into this cascade:
 // sessions and agent executions (historical record, the #582 posture —
-// they reference agent and instance by immutable IDs) and resource_audit
+// they reference the agent by its immutable id, and a session's next turn
+// fails naming the agent that is gone) and resource_audit
 // rows (surviving sessions and executions render their historical state
 // from them).
 // ---------------------------------------------------------------------------
-
-/**
- * Deletes EVERY instance of the agent (row + search-index entry) before the
- * agent is deleted — the system-managed default AND members' personal ones
- * (owner ruling stigmer/stigmer#611, extending the workflow ruling #592:
- * instances are configuration OF the agent, meaningless without it, and an
- * orphan occupies its org-scoped slug forever with no UI left to delete
- * it). Matched by spec.agent_id — a required, validated field on every
- * instance — so a single ID sweep covers the default instance too,
- * including legacy rows that predate the status.default_instance_id
- * pointer.
- */
-export function newCascadeDeleteInstancesStep<Desc extends DescMessage>(
-  store: Store,
-  lifecycle: ResourceAuthorizationLifecycle | undefined,
-  logger: Logger,
-): PipelineStep<Desc> {
-  return {
-    name: "CascadeDeleteInstances",
-    async execute(ctx: RequestContext<Desc>): Promise<void> {
-      const agent = ctx.get(EXISTING_RESOURCE_KEY) as Agent | undefined;
-      if (agent === undefined) {
-        throw internalError(
-          new Error(
-            "agent not found in context (LoadExistingForDelete must run first)",
-          ),
-          "agent not found in context (LoadExistingForDelete must run first)",
-        );
-      }
-      const agentId = agent.metadata?.id ?? "";
-
-      let rows: Uint8Array[];
-      try {
-        rows = await store.listResources(ApiResourceKind.agent_instance);
-      } catch (error) {
-        throw internalError(
-          error,
-          "failed to list agent instances for cascade delete",
-        );
-      }
-
-      let deleted = 0;
-      for (const data of rows) {
-        let instance: AgentInstance;
-        try {
-          instance = fromBinary(AgentInstanceSchema, data);
-        } catch {
-          continue;
-        }
-        if ((instance.spec?.agentId ?? "") !== agentId) {
-          continue;
-        }
-        const instanceId = instance.metadata?.id ?? "";
-        try {
-          await store.deleteResource(
-            ApiResourceKind.agent_instance,
-            instanceId,
-          );
-        } catch (error) {
-          throw internalError(
-            error,
-            `failed to cascade-delete instance ${instanceId} of agent ${agentId}`,
-          );
-        }
-        await cleanUpDeletedResource(lifecycle, logger, {
-          kind: ApiResourceKind.agent_instance,
-          resourceId: instanceId,
-          orgId: instance.metadata?.org ?? "",
-          caller: ctx.callerIdentity,
-        });
-
-        // Best-effort, matching DeleteSearchIndex: a stale index entry is a
-        // cosmetic search artifact, not a correctness problem.
-        try {
-          await store.deleteSearchIndex(
-            ApiResourceKind.agent_instance,
-            instanceId,
-          );
-        } catch (error) {
-          logger.warn(
-            "CascadeDeleteInstances: failed to remove search index entry (best-effort)",
-            {
-              instanceId,
-              error: error instanceof Error ? error.message : String(error),
-            },
-          );
-        }
-        deleted++;
-      }
-
-      if (deleted > 0) {
-        logger.info("Cascade-deleted instances of agent", {
-          count: deleted,
-          agentId,
-        });
-      }
-    },
-  };
-}
 
 /**
  * Deletes the agent's SAME-ORG AgentShares before the agent is deleted.

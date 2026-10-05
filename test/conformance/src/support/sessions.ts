@@ -1,14 +1,14 @@
 // Canonical valid Session fixtures for the conformance suite.
 // Domain: conformance support.
 //
-// Session is the runtime conversation thread that runs against an AgentInstance,
-// or against none: an empty spec.agent_instance_id is the built-in assistant.
-// The canonical builder carries an explicit instance id so the agent-bound
-// contract is what most suites exercise; the built-in-assistant arm is written
-// inline where it is the thing under test (an empty id, "" — a legal value,
-// not an omission). Suites obtain an instance id from an Agent fixture:
-// Agent.create provisions a default AgentInstance and returns it on
-// status.default_instance_id (an `ain_…` id).
+// Session is the runtime conversation thread. It names the agent it runs by
+// reference (spec.agent_ref), or none: an absent reference is the built-in
+// assistant. The server pins the agent and the exact version the reference
+// resolves to on status.agent_id and status.agent_version_hash, so a
+// version the author saves later never changes an open conversation. The
+// builder sets a reference only when the caller passes one (`agentRef`,
+// usually `agentRefOf(agent)` from support/agents.ts); the built-in
+// assistant is the builder with no reference.
 //
 // Negatives (duplicate, missing name, wrong const fields) are written inline in the
 // suite, matching support/agents.ts and support/environments.ts: this module is
@@ -21,14 +21,15 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { type AgentRefInit, makeAgentRef } from "./agents";
 
 export const SESSION_API_VERSION = "agentic.stigmer.ai/v1";
 export const SESSION_KIND = "Session";
 
 export interface SessionSpecOptions {
-  // Agent instance the session runs against: an Agent fixture's
-  // status.default_instance_id (an `ain_…` id), or "" for the built-in assistant.
-  agentInstanceId: string;
+  // The agent the session runs (spec.agent_ref), optionally at a version.
+  // Omitted: the built-in assistant.
+  agentRef?: AgentRefInit;
   // Conversation title; defaults to a stable placeholder.
   subject?: string;
   // Execution engine. Omitted by default so the create-vs-get parity check stays
@@ -60,12 +61,12 @@ export interface LocalWorkspaceOption {
   path: string;
 }
 
-// A valid SessionSpec referencing the given agent instance. Optional harness /
+// A valid SessionSpec naming the given agent (or none). Optional harness /
 // execution_target / references are only set when explicitly provided, keeping the
 // canonical session minimal and parity-stable.
-export function makeSessionSpec(opts: SessionSpecOptions): InitShape<typeof SessionSpecSchema> {
+export function makeSessionSpec(opts: SessionSpecOptions = {}): InitShape<typeof SessionSpecSchema> {
   return {
-    agentInstanceId: opts.agentInstanceId,
+    ...(opts.agentRef !== undefined ? { agentRef: makeAgentRef(opts.agentRef) } : {}),
     subject: opts.subject ?? "conformance fixture session",
     ...(opts.harness !== undefined ? { harness: opts.harness } : {}),
     ...(opts.executionTarget !== undefined ? { executionTarget: opts.executionTarget } : {}),

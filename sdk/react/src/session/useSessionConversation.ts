@@ -59,11 +59,14 @@ export interface SendFollowUpOptions {
   /** LLM model name to use for this execution. Overrides the session default. */
   readonly modelName?: string;
   /**
-   * Override the session's agent instance for this and all future
-   * executions. When provided, the session is updated before the
-   * execution is created.
+   * Move the conversation to another agent for this and all future
+   * executions: a reference rebinds the session to that agent (the server
+   * pins the version the reference names, the agent's current one when it
+   * names none), `null` returns it to the built-in assistant, and
+   * `undefined` leaves the session's agent alone. When provided, the
+   * session is updated before the execution is created.
    */
-  readonly agentInstanceId?: string;
+  readonly agentRef?: ResourceRef | null;
   /** Workspace entries to attach to the execution. */
   readonly workspaceEntries?: WorkspaceEntryInput[];
   /** MCP server configurations to include for tool access. */
@@ -75,9 +78,9 @@ export interface SendFollowUpOptions {
    *
    * Values are injected into the agent sandbox for this execution only
    * and deleted when the execution completes. They take the highest
-   * merge priority, overriding Environment values bound via the
-   * instance. Keys must be declared in the agent's env declarations
-   * (a whitelist, not a value source) or they are dropped.
+   * merge priority, overriding every environment layer. Keys must be
+   * declared in the agent's env declarations (a whitelist, not a value
+   * source) or they are dropped.
    *
    * @see {@link SharedAgentExecutionFields.runtimeEnv}
    */
@@ -197,7 +200,7 @@ export interface UseSessionConversationReturn {
    * Submit a follow-up message. Internally creates an execution and
    * starts streaming it.
    *
-   * When session-level fields (`agentInstanceId`, `workspaceEntries`,
+   * When session-level fields (`agentRef`, `workspaceEntries`,
    * `mcpServerUsages`, `skillRefs`) are provided in options, the
    * session is updated via `session.update()` before creating the
    * execution.
@@ -227,6 +230,17 @@ export interface UseSessionConversationReturn {
    * turn; clears {@link sendError} for the new attempt.
    */
   readonly retryLastSend: () => void;
+
+  /**
+   * Move the conversation to its agent's current version: the session's
+   * agent reference is written back with `version: "latest"`, which the
+   * server resolves to the version the agent's author last saved and pins
+   * there, then the session is read again. The one way a conversation's
+   * agent version changes; nothing else this hook does moves it. Rejects
+   * with the update's error, and does nothing for a session that names
+   * no agent.
+   */
+  readonly moveToCurrentAgentVersion: () => Promise<void>;
 
   /**
    * The user's message text, shown in the thread before the stream delivers it.
@@ -655,7 +669,7 @@ export function useSessionConversation(
 
       try {
         const needsSessionUpdate =
-          options?.agentInstanceId !== undefined ||
+          options?.agentRef !== undefined ||
           options?.workspaceEntries !== undefined ||
           options?.mcpServerUsages !== undefined ||
           options?.skillRefs !== undefined;
@@ -667,7 +681,7 @@ export function useSessionConversation(
           const freshSession = await stigmer.session.get(sessionId);
           await updateSession(
             buildUpdateInput(freshSession, {
-              agentInstanceId: options?.agentInstanceId,
+              agentRef: options?.agentRef,
               workspaceEntries: options?.workspaceEntries,
               mcpServerUsages: options?.mcpServerUsages,
               skillRefs: options?.skillRefs,
@@ -710,6 +724,25 @@ export function useSessionConversation(
     },
     [sessionId, session, turnOrg, stigmer, create, updateSession, refetch, refetchSession],
   );
+
+  const moveToCurrentAgentVersion = useCallback(async (): Promise<void> => {
+    if (!sessionId) return;
+    // The stored spec, read fresh so the full-replace update keeps every
+    // field another writer changed since this view loaded.
+    const freshSession = await stigmer.session.get(sessionId);
+    const held = freshSession.spec?.agentRef;
+    if (held === undefined || held.slug === "") return;
+    await updateSession({
+      ...toSessionUpdateInput(freshSession),
+      agentRef: {
+        org: held.org,
+        slug: held.slug,
+        kind: held.kind,
+        version: LATEST_AGENT_VERSION,
+      },
+    });
+    refetchSession();
+  }, [sessionId, stigmer, updateSession, refetchSession]);
 
   const retryLastSend = useCallback(() => {
     const last = lastSendRef.current;
@@ -786,6 +819,7 @@ export function useSessionConversation(
     sendError,
     clearSendError,
     retryLastSend,
+    moveToCurrentAgentVersion,
 
     pendingUserMessage,
     pendingAttachments,
@@ -831,18 +865,34 @@ export function useSessionConversation(
 // ---------------------------------------------------------------------------
 
 /**
+ * The reference version that moves a conversation to its agent's current
+ * version (the reference grammar's `latest`).
+ */
+const LATEST_AGENT_VERSION = "latest";
+
+/**
  * Builds the SessionInput for the update RPC (which uses replace
  * semantics — the full spec is sent) by spreading the SDK's complete
- * generated mapper and overriding only the session-level collections the
+ * generated mapper and overriding only the session-level fields the
  * caller provided. An override replaces the existing value; an omitted
  * field keeps the fetched session's value (an empty-array override
  * clears the collection — normalized to absent, the mappers' canonical
  * shape).
+ *
+ * The agent reference is the one field an echo could move: a write that
+ * names `latest` re-pins the session to the agent's newest version. The
+ * server never stores `latest` (it applies the instruction and drops
+ * it), and an unchanged agent is echoed exactly as stored — no version,
+ * a tag or a hash — so the server keeps the pin; a reference in hand
+ * that carries `latest` is echoed without it for the same reason. So
+ * editing the workspace or the tools never changes the agent version a
+ * conversation runs. An override of `null` clears the agent (the
+ * built-in assistant).
  */
 function buildUpdateInput(
   session: Session,
   overrides: {
-    agentInstanceId?: string;
+    agentRef?: ResourceRef | null;
     workspaceEntries?: WorkspaceEntryInput[];
     mcpServerUsages?: McpServerUsageInput[];
     skillRefs?: ResourceRef[];
@@ -855,10 +905,18 @@ function buildUpdateInput(
 
   return {
     ...mapped,
-    agentInstanceId: overrides.agentInstanceId ?? mapped.agentInstanceId,
+    agentRef:
+      overrides.agentRef === null
+        ? undefined
+        : (overrides.agentRef ?? echoedAgentRef(mapped.agentRef)),
     workspaceEntries: workspaceEntries?.length ? workspaceEntries : undefined,
     mcpServerUsages: mcpServerUsages?.length ? mcpServerUsages : undefined,
     skillRefs: skillRefs?.length ? skillRefs : undefined,
   };
 }
 
+/** The stored agent reference as an echo that keeps the session's pin. */
+function echoedAgentRef(ref: ResourceRef | undefined): ResourceRef | undefined {
+  if (ref === undefined || ref.version !== LATEST_AGENT_VERSION) return ref;
+  return { org: ref.org, slug: ref.slug, kind: ref.kind };
+}

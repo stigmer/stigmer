@@ -77,35 +77,35 @@ public final class SessionQueryControllerGrpc {
     return getListMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest,
-      ai.stigmer.agentic.session.v1.SessionList> getListByAgentInstanceMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest,
+      ai.stigmer.agentic.session.v1.SessionList> getListByAgentMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "listByAgentInstance",
-      requestType = ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.class,
+      fullMethodName = SERVICE_NAME + '/' + "listByAgent",
+      requestType = ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.class,
       responseType = ai.stigmer.agentic.session.v1.SessionList.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest,
-      ai.stigmer.agentic.session.v1.SessionList> getListByAgentInstanceMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest, ai.stigmer.agentic.session.v1.SessionList> getListByAgentInstanceMethod;
-    if ((getListByAgentInstanceMethod = SessionQueryControllerGrpc.getListByAgentInstanceMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest,
+      ai.stigmer.agentic.session.v1.SessionList> getListByAgentMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest, ai.stigmer.agentic.session.v1.SessionList> getListByAgentMethod;
+    if ((getListByAgentMethod = SessionQueryControllerGrpc.getListByAgentMethod) == null) {
       synchronized (SessionQueryControllerGrpc.class) {
-        if ((getListByAgentInstanceMethod = SessionQueryControllerGrpc.getListByAgentInstanceMethod) == null) {
-          SessionQueryControllerGrpc.getListByAgentInstanceMethod = getListByAgentInstanceMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest, ai.stigmer.agentic.session.v1.SessionList>newBuilder()
+        if ((getListByAgentMethod = SessionQueryControllerGrpc.getListByAgentMethod) == null) {
+          SessionQueryControllerGrpc.getListByAgentMethod = getListByAgentMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest, ai.stigmer.agentic.session.v1.SessionList>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByAgentInstance"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByAgent"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.getDefaultInstance()))
+                  ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.session.v1.SessionList.getDefaultInstance()))
-              .setSchemaDescriptor(new SessionQueryControllerMethodDescriptorSupplier("listByAgentInstance"))
+              .setSchemaDescriptor(new SessionQueryControllerMethodDescriptorSupplier("listByAgent"))
               .build();
         }
       }
     }
-    return getListByAgentInstanceMethod;
+    return getListByAgentMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest,
@@ -227,12 +227,13 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all sessions for a specific agent instance.
+     * List the conversations on one agent, whichever version each runs.
+     * Results are filtered to the sessions the caller can view.
      * </pre>
      */
-    default void listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request,
+    default void listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByAgentInstanceMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByAgentMethod(), responseObserver);
     }
 
     /**
@@ -307,13 +308,14 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all sessions for a specific agent instance.
+     * List the conversations on one agent, whichever version each runs.
+     * Results are filtered to the sessions the caller can view.
      * </pre>
      */
-    public void listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request,
+    public void listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListByAgentInstanceMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListByAgentMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -373,12 +375,13 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all sessions for a specific agent instance.
+     * List the conversations on one agent, whichever version each runs.
+     * Results are filtered to the sessions the caller can view.
      * </pre>
      */
-    public ai.stigmer.agentic.session.v1.SessionList listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.session.v1.SessionList listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getListByAgentInstanceMethod(), getCallOptions(), request);
+          getChannel(), getListByAgentMethod(), getCallOptions(), request);
     }
 
     /**
@@ -437,12 +440,13 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all sessions for a specific agent instance.
+     * List the conversations on one agent, whichever version each runs.
+     * Results are filtered to the sessions the caller can view.
      * </pre>
      */
-    public ai.stigmer.agentic.session.v1.SessionList listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request) {
+    public ai.stigmer.agentic.session.v1.SessionList listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListByAgentInstanceMethod(), getCallOptions(), request);
+          getChannel(), getListByAgentMethod(), getCallOptions(), request);
     }
 
     /**
@@ -503,13 +507,14 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all sessions for a specific agent instance.
+     * List the conversations on one agent, whichever version each runs.
+     * Results are filtered to the sessions the caller can view.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionList> listByAgentInstance(
-        ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionList> listByAgent(
+        ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListByAgentInstanceMethod(), getCallOptions()), request);
+          getChannel().newCall(getListByAgentMethod(), getCallOptions()), request);
     }
 
     /**
@@ -530,7 +535,7 @@ public final class SessionQueryControllerGrpc {
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_LIST = 1;
-  private static final int METHODID_LIST_BY_AGENT_INSTANCE = 2;
+  private static final int METHODID_LIST_BY_AGENT = 2;
   private static final int METHODID_LIST_BY_CHANNEL = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
@@ -558,8 +563,8 @@ public final class SessionQueryControllerGrpc {
           serviceImpl.list((ai.stigmer.agentic.session.v1.ListSessionsRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList>) responseObserver);
           break;
-        case METHODID_LIST_BY_AGENT_INSTANCE:
-          serviceImpl.listByAgentInstance((ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest) request,
+        case METHODID_LIST_BY_AGENT:
+          serviceImpl.listByAgent((ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList>) responseObserver);
           break;
         case METHODID_LIST_BY_CHANNEL:
@@ -599,12 +604,12 @@ public final class SessionQueryControllerGrpc {
               ai.stigmer.agentic.session.v1.SessionList>(
                 service, METHODID_LIST)))
         .addMethod(
-          getListByAgentInstanceMethod(),
+          getListByAgentMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest,
+              ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest,
               ai.stigmer.agentic.session.v1.SessionList>(
-                service, METHODID_LIST_BY_AGENT_INSTANCE)))
+                service, METHODID_LIST_BY_AGENT)))
         .addMethod(
           getListByChannelMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -662,7 +667,7 @@ public final class SessionQueryControllerGrpc {
               .setSchemaDescriptor(new SessionQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getListMethod())
-              .addMethod(getListByAgentInstanceMethod())
+              .addMethod(getListByAgentMethod())
               .addMethod(getListByChannelMethod())
               .build();
         }

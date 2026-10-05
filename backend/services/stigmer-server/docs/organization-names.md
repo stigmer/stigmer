@@ -54,23 +54,12 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| AgentExecutionCommandController.create | `metadata.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
-| AgentExecutionCommandController.update | `metadata.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
+| AgentExecutionCommandController.create | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
+| AgentExecutionCommandController.update | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
 | AgentExecutionQueryController.getAgentUsageReport | `org` |
 | AgentExecutionQueryController.getExecutionSummary | `org` |
 | AgentExecutionQueryController.getOrgUsageReport | `org` |
 | AgentExecutionQueryController.list | `org` |
-
-## `ai.stigmer.agentic.agentinstance.v1`
-
-| Method | Organization fields |
-|---|---|
-| AgentInstanceCommandController.apply | `metadata.org`, `spec.environment_refs.org` |
-| AgentInstanceCommandController.create | `metadata.org`, `spec.environment_refs.org` |
-| AgentInstanceCommandController.update | `metadata.org`, `spec.environment_refs.org` |
-| AgentInstanceQueryController.getByAgent | `org` |
-| AgentInstanceQueryController.getByReference | `org` |
-| AgentInstanceQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.agentshare.v1`
 
@@ -160,9 +149,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| SessionCommandController.apply | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org` |
-| SessionCommandController.create | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org` |
-| SessionCommandController.update | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org` |
+| SessionCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org` |
+| SessionCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org` |
+| SessionCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org` |
 | SessionQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.skill.v1`

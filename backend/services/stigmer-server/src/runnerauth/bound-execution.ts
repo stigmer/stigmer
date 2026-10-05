@@ -78,6 +78,7 @@ import { kindByIdPrefix } from "../pipeline/apiresource-meta.js";
 import { auditOf } from "../pipeline/steps/defaults.js";
 import type { Store } from "../store/interface.js";
 import { ResourceNotFoundError } from "../store/interface.js";
+import { sessionIdOf } from "../domain/agentexecution/target.js";
 import { RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS } from "./constants.js";
 
 /** The three things a runner credential can bind — the lane's own vocabulary, not the enum's. */
@@ -161,7 +162,7 @@ export async function loadBoundExecution(
         executionId,
         org: row.metadata?.org ?? "",
         createdBy: creatorStampOf(AgentExecutionSchema, row),
-        sessionId: row.spec?.sessionId ?? "",
+        sessionId: sessionIdOf(row.spec),
         live: isLive(
           row.status !== undefined &&
             isTerminalExecutionPhase(row.status.phase),

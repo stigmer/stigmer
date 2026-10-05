@@ -8,6 +8,8 @@
  *     naming which; a failing read of either is Internal; the head answers
  *     itself as current, and an archived version carries the audit column's
  *     tag written on;
+ *   - resolveVersionHash: a version the resource does not hold is undefined,
+ *     a failing audit read Internal;
  *   - the getByReference ladder: a failing audit query and an undecodable
  *     audit row are Internal, never a NotFound;
  *   - the tag move: a missing resource is NotFound; a failing tag write or
@@ -43,6 +45,7 @@ import {
   newLoadByReferenceWithVersionStep,
   newLoadForTagVersionStep,
   newTagVersionStep,
+  resolveVersionHash,
 } from "../version-history.js";
 import type { VersionTagBinding } from "../version-history.js";
 
@@ -138,6 +141,26 @@ describe("getVersionEntry", () => {
         agentVersionBinding,
         lookup,
       ),
+    );
+    expect(error.code).toBe(Code.Internal);
+  });
+});
+
+describe("resolveVersionHash", () => {
+  it("answers the archived row's hash, undefined for a version the resource does not hold, Internal for a failing read", async () => {
+    expect(
+      await resolveVersionHash(storeWith({ getAuditRecordByTag: async () => record(OLD, "v1") }), agentVersionBinding, agent(HEAD), "v1"),
+    ).toBe(OLD);
+    expect(
+      await resolveVersionHash(
+        storeWith({ getAuditRecordByHash: async () => Promise.reject(new AuditNotFoundError("none")) }),
+        agentVersionBinding,
+        agent(HEAD),
+        OLD,
+      ),
+    ).toBeUndefined();
+    const error = await failureOf(
+      resolveVersionHash(storeWith({ getAuditRecordByTag: async () => Promise.reject(STORE_DOWN) }), agentVersionBinding, agent(HEAD), "v1"),
     );
     expect(error.code).toBe(Code.Internal);
   });

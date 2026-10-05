@@ -25,7 +25,7 @@
  *     `organization#viewer`: a narrower role's userset (the retired
  *     `organization#member` read grant) would leave out every viewer-role
  *     member, and the model's README names the shape as one to avoid;
- *   - the derived rules are exactly the three relations `kind_meta` cannot
+ *   - the derived rules are exactly the two relations `kind_meta` cannot
  *     derive;
  *   - a kind whose authorization is its parent's whole
  *     (`inheritedAuthorizationParentOf`) holds nothing of its own: its one
@@ -429,12 +429,11 @@ describe("the built-in model", () => {
     }
   });
 
-  it("carries a derived rule only where kind_meta cannot derive the relation: default_of on the two instance kinds, execution_viewer on the workflow instance", () => {
+  it("carries a derived rule only where kind_meta cannot derive the relation: default_of and execution_viewer, both on the workflow instance", () => {
     const derived = builtInModel.declarations
       .flatMap((d) => [...d.derived.keys()].map((r) => `${d.type}#${r}`))
       .sort();
     expect(derived).toEqual([
-      "agent_instance#default_of",
       "workflow_instance#default_of",
       "workflow_instance#execution_viewer",
     ]);

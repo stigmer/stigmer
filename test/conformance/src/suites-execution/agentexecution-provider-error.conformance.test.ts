@@ -36,7 +36,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -130,7 +130,7 @@ async function runToFailure(): Promise<AgentExecution> {
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
   const execution = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ org, name: uniqueName("aex-provider-error"), agentId: agent.metadata!.id }),
+    makeAgentExecution({ org, name: uniqueName("aex-provider-error"), agentRef: agentRefOf(agent) }),
   );
   const executionId = execution.metadata!.id;
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

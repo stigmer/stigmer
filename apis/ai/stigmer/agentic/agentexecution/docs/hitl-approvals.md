@@ -192,7 +192,11 @@ For CI/CD pipelines and trusted batch jobs where human approval is impractical, 
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Run automated deployment"
   auto_approve_all: true
 ```

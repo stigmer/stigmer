@@ -42,6 +42,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { AnthropicMessageBody, MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { allToolCalls, awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
+import { agentRefOf } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
 import {
@@ -178,12 +179,8 @@ async function provisionArchitect(): Promise<{
     makeWorkflowArchitectAgent({ org, name: uniqueName("architect"), stigmerMcpServerSlug: server.metadata!.slug }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-  const instanceId = agent.status?.defaultInstanceId;
-  if (instanceId === undefined || instanceId === "") {
-    throw new Error("agent create did not provision a default instance");
-  }
   const session = await clients.sessionCommand.create(
-    makeSession({ org, name: uniqueName("ses-architect"), agentInstanceId: instanceId, harness: Harness.NATIVE }),
+    makeSession({ org, name: uniqueName("ses-architect"), agentRef: agentRefOf(agent), harness: Harness.NATIVE }),
   );
   fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
 

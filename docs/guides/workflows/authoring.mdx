@@ -484,6 +484,12 @@ is checked at a different moment:
 A Workflow that names an Agent nobody has applied yet is refused when saved. The
 refusal names the task and the reference.
 
+When the task runs, it starts a new [Session](/docs/concepts/sessions) on the
+Agent it names, at the Agent's current version, and sends the message there. It
+runs that Agent or fails saying why; it never falls back to the
+[built-in assistant](/docs/concepts/agents#the-built-in-assistant). The task's
+`environment_refs` supply the keys the Agent declares.
+
 `stigmer apply -f <directory>` applies files in dependency order — MCP Servers,
 Skills, Agents, then Workflows — so a directory that holds both is fine. When
 you apply files one at a time, from a script, or through an SDK, apply the

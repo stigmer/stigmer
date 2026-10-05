@@ -2,7 +2,7 @@
  * The runner-synthesized memory capture attachment.
  *
  * When the execution's recall snapshot says memory is on
- * (`spec.recalled_memories.enabled` — the ONE server-owned field that
+ * (`status.recalled_memories.enabled` — the ONE server-owned field that
  * serves both the recall and capture sides, stamped by the create
  * pipeline's compose step), the runner synthesizes ONE MCP attachment
  * serving the `remember` tool. No discovery RPC exists on this path:

@@ -165,6 +165,44 @@ export function newLoadByReferenceWithVersionStep<Desc extends DescMessage>(
   };
 }
 
+/**
+ * The content hash `version` names on a resource whose live head is `head`,
+ * by the ladder's order: the head's own hash for an empty version or
+ * "latest", or when the head is the version by hash or live tag; else the
+ * archived row's, by hash or by tag. Undefined when the resource holds no
+ * such version; a store fault is Internal. The answer for a head written
+ * before its kind was versioned, asked for its current version, is "".
+ */
+export async function resolveVersionHash<Desc extends DescMessage>(
+  store: Store,
+  binding: VersionedResourceBinding<Desc>,
+  head: MessageShape<Desc>,
+  version: string,
+): Promise<string | undefined> {
+  const named = version.trim();
+  if (
+    named === "" ||
+    named === "latest" ||
+    headMatchesVersion(binding, head, named)
+  ) {
+    return binding.headHashOf(head);
+  }
+  try {
+    const record = isVersionHash(named)
+      ? await store.getAuditRecordByHash(binding.kind, idOf(head), named)
+      : await store.getAuditRecordByTag(binding.kind, idOf(head), named);
+    return record.versionHash;
+  } catch (error) {
+    if (error instanceof AuditNotFoundError) {
+      return undefined;
+    }
+    throw internalError(
+      error,
+      `failed to query ${binding.noun} audit by version`,
+    );
+  }
+}
+
 /** Whether the live head IS the requested version — by hash, or by its live tag. */
 function headMatchesVersion<Desc extends DescMessage>(
   binding: VersionedResourceBinding<Desc>,

@@ -60,7 +60,6 @@ const (
 	IamPermission_can_create_platform_client  IamPermission = 24
 	// Resource-level create permissions.
 	IamPermission_can_create_execution_in IamPermission = 13
-	IamPermission_can_create_instance     IamPermission = 14
 	// Execution permission.
 	IamPermission_can_execute IamPermission = 15
 	// Secret access permission.
@@ -134,9 +133,6 @@ const (
 	// Organization-level permission to create an MCP server in the
 	// organization.
 	IamPermission_can_create_mcp_server IamPermission = 43
-	// Organization-level permission to create an agent instance in the
-	// organization.
-	IamPermission_can_create_agent_instance IamPermission = 44
 	// Organization-level permission to create a team in the organization.
 	IamPermission_can_create_team IamPermission = 45
 	// Platform-level permission to add or remove an organization's credits
@@ -166,7 +162,6 @@ var (
 		23: "can_create_oauth_app",
 		24: "can_create_platform_client",
 		13: "can_create_execution_in",
-		14: "can_create_instance",
 		15: "can_execute",
 		16: "can_read_secrets",
 		17: "can_bootstrap_iam",
@@ -185,7 +180,6 @@ var (
 		41: "can_manage_plans",
 		42: "can_issue_license",
 		43: "can_create_mcp_server",
-		44: "can_create_agent_instance",
 		45: "can_create_team",
 		46: "can_manage_credits",
 	}
@@ -208,7 +202,6 @@ var (
 		"can_create_oauth_app":        23,
 		"can_create_platform_client":  24,
 		"can_create_execution_in":     13,
-		"can_create_instance":         14,
 		"can_execute":                 15,
 		"can_read_secrets":            16,
 		"can_bootstrap_iam":           17,
@@ -227,7 +220,6 @@ var (
 		"can_manage_plans":            41,
 		"can_issue_license":           42,
 		"can_create_mcp_server":       43,
-		"can_create_agent_instance":   44,
 		"can_create_team":             45,
 		"can_manage_credits":          46,
 	}
@@ -346,7 +338,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xb4\t\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xb8\t\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -366,8 +358,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1bcan_create_identity_account\x10\x15\x12\x18\n" +
 	"\x14can_create_oauth_app\x10\x17\x12\x1e\n" +
 	"\x1acan_create_platform_client\x10\x18\x12\x1b\n" +
-	"\x17can_create_execution_in\x10\r\x12\x17\n" +
-	"\x13can_create_instance\x10\x0e\x12\x0f\n" +
+	"\x17can_create_execution_in\x10\r\x12\x0f\n" +
 	"\vcan_execute\x10\x0f\x12\x14\n" +
 	"\x10can_read_secrets\x10\x10\x12\x15\n" +
 	"\x11can_bootstrap_iam\x10\x11\x12\x0f\n" +
@@ -385,12 +376,11 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x11can_create_plugin\x10(\x12\x14\n" +
 	"\x10can_manage_plans\x10)\x12\x15\n" +
 	"\x11can_issue_license\x10*\x12\x19\n" +
-	"\x15can_create_mcp_server\x10+\x12\x1d\n" +
-	"\x19can_create_agent_instance\x10,\x12\x13\n" +
+	"\x15can_create_mcp_server\x10+\x12\x13\n" +
 	"\x0fcan_create_team\x10-\x12\x16\n" +
-	"\x12can_manage_credits\x10.\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\x12can_manage_credits\x10.\"\x04\b\x0e\x10\x0e\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b'\x10'*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*n\n" +
+	"\"\x04\b'\x10'\"\x04\b,\x10,*\x13can_create_instance*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x19can_create_agent_instance*n\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

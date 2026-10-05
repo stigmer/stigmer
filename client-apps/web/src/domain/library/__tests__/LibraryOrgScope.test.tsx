@@ -1,10 +1,9 @@
 /**
  * Pins where the web library scopes to the viewer's active organization by
  * its id, the way the server names every org: the landing's resource
- * counts, the agent page's viewer org (an instance of a shared agent is
- * created in the viewer's org, not the agent's), and the MCP server page's
- * active org (a connection is made in the viewer's org). The views and
- * count hooks are pinned in @stigmer/react.
+ * counts and the MCP server page's active org (a connection is made in the
+ * viewer's org); the agent page shows the agent where it lives. The views
+ * and count hooks are pinned in @stigmer/react.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
@@ -26,7 +25,6 @@ vi.mock("@stigmer/react", () => {
     ResourceCountCard: none,
     ConfirmDialog: none,
     EditResourceYamlDialog: none,
-    CreateAgentInstanceDialog: none,
     AgentChannelsPanel: none,
     AgentDetailView: (props: Record<string, unknown>) => {
       page.agentView.push(props);
@@ -45,7 +43,6 @@ vi.mock("@stigmer/react", () => {
     useActiveOrgId: () => "org_acme",
     useAgent: () => ({ agent: null, refetch: () => undefined }),
     useMcpServer: () => ({ mcpServer: null, refetch: () => undefined }),
-    useDeleteAgentInstance: () => ({ deleteInstance: async () => undefined }),
     useCopyResource: () => ({
       copyId: () => undefined,
       copyQualifiedSlug: () => undefined,
@@ -100,14 +97,11 @@ describe("web library org scope", () => {
     expect(new Set(page.counted)).toEqual(new Set(["org_acme"]));
   });
 
-  it("AgentDetailPageInner shows the agent where it lives and scopes instances to the viewer's org id", () => {
+  it("AgentDetailPageInner shows the agent where it lives, with no instances to scope", () => {
     render(<AgentDetailPageInner org="other" slug="helper" />);
 
-    expect(page.agentView.at(-1)).toMatchObject({
-      org: "other",
-      slug: "helper",
-      viewerOrg: "org_acme",
-    });
+    expect(page.agentView.at(-1)).toMatchObject({ org: "other", slug: "helper" });
+    expect(page.agentView.at(-1)).not.toHaveProperty("viewerOrg");
   });
 
   it("McpServerDetailPageInner shows the server where it lives and connects in the viewer's org id", () => {

@@ -8,14 +8,15 @@ Stigmer uses a **tuple-driven visibility model** where resource visibility is co
 
 This follows the Google Zanzibar pattern used by Google Drive: "Specific people" writes individual tuples, "My organization" writes an org-group tuple, "every organization my identity provider manages" writes a platform-tenancy tuple. The model stays the same; visibility is controlled by tuple presence. There is no "anyone" tuple: the public level (a wildcard viewer under a request-time condition) was retired in stigmer#1211 (and in the cloud's model on 2026-09-23), and the model declares no wildcard subject and no condition — another organization's blueprint is reached by installing the plugin that carries it.
 
-## The Three-Tier Authorization Model
+## The Authorization Tiers
 
-Stigmer resources follow a three-tier hierarchy for both agents and workflows:
+Workflows follow a three-tier hierarchy; agents have two, because a conversation names its agent directly:
 
 ```
 Blueprint (Agent, Workflow)       ← discoverability and usability
-  └── Instance (AgentInstance, WorkflowInstance)  ← who can use this deployment
-        └── Execution (AgentExecution, WorkflowExecution)  ← who can observe runs
+  └── Instance (WorkflowInstance)  ← who can use this deployment
+        └── Execution (WorkflowExecution)  ← who can observe runs
+  └── Session → AgentExecution    ← a person's conversation and its turns
 ```
 
 Each tier has independent but composable visibility:
@@ -23,7 +24,7 @@ Each tier has independent but composable visibility:
 | Tier | Default Visibility | Supports Platform | Inheritance |
 |------|-------------------|-------------------|-------------|
 | **Blueprint** | Org members | Yes (`platform_viewer`) | — |
-| **Instance** | Private (owner only) | No (a default instance inherits its blueprint's) | — |
+| **Instance** (workflows) | Private (owner only) | No (a default instance inherits its workflow's) | — |
 | **Execution** | Inherited from parent | No (inherited) | Workflow: from instance. Agent: from session |
 
 ## The Visibility Spectrum
@@ -53,18 +54,18 @@ Who else reaches a resource is the owner's, through two permissions. `can_grant_
 ## Agent vs Workflow Asymmetry
 
 ```
-Agent Path:     Agent → AgentInstance → Session (personal) → AgentExecution
+Agent Path:     Agent → Session (personal) → AgentExecution
 Workflow Path:  Workflow → WorkflowInstance → WorkflowExecution
 ```
 
-- **Agent executions** inherit from sessions. Sessions are always personal — even if the agent instance is org-visible, conversations remain private. Sharing a session requires explicit viewer grants.
+- **Agent executions** inherit from sessions. Sessions are always personal — even if the agent is org-visible, conversations remain private. Sharing a session requires explicit viewer grants. The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
 - **Workflow executions** inherit directly from the workflow instance. If the instance has ORG visibility, all org members see all executions. Zero per-execution tuples needed.
 
 This asymmetry is intentional: agents are conversational (privacy by default), workflows are operational (observability by default when org-shared).
 
 ## What the model deliberately cannot say: the runtime lanes' blueprint reads
 
-Guest, channel and schedule sessions run as per-org system accounts that hold exactly `organization#guest` (`can_create_session`, `can_create_execution_in`) and are no agent's viewer, by design: a viewer tuple for the guest account on a shared agent would let every guest token in the org read that agent's full blueprint (see `agent_share.fga`). Yet the runner serving such a session must read the session's agent instance and agent. The model answers `deny`, and the hosted edition's composition refines that denial app-level: its blueprint-read admission admits a session-scoped sandbox credential to exactly its session's graph while the surface that created the session (the share, the channel, the schedule) is still serving the agent, each surface answering through a port its own domain owns. The schedule lane's port reads the `session#schedule` link this model composes for observability, so that link is load-bearing for a scheduled run. This is the read-side twin of the run-gate lane admission (`src/authorizer/lane-admission.ts`); the chain's order lives in `src/authorizer/cloud-authorizer.ts`. An assertion suite cannot pin it — it is not a tuple — so `src/authorizer/__tests__/blueprint-read-admission.openfga.test.ts` runs the composed chain against this model on a real engine instead.
+Guest, channel and schedule sessions run as per-org system accounts that hold exactly `organization#guest` (`can_create_session`, `can_create_execution_in`) and are no agent's viewer, by design: a viewer tuple for the guest account on a shared agent would let every guest token in the org read that agent's full blueprint (see `agent_share.fga`). Yet the runner serving such a session must read the session's agent. The model answers `deny`, and the hosted edition's composition refines that denial app-level: its blueprint-read admission admits a session-scoped sandbox credential to exactly its session's graph while the surface that created the session (the share, the channel, the schedule) is still serving the agent, each surface answering through a port its own domain owns. The schedule lane's port reads the `session#schedule` link this model composes for observability, so that link is load-bearing for a scheduled run. This is the read-side twin of the run-gate lane admission (`src/authorizer/lane-admission.ts`); the chain's order lives in `src/authorizer/cloud-authorizer.ts`. An assertion suite cannot pin it — it is not a tuple — so `src/authorizer/__tests__/blueprint-read-admission.openfga.test.ts` runs the composed chain against this model on a real engine instead.
 
 ## Access Patterns
 
@@ -97,7 +98,7 @@ Private by default, expandable to org via an additional tuple:
 define viewer: ([identity_account, organization#viewer] and affiliated from organization) or owner or viewer from default_of
 ```
 
-Resources: `agent_instance`, `workflow_instance`. An `environment` follows the same pattern with a narrower line, `([identity_account, organization#viewer] and affiliated from organization) or owner`: no `default_of` and no team grant. It is personal by default and shared with the organization by its visibility, and its owner arm keeps the organization's admins out of a personal one's secrets.
+Resources: `workflow_instance`. An `environment` follows the same pattern with a narrower line, `([identity_account, organization#viewer] and affiliated from organization) or owner`: no `default_of` and no team grant. It is personal by default and shared with the organization by its visibility, and its owner arm keeps the organization's admins out of a personal one's secrets.
 
 ### Inherited Visibility (Executions)
 
@@ -149,7 +150,7 @@ Resources: `team`
 
 ## Default Instances
 
-Every agent and workflow auto-creates a default instance on creation. Default instances are:
+Every workflow auto-creates a default instance on creation. Default instances are:
 
 - **System-managed**: Tagged with `stigmer.ai/system-managed: "true"` and `stigmer.ai/default-instance: "true"`
 - **Private visibility**: No viewer expansion tuples. Only the execution triggerer sees their runs
@@ -252,7 +253,6 @@ can_view → viewer → execution_viewer from workflow_instance → organization
 
 ```
 session:chat-123#organization@organization:acme
-session:chat-123#agent_instance@agent_instance:pr-reviewer-default
 session:chat-123#owner@identity_account:bob
 ```
 
@@ -309,7 +309,6 @@ fga/
 │       ├── agent_channel.fga       # An agent's distribution channels (owner-scoped)
 │       ├── agent_share.fga         # An agent's shared pages (owner-scoped)
 │       ├── channel_app.fga         # Bring-your-own channel provider apps (restricted)
-│       ├── agent_instance.fga      # Agent deployments (configurable visibility)
 │       ├── agent_execution.fga     # Agent runs (inherits from session)
 │       ├── artifact.fga            # Files a run produces (org and owner)
 │       ├── environment.fga         # Config and secrets (personal, shareable with the org)

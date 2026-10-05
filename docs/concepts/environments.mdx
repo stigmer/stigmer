@@ -13,8 +13,9 @@ values don't belong in the Agent or MCP Server definition. The same
 a production API in production.
 
 Environments solve this. An Environment is a named, persistent collection of
-configuration values and secrets. Agent Instances reference one or more
-Environments, and Stigmer resolves the values at runtime.
+configuration values and secrets. You bind Environments to what starts a run (a
+Schedule, a Workflow task, a PlatformClient), and Stigmer resolves the values
+when each run starts.
 
 ## What an Environment looks like
 
@@ -51,38 +52,48 @@ Each variable has:
 
 ## Environment layering
 
-An Agent Instance can reference multiple Environments. They merge in order —
-later Environments override earlier ones for the same variable name:
+A Schedule, a Workflow's `agent_call` task and a PlatformClient each take a list
+of Environments in `environment_refs`. The Environments merge in order — later
+Environments override earlier ones for the same variable name:
 
 {/* prettier-ignore */}
 <Mermaid
   chart={`
 graph LR
-  E1["shared-config<br/>ORDER_API_URL=..."] --> Merged["Merged"] --> AI["Agent Instance"]
+  E1["shared-config<br/>ORDER_API_URL=..."] --> Merged["Merged"] --> R["Each run"]
   E2["production-secrets<br/>ORDER_API_KEY=sk-prod-..."] --> Merged
 `}
 />
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
-kind: AgentInstance
+kind: Schedule
 metadata:
-  name: support-agent-production
+  name: nightly-returns-report
+  org: acme
 spec:
-  agent_id: agt-abc123
-  environment_refs:
-    - kind: environment
-      slug: shared-config
-    - kind: environment
-      slug: production-secrets
+  cron: "0 6 * * *"
+  time_zone: Europe/Berlin
+  enabled: true
+  agent:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: support-agent
+    message: Summarize yesterday's returns.
+    environment_refs:
+      - kind: environment
+        org: acme
+        slug: shared-config
+      - kind: environment
+        org: acme
+        slug: production-secrets
 ```
 
 You can attach an Environment only if you can view it: one you created, or one
 shared with the Organization. Naming a teammate's private Environment is
-refused. Attaching your own private Environment to an Agent Instance others run
-lets their runs use its values, so share it that way only on purpose. Viewing is
-the bar for now: an Environment shared with the Organization, or with you
-directly, is one you can attach.
+refused. Viewing is the bar for now: an Environment shared with the
+Organization, or with you directly, is one you can attach.
 
 This layering lets you separate concerns:
 
@@ -91,6 +102,9 @@ This layering lets you separate concerns:
 - **Per-Environment secrets** — API keys, credentials, tokens specific to
   dev/staging/production
 - **Per-Agent overrides** — Settings that only one Agent needs
+
+The same Agent runs with test credentials from one Schedule and production
+credentials from another; its definition never changes.
 
 ## Declaring required variables
 
@@ -110,8 +124,8 @@ spec:
 ```
 
 This is a _schema_, not a value assignment. It says "this resource needs these
-variables at runtime." The actual values come from the Environments attached to
-the Agent Instance.
+variables at runtime." The actual values come from the sources
+[below](#how-a-run-gets-its-values).
 
 If a required variable is missing at runtime, the Agent fails fast with a clear
 error — not halfway through a tool call.
@@ -147,11 +161,43 @@ your Organization by setting its visibility to **Organization**:
 Environments never go beyond the Organization — there is no platform visibility
 for secrets.
 
-## How values resolve at runtime
+## How a run gets its values
 
-When an Agent runs, Stigmer merges the Environments attached to its Agent
-Instance into a single **ExecutionContext**. That merged map is what the runner
-uses at execution time. Different surfaces see different slices of it:
+Every message in a [Session](/docs/concepts/sessions) is one run. When it
+starts, Stigmer fills the keys the Agent and the conversation's MCP Servers
+declare from these sources, in order:
+
+1. **The Environments bound to what started the run.** A Schedule's, a Workflow
+   `agent_call` task's, or the PlatformClient's `environment_refs`, when the run
+   came from one of them. A PlatformClient's Environments sit below the others,
+   so they supply defaults.
+2. **Values passed for this one run.** The request's `runtime_env` overrides
+   every Environment for the keys it carries and is deleted when the run ends.
+3. **Your connections and your personal Environment, for keys still missing.**
+   An MCP Server's OAuth variable comes only from the sign-in to that server; no
+   personal Environment ever fills it. The other missing keys come from the
+   personal Environment of the person who sent the message. The keys the
+   conversation's MCP Servers declare are always read from it, and the keys the
+   Agent declares only when the Agent belongs to the Organization the run is in:
+   an Agent another Organization published reads none of your values. A run with
+   no person, such as a Schedule fire, reads no one's personal Environment.
+
+When the run declares any keys, a key nobody declared is dropped, whatever its
+source.
+
+<Callout type="warn">
+  The keys an Agent declares reach its tools and its shell, and those follow the
+  instructions the Agent's author wrote. When you send a message to an Agent a
+  teammate in your Organization wrote, the keys it declares that only your
+  personal Environment holds go to that Agent. An Agent from another
+  Organization never receives them. Before your first message in a conversation,
+  the console names the keys the Agent declares, so you can decide before
+  anything is sent.
+</Callout>
+
+Stigmer merges the values into a single **ExecutionContext**. That merged map is
+what the runner uses at execution time. Different surfaces see different slices
+of it:
 
 | Surface                                              | What the Agent sees                                                                                                                                                                                                                                                                                                                  |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

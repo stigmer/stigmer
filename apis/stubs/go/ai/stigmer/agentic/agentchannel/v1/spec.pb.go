@@ -35,8 +35,10 @@ type AgentChannelSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Reference to the agent this channel serves.
 	//
-	// The reference names no version (or "latest"): this runs the agent's
-	// current version, and a reference naming another version is refused.
+	// A version on the reference (a tag or a content hash) is the version
+	// each new conversation on this channel runs; none, or "latest", runs the
+	// agent's current version when the conversation starts. A started
+	// conversation keeps the version it started on.
 	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Whether serving traffic on this channel is enabled.
 	//
@@ -52,7 +54,7 @@ type AgentChannelSpec struct {
 	// This is how a tool-using agent becomes chattable over a channel: bind
 	// an org-shared environment holding the needed credentials (for example
 	// a read-only API token), and channel executions receive its values at
-	// runtime. The agent and its default instance stay untouched.
+	// runtime. The agent itself stays untouched.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,4,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
 	// Reference to the ChannelApp this channel installs through.
 	//

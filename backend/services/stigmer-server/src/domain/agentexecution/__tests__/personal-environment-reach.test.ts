@@ -3,11 +3,18 @@
  * the fill-ins; run-person.ts, the person). Two people in one organization
  * each save their own personal environment; the run of one must read that
  * person's values and never the other's, whichever row the organization's
- * list happens to answer first. A run that nobody started at a keyboard (a
+ * list happens to answer first: for a key the run's agent declares, a key
+ * its session's server declares and a workspace-provisioning key alike. A run that nobody started at a keyboard (a
  * schedule fire, in every edition) reads no one's, and a run whose creator
  * holds no personal environment (a lane account: a visitor, a channel, a
  * cloud schedule) reads none either. The person is read from the persisted
  * execution, so a recover rebuilds the same answer.
+ *
+ * What it reads for: a key the agent declares only when the agent belongs
+ * to the run's organization (another organization's agent, or one that
+ * cannot be read, gets none of the person's values, while the session's
+ * own server still does); and never an OAuth target of any server the run
+ * uses, the agent's included, which is the managed grant's alone.
  *
  * Over a real store (the rows the lookup scans) with a reader that answers
  * the secret reads by environment id and records them, so a read of the
@@ -22,7 +29,7 @@ import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
+import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
@@ -104,16 +111,23 @@ function personalEnvironment(
 const BENS = personalEnvironment("env_ben", BEN, 1_000, {
   GITHUB_TOKEN: "ghp-ben",
   NOTES_TOKEN: "nt-ben",
+  SEARCH_KEY: "sk-ben",
 });
 const ANAS = personalEnvironment("env_ana", ANA, 2_000, {
   GITHUB_TOKEN: "ghp-ana",
   NOTES_TOKEN: "nt-ana",
+  SEARCH_KEY: "sk-ana",
 });
 // Carol saved one too, holding her notes token and no GitHub token.
 const CAROLS = personalEnvironment("env_carol", "acc_carol", 1_500, {
   NOTES_TOKEN: "nt-carol",
 });
-const ENVIRONMENTS = [ANAS, BENS, CAROLS];
+// Dee keeps a calendar token too: the agent's own OAuth server's target.
+const DEES = personalEnvironment("env_dee", "acc_dee", 500, {
+  CAL_TOKEN: "cal-dee",
+  SEARCH_KEY: "sk-dee",
+});
+const ENVIRONMENTS = [ANAS, BENS, CAROLS, DEES];
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "aexec-personal-reach-"));
@@ -135,6 +149,18 @@ beforeAll(async () => {
       spec: { env: { NOTES_TOKEN: { isSecret: true } } },
     }),
   );
+  await store.saveResource(
+    ApiResourceKind.mcp_server,
+    "mcps_cal",
+    McpServerSchema,
+    create(McpServerSchema, {
+      metadata: { id: "mcps_cal", org: ORG, slug: "calendar" },
+      spec: {
+        env: { CAL_TOKEN: { isSecret: true } },
+        auth: { targetEnvVar: "CAL_TOKEN" },
+      },
+    }),
+  );
 });
 
 afterAll(() => {
@@ -146,9 +172,35 @@ interface Reads {
   readonly environments: string[];
 }
 
+/** The run's agent as the loader answers it. */
+interface RunAgent {
+  /** The organization the agent belongs to; undefined = it cannot be read. */
+  readonly org: string | undefined;
+  /** Whether the agent uses the calendar server (OAuth target CAL_TOKEN). */
+  readonly usesCalendar?: boolean;
+  /** A session with no workspace and no server of its own: only the agent declares keys. */
+  readonly bareSession?: boolean;
+}
+
+/** The run's agent's spec: SEARCH_KEY, and the calendar server when it uses it. */
+function runAgentSpec(agent: RunAgent) {
+  return {
+    env: {
+      SEARCH_KEY: { isSecret: true, optional: true },
+      ...(agent.usesCalendar === true
+        ? { CAL_TOKEN: { isSecret: true, optional: true } }
+        : {}),
+    },
+    mcpServerUsages:
+      agent.usesCalendar === true
+        ? [{ mcpServerRef: { slug: "calendar", org: ORG } }]
+        : [],
+  };
+}
+
 /**
- * Builder deps for a run on an agent that declares nothing, in a session
- * that names a git repository and adds the notes server. The reader
+ * Builder deps for a run on an agent that declares SEARCH_KEY, in a
+ * session that names a git repository and adds the notes server. The reader
  * answers secret reads by environment id and records which row each read
  * touched.
  */
@@ -156,43 +208,58 @@ function depsFor(
   reads: Reads,
   createdEcs: ExecutionContext[],
   storeFor: Store,
+  agent: RunAgent = { org: ORG },
 ): ExecutionContextBuilderDeps {
   return {
     store: storeFor,
     logger: silentLogger,
     agentLoader: () => ({
-      get: async () =>
-        create(AgentSchema, { metadata: { id: "agt_reach", org: ORG } }),
-      getVersion: async () => {
-        throw new Error("this turn records no agent version");
+      get: async () => {
+        if (agent.org === undefined) {
+          throw new Error("the agent cannot be read");
+        }
+        return create(AgentSchema, {
+          metadata: { id: "agt_reach", org: agent.org },
+          spec: runAgentSpec(agent),
+        });
       },
-    }),
-    agentInstanceLoader: () => ({
-      get: async (instanceId) =>
-        create(AgentInstanceSchema, {
-          metadata: { id: instanceId, org: ORG },
-          spec: { agentId: "agt_reach" },
-        }),
+      getVersion: async () => {
+        // Only the unreadable agent's run records a version: its spec is
+        // read at that version while the agent row itself cannot be.
+        if (agent.org !== undefined) {
+          throw new Error("this turn records no agent version");
+        }
+        return create(AgentVersionEntrySchema, {
+          specSnapshot: runAgentSpec(agent),
+        });
+      },
     }),
     sessionLoader: () => ({
       get: async (sessionId) =>
         create(SessionSchema, {
           metadata: { id: sessionId, org: ORG },
           spec: {
-            agentInstanceId: "agi_reach",
-            workspaceEntries: [
-              {
-                name: "repo",
-                source: {
-                  source: {
-                    case: "gitRepo",
-                    value: { url: "https://github.com/acme/app.git" },
-                  },
-                },
-              },
-            ],
-            mcpServerUsages: [{ mcpServerRef: { slug: "notes", org: ORG } }],
+            agentRef: { org: ORG, slug: "reach" },
+            workspaceEntries:
+              agent.bareSession === true
+                ? []
+                : [
+                    {
+                      name: "repo",
+                      source: {
+                        source: {
+                          case: "gitRepo",
+                          value: { url: "https://github.com/acme/app.git" },
+                        },
+                      },
+                    },
+                  ],
+            mcpServerUsages:
+              agent.bareSession === true
+                ? []
+                : [{ mcpServerRef: { slug: "notes", org: ORG } }],
           },
+          status: { agentId: "agt_reach" },
         }),
     }),
     environmentReader: () => ({
@@ -208,7 +275,7 @@ function depsFor(
     }),
     environmentResolution: {
       resolveByReference: async () => {
-        throw new Error("no environment refs on this instance");
+        throw new Error("no environment layer on this run");
       },
     } as unknown as ExecutionContextBuilderDeps["environmentResolution"],
     executionContextCreator: () => ({
@@ -239,14 +306,18 @@ function executionBy(
 ): AgentExecution {
   return create(AgentExecutionSchema, {
     metadata: { id, org: ORG, labels },
-    spec: { sessionId: `ses_${id}`, message: "hi" },
-    status: { audit: { specAudit: { createdBy: { id: creator } } } },
+    spec: { target: { case: "sessionId", value: `ses_${id}` }, message: "hi" },
+    status: {
+      agentId: "agt_reach",
+      audit: { specAudit: { createdBy: { id: creator } } },
+    },
   });
 }
 
 async function build(
   execution: AgentExecution,
   storeFor: Store = store,
+  agent?: RunAgent,
 ): Promise<{
   readonly data: NonNullable<ExecutionContext["spec"]>["data"];
   readonly reads: Reads;
@@ -254,9 +325,8 @@ async function build(
   const reads: Reads = { environments: [] };
   const createdEcs: ExecutionContext[] = [];
   await buildAndPersistExecutionContext(
-    depsFor(reads, createdEcs, storeFor),
+    depsFor(reads, createdEcs, storeFor, agent),
     execution,
-    "",
   );
   expect(createdEcs).toHaveLength(1);
   return { data: createdEcs[0]?.spec?.data ?? {}, reads };
@@ -267,6 +337,7 @@ describe("whose personal environment a run reads", () => {
     const { data, reads } = await build(executionBy("aexec_ben", BEN));
     expect(data["GITHUB_TOKEN"]?.value).toBe("ghp-ben");
     expect(data["NOTES_TOKEN"]?.value).toBe("nt-ben");
+    expect(data["SEARCH_KEY"]?.value).toBe("sk-ben");
     expect(new Set(reads.environments)).toEqual(new Set(["env_ben"]));
   });
 
@@ -274,6 +345,7 @@ describe("whose personal environment a run reads", () => {
     const { data, reads } = await build(executionBy("aexec_ana", ANA));
     expect(data["GITHUB_TOKEN"]?.value).toBe("ghp-ana");
     expect(data["NOTES_TOKEN"]?.value).toBe("nt-ana");
+    expect(data["SEARCH_KEY"]?.value).toBe("sk-ana");
     expect(new Set(reads.environments)).toEqual(new Set(["env_ana"]));
   });
 
@@ -286,6 +358,7 @@ describe("whose personal environment a run reads", () => {
     );
     expect(data["GITHUB_TOKEN"]).toBeUndefined();
     expect(data["NOTES_TOKEN"]).toBeUndefined();
+    expect(data["SEARCH_KEY"]).toBeUndefined();
     expect(reads.environments).toEqual([]);
   });
 
@@ -295,6 +368,7 @@ describe("whose personal environment a run reads", () => {
     );
     expect(data["GITHUB_TOKEN"]).toBeUndefined();
     expect(data["NOTES_TOKEN"]).toBeUndefined();
+    expect(data["SEARCH_KEY"]).toBeUndefined();
     expect(reads.environments).toEqual([]);
   });
 
@@ -304,6 +378,7 @@ describe("whose personal environment a run reads", () => {
     );
     expect(data["GITHUB_TOKEN"]).toBeUndefined();
     expect(data["NOTES_TOKEN"]?.value).toBe("nt-carol");
+    expect(data["SEARCH_KEY"]).toBeUndefined();
     expect(reads.environments).toEqual(["env_carol"]);
   });
 
@@ -328,6 +403,7 @@ describe("whose personal environment a run reads", () => {
     );
     expect(data["GITHUB_TOKEN"]).toBeUndefined();
     expect(data["NOTES_TOKEN"]).toBeUndefined();
+    expect(data["SEARCH_KEY"]).toBeUndefined();
     expect(reads.environments).toEqual([]);
   });
 
@@ -335,5 +411,43 @@ describe("whose personal environment a run reads", () => {
     const { data, reads } = await build(executionBy("aexec_unstamped", ""));
     expect(data["GITHUB_TOKEN"]).toBeUndefined();
     expect(reads.environments).toEqual([]);
+  });
+});
+
+describe("what a run reads the personal environment for", () => {
+  it("an agent of another organization gets none of the person's values; the session's own server still does", async () => {
+    const { data } = await build(executionBy("aexec_foreign", BEN), store, {
+      org: "globex",
+    });
+    expect(data["SEARCH_KEY"]).toBeUndefined();
+    expect(data["NOTES_TOKEN"]?.value).toBe("nt-ben");
+    expect(data["GITHUB_TOKEN"]?.value).toBe("ghp-ben");
+  });
+
+  it("a run whose only missing keys are another organization's agent's reads no personal environment at all", async () => {
+    const { data, reads } = await build(
+      executionBy("aexec_foreign_only", BEN),
+      store,
+      { org: "globex", bareSession: true },
+    );
+    expect(data["SEARCH_KEY"]).toBeUndefined();
+    expect(reads.environments).toEqual([]);
+  });
+
+  it("an agent that cannot be read counts as another organization's", async () => {
+    const execution = executionBy("aexec_unread", BEN);
+    execution.status!.agentVersionHash = "e".repeat(64);
+    const { data } = await build(execution, store, { org: undefined });
+    expect(data["SEARCH_KEY"]).toBeUndefined();
+    expect(data["NOTES_TOKEN"]?.value).toBe("nt-ben");
+  });
+
+  it("an OAuth target of the agent's own server is the grant's alone, never the person's", async () => {
+    const { data } = await build(executionBy("aexec_cal", "acc_dee"), store, {
+      org: ORG,
+      usesCalendar: true,
+    });
+    expect(data["CAL_TOKEN"]).toBeUndefined();
+    expect(data["SEARCH_KEY"]?.value).toBe("sk-dee");
   });
 });

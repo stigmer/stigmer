@@ -1,5 +1,5 @@
 // Conformance suite for environment-merge precedence — the WORKFLOW half
-// (Class B). The agent-instance half lives in
+// (Class B). The agent half lives in
 // envmerge-agent.conformance.test.ts: rosters are file-granular and the
 // local-execution target rostered agent-execution suites before the
 // workflow-execution engine existed, so the two aggregates' assertions ship

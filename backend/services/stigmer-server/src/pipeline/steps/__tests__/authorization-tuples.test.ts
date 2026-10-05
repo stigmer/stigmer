@@ -16,9 +16,9 @@ import { describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
+import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
@@ -85,10 +85,10 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
     ]).toEqual([]);
   });
 
-  it("agent_instance supports org but never platform (tenant isolation)", () => {
+  it("workflow_instance supports org but never platform (tenant isolation)", () => {
     expect([
       ...visibilityShapesFor(
-        ApiResourceKind.agent_instance,
+        ApiResourceKind.workflow_instance,
         V.visibility_platform,
       ),
     ]).toEqual([]);
@@ -231,7 +231,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
   it("agent_execution: PARENT scope resolves the session link from spec.session_id, owner INHERITED", () => {
     const execution = create(AgentExecutionSchema, {
       metadata: { id: "aexec_1", org: "acme" },
-      spec: { sessionId: "ses_parent" },
+      spec: { target: { case: "sessionId", value: "ses_parent" } },
     });
     const event = resolveResourceCreatedEvent(
       ApiResourceKind.agent_execution,
@@ -263,13 +263,13 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     ).toThrowError(/failed to create authorization tuples/);
   });
 
-  it("agent_instance: org scope link PLUS the additional agent parent from spec.agent_id", () => {
-    const instance = create(AgentInstanceSchema, {
-      metadata: { id: "agi_1", org: "acme" },
-      spec: { agentId: "agt_parent" },
+  it("workflow_instance: org scope link PLUS the additional workflow parent from spec.workflow_id", () => {
+    const instance = create(WorkflowInstanceSchema, {
+      metadata: { id: "wfi_1", org: "acme" },
+      spec: { workflowId: "wfl_parent" },
     });
     const event = resolveResourceCreatedEvent(
-      ApiResourceKind.agent_instance,
+      ApiResourceKind.workflow_instance,
       instance,
       caller,
       logger,
@@ -281,9 +281,9 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
         parentId: "acme",
       },
       {
-        relation: "agent",
-        parentKind: ApiResourceKind.agent,
-        parentId: "agt_parent",
+        relation: "workflow",
+        parentKind: ApiResourceKind.workflow,
+        parentId: "wfl_parent",
       },
     ]);
   });
@@ -333,8 +333,8 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
 
 describe("cleanUpDeletedResource (the delete cleanup every chain and cascade shares)", () => {
   const event: ResourceDeletedEvent = {
-    kind: ApiResourceKind.agent_instance,
-    resourceId: "ain_cleanup_subject",
+    kind: ApiResourceKind.workflow_instance,
+    resourceId: "wfi_cleanup_subject",
     orgId: "acme",
     caller,
   };
@@ -390,8 +390,8 @@ describe("cleanUpDeletedResource (the delete cleanup every chain and cascade sha
         message:
           "authorization cleanup failed — orphaned IAM policies may remain",
         fields: {
-          kind: "AgentInstance",
-          resourceId: "ain_cleanup_subject",
+          kind: "WorkflowInstance",
+          resourceId: "wfi_cleanup_subject",
           error: "fga is down",
         },
       },

@@ -13,7 +13,7 @@
         "kind": "message",
         "messageType": "ApiResourceReference"
       },
-      "description": "Reference to the agent this share distributes.\n\n The referenced agent must live in this share's organization: a share\n offers an agent its own organization owns, billed to that organization,\n with tool credentials bound from it. To share another organization's\n agent, install the plugin that carries it and share the installed copy.\n\n The reference names no version (or \"latest\"): a share runs the agent's\n current version, and a reference naming another version is refused.",
+      "description": "Reference to the agent this share distributes.\n\n The referenced agent must live in this share's organization: a share\n offers an agent its own organization owns, billed to that organization,\n with tool credentials bound from it. To share another organization's\n agent, install the plugin that carries it and share the installed copy.\n\n A version on the reference (a tag or a content hash) is the version\n each new conversation through this share runs; none, or \"latest\", runs\n the agent's current version when the conversation starts. A started\n conversation keeps the version it started on.",
       "required": true,
       "referenceKind": 40,
       "validation": {
@@ -83,7 +83,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "References to Environment resources whose values are provided to guest\n conversations on this share.\n\n This is how a tool-using agent becomes chattable over a share link:\n bind an org-shared environment holding the needed credentials (for\n example a read-only API token), and guest executions receive its\n values at runtime. The agent and its default instance stay untouched.\n Valid on public-audience shares only.",
+      "description": "References to Environment resources whose values are provided to guest\n conversations on this share.\n\n This is how a tool-using agent becomes chattable over a share link:\n bind an org-shared environment holding the needed credentials (for\n example a read-only API token), and guest executions receive its\n values at runtime. The agent itself stays untouched.\n Valid on public-audience shares only.",
       "required": false,
       "referenceKind": 53
     },

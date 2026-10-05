@@ -24,6 +24,14 @@
 // Every no-LLM fire here targets a DELETED agent, so it fails
 // deterministically inside the create pipeline before any execution
 // exists. Gated on the scheduleFiring capability.
+//
+// A schedule's agent reference may name a version (a tag or a content
+// hash): the fire starts a conversation pinned to that version, so an
+// author saving a new head never changes what an unattended schedule runs
+// until its owner moves the reference. The real-run block pins that a fire
+// honours the version it names, read off the fired turn and its session.
+import { create } from "@bufbuild/protobuf";
+import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   ScheduleRunOrigin,
@@ -36,6 +44,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
+import { sessionIdOf } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { makeSchedule, targetMissingReason } from "../support/schedules";
 import { pollUntil } from "../support/execution-poll";
@@ -193,7 +202,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     // the prompt)...
     const execution = await clients.agentExecutionQuery.get({ value: executionId });
     expect(execution.spec?.message).toContain("(Scheduled fire time: ");
-    const session = await clients.sessionQuery.get({ value: execution.spec!.sessionId });
+    const session = await clients.sessionQuery.get({ value: sessionIdOf(execution) });
     expect(session.spec?.subject).toBe(`Scheduled run: ${schedule.metadata!.slug}`);
 
     // ...that runs to completion.
@@ -219,5 +228,44 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     // signal, completed or not.
     const fresh = await clients.scheduleQuery.get({ value: id });
     expect(fresh.status?.consecutiveFailures ?? 0).toBe(0);
+  });
+
+  it("[rpc:ScheduleCommandController.trigger] a schedule whose agent reference names a version fires a conversation pinned to that version, not the agent's head", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("sched-pinned-target");
+    const v1 = await clients.agentCommand.apply(
+      makeAgent({ org, name, instructions: "Version one: send the reminders politely." }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: v1.metadata!.id }));
+    const v2 = await clients.agentCommand.apply(
+      makeAgent({ org, name, instructions: "Version two: send the reminders tersely." }),
+    );
+    const pinned = v1.status!.versionHash;
+    expect(v2.status?.versionHash, "the author's save is a new head").not.toBe(pinned);
+
+    const input = create(ScheduleSchema, makeSchedule(org, uniqueName("sched-pinned"), v1.metadata!.slug));
+    if (input.spec?.target.case !== "agent" || input.spec.target.value.agentRef === undefined) {
+      throw new Error("makeSchedule builds an agent target with a reference");
+    }
+    input.spec.target.value.agentRef.version = pinned;
+    const schedule = await clients.scheduleCommand.create(input);
+    fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
+
+    target.llmProxy!().enqueue(anthropicText("Reminders sent."));
+    const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
+    expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(ScheduleRunOutcome.STARTED);
+
+    const execution = await clients.agentExecutionQuery.get({ value: result.executionId });
+    const session = await clients.sessionQuery.get({ value: sessionIdOf(execution) });
+    expect(session.status?.agentVersionHash, "the fired conversation pins the version the schedule names").toBe(pinned);
+    expect(execution.status?.agentVersionHash, "and the fired turn runs it").toBe(pinned);
+
+    await pollUntil(
+      () => clients.agentExecutionQuery.get({ value: result.executionId }),
+      (e) => e.status?.phase === ExecutionPhase.EXECUTION_COMPLETED,
+      (last, timeoutMs) =>
+        `execution ${result.executionId} did not complete within ${timeoutMs}ms; ` +
+        `last phase: ${last?.status?.phase}`,
+    );
   });
 });

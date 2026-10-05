@@ -22,7 +22,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -90,7 +90,7 @@ describe("AgentExecution sub-agent delegation", () => {
       makeAgentExecution({
         org,
         name: uniqueName("aex-subagent"),
-        agentId: agent.metadata!.id,
+        agentRef: agentRefOf(agent),
         message: "Please delegate to the researcher to summarize renewable energy.",
         autoApproveAll: true,
       }),

@@ -43,8 +43,7 @@ service ScheduleQueryController {
   //
   // @internal
   // Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS
-  // (the getByAgent family convention — agent channels, agent shares,
-  // agent instances).
+  // (the getByAgent family convention — agent channels, agent shares).
   rpc getByAgent(GetSchedulesByAgentRequest) returns (ScheduleList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

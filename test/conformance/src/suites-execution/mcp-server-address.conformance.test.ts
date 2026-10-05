@@ -1,10 +1,11 @@
 // Conformance suite for the platform-filled STIGMER_SERVER_ADDRESS (Class B).
-// Domain: agentic / agentexecution: environment → instance → execution →
-// the runner's fill → a remote MCP server's templated header.
+// Domain: agentic / agentexecution: personal environment → execution → the
+// runner's fill → a remote MCP server's templated header.
 //
 // The contract under test (stigmer/stigmer#1446, #1451, #1458): a value the
-// user SAVED for STIGMER_SERVER_ADDRESS is the value their MCP server
-// receives, and when nothing is saved the runner fills the key from the public
+// user SAVED for STIGMER_SERVER_ADDRESS (in their personal environment, which
+// fills every key the run declares that no layer carries) is the value their
+// MCP server receives, and when nothing is saved the runner fills the key from the public
 // endpoint its launcher gave it, so the server still receives an address. The
 // platform fills the key only when it is missing (the runner's
 // platform-server-address module), below every saved value, so a saved one
@@ -38,10 +39,9 @@ import type { McpToolFixture } from "../harness/mcp-server";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
-import { makeAgentInstance } from "../support/agentinstances";
-import { makeEnvironment } from "../support/environments";
+import { makePersonalEnvironment } from "../support/environments";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
@@ -88,13 +88,13 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("platform STIGMER_SERVER_ADDRESS (environment → instance → execution → headers)", () => {
+describe("platform STIGMER_SERVER_ADDRESS (personal environment → execution → headers)", () => {
   it("delivers the address the user saved, never the platform's own", async () => {
     const { org } = await target.provisionTenancy();
     const saved = "saved.example.com:7234";
 
     const environment = await clients.environmentCommand.create(
-      makeEnvironment({
+      makePersonalEnvironment({
         org,
         name: uniqueName("env-address"),
         data: { [SERVER_ADDRESS_ENV_KEY]: { value: saved } },
@@ -118,18 +118,8 @@ describe("platform STIGMER_SERVER_ADDRESS (environment → instance → executio
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
-    const instance = await clients.agentInstanceCommand.create(
-      makeAgentInstance({
-        org,
-        name: uniqueName("ain-address"),
-        agentId: agent.metadata!.id,
-        environmentRefs: [{ org, slug: environment.metadata!.slug }],
-      }),
-    );
-    fixtures.defer(() => clients.agentInstanceCommand.delete({ value: instance.metadata!.id }));
-
     const session = await clients.sessionCommand.create(
-      makeSession({ org, name: uniqueName("session-address"), agentInstanceId: instance.metadata!.id }),
+      makeSession({ org, name: uniqueName("session-address"), agentRef: agentRefOf(agent) }),
     );
     fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
 
@@ -192,7 +182,7 @@ describe("platform STIGMER_SERVER_ADDRESS (environment → instance → executio
       makeAgentExecution({
         org,
         name: uniqueName("aex-address-fill"),
-        agentId: agent.metadata!.id,
+        agentRef: agentRefOf(agent),
         autoApproveAll: true,
       }),
     );

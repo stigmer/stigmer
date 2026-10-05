@@ -52,7 +52,7 @@ import {
 import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode, grpcCodeOf } from "../contract/errors";
 import { collectStream } from "../support/collect-stream";
-import { makeAgent } from "../support/agents";
+import { makeAgent, agentRefOf } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeMcpServer } from "../support/mcpservers";
 import { makeSession } from "../support/sessions";
@@ -101,7 +101,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
       makeSession({
         org,
         name: uniqueName("authz-session"),
-        agentInstanceId: agent.status!.defaultInstanceId,
+        agentRef: agentRefOf(agent),
         subject: "owner's subject",
       }),
     );

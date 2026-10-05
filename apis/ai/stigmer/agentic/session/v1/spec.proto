@@ -12,24 +12,51 @@ import "buf/validate/validate.proto";
 // SessionSpec defines the configurable properties of a session.
 //
 // @internal
-// This is the "Execution" layer — ephemeral runtime against an AgentInstance.
-// The overview.md file provides the SDK-facing description and example YAML.
+// A session is a conversation with an agent, or with the built-in
+// assistant when it names none. The overview.md file provides the
+// SDK-facing description and example YAML.
 message SessionSpec {
-  // Agent instance this session runs against; empty means no agent, and the
-  // built-in assistant answers with the MCP servers and skills this session
-  // itself declares.
+  // Field 1 named the agent instance the session ran against until the
+  // instance kind was removed; a session names its agent directly through
+  // agent_ref.
+  reserved 1;
+  reserved "agent_instance_id";
+
+  // The agent this conversation runs, as 'org/slug' with an optional
+  // version; empty means no agent, and the built-in assistant answers with
+  // the MCP servers and skills this session itself declares.
   //
-  // A session may gain an agent or drop back to the built-in assistant on
-  // update; the harness and execution target are the immutable fields, not
-  // this one.
+  // The conversation runs the agent version this reference resolved to
+  // when it was written, recorded in status.agent_id and
+  // status.agent_version_hash, so an author saving a new version never
+  // changes an open conversation under its people. A version names a tag or
+  // a content hash; none, on a reference the session did not already hold,
+  // names the agent's current version. To move a conversation to the
+  // agent's current version, update the session with this reference's
+  // version set to `latest`: the server pins that version and stores the
+  // reference with no version. An update that sends the stored reference
+  // unchanged keeps the version the conversation runs, even when the tag it
+  // names has moved since.
+  //
+  // A session may gain an agent, change it or drop back to the built-in
+  // assistant on update; the harness and execution target are the
+  // immutable fields, not this one. Naming an agent, or changing it, needs
+  // permission to run that agent (can_execute), and every turn asks it
+  // again.
   //
   // @internal
-  // Nothing resolves an empty value into an instance: the run gate makes no
-  // target check (the organization's can_create_session admitted the
-  // conversation and the session's can_create_execution_in admits each
-  // turn), and the runner resolves an agent-less blueprint whose instructions
-  // are the one built-in prompt.
-  string agent_instance_id = 1;
+  // Another organization's agent is accepted only at platform visibility
+  // (the reference rule). The resolved id beside the reference is what
+  // every turn reads, by point read, so a slug deleted and taken by another
+  // agent never redirects a live conversation (the share's pin).
+  ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [
+    (ai.stigmer.commons.apiresource.reference_kind) = agent,
+    (buf.validate.field).cel = {
+      id: "session_agent_ref.kind"
+      message: "agent_ref must reference a resource with kind=agent"
+      expression: "this.kind == 40"
+    }
+  ];
 
   // Conversation title for UI display.
   string subject = 2;

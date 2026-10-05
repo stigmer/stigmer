@@ -81,7 +81,13 @@ import { buildAndPersistExecutionContext } from "./create-execution-context-step
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineDispatchError, EngineWorkflowNotFoundError } from "./engine.js";
+import {
+  newAuthorizeRecoveredRunAgentStep,
+  newResolveRecoveredRunAgentStep,
+  newStampRecoveredRunAgentStep,
+} from "./resolve-run-agent.js";
 import { notifyStatusObservers } from "./status-observers.js";
+import { sessionIdOf } from "./target.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
 import type { StreamBroker } from "./stream-broker.js";
 
@@ -687,6 +693,11 @@ export async function recoverExecution(
   );
 }
 
+/** Whether the recover found the execution already running (the idempotent arm). */
+function alreadyRecovered(ctx: { get(key: string): unknown }): boolean {
+  return ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true;
+}
+
 /** The recover chain itself, run inside the execution's turn. */
 function runRecoverPipeline(
   deps: LifecycleDeps,
@@ -711,6 +722,12 @@ function runRecoverPipeline(
           `cannot recover execution in phase ${phaseName(phase)}; only FAILED executions can be recovered`,
         logger: deps.logger,
       }),
+      // A rerun runs the agent again, so the caller must still be able
+      // to, asked before anything is terminated, charged or written: the
+      // agent the turn recorded, or its session's pin for a turn that
+      // recorded none (resolve-run-agent.ts).
+      newResolveRecoveredRunAgentStep(deps.store, alreadyRecovered),
+      newAuthorizeRecoveredRunAgentStep(deps.authorizer, alreadyRecovered),
       // TerminateExistingWorkflow: a FAILED execution's workflow has
       // normally already completed (NOT_FOUND = success); termination
       // matters for the rarer DB-says-FAILED-but-workflow-live state —
@@ -733,6 +750,10 @@ function runRecoverPipeline(
         deps.gateSteps,
         "agent-execution-recover:pre-side-effect-gate",
       ),
+      // A turn created before turns recorded their agent records the
+      // session's pin here, persisted before the context is rebuilt and
+      // the fresh workflow's runner reads it (resolve-run-agent.ts).
+      newStampRecoveredRunAgentStep(deps.store, deps.logger, alreadyRecovered),
       newRecreateExecutionContextStep(deps),
       newStartFreshWorkflowStep(deps),
       // The session-lane sandbox ensure — same position and
@@ -805,18 +826,17 @@ function newRecreateExecutionContextStep(
         "recover",
       );
 
-      // No pre-resolved instance id on the recover path: a persisted
-      // execution always carries session_id (the create pipeline
-      // guarantees it), so the builder resolves via the session. Go wraps
-      // with %w — the inner status code survives to the wire (notably the
-      // FailedPrecondition OAuth pre-flight refusal and NotFound loads,
-      // exactly as the same failure surfaces on the create path); plain
-      // errors chain to the pipeline's Internal fallback.
+      // A persisted execution always carries session_id (the create
+      // pipeline guarantees it) and the agent it runs (its stamp, recorded
+      // by the step before when it had none). Go wraps with %w — the inner
+      // status code survives to the wire (notably the FailedPrecondition
+      // OAuth pre-flight refusal and NotFound loads, exactly as the same
+      // failure surfaces on the create path); plain errors chain to the
+      // pipeline's Internal fallback.
       try {
         await buildAndPersistExecutionContext(
           deps.executionContextBuilder,
           execution,
-          "",
         );
       } catch (error) {
         if (error instanceof ConnectError) {
@@ -836,9 +856,9 @@ function newRecreateExecutionContextStep(
 /**
  * Starts a brand-new workflow for the recovered execution (Go
  * StartFreshWorkflowStep): Temporal allows workflow-id reuse after the
- * previous run reached a terminal state. Dispatch is re-resolved with an
- * EMPTY activity_task_queue override and the parent-coupled coordinates
- * (callback_token, parent_workflow_id) are deliberately NOT carried — a
+ * previous run reached a terminal state. Dispatch is re-resolved with no
+ * queue override and the parent link's coordinates (its callback token,
+ * its signal target, its run's queue) are deliberately NOT carried — a
  * recovered execution is a standalone rerun (the single-use token was
  * already completed with the failure; the parent already observed the
  * failure; the parent's sandbox queue loses its poller when the parent
@@ -866,8 +886,8 @@ function newStartFreshWorkflowStep(
       try {
         await engine.engine.startInvokeWorkflow({
           executionId,
-          sessionId: execution.spec?.sessionId ?? "",
-          agentId: execution.spec?.agentId ?? "",
+          sessionId: sessionIdOf(execution.spec),
+          agentId: execution.status?.agentId ?? "",
           callbackToken: new Uint8Array(),
           autoApproveAll: execution.spec?.autoApproveAll ?? false,
           parentWorkflowId: "",

@@ -1,10 +1,10 @@
 /**
  * Session controller — ports pkg/domain/session/controller (command +
- * query sides): the runtime conversation thread that runs against an
- * AgentInstance. Create resolves the platform default agent instance when
- * none is provided (the session-first UX, via the in-process agentinstance
- * CREATE edge); update enforces the harness and execution-target
- * immutability sentinels and maintains the server-owned
+ * query sides): the conversation thread a person has with an agent, or with
+ * the built-in assistant when it names none. Create and update pin the
+ * agent the session names, at the version it resolves to
+ * (resolve-session-agent.ts); update enforces the harness and
+ * execution-target immutability sentinels and maintains the server-owned
  * harness_state_id_history; delete blocks while executions are active and
  * cascades the session's agent executions; updateSubject is a field-level
  * read-modify-write.
@@ -13,11 +13,12 @@
  * Proven by session.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/session.test.ts.
  *
- * Every chain opens with Authorize, and create also asks can_execute on
- * the agent instance it binds to (AuthorizeRunTarget); create and delete
- * run the shared tuple-lifecycle steps against the composed lifecycle;
- * updateSubject evaluates its annotation through authorizeDirect after the
- * load (#224); list, listByAgentInstance and listByChannel narrow through
+ * Every chain opens with Authorize, and create and update also ask
+ * can_execute on an agent the write introduces (AuthorizeRunTarget, after
+ * the pin); create and delete run the shared tuple-lifecycle steps against
+ * the composed lifecycle; updateSubject evaluates its annotation through
+ * authorizeDirect after the load (#224); list, listByAgent and
+ * listByChannel narrow through
  * the composed list read scope. Per-RPC posture:
  * docs/authorization-coverage.md §8.
  */
@@ -28,7 +29,7 @@ import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/sessi
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type {
-  ListSessionsByAgentInstanceRequest,
+  ListSessionsByAgentRequest,
   ListSessionsByChannelRequest,
   ListSessionsRequest,
   SessionId,
@@ -105,6 +106,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { SandboxLane } from "../../sandbox/lane.js";
 import { deprovisionSessionSandboxBestEffort } from "../../sandbox/steps.js";
+import { newResolveSessionAgentStep } from "./resolve-session-agent.js";
 import { sessionRunTarget } from "./run-target.js";
 import { sessionSearchExtractor } from "./search-extractor.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
@@ -112,7 +114,7 @@ import {
   LIST_RESULT_KEY,
   newAuthorizeChannelAccessStep,
   newCascadeDeleteAgentExecutionsStep,
-  newFilterByAgentInstanceStep,
+  newFilterByAgentStep,
   newFilterByChannelStep,
   newListAllSessionsStep,
   newRecordHarnessStateHistoryStep,
@@ -166,7 +168,7 @@ export function registerSessionServices(
   router.service(SessionQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     list: (req, ctx) => list(deps, req, ctx),
-    listByAgentInstance: (req, ctx) => listByAgentInstance(deps, req, ctx),
+    listByAgent: (req, ctx) => listByAgent(deps, req, ctx),
     listByChannel: (req, ctx) => listByChannel(deps, req, ctx),
   });
 }
@@ -176,19 +178,23 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Create — chain per Go buildCreatePipeline. AuthorizeRunTarget (the run
- * gate) runs right after Authorize: the instance the
- * session binds to is the caller's own spec, so a caller who may not run
- * that instance is refused before validation reads anything further and
- * before any step the chain owns side-effects. An empty agent_instance_id
- * is the built-in assistant, for which the gate makes no target check:
- * Authorize's can_create_session on the organization already admitted the
- * conversation (sessionRunTarget's header).
+ * Create — chain per Go buildCreatePipeline, then the pin: the reference
+ * rule judges spec.agent_ref (and records the agent it found),
+ * ResolveSessionAgent pins that agent at the version the reference names,
+ * and AuthorizeRunTarget (the run gate) asks can_execute on the pinned id —
+ * a slug cannot be asked purely, so the gate follows the pin. The reference
+ * rule's answer for a same-organization slug therefore comes before the
+ * permission's ("missing" before "unauthorized"), its posture for every
+ * reference; another organization's agent stays undisclosed (its clause
+ * iii). An empty agent_ref is the built-in assistant, for which the gate
+ * makes no target check: Authorize's can_create_session on the
+ * organization already admitted the conversation (sessionRunTarget's
+ * header).
  *
  * The pre-side-effect gate slot splices before Persist, after the last
- * pure step (mirroring the Java baseline's post-resolution gate
- * position). Every step above it is pure, so a gate
- * refusal leaves nothing behind.
+ * pure step and after the pin, so an edition gate reads the pinned agent
+ * (mirroring the Java baseline's post-resolution gate position). Every
+ * step above it is pure, so a gate refusal leaves nothing behind.
  */
 async function createSession(
   deps: SessionControllerDeps,
@@ -208,7 +214,6 @@ async function createSession(
     .addStep(
       newAuthorizeStep(SessionCommandController.method.create, deps.authorizer),
     )
-    .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
@@ -216,7 +221,11 @@ async function createSession(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store, deps.authorizer));
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(
+      newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
+    )
+    .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget));
   // The pre-side-effect gate slot (see the create doc comment). Empty in
   // OSS.
   for (const step of stepsForSlot<typeof SessionSchema>(
@@ -244,7 +253,13 @@ async function createSession(
 /**
  * Update — chain per Go buildUpdatePipeline: the immutability sentinels
  * run after LoadExisting, the server-owned history append after
- * BuildUpdateState (it mutates the merged state).
+ * BuildUpdateState (it mutates the merged state). The reference rule, the
+ * pin and the run gate run as on create, so changing a session's agent is
+ * gated like choosing it, and skills and MCP servers an update adds are
+ * judged like those a create names. The rule judges only what the update
+ * introduces: the runner writes the session's harness state back with the
+ * whole row, and a skill deleted since the session named it must not stop
+ * that write (the runner skips a skill it cannot read).
  */
 async function update(
   deps: SessionControllerDeps,
@@ -268,6 +283,16 @@ async function update(
     .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newNormalizeReferencesStep())
+    .addStep(
+      newValidateReferencesStep(deps.store, deps.authorizer, {
+        judge: "introduced",
+      }),
+    )
+    .addStep(
+      newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
+    )
+    .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
     .addStep(newRecordHarnessStateHistoryStep())
     .addStep(newPersistStep(deps.store))
     .addStep(
@@ -521,31 +546,30 @@ async function list(
   return requireListResult(reqCtx.get(LIST_RESULT_KEY));
 }
 
-/** ListByAgentInstance — spec.agent_instance_id equality filter. */
-async function listByAgentInstance(
+/** ListByAgent — the pinned agent (status.agent_id) equality filter. */
+async function listByAgent(
   deps: SessionControllerDeps,
-  req: ListSessionsByAgentInstanceRequest,
+  req: ListSessionsByAgentRequest,
   ctx: HandlerContext,
 ): Promise<SessionList> {
   const reqCtx = new RequestContext(
-    SessionQueryController.method.listByAgentInstance.input,
+    SessionQueryController.method.listByAgent.input,
     req,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<
-    typeof SessionQueryController.method.listByAgentInstance.input
-  >("session-list-by-agent-instance", deps.logger)
+  await newPipeline<typeof SessionQueryController.method.listByAgent.input>(
+    "session-list-by-agent",
+    deps.logger,
+  )
     .addStep(
       newAuthorizeStep(
-        SessionQueryController.method.listByAgentInstance,
+        SessionQueryController.method.listByAgent,
         deps.authorizer,
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(
-      newFilterByAgentInstanceStep(deps.store, deps.logger, deps.listReadScope),
-    )
+    .addStep(newFilterByAgentStep(deps.store, deps.logger, deps.listReadScope))
     .build()
     .execute(reqCtx);
   return requireListResult(reqCtx.get(LIST_RESULT_KEY));

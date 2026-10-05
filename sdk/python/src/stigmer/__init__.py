@@ -49,7 +49,6 @@ from ._gen._agentexecution import (
     ContextManagementConfigInput,
     ExecutionConfigInput,
 )
-from ._gen._agentinstance import AgentInstanceClient, AgentInstanceInput
 from ._gen._apikey import ApiKeyClient, ApiKeyInput
 from ._gen._environment import EnvironmentClient, EnvironmentInput
 from ._gen._executioncontext import ExecutionContextClient, ExecutionContextInput
@@ -149,7 +148,6 @@ __all__ = [
     # Resource clients
     "AgentClient",
     "AgentExecutionClient",
-    "AgentInstanceClient",
     "ApiKeyClient",
     "EnvironmentClient",
     "ExecutionContextClient",
@@ -169,7 +167,6 @@ __all__ = [
     # Input types
     "AgentInput",
     "AgentExecutionInput",
-    "AgentInstanceInput",
     "ApiKeyInput",
     "ApiResourceRefInput",
     "AttachmentInput",

@@ -51,7 +51,7 @@ export function generateAliases(
 
   // From display_name: single-word names contribute lower/upper forms; for
   // multi-word names only the first word is added, and only when it does not
-  // simply re-derive the name (this stops "Agent Instance" from stealing
+  // simply re-derive the name (this stops "Agent Share" from stealing
   // "agent" from "Agent", while still letting "MCP Server" register "mcp").
   const words = displayName.split(/\s+/).filter((w) => w.length > 0);
   if (words.length === 1) {

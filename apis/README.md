@@ -18,7 +18,6 @@ apis/
 ├── ai/stigmer/agentic/           # Agentic AI APIs
 │   ├── agent/                    # Agent definitions
 │   ├── agentexecution/           # Agent execution tracking
-│   ├── agentinstance/            # Agent instances
 │   ├── environment/              # Execution environments
 │   ├── executioncontext/         # Execution context management
 │   ├── session/                  # User sessions

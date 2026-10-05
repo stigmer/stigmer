@@ -20,7 +20,7 @@
  *     retries only a TimeoutError — and the SDK arm classifies it `auth`.
  *     Golden `goldens/sdk-error-at-create.status.json`.
  *
- *  2. `client.getAgent` rejects with a plain `Error` (Phase 2: a control-plane
+ *  2. `client.getSession` rejects with a plain `Error` (Phase 2: a control-plane
  *     fault while resolving the blueprint). The generic arm formats it with
  *     the error's constructor name. Golden `goldens/resolution-error.status.json`.
  *
@@ -84,7 +84,7 @@ const SDK_ERROR_MESSAGE = "Cursor API rejected the request: invalid API key";
 // A control-plane fault with deliberately neutral text — no provider, network
 // or billing word in it — so the GENERIC arm is what the golden pins, not a
 // specific diagnosis (`describeExecutionError` classifies known prose first).
-const CONTROL_PLANE_FAULT = "hermetic fault injected at getAgent";
+const CONTROL_PLANE_FAULT = "hermetic fault injected at getSession";
 
 function systemMessages(status: { messages: { type: MessageType; content: string }[] }): string[] {
   return status.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content);
@@ -170,7 +170,7 @@ describe("ExecuteCursor hermetic — thrown-error arms of the outer catch", () =
       record,
       sdk: { agents: [neverUsed], catalog: SDK_CATALOG },
       clientOverrides: {
-        getAgent: vi.fn(async () => {
+        getSession: vi.fn(async () => {
           throw new Error(CONTROL_PLANE_FAULT);
         }),
       },

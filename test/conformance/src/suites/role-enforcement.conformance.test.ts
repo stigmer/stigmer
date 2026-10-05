@@ -90,6 +90,7 @@ import {
   makeAgentSpec,
   AGENT_API_VERSION,
   AGENT_KIND,
+  agentRefOf,
 } from "../support/agents";
 import { makeEnvironment } from "../support/environments";
 import { organizationRole, ref } from "../support/iampolicies";
@@ -396,7 +397,7 @@ const PERSONAL_KINDS: ReadonlyArray<PersonalKind> = [
   {
     name: "session",
     // On an ORG-visible agent the founder created, so the member's session
-    // create passes the run gate (`agent_instance.can_execute` reaches
+    // create passes the run gate (`agent.can_execute` reaches
     // `organization#viewer`); the session itself is the member's.
     async create(using, cast) {
       const agent = await cast.owner.agentCommand.create(
@@ -418,7 +419,7 @@ const PERSONAL_KINDS: ReadonlyArray<PersonalKind> = [
         makeSession({
           org: cast.org,
           name: uniqueName("role-session"),
-          agentInstanceId: agent.status!.defaultInstanceId,
+          agentRef: agentRefOf(agent),
           subject: "a member's conversation",
         }),
       );

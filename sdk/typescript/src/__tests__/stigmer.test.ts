@@ -3,7 +3,14 @@ import type { Transport } from "@connectrpc/connect";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { Stigmer } from "../stigmer";
+
+/** The new-conversation arm of an execution's `target` oneof, if set. */
+function sessionSpecOf(execution: AgentExecution): SessionSpec | undefined {
+  const target = execution.spec?.target;
+  return target?.case === "sessionSpec" ? target.value : undefined;
+}
 
 interface CapturedRequest {
   methodName: string;
@@ -95,10 +102,10 @@ describe("Stigmer execution target defaults", () => {
         name: "test",
         org: "test-org",
         message: "hi",
-        sessionSpec: { agentInstanceId: "ain_1" },
+        sessionSpec: { agentRef: { org: "test-org", slug: "helper" } },
       });
       const proto = captured[0].message as AgentExecution;
-      expect(proto.spec?.sessionSpec?.executionTarget).toBe(ExecutionTarget.LOCAL);
+      expect(sessionSpecOf(proto)?.executionTarget).toBe(ExecutionTarget.LOCAL);
     });
 
     it("preserves a per-call sessionSpec.executionTarget override", async () => {
@@ -107,12 +114,12 @@ describe("Stigmer execution target defaults", () => {
         org: "test-org",
         message: "hi",
         sessionSpec: {
-          agentInstanceId: "ain_1",
+          agentRef: { org: "test-org", slug: "helper" },
           executionTarget: ExecutionTarget.CLOUD,
         },
       });
       const proto = captured[0].message as AgentExecution;
-      expect(proto.spec?.sessionSpec?.executionTarget).toBe(ExecutionTarget.CLOUD);
+      expect(sessionSpecOf(proto)?.executionTarget).toBe(ExecutionTarget.CLOUD);
     });
 
     it("does not synthesize a sessionSpec on agentExecution.create without one", async () => {
@@ -123,7 +130,8 @@ describe("Stigmer execution target defaults", () => {
         sessionId: "ses_1",
       });
       const proto = captured[0].message as AgentExecution;
-      expect(proto.spec?.sessionSpec).toBeUndefined();
+      expect(sessionSpecOf(proto)).toBeUndefined();
+      expect(proto.spec?.target).toEqual({ case: "sessionId", value: "ses_1" });
     });
   });
 

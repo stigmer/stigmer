@@ -13,7 +13,6 @@ import { toError } from "../internal/toError.js";
 import { toProtoHarness, type HarnessOption } from "../models/harness.js";
 import { toProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target.js";
 import { useExecutionTarget } from "../execution-target-context.js";
-import { findOrgByRef, useOptionalOrg } from "../organization/OrgProvider.js";
 
 /** Shared fields present in both variants of {@link CreateSessionInput}. */
 export interface SharedSessionFields {
@@ -77,39 +76,20 @@ export interface SharedSessionFields {
 }
 
 /**
- * Input for creating a session. At most one agent resolution strategy is
- * provided:
+ * Input for creating a session: the agent the conversation runs, or none.
  *
- * - **`agentInstanceId`** — Use a pre-provisioned AgentInstance directly.
- * - **`agentRef`** — Resolve the agent's default instance via
- *   `agent.getByReference()`.
- * - **neither** — The session runs the built-in assistant: no agent is
+ * - **`agentRef`** — The conversation runs this agent. The server pins the
+ *   version the reference names: the agent's current version when it
+ *   names none, so later saves by the agent's author never change the
+ *   conversation until someone moves it on.
+ * - **omitted** — The session runs the built-in assistant: no agent is
  *   bound, and the runner answers with the one built-in prompt and the
  *   MCP servers and skills the session itself carries.
- *
- * Providing both is a type error.
  */
-export type CreateSessionInput = SharedSessionFields &
-  (
-    | {
-        /** Pre-provisioned AgentInstance ID to bind the session to. */
-        readonly agentInstanceId: string;
-        /** @internal Discriminant — excluded when `agentInstanceId` is provided. */
-        readonly agentRef?: never;
-      }
-    | {
-        /** Agent blueprint reference resolved to its default instance at creation time. */
-        readonly agentRef: ResourceRef;
-        /** @internal Discriminant — excluded when `agentRef` is provided. */
-        readonly agentInstanceId?: never;
-      }
-    | {
-        /** @internal Neither strategy: the built-in assistant. */
-        readonly agentInstanceId?: never;
-        /** @internal Neither strategy: the built-in assistant. */
-        readonly agentRef?: never;
-      }
-  );
+export interface CreateSessionInput extends SharedSessionFields {
+  /** The agent the conversation runs; omit for the built-in assistant. */
+  readonly agentRef?: ResourceRef;
+}
 
 /** Resolved output of {@link UseCreateSessionReturn.create}. */
 export interface CreateSessionResult {
@@ -135,27 +115,14 @@ export interface UseCreateSessionReturn {
  * Creates a Session — the conversation context that holds workspace
  * entries, thread state, and sandbox references.
  *
- * Exactly one agent resolution strategy must be provided:
- *
- * 1. **`agentInstanceId`** — Use a pre-provisioned instance directly.
- *    Typical for platform builders who manage instances programmatically.
- * 2. **`agentRef`** — Resolve the agent's default instance via
- *    `agent.getByReference()`. Useful when you know the agent slug
- *    but not the instance ID.
+ * The session names its agent directly (`spec.agentRef`); the server
+ * resolves it and pins the version on `status`.
  *
  * This hook maps 1:1 to the Session aggregate. To start the first
  * execution within the session, compose with {@link useCreateAgentExecution}.
  *
  * @example
  * ```tsx
- * // Platform builder: pre-provisioned instance
- * const { create } = useCreateSession();
- * await create({ org: "acme", agentInstanceId: "inst-abc123" });
- * ```
- *
- * @example
- * ```tsx
- * // Agent reference: resolves to the agent's default instance
  * const { create } = useCreateSession();
  * await create({
  *   org: "acme",
@@ -166,9 +133,6 @@ export interface UseCreateSessionReturn {
 export function useCreateSession(): UseCreateSessionReturn {
   const stigmer = useStigmer();
   const contextTarget = useExecutionTarget();
-  // The person's organizations, to name an agent's organization by slug in
-  // an error; empty outside an OrgProvider.
-  const orgs = useOptionalOrg()?.orgs;
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -180,31 +144,6 @@ export function useCreateSession(): UseCreateSessionReturn {
       setError(null);
 
       try {
-        let resolvedInstanceId: string;
-
-        if (input.agentInstanceId) {
-          resolvedInstanceId = input.agentInstanceId;
-        } else if (input.agentRef) {
-          const agent = await stigmer.agent.getByReference(input.agentRef);
-          const defaultId = agent.status?.defaultInstanceId;
-
-          if (!defaultId) {
-            // A reference names its organization by id; the person reads
-            // the slug where it is one of theirs, else the value as given.
-            const orgLabel =
-              findOrgByRef(orgs ?? [], input.agentRef.org)?.metadata?.slug || input.agentRef.org;
-            throw new Error(
-              `Agent "${orgLabel}/${input.agentRef.slug}" does not have a default instance. ` +
-                `Pass an explicit agentInstanceId instead.`,
-            );
-          }
-
-          resolvedInstanceId = defaultId;
-        } else {
-          // The built-in assistant: an empty id on the wire binds no agent.
-          resolvedInstanceId = "";
-        }
-
         const resolvedTarget = input.executionTarget ?? contextTarget;
 
         const session = await stigmer.session.create({
@@ -215,7 +154,7 @@ export function useCreateSession(): UseCreateSessionReturn {
           mcpServerUsages: input.mcpServerUsages,
           skillRefs: input.skillRefs,
           metadata: mergeSessionContext(input.metadata, input.sessionContext),
-          agentInstanceId: resolvedInstanceId,
+          agentRef: input.agentRef,
           harness: input.harness ? toProtoHarness(input.harness) : undefined,
           executionTarget: resolvedTarget
             ? toProtoExecutionTarget(resolvedTarget)
@@ -235,7 +174,7 @@ export function useCreateSession(): UseCreateSessionReturn {
         setIsCreating(false);
       }
     },
-    [stigmer, contextTarget, orgs],
+    [stigmer, contextTarget],
   );
 
   return { create, isCreating, error, clearError };

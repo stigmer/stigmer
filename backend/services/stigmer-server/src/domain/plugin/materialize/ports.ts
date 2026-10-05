@@ -1,8 +1,8 @@
 /**
  * The one edge the plugin domain has onto the four child domains — a
  * consumer-defined, method-segregated surface the composition root
- * satisfies with in-process clients (boot/inprocess.ts), the
- * `AgentInstanceApplier` shape. Every call rides the in-process router
+ * satisfies with in-process clients (boot/inprocess.ts), the shape of every
+ * in-process edge there. Every call rides the in-process router
  * transport AS THE INSTALLING CALLER (the `asCaller` call options): each
  * child's full chain runs — validation, the caller's own permission for
  * that kind, references, the reserved-label and managed guards (both pass
@@ -11,8 +11,8 @@
  *
  * Why an interface and not the clients: the domain reads at its boundary
  * what it needs and nothing more (no update, no create, no reads), the
- * agent↔agentinstance-style cycle between routes and clients is broken at
- * the consumer with a lazy provider, and a test supplies a recording fake.
+ * routes↔clients cycle is broken at the consumer with a lazy provider, and
+ * a test supplies a recording fake.
  */
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";

@@ -18,8 +18,7 @@ import { useSessionNavigation } from "@/domain/session/session-navigation";
 /**
  * Console-specific session launcher — thin shell that composes the SDK
  * `NewSessionViewer` with Console routing, org context, and the
- * `?agent=org/slug[&instance=id]` URL parameters a "Start session" action
- * arrives with.
+ * `?agent=org/slug` URL parameter a "Start session" action arrives with.
  */
 export function SessionLauncher() {
   const rawSearchParams = useSearchParams();
@@ -32,23 +31,18 @@ export function SessionLauncher() {
   const { navigateToSession } = useSessionNavigation();
 
   // -------------------------------------------------------------------------
-  // Explicit agent + instance capture ("Start session" from a specific agent
-  // instance). Captured once so the URL can be cleaned without losing intent.
+  // Explicit agent capture ("Start session" from an agent). Captured once so
+  // the URL can be cleaned without losing intent.
   // -------------------------------------------------------------------------
 
   const liveAgentParam = rawSearchParams.get("agent");
-  const liveInstanceParam = rawSearchParams.get("instance");
 
   const [initialAgentRef, setInitialAgentRef] = useState<ResourceRef | undefined>(
     () => parseAgentParam(liveAgentParam),
   );
-  const [initialInstanceId, setInitialInstanceId] = useState<string | undefined>(
-    () => liveInstanceParam ?? undefined,
-  );
 
   if (initialAgentRef === undefined && liveAgentParam) {
     setInitialAgentRef(parseAgentParam(liveAgentParam));
-    setInitialInstanceId(liveInstanceParam ?? undefined);
   }
 
   useEffect(() => {
@@ -69,7 +63,6 @@ export function SessionLauncher() {
       workspaceFileLister={workspaceFileLister}
       workspaceFileReader={workspaceFileReader}
       initialAgentRef={initialAgentRef}
-      initialInstanceId={initialInstanceId}
       className="h-full"
     />
   );

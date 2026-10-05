@@ -73,7 +73,7 @@ async function saveSession(
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Session",
       metadata: { id, name: "test-session", org: "test-org" },
-      spec: { agentInstanceId: "test-instance", harness, executionTarget },
+      spec: { harness, executionTarget },
     }),
   );
 }

@@ -12,18 +12,9 @@
       "type": {
         "kind": "string"
       },
-      "description": "Session ID this execution belongs to (optional).\n\n Resolution priority (enforced in handler pipeline):\n   1. session_id provided     -\u003e use existing session\n   2. session_spec provided   -\u003e auto-create session from the embedded spec\n   3. agent_id provided       -\u003e auto-create session using agent's default instance\n   4. none provided           -\u003e auto-create a session with no agent; the\n      built-in assistant answers\n\n session_id and agent_id may both be set — when both are present, session_id\n is used for session resolution and agent_id is preserved as metadata for\n downstream consumers (e.g., session subject generation). session_id and\n session_spec are mutually exclusive.\n\n An execution in an existing session belongs to that session's\n organization: metadata.org, when set, must be the session's\n (FAILED_PRECONDITION otherwise), and when left empty it is taken from the\n session. An execution stays in the session it was created in: update\n refuses a different session_id (FAILED_PRECONDITION), and an empty one\n keeps the stored session.",
-      "required": false
-    },
-    {
-      "name": "AgentId",
-      "jsonName": "agentId",
-      "protoField": "agent_id",
-      "type": {
-        "kind": "string"
-      },
-      "description": "Agent ID (optional).\n\n When absent along with session_id and session_spec, the execution runs\n the built-in assistant in a new session with no agent: a person starts a\n conversation without choosing an agent.\n\n Both may be set — agent_id is preserved on the execution record even when\n session_id is present, so downstream consumers can access the agent\n without resolving through the session chain.\n\n When provided without session_id, a new session is auto-created using\n the agent's default instance ID.",
-      "required": false
+      "description": "ID of the existing session this turn continues.\n\n An execution in an existing session belongs to that session's\n organization: metadata.org, when set, must be the session's\n (FAILED_PRECONDITION otherwise), and when left empty it is taken from\n the session. An execution stays in the session it was created in:\n update refuses a different session_id (FAILED_PRECONDITION), and an\n empty one keeps the stored session.",
+      "required": false,
+      "oneofGroup": "target"
     },
     {
       "name": "SessionSpec",
@@ -33,8 +24,9 @@
         "kind": "message",
         "messageType": "SessionSpec"
       },
-      "description": "Spec for the session to auto-create when session_id is empty (optional).\n\n This is the one-call session bootstrap: a single create carries the full\n session shape (workspace_entries, harness, execution_target, MCP servers,\n skills) together with the first message, so embedders do not need to\n orchestrate session.create followed by agentExecution.create. The created\n session's ID is returned on the persisted execution's session_id.\n\n Fields that must be set at session-creation time and are immutable once\n an execution has run — harness and execution_target — can only reach an\n auto-created session through this field.\n\n When session_spec.agent_instance_id is set, the session runs against that\n instance and agent_id must not also be resolved from it. When empty, the\n normal resolution applies: agent_id's default instance, or no agent (the\n built-in assistant) when agent_id is also empty.\n\n Mutually exclusive with session_id. session_spec.harness_state_id must be\n empty — it is server-owned harness continuity state, created by the runner\n after the first execution.",
-      "required": false
+      "description": "Spec for a new session this turn starts.\n\n This is the one-call session bootstrap: a single create carries the\n full session shape (the agent, workspace_entries, harness,\n execution_target, MCP servers, skills) together with the first\n message, so embedders do not need to orchestrate session.create\n followed by agentExecution.create. The created session's ID is\n returned on the persisted execution's session_id.\n\n session_spec.agent_ref names the agent the conversation runs (empty:\n the built-in assistant). Fields that must be set at session-creation\n time and are immutable once an execution has run — harness and\n execution_target — can only reach an auto-created session through\n this field. session_spec.harness_state_id must be empty — it is\n server-owned harness continuity state, created by the runner after\n the first execution.",
+      "required": false,
+      "oneofGroup": "target"
     },
     {
       "name": "Message",
@@ -78,16 +70,6 @@
       "required": false
     },
     {
-      "name": "CallbackToken",
-      "jsonName": "callbackToken",
-      "protoField": "callback_token",
-      "type": {
-        "kind": "bytes"
-      },
-      "description": "Callback token for async activity completion (optional).\n\n When a workflow invokes an agent, this token enables the workflow to\n wait for the agent to finish without blocking. When empty, the\n execution runs independently (CLI, API calls, non-workflow triggers).",
-      "required": false
-    },
-    {
       "name": "AutoApproveAll",
       "jsonName": "autoApproveAll",
       "protoField": "auto_approve_all",
@@ -95,16 +77,6 @@
         "kind": "bool"
       },
       "description": "Auto-approve all tool executions for this execution.\n\n When true, tools that would normally require approval are automatically\n approved without user intervention. It clears approvals only: a tool the\n agent's tool lists exclude stays excluded.\n\n Use cases:\n - Automated CI/CD pipelines where human approval isn't practical\n - Trusted batch operations with pre-validated inputs\n - Development/testing environments\n - Scheduled jobs where approval would block automation\n\n Security consideration: This flag bypasses all approval checks.\n Ensure appropriate access controls on who can set this flag.\n Consider auditing executions where this flag is used.\n\n Default: false (approvals required as configured in policies)",
-      "required": false
-    },
-    {
-      "name": "ParentWorkflowId",
-      "jsonName": "parentWorkflowId",
-      "protoField": "parent_workflow_id",
-      "type": {
-        "kind": "string"
-      },
-      "description": "Parent workflow ID when this execution was triggered by a workflow (optional).\n\n When set, the platform notifies the parent workflow about approval\n requests instead of requiring polling. When empty, approvals are\n submitted directly via the SubmitApproval RPC.",
       "required": false
     },
     {
@@ -135,16 +107,6 @@
       "required": false
     },
     {
-      "name": "ActivityTaskQueue",
-      "jsonName": "activityTaskQueue",
-      "protoField": "activity_task_queue",
-      "type": {
-        "kind": "string"
-      },
-      "description": "Explicit Temporal task queue override for activity routing.",
-      "required": false
-    },
-    {
       "name": "SupersedesExecutionId",
       "jsonName": "supersedesExecutionId",
       "protoField": "supersedes_execution_id",
@@ -166,25 +128,14 @@
       "required": false
     },
     {
-      "name": "DeclaredPreferences",
-      "jsonName": "declaredPreferences",
-      "protoField": "declared_preferences",
+      "name": "Parent",
+      "jsonName": "parent",
+      "protoField": "parent",
       "type": {
         "kind": "message",
-        "messageType": "DeclaredPreferences"
+        "messageType": "WorkflowParent"
       },
-      "description": "Standing preferences declared by the organization and the calling user,\n snapshotted into this execution at create time (optional).",
-      "required": false
-    },
-    {
-      "name": "RecalledMemories",
-      "jsonName": "recalledMemories",
-      "protoField": "recalled_memories",
-      "type": {
-        "kind": "message",
-        "messageType": "RecalledMemories"
-      },
-      "description": "The caller's confirmed memories, snapshotted into this execution at\n create time (optional).",
+      "description": "The workflow run this turn was started by (optional): set only by a\n workflow's agent_call step, which waits for the turn to finish.\n\n The server honours it only from the workflow run it names: a request\n the server composes itself, a runner whose credential is bound to that\n workflow run, or a caller holding the platform's\n can_write_reserved_labels. Any other caller that sets it is refused with\n INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn\n runs where the workflow run's own activities run (its sandbox, when the\n deployment gives each run one), the parent is told about approval\n requests, and the waiting step is completed when the turn finishes.",
       "required": false
     }
   ]

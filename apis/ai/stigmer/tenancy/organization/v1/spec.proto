@@ -71,7 +71,7 @@ message OrganizationPreferences {
   //
   // @internal
   // Snapshotted verbatim into
-  // AgentExecutionSpec.declared_preferences.org_context at execution create,
+  // AgentExecutionStatus.declared_preferences.org_context at execution create,
   // for every execution but a visitor's: the organization's own lanes carry
   // it, and a caller the edition classifies as a visitor (admitted to the
   // organization's agents without belonging to it) never does

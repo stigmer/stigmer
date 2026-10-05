@@ -138,7 +138,8 @@ enum WorkflowTaskType {
   // Invoke an AI agent with a prompt.
   //
   // @internal
-  // Calls an AgentInstance and waits for the agent execution to complete.
+  // Starts a conversation on an agent and waits for the agent execution to
+  // complete.
   WORKFLOW_TASK_AGENT_INVOCATION = 1;
 
   // Wait for human approval before proceeding.

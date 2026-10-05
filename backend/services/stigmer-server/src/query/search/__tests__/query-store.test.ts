@@ -91,7 +91,7 @@ function newSession(
       org,
       visibility: opts?.visibility ?? ApiResourceVisibility.visibility_private,
     },
-    spec: { subject, agentInstanceId: "agi_test" },
+    spec: { subject },
     status: {
       audit: {
         specAudit: {

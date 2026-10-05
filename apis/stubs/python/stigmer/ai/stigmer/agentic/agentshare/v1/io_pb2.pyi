@@ -1,4 +1,5 @@
 from ai.stigmer.agentic.agentshare.v1 import api_pb2 as _api_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
@@ -65,17 +66,17 @@ class GetSharedProfileRequest(_message.Message):
     def __init__(self, share_id: _Optional[str] = ..., link_token: _Optional[str] = ...) -> None: ...
 
 class SharedAgentProfile(_message.Message):
-    __slots__ = ("org", "slug", "name", "description", "icon_url", "default_instance_id")
+    __slots__ = ("org", "slug", "name", "description", "icon_url", "agent_ref")
     ORG_FIELD_NUMBER: _ClassVar[int]
     SLUG_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     ICON_URL_FIELD_NUMBER: _ClassVar[int]
-    DEFAULT_INSTANCE_ID_FIELD_NUMBER: _ClassVar[int]
+    AGENT_REF_FIELD_NUMBER: _ClassVar[int]
     org: str
     slug: str
     name: str
     description: str
     icon_url: str
-    default_instance_id: str
-    def __init__(self, org: _Optional[str] = ..., slug: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., icon_url: _Optional[str] = ..., default_instance_id: _Optional[str] = ...) -> None: ...
+    agent_ref: _io_pb2.ApiResourceReference
+    def __init__(self, org: _Optional[str] = ..., slug: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., icon_url: _Optional[str] = ..., agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...

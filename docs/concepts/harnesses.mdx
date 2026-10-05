@@ -139,12 +139,14 @@ default.
   <Tab value="TypeScript">
 
 ```typescript
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+
 const session = await client.session.create({
-  spec: {
-    subject: "Refactor auth module",
-    agentInstanceId: "ain-abc123",
-    harness: "HARNESS_CURSOR",
-  },
+  name: "refactor-auth-module",
+  org: "acme",
+  subject: "Refactor auth module",
+  agentRef: { org: "acme", slug: "code-reviewer" },
+  harness: Harness.CURSOR,
 });
 ```
 
@@ -152,12 +154,12 @@ const session = await client.session.create({
   <Tab value="Go">
 
 ```go
-session, err := client.Session.Create(ctx, &sessionv1.CreateInput{
-    Spec: &sessionv1.SessionSpec{
-        Subject:         "Refactor auth module",
-        AgentInstanceId: "ain-abc123",
-        Harness:         sessionv1.Harness_HARNESS_CURSOR,
-    },
+session, err := client.Session.Create(ctx, &stigmer.SessionInput{
+    Name:     "refactor-auth-module",
+    Org:      "acme",
+    Subject:  "Refactor auth module",
+    AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "code-reviewer"},
+    Harness:  sessionv1.Harness_HARNESS_CURSOR,
 })
 ```
 

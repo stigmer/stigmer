@@ -337,9 +337,11 @@ export async function runWorkflowEngine(
       orchestrateAgentCall({
         config,
         runtimeEnv,
-        parentWorkflowId: agentMeta.parentWorkflowId || workflowInfo().workflowId,
+        // The child's link to this run is always this run's own: the
+        // workflow the server signals and the execution it belongs to.
+        parentWorkflowId: workflowInfo().workflowId,
         taskName: agentMeta.taskName,
-        workflowExecutionId: agentMeta.workflowExecutionId || executionId,
+        workflowExecutionId: executionId,
         nextEventSequence,
       }),
     promoteTaskOutput: (taskOutput: unknown, wexId: string, taskName: string, displayName?: string) =>
@@ -352,7 +354,6 @@ export async function runWorkflowEngine(
     __stigmer_execution_id: executionId,
     __stigmer_org_id: metadata?.org_id ?? "",
     __stigmer_workflow_id: metadata?.workflow_id ?? "",
-    __stigmer_activity_task_queue: workflowInfo().taskQueue,
     __stigmer_execution_target: metadata?.execution_target ?? 0,
   };
   state.input = workflow_input;

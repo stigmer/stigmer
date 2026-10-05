@@ -1,12 +1,22 @@
 /**
- * Create pipeline step tests — ports create_target_resolution_test.go,
- * create_session_bootstrap_test.go, compose_declared_preferences_step_test.go,
+ * Create pipeline step tests — ports create_session_bootstrap_test.go,
+ * compose_declared_preferences_step_test.go,
  * compose_recalled_memories_step_test.go, and
  * create_execution_context_workflow_refs_test.go case-for-case, over a
  * real SQLite store and the real pipeline RequestContext (the same
  * direct-step shape as Go). Go's nil-client skip proofs map to throwing
  * providers — reaching the client would fail the test just as a nil
  * dereference would panic Go.
+ *
+ * CreateSessionIfNeeded forwards the caller's session_spec (its agent_ref
+ * included), points the turn at the created session through the target
+ * oneof and re-takes the turn's agent stamp from that session's pin. The
+ * compose steps write their snapshots to status, over anything a caller
+ * left there. StartWorkflow feeds the workflow input its agent from the
+ * stamp, its callback token and signal target from the vouched parent
+ * link, and its queue from the link's workflow run (that run's wfexec
+ * queue under execution routing, none under global routing), never from
+ * the request.
  *
  * The two compose steps are also pinned where callers are persons
  * (stigmer#1387, stigmer#1397): recall is the run's person's own
@@ -42,6 +52,7 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import {
   DeclaredPreferencesSchema,
   RecalledMemoriesSchema,
+  WorkflowParentSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { MemoryLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/enum_pb";
@@ -49,6 +60,7 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 import {
   ExecutionTarget,
   Harness,
@@ -68,16 +80,26 @@ import type { Store } from "../../../store/interface.js";
 import { agentCallTaskEnvironmentRefs } from "../create-execution-context-step.js";
 import {
   AUTO_CREATED_SESSION_SUBJECT,
-  DEFAULT_INSTANCE_ID_KEY,
+  CREATED_SESSION_ID_KEY,
   buildAutoCreateSessionSpec,
   newComposeDeclaredPreferencesStep,
   newComposeRecalledMemoriesStep,
-  newCreateDefaultInstanceIfNeededStep,
   newCreateSessionIfNeededStep,
   newStartWorkflowStep,
 } from "../create-steps.js";
+import type { SessionCreatorProvider } from "../create-steps.js";
 import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
-import type { ExecutionEngineState } from "../engine.js";
+import type {
+  ExecutionEngineState,
+  StartInvokeWorkflowInput,
+} from "../engine.js";
+import {
+  WORKFLOW_ROUTING_EXECUTION,
+  WORKFLOW_ROUTING_GLOBAL,
+  WorkflowExecutionTemporalConfig,
+} from "../../workflowexecution/temporal/config.js";
+import { newWorkflowRunQueue } from "../../../temporal/workflowexecution/dispatch.js";
+import { formatWfExecTaskQueue } from "../../../temporal/workflowexecution/names.js";
 import { stubConnectedEngine } from "./engine-stub.js";
 
 const silentLogger = createLogger({
@@ -88,6 +110,16 @@ const silentLogger = createLogger({
 
 let dir: string;
 let store: Store;
+
+/** A workflow-execution config under the given activity routing. */
+function routing(workflowActivityRouting: string): WorkflowExecutionTemporalConfig {
+  return new WorkflowExecutionTemporalConfig(
+    "workflow_execution_stigmer",
+    "stigmer_runner",
+    workflowActivityRouting,
+    "local",
+  );
+}
 
 beforeEach(() => {
   dir = mkdtempSync(path.join(tmpdir(), "aexec-create-test-"));
@@ -100,12 +132,18 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-function newExecution(sessionId: string, agentId: string): AgentExecution {
+function newExecution(sessionId: string): AgentExecution {
   return create(AgentExecutionSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "AgentExecution",
     metadata: { name: "exec", org: "test-org" },
-    spec: { sessionId, agentId, message: "hi" },
+    spec: {
+      target:
+        sessionId === ""
+          ? { case: undefined }
+          : { case: "sessionId", value: sessionId },
+      message: "hi",
+    },
   });
 }
 
@@ -135,113 +173,133 @@ async function expectCode(
   throw new Error(`expected code ${Code[code]}, call succeeded`);
 }
 
-// The built-in assistant's shape through the two side-effecting steps: an
-// execution naming no session, no agent and no session_spec instance is
-// legal (agentexecution/v1/spec.proto), so CreateDefaultInstanceIfNeeded
-// has nothing to load or mint and CreateSessionIfNeeded creates the
-// session with an EMPTY agent_instance_id. The throwing providers prove
-// the first step never reaches a client (Go's nil clients would panic).
-describe("the built-in assistant (no session, agent or instance named)", () => {
-  it("createDefaultInstanceIfNeeded skips without touching the agent lane", async () => {
-    const step = newCreateDefaultInstanceIfNeededStep({
-      store,
-      logger: silentLogger,
-      agentLoader: () => {
-        throw new Error("agent loader must not be reached");
+/**
+ * A session creator that records the session it was asked for and answers
+ * it under `id` with the pin a session chain would have written.
+ */
+function recordingSessionCreator(
+  id: string,
+  pin: { agentId: string; agentVersionHash: string } = {
+    agentId: "",
+    agentVersionHash: "",
+  },
+): { creator: SessionCreatorProvider; created: () => Session | undefined } {
+  let created: Session | undefined;
+  return {
+    creator: () => ({
+      createAsCaller: async (session) => {
+        created = clone(SessionSchema, session);
+        const answered = clone(SessionSchema, session);
+        answered.metadata!.id = id;
+        answered.status = create(SessionStatusSchema, pin);
+        return answered;
       },
-      agentInstanceCreator: () => {
-        throw new Error("instance creator must not be reached");
-      },
-    });
-    const ctx = newContext(newExecution("", ""));
-    await step.execute(ctx);
-    expect(ctx.get(DEFAULT_INSTANCE_ID_KEY)).toBeUndefined();
-  });
+    }),
+    created: () => created,
+  };
+}
 
-  it("createSessionIfNeeded creates the session with no instance and no context key", async () => {
-    let created: Session | undefined;
+// The built-in assistant's shape through CreateSessionIfNeeded: an
+// execution naming no session and no session_spec is legal
+// (agentexecution/v1/spec.proto), so the session is created with no agent
+// and the turn's stamp is the empty one.
+describe("the built-in assistant (no session and no session_spec named)", () => {
+  it("createSessionIfNeeded creates the session with no agent and points the turn at it", async () => {
+    const sessions = recordingSessionCreator("ses_assistant");
     const step = newCreateSessionIfNeededStep({
       logger: silentLogger,
-      sessionCreator: () => ({
-        createAsCaller: async (session) => {
-          created = clone(SessionSchema, session);
-          created.metadata!.id = "ses_assistant";
-          return created;
-        },
-      }),
+      sessionCreator: sessions.creator,
     });
-    const execution = newExecution("", "");
+    const execution = newExecution("");
     execution.metadata!.org = "acme";
     const ctx = newContext(execution);
 
     await step.execute(ctx);
 
-    expect(created?.spec?.agentInstanceId).toBe("");
+    const created = sessions.created();
+    expect(created?.spec?.agentRef).toBeUndefined();
     expect(created?.spec?.subject).toBe(AUTO_CREATED_SESSION_SUBJECT);
     expect(created?.metadata?.org).toBe("acme");
-    expect(ctx.newState.spec?.sessionId).toBe("ses_assistant");
-    expect(ctx.newState.spec?.sessionSpec).toBeUndefined();
+    expect(ctx.newState.spec?.target).toEqual({
+      case: "sessionId",
+      value: "ses_assistant",
+    });
+    expect(ctx.newState.status?.agentId).toBe("");
+    expect(ctx.newState.status?.agentVersionHash).toBe("");
+    expect(ctx.get(CREATED_SESSION_ID_KEY)).toBe("ses_assistant");
   });
 
-  it("createSessionIfNeeded forwards a caller session_spec that names no instance", async () => {
-    let created: Session | undefined;
+  it("createSessionIfNeeded forwards a caller session_spec that names no agent", async () => {
+    const sessions = recordingSessionCreator("ses_assistant_tools");
     const step = newCreateSessionIfNeededStep({
       logger: silentLogger,
-      sessionCreator: () => ({
-        createAsCaller: async (session) => {
-          created = clone(SessionSchema, session);
-          created.metadata!.id = "ses_assistant_tools";
-          return created;
+      sessionCreator: sessions.creator,
+    });
+    const execution = newExecution("");
+    execution.spec!.target = {
+      case: "sessionSpec",
+      value: create(SessionSpecSchema, {
+        mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }],
+      }),
+    };
+    const ctx = newContext(execution);
+
+    await step.execute(ctx);
+
+    const created = sessions.created();
+    expect(created?.spec?.agentRef).toBeUndefined();
+    expect(created?.spec?.mcpServerUsages.map((u) => u.mcpServerRef?.slug)).toEqual(["github"]);
+  });
+});
+
+// A new conversation on an agent: the caller's session_spec, agent_ref
+// included, is the created session's; the turn is pointed at the created
+// session through the oneof (never a second copy of the spec), and its
+// stamp is re-taken from the pin the session's own chain wrote, whatever
+// ResolveRunAgent stamped earlier.
+describe("a new conversation on an agent", () => {
+  it("createSessionIfNeeded forwards agent_ref and re-takes the stamp from the created session", async () => {
+    const sessions = recordingSessionCreator("ses_agent", {
+      agentId: "agt_reviewer",
+      agentVersionHash: "e".repeat(64),
+    });
+    const step = newCreateSessionIfNeededStep({
+      logger: silentLogger,
+      sessionCreator: sessions.creator,
+    });
+    const execution = newExecution("");
+    execution.spec!.target = {
+      case: "sessionSpec",
+      value: create(SessionSpecSchema, {
+        agentRef: {
+          kind: ApiResourceKind.agent,
+          org: "acme",
+          slug: "reviewer",
+          version: "v2",
         },
       }),
-    });
-    const execution = newExecution("", "");
-    execution.spec!.sessionSpec = create(SessionSpecSchema, {
-      mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }],
+    };
+    // What ResolveRunAgent stamped from the turn's own resolution; the
+    // created session's pin replaces it.
+    execution.status = create(AgentExecutionStatusSchema, {
+      agentId: "agt_reviewer",
+      agentVersionHash: "d".repeat(64),
     });
     const ctx = newContext(execution);
 
     await step.execute(ctx);
 
-    expect(created?.spec?.agentInstanceId).toBe("");
-    expect(created?.spec?.mcpServerUsages.map((u) => u.mcpServerRef?.slug)).toEqual(["github"]);
-  });
-
-  // An agent WAS named but the previous step left no key: the invariant
-  // guard stays Internal, unchanged — only the all-empty shape is legal.
-  it("createSessionIfNeeded still refuses a named agent whose instance was never resolved", async () => {
-    const step = newCreateSessionIfNeededStep({
-      logger: silentLogger,
-      sessionCreator: () => {
-        throw new Error("session creator must not be reached");
-      },
+    const ref = sessions.created()?.spec?.agentRef;
+    expect(ref?.org).toBe("acme");
+    expect(ref?.slug).toBe("reviewer");
+    expect(ref?.version).toBe("v2");
+    expect(ctx.newState.spec?.target).toEqual({
+      case: "sessionId",
+      value: "ses_agent",
     });
-    const ctx = newContext(newExecution("", "agt_named"));
-    await expectCode(() => step.execute(ctx), Code.Internal);
+    expect(ctx.newState.status?.agentId).toBe("agt_reviewer");
+    expect(ctx.newState.status?.agentVersionHash).toBe("e".repeat(64));
   });
-});
-
-// The one-call bootstrap skip: when session_spec names an instance, the
-// step must return before any agent lookup — the throwing providers
-// prove it (Go's nil clients would panic).
-it("createDefaultInstanceIfNeeded skips for a bootstrap instance", async () => {
-  const step = newCreateDefaultInstanceIfNeededStep({
-    store,
-    logger: silentLogger,
-    agentLoader: () => {
-      throw new Error("agent loader must not be reached");
-    },
-    agentInstanceCreator: () => {
-      throw new Error("instance creator must not be reached");
-    },
-  });
-  const execution = newExecution("", "");
-  execution.spec!.sessionSpec = create(SessionSpecSchema, {
-    agentInstanceId: "inst_explicit",
-  });
-  const ctx = newContext(execution);
-  await step.execute(ctx);
-  expect(ctx.get(DEFAULT_INSTANCE_ID_KEY)).toBeUndefined();
 });
 
 // Go wraps the in-process create with %w — the inner status code reaches
@@ -259,9 +317,7 @@ it("createSessionIfNeeded surfaces the inner status code of a failed session cre
       },
     }),
   });
-  const execution = newExecution("", "agt_1");
-  const ctx = newContext(execution);
-  ctx.set(DEFAULT_INSTANCE_ID_KEY, "inst_1");
+  const ctx = newContext(newExecution(""));
   const err = await expectCode(() => step.execute(ctx), Code.InvalidArgument);
   expect(err.rawMessage).toBe(
     "failed to create session: rpc error: code = InvalidArgument desc = session subject too long",
@@ -269,7 +325,7 @@ it("createSessionIfNeeded surfaces the inner status code of a failed session cre
 });
 
 // The unchanged skip contract: an existing session_id bypasses
-// auto-creation entirely.
+// auto-creation entirely, and leaves the stamp ResolveRunAgent wrote.
 it("createSessionIfNeeded skips when a session is provided", async () => {
   const step = newCreateSessionIfNeededStep({
     logger: silentLogger,
@@ -277,14 +333,22 @@ it("createSessionIfNeeded skips when a session is provided", async () => {
       throw new Error("session creator must not be reached");
     },
   });
-  const ctx = newContext(newExecution("ses_existing", ""));
+  const execution = newExecution("ses_existing");
+  execution.status = create(AgentExecutionStatusSchema, {
+    agentId: "agt_pinned",
+  });
+  const ctx = newContext(execution);
   await step.execute(ctx);
-  expect(ctx.newState.spec?.sessionId).toBe("ses_existing");
+  expect(ctx.newState.spec?.target).toEqual({
+    case: "sessionId",
+    value: "ses_existing",
+  });
+  expect(ctx.newState.status?.agentId).toBe("agt_pinned");
 });
 
 // The spec-forwarding contract of the one-call session bootstrap
-// (stigmer/stigmer#249): caller fields survive, defaults fill only gaps,
-// and the caller's message is never mutated.
+// (stigmer/stigmer#249): caller fields survive, the subject default fills
+// only a gap, and the caller's message is never mutated.
 describe("buildAutoCreateSessionSpec", () => {
   const workspaceEntries = [
     {
@@ -301,32 +365,36 @@ describe("buildAutoCreateSessionSpec", () => {
   const cases: Array<{
     name: string;
     callerSpec: SessionSpec | undefined;
-    defaultInstanceId: string;
     want: SessionSpec;
   }> = [
     {
-      name: "undefined spec -> minimal default (pre-bootstrap behavior)",
+      name: "undefined spec -> the built-in assistant with the default subject",
       callerSpec: undefined,
-      defaultInstanceId: "inst_default",
       want: create(SessionSpecSchema, {
-        agentInstanceId: "inst_default",
         subject: AUTO_CREATED_SESSION_SUBJECT,
       }),
     },
     {
       name: "full bootstrap spec -> forwarded verbatim, no defaults applied",
       callerSpec: create(SessionSpecSchema, {
-        agentInstanceId: "inst_explicit",
+        agentRef: {
+          kind: ApiResourceKind.agent,
+          org: "acme",
+          slug: "reviewer",
+          version: "latest",
+        },
         subject: "Customize the landing page",
         workspaceEntries,
         harness: Harness.NATIVE,
         executionTarget: ExecutionTarget.LOCAL,
       }),
-      // defaultInstanceId intentionally empty: CreateDefaultInstanceIfNeeded
-      // skips resolution when the spec names an instance.
-      defaultInstanceId: "",
       want: create(SessionSpecSchema, {
-        agentInstanceId: "inst_explicit",
+        agentRef: {
+          kind: ApiResourceKind.agent,
+          org: "acme",
+          slug: "reviewer",
+          version: "latest",
+        },
         subject: "Customize the landing page",
         workspaceEntries,
         harness: Harness.NATIVE,
@@ -334,14 +402,12 @@ describe("buildAutoCreateSessionSpec", () => {
       }),
     },
     {
-      name: "spec without instance or subject -> both defaulted, rest forwarded",
+      name: "spec without a subject -> subject defaulted, rest forwarded",
       callerSpec: create(SessionSpecSchema, {
         workspaceEntries,
         executionTarget: ExecutionTarget.CLOUD,
       }),
-      defaultInstanceId: "inst_resolved",
       want: create(SessionSpecSchema, {
-        agentInstanceId: "inst_resolved",
         subject: AUTO_CREATED_SESSION_SUBJECT,
         workspaceEntries,
         executionTarget: ExecutionTarget.CLOUD,
@@ -351,10 +417,7 @@ describe("buildAutoCreateSessionSpec", () => {
 
   for (const tt of cases) {
     it(tt.name, () => {
-      const got = buildAutoCreateSessionSpec(
-        tt.callerSpec,
-        tt.defaultInstanceId,
-      );
+      const got = buildAutoCreateSessionSpec(tt.callerSpec);
       expect(toJson(SessionSpecSchema, got)).toEqual(
         toJson(SessionSpecSchema, tt.want),
       );
@@ -365,13 +428,13 @@ describe("buildAutoCreateSessionSpec", () => {
     const callerSpec = create(SessionSpecSchema, { workspaceEntries });
     const original = clone(SessionSpecSchema, callerSpec);
 
-    const got = buildAutoCreateSessionSpec(callerSpec, "inst_resolved");
+    const got = buildAutoCreateSessionSpec(callerSpec);
     got.workspaceEntries[0]!.name = "mutated";
+    got.subject = "mutated";
 
     expect(toJson(SessionSpecSchema, callerSpec)).toEqual(
       toJson(SessionSpecSchema, original),
     );
-    expect(callerSpec.agentInstanceId).toBe("");
   });
 });
 
@@ -476,11 +539,12 @@ describe("newComposeDeclaredPreferencesStep", () => {
         silentLogger,
       );
 
-      const execution = newExecution("ses_1", "agt_1");
+      const execution = newExecution("ses_1");
       execution.metadata!.org = tt.orgId;
       // The injection attempt: a caller-supplied value must never survive
       // — the field is server-owned.
-      execution.spec!.declaredPreferences = create(DeclaredPreferencesSchema, {
+      execution.status = create(AgentExecutionStatusSchema);
+      execution.status.declaredPreferences = create(DeclaredPreferencesSchema, {
         orgContext: "injected org context",
         userContext: "injected user context",
       });
@@ -488,7 +552,7 @@ describe("newComposeDeclaredPreferencesStep", () => {
 
       await step.execute(ctx);
 
-      const got = ctx.newState.spec?.declaredPreferences;
+      const got = ctx.newState.status?.declaredPreferences;
       expect(
         got,
         "server-owned field must be stamped on every path",
@@ -541,14 +605,15 @@ describe("newComposeDeclaredPreferencesStep for visitors", () => {
       undefined,
       classifier,
     );
-    const execution = newExecution("ses_1", "agt_1");
+    const execution = newExecution("ses_1");
     // The injection attempt: the field is server-owned on this path too.
-    execution.spec!.declaredPreferences = create(DeclaredPreferencesSchema, {
+    execution.status = create(AgentExecutionStatusSchema);
+    execution.status.declaredPreferences = create(DeclaredPreferencesSchema, {
       orgContext: "injected org context",
     });
     const ctx = newContext(execution, caller);
     await step.execute(ctx);
-    return ctx.newState.spec?.declaredPreferences;
+    return ctx.newState.status?.declaredPreferences;
   }
 
   it("composes no organization context for a visitor, and never reads the organization", async () => {
@@ -862,11 +927,12 @@ describe("newComposeRecalledMemoriesStep", () => {
       }
       const step = newComposeRecalledMemoriesStep(stepStore, silentLogger);
 
-      const execution = newExecution("ses_1", "agt_1");
+      const execution = newExecution("ses_1");
       execution.metadata!.org = tt.orgId;
       // The injection attempt: caller-supplied recalled_memories never
       // survive — the field is server-owned.
-      execution.spec!.recalledMemories = create(RecalledMemoriesSchema, {
+      execution.status = create(AgentExecutionStatusSchema);
+      execution.status.recalledMemories = create(RecalledMemoriesSchema, {
         enabled: true,
         facts: [{ memoryId: "mem_injected", content: "injected fact" }],
       });
@@ -874,14 +940,14 @@ describe("newComposeRecalledMemoriesStep", () => {
 
       await step.execute(ctx);
 
-      // The step's contract is SPEC-ONLY: status.recalled_memories_report
+      // The step writes the snapshot alone: status.recalled_memories_report
       // is runner-owned with a single writer.
       expect(
         ctx.newState.status?.recalledMemoriesReport,
         "the compose step must never write status.recalled_memories_report",
       ).toBeUndefined();
 
-      const got = ctx.newState.spec?.recalledMemories;
+      const got = ctx.newState.status?.recalledMemories;
       expect(
         got,
         "server-owned field must be stamped on every path",
@@ -1031,9 +1097,9 @@ describe("the compose steps where callers are persons", () => {
     caller: CallerIdentity,
   ) {
     const step = newComposeRecalledMemoriesStep(store, silentLogger, accounts);
-    const ctx = newContext(newExecution("ses_1", "agt_1"), caller);
+    const ctx = newContext(newExecution("ses_1"), caller);
     await step.execute(ctx);
-    return ctx.newState.spec?.recalledMemories;
+    return ctx.newState.status?.recalledMemories;
   }
 
   it("recalls exactly the run's person's confirmed facts in its organization, oldest first", async () => {
@@ -1095,13 +1161,14 @@ describe("the compose steps where callers are persons", () => {
       accounts,
       classifier,
     );
-    const execution = newExecution("ses_1", "agt_1");
-    execution.spec!.declaredPreferences = create(DeclaredPreferencesSchema, {
+    const execution = newExecution("ses_1");
+    execution.status = create(AgentExecutionStatusSchema);
+    execution.status.declaredPreferences = create(DeclaredPreferencesSchema, {
       userContext: "injected user context",
     });
     const ctx = newContext(execution, caller);
     await step.execute(ctx);
-    return ctx.newState.spec?.declaredPreferences;
+    return ctx.newState.status?.declaredPreferences;
   }
 
   it("composes the run's person's standing context beside the organization's", async () => {
@@ -1271,9 +1338,10 @@ describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
       statusObservers: [
         (t: AgentExecutionStatusTransition): void => void observed.push(t),
       ],
+      workflowRunQueue: newWorkflowRunQueue(routing(WORKFLOW_ROUTING_GLOBAL)),
     });
 
-    const execution = newExecution("ses_sw", "agt_sw");
+    const execution = newExecution("ses_sw");
     execution.metadata!.id = "aexec_sw_fail";
     // The chain stamps PENDING at SetInitialPhase before this step runs.
     execution.status = create(AgentExecutionStatusSchema, {
@@ -1297,5 +1365,89 @@ describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
     );
     expect(persisted.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
     expect(persisted.status?.error).toContain("temporal exploded");
+  });
+});
+
+// The workflow input StartWorkflow builds: the agent is the stamp
+// ResolveRunAgent (or CreateSessionIfNeeded) wrote, and every parent
+// coordinate comes from the vouched link (vouch-workflow-parent.ts). The
+// queue is derived from the link's workflow run, so no request names one.
+describe("newStartWorkflowStep — the workflow input", () => {
+  async function started(
+    execution: AgentExecution,
+    workflowActivityRouting: string,
+  ): Promise<StartInvokeWorkflowInput | undefined> {
+    let input: StartInvokeWorkflowInput | undefined;
+    const step = newStartWorkflowStep({
+      store,
+      logger: silentLogger,
+      engineState: () =>
+        ({
+          connected: true,
+          engine: stubConnectedEngine({
+            startInvokeWorkflow: async (got) => {
+              input = got;
+            },
+          }),
+        }) as ExecutionEngineState,
+      statusObservers: [],
+      workflowRunQueue: newWorkflowRunQueue(routing(workflowActivityRouting)),
+    });
+    execution.metadata!.id = "aexec_input";
+    await step.execute(newContext(execution));
+    return input;
+  }
+
+  function childTurn(): AgentExecution {
+    const execution = newExecution("ses_child");
+    execution.status = create(AgentExecutionStatusSchema, {
+      phase: ExecutionPhase.EXECUTION_PENDING,
+      agentId: "agt_called",
+      agentVersionHash: "e".repeat(64),
+    });
+    execution.spec!.parent = create(WorkflowParentSchema, {
+      workflowExecutionId: "wfx_parent",
+      signalWorkflowId: "wf-signal-target",
+      callbackToken: new Uint8Array([1, 2, 3]),
+    });
+    return execution;
+  }
+
+  it("takes the agent from the stamp and the parent coordinates from the link", async () => {
+    const input = await started(childTurn(), WORKFLOW_ROUTING_EXECUTION);
+
+    expect(input?.executionId).toBe("aexec_input");
+    expect(input?.sessionId).toBe("ses_child");
+    expect(input?.agentId).toBe("agt_called");
+    expect(input?.callbackToken).toEqual(new Uint8Array([1, 2, 3]));
+    expect(input?.parentWorkflowId).toBe("wf-signal-target");
+  });
+
+  it("routes a child turn to its workflow run's queue under execution routing", async () => {
+    const input = await started(childTurn(), WORKFLOW_ROUTING_EXECUTION);
+
+    expect(input?.activityTaskQueueOverride).toBe(
+      formatWfExecTaskQueue("wfx_parent"),
+    );
+  });
+
+  it("names no queue for a child turn under global routing", async () => {
+    const input = await started(childTurn(), WORKFLOW_ROUTING_GLOBAL);
+
+    expect(input?.activityTaskQueueOverride).toBe("");
+  });
+
+  it("starts a turn with no link with no parent coordinates and no queue", async () => {
+    const execution = newExecution("ses_plain");
+    execution.status = create(AgentExecutionStatusSchema, {
+      phase: ExecutionPhase.EXECUTION_PENDING,
+    });
+
+    const input = await started(execution, WORKFLOW_ROUTING_EXECUTION);
+
+    expect(input?.agentId).toBe("");
+    expect(input?.callbackToken).toEqual(new Uint8Array());
+    expect(input?.parentWorkflowId).toBe("");
+    expect(input?.activityTaskQueueOverride).toBe("");
   });
 });

@@ -1,29 +1,21 @@
 /**
- * useCreateSession: a session is created for an explicit agent instance or
- * for an agent reference's default instance, with the execution target the
- * input or the context names; an agent without a default instance is an
- * error that names the agent's organization by slug where it is one of the
- * person's, and by the reference's value otherwise.
+ * useCreateSession: a session names its agent directly (`agentRef`, sent as
+ * given, with no agent read first) or none (the built-in assistant), with
+ * the execution target the input or the context names.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerContext } from "../../context";
-import { OrgProvider, useOrg } from "../../organization/OrgProvider";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ExecutionTargetContext } from "../../execution-target-context";
 import { useCreateSession } from "../useCreateSession";
 
 function createMockStigmer(overrides: {
-  getByReference?: (...args: unknown[]) => Promise<unknown>;
   create?: (...args: unknown[]) => Promise<unknown>;
 } = {}) {
   return {
-    agent: {
-      getByReference: overrides.getByReference ?? vi.fn().mockResolvedValue({
-        status: { defaultInstanceId: "ain-default" },
-      }),
-    },
+    agent: { getByReference: vi.fn() },
     session: {
       create: overrides.create ?? vi.fn().mockResolvedValue({
         metadata: { id: "ses-new-1" },
@@ -49,7 +41,7 @@ describe("useCreateSession", () => {
     vi.restoreAllMocks();
   });
 
-  it("creates a session with agentInstanceId", async () => {
+  it("creates a session on the agent reference, reading no agent first", async () => {
     const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-123" } });
     const client = createMockStigmer({ create });
 
@@ -63,7 +55,7 @@ describe("useCreateSession", () => {
     await act(async () => {
       sessionResult = await result.current.create({
         org: "acme",
-        agentInstanceId: "ain-123",
+        agentRef: { org: "acme", slug: "my-agent" },
       });
     });
 
@@ -71,111 +63,27 @@ describe("useCreateSession", () => {
     expect(result.current.isCreating).toBe(false);
     expect(result.current.error).toBeNull();
     expect(create).toHaveBeenCalledTimes(1);
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        org: "acme",
-        agentInstanceId: "ain-123",
-      }),
-    );
+    const sent = create.mock.calls[0][0];
+    expect(sent.org).toBe("acme");
+    // No version: the server pins the agent's current version.
+    expect(sent.agentRef).toEqual({ org: "acme", slug: "my-agent" });
+    expect((client as { agent: { getByReference: ReturnType<typeof vi.fn> } }).agent.getByReference)
+      .not.toHaveBeenCalled();
   });
 
-  it("resolves agentRef to default instance before creating", async () => {
-    const getByReference = vi.fn().mockResolvedValue({
-      status: { defaultInstanceId: "ain-resolved" },
-    });
-    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-456" } });
-    const client = createMockStigmer({ getByReference, create });
+  it("names no agent for the built-in assistant", async () => {
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-0" } });
+    const client = createMockStigmer({ create });
 
     const { result } = renderHook(() => useCreateSession(), {
       wrapper: wrapper(client),
     });
 
     await act(async () => {
-      await result.current.create({
-        org: "acme",
-        agentRef: { org: "acme", slug: "my-agent" },
-      });
+      await result.current.create({ org: "acme" });
     });
 
-    expect(getByReference).toHaveBeenCalledWith({ org: "acme", slug: "my-agent" });
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ agentInstanceId: "ain-resolved" }),
-    );
-  });
-
-  it("errors when agentRef resolves to agent without default instance", async () => {
-    const getByReference = vi.fn().mockResolvedValue({
-      status: { defaultInstanceId: "" },
-    });
-    const client = createMockStigmer({ getByReference });
-
-    const { result } = renderHook(() => useCreateSession(), {
-      wrapper: wrapper(client),
-    });
-
-    // The hook catches the error, sets state, and re-throws.
-    // We need to catch the rethrow to inspect the error state.
-    let caughtError: Error | undefined;
-    await act(async () => {
-      try {
-        await result.current.create({
-          org: "acme",
-          agentRef: { org: "acme", slug: "no-instance-agent" },
-        });
-      } catch (err) {
-        caughtError = err as Error;
-      }
-    });
-
-    expect(caughtError).toBeTruthy();
-    expect(caughtError!.message).toContain("does not have a default instance");
-    expect(result.current.error).toBeTruthy();
-    expect(result.current.error!.message).toContain("does not have a default instance");
-    expect(caughtError!.message).toContain('Agent "acme/no-instance-agent"');
-  });
-
-  it("names the agent's organization by slug where it is one of the person's", async () => {
-    const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
-    localStorage.clear();
-    const client = {
-      ...(createMockStigmer({
-        getByReference: vi.fn().mockResolvedValue({ status: { defaultInstanceId: "" } }),
-      }) as object),
-      organization: {
-        findMyOrganizations: vi.fn().mockResolvedValue({
-          entries: [{ metadata: { id: ACME_ID, slug: "acme" } }],
-        }),
-      },
-    };
-    const Base = wrapper(client);
-    const { result } = renderHook(
-      () => ({ session: useCreateSession(), org: useOrg() }),
-      {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <Base>
-            <OrgProvider>{children}</OrgProvider>
-          </Base>
-        ),
-      },
-    );
-    await waitFor(() => expect(result.current.org.orgs).toHaveLength(1));
-
-    const messageFor = async (org: string) => {
-      let message = "";
-      await act(async () => {
-        try {
-          await result.current.session.create({ org, agentRef: { org, slug: "no-instance-agent" } });
-        } catch (err) {
-          message = (err as Error).message;
-        }
-      });
-      return message;
-    };
-
-    expect(await messageFor(ACME_ID)).toContain('Agent "acme/no-instance-agent" does not have a default instance');
-    // An organization the person does not belong to reads as given.
-    const other = "org_01jbbbbbbbbbbbbbbbbbbbbbbb";
-    expect(await messageFor(other)).toContain(`Agent "${other}/no-instance-agent"`);
+    expect(create.mock.calls[0][0].agentRef).toBeUndefined();
   });
 
   it("sets error state on session.create failure", async () => {
@@ -191,7 +99,7 @@ describe("useCreateSession", () => {
       try {
         await result.current.create({
           org: "acme",
-          agentInstanceId: "ain-123",
+          agentRef: { org: "acme", slug: "my-agent" },
         });
       } catch (err) {
         caughtError = err as Error;
@@ -215,7 +123,7 @@ describe("useCreateSession", () => {
     await act(async () => {
       await result.current.create({
         org: "acme",
-        agentInstanceId: "ain-123",
+        agentRef: { org: "acme", slug: "my-agent" },
         executionTarget: "local",
       });
     });
@@ -238,7 +146,7 @@ describe("useCreateSession", () => {
     await act(async () => {
       await result.current.create({
         org: "acme",
-        agentInstanceId: "ain-123",
+        agentRef: { org: "acme", slug: "my-agent" },
       });
     });
 
@@ -258,7 +166,7 @@ describe("useCreateSession", () => {
       await act(async () => {
         await result.current.create({
           org: "acme",
-          agentInstanceId: "ain-123",
+          agentRef: { org: "acme", slug: "my-agent" },
           metadata: { "acme/tenant": "t-1" },
         });
       });
@@ -281,7 +189,7 @@ describe("useCreateSession", () => {
       await act(async () => {
         await result.current.create({
           org: "acme",
-          agentInstanceId: "ain-123",
+          agentRef: { org: "acme", slug: "my-agent" },
           sessionContext: "Role: platform admin",
         });
       });
@@ -304,7 +212,7 @@ describe("useCreateSession", () => {
       await act(async () => {
         await result.current.create({
           org: "acme",
-          agentInstanceId: "ain-123",
+          agentRef: { org: "acme", slug: "my-agent" },
           metadata: {
             "acme/tenant": "t-1",
             "stigmer.ai/session-context": "stale raw value",
@@ -332,7 +240,7 @@ describe("useCreateSession", () => {
       });
 
       await act(async () => {
-        await result.current.create({ org: "acme", agentInstanceId: "ain-123" });
+        await result.current.create({ org: "acme", agentRef: { org: "acme", slug: "my-agent" } });
       });
 
       const callArg = create.mock.calls[0][0];
@@ -350,7 +258,7 @@ describe("useCreateSession", () => {
 
     await act(async () => {
       try {
-        await result.current.create({ org: "acme", agentInstanceId: "ain-1" });
+        await result.current.create({ org: "acme" });
       } catch {
         // expected
       }
@@ -389,7 +297,7 @@ describe("useCreateSession", () => {
       await act(async () => {
         await result.current.create({
           org: "acme",
-          agentInstanceId: "ain-123",
+          agentRef: { org: "acme", slug: "my-agent" },
         });
       });
 
@@ -411,7 +319,7 @@ describe("useCreateSession", () => {
       await act(async () => {
         await result.current.create({
           org: "acme",
-          agentInstanceId: "ain-123",
+          agentRef: { org: "acme", slug: "my-agent" },
           executionTarget: "local",
         });
       });
@@ -434,7 +342,7 @@ describe("useCreateSession", () => {
       await act(async () => {
         await result.current.create({
           org: "acme",
-          agentInstanceId: "ain-123",
+          agentRef: { org: "acme", slug: "my-agent" },
         });
       });
 

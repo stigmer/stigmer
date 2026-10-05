@@ -1,6 +1,8 @@
 /**
- * The session list index (store/list-index.ts): `agent_instance` is the
- * key `listByAgentInstance` reads, `channel` the one `listByChannel` reads
+ * The session list index (store/list-index.ts): `agent` is the key
+ * `listByAgent` reads (the pinned agent, status.agent_id, which the server
+ * writes; whichever version the conversation runs), `channel` the one
+ * `listByChannel` reads
  * (the channel's id is stamped as a label by the channel lanes, not held
  * in the spec). A session belongs to one organization, which is every
  * declaration's first fact, so `session.list` narrows by it when the
@@ -20,9 +22,9 @@ export const SESSION_CHANNEL_ID_LABEL = "stigmer.ai/channel-id";
 export const sessionListIndex = declareListIndex({
   kind: ApiResourceKind.session,
   schema: SessionSchema,
-  revision: 1,
+  revision: 2,
   keys: {
-    agent_instance: field("spec.agent_instance_id"),
+    agent: field("status.agent_id"),
     channel: label(SESSION_CHANNEL_ID_LABEL),
   },
 });

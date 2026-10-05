@@ -30,6 +30,7 @@ import {
   type GetArtifactContentRequest,
   type GetArtifactContentResponse,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import {
   assembleSessionTranscript,
@@ -49,7 +50,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 function session() {
   return create(SessionSchema, {
     metadata: { id: "ses_01" },
-    spec: { subject: "Fix the flaky test", agentInstanceId: "agi_01" },
+    spec: {
+      subject: "Fix the flaky test",
+      agentRef: { org: "acme", slug: "ci-fixer", kind: ApiResourceKind.agent },
+    },
   });
 }
 
@@ -58,7 +62,7 @@ function session() {
 function exec1(): AgentExecution {
   return create(AgentExecutionSchema, {
     metadata: { id: "aex_01a" },
-    spec: { sessionId: "ses_01", message: "Why is CI red?" },
+    spec: { target: { case: "sessionId", value: "ses_01" }, message: "Why is CI red?" },
     status: {
       phase: ExecutionPhase.EXECUTION_COMPLETED,
       startedAt: "2026-08-20T10:00:00Z",
@@ -134,7 +138,7 @@ function exec1(): AgentExecution {
 function exec2(): AgentExecution {
   return create(AgentExecutionSchema, {
     metadata: { id: "aex_01b" },
-    spec: { sessionId: "ses_01", message: "old prompt" },
+    spec: { target: { case: "sessionId", value: "ses_01" }, message: "old prompt" },
     status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
   });
 }
@@ -144,7 +148,7 @@ function exec3(): AgentExecution {
   return create(AgentExecutionSchema, {
     metadata: { id: "aex_01c" },
     spec: {
-      sessionId: "ses_01",
+      target: { case: "sessionId", value: "ses_01" },
       message: "edited prompt",
       supersedesExecutionId: "aex_01b",
     },
@@ -206,7 +210,7 @@ function exec4(): AgentExecution {
   return create(AgentExecutionSchema, {
     metadata: { id: "aex_01d" },
     spec: {
-      sessionId: "ses_01",
+      target: { case: "sessionId", value: "ses_01" },
       message: "Build from plan",
       executionConfig: { buildFromPlan: true },
     },
@@ -296,7 +300,7 @@ describe("assembleSessionTranscript", () => {
   it("suppresses the 'execute' placeholder prompt", () => {
     const exec = create(AgentExecutionSchema, {
       metadata: { id: "aex_x" },
-      spec: { sessionId: "ses_01", message: "execute" },
+      spec: { target: { case: "sessionId", value: "ses_01" }, message: "execute" },
       status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
     });
     const t = assembleSessionTranscript(session(), [exec]);
@@ -600,7 +604,7 @@ describe("transcriptToMarkdown", () => {
   it("sizes fences past backtick runs in the content", () => {
     const exec = create(AgentExecutionSchema, {
       metadata: { id: "aex_x" },
-      spec: { sessionId: "ses_01", message: "prompt" },
+      spec: { target: { case: "sessionId", value: "ses_01" }, message: "prompt" },
       status: {
         phase: ExecutionPhase.EXECUTION_COMPLETED,
         messages: [

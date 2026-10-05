@@ -27,11 +27,6 @@ type AgentStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
-	// ID of the default agent instance.
-	// Every agent has exactly one default instance that uses all agent defaults
-	// and requires no additional configuration. Created automatically when the
-	// agent is created.
-	DefaultInstanceId string `protobuf:"bytes,1,opt,name=default_instance_id,json=defaultInstanceId,proto3" json:"default_instance_id,omitempty"`
 	// Content hash of the agent's current version: the SHA-256 of the
 	// canonical JSON rendering of the stored AgentSpec (unset and default
 	// fields omitted, object keys sorted at every depth, enums as numbers).
@@ -86,13 +81,6 @@ func (x *AgentStatus) GetAudit() *apiresource.ApiResourceAudit {
 	return nil
 }
 
-func (x *AgentStatus) GetDefaultInstanceId() string {
-	if x != nil {
-		return x.DefaultInstanceId
-	}
-	return ""
-}
-
 func (x *AgentStatus) GetVersionHash() string {
 	if x != nil {
 		return x.VersionHash
@@ -104,11 +92,10 @@ var File_ai_stigmer_agentic_agent_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/agent/v1/status.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xc0\x01\n" +
+	"(ai/stigmer/agentic/agent/v1/status.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xab\x01\n" +
 	"\vAgentStatus\x12F\n" +
-	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12.\n" +
-	"\x13default_instance_id\x18\x01 \x01(\tR\x11defaultInstanceId\x12!\n" +
-	"\fversion_hash\x18\x03 \x01(\tR\vversionHashJ\x04\b\x02\x10\x03R\x10share_link_tokenB\x8d\x02\n" +
+	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12!\n" +
+	"\fversion_hash\x18\x03 \x01(\tR\vversionHashJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x13default_instance_idR\x10share_link_tokenB\x8d\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\vStatusProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (

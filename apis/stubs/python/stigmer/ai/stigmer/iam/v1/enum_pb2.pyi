@@ -24,7 +24,6 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_create_oauth_app: _ClassVar[IamPermission]
     can_create_platform_client: _ClassVar[IamPermission]
     can_create_execution_in: _ClassVar[IamPermission]
-    can_create_instance: _ClassVar[IamPermission]
     can_execute: _ClassVar[IamPermission]
     can_read_secrets: _ClassVar[IamPermission]
     can_bootstrap_iam: _ClassVar[IamPermission]
@@ -43,7 +42,6 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_manage_plans: _ClassVar[IamPermission]
     can_issue_license: _ClassVar[IamPermission]
     can_create_mcp_server: _ClassVar[IamPermission]
-    can_create_agent_instance: _ClassVar[IamPermission]
     can_create_team: _ClassVar[IamPermission]
     can_manage_credits: _ClassVar[IamPermission]
 
@@ -74,7 +72,6 @@ can_create_identity_account: IamPermission
 can_create_oauth_app: IamPermission
 can_create_platform_client: IamPermission
 can_create_execution_in: IamPermission
-can_create_instance: IamPermission
 can_execute: IamPermission
 can_read_secrets: IamPermission
 can_bootstrap_iam: IamPermission
@@ -93,7 +90,6 @@ can_create_plugin: IamPermission
 can_manage_plans: IamPermission
 can_issue_license: IamPermission
 can_create_mcp_server: IamPermission
-can_create_agent_instance: IamPermission
 can_create_team: IamPermission
 can_manage_credits: IamPermission
 iam_role_unspecified: IamRole

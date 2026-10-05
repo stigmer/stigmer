@@ -27,7 +27,7 @@ import type { McpToolFixture } from "../harness/mcp-server";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import {
   allToolCalls,
   awaitTerminal,
@@ -101,7 +101,7 @@ describe("AgentExecution execution_config.max_tool_rounds", () => {
       makeAgentExecution({
         org,
         name: uniqueName("aex-rounds"),
-        agentId: agent.metadata!.id,
+        agentRef: agentRefOf(agent),
         message: "Echo each round.",
         autoApproveAll: true,
         executionConfig: { maxToolRounds: MAX_TOOL_ROUNDS },

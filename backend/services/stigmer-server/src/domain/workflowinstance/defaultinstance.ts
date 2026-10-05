@@ -1,13 +1,24 @@
 /**
  * Default-instance factory — ports
  * pkg/domain/workflowinstance/defaultinstance: the canonical
- * WorkflowInstance request for per-workflow default instances, the workflow
- * twin of the agentinstance defaultinstance module and the OSS twin of the
- * cloud edition's DefaultWorkflowInstanceFactory. See the agentinstance
- * twin's header for the full rationale (naming single-sourcing, no
- * visibility of their own, reserved-label markers vs the authoritative
- * status.default_instance_id pointer); the two modules must stay in
- * lockstep.
+ * WorkflowInstance request for per-workflow default instances, the OSS
+ * twin of the cloud edition's DefaultWorkflowInstanceFactory.
+ *
+ * Every workflow has exactly one default instance: an empty shell with no
+ * custom configuration. This module is the single source of its naming
+ * convention and request shape, shared by every flow that creates one.
+ *
+ * Default instances carry no visibility of their own: their access always
+ * follows the parent workflow. metadata.visibility is deliberately left
+ * unset here, and visibility updates on default instances are rejected by
+ * RejectDefaultInstanceVisibilityUpdate.
+ *
+ * Default instances are tagged with two reserved labels (see
+ * src/pipeline/apiresource-labels.ts). The labels are descriptive markers
+ * matching the cloud edition's stored shape — restrict-shaped decisions
+ * must also key on the parent's status.default_instance_id, which is
+ * server-owned (labels are client-suppliable, and instances created before
+ * this factory existed carry none).
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -43,8 +54,8 @@ export function defaultWorkflowInstanceSlug(workflowSlug: string): string {
  * workflowinstance in-process client (createAsSystem), which owns
  * persistence and validation.
  *
- * Takes the metadata rather than loose strings for the same reason as the
- * agentinstance twin: the instance is named from the workflow's SLUG (the
+ * Takes the metadata rather than loose strings: the instance is named from
+ * the workflow's SLUG (the
  * identity defaultWorkflowInstanceSlug reconstructs for fallback lookups),
  * never the free-form display name — reading it at this single source makes
  * the wrong-field mistake unwritable (oss#355).

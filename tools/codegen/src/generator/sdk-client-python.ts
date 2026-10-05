@@ -8,7 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { goQuote, hasExplicitPresence, indefiniteArticle, isEmptyType, isIDType, isSpecialType, searchListSupersedesMethod } from "./gen-common.js";
+import { firstMemberWinsOrder, goQuote, hasExplicitPresence, indefiniteArticle, isEmptyType, isIDType, isRealOneofMember, isSpecialType, searchListSupersedesMethod } from "./gen-common.js";
 import { isPythonKeyword, pyClientFieldName, pyFieldName, pyMethodName, pyProtoFileToModule, pyProtoImportLine, pyProtoModuleAlias, pyStubMethodName } from "./lang-names.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
 import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from "./sdk-resource-config.js";
@@ -802,8 +802,14 @@ function emitPyMainToProto(buf: string[], cfg: SdkResourceConfig, spec: TaskConf
   const kwScalars: FieldSchema[] = [];
   const complexFields: FieldSchema[] = [];
   const presenceScalars: FieldSchema[] = [];
+  // A real oneof's members are assigned last, in firstMemberWinsOrder, and
+  // a scalar member only when set: a zero value passed to the constructor
+  // would claim the oneof for that member.
+  const oneofMembers = firstMemberWinsOrder(specFields.filter(isRealOneofMember));
   for (const f of specFields) {
-    if (hasExplicitPresence(f)) {
+    if (isRealOneofMember(f)) {
+      continue;
+    } else if (hasExplicitPresence(f)) {
       presenceScalars.push(f);
     } else if (pyIsScalarKind(f.type.kind)) {
       if (isPythonKeyword(f.protoField)) kwScalars.push(f);
@@ -835,6 +841,7 @@ function emitPyMainToProto(buf: string[], cfg: SdkResourceConfig, spec: TaskConf
   for (const f of complexFields) {
     emitPyToProtoFieldAssign(buf, f, "spec", "self", "        ", imports);
   }
+  emitPyOneofMembers(buf, oneofMembers, "spec", imports);
 
   buf.push("        metadata = metadata_pb2.ApiResourceMetadata(\n");
   buf.push("            name=self.name,\n");
@@ -913,8 +920,13 @@ function emitPyNestedClassWithProto(
   const kwScalars: FieldSchema[] = [];
   const complexFields: FieldSchema[] = [];
   const presenceScalars: FieldSchema[] = [];
+  // As the resource's own input: a real oneof's members last, in
+  // firstMemberWinsOrder, a scalar member only when set.
+  const oneofMembers = firstMemberWinsOrder(ts.fields.filter(isRealOneofMember));
   for (const field of ts.fields) {
-    if (hasExplicitPresence(field)) {
+    if (isRealOneofMember(field)) {
+      continue;
+    } else if (hasExplicitPresence(field)) {
       presenceScalars.push(field);
     } else if (pyIsScalarKind(field.type.kind)) {
       if (isPythonKeyword(field.protoField)) kwScalars.push(field);
@@ -960,6 +972,7 @@ function emitPyNestedClassWithProto(
   for (const field of complexFields) {
     emitPyToProtoFieldAssign(buf, field, "msg", "self", "        ", imports);
   }
+  emitPyOneofMembers(buf, oneofMembers, "msg", imports);
   buf.push("        return msg\n\n");
 
   allTypes.push(inputName);
@@ -972,6 +985,22 @@ function emitPyNestedClassWithProto(
 // =========================================================================
 // _to_proto field assignment helpers
 // =========================================================================
+
+/**
+ * A real oneof's members, assigned last and in firstMemberWinsOrder (the
+ * last assignment holds the oneof, so the first-declared member set wins),
+ * a scalar member only when set: a zero value would claim the oneof.
+ */
+function emitPyOneofMembers(buf: string[], members: readonly FieldSchema[], msgVar: string, imports: PyImports): void {
+  for (const f of members) {
+    if (pyIsScalarKind(f.type.kind)) {
+      buf.push(`        if self.${pyFieldName(f.protoField)}:\n`);
+      buf.push(`            setattr(${msgVar}, ${goQuote(f.protoField)}, self.${pyFieldName(f.protoField)})\n`);
+    } else {
+      emitPyToProtoFieldAssign(buf, f, msgVar, "self", "        ", imports);
+    }
+  }
+}
 
 /**
  * Sets a proto3 `optional` scalar only when the caller set it: None leaves

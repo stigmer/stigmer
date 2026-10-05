@@ -2,25 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import {
   AgentChannelsPanel,
   AgentDetailView,
-  CreateAgentInstanceDialog,
   EditResourceYamlDialog,
   useAgent,
-  useDeleteAgentInstance,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
   useExportResource,
   ConfirmDialog,
   useBreadcrumbOverride,
-  useActiveOrgId,
   type AdditionalTab,
   type DetailAction,
 } from "@stigmer/react";
-import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import {
   useLibraryNavigation,
   useRouteDetailYieldsToOverlay,
@@ -52,17 +47,12 @@ interface AgentDetailPageInnerProps {
 export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const router = useRouter();
   const { setLabel } = useBreadcrumbOverride();
-  // The viewer's own org scopes the Instances tab: an instance of a
-  // platform-visible agent is created in the viewer's org, not the agent's.
-  // By id, the way the server names every org.
-  const viewerOrg = useActiveOrgId();
   const { navigateToDetail } = useLibraryNavigation();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Agent");
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const { deleteResource, isDeleting } = useDeleteResource("agent", resourceId, resourceName);
-  const { deleteInstance } = useDeleteAgentInstance();
   const { agent, refetch: refetchAgent } = useAgent(org, slug);
   const { copyYaml, copyJson, downloadYaml } = useExportResource({
     kind: "Agent",
@@ -70,8 +60,6 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   });
 
   const [editYamlOpen, setEditYamlOpen] = useState(false);
-  const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
-  const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
 
   // Controlled tab state (the WorkflowDetailPage Editor-tab precedent),
   // seeded from the ?tab= deep link so cross-surface handoffs land on the
@@ -119,8 +107,8 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
     const confirmed = await confirm({
       title: `Delete ${resourceName}?`,
       description:
-        "This permanently removes the agent and all of its instances. " +
-        "Past sessions and executions are preserved. " +
+        "This permanently removes the agent. " +
+        "Past sessions and executions are preserved, but conversations on it cannot continue. " +
         "This action cannot be undone.",
       confirmLabel: "Delete",
       variant: "destructive",
@@ -142,39 +130,6 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
       onAction: () => router.push(getAgentSessionUrl(org, slug)),
     }),
     [router, org, slug],
-  );
-
-  const handleInstanceStartSession = useCallback(
-    (instance: AgentInstance) => {
-      const instanceId = instance.metadata?.id;
-      router.push(getAgentSessionUrl(org, slug, instanceId));
-    },
-    [router, org, slug],
-  );
-
-  const handleInstanceDelete = useCallback(
-    async (instance: AgentInstance) => {
-      const name = instance.metadata?.name || instance.metadata?.slug || "this instance";
-      const confirmed = await confirm({
-        title: `Delete ${name}?`,
-        description:
-          "This permanently removes the instance and its environment bindings. " +
-          "Sessions already started against it are preserved. This action cannot be undone.",
-        confirmLabel: "Delete",
-        variant: "destructive",
-      });
-      if (!confirmed) return;
-      const id = instance.metadata?.id;
-      if (!id) return;
-      try {
-        await deleteInstance(id);
-        toast.success("Instance deleted");
-        setInstancesRefreshKey((k) => k + 1);
-      } catch {
-        toast.error("Failed to delete instance");
-      }
-    },
-    [confirm, deleteInstance],
   );
 
   const actions: DetailAction[] = useMemo(
@@ -251,14 +206,9 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         primaryAction={primaryAction}
         actions={actions}
         buildShareUrl={shareUrlFor}
-        viewerOrg={viewerOrg}
         additionalTabs={additionalTabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
-        onInstanceStartSessionClick={handleInstanceStartSession}
-        onInstanceDeleteClick={handleInstanceDelete}
-        instancesRefreshKey={instancesRefreshKey}
       />
       <EditResourceYamlDialog
         open={editYamlOpen}
@@ -271,18 +221,6 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />
-      {resourceId && (
-        <CreateAgentInstanceDialog
-          open={showCreateInstanceDialog}
-          onOpenChange={setShowCreateInstanceDialog}
-          org={org}
-          agentId={resourceId}
-          onCreated={() => {
-            toast.success("Instance created");
-            setInstancesRefreshKey((k) => k + 1);
-          }}
-        />
-      )}
     </>
   );
 }

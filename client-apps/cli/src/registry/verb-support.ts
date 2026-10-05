@@ -106,10 +106,6 @@ export const VERB_SUPPORT: ReadonlyMap<
     ApiResourceKind.schedule,
     new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
   ],
-  [
-    ApiResourceKind.agent_instance,
-    new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
-  ],
   // No list: proto exposes getByWorkflow (requires workflow_id), not a generic list.
   [
     ApiResourceKind.workflow_instance,

@@ -20,7 +20,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { makeAgent } from "../support/agents";
+import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
@@ -56,24 +56,20 @@ const separateTimestamps = () => new Promise((resolve) => setTimeout(resolve, 25
 // but the runtime-origin exclusion test seeds its lookalike sessions through
 // the privileged scope (reserved-label writes are operator-only on cloud,
 // and the recents feed is caller-scoped anyway).
-async function provisionAgentInstance(caller: ConformanceClients, org: string): Promise<string> {
+async function provisionAgent(caller: ConformanceClients, org: string): Promise<AgentRefInit> {
   const agent = await caller.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
   fixtures.defer(() => caller.agentCommand.delete({ value: agent.metadata!.id }));
-  const agentInstanceId = agent.status?.defaultInstanceId;
-  if (agentInstanceId === undefined || agentInstanceId === "") {
-    throw new Error("agent create did not provision a default instance id");
-  }
-  return agentInstanceId;
+  return agentRefOf(agent);
 }
 
 async function createSession(
   caller: ConformanceClients,
   org: string,
-  agentInstanceId: string,
+  agentRef: AgentRefInit,
   opts: { subject?: string; labels?: Record<string, string> } = {},
 ): Promise<string> {
   const session = await caller.sessionCommand.create(
-    makeSession({ org, name: uniqueName("session"), agentInstanceId, ...opts }),
+    makeSession({ org, name: uniqueName("session"), agentRef, ...opts }),
   );
   fixtures.defer(() => caller.sessionCommand.delete({ value: session.metadata!.id }));
   return session.metadata!.id;
@@ -82,13 +78,13 @@ async function createSession(
 describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance — listRecentActivity", () => {
   it("lists created sessions newest-first as projected sidebar entries", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(clients, org);
+    const agentRef = await provisionAgent(clients, org);
 
-    const first = await createSession(clients, org, agentInstanceId, { subject: "Plan the migration" });
+    const first = await createSession(clients, org, agentRef, { subject: "Plan the migration" });
     await separateTimestamps();
-    const second = await createSession(clients, org, agentInstanceId, { subject: "Review the PR" });
+    const second = await createSession(clients, org, agentRef, { subject: "Review the PR" });
     await separateTimestamps();
-    const third = await createSession(clients, org, agentInstanceId, { subject: "Ship the release" });
+    const third = await createSession(clients, org, agentRef, { subject: "Ship the release" });
 
     const response = await clients.activityQuery.listRecentActivity({ pageSize: 100, org });
     const ids = response.entries.map((entry) => entry.id);
@@ -109,9 +105,9 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
 
   it("maps the auto-created sentinel subject to the display placeholder", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(clients, org);
+    const agentRef = await provisionAgent(clients, org);
 
-    const id = await createSession(clients, org, agentInstanceId, { subject: "Auto-created session" });
+    const id = await createSession(clients, org, agentRef, { subject: "Auto-created session" });
 
     const response = await clients.activityQuery.listRecentActivity({ pageSize: 100, org });
     const entry = response.entries.find((candidate) => candidate.id === id);
@@ -134,17 +130,17 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
 
     try {
       const org = scope.context.org;
-      const agentInstanceId = await provisionAgentInstance(scope.clients, org);
+      const agentRef = await provisionAgent(scope.clients, org);
 
-      const channelSession = await createSession(scope.clients, org, agentInstanceId, {
+      const channelSession = await createSession(scope.clients, org, agentRef, {
         subject: "Channel conversation",
         labels: { "stigmer.ai/channel-id": "ach_conformance" },
       });
-      const scheduleSession = await createSession(scope.clients, org, agentInstanceId, {
+      const scheduleSession = await createSession(scope.clients, org, agentRef, {
         subject: "Schedule run",
         labels: { "stigmer.ai/schedule-id": "sch_conformance" },
       });
-      const consoleSession = await createSession(scope.clients, org, agentInstanceId, {
+      const consoleSession = await createSession(scope.clients, org, agentRef, {
         subject: "Console session",
       });
 
@@ -161,11 +157,11 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
 
   it("trims to page_size, keeping the newest entries", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(clients, org);
+    const agentRef = await provisionAgent(clients, org);
 
-    await createSession(clients, org, agentInstanceId, { subject: "older" });
+    await createSession(clients, org, agentRef, { subject: "older" });
     await separateTimestamps();
-    const newest = await createSession(clients, org, agentInstanceId, { subject: "newest" });
+    const newest = await createSession(clients, org, agentRef, { subject: "newest" });
 
     const response = await clients.activityQuery.listRecentActivity({ pageSize: 1, org });
 
@@ -184,8 +180,8 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
   // run — cost without additional contract signal.
   it("treats an unspecified page_size as the default page, not an empty one", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(clients, org);
-    const session = await createSession(clients, org, agentInstanceId, { subject: "default page" });
+    const agentRef = await provisionAgent(clients, org);
+    const session = await createSession(clients, org, agentRef, { subject: "default page" });
 
     const response = await clients.activityQuery.listRecentActivity({ org });
 
@@ -197,8 +193,8 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
 
   it("normalizes a negative page_size instead of rejecting it", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(clients, org);
-    const session = await createSession(clients, org, agentInstanceId, { subject: "negative page" });
+    const agentRef = await provisionAgent(clients, org);
+    const session = await createSession(clients, org, agentRef, { subject: "negative page" });
 
     const response = await clients.activityQuery.listRecentActivity({ pageSize: -5, org });
 
@@ -207,8 +203,8 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
 
   it("caps an oversize page_size instead of rejecting it", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(clients, org);
-    const session = await createSession(clients, org, agentInstanceId, { subject: "oversize page" });
+    const agentRef = await provisionAgent(clients, org);
+    const session = await createSession(clients, org, agentRef, { subject: "oversize page" });
 
     const response = await clients.activityQuery.listRecentActivity({ pageSize: 100_000, org });
 

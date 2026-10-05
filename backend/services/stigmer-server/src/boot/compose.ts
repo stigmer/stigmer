@@ -81,7 +81,6 @@ import { newScheduleWorkerFactory } from "../temporal/schedule/worker.js";
 import { registerScheduleServices } from "../domain/schedule/controller.js";
 import { RuntimeResolutionService } from "../domain/environment/resolution/resolution.js";
 import { ManagedEnvironmentService } from "../domain/mcpserver/oauth/managed-env.js";
-import { registerAgentInstanceServices } from "../domain/agentinstance/controller.js";
 import { registerAgentChannelServices } from "../domain/agentchannel/controller.js";
 import { registerChannelConversationServices } from "../domain/agentchannel/conversation.js";
 import { registerChannelMessageServices } from "../domain/agentchannel/message.js";
@@ -235,6 +234,7 @@ import {
 } from "../sandbox/provisioner.js";
 import { newStoreSessionActivityReader } from "../sandbox/session-activity.js";
 import { newWorkflowSandboxTerminalObserver } from "../sandbox/steps.js";
+import { newWorkflowRunQueue } from "../temporal/workflowexecution/dispatch.js";
 import { newWorkflowExecutionEngineStateProvider } from "../temporal/workflowexecution/engine-client.js";
 import { newWorkflowExecutionWorkerFactory } from "../temporal/workflowexecution/worker.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
@@ -1571,15 +1571,6 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
-      agentInstanceApplier: () => requireInProcess().agentInstanceApplier,
-    });
-    registerAgentInstanceServices(router, {
-      store,
-      logger,
-      authorizer,
-      authorizationLifecycle,
-      parentAgentLoader: () => requireInProcess().parentAgentLoader,
-      listReadScope,
     });
     registerSessionServices(router, {
       store,
@@ -1674,16 +1665,12 @@ export async function composeServer(
       responseDecorators: extensions.responseDecorators,
       sandboxLane,
       temporalConfig,
-      agentLoader: () => requireInProcess().executionAgentLoader,
-      agentInstanceCreator: () =>
-        requireInProcess().executionAgentInstanceCreator,
       sessionCreator: () => requireInProcess().executionSessionCreator,
+      workflowRunQueue: newWorkflowRunQueue(workflowExecutionTemporalConfig),
       executionContextBuilder: {
         store,
         logger,
         agentLoader: () => requireInProcess().executionAgentLoader,
-        agentInstanceLoader: () =>
-          requireInProcess().executionAgentInstanceLoader,
         sessionLoader: () => requireInProcess().executionSessionLoader,
         environmentReader: () => requireInProcess().executionEnvironmentReader,
         environmentResolution,

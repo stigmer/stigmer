@@ -1,11 +1,10 @@
 /**
  * Agent controller — ports pkg/domain/agent/controller (command + query
- * sides): the agent BLUEPRINT surface. Create provisions the agent's
- * default instance through the in-process agentinstance client (the
- * agent↔agentinstance mutual edge, wired as a lazy provider in the
- * composition root); delete cascades ALL instances
- * (oss#611) and same-org shares before the agent row. There is no default
- * agent to serve: a session with no agent runs the built-in assistant.
+ * sides): the agent BLUEPRINT surface. A conversation names an agent
+ * directly (session spec.agent_ref); delete cascades same-org shares
+ * before the agent row, and leaves the sessions that pin it, whose next
+ * turn fails naming the agent that is gone. There is no default agent to
+ * serve: a session with no agent runs the built-in assistant.
  *
  * Agents are versioned (versions.ts): every create and update hashes the
  * stored spec, records a version when the spec is new to the agent, points
@@ -122,13 +121,9 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { agentSearchExtractor } from "./search-extractor.js";
 import {
-  newCascadeDeleteInstancesStep,
   newCascadeDeleteSharesStep,
-  newCreateDefaultInstanceStep,
   newMergeMcpServerEnvSpecsStep,
-  newUpdateAgentStatusWithDefaultInstanceStep,
 } from "./steps.js";
-import type { AgentInstanceApplierProvider } from "./steps.js";
 import {
   TAG_VERSION_AGENT_KEY,
   TAG_VERSION_RESULT_KEY,
@@ -151,13 +146,6 @@ export interface AgentControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /**
-   * The agentinstance in-process edge — a lazy provider because
-   * agent↔agentinstance is a true dependency cycle (the server's DI
-   * breaks cycles with `() => client` closures resolved at call
-   * time, never at construction).
-   */
-  readonly agentInstanceApplier: AgentInstanceApplierProvider;
 }
 
 /** Registers both agent services on the router (routes stage). */
@@ -186,13 +174,10 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Create — chain per Go buildCreatePipeline: the default instance is
- * applied AFTER Persist (children need the parent's id), then the agent's
- * status.default_instance_id is written in an explicit second persist. The
- * first version is hashed before Persist and archived after that second
- * persist, so its snapshot carries the default instance id the
- * agent_call task reads; the archive re-persists a revert because no
- * write follows it.
+ * Create — chain per Go buildCreatePipeline. The first version is hashed
+ * before Persist and archived after it, so its snapshot carries the
+ * persisted row; the archive re-persists a revert because no write follows
+ * it.
  */
 async function createAgent(
   deps: AgentControllerDeps,
@@ -225,16 +210,6 @@ async function createAgent(
       newCreateAuthorizationTuplesStep(
         deps.authorizationLifecycle,
         deps.logger,
-      ),
-    )
-    .addStep(
-      newCreateDefaultInstanceStep(deps.agentInstanceApplier, deps.logger),
-    )
-    .addStep(
-      newUpdateAgentStatusWithDefaultInstanceStep(
-        deps.store,
-        deps.logger,
-        deps.authorizationLifecycle,
       ),
     )
     .addStep(newSaveAgentVersionStep(deps.store, deps.logger, true))
@@ -328,8 +303,7 @@ async function apply(
 
 /**
  * Delete — cascades children before the parent (delete_cascade.go):
- * ALL instances, then same-org shares, each child's access cleaned with
- * its row, then the agent's version rows (best-effort), the agent row, its
+ * same-org shares, each one's access cleaned with its row, then the agent's version rows (best-effort), the agent row, its
  * access and its index entry. Returns the deleted agent (the audit-trail
  * convention).
  */
@@ -355,13 +329,6 @@ async function deleteAgent(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentSchema))
     .addStep(newGuardPluginManagedStep(deps.store))
-    .addStep(
-      newCascadeDeleteInstancesStep(
-        deps.store,
-        deps.authorizationLifecycle,
-        deps.logger,
-      ),
-    )
     .addStep(
       newCascadeDeleteSharesStep(
         deps.store,

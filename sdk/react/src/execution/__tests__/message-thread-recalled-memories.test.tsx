@@ -71,15 +71,15 @@ function makeExecution(opts: {
 
   const spec = create(AgentExecutionSpecSchema);
   spec.message = opts.specMessage ?? "Hello";
+  exec.spec = spec;
+
+  const status = create(AgentExecutionStatusSchema);
   if (opts.facts) {
-    spec.recalledMemories = create(RecalledMemoriesSchema, {
+    status.recalledMemories = create(RecalledMemoriesSchema, {
       enabled: true,
       facts: opts.facts.map((f) => ({ memoryId: f.id, content: f.content })),
     });
   }
-  exec.spec = spec;
-
-  const status = create(AgentExecutionStatusSchema);
   status.phase = ExecutionPhase.EXECUTION_COMPLETED;
   status.messages = [
     create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Done." }),

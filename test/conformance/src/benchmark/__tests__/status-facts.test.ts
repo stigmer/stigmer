@@ -4,7 +4,7 @@
 //
 // Pinned: int64 token counts become numbers; the cost estimate becomes
 // micros; the priced model is read as reported; `status.error` is kept
-// verbatim; memory on the spec is one platform attachment; each terminal
+// verbatim; memory on the status is one platform attachment; each terminal
 // phase maps to its outcome; a THINKING row counts as visible but not as
 // text; sub-agent rows never count; the final reply is the last root AI row
 // with content.
@@ -19,7 +19,7 @@ describe("statusFacts", () => {
   it("reads tokens, the cost estimate in micros, the priced model and the server's stamps", () => {
     const execution = create(AgentExecutionSchema, {
       metadata: { id: "aex_1" },
-      spec: { sessionId: "ses_1" },
+      spec: { target: { case: "sessionId", value: "ses_1" } },
       status: {
         phase: ExecutionPhase.EXECUTION_COMPLETED,
         startedAt: "2026-09-19T18:00:01Z",
@@ -54,11 +54,14 @@ describe("statusFacts", () => {
     });
   });
 
-  it("keeps the platform's error on a failed turn and counts memory on the spec as one attachment", () => {
+  it("keeps the platform's error on a failed turn and counts memory on the status as one attachment", () => {
     const facts = statusFacts(
       create(AgentExecutionSchema, {
-        spec: { recalledMemories: { enabled: true } },
-        status: { phase: ExecutionPhase.EXECUTION_FAILED, error: "provider returned 529 overloaded" },
+        status: {
+          phase: ExecutionPhase.EXECUTION_FAILED,
+          error: "provider returned 529 overloaded",
+          recalledMemories: { enabled: true },
+        },
       }),
     );
     expect(facts.error).toBe("provider returned 529 overloaded");

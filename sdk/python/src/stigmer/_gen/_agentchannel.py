@@ -200,10 +200,6 @@ class AgentChannelInput:
             _ref = self.agent_ref._to_proto()
             _ref.kind = 40
             spec.agent_ref.CopyFrom(_ref)
-        if self.slack is not None:
-            spec.slack.CopyFrom(self.slack._to_proto())
-        if self.whatsapp is not None:
-            spec.whatsapp.CopyFrom(self.whatsapp._to_proto())
         for ref in self.environment_refs:
             _ref = ref._to_proto()
             _ref.kind = 53
@@ -214,6 +210,10 @@ class AgentChannelInput:
             spec.app_ref.CopyFrom(_ref)
         if self.run_config is not None:
             spec.run_config.CopyFrom(self.run_config._to_proto())
+        if self.whatsapp is not None:
+            spec.whatsapp.CopyFrom(self.whatsapp._to_proto())
+        if self.slack is not None:
+            spec.slack.CopyFrom(self.slack._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

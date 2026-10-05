@@ -1439,7 +1439,7 @@
         {
           "name": "environment_refs",
           "displayName": "Environment Refs",
-          "description": "References to Environment resources whose values are provided to the child runs this task creates. This is how a tool-using agent becomes runnable from a workflow: bind an org-shared environment holding the needed credentials, and the child runs receive its values at runtime. The agent and its default instance stay untouched.",
+          "description": "References to Environment resources whose values are provided to the child runs this task creates. This is how a tool-using agent becomes runnable from a workflow: bind an org-shared environment holding the needed credentials, and the child runs receive its values at runtime. The agent itself stays untouched.",
           "type": "repeated",
           "required": false,
           "fieldNumber": 8,
@@ -1483,7 +1483,7 @@
             "type": "object"
           },
           "environment_refs": {
-            "description": "References to Environment resources whose values are provided to the child runs this task creates. This is how a tool-using agent becomes runnable from a workflow: bind an org-shared environment holding the needed credentials, and the child runs receive its values at runtime. The agent and its default instance stay untouched.",
+            "description": "References to Environment resources whose values are provided to the child runs this task creates. This is how a tool-using agent becomes runnable from a workflow: bind an org-shared environment holding the needed credentials, and the child runs receive its values at runtime. The agent itself stays untouched.",
             "items": {
               "additionalProperties": false,
               "properties": {
@@ -1506,7 +1506,6 @@
                     "session",
                     "skill",
                     "mcp_server",
-                    "agent_instance",
                     "agent_share",
                     "agent_channel",
                     "channel_app",

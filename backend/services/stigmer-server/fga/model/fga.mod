@@ -21,7 +21,6 @@ contents:
   - agentic/agent_channel.fga
   - agentic/agent_share.fga
   - agentic/channel_app.fga
-  - agentic/agent_instance.fga
   - agentic/agent_execution.fga
   - agentic/artifact.fga
   - agentic/environment.fga

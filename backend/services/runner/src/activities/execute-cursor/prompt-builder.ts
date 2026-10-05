@@ -152,7 +152,7 @@ export interface EnhancedPromptOptions {
   /**
    * Platform-declared standing preferences (stigmer/stigmer#293): the org's
    * and user's standing context, server-snapshotted onto the execution
-   * spec's `declared_preferences` at create. Like the bridge, it lands in
+   * status's `declared_preferences` at create. Like the bridge, it lands in
    * the first message and persists in the cursor agent's own conversation
    * store — deliberately frozen per Cursor session: repeating
    * it every resumed turn would bloat the store with identical content.
@@ -160,7 +160,7 @@ export interface EnhancedPromptOptions {
   declaredPreferences?: DeclaredPreferencesContent;
   /**
    * The subject's confirmed memories (stigmer/stigmer#293):
-   * consent-gated facts server-snapshotted onto the execution spec's
+   * consent-gated facts server-snapshotted onto the execution status's
    * `recalled_memories` at create. Like the preferences, it lands in the
    * first message and persists in the cursor agent's own conversation
    * store — deliberately frozen per Cursor session: repeating it every
@@ -812,7 +812,7 @@ export interface BuildPromptInput {
    */
   sessionContext?: string;
   /**
-   * Platform-declared standing preferences from the execution spec's
+   * Platform-declared standing preferences from the execution status's
    * `declared_preferences` (stigmer/stigmer#293). Like the bridge, only
    * the enhanced-prompt path consumes it — deliberately frozen per Cursor
    * session: the first turn delivers it into the agent's own
@@ -821,7 +821,7 @@ export interface BuildPromptInput {
    */
   declaredPreferences?: DeclaredPreferencesContent;
   /**
-   * The subject's confirmed memories from the execution spec's
+   * The subject's confirmed memories from the execution status's
    * `recalled_memories` (stigmer/stigmer#293). Like the
    * preferences, only the enhanced-prompt path consumes it — deliberately
    * frozen per Cursor session: the

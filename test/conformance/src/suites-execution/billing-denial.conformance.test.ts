@@ -29,7 +29,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitTerminal,
   makeAgentExecution,
@@ -82,17 +82,17 @@ describe.skipIf(!billingEnabled)(
       return context;
     }
 
-    async function provisionAgent(org: string): Promise<string> {
+    async function provisionAgent(org: string): Promise<AgentRefInit> {
       const agent = await clients.agentCommand.create(
         makeAgent({ org, name: uniqueName("agent") }),
       );
       fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-      return agent.metadata!.id;
+      return agentRefOf(agent);
     }
 
     it("[billing.gate.reserve.unfunded-execution-denied] a zero-credit org's create is refused synchronously with the engine's denial vocabulary", async () => {
       const { org } = await provisionUnfunded();
-      const agentId = await provisionAgent(org);
+      const agentRef = await provisionAgent(org);
 
       // The create-time reserve gate: the RPC itself refuses, no execution
       // resource exists, the denial reason is the engine's vocabulary
@@ -100,7 +100,7 @@ describe.skipIf(!billingEnabled)(
       const err = await expectGrpcCode(
         () =>
           clients.agentExecutionCommand.create(
-            makeAgentExecution({ org, name: uniqueName("aex"), agentId }),
+            makeAgentExecution({ org, name: uniqueName("aex"), agentRef }),
           ),
         Code.FailedPrecondition,
         "zero-credit create",
@@ -112,7 +112,7 @@ describe.skipIf(!billingEnabled)(
 
     it("[billing.gate.reserve.funding-clears-denial] funding the same org clears the denial — the negative control", async () => {
       const { org } = await provisionUnfunded();
-      const agentId = await provisionAgent(org);
+      const agentRef = await provisionAgent(org);
       if (target.fundTenancy === undefined) {
         throw new Error(
           `target ${target.name} declares billingGates but provides no fundTenancy()`,
@@ -122,7 +122,7 @@ describe.skipIf(!billingEnabled)(
 
       mock.enqueue(anthropicText("Done."));
       const created = await clients.agentExecutionCommand.create(
-        makeAgentExecution({ org, name: uniqueName("aex"), agentId }),
+        makeAgentExecution({ org, name: uniqueName("aex"), agentRef }),
       );
       fixtures.defer(() =>
         clients.agentExecutionCommand.delete({ value: created.metadata!.id }),

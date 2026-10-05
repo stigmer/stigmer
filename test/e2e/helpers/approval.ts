@@ -1,3 +1,6 @@
+// Seeds the approval and tool-disclosure specs' runs over the node SDK: an
+// agent, a native session that names it by reference, and a turn scripted on
+// the mock LLM, so the browser only renders and resolves what was seeded.
 import type { Page, Locator } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
@@ -119,12 +122,13 @@ export async function seedGatedSession(
     instructions: "You are a test assistant for the HITL approval e2e.",
   });
   const agentId = agent.metadata!.id;
-  const agentInstanceId = agent.status!.defaultInstanceId;
 
+  // The session names its agent by reference; the server pins the agent's
+  // current version on the session's status.
   const session = await client.session.create({
     name: `e2e-approval-session-${stamp}`,
     org,
-    agentInstanceId,
+    agentRef: { org, slug: agent.metadata!.slug },
     harness: Harness.NATIVE,
   });
   const sessionId = session.metadata!.id;
@@ -231,12 +235,13 @@ export async function seedToolRunSession(
     instructions: "You are a test assistant for the tool-disclosure e2e.",
   });
   const agentId = agent.metadata!.id;
-  const agentInstanceId = agent.status!.defaultInstanceId;
 
+  // The session names its agent by reference; the server pins the agent's
+  // current version on the session's status.
   const session = await client.session.create({
     name: `e2e-toolrun-session-${stamp}`,
     org,
-    agentInstanceId,
+    agentRef: { org, slug: agent.metadata!.slug },
     harness: Harness.NATIVE,
   });
   const sessionId = session.metadata!.id;

@@ -33,11 +33,11 @@ public final class ChannelAppInput {
 
     ChannelApp toProto() {
         ChannelAppSpec.Builder spec = ChannelAppSpec.newBuilder();
-        if (this.slack != null) {
-            spec.setSlack(this.slack.toProto());
-        }
         if (this.whatsapp != null) {
             spec.setWhatsapp(this.whatsapp.toProto());
+        }
+        if (this.slack != null) {
+            spec.setSlack(this.slack.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);

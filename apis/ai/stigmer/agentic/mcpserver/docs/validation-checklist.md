@@ -101,7 +101,7 @@ apiVersion: agentic.stigmer.ai/v1
 
 ### Using a placeholder syntax other than `${VAR_NAME}`
 
-HTTP `headers` and `query_params` values resolve `${VAR_NAME}` from the AgentInstance's environment, at server startup or request time. No other placeholder syntax resolves.
+HTTP `headers` and `query_params` values resolve `${VAR_NAME}` from the run's resolved environment, at server startup or request time. No other placeholder syntax resolves.
 
 ```yaml
 # Wrong — {{}} is not a placeholder here
@@ -144,7 +144,7 @@ disallowed_tools:
 
 ### `env_spec` with values pre-filled for secrets
 
-Secret values should never be pre-filled in the McpServer spec — they belong in the AgentInstance's environment binding and should never be in version control.
+Secret values should never be pre-filled in the McpServer spec — they belong in an Environment bound to what starts the run, or in a person's personal environment, and should never be in version control.
 
 ```yaml
 # Wrong — secret value in spec
@@ -160,7 +160,7 @@ env_spec:
     GITHUB_TOKEN:
       description: "GitHub PAT with repo scope"
       is_secret: true
-      # value is empty — provided via AgentInstance environment at runtime
+      # value is empty — provided from the run's resolved environment
 ```
 
 ### Setting `status` fields in YAML

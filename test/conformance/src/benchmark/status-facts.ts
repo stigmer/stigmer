@@ -17,7 +17,7 @@
 // platform-attachment count is derived, because no line or field carries one:
 // the runner's `mcp_server_count` counts only the declared servers, and on
 // this stack memory is the only attachment the runtime adds beside them,
-// offered exactly when the server set `spec.recalled_memories.enabled` at
+// offered exactly when the server set `status.recalled_memories.enabled` at
 // create. The other runtime attachments (channel messaging, conversation)
 // need a channel or conversation label the benchmark never sets.
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -48,7 +48,7 @@ export function statusFacts(execution: AgentExecution): StatusFacts {
   const output = toNumber(usage?.outputTokens);
   return {
     execution_id: execution.metadata?.id ?? "",
-    session_id: execution.spec?.sessionId ?? "",
+    session_id: execution.spec?.target.case === "sessionId" ? execution.spec.target.value : "",
     model_reported: usage?.model ?? "",
     tokens: {
       input,
@@ -65,7 +65,7 @@ export function statusFacts(execution: AgentExecution): StatusFacts {
     },
     outcome: outcomeOf(execution.status?.phase),
     error: execution.status?.error ?? "",
-    attachment_count: execution.spec?.recalledMemories?.enabled === true ? 1 : 0,
+    attachment_count: execution.status?.recalledMemories?.enabled === true ? 1 : 0,
   };
 }
 

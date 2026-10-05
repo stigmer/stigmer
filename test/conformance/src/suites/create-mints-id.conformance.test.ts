@@ -55,8 +55,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { declaredMethods } from "../inventory/rpc-contract";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeAgentExecution } from "../support/agentexecutions";
-import { makeAgentInstance } from "../support/agentinstances";
-import { makeAgent } from "../support/agents";
+import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentShare } from "../support/agentshares";
 import { makeApiKey } from "../support/apikeys";
 import { makeSlackChannelApp } from "../support/channelapps";
@@ -153,12 +152,10 @@ function answerOf(key: string, metadata: { id: string; slug: string } | undefine
   return { id: metadata.id, slug: metadata.slug };
 }
 
-async function agentIn(org: string): Promise<{ id: string; slug: string; instanceId: string }> {
+async function agentIn(org: string): Promise<{ id: string; slug: string; ref: AgentRefInit }> {
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("mint-agent") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-  const instanceId = agent.status?.defaultInstanceId ?? "";
-  if (instanceId === "") throw new Error(`agent ${agent.metadata!.id} was created without a default instance`);
-  return { id: agent.metadata!.id, slug: agent.metadata!.slug, instanceId };
+  return { id: agent.metadata!.id, slug: agent.metadata!.slug, ref: agentRefOf(agent) };
 }
 
 async function workflowIn(org: string): Promise<string> {
@@ -254,7 +251,7 @@ const ROWS: readonly Row[] = [
       // No runner need pick the run up: the create's answer and a read of the
       // stored row are all this row judges.
       const created = await clients.agentExecutionCommand.create({
-        ...makeAgentExecution({ org, name, agentId: agent.id }),
+        ...makeAgentExecution({ org, name, agentRef: agent.ref }),
         metadata: { id: chosenId, name, org },
       });
       fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
@@ -262,42 +259,6 @@ const ROWS: readonly Row[] = [
     },
     async read(id) {
       return (await clients.agentExecutionQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:AgentInstanceCommandController.create] AgentInstance",
-    key: "AgentInstanceCommandController.create",
-    kind: ApiResourceKind.agent_instance,
-    async send({ org }, chosenId) {
-      const agent = await agentIn(org);
-      const name = uniqueName("mint-ain");
-      const created = await clients.agentInstanceCommand.create({
-        ...makeAgentInstance({ org, name, agentId: agent.id }),
-        metadata: { id: chosenId, name, org },
-      });
-      fixtures.defer(() => clients.agentInstanceCommand.delete({ value: created.metadata!.id }));
-      return answerOf(this.key, created.metadata);
-    },
-    async read(id) {
-      return (await clients.agentInstanceQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:AgentInstanceCommandController.apply] AgentInstance (apply as a create)",
-    key: "AgentInstanceCommandController.apply",
-    kind: ApiResourceKind.agent_instance,
-    async send({ org }, chosenId) {
-      const agent = await agentIn(org);
-      const name = uniqueName("mint-ain");
-      const applied = await clients.agentInstanceCommand.apply({
-        ...makeAgentInstance({ org, name, agentId: agent.id }),
-        metadata: { id: chosenId, name, org },
-      });
-      fixtures.defer(() => clients.agentInstanceCommand.delete({ value: applied.metadata!.id }));
-      return answerOf(this.key, applied.metadata);
-    },
-    async read(id) {
-      return (await clients.agentInstanceQuery.get({ value: id })).metadata?.id;
     },
   },
   {
@@ -535,7 +496,7 @@ const ROWS: readonly Row[] = [
       const agent = await agentIn(org);
       const name = uniqueName("mint-ses");
       const created = await clients.sessionCommand.create({
-        ...makeSession({ org, name, agentInstanceId: agent.instanceId }),
+        ...makeSession({ org, name, agentRef: agent.ref }),
         metadata: { id: chosenId, name, org },
       });
       fixtures.defer(() => clients.sessionCommand.delete({ value: created.metadata!.id }));
@@ -553,7 +514,7 @@ const ROWS: readonly Row[] = [
       const agent = await agentIn(org);
       const name = uniqueName("mint-ses");
       const applied = await clients.sessionCommand.apply({
-        ...makeSession({ org, name, agentInstanceId: agent.instanceId }),
+        ...makeSession({ org, name, agentRef: agent.ref }),
         metadata: { id: chosenId, name, org },
       });
       fixtures.defer(() => clients.sessionCommand.delete({ value: applied.metadata!.id }));

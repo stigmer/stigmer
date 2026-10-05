@@ -118,10 +118,16 @@ export const WORKFLOW_INSTANCE_PARENT_DENIED_MESSAGE =
  * One question: may the caller run this workflow (can_execute on the
  * parent, the relation the run gate asks; the same-org rule already binds
  * the instance's organization to the workflow's, so there is no separate
- * organization bar). A DEFAULT instance asks nothing, for the reason its
- * agent twin gives (agentinstance/steps.ts): it is the workflow's row,
- * composed by the server for the run's human, keyed on the in-process
- * origin, the reserved label and the parent's organization together.
+ * organization bar). A DEFAULT instance asks nothing: it is the
+ * workflow's row, not the caller's. The server composes one for the run's
+ * human when the workflow has none (attribution stays the person's), and
+ * the run was already admitted one step earlier by the lane that vouched
+ * for it, which holds no viewer tuple on the workflow and would be refused
+ * here for a row that is not theirs. The arm is keyed on what only the
+ * server can produce: the in-process origin (the wire cannot claim it), the
+ * reserved default-instance label (which the label guard lets only such a
+ * request write) and the parent's organization, together; a labelled
+ * request that fails any of the three takes the full bar.
  */
 export function resolveWorkflowInstanceCreateTargets(
   ctx: RequestContext<InstanceDesc>,
@@ -334,8 +340,8 @@ export function newUpdateExecutionVisibilityTuplesStep<
 
 /**
  * RejectDefaultInstanceVisibilityUpdate — update_visibility.go: rejects
- * visibility updates on a workflow's system-managed default instance — the
- * workflow twin of the agentinstance guard (oss#556). Keyed on the
+ * visibility updates on a workflow's system-managed default instance
+ * (oss#556). Keyed on the
  * reserved label OR the parent's authoritative status.default_instance_id
  * pointer (covers pre-label legacy rows without a backfill migration; the
  * pointer cannot be dropped by a client update the way the label can). A

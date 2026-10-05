@@ -52,7 +52,7 @@ export interface AgentShareDraft {
   /**
    * Org-shared environments whose values guest conversations receive —
    * how a tool-using agent becomes chattable over a share link without
-   * touching its pristine default instance. Public-audience only (the
+   * touching the agent itself. Public-audience only (the
    * proto CEL rule rejects bindings on org-audience shares, whose member
    * sessions carry no share linkage).
    */

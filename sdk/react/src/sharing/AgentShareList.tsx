@@ -48,9 +48,8 @@ export interface AgentShareListProps {
 }
 
 /**
- * Management surface for an agent's {@link AgentShare} channels — the
- * agent analog of {@link AgentInstanceList}, rendered in the agent
- * detail view's Shares tab.
+ * Management surface for an agent's {@link AgentShare} channels,
+ * rendered in the agent detail view's Shares tab.
  *
  * Lists the agent's organization's channels of the agent: a share lives
  * in its agent's organization, so that org scopes the `getByAgent` call

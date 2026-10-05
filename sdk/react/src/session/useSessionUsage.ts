@@ -247,7 +247,10 @@ export function useSessionUsage(
   const stigmer = useStigmer();
 
   const sessionId = useMemo(
-    () => executions[0]?.spec?.sessionId ?? null,
+    () => {
+      const target = executions[0]?.spec?.target;
+      return target?.case === "sessionId" ? target.value : null;
+    },
     [executions],
   );
 

@@ -211,13 +211,6 @@ func (i *McpServerInput) toProto() (*mcpserverv1.McpServer, error) {
 	resource.Spec.Description = i.Description
 	resource.Spec.IconUrl = i.IconUrl
 	resource.Spec.Tags = i.Tags
-	if i.Stdio != nil {
-		m := &mcpserverv1.StdioServerConfig{}
-		m.Command = i.Stdio.Command
-		m.Args = i.Stdio.Args
-		m.WorkingDir = i.Stdio.WorkingDir
-		resource.Spec.ServerType = &mcpserverv1.McpServerSpec_Stdio{Stdio: m}
-	}
 	if i.Http != nil {
 		m := &mcpserverv1.HttpServerConfig{}
 		m.Url = i.Http.Url
@@ -225,6 +218,13 @@ func (i *McpServerInput) toProto() (*mcpserverv1.McpServer, error) {
 		m.QueryParams = i.Http.QueryParams
 		m.TimeoutSeconds = i.Http.TimeoutSeconds
 		resource.Spec.ServerType = &mcpserverv1.McpServerSpec_Http{Http: m}
+	}
+	if i.Stdio != nil {
+		m := &mcpserverv1.StdioServerConfig{}
+		m.Command = i.Stdio.Command
+		m.Args = i.Stdio.Args
+		m.WorkingDir = i.Stdio.WorkingDir
+		resource.Spec.ServerType = &mcpserverv1.McpServerSpec_Stdio{Stdio: m}
 	}
 	if len(i.Env) > 0 {
 		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))

@@ -1,7 +1,9 @@
 // Unit tests for run-path resource creation: full-proto field mapping, the
 // message default, ExecutionConfig presence/contents, runtime-env conversion,
-// the one-call session_spec bootstrap, and the workflow shape. The controller
-// is faked to capture the exact proto sent to the RPC.
+// the one-call session_spec bootstrap, the turn's target (an existing session
+// by id alone, or a new conversation naming its agent by reference), and the
+// workflow shape. The controller is faked to capture the exact proto sent to
+// the RPC.
 
 import { describe, expect, it } from "vitest";
 import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -12,7 +14,18 @@ import {
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { type ControllerFn, createAgentExecution, createWorkflowExecution } from "../create.js";
+
+const AGENT_REF = { org: "acme", slug: "helper" };
+
+// The embedded session_spec of a new-conversation target, or undefined.
+function sessionSpecOf(exec: AgentExecution): SessionSpec | undefined {
+  const target = exec.spec?.target;
+  return target?.case === "sessionSpec" ? target.value : undefined;
+}
 
 // Returns a controller whose every RPC echoes the request back, and records the
 // last message sent. `create` is the only RPC the run path calls.
@@ -32,7 +45,7 @@ describe("createAgentExecution", () => {
   it("maps the full spec and defaults an empty message to 'execute'", async () => {
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
-      agentId: "agt_1",
+      agentRef: AGENT_REF,
       orgId: "acme",
       message: "",
       runtimeEnv: { FOO: { value: "bar", isSecret: false }, TOKEN: { value: "s", isSecret: true } },
@@ -50,7 +63,12 @@ describe("createAgentExecution", () => {
     expect(exec.kind).toBe("AgentExecution");
     expect(exec.metadata?.org).toBe("acme");
     expect(exec.spec?.message).toBe("execute");
-    expect(exec.spec?.agentId).toBe("agt_1");
+    expect(sessionSpecOf(exec)?.agentRef).toMatchObject({
+      kind: ApiResourceKind.agent,
+      org: "acme",
+      slug: "helper",
+      version: "",
+    });
     expect(exec.spec?.autoApproveAll).toBe(true);
     expect(exec.spec?.workspaceFileRefs).toEqual(["src/a.ts"]);
     expect(exec.spec?.runtimeEnv.FOO).toMatchObject({ value: "bar", isSecret: false });
@@ -62,7 +80,7 @@ describe("createAgentExecution", () => {
   it("omits ExecutionConfig when neither model nor mode is set", async () => {
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
-      agentId: "agt_1",
+      agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
       runtimeEnv: {},
@@ -83,7 +101,7 @@ describe("createAgentExecution", () => {
   it("maps --service-tier fast to the enum (#357)", async () => {
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
-      agentId: "agt_1",
+      agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
       runtimeEnv: {},
@@ -105,7 +123,7 @@ describe("createAgentExecution", () => {
     // distinction (#357): an explicit choice must survive to the proto.
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
-      agentId: "agt_1",
+      agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
       runtimeEnv: {},
@@ -125,7 +143,7 @@ describe("createAgentExecution", () => {
   it("maps --thinking enabled to the enum (#772)", async () => {
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
-      agentId: "agt_1",
+      agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
       runtimeEnv: {},
@@ -147,7 +165,7 @@ describe("createAgentExecution", () => {
     // load-bearing ledger distinction.
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
-      agentId: "agt_1",
+      agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
       runtimeEnv: {},
@@ -181,7 +199,7 @@ describe("createAgentExecution", () => {
       autoApproveAll: false,
       harness: "",
     });
-    expect(exec.spec?.sessionId).toBe("ses_1");
+    expect(exec.spec?.target).toEqual({ case: "sessionId", value: "ses_1" });
     expect(exec.spec?.executionConfig?.interactionMode).toBe(InteractionMode.UNSPECIFIED);
   });
 
@@ -195,7 +213,7 @@ describe("createAgentExecution", () => {
 
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
-      agentId: "agt_1",
+      agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
       runtimeEnv: {},
@@ -210,24 +228,23 @@ describe("createAgentExecution", () => {
       harness: "",
     });
 
-    expect(exec.spec?.sessionId).toBe("");
-    expect(exec.spec?.sessionSpec?.workspaceEntries).toEqual([entry]);
+    expect(exec.spec?.target?.case).toBe("sessionSpec");
+    expect(sessionSpecOf(exec)?.workspaceEntries).toEqual([entry]);
     // Subject stays empty so the server defaults its sentinel and the async
     // title activity generates a real one.
-    expect(exec.spec?.sessionSpec?.subject).toBe("");
+    expect(sessionSpecOf(exec)?.subject).toBe("");
     // No harness opinion: the field stays UNSPECIFIED so the server default
-    // (native) applies — a workspace-only run is byte-identical to before
-    // the --harness flag existed.
-    expect(exec.spec?.sessionSpec?.harness).toBe(Harness.UNSPECIFIED);
+    // (native) applies.
+    expect(sessionSpecOf(exec)?.harness).toBe(Harness.UNSPECIFIED);
   });
 
-  it("omits session_spec when there are no workspace entries and no harness (wire-shape regression pin)", async () => {
-    // The pre---harness wire shape for a plain run: NO embedded session_spec
-    // at all. If this pin fails, plain runs have started carrying a spec they
-    // never carried before — a silent contract change, not a feature.
+  it("sends an unset target for the built-in assistant with no workspace and no harness (wire-shape pin)", async () => {
+    // A plain assistant run carries NO embedded session_spec at all: the
+    // unset target is what names the built-in assistant. If this pin fails,
+    // plain runs have started carrying a spec they never carried before — a
+    // silent contract change, not a feature.
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
-      agentId: "agt_1",
       orgId: "acme",
       message: "hi",
       runtimeEnv: {},
@@ -241,13 +258,57 @@ describe("createAgentExecution", () => {
       autoApproveAll: false,
       harness: "",
     });
-    expect(exec.spec?.sessionSpec).toBeUndefined();
+    expect(exec.spec?.target?.case).toBeUndefined();
+  });
+
+  it("carries a version the caller names on the agent reference", async () => {
+    const { fn } = fakeController();
+    const exec = await createAgentExecution(fn, {
+      agentRef: { ...AGENT_REF, version: "stable" },
+      orgId: "acme",
+      message: "hi",
+      runtimeEnv: {},
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [],
+      model: "",
+      mode: "",
+      serviceTier: "",
+      thinking: "",
+      autoApproveAll: false,
+      harness: "",
+    });
+    expect(sessionSpecOf(exec)?.agentRef?.version).toBe("stable");
+  });
+
+  it("sends only the session id for a turn in an existing session", async () => {
+    // The session pins its agent, workspace and harness at creation; a turn
+    // in it names the session alone, never an agent beside it.
+    const entry = create(WorkspaceEntrySchema, { name: "repo" });
+    const { fn } = fakeController();
+    const exec = await createAgentExecution(fn, {
+      sessionId: "ses_1",
+      agentRef: AGENT_REF,
+      orgId: "acme",
+      message: "hi",
+      runtimeEnv: {},
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [entry],
+      model: "",
+      mode: "",
+      serviceTier: "",
+      thinking: "",
+      autoApproveAll: false,
+      harness: "cursor",
+    });
+    expect(exec.spec?.target).toEqual({ case: "sessionId", value: "ses_1" });
   });
 
   it("stamps cursor harness on a session_spec created just for it (oss#293)", async () => {
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
-      agentId: "agt_1",
+      agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
       runtimeEnv: {},
@@ -263,8 +324,8 @@ describe("createAgentExecution", () => {
     });
     // Harness alone justifies the embedded spec: the server clones it onto
     // the auto-created session (the one-call bootstrap contract).
-    expect(exec.spec?.sessionSpec?.harness).toBe(Harness.CURSOR);
-    expect(exec.spec?.sessionSpec?.workspaceEntries).toEqual([]);
+    expect(sessionSpecOf(exec)?.harness).toBe(Harness.CURSOR);
+    expect(sessionSpecOf(exec)?.workspaceEntries).toEqual([]);
   });
 
   it("stamps an explicit native harness rather than leaving it unspecified", async () => {
@@ -273,7 +334,7 @@ describe("createAgentExecution", () => {
     // any future change to the server-side default.
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
-      agentId: "agt_1",
+      agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
       runtimeEnv: {},
@@ -287,7 +348,7 @@ describe("createAgentExecution", () => {
       autoApproveAll: false,
       harness: "native",
     });
-    expect(exec.spec?.sessionSpec?.harness).toBe(Harness.NATIVE);
+    expect(sessionSpecOf(exec)?.harness).toBe(Harness.NATIVE);
   });
 
   it("carries harness and workspace entries together on one session_spec", async () => {
@@ -300,7 +361,7 @@ describe("createAgentExecution", () => {
 
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
-      agentId: "agt_1",
+      agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
       runtimeEnv: {},
@@ -314,8 +375,8 @@ describe("createAgentExecution", () => {
       autoApproveAll: false,
       harness: "cursor",
     });
-    expect(exec.spec?.sessionSpec?.harness).toBe(Harness.CURSOR);
-    expect(exec.spec?.sessionSpec?.workspaceEntries).toEqual([entry]);
+    expect(sessionSpecOf(exec)?.harness).toBe(Harness.CURSOR);
+    expect(sessionSpecOf(exec)?.workspaceEntries).toEqual([entry]);
   });
 });
 

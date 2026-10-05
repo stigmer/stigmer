@@ -37,8 +37,6 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
-import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import {
   ExecutionControlSignal,
@@ -1028,7 +1026,7 @@ describe("extension composition (gate slots + status hooks)", () => {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "Session",
           metadata: { name: REFUSED_SESSION, org: "acme" },
-          spec: { agentInstanceId: "agi_gate_test" },
+          spec: {},
         }),
       );
     } catch (error) {
@@ -1056,7 +1054,7 @@ describe("extension composition (gate slots + status hooks)", () => {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Session",
         metadata: { name: "gate-allowed-session", org: "acme" },
-        spec: { agentInstanceId: "agi_gate_test" },
+        spec: {},
       }),
     );
     expect(session.metadata?.id).not.toBe("");
@@ -1308,10 +1306,10 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
     externalOrgMap.set("idp_hidden:ext-org-42", org.metadata?.id ?? "");
   });
 
-  it("agent create fires creation events for the agent AND its in-process default instance", async () => {
+  it("agent create fires one creation event, the agent's, with its organization link and visibility shape", async () => {
     const command = createClient(AgentCommandController, portTransport);
     createdEvents.length = 0;
-    const agent = await command.create(
+    await command.create(
       create(AgentSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Agent",
@@ -1323,14 +1321,9 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
         spec: { instructions: "a conformant instruction body" },
       }),
     );
-    // TWO events: the agent, and the default AgentInstance the create
-    // chain applies through the in-process client — the seam runs
-    // wherever its chain runs, including in-process invocations (the
-    // same inherited fact the gate slots record).
-    expect(createdEvents).toHaveLength(2);
-    const agentEvent = createdEvents.find(
-      (event) => event.kind === ApiResourceKind.agent,
-    );
+    expect(createdEvents).toHaveLength(1);
+    const agentEvent = createdEvents[0];
+    expect(agentEvent?.kind).toBe(ApiResourceKind.agent);
     expect(agentEvent?.parentLinks).toEqual([
       {
         relation: "organization",
@@ -1339,14 +1332,6 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       },
     ]);
     expect(agentEvent?.visibilityShapes).toEqual(["org-viewer"]);
-    const instanceEvent = createdEvents.find(
-      (event) => event.kind === ApiResourceKind.agent_instance,
-    );
-    expect(instanceEvent?.parentLinks).toContainEqual({
-      relation: "agent",
-      parentKind: ApiResourceKind.agent,
-      parentId: agent.metadata?.id,
-    });
   });
 
   it("updateVisibility fires the set-diff transition (org→private deletes the org shape)", async () => {
@@ -1388,10 +1373,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
     );
     deletedEvents.length = 0;
     await command.delete({ value: first.metadata?.id ?? "" });
-    // The agent's default instance goes with it, and is cleaned first,
-    // while the agent's own links still stand (stigmer#1603).
     expect(deletedEvents.map((event) => [event.kind, event.resourceId])).toEqual([
-      [ApiResourceKind.agent_instance, first.status?.defaultInstanceId],
       [ApiResourceKind.agent, first.metadata?.id],
     ]);
 
@@ -1422,7 +1404,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
   });
 
   // stigmer#1603. A parent's delete removes the children it owns (an
-  // agent's instances and same-organization shares, a workflow's instances,
+  // agent's same-organization shares, a workflow's instances,
   // a session's runs) row by row. Each child's access is cleaned as its own
   // delete would clean it: the same event, the child's own organization, the
   // deleting caller, fired before the parent's, while every link the child
@@ -1443,7 +1425,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       }
     }
 
-    it("an agent's delete cleans its default instance, a personal instance and its share, then the agent", async () => {
+    it("an agent's delete cleans its share, then the agent", async () => {
       const command = createClient(AgentCommandController, portTransport);
       const agent = await command.create(
         create(AgentSchema, {
@@ -1454,12 +1436,6 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
         }),
       );
       const agentId = agent.metadata?.id ?? "";
-      const personal = await createClient(AgentInstanceCommandController, portTransport).create({
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "AgentInstance",
-        metadata: { name: "seeded-cascade-personal", org: "seededorg" },
-        spec: { agentId },
-      });
       // Shares are seeded as the agent domain suite seeds them; the cascade
       // finds a share by its agent reference.
       await server.store.saveResource(
@@ -1477,13 +1453,10 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       deletedEvents.length = 0;
       await command.delete({ value: agentId });
 
-      const children: Array<[ApiResourceKind, string]> = [
-        [ApiResourceKind.agent_instance, agent.status?.defaultInstanceId ?? ""],
-        [ApiResourceKind.agent_instance, personal.metadata?.id ?? ""],
+      expect(cascadeOrder(deletedEvents)).toEqual([
         [ApiResourceKind.agent_share, "ash_seeded_cascade"],
-      ];
-      children.sort((a, b) => a[1].localeCompare(b[1]));
-      expect(cascadeOrder(deletedEvents)).toEqual([...children, [ApiResourceKind.agent, agentId]]);
+        [ApiResourceKind.agent, agentId],
+      ]);
       expectOneCallerAndOrganization(deletedEvents);
     });
 
@@ -1532,7 +1505,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "Session",
           metadata: { id: sessionId, name: "seeded-cascade-session", org: seededOrgId },
-          spec: { agentInstanceId: "ain_c2_cascade" },
+          spec: {},
         }),
       );
       const runIds = ["aex_c2_cascade_1", "aex_c2_cascade_2"];
@@ -1545,7 +1518,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
             apiVersion: "agentic.stigmer.ai/v1",
             kind: "AgentExecution",
             metadata: { id: runId, name: runId, org: seededOrgId },
-            spec: { sessionId },
+            spec: { target: { case: "sessionId", value: sessionId } },
             status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
           }),
         );
@@ -1562,30 +1535,34 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
     });
 
     it("a child's cleanup failure never fails the parent's delete", async () => {
-      const command = createClient(AgentCommandController, portTransport);
-      const agent = await command.create(
-        create(AgentSchema, {
+      const workflows = createClient(WorkflowCommandController, portTransport);
+      const workflow = await workflows.create(
+        create(WorkflowSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
-          kind: "Agent",
+          kind: "Workflow",
           metadata: { name: "seeded-cascade-unclean", org: "seededorg" },
-          spec: { instructions: "a conformant instruction body" },
+          spec: {
+            document: { dsl: "1.0.0", namespace: "tests", name: "seeded-cascade-unclean", version: "0.1.0" },
+            tasks: [{ name: "seed", kind: 1, taskConfig: { variables: { greeting: "hello" } } }],
+          },
         }),
       );
       deletedEvents.length = 0;
-      failDeleteKinds.add(ApiResourceKind.agent_instance);
+      failDeleteKinds.add(ApiResourceKind.workflow_instance);
       try {
-        await command.delete({ value: agent.metadata?.id ?? "" });
+        await workflows.delete({ value: workflow.metadata?.id ?? "" });
       } finally {
         failDeleteKinds.clear();
       }
       // Best-effort, as the parent's own cleanup is: the instance's cleanup
-      // threw and was logged, the instance row is gone, the agent is cleaned.
+      // threw and was logged, the instance row is gone, the workflow is
+      // cleaned.
       expect(deletedEvents.map((event) => [event.kind, event.resourceId])).toEqual([
-        [ApiResourceKind.agent, agent.metadata?.id],
+        [ApiResourceKind.workflow, workflow.metadata?.id],
       ]);
       const refused = await refusalOf(
-        createClient(AgentInstanceQueryController, portTransport).get({
-          value: agent.status?.defaultInstanceId ?? "",
+        createClient(WorkflowInstanceQueryController, portTransport).get({
+          value: workflow.status?.defaultInstanceId ?? "",
         }),
       );
       expect(refused.code).toBe(Code.NotFound);

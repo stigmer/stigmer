@@ -8,7 +8,7 @@
  * snapshots `Organization.spec.preferences.standing_context` and (cloud, for
  * first-party human callers only) the caller
  * `IdentityAccount.spec.preferences.standing_context` verbatim onto the
- * execution spec's `declared_preferences` field. This module owns the
+ * execution status's `declared_preferences` field. This module owns the
  * PRESENTATION — the preamble and the per-scope attribution — so the framing
  * cannot drift between harnesses.
  *
@@ -47,7 +47,7 @@ export interface DeclaredPreferencesContent {
 }
 
 /**
- * Read the declared preferences from an execution spec's
+ * Read the declared preferences from an execution status's
  * `declared_preferences`. Returns undefined when the field is absent or both
  * scopes are blank — the caller renders no section. Blank-is-absent applies
  * PER SCOPE: an org-only snapshot renders only the org subsection.

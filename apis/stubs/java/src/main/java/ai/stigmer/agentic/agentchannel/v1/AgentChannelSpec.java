@@ -108,8 +108,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Reference to the agent this channel serves.
    *
-   * The reference names no version (or "latest"): this runs the agent's
-   * current version, and a reference naming another version is refused.
+   * A version on the reference (a tag or a content hash) is the version
+   * each new conversation on this channel runs; none, or "latest", runs the
+   * agent's current version when the conversation starts. A started
+   * conversation keeps the version it started on.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -123,8 +125,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Reference to the agent this channel serves.
    *
-   * The reference names no version (or "latest"): this runs the agent's
-   * current version, and a reference naming another version is refused.
+   * A version on the reference (a tag or a content hash) is the version
+   * each new conversation on this channel runs; none, or "latest", runs the
+   * agent's current version when the conversation starts. A started
+   * conversation keeps the version it started on.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -138,8 +142,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Reference to the agent this channel serves.
    *
-   * The reference names no version (or "latest"): this runs the agent's
-   * current version, and a reference naming another version is refused.
+   * A version on the reference (a tag or a content hash) is the version
+   * each new conversation on this channel runs; none, or "latest", runs the
+   * agent's current version when the conversation starts. A started
+   * conversation keeps the version it started on.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -265,7 +271,7 @@ private static final long serialVersionUID = 0L;
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
-   * runtime. The agent and its default instance stay untouched.
+   * runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -282,7 +288,7 @@ private static final long serialVersionUID = 0L;
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
-   * runtime. The agent and its default instance stay untouched.
+   * runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -300,7 +306,7 @@ private static final long serialVersionUID = 0L;
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
-   * runtime. The agent and its default instance stay untouched.
+   * runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -317,7 +323,7 @@ private static final long serialVersionUID = 0L;
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
-   * runtime. The agent and its default instance stay untouched.
+   * runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -334,7 +340,7 @@ private static final long serialVersionUID = 0L;
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
-   * runtime. The agent and its default instance stay untouched.
+   * runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1114,8 +1120,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this channel serves.
      *
-     * The reference names no version (or "latest"): this runs the agent's
-     * current version, and a reference naming another version is refused.
+     * A version on the reference (a tag or a content hash) is the version
+     * each new conversation on this channel runs; none, or "latest", runs the
+     * agent's current version when the conversation starts. A started
+     * conversation keeps the version it started on.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1128,8 +1136,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this channel serves.
      *
-     * The reference names no version (or "latest"): this runs the agent's
-     * current version, and a reference naming another version is refused.
+     * A version on the reference (a tag or a content hash) is the version
+     * each new conversation on this channel runs; none, or "latest", runs the
+     * agent's current version when the conversation starts. A started
+     * conversation keeps the version it started on.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1146,8 +1156,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this channel serves.
      *
-     * The reference names no version (or "latest"): this runs the agent's
-     * current version, and a reference naming another version is refused.
+     * A version on the reference (a tag or a content hash) is the version
+     * each new conversation on this channel runs; none, or "latest", runs the
+     * agent's current version when the conversation starts. A started
+     * conversation keeps the version it started on.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1169,8 +1181,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this channel serves.
      *
-     * The reference names no version (or "latest"): this runs the agent's
-     * current version, and a reference naming another version is refused.
+     * A version on the reference (a tag or a content hash) is the version
+     * each new conversation on this channel runs; none, or "latest", runs the
+     * agent's current version when the conversation starts. A started
+     * conversation keeps the version it started on.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1190,8 +1204,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this channel serves.
      *
-     * The reference names no version (or "latest"): this runs the agent's
-     * current version, and a reference naming another version is refused.
+     * A version on the reference (a tag or a content hash) is the version
+     * each new conversation on this channel runs; none, or "latest", runs the
+     * agent's current version when the conversation starts. A started
+     * conversation keeps the version it started on.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1218,8 +1234,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this channel serves.
      *
-     * The reference names no version (or "latest"): this runs the agent's
-     * current version, and a reference naming another version is refused.
+     * A version on the reference (a tag or a content hash) is the version
+     * each new conversation on this channel runs; none, or "latest", runs the
+     * agent's current version when the conversation starts. A started
+     * conversation keeps the version it started on.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1238,8 +1256,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this channel serves.
      *
-     * The reference names no version (or "latest"): this runs the agent's
-     * current version, and a reference naming another version is refused.
+     * A version on the reference (a tag or a content hash) is the version
+     * each new conversation on this channel runs; none, or "latest", runs the
+     * agent's current version when the conversation starts. A started
+     * conversation keeps the version it started on.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1253,8 +1273,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this channel serves.
      *
-     * The reference names no version (or "latest"): this runs the agent's
-     * current version, and a reference naming another version is refused.
+     * A version on the reference (a tag or a content hash) is the version
+     * each new conversation on this channel runs; none, or "latest", runs the
+     * agent's current version when the conversation starts. A started
+     * conversation keeps the version it started on.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1271,8 +1293,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this channel serves.
      *
-     * The reference names no version (or "latest"): this runs the agent's
-     * current version, and a reference naming another version is refused.
+     * A version on the reference (a tag or a content hash) is the version
+     * each new conversation on this channel runs; none, or "latest", runs the
+     * agent's current version when the conversation starts. A started
+     * conversation keeps the version it started on.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1723,7 +1747,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1743,7 +1767,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1763,7 +1787,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1783,7 +1807,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1810,7 +1834,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1834,7 +1858,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1860,7 +1884,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1887,7 +1911,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1911,7 +1935,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1935,7 +1959,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1960,7 +1984,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1983,7 +2007,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2006,7 +2030,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2023,7 +2047,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2043,7 +2067,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2064,7 +2088,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2081,7 +2105,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2099,7 +2123,7 @@ private static final long serialVersionUID = 0L;
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
      * a read-only API token), and channel executions receive its values at
-     * runtime. The agent and its default instance stay untouched.
+     * runtime. The agent itself stays untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>

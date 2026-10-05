@@ -175,7 +175,7 @@ function everythingInput(shape: EverythingShape): TurnInput {
   const execution = create(AgentExecutionSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: executionId, org: TURN_INPUT_FIXTURE_IDS.org, name: executionId }),
     spec: create(AgentExecutionSpecSchema, {
-      sessionId,
+      target: { case: "sessionId", value: sessionId },
       message: USER_MESSAGE,
       workspaceFileRefs: ["app/src/deploy.ts", "docs/RELEASES.md"],
       executionConfig: create(ExecutionConfigSchema, {

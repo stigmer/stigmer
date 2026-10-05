@@ -18,7 +18,7 @@
  * `can_write_reserved_labels` per test, pins the reserved-label refusal the
  * open-source posture allows by design, and the one adoption the platform
  * makes: an operator's plugin taking over the system-content row it
- * replaces in place, the row's id and default instance kept, a member's
+ * replaces in place, the row's id kept, a member's
  * identical push refused before the slug is judged.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -45,7 +45,6 @@ import {
   AgentSpecSchema,
   McpServerUsageSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
@@ -1011,7 +1010,6 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
   let enforcingQuery: Client<typeof PluginQueryController>;
   let enforcingAgents: Client<typeof AgentCommandController>;
   let enforcingAgentQuery: Client<typeof AgentQueryController>;
-  let enforcingInstanceQuery: Client<typeof AgentInstanceQueryController>;
   const observed: AuthzCheck[] = [];
   // Who the caller is to this authorizer: a member (reserved labels denied,
   // the hosted default) or the platform operator (granted). The tests flip
@@ -1061,10 +1059,6 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
     enforcingQuery = createClient(PluginQueryController, transport);
     enforcingAgents = createClient(AgentCommandController, transport);
     enforcingAgentQuery = createClient(AgentQueryController, transport);
-    enforcingInstanceQuery = createClient(
-      AgentInstanceQueryController,
-      transport,
-    );
   });
 
   afterAll(async () => {
@@ -1137,11 +1131,11 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
     expect(members).toHaveLength(3);
   });
 
-  it("adopts a system-content row the operator's plugin replaces: same id, same default instance, the plugin's definition, one warning", async () => {
+  it("adopts a system-content row the operator's plugin replaces: same id, the plugin's definition, one warning", async () => {
     reservedLabels = "allow";
     const name = uniqueName("plg-adopt");
     // The row the platform seeded before plugins existed: system content,
-    // no plugin label, a default instance of its own.
+    // no plugin label.
     const seeded = await enforcingAgents.create(
       createMessage(AgentSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
@@ -1157,8 +1151,6 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
       }),
     );
     const seededId = seeded.metadata!.id;
-    const seededInstanceId = seeded.status?.defaultInstanceId ?? "";
-    expect(seededInstanceId).not.toBe("");
 
     const installed = await enforcingPlugins.push({
       org: ORG,
@@ -1182,11 +1174,6 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
     expect(after.spec?.instructions).toBe(
       "You are the platform's own agent, re-homed under a plugin.",
     );
-    expect(after.status?.defaultInstanceId).toBe(seededInstanceId);
-    const instance = await enforcingInstanceQuery.get({
-      value: seededInstanceId,
-    });
-    expect(instance.spec?.agentId).toBe(seededId);
 
     const { members } = await enforcingQuery.listMembers({
       value: installed.metadata!.id,
@@ -1202,9 +1189,8 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
     });
     expect(again.status?.digest).toBe(installed.status?.digest);
     expect(
-      (await enforcingAgentQuery.get({ value: seededId })).status
-        ?.defaultInstanceId,
-    ).toBe(seededInstanceId);
+      (await enforcingAgentQuery.get({ value: seededId })).status?.versionHash,
+    ).toBe(after.status?.versionHash);
     reservedLabels = "deny";
   });
 

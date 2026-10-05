@@ -152,8 +152,9 @@ async function saveExecution(
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "AgentExecution",
       metadata: { id, name: "test-exec", org: "test-org" },
-      spec: { agentId: "agt_1", sessionId: "ses_1" },
+      spec: { target: { case: "sessionId", value: "ses_1" } },
       status: {
+        agentId: "agt_1",
         phase,
         streamingUsage: { totalTokens: 1234n, estimatedCostUsd: 0.05 },
       },
@@ -268,7 +269,7 @@ describe("ReadHarnessStateId activity", () => {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Session",
         metadata: { id: "ses_h1", name: "s", org: "o" },
-        spec: { agentInstanceId: "ain_1", harnessStateId: "cursor-agent-42" },
+        spec: { harnessStateId: "cursor-agent-42" },
       }),
     );
     await expect(

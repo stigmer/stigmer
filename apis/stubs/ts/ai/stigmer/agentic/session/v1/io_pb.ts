@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInQKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCSJgChNMaXN0U2Vzc2lvbnNSZXF1ZXN0EhoKCXBhZ2Vfc2l6ZRgBIAEoBUIHukgEGgIoABISCgpwYWdlX3Rva2VuGAIgASgJEgwKBHRhZ3MYAyADKAkSCwoDb3JnGAQgASgJIncKIkxpc3RTZXNzaW9uc0J5QWdlbnRJbnN0YW5jZVJlcXVlc3QSIQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAlCBrpIA8gBARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASEgoKcGFnZV90b2tlbhgDIAEoCSJqChxMaXN0U2Vzc2lvbnNCeUNoYW5uZWxSZXF1ZXN0EhoKCmNoYW5uZWxfaWQYASABKAlCBrpIA8gBARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASEgoKcGFnZV90b2tlbhgDIAEoCSJCChtVcGRhdGVTZXNzaW9uU3ViamVjdFJlcXVlc3QSEgoCaWQYASABKAlCBrpIA8gBARIPCgdzdWJqZWN0GAIgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInQKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCSJgChNMaXN0U2Vzc2lvbnNSZXF1ZXN0EhoKCXBhZ2Vfc2l6ZRgBIAEoBUIHukgEGgIoABISCgpwYWdlX3Rva2VuGAIgASgJEgwKBHRhZ3MYAyADKAkSCwoDb3JnGAQgASgJImYKGkxpc3RTZXNzaW9uc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiagocTGlzdFNlc3Npb25zQnlDaGFubmVsUmVxdWVzdBIaCgpjaGFubmVsX2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiQgobVXBkYXRlU2Vzc2lvblN1YmplY3RSZXF1ZXN0EhIKAmlkGAEgASgJQga6SAPIAQESDwoHc3ViamVjdBgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_api, file_buf_validate_validate]);
 
 /**
  * SessionId wraps a session identifier.
@@ -140,17 +140,18 @@ export const ListSessionsRequestSchema: GenMessage<ListSessionsRequest> = /*@__P
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 3);
 
 /**
- * ListSessionsByAgentInstanceRequest lists all sessions for a specific agent instance.
+ * ListSessionsByAgentRequest lists the conversations on one agent.
  *
- * @generated from message ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest
+ * @generated from message ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest
  */
-export type ListSessionsByAgentInstanceRequest = Message<"ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest"> & {
+export type ListSessionsByAgentRequest = Message<"ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest"> & {
   /**
-   * Agent instance ID to filter by.
+   * ID of the agent whose conversations to list: the sessions whose
+   * status.agent_id names it, whichever version each runs.
    *
-   * @generated from field: string agent_instance_id = 1;
+   * @generated from field: string agent_id = 1;
    */
-  agentInstanceId: string;
+  agentId: string;
 
   /**
    * The most sessions to return, at most 100; zero returns them all.
@@ -169,10 +170,10 @@ export type ListSessionsByAgentInstanceRequest = Message<"ai.stigmer.agentic.ses
 };
 
 /**
- * Describes the message ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.
- * Use `create(ListSessionsByAgentInstanceRequestSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.
+ * Use `create(ListSessionsByAgentRequestSchema)` to create a new message.
  */
-export const ListSessionsByAgentInstanceRequestSchema: GenMessage<ListSessionsByAgentInstanceRequest> = /*@__PURE__*/
+export const ListSessionsByAgentRequestSchema: GenMessage<ListSessionsByAgentRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 4);
 
 /**

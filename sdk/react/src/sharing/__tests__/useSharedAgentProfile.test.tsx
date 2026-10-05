@@ -41,7 +41,7 @@ const PROFILE = {
   name: "Support Agent",
   description: "Answers support questions",
   iconUrl: "",
-  defaultInstanceId: "inst_1",
+  agentRef: { org: "acme", slug: "support-bot", version: "v2", kind: 40 },
 };
 
 describe("useSharedAgentProfile", () => {

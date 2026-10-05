@@ -434,7 +434,7 @@ async function main() {
     log(`read back unchanged: ${Object.keys(recorded.snapshot).join(", ")}; the old reply: ${recorded.snapshot.agentExecution.reply}`);
     const oldAgent = await runAgentExecution(
       baseUrl,
-      { orgId: recorded.ids.agentOrgId, agentId: recorded.ids.agentId },
+      { orgId: recorded.ids.agentOrgId, agentId: recorded.ids.agentId, agentSlug: recorded.ids.agentSlug },
       RUN_TIMEOUT_MS,
       { expectText: fake.replyText, log },
     );

@@ -25,6 +25,8 @@ import {
   isEmptyType,
   isIDType,
   isSpecialType,
+  firstMemberWinsOrder,
+  isSyntheticOneof,
   protoTypeToGoImportPath,
   protoTypeToPackageAlias,
   searchListSupersedesMethod,
@@ -652,7 +654,7 @@ function generateInputTypesV2(
     buf.push("\t}\n");
   }
 
-  for (const f of specFields) {
+  for (const f of firstMemberWinsOrder(specFields)) {
     emitToProtoField(buf, f, alias, typeMap, spec.name);
   }
 
@@ -772,8 +774,18 @@ function emitToProtoField(buf: string[], f: FieldSchema, alias: string, typeMap:
   const protoField = goProtoFieldName(f.protoField);
   const t = f.type;
   const refKind = f.referenceKind ?? 0;
+  const oneofGroup = f.oneofGroup ?? "";
 
-  if (t.kind === "timestamp") {
+  if (oneofGroup !== "" && !isSyntheticOneof(oneofGroup) && t.kind !== "message") {
+    // A scalar member of a real oneof is held by its wrapper type; a zero
+    // value leaves the oneof to the other members.
+    const set = t.kind === "bytes" ? `len(i.${f.name}) > 0` : `i.${f.name} != ${goZeroValueForTypeSpec(t)}`;
+    buf.push(`\tif ${set} {\n`);
+    buf.push(
+      `\t\tresource.Spec.${goProtoFieldName(oneofGroup)} = &${alias}.${specName}_${protoField}{${protoField}: i.${f.name}}\n`,
+    );
+    buf.push("\t}\n");
+  } else if (t.kind === "timestamp") {
     buf.push(`\tif i.${f.name} != "" {\n`);
     buf.push(`\t\tt, err := time.Parse(time.RFC3339, i.${f.name})\n`);
     buf.push(`\t\tif err != nil {\n\t\t\treturn nil, fieldErr(${goQuote(f.name)}, err)\n\t\t}\n`);
@@ -1066,7 +1078,7 @@ function emitNestedToProto(
   if (needsImperative) {
     buf.push(`func (i *${inputName}) toProto() (*${protoAlias}.${msgName}, error) {\n`);
     buf.push(`\tp := &${protoAlias}.${msgName}{}\n`);
-    for (const field of ts.fields) {
+    for (const field of firstMemberWinsOrder(ts.fields)) {
       const pf = goProtoFieldName(field.protoField);
       if (hasExplicitPresence(field)) {
         // The input's field is a plain value, so its zero reads as unset,
@@ -1307,6 +1319,12 @@ function emitFromProtoOneof(buf: string[], fields: FieldSchema[], typeMap: Map<s
     const protoField = goProtoFieldName(f.protoField);
     const msgType = f.type.messageType ?? "";
 
+    if (f.type.kind !== "message") {
+      // A scalar member's getter answers its zero value when the oneof
+      // holds another member.
+      buf.push(`\t\tinput.${f.name} = s.Get${protoField}()\n`);
+      continue;
+    }
     if (!typeMap.has(msgType)) continue;
 
     buf.push(`\t\tif ov := s.Get${protoField}(); ov != nil {\n`);

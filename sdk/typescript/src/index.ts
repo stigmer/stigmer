@@ -210,11 +210,6 @@ export {
   type AttachmentInput,
 } from "./gen/agentexecution.js";
 export {
-  AgentInstanceClient,
-  toAgentInstanceUpdateInput,
-  type AgentInstanceInput,
-} from "./gen/agentinstance.js";
-export {
   AgentShareClient,
   toAgentShareUpdateInput,
   type AgentShareInput,

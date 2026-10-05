@@ -41,9 +41,15 @@ func main() {
     }
     fmt.Printf("Created: %s\n", agent.GetMetadata().GetId())
 
-    // Run an execution
+    // Start a conversation on the agent: the server creates its session
+    // and pins the agent's current version on it
     exec, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecutionInput{
-        AgentId: agent.GetMetadata().GetId(),
+        SessionSpec: &stigmer.SessionSpecInput{
+            AgentRef: stigmer.ResourceRef{
+                Org:  agent.GetMetadata().GetOrg(),
+                Slug: agent.GetMetadata().GetSlug(),
+            },
+        },
         Message: "Hello, what can you help me with?",
     })
     if err != nil {
@@ -62,7 +68,7 @@ The client provides sub-clients for each resource type:
 | `client.Agent`          | Agent           | Get, GetByReference, Create, Update, Apply, Delete, List |
 | `client.Skill`          | Skill           | Get, GetByReference, Push, GetArtifact, Delete, List |
 | `client.McpServer`      | MCP Server      | Get, GetByReference, Create, Update, Apply, Delete, List |
-| `client.Session`        | Session         | Get, Create, Update, Apply, Delete, List, ListByAgentInstance |
+| `client.Session`        | Session         | Get, Create, Update, Apply, Delete, List, ListByAgent |
 | `client.AgentExecution` | AgentExecution  | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |
 | `client.Search`         | Cross-resource  | Query |
 | `client.Billing`        | Billing         | GetOrCreateBillingAccount, GetBillingAccount, GetCreditBalance, AdjustCredits, GetCreditLedger, GetBillingUsageReport, CreateCreditCheckoutSession, CreateBillingPortalSession, CreatePaymentMethodSetupSession, SetAutoRechargeConfig, GetCustomerModelPricing + operator pricing methods |

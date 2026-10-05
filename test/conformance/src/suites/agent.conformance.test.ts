@@ -4,8 +4,10 @@
 //
 // Drives AgentCommandController + AgentQueryController through the raw proto
 // stubs and asserts the contract: CRUD round-trips, apply create/update
-// branching, immutable identity fields, default-instance provisioning, reference
-// resolution, slug semantics, and spec-first negative paths. The cross-aggregate
+// branching, immutable identity fields, reference resolution, slug semantics,
+// and spec-first negative paths. An agent is run directly: a conversation
+// names it by reference (the session suite), so creating one provisions
+// nothing beside it. The cross-aggregate
 // Agent->McpServer reference invariant lives in
 // agent-mcpserver-references.conformance.test.ts.
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -18,7 +20,6 @@ import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { AGENT_API_VERSION, AGENT_KIND, makeAgent, makeAgentSpec } from "../support/agents";
-import { makeAgentInstance } from "../support/agentinstances";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -50,7 +51,7 @@ async function createAgent(org: string, name: string, opts: { description?: stri
 }
 
 describe("Agent conformance — CRUD & identity", () => {
-  it("[rpc:AgentCommandController.create] create assigns an agt_ id, echoes the spec, records a created audit event, and provisions a default instance", async () => {
+  it("[rpc:AgentCommandController.create] create assigns an agt_ id, echoes the spec, and records a created audit event", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("agent");
 
@@ -61,7 +62,6 @@ describe("Agent conformance — CRUD & identity", () => {
     expect(created.metadata?.org).toBe(org);
     expect(created.spec?.description).toBe("code reviewer");
     expect(created.status?.audit?.specAudit?.event).toBe("created");
-    expect(created.status?.defaultInstanceId, "create provisions a default instance").toMatch(/^ain_[0-9a-z]+$/);
     // Agent is a blueprint kind (defaults_to_org_visibility), so an
     // unspecified visibility defaults to org; private is an explicit opt-in.
     expect(created.metadata?.visibility, "visibility defaults to org (blueprint default)").toBe(ApiResourceVisibility.visibility_org);
@@ -276,161 +276,32 @@ describe("Agent conformance — reserved labels", () => {
   });
 });
 
-describe("Agent instance conformance — visibility level validation", () => {
-  // Instances support org and public but never platform (tenant isolation —
-  // the kind's VisibilityConfig deliberately omits supports_platform). Both
-  // editions reject the level at create and updateVisibility from the same
-  // proto config (cloud: ValidateVisibilityStep / ValidateVisibilityUpdateStep;
-  // OSS: the shared Go steps, stigmer#489), emitting the same message.
-  //
-  // The LEVEL pins use a STANDALONE instance, not the agent's auto-created
-  // default: default instances are system-managed and both editions reject
-  // ANY visibility update on them (FailedPrecondition, stigmer#556) before
-  // the level check is reached — that rejection has its own pin below — so
-  // only a standalone instance exercises the level contract.
-  const AGENT_INSTANCE_API_VERSION = "agentic.stigmer.ai/v1";
-  const AGENT_INSTANCE_KIND = "AgentInstance";
-
-  it("[rpc:AgentInstanceCommandController.create] create rejects platform visibility (InvalidArgument)", async () => {
-    const { org } = await target.provisionTenancy();
-    const agent = await createAgent(org, uniqueName("agent"));
-
-    const err = await expectGrpcCode(
-      () =>
-        clients.agentInstanceCommand.create({
-          apiVersion: AGENT_INSTANCE_API_VERSION,
-          kind: AGENT_INSTANCE_KIND,
-          metadata: {
-            name: uniqueName("instance"),
-            org,
-            visibility: ApiResourceVisibility.visibility_platform,
-          },
-          spec: { agentId: agent.metadata!.id, description: "conformance fixture" },
-        }),
-      Code.InvalidArgument,
-      "create agent instance with platform visibility",
-    );
-    // Exact-message pin: the rejection text is part of the cross-edition
-    // contract (both editions build it from the kind's proto config).
-    expect(err.message, "both editions emit the same rejection text").toContain(
-      "agent_instance resources cannot be set to visibility_platform. " +
-        "Supported visibility levels: visibility_private, visibility_org.",
-    );
-  });
-
-  it("[rpc:AgentInstanceCommandController.updateVisibility] updateVisibility rejects platform (InvalidArgument) and leaves the stored level untouched", async () => {
-    const { org } = await target.provisionTenancy();
-    const agent = await createAgent(org, uniqueName("agent"));
-
-    const instance = await clients.agentInstanceCommand.create({
-      apiVersion: AGENT_INSTANCE_API_VERSION,
-      kind: AGENT_INSTANCE_KIND,
-      metadata: { name: uniqueName("instance"), org },
-      spec: { agentId: agent.metadata!.id, description: "conformance fixture" },
-    });
-    fixtures.defer(() => clients.agentInstanceCommand.delete({ value: instance.metadata!.id }));
-
-    const err = await expectGrpcCode(
-      () =>
-        clients.agentInstanceCommand.updateVisibility({
-          resourceId: instance.metadata!.id,
-          visibility: ApiResourceVisibility.visibility_platform,
-        }),
-      Code.InvalidArgument,
-      "update agent instance visibility to platform",
-    );
-    expect(err.message).toContain("cannot be set to visibility_platform");
-
-    const stored = await clients.agentInstanceQuery.get({ value: instance.metadata!.id });
-    expect(stored.metadata?.visibility, "the rejected update must not change the stored level").toBe(
-      ApiResourceVisibility.visibility_private,
-    );
-  });
-
-  it("[rpc:AgentInstanceCommandController.updateVisibility] updateVisibility on the agent's default instance rejects entirely (FailedPrecondition)", async () => {
-    // Default instances are system-managed: their access always follows the
-    // parent agent, so both editions reject any visibility update on them
-    // (cloud: label-keyed guard in ValidateVisibilityUpdateStep; OSS:
-    // label+pointer-keyed RejectDefaultInstanceVisibilityUpdate step,
-    // stigmer#556). The FailedPrecondition wins over the level check, and
-    // the rejection text is part of the cross-edition contract.
-    const { org } = await target.provisionTenancy();
-    const agent = await createAgent(org, uniqueName("agent"));
-    const defaultInstanceId = agent.status?.defaultInstanceId;
-    expect(defaultInstanceId, "create provisions a default instance").toMatch(/^ain_[0-9a-z]+$/);
-
-    const err = await expectGrpcCode(
-      () =>
-        clients.agentInstanceCommand.updateVisibility({
-          resourceId: defaultInstanceId!,
-          visibility: ApiResourceVisibility.visibility_org,
-        }),
-      Code.FailedPrecondition,
-      "update visibility of the agent's default instance",
-    );
-    expect(err.message, "both editions emit the same rejection text").toContain(
-      "Default instances do not have their own visibility - access always follows " +
-        "the parent blueprint. Change the blueprint's visibility instead.",
-    );
-  });
-});
-
-describe("Agent conformance — delete cascades instances (stigmer#611)", () => {
-  it("[rpc:AgentCommandController.delete] delete removes the default and personal instances, freeing the agent slug and the org-wide instance slug", async () => {
-    // The agent twin of the workflow cascade pin (stigmer#592): instances
-    // are configuration OF the agent and go with it (default AND personal),
-    // unlike sessions/executions which survive as historical record (the
-    // #582 ruling). Without the cascade, the orphaned "<slug>-default"
-    // poisons a same-slug recreate, and a personal instance's org-scoped
-    // slug stays occupied forever with no UI left to delete it.
+describe("Agent conformance — delete frees the slug (stigmer#611)", () => {
+  it("[rpc:AgentCommandController.delete] delete frees the agent slug: a recreate under the same name converges on a new agent", async () => {
+    // The agent twin of the workflow cascade pin (stigmer#592): nothing an
+    // agent owned outlives it to hold its slug, so a same-name recreate is a
+    // new agent rather than a collision. Sessions that named the deleted
+    // agent survive as historical record (the #582 ruling) and keep naming
+    // the agent they pinned (the agentexecution suite's re-created-slug arm).
     const { org } = await target.provisionTenancy();
     const name = uniqueName("cascade");
 
     const created = await clients.agentCommand.create(makeAgent({ org, name }));
     const agentId = created.metadata!.id;
-    const defaultInstanceId = created.status?.defaultInstanceId;
-    expect(defaultInstanceId, "create provisions a default instance").toMatch(/^ain_[0-9a-z]+$/);
-
-    const instanceName = uniqueName("cfg");
-    const personalInstance = await clients.agentInstanceCommand.create(
-      makeAgentInstance({ org, name: instanceName, agentId }),
-    );
 
     await clients.agentCommand.delete({ value: agentId });
+    await expectGrpcCode(() => clients.agentQuery.get({ value: agentId }), Code.NotFound, "agent after delete");
 
-    await expectGrpcCode(
-      () => clients.agentInstanceQuery.get({ value: defaultInstanceId! }),
-      Code.NotFound,
-      "default instance after cascade",
-    );
-    await expectGrpcCode(
-      () => clients.agentInstanceQuery.get({ value: personalInstance.metadata!.id }),
-      Code.NotFound,
-      "personal instance after cascade",
-    );
-
-    // The agent slug is free again: recreate converges instead of colliding
-    // with the orphaned default instance, which once held the slug.
     const recreated = await createAgent(org, name);
     expect(recreated.metadata?.slug).toBe(created.metadata?.slug);
     expect(recreated.metadata?.id).not.toBe(agentId);
-
-    // The personal instance's org-scoped slug is free again (the #611
-    // exposure: with the orphan left behind, this create would be rejected
-    // as a duplicate).
-    const reused = await clients.agentInstanceCommand.create(
-      makeAgentInstance({ org, name: instanceName, agentId: recreated.metadata!.id }),
-    );
-    fixtures.defer(() => clients.agentInstanceCommand.delete({ value: reused.metadata!.id }));
-    expect(reused.metadata?.slug).toBe(personalInstance.metadata?.slug);
   });
 });
 
 describe("Agent conformance — plain-update visibility door (stigmer#573)", () => {
   // The updateVisibility RPC is the ONLY door for visibility changes on both
-  // editions: every guard (per-kind level support stigmer#489, the
-  // default-instance rejection stigmer#556) lives on the updateVisibility
-  // pipelines, so plain updates preserve the stored level UNCONDITIONALLY —
+  // editions: every guard (per-kind level support stigmer#489) lives on the
+  // updateVisibility pipelines, so plain updates preserve the stored level UNCONDITIONALLY —
   // a request-carried level is ignored, never applied and never an error
   // (stale manifests re-applied after a console visibility change must not
   // fail the whole update). OSS: preserveImmutableFields; cloud:
@@ -462,35 +333,4 @@ describe("Agent conformance — plain-update visibility door (stigmer#573)", () 
     expect(stored.metadata?.visibility, "the stored level is untouched").toBe(ApiResourceVisibility.visibility_org);
   });
 
-  it("[rpc:AgentInstanceCommandController.update] update cannot flip a default instance's visibility (the stigmer#556 guard is not bypassable)", async () => {
-    // updateVisibility on a default instance rejects with FailedPrecondition
-    // (pinned above). A plain update carrying a level was the remaining way
-    // to stamp visibility onto one; with the single-door contract it
-    // silently preserves instead — the structurally-invalid state can no
-    // longer be reached through any write path.
-    const { org } = await target.provisionTenancy();
-    const agent = await createAgent(org, uniqueName("agent"));
-    const defaultInstanceId = agent.status?.defaultInstanceId;
-    expect(defaultInstanceId, "create provisions a default instance").toMatch(/^ain_[0-9a-z]+$/);
-
-    const instance = await clients.agentInstanceQuery.get({ value: defaultInstanceId! });
-    const storedLevel = instance.metadata?.visibility;
-
-    const updated = await clients.agentInstanceCommand.update({
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentInstance",
-      metadata: {
-        id: instance.metadata!.id,
-        name: instance.metadata!.name,
-        org,
-        visibility: ApiResourceVisibility.visibility_org,
-      },
-      spec: instance.spec,
-    });
-
-    expect(updated.metadata?.visibility, "the carried level is ignored on the default instance").toBe(storedLevel);
-
-    const stored = await clients.agentInstanceQuery.get({ value: defaultInstanceId! });
-    expect(stored.metadata?.visibility, "the stored level is untouched").toBe(storedLevel);
-  });
 });

@@ -16,8 +16,6 @@ import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
 import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
@@ -52,13 +50,6 @@ const knownAgent = create(AgentSchema, {
   kind: "Agent",
   metadata: { name: "Reviewer", slug: "reviewer", org: ACME_ID, id: "agt_1" },
   spec: { description: "reviews code" },
-});
-
-const knownInstance = create(AgentInstanceSchema, {
-  apiVersion: "agentic.stigmer.ai/v1",
-  kind: "AgentInstance",
-  metadata: { name: "reviewer-default", slug: "reviewer-default", org: ACME_ID, id: "ain_1" },
-  spec: { agentId: "agt_1", description: "Default instance (auto-created, no custom configuration)" },
 });
 
 const knownOrg = create(OrganizationSchema, {
@@ -254,20 +245,6 @@ beforeAll(async () => {
         return knownAgent;
       },
     });
-    router.service(AgentInstanceQueryController, {
-      get: (req) => {
-        if (req.value !== "ain_1") throw new ConnectError("agent instance not found", Code.NotFound);
-        return knownInstance;
-      },
-      getByReference: (req) => {
-        if (req.slug !== "reviewer-default") throw new ConnectError("agent instance not found", Code.NotFound);
-        return knownInstance;
-      },
-      list: (req) => {
-        if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
-        return { totalCount: 1, items: [knownInstance] };
-      },
-    });
     router.service(SearchService, {
       // Kind-aware: search-backed list sends a single-kind query, so the
       // environment arm proves the kind actually rode the request.
@@ -388,24 +365,6 @@ describe("get integration", () => {
     const { message } = await fetchResource(client, ApiResourceKind.agent, { kind: "id", id: "agt_1" });
     expect(JSON.parse(renderResource(AgentSchema, message, "json"))).toMatchObject({
       metadata: { id: "agt_1" },
-    });
-  });
-
-  it("fetches an agent instance by org/slug and renders backend protojson", async () => {
-    const { schema, message } = await fetchResource(client, ApiResourceKind.agent_instance, {
-      kind: "ref",
-      org: "acme",
-      slug: "reviewer-default",
-    });
-    const rendered = JSON.parse(renderResource(schema, message, "json"));
-    expect(rendered).toEqual(toJson(AgentInstanceSchema, knownInstance, { useProtoFieldName: true }));
-  });
-
-  it("fetches an agent instance by ID", async () => {
-    const { message } = await fetchResource(client, ApiResourceKind.agent_instance, { kind: "id", id: "ain_1" });
-    expect(JSON.parse(renderResource(AgentInstanceSchema, message, "json"))).toMatchObject({
-      metadata: { id: "ain_1" },
-      spec: { agent_id: "agt_1" },
     });
   });
 
@@ -603,18 +562,6 @@ describe("list integration", () => {
     expect(out.split("\n").find((line) => line.includes("formats code"))).toMatch(/^formatter\s/);
     // Two rows name acme: one lookup per distinct organization, never per row.
     expect([...orgGets].sort()).toEqual([ACME_ID, HIDDEN_ORG_ID]);
-  });
-
-  it("lists agent instances via the dedicated list RPC as JSON", async () => {
-    const out = await listResources(client, ApiResourceKind.agent_instance, "acme", 50, "json");
-    expect(JSON.parse(out)).toEqual([toJson(AgentInstanceSchema, knownInstance, { useProtoFieldName: true })]);
-  });
-
-  it("renders a human table for agent instances with their parent agent", async () => {
-    const out = await listResources(client, ApiResourceKind.agent_instance, "acme", 50, "table");
-    expect(out).toContain("AGENT");
-    expect(out).toContain("reviewer-default");
-    expect(out).toContain("agt_1");
   });
 
   it("lists environments via the search service as JSON", async () => {

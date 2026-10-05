@@ -99,8 +99,10 @@ type AgentShareSpec struct {
 	// with tool credentials bound from it. To share another organization's
 	// agent, install the plugin that carries it and share the installed copy.
 	//
-	// The reference names no version (or "latest"): a share runs the agent's
-	// current version, and a reference naming another version is refused.
+	// A version on the reference (a tag or a content hash) is the version
+	// each new conversation through this share runs; none, or "latest", runs
+	// the agent's current version when the conversation starts. A started
+	// conversation keeps the version it started on.
 	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Whether hosted-chat access for the configured audience is enabled.
 	//
@@ -132,7 +134,7 @@ type AgentShareSpec struct {
 	// This is how a tool-using agent becomes chattable over a share link:
 	// bind an org-shared environment holding the needed credentials (for
 	// example a read-only API token), and guest executions receive its
-	// values at runtime. The agent and its default instance stay untouched.
+	// values at runtime. The agent itself stays untouched.
 	// Valid on public-audience shares only.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,6,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
 	// Per-turn model choice and run bounds for guest conversations on this

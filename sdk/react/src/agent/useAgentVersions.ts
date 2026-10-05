@@ -132,6 +132,29 @@ export function useAgentVersionCount(
   return data;
 }
 
+/** How many hex characters of a version hash a label shows. */
+const SHORT_HASH_LENGTH = 12;
+
+/**
+ * How a version reads to a person: its tag when it has one, else the
+ * short hash the Versions tab shows. `versions` is the agent's history as
+ * {@link useAgentVersions} returns it; a hash it does not hold (still
+ * loading, or a history the viewer cannot read) reads as its short hash.
+ *
+ * @example
+ * ```tsx
+ * const { versions } = useAgentVersions(org, slug);
+ * agentVersionLabel(versions, execution.status?.agentVersionHash ?? ""); // "v2" or "3f2a9c1e0b7d"
+ * ```
+ */
+export function agentVersionLabel(
+  versions: readonly VersionEntry[],
+  versionHash: string,
+): string {
+  const entry = versions.find((v) => v.id === versionHash);
+  return entry?.tag ?? versionHash.slice(0, SHORT_HASH_LENGTH);
+}
+
 function mapProtoToVersionEntry(proto: ProtoAgentVersionEntry): VersionEntry {
   return {
     id: proto.versionHash,
@@ -143,7 +166,7 @@ function mapProtoToVersionEntry(proto: ProtoAgentVersionEntry): VersionEntry {
           displayName: undefined,
         }
       : undefined,
-    label: proto.versionHash.slice(0, 12),
+    label: proto.versionHash.slice(0, SHORT_HASH_LENGTH),
     sublabel: proto.message || undefined,
     isCurrent: proto.isCurrent,
     tag: proto.tag || undefined,

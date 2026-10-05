@@ -93,7 +93,10 @@ async function seed(store: Store): Promise<void> {
       AgentExecutionSchema,
       create(AgentExecutionSchema, {
         metadata: { id, org: orgOf(session) },
-        spec: { sessionId: sessionIdOf(session), message: "run it" },
+        spec: {
+          target: { case: "sessionId", value: sessionIdOf(session) },
+          message: "run it",
+        },
         status: {
           messages: Array.from({ length: MESSAGES_PER_EXECUTION }, (_, m) => ({
             type:
@@ -147,7 +150,9 @@ const TODAY: ReadonlyArray<Shape> = [
     async run(store) {
       const rows = await store.listResources(ApiResourceKind.agent_execution);
       return decodeExecutions(rows).filter(
-        (e) => e.spec?.sessionId === sessionIdOf(0),
+        (e) =>
+          e.spec?.target.case === "sessionId" &&
+          e.spec.target.value === sessionIdOf(0),
       ).length;
     },
   },

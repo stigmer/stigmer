@@ -180,7 +180,7 @@ async function runAgent(
 }
 
 // `agent` undefined is the built-in assistant: the execution names no agent
-// and the backend creates a session with no instance.
+// and the backend creates a session that names none.
 async function runResolvedAgent(
   agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent | undefined,
   options: RunFlags,

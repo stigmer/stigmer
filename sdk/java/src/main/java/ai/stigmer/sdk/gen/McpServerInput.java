@@ -59,11 +59,11 @@ public final class McpServerInput {
         if (this.tags != null && !this.tags.isEmpty()) {
             spec.addAllTags(this.tags);
         }
-        if (this.stdio != null) {
-            spec.setStdio(this.stdio.toProto());
-        }
         if (this.http != null) {
             spec.setHttp(this.http.toProto());
+        }
+        if (this.stdio != null) {
+            spec.setStdio(this.stdio.toProto());
         }
         if (this.env != null && !this.env.isEmpty()) {
             for (java.util.Map.Entry<String, EnvVarDeclarationInput> entry : this.env.entrySet()) {

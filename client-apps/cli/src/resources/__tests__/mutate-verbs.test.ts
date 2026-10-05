@@ -19,9 +19,6 @@ import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agenti
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
-import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
@@ -51,11 +48,6 @@ import { tagVersion } from "../tag.js";
 
 const knownAgent = create(AgentSchema, {
   metadata: { name: "Reviewer", slug: "reviewer", org: "acme", id: "agt_1" },
-});
-
-const knownInstance = create(AgentInstanceSchema, {
-  metadata: { name: "reviewer-default", slug: "reviewer-default", org: "acme", id: "ain_1" },
-  spec: { agentId: "agt_1" },
 });
 
 const knownMcp = create(McpServerSchema, {
@@ -146,20 +138,6 @@ beforeAll(async () => {
         agentTagCalls.push({ agentId: req.agentId, versionHash: req.versionHash, tag: req.tag });
         return knownAgent;
       },
-    });
-
-    router.service(AgentInstanceQueryController, {
-      get: (req) => {
-        if (req.value !== "ain_1") throw new ConnectError("agent instance not found", Code.NotFound);
-        return knownInstance;
-      },
-      getByReference: (req) => {
-        if (req.slug !== "reviewer-default") throw new ConnectError("agent instance not found", Code.NotFound);
-        return knownInstance;
-      },
-    });
-    router.service(AgentInstanceCommandController, {
-      delete: () => knownInstance,
     });
 
     router.service(McpServerQueryController, {
@@ -304,15 +282,10 @@ describe("delete (standard kinds)", () => {
     expect((await plan.perform()).status).toBe("success");
   });
 
-  it("describes then deletes an agent instance by org/slug", async () => {
-    const plan = await planDelete(client, "agent-instance", "reviewer-default", "acme");
-
-    expect(plan.warning.status).toBe("warning");
-    expect(plan.warning.sections[0].fields).toContainEqual({ key: "ID", value: "ain_1" });
-
-    const result = await plan.perform();
-    expect(result.status).toBe("success");
-    expect(result.message).toBe("Agent Instance deleted successfully");
+  it("refuses agent-instance as a type the CLI does not know", async () => {
+    // The kind is gone: a conversation names its agent directly.
+    const err = await planDelete(client, "agent-instance", "reviewer-default", "acme").catch((e) => e);
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
   });
 
   it("deletes an MCP server via the DeleteResourceInput shape", async () => {
@@ -362,6 +335,7 @@ describe("delete (standard kinds)", () => {
     }
     expect(message).not.toContain("session");
     expect(message).not.toContain("oauthapp");
+    expect(message).not.toContain("agentinstance");
   });
 
   it("rejects a narrowed kind at the verb gate with a usage error", async () => {
