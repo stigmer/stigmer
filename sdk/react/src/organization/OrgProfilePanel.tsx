@@ -106,7 +106,6 @@ export function OrgProfilePanel({
   const serverLogoUrl = organization?.spec?.logoUrl ?? "";
   const serverSlug = organization?.metadata?.slug ?? "";
   const serverOrgId = organization?.metadata?.id ?? "";
-  const isPersonal = organization?.spec?.isPersonal ?? false;
 
   // Renaming is the owners' act; the check fails closed so the field never
   // flashes for someone the server would refuse. A single-organization
@@ -260,13 +259,6 @@ export function OrgProfilePanel({
           <ReadOnlyField label="Slug" value={serverSlug} mono />
         )}
         <ReadOnlyField label="Organization ID" value={serverOrgId} />
-        {isPersonal && (
-          <div>
-            <span className="stg:bg-primary-subtle stg:text-primary stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wider">
-              Personal
-            </span>
-          </div>
-        )}
       </div>
 
       <hr className="stg:border-border" />

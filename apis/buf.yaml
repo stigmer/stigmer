@@ -29,3 +29,13 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request removes OrganizationSpec field 6 (is_personal) and
+  # reserves its number and name: the organization Stigmer Cloud creates at
+  # sign-up is an ordinary organization. It is made before launch: the
+  # release notes name the change under Upgrading. This block exists for that
+  # one pull request. While it stays, buf breaking does not report this rule
+  # on the listed file, so the pull request that removes it lands straight
+  # after the merge (https://github.com/stigmer/stigmer/issues/1946).
+  ignore_only:
+    FIELD_NO_DELETE:
+      - ai/stigmer/tenancy/organization/v1/spec.proto

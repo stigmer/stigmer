@@ -4,7 +4,7 @@
  * === undefined`, named once in compose.ts. The open-source membership
  * rules and the built-in role lifecycle exist to feed the built-in
  * authorizer; a composition that registers its OWN Authorizer has its own
- * onboarding (the cloud's invitations, its personal-organization step, its
+ * onboarding (the cloud's invitations, its first-organization step, its
  * tuple driver) and must get neither of them — otherwise every cloud
  * organization create would write a second, unasked-for `owner` row and
  * every first sign-in would hand out roles the cloud never granted.

@@ -42,7 +42,7 @@
 // the target's reason.
 //
 // Deliberately OUT of this suite: how the id is derived (server-internal;
-// the server's unit suites pin it), the personal organization (a cloud
+// the server's unit suites pin it), the organization made at sign-up (a cloud
 // composition arm, pinned by the direct-login suite), authorization
 // postures on update/delete (edition-specific), and the cloud's
 // POSITIVE federation behavior (needs an IdentityProvider fixture no

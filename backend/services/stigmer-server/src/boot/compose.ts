@@ -1585,7 +1585,7 @@ export async function composeServer(
     // edition over the store PORT bound in the identity-accounts stage; a
     // composition adds what differs per edition through the registry —
     // the federation capability (the four federated RPC arms) and the
-    // provision slot's gate steps (the cloud's personal organization).
+    // provision slot's gate steps (the cloud's first-organization step).
     // The membership rules are core, selected by posture.
     registerIdentityAccountServices(router, {
       ...identityAccountPath,
