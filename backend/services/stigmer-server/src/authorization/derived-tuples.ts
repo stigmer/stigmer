@@ -12,7 +12,12 @@
  *   - owner SELF:     <row>#owner@identity_account:<row id>
  *   - creator:        <row>#creator@identity_account:<creator stamp>   (kinds flagged requires_creator_tuple)
  *   - org-viewer:     <row>#viewer@organization:<org>#viewer          (visibility_org)
- *   - platform-viewer: none — it fans out over identity providers, which this edition does not serve: the model defines the type, and no tuple of it is derived here
+ *   - child-org-viewer: <row>#child_org_viewer@organization:<org>#child_org_viewer (visibility_child_orgs)
+ *
+ * An organization's own parent and child edges are not row facts: the
+ * model binds them as derived relations (model/child-organizations.ts),
+ * read from the child's `spec.parent_org` and from the organization list
+ * index through the loader.
  *
  * Two facts are this edition's own and are stated here, nowhere else:
  *   - The ORGANIZATION's owner is a ROW, not a derivation. The role
@@ -90,14 +95,17 @@
  * rows are already the port's (`findByPrincipal`), so they need no reader.
  */
 import type { Message } from "@bufbuild/protobuf";
+import { fromBinary } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { isPersonStamp } from "../domain/iampolicy/membership.js";
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
+import { organizationListIndex } from "../domain/organization/list-index.js";
 import type { VisibilityTupleShape } from "../extensions/resource-authorization.js";
 import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
 import {
@@ -193,32 +201,37 @@ export function deriveTuples(facts: RowFacts): ReadonlyArray<Tuple> {
       subject: account(facts.createdBy),
     });
   }
-  for (const shape of visibilityShapesFor(facts.kind, facts.visibility)) {
-    const subject = visibilitySubject(shape, facts.org);
-    if (subject !== undefined) {
-      tuples.push({ object, relation: "viewer", subject });
+  // No organization to point at (a legacy row): no visibility userset.
+  if (facts.org !== "") {
+    for (const shape of visibilityShapesFor(facts.kind, facts.visibility)) {
+      const grant = visibilityGrant(shape);
+      tuples.push({
+        object,
+        relation: grant.relation,
+        subject: {
+          form: "userset",
+          object: { type: ORGANIZATION_TYPE, id: facts.org },
+          relation: grant.userset,
+        },
+      });
     }
   }
   return tuples;
 }
 
-/** The driver's grant table for a visibility shape; undefined where this edition writes nothing. */
-function visibilitySubject(
-  shape: VisibilityTupleShape,
-  org: string,
-): Subject | undefined {
+/**
+ * The driver's grant table for a visibility shape: the relation on the
+ * row, and the userset of the row's organization it names.
+ */
+function visibilityGrant(shape: VisibilityTupleShape): {
+  readonly relation: string;
+  readonly userset: string;
+} {
   switch (shape) {
     case "org-viewer":
-      // No organization to point at (a legacy row): no userset.
-      return org === ""
-        ? undefined
-        : {
-            form: "userset",
-            object: { type: "organization", id: org },
-            relation: "viewer",
-          };
-    case "platform-viewer":
-      return undefined;
+      return { relation: "viewer", userset: "viewer" };
+    case "child-org-viewer":
+      return { relation: "child_org_viewer", userset: "child_org_viewer" };
     default: {
       const exhaustive: never = shape;
       throw new Error(`unknown visibility shape: ${String(exhaustive)}`);
@@ -269,6 +282,7 @@ export function newDerivedTupleSource(
 ): DerivedTupleSource {
   const model = deps.model ?? builtInModel;
   const rows = new Map<string, Promise<Message | undefined>>();
+  const children = new Map<string, Promise<ReadonlyArray<string>>>();
   const derived = new Map<string, Promise<ReadonlyArray<Tuple>>>();
   const seeded = new Map<string, RowFacts>();
   for (const facts of seed?.facts ?? []) {
@@ -292,6 +306,15 @@ export function newDerivedTupleSource(
       const loading = loadRow(deps, model, object);
       rows.set(key, loading);
       return loading;
+    },
+    childOrganizations(organizationId) {
+      const held = children.get(organizationId);
+      if (held !== undefined) {
+        return held;
+      }
+      const reading = childOrganizationIds(deps.store, organizationId);
+      children.set(organizationId, reading);
+      return reading;
     },
   };
 
@@ -430,6 +453,30 @@ async function loadRow(
     }
     throw error;
   }
+}
+
+/**
+ * The ids of an organization's children, through the organization list
+ * index: one indexed read, memoised per source by the loader, whatever
+ * the number of blueprints a list checks against the same parent.
+ */
+async function childOrganizationIds(
+  store: Store,
+  organizationId: string,
+): Promise<ReadonlyArray<string>> {
+  if (organizationId === "") {
+    return [];
+  }
+  const rows = await store.queryResources(organizationListIndex, {
+    anyKey: [{ name: "parent_org", value: organizationId }],
+  });
+  return rows
+    .filter(
+      (row) =>
+        fromBinary(OrganizationSchema, row.data).spec?.parentOrg ===
+        organizationId,
+    )
+    .map((row) => row.id);
 }
 
 /**

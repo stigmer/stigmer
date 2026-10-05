@@ -5,11 +5,17 @@
  *
  * The contract is the cloud's, refusal for refusal and in the same order
  * (constants.ts carries the copy): the credentials, then the secret's
- * expiry (unset means never), then the `org` confirmation (a token is
- * always scoped to the client's owning organization), then the user.
+ * expiry (unset means never), then the `org` the token is for (the
+ * client's owning organization when empty; otherwise that organization or
+ * one of its child organizations, one read of the named row), then the
+ * user. Minting into a child is how an integrator with no OIDC provider
+ * routes its customers to their organizations, as external_id_claim does
+ * for one that has a provider.
  *
- * The user is keyed `stgm_pc|<org>|<user_id>`, so every client of one
- * organization resolves one user to one account, and that account's id is
+ * The user is keyed `stgm_pc|<org>|<user_id>` with the token's
+ * organization, so every client of one organization resolves one user to
+ * one account there, the same user_id in two children is two accounts,
+ * and that account's id is
  * derived from the subject (identityaccount/constants.ts accountIdFor). An
  * account that exists is used as it is — its roles and profile stay what
  * they are, whatever the client's settings say now — and must have been
@@ -20,11 +26,11 @@
  *   1. The account's input is built and validated, so nothing below runs
  *      for a user the create chain would refuse.
  *   2. When the client names a sign-in role (never owner), it is granted
- *      on the owning organization to the DERIVED account id, before the
- *      account row exists. The grant path is idempotent. A client's
- *      accounts belong to its organization alone, so an account's creation
- *      is its one first sign-in there, and no ledger is needed to grant
- *      once.
+ *      on the token's organization to the DERIVED account id, before the
+ *      account row exists. The grant path is idempotent. An account
+ *      belongs to that one organization alone (its subject names it), so
+ *      an account's creation is its one first sign-in there, and no ledger
+ *      is needed to grant once.
  *   3. The account is created through the identity-account domain's one
  *      create path, in `platform_client` mode. A concurrent first mint that
  *      won the race is read back.
@@ -84,6 +90,7 @@ import {
   type PlatformTokenKeyRing,
 } from "../../platformtoken/key-ring.js";
 import { signPlatformToken } from "../../platformtoken/envelope.js";
+import type { Store } from "../../store/interface.js";
 import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
 import { organizationRole } from "../iampolicy/specs.js";
 import {
@@ -96,6 +103,7 @@ import type {
 } from "../identityaccount/provisioning.js";
 import { resolveCreateRace } from "../identityaccount/provisioning.js";
 import type { IdentityAccountStore } from "../identityaccount/store.js";
+import { isChildOf } from "../organization/children.js";
 import {
   BEARER_TOKEN_TYPE,
   EXPIRED_CLIENT_SECRET_MESSAGE,
@@ -119,6 +127,8 @@ const SUBJECT_SEPARATOR = "|";
 
 export interface PlatformClientMintDeps {
   readonly clients: PlatformClientStore;
+  /** Where the organization a request names is read, to admit the client's child organizations. */
+  readonly store: Pick<Store, "getResource">;
   /** The any-mode subject lookup: an existing end user is found whatever wrote it. */
   readonly accounts: Pick<IdentityAccountStore, "findByIdpId">;
   /** The identity-account domain's one create path (identityaccount/controller.ts). */
@@ -154,13 +164,7 @@ export async function mintUserToken(
 
   const client = await authenticateClient(deps, request);
   const owningOrg = client.metadata?.org ?? "";
-  // A confirmation, never a selector: a token is scoped to the owning org.
-  if (request.org !== "" && request.org !== owningOrg) {
-    throw new ConnectError(
-      organizationMismatchMessage(owningOrg),
-      Code.InvalidArgument,
-    );
-  }
+  const tokenOrg = await tokenOrganization(deps, owningOrg, request.org);
 
   const user: EndUser = {
     externalUserId: request.userId,
@@ -170,7 +174,7 @@ export async function mintUserToken(
   const accountId = await resolveOrProvisionAccount(
     deps,
     client,
-    owningOrg,
+    tokenOrg,
     user,
   );
 
@@ -182,7 +186,7 @@ export async function mintUserToken(
       [USER_TOKEN_CLAIMS.externalUserId]: user.externalUserId,
       [USER_TOKEN_CLAIMS.email]: user.email,
       [USER_TOKEN_CLAIMS.name]: user.name,
-      [USER_TOKEN_CLAIMS.org]: owningOrg,
+      [USER_TOKEN_CLAIMS.org]: tokenOrg,
       [USER_TOKEN_CLAIMS.platformClientId]: client.metadata?.id ?? "",
     },
     { now },
@@ -193,6 +197,35 @@ export async function mintUserToken(
     tokenType: BEARER_TOKEN_TYPE,
     expiresIn: keys.ttlSeconds,
   });
+}
+
+/**
+ * The organization the token is for: the client's owning organization
+ * when the request names none or names it, else a child of it. Anything
+ * else is refused INVALID_ARGUMENT with one sentence, whether the named
+ * organization exists or not, before any user is resolved.
+ */
+async function tokenOrganization(
+  deps: PlatformClientMintDeps,
+  owningOrg: string,
+  requested: string,
+): Promise<string> {
+  if (requested === "" || requested === owningOrg) {
+    return owningOrg;
+  }
+  let child: boolean;
+  try {
+    child = await isChildOf(deps.store, requested, owningOrg);
+  } catch (error) {
+    throw internalError(error, "failed to read the requested organization");
+  }
+  if (!child) {
+    throw new ConnectError(
+      organizationMismatchMessage(owningOrg),
+      Code.InvalidArgument,
+    );
+  }
+  return requested;
 }
 
 /**

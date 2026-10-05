@@ -69,10 +69,20 @@ export interface TupleSource {
   tuplesOf(object: ObjectRef, relation: string): Promise<ReadonlyArray<Tuple>>;
 }
 
-/** A declaration's derived-relation rule reads related rows through this (default_of needs the blueprint). */
+/**
+ * A declaration's derived-relation rule reads related rows through this
+ * (default_of needs the blueprint; an organization's child_org edges need
+ * its children).
+ */
 export interface RowLoader {
   /** The decoded row, or undefined when there is none or the kind is not declared. */
   load(object: ObjectRef): Promise<Message | undefined>;
+  /**
+   * The ids of the organization's child organizations (the rows whose
+   * `spec.parent_org` is `organizationId`), read through the organization
+   * list index; empty when it has none.
+   */
+  childOrganizations(organizationId: string): Promise<ReadonlyArray<string>>;
 }
 
 /** The caller as the model sees them. */

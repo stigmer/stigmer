@@ -6,7 +6,7 @@ This directory contains the OpenFGA authorization model for the Stigmer platform
 
 Stigmer uses a **tuple-driven visibility model** where resource visibility is controlled by which FGA tuples are written on the `viewer` relation — not by application-layer checks. The FGA model declares which principal types are accepted; the application layer decides which tuple to write based on the resource's visibility setting.
 
-This follows the Google Zanzibar pattern used by Google Drive: "Specific people" writes individual tuples, "My organization" writes an org-group tuple, "every organization my identity provider manages" writes a platform-tenancy tuple. The model stays the same; visibility is controlled by tuple presence. There is no "anyone" tuple: the public level (a wildcard viewer under a request-time condition) was retired in stigmer#1211 (and in the cloud's model on 2026-09-23), and the model declares no wildcard subject and no condition — another organization's blueprint is reached by installing the plugin that carries it.
+This follows the Google Zanzibar pattern used by Google Drive: "Specific people" writes individual tuples, "My organization" writes an org-group tuple, "every organization under mine" writes a child-organization tuple. The model stays the same; visibility is controlled by tuple presence. There is no "anyone" tuple: the public level (a wildcard viewer under a request-time condition) was retired in stigmer#1211 (and in the cloud's model on 2026-09-23), and the model declares no wildcard subject and no condition — another organization's blueprint is reached by installing the plugin that carries it.
 
 ## The Authorization Tiers
 
@@ -21,9 +21,9 @@ Blueprint (Agent, Workflow)       ← discoverability and usability
 
 Each tier has independent but composable visibility:
 
-| Tier | Default Visibility | Supports Platform | Inheritance |
+| Tier | Default Visibility | Supports Child Orgs | Inheritance |
 |------|-------------------|-------------------|-------------|
-| **Blueprint** | Org members | Yes (`platform_viewer`) | — |
+| **Blueprint** | Org members | Yes (`child_org_viewer`) | — |
 | **Instance** (workflows) | Private (owner only) | No (a default instance inherits its workflow's) | — |
 | **Execution** | Inherited from parent | No (inherited) | Workflow: from instance. Agent: from session |
 
@@ -35,7 +35,7 @@ Instances support configurable visibility controlled by which tuples are written
 |---|---|---|
 | **Private** | (none beyond owner) | Owner only |
 | **Org** | `resource#viewer@organization:<org>#viewer` | Everyone in the org (all roles incl. read-only viewers) + owner |
-| **Platform** (blueprints only) | `resource#platform_viewer@identity_provider:<idp>#platform_user`, beside the org tuple | Every member of every organization the owning organization's identity provider manages |
+| **Child orgs** (blueprints only) | `resource#child_org_viewer@organization:<org>#child_org_viewer`, beside the org tuple | Everyone in every child organization of the owning organization |
 
 Individual grants (`resource#viewer@identity_account:<user>`) work at any visibility level.
 
@@ -71,10 +71,10 @@ Guest, channel and schedule sessions run as per-org system accounts that hold ex
 
 ### Open Access (Blueprints)
 
-Templates discoverable by all org members, with optional platform visibility:
+Templates discoverable by all org members, with optional child-organization visibility:
 
 ```fga
-define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or editor or platform_viewer
+define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or editor or child_org_viewer
 ```
 
 Resources: `agent`, `workflow`, `skill`, `mcp_server`, `plugin`
@@ -132,7 +132,7 @@ The bound is what makes leaving an organization mean what it says. A person who 
 
 `affiliated` is stored so the bound costs one read: a computed `viewer or guest` would walk the role chain again for every object a list checks. It is derived, never granted. The tuple stands exactly while the person holds at least one role row on the organization, a guest included. The IamPolicy grant path refuses it as a grant, and announces every change of a person's organization rows through the resource-authorization lifecycle (`onOrganizationAffiliationChanging` before a row goes, `onOrganizationAffiliationChanged` after any write or delete). The hosted edition re-derives the tuple from those announcements; open source derives it from the rows at check time, so it needs no migration.
 
-`affiliated` includes `guest` because the organization's system accounts (the guest, channel and schedule sessions) hold only `guest` and own the sessions and environments they create. The usersets on the same direct list (`organization#viewer`, `team#member`) are already inside the organization, so bounding them changes nothing. Platform visibility (`platform_viewer`) sits outside the bound: it is the one arm that crosses organizations by design. A relation that is the kind's structural parent link stays a direct relation, and the bound goes on the permissions that read it instead (`memory.subject_in_organization`).
+`affiliated` includes `guest` because the organization's system accounts (the guest, channel and schedule sessions) hold only `guest` and own the sessions and environments they create. The usersets on the same direct list (`organization#viewer`, `team#member`) are already inside the organization, so bounding them changes nothing. Child-organization visibility (`child_org_viewer`) sits outside the bound: it is the one arm that crosses organizations by design, from a parent to its children. A relation that is the kind's structural parent link stays a direct relation, and the bound goes on the permissions that read it instead (`memory.subject_in_organization`).
 
 Resources: every type with an `organization` relation and a direct `identity_account` list
 
@@ -216,14 +216,23 @@ A model change's note is its pull request and its commit: what changed, why, and
 
 ## FGA Tuple Examples
 
-### Blueprint (Platform-Visible Agent)
+### Blueprint (Agent Shared With Child Organizations)
 
 ```
 agent:pr-reviewer#organization@organization:stigmer
 agent:pr-reviewer#owner@identity_account:alice
 agent:pr-reviewer#viewer@organization:stigmer#viewer     ← the org floor
-agent:pr-reviewer#platform_viewer@identity_provider:idp1#platform_user
+agent:pr-reviewer#child_org_viewer@organization:stigmer#child_org_viewer
 ```
+
+### Parent and Child Organizations
+
+```
+organization:acme-cust#parent_org@organization:stigmer   ← on the child
+organization:stigmer#child_org@organization:acme-cust    ← on the parent
+```
+
+Both edges are written once, when the child is created; a child has no `owner` tuple. The parent's admins hold `parent_admin` on the child, which feeds only the management permissions (`can_view_settings`, `can_edit`, `can_delete`, `can_grant_access`, `can_view_access`, `can_assign_roles`, `can_view_billing`), never a role: they manage the child and read none of its resources. A parent admin who needs to look inside grants themselves a role in the child, which the child's members and access history show.
 
 ### Instance (Org-Visible Workflow Instance)
 

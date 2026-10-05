@@ -62,6 +62,17 @@
  * Absent method = no mirror is written (the OSS posture: rows are the
  * record).
  *
+ * The parent and child organization edges ride the seam the same way:
+ * `organization:<child>#parent_org@organization:<parent>` and its reverse,
+ * `organization:<parent>#child_org@organization:<child>`, which open
+ * source derives from the child's `spec.parent_org` and from the
+ * organization list index when a check asks (authorization/model/
+ * child-organizations.ts) and an edition that stores tuples must write.
+ * `onChildOrganizationLinked` hands the driver both, once, after a child
+ * persists; the edges never change (`spec.parent_org` is fixed at create)
+ * and die with the child's delete cleanup, which removes tuples naming
+ * the child on either side.
+ *
  * One more structural relation rides the seam the way `default_of` does:
  * a workflow instance's run audience, `execution_viewer`, which open
  * source derives from `spec.execution_visibility` when a check asks
@@ -84,13 +95,14 @@ import type { CallerIdentity } from "./identity.js";
 /**
  * The visibility tuple shapes of the shared FGA model, named
  * edition-neutrally. The driver maps each to its tuple:
- *   - org-viewer:      <kind>:<id>#viewer@organization:<org>#viewer
- *   - platform-viewer: <kind>:<id>#platform_viewer@identity_provider:<idp>#platform_user
- *     (fans out per IdP the org owns — the driver's lookup, not OSS's)
+ *   - org-viewer:       <kind>:<id>#viewer@organization:<org>#viewer
+ *   - child-org-viewer: <kind>:<id>#child_org_viewer@organization:<org>#child_org_viewer
+ *     (everyone in every child organization of <org>; one tuple, whatever
+ *     the number of children, children created later included)
  * Every shape names a bounded set of readers; the model has no shape that
  * reaches every account.
  */
-export type VisibilityTupleShape = "org-viewer" | "platform-viewer";
+export type VisibilityTupleShape = "org-viewer" | "child-org-viewer";
 
 /**
  * The run-audience shapes of a workflow instance's execution visibility,
@@ -218,6 +230,19 @@ export interface DefaultInstanceLinkedEvent {
 }
 
 /**
+ * Fired synchronously after a child organization is first persisted and
+ * its creation event handled: the driver writes
+ * `organization:<childId>#parent_org@organization:<parentId>` and
+ * `organization:<parentId>#child_org@organization:<childId>`. Idempotent;
+ * a throw fails the create with the row in place, and a retry of the
+ * create (apply) converges.
+ */
+export interface ChildOrganizationLinkedEvent {
+  readonly childId: string;
+  readonly parentId: string;
+}
+
+/**
  * Fired synchronously after a workflow instance's
  * `spec.execution_visibility` is persisted at create (only when the level
  * names an audience) or by updateExecutionVisibility (always). `shapes` is
@@ -291,6 +316,14 @@ export interface ResourceAuthorizationLifecycle {
    * (the OSS posture: local access control needs none).
    */
   onDefaultInstanceLinked?(event: DefaultInstanceLinkedEvent): Promise<void>;
+  /**
+   * OPTIONAL: synchronous, post-persist, after `onResourceCreated` for a
+   * child organization; a throw fails the request (the row survives —
+   * retry converges, the writes are idempotent). Absent method = no edge
+   * is written (the OSS posture: the edges are derived from the row and
+   * the list index at check time).
+   */
+  onChildOrganizationLinked?(event: ChildOrganizationLinkedEvent): Promise<void>;
   /**
    * OPTIONAL: synchronous, post-persist; a throw fails
    * the request (the level survives — retry converges, the event is the

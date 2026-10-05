@@ -1,0 +1,306 @@
+# Store tests for parent and child organizations.
+#
+# Verifies the two halves of a child organization end-to-end against the
+# authorization model:
+#
+#   - management: the parent's admins hold parent_admin on a child
+#     (admin from parent_org), which feeds the management permissions and
+#     never a role, so they manage the child and read nothing it holds;
+#   - sharing: a blueprint at visibility_child_orgs names
+#     organization:<parent>#child_org_viewer, which is everyone in every
+#     child (viewer from child_org).
+#
+# Run with:
+#   fga model test --tests child-organizations.fga.yaml
+#
+# Scenario: "planton" is a parent with two children (acme, beta).
+# "rival" is another parent with its own child (rivalco). "outsider"
+# is an unrelated organization.
+name: child-organizations
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- The edges, both written once when each child is created ---
+  - {user: organization:planton, relation: parent_org, object: organization:acme}
+  - {user: organization:acme, relation: child_org, object: organization:planton}
+  - {user: organization:planton, relation: parent_org, object: organization:beta}
+  - {user: organization:beta, relation: child_org, object: organization:planton}
+  - {user: organization:rival, relation: parent_org, object: organization:rivalco}
+  - {user: organization:rivalco, relation: child_org, object: organization:rival}
+
+  # --- Memberships ---
+  # swarup owns planton; pat administers it; priya is a member; veda a viewer.
+  - {user: identity_account:swarup, relation: owner, object: organization:planton}
+  - {user: identity_account:swarup, relation: affiliated, object: organization:planton}
+  - {user: identity_account:pat, relation: admin, object: organization:planton}
+  - {user: identity_account:pat, relation: affiliated, object: organization:planton}
+  - {user: identity_account:priya, relation: member, object: organization:planton}
+  - {user: identity_account:priya, relation: affiliated, object: organization:planton}
+  - {user: identity_account:veda, relation: viewer, object: organization:planton}
+  - {user: identity_account:veda, relation: affiliated, object: organization:planton}
+  # alice is a member of acme; vic a read-only viewer there; bob a member of beta.
+  - {user: identity_account:alice, relation: member, object: organization:acme}
+  - {user: identity_account:alice, relation: affiliated, object: organization:acme}
+  - {user: identity_account:vic, relation: viewer, object: organization:acme}
+  - {user: identity_account:vic, relation: affiliated, object: organization:acme}
+  - {user: identity_account:bob, relation: member, object: organization:beta}
+  - {user: identity_account:bob, relation: affiliated, object: organization:beta}
+  # rhea administers rival; ross is a member of rival's child.
+  - {user: identity_account:rhea, relation: admin, object: organization:rival}
+  - {user: identity_account:rhea, relation: affiliated, object: organization:rival}
+  - {user: identity_account:ross, relation: member, object: organization:rivalco}
+  - {user: identity_account:ross, relation: affiliated, object: organization:rivalco}
+  - {user: identity_account:mallory, relation: member, object: organization:outsider}
+  - {user: identity_account:mallory, relation: affiliated, object: organization:outsider}
+
+  # --- Shared with children (visibility_child_orgs) by planton ---
+  # The level carries the org floor too, so planton's own people keep it.
+  - {user: organization:planton, relation: organization, object: agent:sara}
+  - {user: identity_account:swarup, relation: owner, object: agent:sara}
+  - {user: organization:planton#child_org_viewer, relation: child_org_viewer, object: agent:sara}
+  - {user: organization:planton#viewer, relation: viewer, object: agent:sara}
+  - {user: organization:planton, relation: organization, object: skill:research}
+  - {user: organization:planton#child_org_viewer, relation: child_org_viewer, object: skill:research}
+  - {user: organization:planton, relation: organization, object: workflow:onboarding}
+  - {user: organization:planton#child_org_viewer, relation: child_org_viewer, object: workflow:onboarding}
+  - {user: organization:planton, relation: organization, object: mcp_server:github}
+  - {user: organization:planton#child_org_viewer, relation: child_org_viewer, object: mcp_server:github}
+  - {user: organization:planton, relation: organization, object: plugin:thermos}
+  - {user: organization:planton#child_org_viewer, relation: child_org_viewer, object: plugin:thermos}
+
+  # --- Private agent of planton's (no child_org_viewer tuple) ---
+  - {user: organization:planton, relation: organization, object: agent:internal-bot}
+  - {user: identity_account:swarup, relation: owner, object: agent:internal-bot}
+
+  # --- Shared with children by rival ---
+  - {user: organization:rival, relation: organization, object: agent:rival-bot}
+  - {user: organization:rival#child_org_viewer, relation: child_org_viewer, object: agent:rival-bot}
+
+  # --- What acme holds: an org-visible agent, a session, an org-shared
+  #     environment and a memory, all alice's ---
+  - {user: organization:acme, relation: organization, object: agent:acme-helper}
+  - {user: identity_account:alice, relation: owner, object: agent:acme-helper}
+  - {user: organization:acme#viewer, relation: viewer, object: agent:acme-helper}
+  - {user: organization:acme, relation: organization, object: session:acme-chat}
+  - {user: identity_account:alice, relation: owner, object: session:acme-chat}
+  - {user: organization:acme, relation: organization, object: environment:acme-env}
+  - {user: identity_account:alice, relation: owner, object: environment:acme-env}
+  - {user: organization:acme#viewer, relation: viewer, object: environment:acme-env}
+  - {user: organization:acme, relation: organization, object: memory:acme-fact}
+  - {user: identity_account:alice, relation: subject, object: memory:acme-fact}
+
+tests:
+  - name: a parent admin manages a child
+    check:
+      - user: identity_account:pat
+        object: organization:acme
+        assertions:
+          parent_admin: true
+          can_view_settings: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+          can_view_access: true
+          can_assign_roles: true
+          can_view_billing: true
+      - user: identity_account:swarup
+        object: organization:beta
+        assertions:
+          can_edit: true
+          can_grant_access: true
+          can_view_billing: true
+
+  - name: a parent admin holds no role in a child, so reads nothing it holds
+    check:
+      - user: identity_account:pat
+        object: organization:acme
+        assertions:
+          owner: false
+          admin: false
+          member: false
+          viewer: false
+          affiliated: false
+          can_view: false
+          can_manage_billing: false
+          can_create_session: false
+          can_create_agent: false
+          can_create_execution_in: false
+      - user: identity_account:pat
+        object: agent:acme-helper
+        assertions:
+          viewer: false
+          can_view: false
+          can_execute: false
+      - user: identity_account:pat
+        object: session:acme-chat
+        assertions:
+          can_view: false
+      - user: identity_account:pat
+        object: environment:acme-env
+        assertions:
+          viewer: false
+          can_view: false
+      - user: identity_account:pat
+        object: memory:acme-fact
+        assertions:
+          can_view: false
+
+  - name: the parent's members and viewers do not manage a child
+    check:
+      - user: identity_account:priya
+        object: organization:acme
+        assertions:
+          parent_admin: false
+          can_view_settings: false
+          can_edit: false
+          can_grant_access: false
+          can_view_billing: false
+      - user: identity_account:veda
+        object: organization:acme
+        assertions:
+          can_view_settings: false
+          can_view_billing: false
+
+  - name: another parent's admin manages none of planton's children
+    check:
+      - user: identity_account:rhea
+        object: organization:acme
+        assertions:
+          parent_admin: false
+          can_view_settings: false
+          can_edit: false
+
+  - name: a child's own people keep their roles and settings
+    check:
+      - user: identity_account:alice
+        object: organization:acme
+        assertions:
+          can_view: true
+          can_view_settings: true
+          can_edit: false
+      - user: identity_account:alice
+        object: organization:planton
+        assertions:
+          can_view: false
+          can_view_settings: false
+          child_org_viewer: true
+
+  - name: only a parent's admins manage its children
+    check:
+      - user: identity_account:pat
+        object: organization:planton
+        assertions:
+          can_manage_child_orgs: true
+      - user: identity_account:priya
+        object: organization:planton
+        assertions:
+          can_manage_child_orgs: false
+      - user: identity_account:alice
+        object: organization:planton
+        assertions:
+          can_manage_child_orgs: false
+
+  - name: everyone in a child reads and runs what the parent shares with children
+    check:
+      - user: identity_account:alice
+        object: agent:sara
+        assertions:
+          can_view: true
+          can_execute: true
+          can_edit: false
+          can_delete: false
+      # A read-only viewer of the child too: the audience is every role.
+      - user: identity_account:vic
+        object: agent:sara
+        assertions:
+          can_view: true
+          can_execute: true
+      - user: identity_account:bob
+        object: agent:sara
+        assertions:
+          can_view: true
+          can_execute: true
+      - user: identity_account:alice
+        object: skill:research
+        assertions:
+          can_view: true
+          can_edit: false
+      - user: identity_account:alice
+        object: workflow:onboarding
+        assertions:
+          can_view: true
+          can_execute: true
+      - user: identity_account:alice
+        object: mcp_server:github
+        assertions:
+          can_view: true
+          can_connect: true
+      - user: identity_account:alice
+        object: plugin:thermos
+        assertions:
+          can_view: true
+
+  - name: nobody outside planton's children reads what it shares with them
+    check:
+      # Another parent's child.
+      - user: identity_account:ross
+        object: agent:sara
+        assertions:
+          can_view: false
+          can_execute: false
+      # An unrelated organization's member.
+      - user: identity_account:mallory
+        object: agent:sara
+        assertions:
+          can_view: false
+          can_execute: false
+      # A child's member reads nothing another parent shares with its children.
+      - user: identity_account:alice
+        object: agent:rival-bot
+        assertions:
+          can_view: false
+
+  - name: the parent's own people keep the shared agent through the org floor
+    check:
+      - user: identity_account:priya
+        object: agent:sara
+        assertions:
+          can_view: true
+          can_execute: true
+          can_edit: false
+      - user: identity_account:veda
+        object: agent:sara
+        assertions:
+          can_view: true
+          can_edit: false
+      - user: identity_account:swarup
+        object: agent:sara
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+
+  - name: sharing with children does not leak the parent's private agents
+    check:
+      - user: identity_account:alice
+        object: agent:internal-bot
+        assertions:
+          can_view: false
+          can_execute: false
+      - user: identity_account:priya
+        object: agent:internal-bot
+        assertions:
+          can_view: false
+
+  - name: a child member's viewable agents are the shared one and the child's own
+    list_objects:
+      - user: identity_account:alice
+        type: agent
+        assertions:
+          can_view:
+            - agent:sara
+            - agent:acme-helper
+      - user: identity_account:pat
+        type: session
+        assertions:
+          can_view: []

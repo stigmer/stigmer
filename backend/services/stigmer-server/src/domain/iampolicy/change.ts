@@ -17,9 +17,9 @@
  *
  * An access row is a row that lets someone reach something: it names a
  * person, or an audience written as a userset (`team:T#member`,
- * `organization:O#viewer`, `identity_provider:I#platform_user`). A row
+ * `organization:O#viewer`, `organization:O#child_org_viewer`). A row
  * naming a resource as its principal with no relation is a structural link
- * (a parent, a default instance, a managed organization), the bookkeeping
+ * (a parent, a default instance, a child organization), the bookkeeping
  * a resource's own creation implies; it carries no change record.
  *
  * The actor is the caller's id and class and nothing else: never the email,

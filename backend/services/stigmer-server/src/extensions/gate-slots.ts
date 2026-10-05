@@ -46,11 +46,13 @@
  * position the session chain's slot holds. It exists for a refusal that
  * must leave nothing behind: `org-create:post-persist` runs after the row
  * is written, so a limit enforced there would leave the organization it
- * refused. The Cloud refuses a platform-managed organization its
- * integrator's plan does not admit. An edition's organization count is not
- * a slot step: the composition declares it (`ServerExtension.orgLimit`)
- * and the chain's own OrganizationLimit step holds it at this seat, just
- * before the slot's steps (domain/organization/limit.ts). `apply`
+ * refused. The Cloud refuses a child organization its parent's plan does
+ * not admit. Two of the chain's own rules are not slot steps and hold this
+ * seat just before the slot's steps: a child's parent and external id
+ * (ValidateChildOrganization, domain/organization/children.ts), and an
+ * edition's organization count, which the composition declares
+ * (`ServerExtension.orgLimit`) and the OrganizationLimit step holds
+ * (domain/organization/limit.ts). `apply`
  * delegates to create on its create arm, so the slot fires there as well.
  *
  * The tenth, `org-delete:pre-delete`: the organization delete chain after
@@ -62,9 +64,9 @@
  * organization carries, so nothing can pass to a new holder of its slug;
  * the order still keeps an edition's rows from outliving their
  * organization.) Its
- * steps may refuse (Enterprise refuses while an
- * identity provider still signs in platform-managed organizations) or
- * remove the edition's own rows; either way a throw fails the delete with
+ * steps may refuse or remove the edition's own rows (the chain's own
+ * RefuseDeletingParent runs before them: an organization that still has
+ * children is never deleted); either way a throw fails the delete with
  * the organization intact, and the retry re-runs every step, so each owns
  * its idempotency. After the slot the chain revokes the organization's own
  * policy rows, also before the row and also failing closed.

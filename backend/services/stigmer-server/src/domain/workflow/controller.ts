@@ -134,6 +134,8 @@ import {
   validator,
 } from "../../pipeline/steps/validation.js";
 import {
+  newRefuseChildOrgsVisibilityInChildStep,
+  newRefuseChildOrgsVisibilityInChildUpdateStep,
   newValidateVisibilityStep,
   newValidateVisibilityUpdateStep,
 } from "../../pipeline/steps/validate-visibility.js";
@@ -246,6 +248,7 @@ async function createWorkflow(
     )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
+    .addStep(newRefuseChildOrgsVisibilityInChildStep(deps.store))
     .addStep(newValidateWorkflowSpecStep(deps.validator, deps.logger))
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
@@ -474,6 +477,7 @@ async function updateVisibility(
       newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_WORKFLOW_KEY),
     )
     .addStep(newValidateVisibilityUpdateStep())
+    .addStep(newRefuseChildOrgsVisibilityInChildUpdateStep(deps.store, UPDATE_VISIBILITY_WORKFLOW_KEY))
     // The reference floor's second door: a workflow may not be raised above
     // the agents its agent_call tasks run.
     .addStep(

@@ -32,7 +32,7 @@ module agentic
 # Every workflow has exactly one system-managed default instance (the empty
 # config shell the runner resolves when a user has no personal instance).
 # Its access must always be EXACTLY the parent workflow's access — private,
-# org, or platform — or entitled users are denied mid-execution.
+# org, or child_orgs — or entitled users are denied mid-execution.
 # Rather than copying the parent's visibility enum onto the instance (which
 # drifts and needs cascades/migrations on every parent change), the default
 # instance carries a single `default_of` tuple and inherits `viewer` from
@@ -76,9 +76,10 @@ type workflow_instance
     # Written ONLY on the workflow's one system-managed default instance —
     # invariant: this tuple exists iff workflow.status.defaultInstanceId
     # points at this instance. It makes the default instance exactly as
-    # reachable as its template: org members and platform users
-    # (identity_provider#platform_user via the workflow's
-    # platform_viewer) all inherit viewer through the workflow's own viewer
+    # reachable as its template: org members and the people of the
+    # owning organization's children (organization#child_org_viewer via
+    # the workflow's child_org_viewer) all inherit viewer through the
+    # workflow's own viewer
     # relation. Never written on user-created instances — that would leak
     # personal configuration to everyone who can see the workflow. Distinct
     # from `workflow` above, which is written on EVERY instance purely for

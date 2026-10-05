@@ -103,7 +103,10 @@ import {
 import { newGuardPluginManagedStep } from "../../pipeline/steps/guard-plugin-managed.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
-import { newValidateVisibilityUpdateStep } from "../../pipeline/steps/validate-visibility.js";
+import {
+  newRefuseChildOrgsVisibilityInChildUpdateStep,
+  newValidateVisibilityUpdateStep,
+} from "../../pipeline/steps/validate-visibility.js";
 import { newDeleteVersionArchivesStep } from "../../pipeline/steps/version-archive.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -456,6 +459,7 @@ async function updateVisibility(
     )
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_SKILL_KEY))
     .addStep(newValidateVisibilityUpdateStep())
+    .addStep(newRefuseChildOrgsVisibilityInChildUpdateStep(deps.store, UPDATE_VISIBILITY_SKILL_KEY))
     .addStep(newSetVisibilityStep())
     .addStep(newPersistSkillForVisibilityUpdateStep(deps.store))
     .addStep(

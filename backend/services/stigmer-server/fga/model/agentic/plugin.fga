@@ -28,7 +28,7 @@ module agentic
 # - plugin:thermos#organization@organization:stigmer
 # - plugin:thermos#owner@identity_account:alice
 # - plugin:thermos#viewer@organization:stigmer#viewer (if visibility>=ORG)
-# - plugin:thermos#platform_viewer@identity_provider:<idp>#platform_user (if visibility=PLATFORM)
+# - plugin:thermos#child_org_viewer@organization:<org>#child_org_viewer (if visibility=CHILD_ORGS)
 
 type plugin
   relations
@@ -43,16 +43,16 @@ type plugin
     define owner: ([identity_account] and affiliated from organization) or admin from organization
 
     # ========================================
-    # PLATFORM VISIBILITY (Structural)
+    # CHILD-ORGANIZATION VISIBILITY (Structural)
     # ========================================
-    define platform_viewer: [identity_provider#platform_user]
+    define child_org_viewer: [organization#child_org_viewer]
 
     # ========================================
     # VIEWER ACCESS
     # ========================================
     # team#member is an Enterprise team's grant: every member, bounded by
     # the organization in team.fga.
-    define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or platform_viewer
+    define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or child_org_viewer
 
     # ========================================
     # PERMISSIONS

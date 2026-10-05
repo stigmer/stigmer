@@ -3,9 +3,11 @@ module tenancy
 # ========================================
 # ORGANIZATION TYPE (Root-level Resource)
 # ========================================
-# Organizations are top-level containers for resources.
-# No parent - created at platform level.
-# Creator automatically becomes owner.
+# Organizations are top-level containers for resources. An organization
+# may have a parent organization (spec.parent_org), one level deep: a child
+# organization, such as the organization an integrator runs for one of its
+# customers. The creator of an organization becomes its owner; a child has
+# no creator owner, its parent's admins manage it.
 #
 # Permission hierarchy: owner > admin > member > viewer
 #
@@ -15,6 +17,9 @@ module tenancy
 #
 # FGA tuples on org creation:
 # - organization:acme#owner@identity_account:alice
+# and on a child's creation, both edges and no owner:
+# - organization:acme-cust#parent_org@organization:acme
+# - organization:acme#child_org@organization:acme-cust
 
 type organization
   relations
@@ -61,13 +66,38 @@ type organization
     # and open source derives it from the rows at check time.
     # FGA tuple: organization:<org_id>#affiliated@identity_account:<user_id>
     define affiliated: [identity_account]
+
+    # ========================================
+    # PARENT AND CHILD ORGANIZATIONS
+    # ========================================
+    # A child organization names its parent; both edges are written once,
+    # when the child is created, and never change (spec.parent_org is
+    # fixed). One level deep: a child has no children.
+    # FGA tuple: organization:<child>#parent_org@organization:<parent>
+    define parent_org: [organization]
+    # The reverse edge, on the parent.
+    # FGA tuple: organization:<parent>#child_org@organization:<child>
+    define child_org: [organization]
+    # Everyone who holds a role in any child: the audience of a blueprint
+    # shared at visibility_child_orgs, which names this userset.
+    define child_org_viewer: viewer from child_org
+    # The parent's admins, on a child. They manage the child (its
+    # settings, members, access and billing) and read nothing it holds:
+    # parent_admin feeds the management permissions below and never a
+    # role, so no resource type, report or list reaches them. To look
+    # inside, a parent admin grants themselves a role in the child, which
+    # the child's members and access history show.
+    define parent_admin: admin from parent_org
     
     # ========================================
     # CRUD OPERATIONS
     # ========================================
     define can_view: viewer
-    define can_edit: admin
-    define can_delete: owner
+    # The organization itself (OrganizationQueryController.get): every role,
+    # and the parent's admins.
+    define can_view_settings: can_view or parent_admin
+    define can_edit: admin or parent_admin
+    define can_delete: owner or parent_admin
     
     # ========================================
     # MEMBER MANAGEMENT
@@ -76,7 +106,7 @@ type organization
     # the invitation lane ask it whenever a change touches owner, on top of
     # can_grant_access: an admin grants every role up to admin, and only an
     # owner makes an owner.
-    define can_assign_roles: owner
+    define can_assign_roles: owner or parent_admin
     
     # ========================================
     # RESOURCE CREATION PERMISSIONS
@@ -108,15 +138,18 @@ type organization
     define can_create_agent_share: admin
     # Teams are the organization's, managed by its admins (team.fga).
     define can_create_team: admin
+    # Creating, finding and listing the organization's children. A child's
+    # admins hold it too and cannot use it: a child has no children.
+    define can_manage_child_orgs: admin
     
     # ========================================
     # IAM POLICY MANAGEMENT
     # ========================================
-    define can_grant_access: admin
-    define can_view_access: viewer
+    define can_grant_access: admin or parent_admin
+    define can_view_access: viewer or parent_admin
     
     # ========================================
     # BILLING PERMISSIONS
     # ========================================
-    define can_view_billing: viewer
+    define can_view_billing: viewer or parent_admin
     define can_manage_billing: admin

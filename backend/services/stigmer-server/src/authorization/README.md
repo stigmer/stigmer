@@ -31,11 +31,14 @@ computes.
   module load, and what OpenFGA's validator proved re-asserted, so a hand edit
   fails the boot, never an answer.
 - `model/bindings.ts` — what JSON cannot carry: each type's row schema
-  (`ROWLESS` for `platform`, which resolves over tuples alone) and the two
+  (`ROWLESS` for `platform`, which resolves over tuples alone) and the
   relations no row carries as a `kind_meta` fact: `default_of` on the two
   instance kinds (`model/default-of.ts`, from the blueprint's
-  `status.default_instance_id`) and `execution_viewer` on the workflow instance
-  (`model/execution-viewer.ts`, from `spec.execution_visibility`).
+  `status.default_instance_id`), `execution_viewer` on the workflow instance
+  (`model/execution-viewer.ts`, from `spec.execution_visibility`), and an
+  organization's `parent_org` and `child_org` edges
+  (`model/child-organizations.ts`, from a child's `spec.parent_org` and the
+  organization list index).
 - `model/index.ts` — the built-in model: the reader joined with the bindings,
   every type in `fga.mod` order, answered by kind or by FGA type name. It
   declares every type, whichever edition serves it; the tier decides what an
@@ -130,7 +133,7 @@ the message `kind_meta` names, and the team grants to `team_grantable_roles`;
 `__tests__/wire-permissions.test.ts` pins that every question an RPC annotation
 in `@stigmer/protos` asks is a relation the model defines, today's known gaps
 pinned by name. The rest pin the machinery:
-alias matching, the memo, the bounds, the source and the two derived rules on
+alias matching, the memo, the bounds, the source and the derived rules on
 both store drivers. The four drivers are pinned arm by arm on both store drivers
 (`__tests__/authorizer.postgres.test.ts`, `organization-directory.postgres.test.ts`,
 `schedule-fire-caller.postgres.test.ts`, `list-read-scope.postgres.test.ts` — the adversarial

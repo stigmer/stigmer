@@ -47,23 +47,28 @@ export interface CredentialBinding {
     caller: CallerIdentity,
     target: BindingTarget,
   ): Promise<BindingVerdict>;
-  /** Whether the caller may act in `org`: always for an unbound caller, only its own for a bound one. */
+  /**
+   * Whether the caller may act in `org`: always for an unbound caller, only
+   * its own for a bound one (a lane that writes into an organization; a
+   * parent's management of a child goes through the Authorizer).
+   */
   admitsOrganization(caller: CallerIdentity, org: string): boolean;
   /**
    * Whether a list candidate may be shown to the caller, from the facts the
-   * candidate carries (no read). A blueprint shared across organizations is
-   * kept for the inner scope to decide. Two answers differ from `verdict`
-   * because they would need a row the candidate does not carry: the default
-   * instance of another organization's shared blueprint is left out of a
-   * bound caller's list (a get by id still admits it), and the owner's API
-   * keys are all listed (managing one still needs it limited where the
-   * caller is).
+   * candidate carries and, for a blueprint another organization shares with
+   * its children, the bound organization's parent (one read per request,
+   * memoised). Such a blueprint is kept, for the inner scope to decide, only
+   * when that parent shares it. Two answers differ from `verdict` because
+   * they would need a row the candidate does not carry: the default instance
+   * of the parent's shared workflow is left out of a bound caller's list (a
+   * get by id still admits it), and the owner's API keys are all listed
+   * (managing one still needs it limited where the caller is).
    */
   keepsEntry(
     caller: CallerIdentity,
     kind: ApiResourceKind,
     entry: RowAuthorizationFacts,
-  ): boolean;
+  ): Promise<boolean>;
   /** The subset of `ids` of `kind` the caller's credential may reach `permission` on; reads each id's row, memoised. */
   narrowIds(
     caller: CallerIdentity,
