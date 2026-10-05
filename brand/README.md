@@ -19,9 +19,10 @@ avatar services can crop the square into a circle without clipping the mark.
 ## Maintenance
 
 Edit `logo.svg`, then run `npm run generate:brand` from the repository root. The
-refined artwork retains the four organic forms and four separate dots,
-reinforces narrow connections, and uses a vector mask to open their spacing.
-`geometry.ts` is generated for the inline UI marks; do not edit it directly.
+refined artwork retains the four organic forms and four separate dots, with
+continuous smooth curves, circular dots, and balanced opposing forms. Each form
+is one filled outline; no reinforcing strokes or masks are needed. `geometry.ts`
+is generated for the inline UI marks; do not edit it directly.
 
 The website, web console and desktop icon generators read this same source.
 Their favicon, touch-icon, PWA, ICO and ICNS sizes are platform outputs, not
