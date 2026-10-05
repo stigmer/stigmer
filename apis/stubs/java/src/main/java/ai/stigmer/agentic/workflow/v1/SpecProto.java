@@ -76,7 +76,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "o\032)ai/stigmer/agentic/workflow/v1/enum.p" +
       "roto\0322ai/stigmer/commons/apiresource/fie" +
       "ld_options.proto\032\033buf/validate/validate." +
-      "proto\032\034google/protobuf/struct.proto\"\323\003\n\014" +
+      "proto\032\034google/protobuf/struct.proto\"\315\004\n\014" +
       "WorkflowSpec\022 \n\013description\030\001 \001(\tR\013descr" +
       "iption\022T\n\010document\030\002 \001(\01320.ai.stigmer.ag" +
       "entic.workflow.v1.WorkflowDocumentB\006\272H\003\310" +
@@ -85,38 +85,41 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\002\010\001R\005tasks\022G\n\003env\030\004 \003(\01325.ai.stigmer.age" +
       "ntic.workflow.v1.WorkflowSpec.EnvEntryR\003" +
       "env\022F\n\006budget\030\005 \001(\0132..ai.stigmer.agentic" +
-      ".workflow.v1.WorkflowBudgetR\006budget\032l\n\010E" +
-      "nvEntry\022\020\n\003key\030\001 \001(\tR\003key\022J\n\005value\030\002 \001(\013" +
-      "24.ai.stigmer.agentic.environment.v1.Env" +
-      "VarDeclarationR\005value:\0028\001\"\353\001\n\016WorkflowBu" +
-      "dget\022&\n\017max_cost_micros\030\001 \001(\003R\rmaxCostMi" +
-      "cros\022(\n\020max_total_tokens\030\002 \001(\003R\016maxTotal" +
-      "Tokens\0220\n\024max_duration_seconds\030\003 \001(\005R\022ma" +
-      "xDurationSeconds\022U\n\013on_exceeded\030\004 \001(\01624." +
-      "ai.stigmer.agentic.workflow.v1.BudgetExc" +
-      "eededPolicyR\nonExceeded\"\274\001\n\020WorkflowDocu" +
-      "ment\022\"\n\003dsl\030\001 \001(\tB\020\272H\rr\0132\t^1\\.0\\.0$R\003dsl" +
-      "\022$\n\tnamespace\030\002 \001(\tB\006\272H\003\310\001\001R\tnamespace\022\032" +
-      "\n\004name\030\003 \001(\tB\006\272H\003\310\001\001R\004name\022 \n\007version\030\004 " +
-      "\001(\tB\006\272H\003\310\001\001R\007version\022 \n\013description\030\005 \001(" +
-      "\tR\013description\"\254\003\n\014WorkflowTask\0225\n\004name\030" +
-      "\001 \001(\tB!\272H\036r\034\020\0012\030^[a-zA-Z_][a-zA-Z0-9_]*$" +
-      "R\004name\022L\n\004kind\030\002 \001(\01620.ai.stigmer.agenti" +
-      "c.workflow.v1.WorkflowTaskKindB\006\272H\003\310\001\001R\004" +
-      "kind\022H\n\013task_config\030\003 \001(\0132\027.google.proto" +
-      "buf.StructB\016\272H\003\310\001\001\352\205,\004kindR\ntaskConfig\022>" +
-      "\n\006export\030\004 \001(\0132&.ai.stigmer.agentic.work" +
-      "flow.v1.ExportR\006export\022?\n\004flow\030\005 \001(\0132+.a" +
-      "i.stigmer.agentic.workflow.v1.FlowContro" +
-      "lR\004flow\022L\n\ncompensate\030\006 \003(\0132,.ai.stigmer" +
-      ".agentic.workflow.v1.WorkflowTaskR\ncompe" +
-      "nsate\"!\n\006Export\022\027\n\002as\030\001 \001(\tB\007\272H\004r\002\020\001R\002as" +
-      "\"!\n\013FlowControl\022\022\n\004then\030\001 \001(\tR\004thenB\250\001B\t" +
-      "SpecProtoP\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic." +
-      "Workflow.V1\312\002\036Ai\\Stigmer\\Agentic\\Workflo" +
-      "w\\V1\342\002*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GP" +
-      "BMetadata\352\002\"Ai::Stigmer::Agentic::Workfl" +
-      "ow::V1b\006proto3"
+      ".workflow.v1.WorkflowBudgetR\006budget\022x\n\024e" +
+      "xecution_visibility\030\006 \001(\0162;.ai.stigmer.a" +
+      "gentic.workflow.v1.WorkflowExecutionVisi" +
+      "bilityB\010\272H\005\202\001\002\020\001R\023executionVisibility\032l\n" +
+      "\010EnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022J\n\005value\030\002 \001" +
+      "(\01324.ai.stigmer.agentic.environment.v1.E" +
+      "nvVarDeclarationR\005value:\0028\001\"\353\001\n\016Workflow" +
+      "Budget\022&\n\017max_cost_micros\030\001 \001(\003R\rmaxCost" +
+      "Micros\022(\n\020max_total_tokens\030\002 \001(\003R\016maxTot" +
+      "alTokens\0220\n\024max_duration_seconds\030\003 \001(\005R\022" +
+      "maxDurationSeconds\022U\n\013on_exceeded\030\004 \001(\0162" +
+      "4.ai.stigmer.agentic.workflow.v1.BudgetE" +
+      "xceededPolicyR\nonExceeded\"\274\001\n\020WorkflowDo" +
+      "cument\022\"\n\003dsl\030\001 \001(\tB\020\272H\rr\0132\t^1\\.0\\.0$R\003d" +
+      "sl\022$\n\tnamespace\030\002 \001(\tB\006\272H\003\310\001\001R\tnamespace" +
+      "\022\032\n\004name\030\003 \001(\tB\006\272H\003\310\001\001R\004name\022 \n\007version\030" +
+      "\004 \001(\tB\006\272H\003\310\001\001R\007version\022 \n\013description\030\005 " +
+      "\001(\tR\013description\"\254\003\n\014WorkflowTask\0225\n\004nam" +
+      "e\030\001 \001(\tB!\272H\036r\034\020\0012\030^[a-zA-Z_][a-zA-Z0-9_]" +
+      "*$R\004name\022L\n\004kind\030\002 \001(\01620.ai.stigmer.agen" +
+      "tic.workflow.v1.WorkflowTaskKindB\006\272H\003\310\001\001" +
+      "R\004kind\022H\n\013task_config\030\003 \001(\0132\027.google.pro" +
+      "tobuf.StructB\016\272H\003\310\001\001\352\205,\004kindR\ntaskConfig" +
+      "\022>\n\006export\030\004 \001(\0132&.ai.stigmer.agentic.wo" +
+      "rkflow.v1.ExportR\006export\022?\n\004flow\030\005 \001(\0132+" +
+      ".ai.stigmer.agentic.workflow.v1.FlowCont" +
+      "rolR\004flow\022L\n\ncompensate\030\006 \003(\0132,.ai.stigm" +
+      "er.agentic.workflow.v1.WorkflowTaskR\ncom" +
+      "pensate\"!\n\006Export\022\027\n\002as\030\001 \001(\tB\007\272H\004r\002\020\001R\002" +
+      "as\"!\n\013FlowControl\022\022\n\004then\030\001 \001(\tR\004thenB\250\001" +
+      "B\tSpecProtoP\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agenti" +
+      "c.Workflow.V1\312\002\036Ai\\Stigmer\\Agentic\\Workf" +
+      "low\\V1\342\002*Ai\\Stigmer\\Agentic\\Workflow\\V1\\" +
+      "GPBMetadata\352\002\"Ai::Stigmer::Agentic::Work" +
+      "flow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -132,7 +135,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflow_v1_WorkflowSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_WorkflowSpec_descriptor,
-        new java.lang.String[] { "Description", "Document", "Tasks", "Env", "Budget", });
+        new java.lang.String[] { "Description", "Document", "Tasks", "Env", "Budget", "ExecutionVisibility", });
     internal_static_ai_stigmer_agentic_workflow_v1_WorkflowSpec_EnvEntry_descriptor =
       internal_static_ai_stigmer_agentic_workflow_v1_WorkflowSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_workflow_v1_WorkflowSpec_EnvEntry_fieldAccessorTable = new

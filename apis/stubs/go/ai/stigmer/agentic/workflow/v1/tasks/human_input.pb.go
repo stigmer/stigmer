@@ -241,7 +241,7 @@ type HumanInputTaskConfig struct {
 	//
 	// The format and routing of notifications is a runtime concern.
 	// The proto carries the identifiers; the runtime resolves them to
-	// actual notification providers configured in the workflow instance's
+	// actual notification providers configured in the workflow run's
 	// environment.
 	NotificationChannels []string `protobuf:"bytes,7,rep,name=notification_channels,json=notificationChannels,proto3" json:"notification_channels,omitempty"`
 	// Structured material for the reviewer to examine before deciding.

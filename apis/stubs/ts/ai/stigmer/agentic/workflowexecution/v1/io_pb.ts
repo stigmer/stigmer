@@ -45,13 +45,13 @@ export const WorkflowExecutionIdSchema: GenMessage<WorkflowExecutionId> = /*@__P
   messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 0);
 
 /**
- * WorkflowId wraps a workflow or workflow instance identifier for filtering.
+ * WorkflowId wraps a workflow identifier for filtering.
  *
  * @generated from message ai.stigmer.agentic.workflowexecution.v1.WorkflowId
  */
 export type WorkflowId = Message<"ai.stigmer.agentic.workflowexecution.v1.WorkflowId"> & {
   /**
-   * Workflow or WorkflowInstance identifier.
+   * Workflow identifier.
    *
    * @generated from field: string value = 1;
    */
@@ -194,7 +194,7 @@ export const ListWorkflowExecutionsRequestSchema: GenMessage<ListWorkflowExecuti
  */
 export type ListWorkflowExecutionsByWorkflowRequest = Message<"ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest"> & {
   /**
-   * Workflow or WorkflowInstance ID to filter by.
+   * Workflow ID to filter by.
    *
    * @generated from field: string workflow_id = 1;
    */

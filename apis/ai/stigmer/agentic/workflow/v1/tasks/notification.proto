@@ -37,7 +37,7 @@ import "buf/validate/validate.proto";
 // The channel field is a string (not an enum) to allow extensibility:
 // new notification channels can be added without proto changes. The
 // runtime resolves channel identifiers to actual notification
-// providers configured in the workflow instance's environment.
+// providers configured in the workflow run's environment.
 //
 // YAML Example (Slack notification):
 //   - alert_slack:
@@ -80,7 +80,7 @@ message NotificationTaskConfig {
   //
   // This is a string (not an enum) for extensibility — new channels can
   // be added without proto changes. The runtime resolves the channel to
-  // its configured provider in the workflow instance's environment.
+  // its configured provider in the workflow run's environment.
   string channel = 1 [
     (buf.validate.field).required = true,
     (buf.validate.field).string.min_len = 1,
@@ -120,7 +120,7 @@ message NotificationTaskConfig {
   ];
 
   // Named template reference for rendering the notification.
-  // When set, the runtime looks up this template in the workflow instance's
+  // When set, the runtime looks up this template in the workflow run's
   // environment and uses it for rendering, with the workflow context as
   // template data. The body field is used as fallback if the template
   // cannot be resolved.

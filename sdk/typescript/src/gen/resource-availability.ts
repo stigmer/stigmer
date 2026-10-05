@@ -32,7 +32,6 @@ export const KIND_TIERS: ReadonlyMap<ApiResourceKind, ResourceTier> = new Map([
   [ApiResourceKind.agent_channel, ResourceTier.open_source],
   [ApiResourceKind.channel_app, ResourceTier.open_source],
   [ApiResourceKind.workflow, ResourceTier.open_source],
-  [ApiResourceKind.workflow_instance, ResourceTier.open_source],
   [ApiResourceKind.workflow_execution, ResourceTier.open_source],
   [ApiResourceKind.environment, ResourceTier.open_source],
   [ApiResourceKind.execution_context, ResourceTier.open_source],

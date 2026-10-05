@@ -32,10 +32,8 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private WorkflowExecutionSpec() {
-    workflowInstanceId_ = "";
     workflowId_ = "";
     triggerMessage_ = "";
-    callbackToken_ = com.google.protobuf.ByteString.EMPTY;
     executionTarget_ = 0;
   }
 
@@ -71,62 +69,15 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.class, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.Builder.class);
   }
 
-  public static final int WORKFLOW_INSTANCE_ID_FIELD_NUMBER = 1;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object workflowInstanceId_ = "";
-  /**
-   * <pre>
-   * ID of the WorkflowInstance to execute.
-   * </pre>
-   *
-   * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
-   * @return The workflowInstanceId.
-   */
-  @java.lang.Override
-  public java.lang.String getWorkflowInstanceId() {
-    java.lang.Object ref = workflowInstanceId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      workflowInstanceId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * ID of the WorkflowInstance to execute.
-   * </pre>
-   *
-   * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
-   * @return The bytes for workflowInstanceId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getWorkflowInstanceIdBytes() {
-    java.lang.Object ref = workflowInstanceId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      workflowInstanceId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
   public static final int WORKFLOW_ID_FIELD_NUMBER = 6;
   @SuppressWarnings("serial")
   private volatile java.lang.Object workflowId_ = "";
   /**
    * <pre>
-   * ID of the Workflow template to execute (alternative to workflow_instance_id).
+   * ID of the Workflow to run.
    * </pre>
    *
-   * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
+   * <code>string workflow_id = 6 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
    * @return The workflowId.
    */
   @java.lang.Override
@@ -144,10 +95,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the Workflow template to execute (alternative to workflow_instance_id).
+   * ID of the Workflow to run.
    * </pre>
    *
-   * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
+   * <code>string workflow_id = 6 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
    * @return The bytes for workflowId.
    */
   @java.lang.Override
@@ -336,8 +287,7 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * Execution-scoped environment variables and secrets, available only to this
-   * execution. Values here take the highest merge priority, overriding values
-   * from Environments bound via the instance's environment_refs. A key must be
+   * execution. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
@@ -362,8 +312,7 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * Execution-scoped environment variables and secrets, available only to this
-   * execution. Values here take the highest merge priority, overriding values
-   * from Environments bound via the instance's environment_refs. A key must be
+   * execution. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
@@ -378,8 +327,7 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * Execution-scoped environment variables and secrets, available only to this
-   * execution. Values here take the highest merge priority, overriding values
-   * from Environments bound via the instance's environment_refs. A key must be
+   * execution. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
@@ -401,8 +349,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   /**
    * <pre>
    * Execution-scoped environment variables and secrets, available only to this
-   * execution. Values here take the highest merge priority, overriding values
-   * from Environments bound via the instance's environment_refs. A key must be
+   * execution. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
@@ -420,21 +367,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       throw new java.lang.IllegalArgumentException();
     }
     return map.get(key);
-  }
-
-  public static final int CALLBACK_TOKEN_FIELD_NUMBER = 7;
-  private com.google.protobuf.ByteString callbackToken_ = com.google.protobuf.ByteString.EMPTY;
-  /**
-   * <pre>
-   * Opaque callback token for asynchronous completion by a parent orchestrator.
-   * </pre>
-   *
-   * <code>bytes callback_token = 7 [json_name = "callbackToken"];</code>
-   * @return The callbackToken.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString getCallbackToken() {
-    return callbackToken_;
   }
 
   public static final int EXECUTION_TARGET_FIELD_NUMBER = 8;
@@ -477,9 +409,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowInstanceId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, workflowInstanceId_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(triggerMessage_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, triggerMessage_);
     }
@@ -498,9 +427,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, workflowId_);
     }
-    if (!callbackToken_.isEmpty()) {
-      output.writeBytes(7, callbackToken_);
-    }
     if (executionTarget_ != ai.stigmer.agentic.session.v1.ExecutionTarget.EXECUTION_TARGET_UNSPECIFIED.getNumber()) {
       output.writeEnum(8, executionTarget_);
     }
@@ -513,9 +439,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowInstanceId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, workflowInstanceId_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(triggerMessage_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, triggerMessage_);
     }
@@ -542,10 +465,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, workflowId_);
     }
-    if (!callbackToken_.isEmpty()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBytesSize(7, callbackToken_);
-    }
     if (executionTarget_ != ai.stigmer.agentic.session.v1.ExecutionTarget.EXECUTION_TARGET_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(8, executionTarget_);
@@ -565,8 +484,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec other = (ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec) obj;
 
-    if (!getWorkflowInstanceId()
-        .equals(other.getWorkflowInstanceId())) return false;
     if (!getWorkflowId()
         .equals(other.getWorkflowId())) return false;
     if (!getTriggerMessage()
@@ -575,8 +492,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         other.internalGetTriggerMetadata())) return false;
     if (!internalGetRuntimeEnv().equals(
         other.internalGetRuntimeEnv())) return false;
-    if (!getCallbackToken()
-        .equals(other.getCallbackToken())) return false;
     if (executionTarget_ != other.executionTarget_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
@@ -589,8 +504,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + WORKFLOW_INSTANCE_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getWorkflowInstanceId().hashCode();
     hash = (37 * hash) + WORKFLOW_ID_FIELD_NUMBER;
     hash = (53 * hash) + getWorkflowId().hashCode();
     hash = (37 * hash) + TRIGGER_MESSAGE_FIELD_NUMBER;
@@ -603,8 +516,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       hash = (37 * hash) + RUNTIME_ENV_FIELD_NUMBER;
       hash = (53 * hash) + internalGetRuntimeEnv().hashCode();
     }
-    hash = (37 * hash) + CALLBACK_TOKEN_FIELD_NUMBER;
-    hash = (53 * hash) + getCallbackToken().hashCode();
     hash = (37 * hash) + EXECUTION_TARGET_FIELD_NUMBER;
     hash = (53 * hash) + executionTarget_;
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -768,12 +679,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      workflowInstanceId_ = "";
       workflowId_ = "";
       triggerMessage_ = "";
       internalGetMutableTriggerMetadata().clear();
       internalGetMutableRuntimeEnv().clear();
-      callbackToken_ = com.google.protobuf.ByteString.EMPTY;
       executionTarget_ = 0;
       return this;
     }
@@ -809,25 +718,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private void buildPartial0(ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.workflowInstanceId_ = workflowInstanceId_;
-      }
-      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.workflowId_ = workflowId_;
       }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
+      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.triggerMessage_ = triggerMessage_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
+      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.triggerMetadata_ = internalGetTriggerMetadata();
         result.triggerMetadata_.makeImmutable();
       }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.runtimeEnv_ = internalGetRuntimeEnv().build(RuntimeEnvDefaultEntryHolder.defaultEntry);
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.callbackToken_ = callbackToken_;
-      }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.executionTarget_ = executionTarget_;
       }
     }
@@ -844,30 +747,22 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
 
     public Builder mergeFrom(ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec other) {
       if (other == ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.getDefaultInstance()) return this;
-      if (!other.getWorkflowInstanceId().isEmpty()) {
-        workflowInstanceId_ = other.workflowInstanceId_;
-        bitField0_ |= 0x00000001;
-        onChanged();
-      }
       if (!other.getWorkflowId().isEmpty()) {
         workflowId_ = other.workflowId_;
-        bitField0_ |= 0x00000002;
+        bitField0_ |= 0x00000001;
         onChanged();
       }
       if (!other.getTriggerMessage().isEmpty()) {
         triggerMessage_ = other.triggerMessage_;
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000002;
         onChanged();
       }
       internalGetMutableTriggerMetadata().mergeFrom(
           other.internalGetTriggerMetadata());
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       internalGetMutableRuntimeEnv().mergeFrom(
           other.internalGetRuntimeEnv());
-      bitField0_ |= 0x00000010;
-      if (!other.getCallbackToken().isEmpty()) {
-        setCallbackToken(other.getCallbackToken());
-      }
+      bitField0_ |= 0x00000008;
       if (other.executionTarget_ != 0) {
         setExecutionTargetValue(other.getExecutionTargetValue());
       }
@@ -897,14 +792,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
             case 0:
               done = true;
               break;
-            case 10: {
-              workflowInstanceId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000001;
-              break;
-            } // case 10
             case 26: {
               triggerMessage_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 26
             case 34: {
@@ -913,7 +803,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
                   TriggerMetadataDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableTriggerMetadata().getMutableMap().put(
                   triggerMetadata__.getKey(), triggerMetadata__.getValue());
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000004;
               break;
             } // case 34
             case 42: {
@@ -922,22 +812,17 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
                   RuntimeEnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableRuntimeEnv().ensureBuilderMap().put(
                   runtimeEnv__.getKey(), runtimeEnv__.getValue());
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000008;
               break;
             } // case 42
             case 50: {
               workflowId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000002;
+              bitField0_ |= 0x00000001;
               break;
             } // case 50
-            case 58: {
-              callbackToken_ = input.readBytes();
-              bitField0_ |= 0x00000020;
-              break;
-            } // case 58
             case 64: {
               executionTarget_ = input.readEnum();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000010;
               break;
             } // case 64
             default: {
@@ -957,105 +842,13 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     private int bitField0_;
 
-    private java.lang.Object workflowInstanceId_ = "";
-    /**
-     * <pre>
-     * ID of the WorkflowInstance to execute.
-     * </pre>
-     *
-     * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
-     * @return The workflowInstanceId.
-     */
-    public java.lang.String getWorkflowInstanceId() {
-      java.lang.Object ref = workflowInstanceId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        workflowInstanceId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the WorkflowInstance to execute.
-     * </pre>
-     *
-     * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
-     * @return The bytes for workflowInstanceId.
-     */
-    public com.google.protobuf.ByteString
-        getWorkflowInstanceIdBytes() {
-      java.lang.Object ref = workflowInstanceId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        workflowInstanceId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the WorkflowInstance to execute.
-     * </pre>
-     *
-     * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
-     * @param value The workflowInstanceId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setWorkflowInstanceId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      workflowInstanceId_ = value;
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the WorkflowInstance to execute.
-     * </pre>
-     *
-     * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearWorkflowInstanceId() {
-      workflowInstanceId_ = getDefaultInstance().getWorkflowInstanceId();
-      bitField0_ = (bitField0_ & ~0x00000001);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the WorkflowInstance to execute.
-     * </pre>
-     *
-     * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
-     * @param value The bytes for workflowInstanceId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setWorkflowInstanceIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      workflowInstanceId_ = value;
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object workflowId_ = "";
     /**
      * <pre>
-     * ID of the Workflow template to execute (alternative to workflow_instance_id).
+     * ID of the Workflow to run.
      * </pre>
      *
-     * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
+     * <code>string workflow_id = 6 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
      * @return The workflowId.
      */
     public java.lang.String getWorkflowId() {
@@ -1072,10 +865,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * ID of the Workflow template to execute (alternative to workflow_instance_id).
+     * ID of the Workflow to run.
      * </pre>
      *
-     * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
+     * <code>string workflow_id = 6 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
      * @return The bytes for workflowId.
      */
     public com.google.protobuf.ByteString
@@ -1093,10 +886,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * ID of the Workflow template to execute (alternative to workflow_instance_id).
+     * ID of the Workflow to run.
      * </pre>
      *
-     * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
+     * <code>string workflow_id = 6 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
      * @param value The workflowId to set.
      * @return This builder for chaining.
      */
@@ -1104,30 +897,30 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       workflowId_ = value;
-      bitField0_ |= 0x00000002;
+      bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * ID of the Workflow template to execute (alternative to workflow_instance_id).
+     * ID of the Workflow to run.
      * </pre>
      *
-     * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
+     * <code>string workflow_id = 6 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearWorkflowId() {
       workflowId_ = getDefaultInstance().getWorkflowId();
-      bitField0_ = (bitField0_ & ~0x00000002);
+      bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * ID of the Workflow template to execute (alternative to workflow_instance_id).
+     * ID of the Workflow to run.
      * </pre>
      *
-     * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
+     * <code>string workflow_id = 6 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for workflowId to set.
      * @return This builder for chaining.
      */
@@ -1136,7 +929,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       workflowId_ = value;
-      bitField0_ |= 0x00000002;
+      bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
@@ -1196,7 +989,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       triggerMessage_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -1210,7 +1003,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder clearTriggerMessage() {
       triggerMessage_ = getDefaultInstance().getTriggerMessage();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
@@ -1228,7 +1021,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       triggerMessage_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -1252,7 +1045,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!triggerMetadata_.isMutable()) {
         triggerMetadata_ = triggerMetadata_.copy();
       }
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return triggerMetadata_;
     }
@@ -1328,7 +1121,7 @@ java.lang.String defaultValue) {
       return map.get(key);
     }
     public Builder clearTriggerMetadata() {
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000004);
       internalGetMutableTriggerMetadata().getMutableMap()
           .clear();
       return this;
@@ -1353,7 +1146,7 @@ java.lang.String defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, java.lang.String>
         getMutableTriggerMetadata() {
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       return internalGetMutableTriggerMetadata().getMutableMap();
     }
     /**
@@ -1370,7 +1163,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableTriggerMetadata().getMutableMap()
           .put(key, value);
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       return this;
     }
     /**
@@ -1384,7 +1177,7 @@ java.lang.String defaultValue) {
         java.util.Map<java.lang.String, java.lang.String> values) {
       internalGetMutableTriggerMetadata().getMutableMap()
           .putAll(values);
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       return this;
     }
 
@@ -1416,7 +1209,7 @@ java.lang.String defaultValue) {
       if (runtimeEnv_ == null) {
         runtimeEnv_ = new com.google.protobuf.MapFieldBuilder<>(runtimeEnvConverter);
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return runtimeEnv_;
     }
@@ -1426,8 +1219,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Execution-scoped environment variables and secrets, available only to this
-     * execution. Values here take the highest merge priority, overriding values
-     * from Environments bound via the instance's environment_refs. A key must be
+     * execution. Values here take the highest merge priority. A key must be
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
@@ -1452,8 +1244,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Execution-scoped environment variables and secrets, available only to this
-     * execution. Values here take the highest merge priority, overriding values
-     * from Environments bound via the instance's environment_refs. A key must be
+     * execution. Values here take the highest merge priority. A key must be
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
@@ -1468,8 +1259,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Execution-scoped environment variables and secrets, available only to this
-     * execution. Values here take the highest merge priority, overriding values
-     * from Environments bound via the instance's environment_refs. A key must be
+     * execution. Values here take the highest merge priority. A key must be
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
@@ -1490,8 +1280,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Execution-scoped environment variables and secrets, available only to this
-     * execution. Values here take the highest merge priority, overriding values
-     * from Environments bound via the instance's environment_refs. A key must be
+     * execution. Values here take the highest merge priority. A key must be
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
@@ -1510,15 +1299,14 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       return runtimeEnvConverter.build(map.get(key));
     }
     public Builder clearRuntimeEnv() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       internalGetMutableRuntimeEnv().clear();
       return this;
     }
     /**
      * <pre>
      * Execution-scoped environment variables and secrets, available only to this
-     * execution. Values here take the highest merge priority, overriding values
-     * from Environments bound via the instance's environment_refs. A key must be
+     * execution. Values here take the highest merge priority. A key must be
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
@@ -1539,14 +1327,13 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
         getMutableRuntimeEnv() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       return internalGetMutableRuntimeEnv().ensureMessageMap();
     }
     /**
      * <pre>
      * Execution-scoped environment variables and secrets, available only to this
-     * execution. Values here take the highest merge priority, overriding values
-     * from Environments bound via the instance's environment_refs. A key must be
+     * execution. Values here take the highest merge priority. A key must be
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
@@ -1561,14 +1348,13 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableRuntimeEnv().ensureBuilderMap()
           .put(key, value);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       return this;
     }
     /**
      * <pre>
      * Execution-scoped environment variables and secrets, available only to this
-     * execution. Values here take the highest merge priority, overriding values
-     * from Environments bound via the instance's environment_refs. A key must be
+     * execution. Values here take the highest merge priority. A key must be
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
@@ -1585,14 +1371,13 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       internalGetMutableRuntimeEnv().ensureBuilderMap()
           .putAll(values);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       return this;
     }
     /**
      * <pre>
      * Execution-scoped environment variables and secrets, available only to this
-     * execution. Values here take the highest merge priority, overriding values
-     * from Environments bound via the instance's environment_refs. A key must be
+     * execution. Values here take the highest merge priority. A key must be
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
@@ -1613,50 +1398,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         builderMap.put(key, entry);
       }
       return (ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder) entry;
-    }
-
-    private com.google.protobuf.ByteString callbackToken_ = com.google.protobuf.ByteString.EMPTY;
-    /**
-     * <pre>
-     * Opaque callback token for asynchronous completion by a parent orchestrator.
-     * </pre>
-     *
-     * <code>bytes callback_token = 7 [json_name = "callbackToken"];</code>
-     * @return The callbackToken.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString getCallbackToken() {
-      return callbackToken_;
-    }
-    /**
-     * <pre>
-     * Opaque callback token for asynchronous completion by a parent orchestrator.
-     * </pre>
-     *
-     * <code>bytes callback_token = 7 [json_name = "callbackToken"];</code>
-     * @param value The callbackToken to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCallbackToken(com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      callbackToken_ = value;
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Opaque callback token for asynchronous completion by a parent orchestrator.
-     * </pre>
-     *
-     * <code>bytes callback_token = 7 [json_name = "callbackToken"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCallbackToken() {
-      bitField0_ = (bitField0_ & ~0x00000020);
-      callbackToken_ = getDefaultInstance().getCallbackToken();
-      onChanged();
-      return this;
     }
 
     private int executionTarget_ = 0;
@@ -1683,7 +1424,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder setExecutionTargetValue(int value) {
       executionTarget_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1711,7 +1452,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder setExecutionTarget(ai.stigmer.agentic.session.v1.ExecutionTarget value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000010;
       executionTarget_ = value.getNumber();
       onChanged();
       return this;
@@ -1725,7 +1466,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearExecutionTarget() {
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000010);
       executionTarget_ = 0;
       onChanged();
       return this;

@@ -39,6 +39,11 @@ class WorkflowCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
                 _registered_method=True)
+        self.updateExecutionVisibility = channel.unary_unary(
+                '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateExecutionVisibility',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.UpdateWorkflowExecutionVisibilityInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.WorkflowId.SerializeToString,
@@ -97,6 +102,22 @@ class WorkflowCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updateExecutionVisibility(self, request, context):
+        """Update who can observe the runs (executions) of this workflow.
+
+        This is a SEPARATE axis from updateVisibility: it controls run
+        observability (who sees execution inputs and outputs), not who can see or
+        run the workflow itself. Making a workflow org-runnable does NOT expose
+        other people's runs; that requires this opt-in. The setting covers every
+        run of the workflow, past runs included.
+
+        Supported levels: PRIVATE (only the person who started each run) and
+        ORGANIZATION (all org members). Platform is unsupported.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def delete(self, request, context):
         """Delete a workflow.
         """
@@ -121,7 +142,7 @@ class WorkflowCommandControllerServicer(object):
 
         gRPC errors are limited to input that cannot be validated at all (a missing
         workflow or spec) and to genuine internal faults. This RPC does NOT persist,
-        authorize, or create instances. It is a pure validation endpoint suitable for
+        or authorize. It is a pure validation endpoint suitable for
         iterative authoring where the caller needs fast feedback before committing.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -160,6 +181,11 @@ def add_WorkflowCommandControllerServicer_to_server(servicer, server):
             'updateVisibility': grpc.unary_unary_rpc_method_handler(
                     servicer.updateVisibility,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
+            ),
+            'updateExecutionVisibility': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateExecutionVisibility,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.UpdateWorkflowExecutionVisibilityInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -286,6 +312,33 @@ class WorkflowCommandController(object):
             target,
             '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateVisibility',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateExecutionVisibility(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateExecutionVisibility',
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.UpdateWorkflowExecutionVisibilityInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
             options,
             channel_credentials,

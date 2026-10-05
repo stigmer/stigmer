@@ -33,12 +33,10 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * Current classification:
  * - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
  * private, org, child_orgs
- * - Instance kinds (workflow_instance):
+ * - Org-only kinds (environment):
  * private, org — child_orgs is deliberately excluded to preserve
- * tenant isolation: each child organization instantiates shared blueprints
- * inside its own boundary. (System-managed DEFAULT instances opt out of
- * visibility entirely: their access tracks the parent blueprint
- * structurally via the default_of FGA relation.)
+ * tenant isolation: what holds an organization's values never crosses
+ * into its child organizations.
  *
  * Note: levels are declared as one bool per level instead of a repeated
  * ApiResourceVisibility because that enum lives in the parent apiresource
@@ -117,7 +115,7 @@ private static final long serialVersionUID = 0L;
    *
    * Historically org support was inferred from supports_public, which made
    * it impossible to declare "org but not public" and silently skipped org
-   * tuples for kinds with no visibility config (the workflow_instance gap).
+   * tuples for kinds with no visibility config.
    * </pre>
    *
    * <code>bool supports_org = 3 [json_name = "supportsOrg"];</code>
@@ -379,12 +377,10 @@ private static final long serialVersionUID = 0L;
    * Current classification:
    * - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
    * private, org, child_orgs
-   * - Instance kinds (workflow_instance):
+   * - Org-only kinds (environment):
    * private, org — child_orgs is deliberately excluded to preserve
-   * tenant isolation: each child organization instantiates shared blueprints
-   * inside its own boundary. (System-managed DEFAULT instances opt out of
-   * visibility entirely: their access tracks the parent blueprint
-   * structurally via the default_of FGA relation.)
+   * tenant isolation: what holds an organization's values never crosses
+   * into its child organizations.
    *
    * Note: levels are declared as one bool per level instead of a repeated
    * ApiResourceVisibility because that enum lives in the parent apiresource
@@ -618,7 +614,7 @@ private static final long serialVersionUID = 0L;
      *
      * Historically org support was inferred from supports_public, which made
      * it impossible to declare "org but not public" and silently skipped org
-     * tuples for kinds with no visibility config (the workflow_instance gap).
+     * tuples for kinds with no visibility config.
      * </pre>
      *
      * <code>bool supports_org = 3 [json_name = "supportsOrg"];</code>
@@ -635,7 +631,7 @@ private static final long serialVersionUID = 0L;
      *
      * Historically org support was inferred from supports_public, which made
      * it impossible to declare "org but not public" and silently skipped org
-     * tuples for kinds with no visibility config (the workflow_instance gap).
+     * tuples for kinds with no visibility config.
      * </pre>
      *
      * <code>bool supports_org = 3 [json_name = "supportsOrg"];</code>
@@ -656,7 +652,7 @@ private static final long serialVersionUID = 0L;
      *
      * Historically org support was inferred from supports_public, which made
      * it impossible to declare "org but not public" and silently skipped org
-     * tuples for kinds with no visibility config (the workflow_instance gap).
+     * tuples for kinds with no visibility config.
      * </pre>
      *
      * <code>bool supports_org = 3 [json_name = "supportsOrg"];</code>

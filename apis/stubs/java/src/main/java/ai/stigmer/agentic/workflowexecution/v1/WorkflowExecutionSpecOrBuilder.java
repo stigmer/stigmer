@@ -12,39 +12,19 @@ public interface WorkflowExecutionSpecOrBuilder extends
 
   /**
    * <pre>
-   * ID of the WorkflowInstance to execute.
+   * ID of the Workflow to run.
    * </pre>
    *
-   * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
-   * @return The workflowInstanceId.
-   */
-  java.lang.String getWorkflowInstanceId();
-  /**
-   * <pre>
-   * ID of the WorkflowInstance to execute.
-   * </pre>
-   *
-   * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
-   * @return The bytes for workflowInstanceId.
-   */
-  com.google.protobuf.ByteString
-      getWorkflowInstanceIdBytes();
-
-  /**
-   * <pre>
-   * ID of the Workflow template to execute (alternative to workflow_instance_id).
-   * </pre>
-   *
-   * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
+   * <code>string workflow_id = 6 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
    * @return The workflowId.
    */
   java.lang.String getWorkflowId();
   /**
    * <pre>
-   * ID of the Workflow template to execute (alternative to workflow_instance_id).
+   * ID of the Workflow to run.
    * </pre>
    *
-   * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
+   * <code>string workflow_id = 6 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
    * @return The bytes for workflowId.
    */
   com.google.protobuf.ByteString
@@ -127,8 +107,7 @@ java.lang.String defaultValue);
   /**
    * <pre>
    * Execution-scoped environment variables and secrets, available only to this
-   * execution. Values here take the highest merge priority, overriding values
-   * from Environments bound via the instance's environment_refs. A key must be
+   * execution. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
@@ -140,8 +119,7 @@ java.lang.String defaultValue);
   /**
    * <pre>
    * Execution-scoped environment variables and secrets, available only to this
-   * execution. Values here take the highest merge priority, overriding values
-   * from Environments bound via the instance's environment_refs. A key must be
+   * execution. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
@@ -160,8 +138,7 @@ java.lang.String defaultValue);
   /**
    * <pre>
    * Execution-scoped environment variables and secrets, available only to this
-   * execution. Values here take the highest merge priority, overriding values
-   * from Environments bound via the instance's environment_refs. A key must be
+   * execution. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
@@ -174,8 +151,7 @@ java.lang.String defaultValue);
   /**
    * <pre>
    * Execution-scoped environment variables and secrets, available only to this
-   * execution. Values here take the highest merge priority, overriding values
-   * from Environments bound via the instance's environment_refs. A key must be
+   * execution. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
@@ -191,8 +167,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
   /**
    * <pre>
    * Execution-scoped environment variables and secrets, available only to this
-   * execution. Values here take the highest merge priority, overriding values
-   * from Environments bound via the instance's environment_refs. A key must be
+   * execution. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
@@ -202,16 +177,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    */
   ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrThrow(
       java.lang.String key);
-
-  /**
-   * <pre>
-   * Opaque callback token for asynchronous completion by a parent orchestrator.
-   * </pre>
-   *
-   * <code>bytes callback_token = 7 [json_name = "callbackToken"];</code>
-   * @return The callbackToken.
-   */
-  com.google.protobuf.ByteString getCallbackToken();
 
   /**
    * <pre>

@@ -20,7 +20,7 @@ export const file_ai_stigmer_agentic_environment_v1_api: GenFile = /*@__PURE__*/
   fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEiuwIKC0Vudmlyb25tZW50EjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiAKBGtpbmQYAiABKAlCErpID3INCgtFbnZpcm9ubWVudBJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESQAoEc3BlYxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudFNwZWMSRgoGc3RhdHVzGAUgASgLMjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRTdGF0dXNiBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
- * Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.
+ * Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflows.
  *
  * @generated from message ai.stigmer.agentic.environment.v1.Environment
  */

@@ -172,12 +172,10 @@ export interface WorkflowExecutionInput {
   org: string;
   labels?: Record<string, string>;
   visibility?: ApiResourceVisibility;
-  workflowInstanceId?: string;
   workflowId?: string;
   triggerMessage?: string;
   triggerMetadata?: Record<string, string>;
   runtimeEnv?: Record<string, EnvVarInput>;
-  callbackToken?: Uint8Array;
   executionTarget?: ExecutionTarget;
 }
 
@@ -199,12 +197,10 @@ export function buildWorkflowExecutionProto(input: WorkflowExecutionInput): Work
       ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(WorkflowExecutionSpecSchema), stripUndefined({
-      workflowInstanceId: input.workflowInstanceId,
       workflowId: input.workflowId,
       triggerMessage: input.triggerMessage,
       triggerMetadata: input.triggerMetadata,
       runtimeEnv,
-      callbackToken: input.callbackToken,
       executionTarget: input.executionTarget,
     })),
   }) as WorkflowExecution;
@@ -235,12 +231,10 @@ export function toWorkflowExecutionUpdateInput(resource: WorkflowExecution): Wor
     org: meta?.org ?? "",
     labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
     visibility: meta?.visibility || undefined,
-    workflowInstanceId: spec.workflowInstanceId || undefined,
     workflowId: spec.workflowId || undefined,
     triggerMessage: spec.triggerMessage || undefined,
     triggerMetadata: Object.keys(spec.triggerMetadata ?? {}).length > 0 ? { ...spec.triggerMetadata } : undefined,
     runtimeEnv: toExecVarInputMap(spec.runtimeEnv),
-    callbackToken: spec.callbackToken?.length ? spec.callbackToken : undefined,
     executionTarget: spec.executionTarget || undefined,
   };
 }

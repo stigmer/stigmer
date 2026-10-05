@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3RhdHVzLnByb3RvEh5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEi9QEKDldvcmtmbG93U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSGwoTZGVmYXVsdF9pbnN0YW5jZV9pZBgBIAEoCRJvCh5zZXJ2ZXJsZXNzX3dvcmtmbG93X3ZhbGlkYXRpb24YAiABKAsyRy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuc2VydmVybGVzcy5TZXJ2ZXJsZXNzV29ya2Zsb3dWYWxpZGF0aW9uEhQKDHZlcnNpb25faGFzaBgDIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_workflow_v1_serverless_validation, file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3RhdHVzLnByb3RvEh5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEi8wEKDldvcmtmbG93U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSbwoec2VydmVybGVzc193b3JrZmxvd192YWxpZGF0aW9uGAIgASgLMkcuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnNlcnZlcmxlc3MuU2VydmVybGVzc1dvcmtmbG93VmFsaWRhdGlvbhIUCgx2ZXJzaW9uX2hhc2gYAyABKAlKBAgBEAJSE2RlZmF1bHRfaW5zdGFuY2VfaWRiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_serverless_validation, file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * WorkflowStatus contains system-managed state for a Workflow resource.
@@ -30,16 +30,6 @@ export type WorkflowStatus = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSta
   audit?: ApiResourceAudit;
 
   /**
-   * ID of the default workflow instance created automatically for this workflow.
-   * Every workflow has exactly one default instance that requires no configuration.
-   * This instance has no environment bindings and uses all workflow defaults.
-   * Created automatically when the workflow is created.
-   *
-   * @generated from field: string default_instance_id = 1;
-   */
-  defaultInstanceId: string;
-
-  /**
    * Serverless Workflow YAML generation and validation state.
    * Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
    * Check this field to determine whether a workflow is valid before executing it.
@@ -49,7 +39,7 @@ export type WorkflowStatus = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSta
   serverlessWorkflowValidation?: ServerlessWorkflowValidation;
 
   /**
-   * SHA-256 hash of the generated CNCF YAML for the current valid version.
+   * SHA-256 content hash of the workflow's current valid version.
    *
    * @generated from field: string version_hash = 3;
    */

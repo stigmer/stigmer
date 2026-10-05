@@ -29,7 +29,7 @@ public interface ListRecentActivityRequestOrBuilder extends
    * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
    * and the org filter only intersects that authorized set. Both recents
    * kinds are private by default — sessions are personal resources and
-   * workflow executions opt in to org observability per instance — so org
+   * workflow executions opt in to org observability per workflow — so org
    * membership alone must never substitute for the per-resource check. An
    * earlier "org member = query by org directly" fast path leaked session
    * titles to every org member.
@@ -55,7 +55,7 @@ public interface ListRecentActivityRequestOrBuilder extends
    * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
    * and the org filter only intersects that authorized set. Both recents
    * kinds are private by default — sessions are personal resources and
-   * workflow executions opt in to org observability per instance — so org
+   * workflow executions opt in to org observability per workflow — so org
    * membership alone must never substitute for the per-resource check. An
    * earlier "org member = query by org directly" fast path leaked session
    * titles to every org member.

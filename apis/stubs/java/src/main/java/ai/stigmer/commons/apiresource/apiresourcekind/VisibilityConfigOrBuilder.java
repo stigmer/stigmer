@@ -32,7 +32,7 @@ public interface VisibilityConfigOrBuilder extends
    *
    * Historically org support was inferred from supports_public, which made
    * it impossible to declare "org but not public" and silently skipped org
-   * tuples for kinds with no visibility config (the workflow_instance gap).
+   * tuples for kinds with no visibility config.
    * </pre>
    *
    * <code>bool supports_org = 3 [json_name = "supportsOrg"];</code>

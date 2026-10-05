@@ -31,6 +31,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_workflow_v1_WorkflowId_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflow_v1_UpdateWorkflowExecutionVisibilityInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflow_v1_UpdateWorkflowExecutionVisibilityInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -41,18 +46,25 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n\'ai/stigmer/agentic/workflow/v1/io.prot" +
-      "o\022\036ai.stigmer.agentic.workflow.v1\032\033buf/v" +
-      "alidate/validate.proto\"*\n\nWorkflowId\022\034\n\005" +
-      "value\030\001 \001(\tB\006\272H\003\310\001\001R\005valueB\246\001B\007IoProtoP\001" +
-      "\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow.V1" +
-      "\312\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\S" +
-      "tigmer\\Agentic\\Workflow\\V1\\GPBMetadata\352\002" +
-      "\"Ai::Stigmer::Agentic::Workflow::V1b\006pro" +
-      "to3"
+      "o\022\036ai.stigmer.agentic.workflow.v1\032)ai/st" +
+      "igmer/agentic/workflow/v1/enum.proto\032\033bu" +
+      "f/validate/validate.proto\"*\n\nWorkflowId\022" +
+      "\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\315\001\n&Update" +
+      "WorkflowExecutionVisibilityInput\022\'\n\013reso" +
+      "urce_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\022z\n\024exe" +
+      "cution_visibility\030\002 \001(\0162;.ai.stigmer.age" +
+      "ntic.workflow.v1.WorkflowExecutionVisibi" +
+      "lityB\n\272H\007\202\001\004\020\001 \000R\023executionVisibilityB\246\001" +
+      "B\007IoProtoP\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic." +
+      "Workflow.V1\312\002\036Ai\\Stigmer\\Agentic\\Workflo" +
+      "w\\V1\342\002*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GP" +
+      "BMetadata\352\002\"Ai::Stigmer::Agentic::Workfl" +
+      "ow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.agentic.workflow.v1.EnumProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_workflow_v1_WorkflowId_descriptor =
@@ -61,7 +73,14 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_WorkflowId_descriptor,
         new java.lang.String[] { "Value", });
+    internal_static_ai_stigmer_agentic_workflow_v1_UpdateWorkflowExecutionVisibilityInput_descriptor =
+      getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_agentic_workflow_v1_UpdateWorkflowExecutionVisibilityInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflow_v1_UpdateWorkflowExecutionVisibilityInput_descriptor,
+        new java.lang.String[] { "ResourceId", "ExecutionVisibility", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.agentic.workflow.v1.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();

@@ -458,7 +458,7 @@ private static final long serialVersionUID = 0L;
    *
    * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
-   * actual notification providers configured in the workflow instance's
+   * actual notification providers configured in the workflow run's
    * environment.
    * </pre>
    *
@@ -481,7 +481,7 @@ private static final long serialVersionUID = 0L;
    *
    * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
-   * actual notification providers configured in the workflow instance's
+   * actual notification providers configured in the workflow run's
    * environment.
    * </pre>
    *
@@ -503,7 +503,7 @@ private static final long serialVersionUID = 0L;
    *
    * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
-   * actual notification providers configured in the workflow instance's
+   * actual notification providers configured in the workflow run's
    * environment.
    * </pre>
    *
@@ -526,7 +526,7 @@ private static final long serialVersionUID = 0L;
    *
    * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
-   * actual notification providers configured in the workflow instance's
+   * actual notification providers configured in the workflow run's
    * environment.
    * </pre>
    *
@@ -2546,7 +2546,7 @@ private static final long serialVersionUID = 0L;
      *
      * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
-     * actual notification providers configured in the workflow instance's
+     * actual notification providers configured in the workflow run's
      * environment.
      * </pre>
      *
@@ -2570,7 +2570,7 @@ private static final long serialVersionUID = 0L;
      *
      * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
-     * actual notification providers configured in the workflow instance's
+     * actual notification providers configured in the workflow run's
      * environment.
      * </pre>
      *
@@ -2592,7 +2592,7 @@ private static final long serialVersionUID = 0L;
      *
      * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
-     * actual notification providers configured in the workflow instance's
+     * actual notification providers configured in the workflow run's
      * environment.
      * </pre>
      *
@@ -2615,7 +2615,7 @@ private static final long serialVersionUID = 0L;
      *
      * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
-     * actual notification providers configured in the workflow instance's
+     * actual notification providers configured in the workflow run's
      * environment.
      * </pre>
      *
@@ -2639,7 +2639,7 @@ private static final long serialVersionUID = 0L;
      *
      * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
-     * actual notification providers configured in the workflow instance's
+     * actual notification providers configured in the workflow run's
      * environment.
      * </pre>
      *
@@ -2669,7 +2669,7 @@ private static final long serialVersionUID = 0L;
      *
      * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
-     * actual notification providers configured in the workflow instance's
+     * actual notification providers configured in the workflow run's
      * environment.
      * </pre>
      *
@@ -2698,7 +2698,7 @@ private static final long serialVersionUID = 0L;
      *
      * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
-     * actual notification providers configured in the workflow instance's
+     * actual notification providers configured in the workflow run's
      * environment.
      * </pre>
      *
@@ -2727,7 +2727,7 @@ private static final long serialVersionUID = 0L;
      *
      * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
-     * actual notification providers configured in the workflow instance's
+     * actual notification providers configured in the workflow run's
      * environment.
      * </pre>
      *
@@ -2753,7 +2753,7 @@ private static final long serialVersionUID = 0L;
      *
      * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
-     * actual notification providers configured in the workflow instance's
+     * actual notification providers configured in the workflow run's
      * environment.
      * </pre>
      *

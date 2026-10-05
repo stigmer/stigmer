@@ -9,6 +9,7 @@ import ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput;
 import ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse;
 import ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput;
 import ai.stigmer.agentic.workflow.v1.TaskKindRegistryQueryControllerGrpc;
+import ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput;
 import ai.stigmer.agentic.workflow.v1.Workflow;
 import ai.stigmer.agentic.workflow.v1.WorkflowCommandControllerGrpc;
 import ai.stigmer.agentic.workflow.v1.WorkflowId;
@@ -59,6 +60,12 @@ public final class WorkflowClient {
     public Workflow updateVisibility(UpdateVisibilityInput input) {
         try {
             return command.updateVisibility(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Workflow updateExecutionVisibility(UpdateWorkflowExecutionVisibilityInput input) {
+        try {
+            return command.updateExecutionVisibility(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

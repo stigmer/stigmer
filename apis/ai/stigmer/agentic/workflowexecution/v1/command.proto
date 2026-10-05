@@ -17,7 +17,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // Authorization:
 // All RPCs use custom authorization logic implemented in middleware.
 // Custom authorization is needed because:
-// - create: Must verify user has "execute" permission on the referenced WorkflowInstance
+// - create: Must verify user has "execute" permission on the referenced Workflow
 // - update: Only the workflow runner (system) can update execution status, not users
 //
 // Service Options:
@@ -33,20 +33,20 @@ service WorkflowExecutionCommandController {
   // @internal
   // Input Validation:
   // - metadata.org must be specified
-  // - spec.workflow_instance_id is required and must reference an existing WorkflowInstance
+  // - spec.workflow_id is required and must reference an existing Workflow
   // - api_version must be exactly "agentic.stigmer.ai/v1"
   // - kind must be exactly "WorkflowExecution"
   //
   // Authorization:
   // Custom authorization verifies:
-  // 1. User has "execute" permission on the referenced WorkflowInstance
-  // 2. User has access to all referenced Environments (from WorkflowInstance)
-  // 3. User has access to all referenced Secrets (from runtime_env secret_refs)
+  // 1. User has "execute" permission on the referenced Workflow
+  //    (workflow#can_execute: the workflow's viewers)
   //
   // Execution Flow:
   // 1. Validate input (proto validation + business rules)
-  // 2. Check authorization (user can execute WorkflowInstance)
-  // 3. Create WorkflowExecution resource in database
+  // 2. Check authorization (user can execute the Workflow)
+  // 3. Pin the workflow's current version (status.workflow_version_hash) and
+  //    create the WorkflowExecution resource in database
   // 4. Set initial status.phase = EXECUTION_PENDING
   // 5. Trigger workflow in execution engine (Temporal)
   // 6. Return WorkflowExecution with status.phase = EXECUTION_PENDING or EXECUTION_IN_PROGRESS
@@ -61,7 +61,7 @@ service WorkflowExecutionCommandController {
   //
   // 1. API-Triggered Execution:
   // - User calls API to execute a workflow
-  // - Input: WorkflowExecution with spec.workflow_instance_id and spec.trigger_message
+  // - Input: WorkflowExecution with spec.workflow_id and spec.trigger_message
   // - Output: WorkflowExecution with generated ID and PENDING status
   //
   // 2. Webhook-Triggered Execution:
@@ -85,22 +85,19 @@ service WorkflowExecutionCommandController {
   // Error Cases:
   //
   // - INVALID_ARGUMENT:
-  //   - workflow_instance_id is missing or invalid
+  //   - workflow_id is missing
   //   - org is missing
   //   - api_version or kind is incorrect
   //
   // - PERMISSION_DENIED:
-  //   - User doesn't have "execute" permission on WorkflowInstance
-  //   - User doesn't have access to referenced Environments
-  //   - User doesn't have access to referenced Secrets
+  //   - User doesn't have "execute" permission on the Workflow (an unknown
+  //     workflow id reads the same under an enforcing authorizer)
   //
   // - NOT_FOUND:
-  //   - Referenced WorkflowInstance doesn't exist
-  //   - Referenced Environment doesn't exist
-  //   - Referenced Secret doesn't exist
+  //   - Referenced Workflow doesn't exist (where the run gate does not
+  //     answer first)
   //
   // - FAILED_PRECONDITION:
-  //   - WorkflowInstance is in invalid state (e.g., archived, disabled)
   //   - Too many concurrent executions (quota exceeded)
   //
   // Example Request:
@@ -112,7 +109,7 @@ service WorkflowExecutionCommandController {
   //     "org": "acme"
   //   },
   //   "spec": {
-  //     "workflow_instance_id": "wfi_customer-onboarding-prod",
+  //     "workflow_id": "wfl_customer-onboarding",
   //     "trigger_message": "New signup: john.doe@example.com",
   //     "trigger_metadata": {
   //       "source": "api",
@@ -663,7 +660,8 @@ service WorkflowExecutionCommandController {
   //    TS runner workflow (handles stuck Workflow-Task-Failed loops and
   //    already-completed workflows gracefully)
   // 3. Recreates the ExecutionContext with freshly resolved environment
-  //    variables from the current WorkflowInstance and Workflow configuration
+  //    variables from the run's workflow declarations and its person's
+  //    personal environment
   // 4. Starts a fresh Temporal orchestrator workflow with recoveryMode flag;
   //    the engine loads completed task outputs from the event log, skips
   //    those tasks (emitting task_skipped events), and resumes from the
@@ -675,10 +673,10 @@ service WorkflowExecutionCommandController {
   //
   // Environment Resolution
   //
-  // Environment variables are re-resolved from the current WorkflowInstance
-  // environment_refs and Workflow env declarations. This is desirable: if the
-  // user fixed an environment value (e.g., rotated an API key), recovery picks
-  // up the fix. Runtime env overrides (runtime_env) provided at original
+  // Environment variables are re-resolved from the Workflow env declarations
+  // and the personal environment of the person who started the run (the run's
+  // creator, read from the stored row). This is desirable: if the person fixed
+  // a value (e.g., rotated an API key), recovery picks up the fix. Runtime env overrides (runtime_env) provided at original
   // execution time are not preserved — they were stripped before persist.
   //
   // Preconditions

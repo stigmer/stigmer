@@ -621,40 +621,14 @@ enum ApiResourceKind {
     }
   }];
 
-  // Configured deployment of a workflow with environment-specific bindings.
-  workflow_instance = 51 [(kind_meta) = {
-    group: agentic
-    version: v1
-    name: "WorkflowInstance"
-    display_name: "Workflow Instance"
-    id_prefix: "win"
-    is_versioned: false
-    not_search_indexed: false
-    tier: open_source
-    authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      // Org is enum-driven; platform is deliberately
-      // absent (tenant isolation). Without this config the reconciler would
-      // silently skip org viewer tuples for workflow instances (the
-      // pre-2026-06 P0 gap).
-      visibility: {supports_org: true}
-      additional_parents: [
-        {
-          kind: "workflow"
-          relation: "workflow"
-          spec_field: "workflow_id"
-        }
-      ]
-      grantable_roles: [
-        owner,
-        viewer
-      ]
-      team_grantable_roles: [viewer]
-    }
-  }];
+  // Value 51 was the workflow instance, a configured deployment of a
+  // workflow, removed when runs came to name their workflow directly and run
+  // visibility moved onto the workflow. Stored rows of the retired kind are
+  // moved off by the store migration that removed it.
+  reserved 51;
+  reserved "workflow_instance";
 
-  // Single run of a workflow instance, tracking step progress and outcomes.
+  // Single run of a workflow, tracking step progress and outcomes.
   workflow_execution = 52 [(kind_meta) = {
     group: agentic
     version: v1
@@ -667,18 +641,17 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      // The workflow_instance link is REQUIRED, not cosmetic: a run inherits
-      // opt-in org run observability via `execution_viewer from
-      // workflow_instance` (see workflow_execution.fga). Without this parent
-      // tuple the inheritance has nothing to traverse, so enabling an
-      // instance's execution visibility would silently fail to expose its
-      // runs. Mirrors agent_execution's session parent (there via PARENT
-      // scope) and the additional_parents pattern of the *_instance kinds.
+      // The workflow link is REQUIRED, not cosmetic: a run inherits opt-in
+      // org run observability via `execution_viewer from workflow` (see
+      // workflow_execution.fga). Without this parent tuple the inheritance
+      // has nothing to traverse, so enabling a workflow's execution
+      // visibility would silently fail to expose its runs. Mirrors
+      // agent_execution's session parent (there via PARENT scope).
       additional_parents: [
         {
-          kind: "workflow_instance"
-          relation: "workflow_instance"
-          spec_field: "workflow_instance_id"
+          kind: "workflow"
+          relation: "workflow"
+          spec_field: "workflow_id"
         }
       ]
       grantable_roles: [

@@ -33,7 +33,6 @@ private static final long serialVersionUID = 0L;
   }
   private ExecutionStartedPayload() {
     workflowId_ = "";
-    workflowInstanceId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -75,7 +74,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object workflowId_ = "";
   /**
    * <pre>
-   * Workflow ID (wf_{slug}) resolved for this execution.
+   * Workflow ID the execution runs.
    * </pre>
    *
    * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -96,7 +95,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Workflow ID (wf_{slug}) resolved for this execution.
+   * Workflow ID the execution runs.
    * </pre>
    *
    * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -111,53 +110,6 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
       workflowId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int WORKFLOW_INSTANCE_ID_FIELD_NUMBER = 3;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object workflowInstanceId_ = "";
-  /**
-   * <pre>
-   * WorkflowInstance ID (wfi_{slug}) resolved for this execution.
-   * </pre>
-   *
-   * <code>string workflow_instance_id = 3 [json_name = "workflowInstanceId"];</code>
-   * @return The workflowInstanceId.
-   */
-  @java.lang.Override
-  public java.lang.String getWorkflowInstanceId() {
-    java.lang.Object ref = workflowInstanceId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      workflowInstanceId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * WorkflowInstance ID (wfi_{slug}) resolved for this execution.
-   * </pre>
-   *
-   * <code>string workflow_instance_id = 3 [json_name = "workflowInstanceId"];</code>
-   * @return The bytes for workflowInstanceId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getWorkflowInstanceIdBytes() {
-    java.lang.Object ref = workflowInstanceId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      workflowInstanceId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -184,9 +136,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, workflowId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowInstanceId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, workflowInstanceId_);
-    }
     getUnknownFields().writeTo(output);
   }
 
@@ -202,9 +151,6 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, workflowId_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowInstanceId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, workflowInstanceId_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -225,8 +171,6 @@ private static final long serialVersionUID = 0L;
         != other.getTotalTasks()) return false;
     if (!getWorkflowId()
         .equals(other.getWorkflowId())) return false;
-    if (!getWorkflowInstanceId()
-        .equals(other.getWorkflowInstanceId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -242,8 +186,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getTotalTasks();
     hash = (37 * hash) + WORKFLOW_ID_FIELD_NUMBER;
     hash = (53 * hash) + getWorkflowId().hashCode();
-    hash = (37 * hash) + WORKFLOW_INSTANCE_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getWorkflowInstanceId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -381,7 +323,6 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       totalTasks_ = 0;
       workflowId_ = "";
-      workflowInstanceId_ = "";
       return this;
     }
 
@@ -421,9 +362,6 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.workflowId_ = workflowId_;
       }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.workflowInstanceId_ = workflowInstanceId_;
-      }
     }
 
     @java.lang.Override
@@ -444,11 +382,6 @@ private static final long serialVersionUID = 0L;
       if (!other.getWorkflowId().isEmpty()) {
         workflowId_ = other.workflowId_;
         bitField0_ |= 0x00000002;
-        onChanged();
-      }
-      if (!other.getWorkflowInstanceId().isEmpty()) {
-        workflowInstanceId_ = other.workflowInstanceId_;
-        bitField0_ |= 0x00000004;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -487,11 +420,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
-            case 26: {
-              workflowInstanceId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
-              break;
-            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -559,7 +487,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object workflowId_ = "";
     /**
      * <pre>
-     * Workflow ID (wf_{slug}) resolved for this execution.
+     * Workflow ID the execution runs.
      * </pre>
      *
      * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -579,7 +507,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow ID (wf_{slug}) resolved for this execution.
+     * Workflow ID the execution runs.
      * </pre>
      *
      * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -600,7 +528,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow ID (wf_{slug}) resolved for this execution.
+     * Workflow ID the execution runs.
      * </pre>
      *
      * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -617,7 +545,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow ID (wf_{slug}) resolved for this execution.
+     * Workflow ID the execution runs.
      * </pre>
      *
      * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -631,7 +559,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow ID (wf_{slug}) resolved for this execution.
+     * Workflow ID the execution runs.
      * </pre>
      *
      * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -644,98 +572,6 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       workflowId_ = value;
       bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object workflowInstanceId_ = "";
-    /**
-     * <pre>
-     * WorkflowInstance ID (wfi_{slug}) resolved for this execution.
-     * </pre>
-     *
-     * <code>string workflow_instance_id = 3 [json_name = "workflowInstanceId"];</code>
-     * @return The workflowInstanceId.
-     */
-    public java.lang.String getWorkflowInstanceId() {
-      java.lang.Object ref = workflowInstanceId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        workflowInstanceId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * WorkflowInstance ID (wfi_{slug}) resolved for this execution.
-     * </pre>
-     *
-     * <code>string workflow_instance_id = 3 [json_name = "workflowInstanceId"];</code>
-     * @return The bytes for workflowInstanceId.
-     */
-    public com.google.protobuf.ByteString
-        getWorkflowInstanceIdBytes() {
-      java.lang.Object ref = workflowInstanceId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        workflowInstanceId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * WorkflowInstance ID (wfi_{slug}) resolved for this execution.
-     * </pre>
-     *
-     * <code>string workflow_instance_id = 3 [json_name = "workflowInstanceId"];</code>
-     * @param value The workflowInstanceId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setWorkflowInstanceId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      workflowInstanceId_ = value;
-      bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * WorkflowInstance ID (wfi_{slug}) resolved for this execution.
-     * </pre>
-     *
-     * <code>string workflow_instance_id = 3 [json_name = "workflowInstanceId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearWorkflowInstanceId() {
-      workflowInstanceId_ = getDefaultInstance().getWorkflowInstanceId();
-      bitField0_ = (bitField0_ & ~0x00000004);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * WorkflowInstance ID (wfi_{slug}) resolved for this execution.
-     * </pre>
-     *
-     * <code>string workflow_instance_id = 3 [json_name = "workflowInstanceId"];</code>
-     * @param value The bytes for workflowInstanceId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setWorkflowInstanceIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      workflowInstanceId_ = value;
-      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }

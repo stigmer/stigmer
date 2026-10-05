@@ -24,9 +24,10 @@ _sym_db = _symbol_database.Default()
 
 from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_spec__pb2
 from ai.stigmer.agentic.session.v1 import enum_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_enum__pb2
+from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x12\'ai.stigmer.agentic.workflowexecution.v1\x1a\x31\x61i/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\"\xc1\x05\n\x15WorkflowExecutionSpec\x12\x30\n\x14workflow_instance_id\x18\x01 \x01(\tR\x12workflowInstanceId\x12\x1f\n\x0bworkflow_id\x18\x06 \x01(\tR\nworkflowId\x12\'\n\x0ftrigger_message\x18\x03 \x01(\tR\x0etriggerMessage\x12~\n\x10trigger_metadata\x18\x04 \x03(\x0b\x32S.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.TriggerMetadataEntryR\x0ftriggerMetadata\x12o\n\x0bruntime_env\x18\x05 \x03(\x0b\x32N.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.RuntimeEnvEntryR\nruntimeEnv\x12%\n\x0e\x63\x61llback_token\x18\x07 \x01(\x0cR\rcallbackToken\x12Y\n\x10\x65xecution_target\x18\x08 \x01(\x0e\x32..ai.stigmer.agentic.session.v1.ExecutionTargetR\x0f\x65xecutionTarget\x1a\x42\n\x14TriggerMetadataEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x1au\n\x0fRuntimeEnvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01\x42\xf9\x01\n+com.ai.stigmer.agentic.workflowexecution.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x02\x33\x41i\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x12\'ai.stigmer.agentic.workflowexecution.v1\x1a\x31\x61i/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\xa3\x05\n\x15WorkflowExecutionSpec\x12(\n\x0bworkflow_id\x18\x06 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\nworkflowId\x12\'\n\x0ftrigger_message\x18\x03 \x01(\tR\x0etriggerMessage\x12~\n\x10trigger_metadata\x18\x04 \x03(\x0b\x32S.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.TriggerMetadataEntryR\x0ftriggerMetadata\x12o\n\x0bruntime_env\x18\x05 \x03(\x0b\x32N.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.RuntimeEnvEntryR\nruntimeEnv\x12Y\n\x10\x65xecution_target\x18\x08 \x01(\x0e\x32..ai.stigmer.agentic.session.v1.ExecutionTargetR\x0f\x65xecutionTarget\x1a\x42\n\x14TriggerMetadataEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x1au\n\x0fRuntimeEnvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01J\x04\x08\x01\x10\x02J\x04\x08\x07\x10\x08R\x14workflow_instance_idR\x0e\x63\x61llback_tokenB\xf9\x01\n+com.ai.stigmer.agentic.workflowexecution.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x02\x33\x41i\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,10 +39,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_WORKFLOWEXECUTIONSPEC_TRIGGERMETADATAENTRY']._serialized_options = b'8\001'
   _globals['_WORKFLOWEXECUTIONSPEC_RUNTIMEENVENTRY']._loaded_options = None
   _globals['_WORKFLOWEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_options = b'8\001'
-  _globals['_WORKFLOWEXECUTIONSPEC']._serialized_start=189
-  _globals['_WORKFLOWEXECUTIONSPEC']._serialized_end=894
-  _globals['_WORKFLOWEXECUTIONSPEC_TRIGGERMETADATAENTRY']._serialized_start=709
-  _globals['_WORKFLOWEXECUTIONSPEC_TRIGGERMETADATAENTRY']._serialized_end=775
-  _globals['_WORKFLOWEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_start=777
-  _globals['_WORKFLOWEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_end=894
+  _globals['_WORKFLOWEXECUTIONSPEC'].fields_by_name['workflow_id']._loaded_options = None
+  _globals['_WORKFLOWEXECUTIONSPEC'].fields_by_name['workflow_id']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_WORKFLOWEXECUTIONSPEC']._serialized_start=218
+  _globals['_WORKFLOWEXECUTIONSPEC']._serialized_end=893
+  _globals['_WORKFLOWEXECUTIONSPEC_TRIGGERMETADATAENTRY']._serialized_start=658
+  _globals['_WORKFLOWEXECUTIONSPEC_TRIGGERMETADATAENTRY']._serialized_end=724
+  _globals['_WORKFLOWEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_start=726
+  _globals['_WORKFLOWEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_end=843
 # @@protoc_insertion_point(module_scope)

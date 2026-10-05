@@ -21,13 +21,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WorkflowCommandController_Apply_FullMethodName            = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/apply"
-	WorkflowCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create"
-	WorkflowCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/update"
-	WorkflowCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateVisibility"
-	WorkflowCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete"
-	WorkflowCommandController_ValidateSpec_FullMethodName     = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/validateSpec"
-	WorkflowCommandController_TagVersion_FullMethodName       = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/tagVersion"
+	WorkflowCommandController_Apply_FullMethodName                     = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/apply"
+	WorkflowCommandController_Create_FullMethodName                    = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create"
+	WorkflowCommandController_Update_FullMethodName                    = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/update"
+	WorkflowCommandController_UpdateVisibility_FullMethodName          = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateVisibility"
+	WorkflowCommandController_UpdateExecutionVisibility_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateExecutionVisibility"
+	WorkflowCommandController_Delete_FullMethodName                    = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete"
+	WorkflowCommandController_ValidateSpec_FullMethodName              = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/validateSpec"
+	WorkflowCommandController_TagVersion_FullMethodName                = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/tagVersion"
 )
 
 // WorkflowCommandControllerClient is the client API for WorkflowCommandController service.
@@ -53,6 +54,17 @@ type WorkflowCommandControllerClient interface {
 	// less visible than the requested level: what a person can run they must
 	// also be able to read.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Workflow, error)
+	// Update who can observe the runs (executions) of this workflow.
+	//
+	// This is a SEPARATE axis from updateVisibility: it controls run
+	// observability (who sees execution inputs and outputs), not who can see or
+	// run the workflow itself. Making a workflow org-runnable does NOT expose
+	// other people's runs; that requires this opt-in. The setting covers every
+	// run of the workflow, past runs included.
+	//
+	// Supported levels: PRIVATE (only the person who started each run) and
+	// ORGANIZATION (all org members). Platform is unsupported.
+	UpdateExecutionVisibility(ctx context.Context, in *UpdateWorkflowExecutionVisibilityInput, opts ...grpc.CallOption) (*Workflow, error)
 	// Delete a workflow.
 	Delete(ctx context.Context, in *WorkflowId, opts ...grpc.CallOption) (*Workflow, error)
 	// Validate a workflow spec without persisting it.
@@ -72,7 +84,7 @@ type WorkflowCommandControllerClient interface {
 	//
 	// gRPC errors are limited to input that cannot be validated at all (a missing
 	// workflow or spec) and to genuine internal faults. This RPC does NOT persist,
-	// authorize, or create instances. It is a pure validation endpoint suitable for
+	// or authorize. It is a pure validation endpoint suitable for
 	// iterative authoring where the caller needs fast feedback before committing.
 	ValidateSpec(ctx context.Context, in *Workflow, opts ...grpc.CallOption) (*serverless.ServerlessWorkflowValidation, error)
 	// Assign or move a tag to a specific workflow version.
@@ -125,6 +137,16 @@ func (c *workflowCommandControllerClient) UpdateVisibility(ctx context.Context, 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Workflow)
 	err := c.cc.Invoke(ctx, WorkflowCommandController_UpdateVisibility_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowCommandControllerClient) UpdateExecutionVisibility(ctx context.Context, in *UpdateWorkflowExecutionVisibilityInput, opts ...grpc.CallOption) (*Workflow, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Workflow)
+	err := c.cc.Invoke(ctx, WorkflowCommandController_UpdateExecutionVisibility_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -184,6 +206,17 @@ type WorkflowCommandControllerServer interface {
 	// less visible than the requested level: what a person can run they must
 	// also be able to read.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Workflow, error)
+	// Update who can observe the runs (executions) of this workflow.
+	//
+	// This is a SEPARATE axis from updateVisibility: it controls run
+	// observability (who sees execution inputs and outputs), not who can see or
+	// run the workflow itself. Making a workflow org-runnable does NOT expose
+	// other people's runs; that requires this opt-in. The setting covers every
+	// run of the workflow, past runs included.
+	//
+	// Supported levels: PRIVATE (only the person who started each run) and
+	// ORGANIZATION (all org members). Platform is unsupported.
+	UpdateExecutionVisibility(context.Context, *UpdateWorkflowExecutionVisibilityInput) (*Workflow, error)
 	// Delete a workflow.
 	Delete(context.Context, *WorkflowId) (*Workflow, error)
 	// Validate a workflow spec without persisting it.
@@ -203,7 +236,7 @@ type WorkflowCommandControllerServer interface {
 	//
 	// gRPC errors are limited to input that cannot be validated at all (a missing
 	// workflow or spec) and to genuine internal faults. This RPC does NOT persist,
-	// authorize, or create instances. It is a pure validation endpoint suitable for
+	// or authorize. It is a pure validation endpoint suitable for
 	// iterative authoring where the caller needs fast feedback before committing.
 	ValidateSpec(context.Context, *Workflow) (*serverless.ServerlessWorkflowValidation, error)
 	// Assign or move a tag to a specific workflow version.
@@ -232,6 +265,9 @@ func (UnimplementedWorkflowCommandControllerServer) Update(context.Context, *Wor
 }
 func (UnimplementedWorkflowCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Workflow, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
+}
+func (UnimplementedWorkflowCommandControllerServer) UpdateExecutionVisibility(context.Context, *UpdateWorkflowExecutionVisibilityInput) (*Workflow, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateExecutionVisibility not implemented")
 }
 func (UnimplementedWorkflowCommandControllerServer) Delete(context.Context, *WorkflowId) (*Workflow, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -334,6 +370,24 @@ func _WorkflowCommandController_UpdateVisibility_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowCommandController_UpdateExecutionVisibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateWorkflowExecutionVisibilityInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowCommandControllerServer).UpdateExecutionVisibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowCommandController_UpdateExecutionVisibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowCommandControllerServer).UpdateExecutionVisibility(ctx, req.(*UpdateWorkflowExecutionVisibilityInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _WorkflowCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(WorkflowId)
 	if err := dec(in); err != nil {
@@ -410,6 +464,10 @@ var WorkflowCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "updateVisibility",
 			Handler:    _WorkflowCommandController_UpdateVisibility_Handler,
+		},
+		{
+			MethodName: "updateExecutionVisibility",
+			Handler:    _WorkflowCommandController_UpdateExecutionVisibility_Handler,
 		},
 		{
 			MethodName: "delete",

@@ -31,7 +31,6 @@ from ._subscription import SubscriptionClient, SubscriptionInput
 from ._team import TeamClient, TeamInput
 from ._workflow import WorkflowClient, WorkflowInput, WorkflowDocumentInput, WorkflowTaskInput, ExportInput, FlowControlInput, WorkflowBudgetInput
 from ._workflowexecution import WorkflowExecutionClient, WorkflowExecutionInput
-from ._workflowinstance import WorkflowInstanceClient, WorkflowInstanceInput
 from ._types import (
     DeleteResourceInput,
     EnvSpecInput,
@@ -152,8 +151,6 @@ __all__ = [
     "WorkflowBudgetInput",
     "WorkflowExecutionClient",
     "WorkflowExecutionInput",
-    "WorkflowInstanceClient",
-    "WorkflowInstanceInput",
     "DeleteResourceInput",
     "EnvSpecInput",
     "EnvVarInput",

@@ -39,32 +39,6 @@ public interface WorkflowStatusOrBuilder extends
 
   /**
    * <pre>
-   * ID of the default workflow instance created automatically for this workflow.
-   * Every workflow has exactly one default instance that requires no configuration.
-   * This instance has no environment bindings and uses all workflow defaults.
-   * Created automatically when the workflow is created.
-   * </pre>
-   *
-   * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-   * @return The defaultInstanceId.
-   */
-  java.lang.String getDefaultInstanceId();
-  /**
-   * <pre>
-   * ID of the default workflow instance created automatically for this workflow.
-   * Every workflow has exactly one default instance that requires no configuration.
-   * This instance has no environment bindings and uses all workflow defaults.
-   * Created automatically when the workflow is created.
-   * </pre>
-   *
-   * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-   * @return The bytes for defaultInstanceId.
-   */
-  com.google.protobuf.ByteString
-      getDefaultInstanceIdBytes();
-
-  /**
-   * <pre>
    * Serverless Workflow YAML generation and validation state.
    * Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
    * Check this field to determine whether a workflow is valid before executing it.
@@ -98,7 +72,7 @@ public interface WorkflowStatusOrBuilder extends
 
   /**
    * <pre>
-   * SHA-256 hash of the generated CNCF YAML for the current valid version.
+   * SHA-256 content hash of the workflow's current valid version.
    * </pre>
    *
    * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -107,7 +81,7 @@ public interface WorkflowStatusOrBuilder extends
   java.lang.String getVersionHash();
   /**
    * <pre>
-   * SHA-256 hash of the generated CNCF YAML for the current valid version.
+   * SHA-256 content hash of the workflow's current valid version.
    * </pre>
    *
    * <code>string version_hash = 3 [json_name = "versionHash"];</code>

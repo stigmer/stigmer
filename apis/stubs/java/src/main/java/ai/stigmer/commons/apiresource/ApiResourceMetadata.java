@@ -340,7 +340,7 @@ private static final long serialVersionUID = 0L;
    *
    * Mutation contract: visibility is set at create and changed ONLY through
    * the kind's UpdateVisibility RPC, where the visibility guards live
-   * (per-kind level support, default-instance rejection). A plain Update
+   * (per-kind level support). A plain Update
    * preserves the stored value — a request-carried level is ignored, never
    * applied. Declarative clients that want a manifest's visibility to land
    * on update must follow up with UpdateVisibility (the CLI and MCP apply
@@ -366,7 +366,7 @@ private static final long serialVersionUID = 0L;
    *
    * Mutation contract: visibility is set at create and changed ONLY through
    * the kind's UpdateVisibility RPC, where the visibility guards live
-   * (per-kind level support, default-instance rejection). A plain Update
+   * (per-kind level support). A plain Update
    * preserves the stored value — a request-carried level is ignored, never
    * applied. Declarative clients that want a manifest's visibility to land
    * on update must follow up with UpdateVisibility (the CLI and MCP apply
@@ -1779,7 +1779,7 @@ java.lang.String defaultValue) {
      *
      * Mutation contract: visibility is set at create and changed ONLY through
      * the kind's UpdateVisibility RPC, where the visibility guards live
-     * (per-kind level support, default-instance rejection). A plain Update
+     * (per-kind level support). A plain Update
      * preserves the stored value — a request-carried level is ignored, never
      * applied. Declarative clients that want a manifest's visibility to land
      * on update must follow up with UpdateVisibility (the CLI and MCP apply
@@ -1805,7 +1805,7 @@ java.lang.String defaultValue) {
      *
      * Mutation contract: visibility is set at create and changed ONLY through
      * the kind's UpdateVisibility RPC, where the visibility guards live
-     * (per-kind level support, default-instance rejection). A plain Update
+     * (per-kind level support). A plain Update
      * preserves the stored value — a request-carried level is ignored, never
      * applied. Declarative clients that want a manifest's visibility to land
      * on update must follow up with UpdateVisibility (the CLI and MCP apply
@@ -1836,7 +1836,7 @@ java.lang.String defaultValue) {
      *
      * Mutation contract: visibility is set at create and changed ONLY through
      * the kind's UpdateVisibility RPC, where the visibility guards live
-     * (per-kind level support, default-instance rejection). A plain Update
+     * (per-kind level support). A plain Update
      * preserves the stored value — a request-carried level is ignored, never
      * applied. Declarative clients that want a manifest's visibility to land
      * on update must follow up with UpdateVisibility (the CLI and MCP apply
@@ -1864,7 +1864,7 @@ java.lang.String defaultValue) {
      *
      * Mutation contract: visibility is set at create and changed ONLY through
      * the kind's UpdateVisibility RPC, where the visibility guards live
-     * (per-kind level support, default-instance rejection). A plain Update
+     * (per-kind level support). A plain Update
      * preserves the stored value — a request-carried level is ignored, never
      * applied. Declarative clients that want a manifest's visibility to land
      * on update must follow up with UpdateVisibility (the CLI and MCP apply
@@ -1895,7 +1895,7 @@ java.lang.String defaultValue) {
      *
      * Mutation contract: visibility is set at create and changed ONLY through
      * the kind's UpdateVisibility RPC, where the visibility guards live
-     * (per-kind level support, default-instance rejection). A plain Update
+     * (per-kind level support). A plain Update
      * preserves the stored value — a request-carried level is ignored, never
      * applied. Declarative clients that want a manifest's visibility to land
      * on update must follow up with UpdateVisibility (the CLI and MCP apply

@@ -23,7 +23,7 @@ public interface ExecutionStartedPayloadOrBuilder extends
 
   /**
    * <pre>
-   * Workflow ID (wf_{slug}) resolved for this execution.
+   * Workflow ID the execution runs.
    * </pre>
    *
    * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -32,7 +32,7 @@ public interface ExecutionStartedPayloadOrBuilder extends
   java.lang.String getWorkflowId();
   /**
    * <pre>
-   * Workflow ID (wf_{slug}) resolved for this execution.
+   * Workflow ID the execution runs.
    * </pre>
    *
    * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -40,24 +40,4 @@ public interface ExecutionStartedPayloadOrBuilder extends
    */
   com.google.protobuf.ByteString
       getWorkflowIdBytes();
-
-  /**
-   * <pre>
-   * WorkflowInstance ID (wfi_{slug}) resolved for this execution.
-   * </pre>
-   *
-   * <code>string workflow_instance_id = 3 [json_name = "workflowInstanceId"];</code>
-   * @return The workflowInstanceId.
-   */
-  java.lang.String getWorkflowInstanceId();
-  /**
-   * <pre>
-   * WorkflowInstance ID (wfi_{slug}) resolved for this execution.
-   * </pre>
-   *
-   * <code>string workflow_instance_id = 3 [json_name = "workflowInstanceId"];</code>
-   * @return The bytes for workflowInstanceId.
-   */
-  com.google.protobuf.ByteString
-      getWorkflowInstanceIdBytes();
 }

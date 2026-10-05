@@ -17,12 +17,10 @@ public final class WorkflowExecutionInput {
     private final String slug;
     private final java.util.Map<String, String> labels;
     private final ApiResourceVisibility visibility;
-    private final String workflowInstanceId;
     private final String workflowId;
     private final String triggerMessage;
     private final java.util.Map<String, String> triggerMetadata;
     private final java.util.Map<String, EnvVarInput> runtimeEnv;
-    private final byte[] callbackToken;
     private final ExecutionTarget executionTarget;
 
     private WorkflowExecutionInput(Builder builder) {
@@ -32,20 +30,15 @@ public final class WorkflowExecutionInput {
         this.slug = builder.slug;
         this.labels = builder.labels;
         this.visibility = builder.visibility;
-        this.workflowInstanceId = builder.workflowInstanceId;
         this.workflowId = builder.workflowId;
         this.triggerMessage = builder.triggerMessage;
         this.triggerMetadata = builder.triggerMetadata;
         this.runtimeEnv = builder.runtimeEnv;
-        this.callbackToken = builder.callbackToken;
         this.executionTarget = builder.executionTarget;
     }
 
     WorkflowExecution toProto() {
         WorkflowExecutionSpec.Builder spec = WorkflowExecutionSpec.newBuilder();
-        if (this.workflowInstanceId != null) {
-            spec.setWorkflowInstanceId(this.workflowInstanceId);
-        }
         if (this.workflowId != null) {
             spec.setWorkflowId(this.workflowId);
         }
@@ -62,9 +55,6 @@ public final class WorkflowExecutionInput {
                     .setIsSecret(entry.getValue().isSecret())
                     .build());
             }
-        }
-        if (this.callbackToken != null) {
-            spec.setCallbackToken(com.google.protobuf.ByteString.copyFrom(this.callbackToken));
         }
         if (this.executionTarget != null) {
             spec.setExecutionTarget(this.executionTarget);
@@ -103,12 +93,10 @@ public final class WorkflowExecutionInput {
         private String slug;
         private java.util.Map<String, String> labels;
         private ApiResourceVisibility visibility;
-        private String workflowInstanceId;
         private String workflowId;
         private String triggerMessage;
         private java.util.Map<String, String> triggerMetadata;
         private java.util.Map<String, EnvVarInput> runtimeEnv;
-        private byte[] callbackToken;
         private ExecutionTarget executionTarget;
 
         private Builder() {}
@@ -124,12 +112,10 @@ public final class WorkflowExecutionInput {
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
-        public Builder workflowInstanceId(String workflowInstanceId) { this.workflowInstanceId = workflowInstanceId; return this; }
         public Builder workflowId(String workflowId) { this.workflowId = workflowId; return this; }
         public Builder triggerMessage(String triggerMessage) { this.triggerMessage = triggerMessage; return this; }
         public Builder triggerMetadata(java.util.Map<String, String> triggerMetadata) { this.triggerMetadata = triggerMetadata; return this; }
         public Builder runtimeEnv(java.util.Map<String, EnvVarInput> runtimeEnv) { this.runtimeEnv = runtimeEnv; return this; }
-        public Builder callbackToken(byte[] callbackToken) { this.callbackToken = callbackToken; return this; }
         public Builder executionTarget(ExecutionTarget executionTarget) { this.executionTarget = executionTarget; return this; }
 
         public WorkflowExecutionInput build() { return new WorkflowExecutionInput(this); }

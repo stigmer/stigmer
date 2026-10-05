@@ -20,7 +20,6 @@ import (
 	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowexecution/v1"
-	workflowinstancev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowinstance/v1"
 	licensev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/license/v1"
 	planv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/plan/v1"
 	subscriptionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1"
@@ -173,9 +172,4 @@ func WorkflowInputFromProto(p *workflowv1.Workflow) *WorkflowInput {
 // WorkflowExecutionInputFromProto creates a WorkflowExecutionInput from a proto WorkflowExecution resource.
 func WorkflowExecutionInputFromProto(p *workflowexecutionv1.WorkflowExecution) *WorkflowExecutionInput {
 	return gen.WorkflowExecutionInputFromProto(p)
-}
-
-// WorkflowInstanceInputFromProto creates a WorkflowInstanceInput from a proto WorkflowInstance resource.
-func WorkflowInstanceInputFromProto(p *workflowinstancev1.WorkflowInstance) *WorkflowInstanceInput {
-	return gen.WorkflowInstanceInputFromProto(p)
 }

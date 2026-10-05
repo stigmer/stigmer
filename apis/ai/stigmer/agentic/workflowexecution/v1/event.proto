@@ -256,11 +256,12 @@ message ExecutionStartedPayload {
   // Enables progress calculation (completed_count / total_tasks).
   int32 total_tasks = 1;
 
-  // Workflow ID (wf_{slug}) resolved for this execution.
+  // Workflow ID the execution runs.
   string workflow_id = 2;
 
-  // WorkflowInstance ID (wfi_{slug}) resolved for this execution.
-  string workflow_instance_id = 3;
+  // Field 3 named the workflow instance until the instance kind was removed.
+  reserved 3;
+  reserved "workflow_instance_id";
 }
 
 // Payload for execution_completed events.

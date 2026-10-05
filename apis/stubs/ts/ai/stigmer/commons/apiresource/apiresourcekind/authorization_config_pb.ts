@@ -41,12 +41,10 @@ export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_c
  * Current classification:
  * - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
  *     private, org, child_orgs
- * - Instance kinds (workflow_instance):
+ * - Org-only kinds (environment):
  *     private, org — child_orgs is deliberately excluded to preserve
- *     tenant isolation: each child organization instantiates shared blueprints
- *     inside its own boundary. (System-managed DEFAULT instances opt out of
- *     visibility entirely: their access tracks the parent blueprint
- *     structurally via the default_of FGA relation.)
+ *     tenant isolation: what holds an organization's values never crosses
+ *     into its child organizations.
  *
  * Note: levels are declared as one bool per level instead of a repeated
  * ApiResourceVisibility because that enum lives in the parent apiresource
@@ -74,7 +72,7 @@ export type VisibilityConfig = Message<"ai.stigmer.commons.apiresource.apiresour
    *
    * Historically org support was inferred from supports_public, which made
    * it impossible to declare "org but not public" and silently skipped org
-   * tuples for kinds with no visibility config (the workflow_instance gap).
+   * tuples for kinds with no visibility config.
    *
    * @generated from field: bool supports_org = 3;
    */
@@ -150,7 +148,7 @@ export type ParentRelationConfig = Message<"ai.stigmer.commons.apiresource.apire
    * Field name in the resource's spec message that contains the parent ID.
    * The service extracts this field from resource.spec to resolve the parent ID.
    * Example: "session_id" for agent_execution, "workflow_id" for
-   * workflow_instance.
+   * workflow_execution.
    * This eliminates hardcoded parent ID extraction logic in the service.
    *
    * @generated from field: string spec_field = 3;
@@ -190,13 +188,13 @@ export const ParentRelationConfigSchema: GenMessage<ParentRelationConfig> = /*@_
  *   -> Creates: agent_execution#session@session:<session_id>
  *   -> No owner tuple (inherited from session)
  *
- * Resource with additional parent (workflow_instance):
+ * Resource with additional parent (workflow_execution):
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
  *   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
  *   additional_parents: [{ kind: "workflow", relation: "workflow", spec_field: "workflow_id" }]
- *   -> Creates: workflow_instance#organization@organization:<org_id>
- *   -> Creates: workflow_instance#workflow@workflow:<workflow_id>
- *   -> Creates: workflow_instance#owner@identity_account:<creator_id>
+ *   -> Creates: workflow_execution#organization@organization:<org_id>
+ *   -> Creates: workflow_execution#workflow@workflow:<workflow_id>
+ *   -> Creates: workflow_execution#owner@identity_account:<creator_id>
  *
  * Personal resource with creator attribution (environment):
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
@@ -245,7 +243,7 @@ export type AuthorizationConfig = Message<"ai.stigmer.commons.apiresource.apires
   /**
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_instance needs org link AND workflow link.
+   * Example: workflow_execution needs org link AND workflow link.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4;
    */

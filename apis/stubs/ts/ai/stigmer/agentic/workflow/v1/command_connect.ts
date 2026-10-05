@@ -6,7 +6,7 @@
 import { Workflow } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
-import { WorkflowId } from "./io_pbjs";
+import { UpdateWorkflowExecutionVisibilityInput, WorkflowId } from "./io_pbjs";
 import { ServerlessWorkflowValidation } from "./serverless/validation_pbjs";
 import { TagWorkflowVersionInput } from "./version_pbjs";
 
@@ -72,6 +72,26 @@ export const WorkflowCommandController = {
       kind: MethodKind.Unary,
     },
     /**
+     * Update who can observe the runs (executions) of this workflow.
+     *
+     * This is a SEPARATE axis from updateVisibility: it controls run
+     * observability (who sees execution inputs and outputs), not who can see or
+     * run the workflow itself. Making a workflow org-runnable does NOT expose
+     * other people's runs; that requires this opt-in. The setting covers every
+     * run of the workflow, past runs included.
+     *
+     * Supported levels: PRIVATE (only the person who started each run) and
+     * ORGANIZATION (all org members). Platform is unsupported.
+     *
+     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateExecutionVisibility
+     */
+    updateExecutionVisibility: {
+      name: "updateExecutionVisibility",
+      I: UpdateWorkflowExecutionVisibilityInput,
+      O: Workflow,
+      kind: MethodKind.Unary,
+    },
+    /**
      * Delete a workflow.
      *
      * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.delete
@@ -99,7 +119,7 @@ export const WorkflowCommandController = {
      *
      * gRPC errors are limited to input that cannot be validated at all (a missing
      * workflow or spec) and to genuine internal faults. This RPC does NOT persist,
-     * authorize, or create instances. It is a pure validation endpoint suitable for
+     * or authorize. It is a pure validation endpoint suitable for
      * iterative authoring where the caller needs fast feedback before committing.
      *
      * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.validateSpec

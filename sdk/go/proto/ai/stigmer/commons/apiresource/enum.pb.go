@@ -182,12 +182,12 @@ const (
 	ApiResourceVisibility_api_resource_visibility_unspecified ApiResourceVisibility = 0
 	// Only the owner, explicitly granted principals, and — for blueprint kinds
 	// in the cloud edition — org admins can access.
-	// This is the default for instances and personal resources.
+	// This is the default for personal and run-scoped resources.
 	//
 	// Org admins count as owners of blueprint kinds (agent, agent_share,
 	// skill, workflow, mcp_server), so a private blueprint stays
 	// manageable — and visible — to its org's admins. Personal kinds
-	// (instances, environments, sessions) stay creator-only.
+	// (environments, sessions) stay creator-only.
 	ApiResourceVisibility_visibility_private ApiResourceVisibility = 1
 	// Retired. This level made a resource readable to every account on the
 	// server; it is refused at create and at updateVisibility for every kind,
@@ -202,17 +202,11 @@ const (
 	// still requires the org-level member-or-guest permissions
 	// (can_create_session / can_create_execution_in); org visibility widens
 	// read, never spend.
-	// Used for instances where a team wants shared observability of executions
-	// without granting access to all authenticated users.
 	//
 	// FGA tuple: resource#viewer@organization:<org>#viewer
 	// (The tuple once targeted organization#member, which
 	// excluded viewer-role users; the authorization model no longer admits
 	// that shape.)
-	//
-	// For workflow instances, this enables zero-tuple-per-execution shared
-	// observability: everyone in the org sees all executions via inheritance
-	// once the instance opts in.
 	ApiResourceVisibility_visibility_org ApiResourceVisibility = 3
 	// Everyone in every child organization of the owning organization can
 	// read and run this resource: the shared catalog an organization offers

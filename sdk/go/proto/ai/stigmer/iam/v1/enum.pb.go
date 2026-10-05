@@ -100,8 +100,7 @@ const (
 	// reserved stigmer.ai/* key namespace through client-facing write
 	// boundaries. Gated to platform operators (the seeding machine
 	// account): reserved labels carry platform semantics the server acts
-	// on (the personal-environment marker, the default-instance marker,
-	// plugin membership and lineage) — so ordinary requests may echo or
+	// on (the personal-environment marker, plugin membership and lineage) — so ordinary requests may echo or
 	// remove them but never write them.
 	IamPermission_can_write_reserved_labels IamPermission = 37
 	// Platform-level permission to view platform provider standing: the

@@ -229,7 +229,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.workflow.v1.WorkflowStatus status_;
   /**
    * <pre>
-   * System-managed state including audit trail and default instance ID.
+   * System-managed state including audit trail, validation and version hash.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -241,7 +241,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-managed state including audit trail and default instance ID.
+   * System-managed state including audit trail, validation and version hash.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -253,7 +253,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-managed state including audit trail and default instance ID.
+   * System-managed state including audit trail, validation and version hash.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -1209,7 +1209,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.workflow.v1.WorkflowStatus, ai.stigmer.agentic.workflow.v1.WorkflowStatus.Builder, ai.stigmer.agentic.workflow.v1.WorkflowStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * System-managed state including audit trail and default instance ID.
+     * System-managed state including audit trail, validation and version hash.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -1220,7 +1220,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed state including audit trail and default instance ID.
+     * System-managed state including audit trail, validation and version hash.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -1235,7 +1235,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed state including audit trail and default instance ID.
+     * System-managed state including audit trail, validation and version hash.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -1255,7 +1255,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed state including audit trail and default instance ID.
+     * System-managed state including audit trail, validation and version hash.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -1273,7 +1273,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed state including audit trail and default instance ID.
+     * System-managed state including audit trail, validation and version hash.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -1298,7 +1298,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed state including audit trail and default instance ID.
+     * System-managed state including audit trail, validation and version hash.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -1315,7 +1315,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed state including audit trail and default instance ID.
+     * System-managed state including audit trail, validation and version hash.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -1327,7 +1327,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed state including audit trail and default instance ID.
+     * System-managed state including audit trail, validation and version hash.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -1342,7 +1342,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed state including audit trail and default instance ID.
+     * System-managed state including audit trail, validation and version hash.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>

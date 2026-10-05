@@ -64,7 +64,7 @@
               "visibility_child_orgs"
             ]
           },
-          "description": "Visibility controls who can read this resource.\n - PRIVATE: the owner and explicit grants.\n - ORG: every member of the owning organization.\n - CHILD_ORGS: everyone in the owning organization's child\n   organizations (blueprint kinds only).\n Write access always requires membership of the owning organization.\n Default: config-driven per kind — blueprint kinds (marked\n defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.\n\n Mutation contract: visibility is set at create and changed ONLY through\n the kind's UpdateVisibility RPC, where the visibility guards live\n (per-kind level support, default-instance rejection). A plain Update\n preserves the stored value — a request-carried level is ignored, never\n applied. Declarative clients that want a manifest's visibility to land\n on update must follow up with UpdateVisibility (the CLI and MCP apply\n surfaces do this automatically).",
+          "description": "Visibility controls who can read this resource.\n - PRIVATE: the owner and explicit grants.\n - ORG: every member of the owning organization.\n - CHILD_ORGS: everyone in the owning organization's child\n   organizations (blueprint kinds only).\n Write access always requires membership of the owning organization.\n Default: config-driven per kind — blueprint kinds (marked\n defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.\n\n Mutation contract: visibility is set at create and changed ONLY through\n the kind's UpdateVisibility RPC, where the visibility guards live\n (per-kind level support). A plain Update\n preserves the stored value — a request-carried level is ignored, never\n applied. Declarative clients that want a manifest's visibility to land\n on update must follow up with UpdateVisibility (the CLI and MCP apply\n surfaces do this automatically).",
           "required": false
         },
         {
@@ -429,14 +429,9 @@
           "description": "Multi-step orchestration defining how agents collaborate on a task."
         },
         {
-          "name": "workflow_instance",
-          "number": 51,
-          "description": "Configured deployment of a workflow with environment-specific bindings."
-        },
-        {
           "name": "workflow_execution",
           "number": 52,
-          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+          "description": "Single run of a workflow, tracking step progress and outcomes."
         },
         {
           "name": "environment",
@@ -493,7 +488,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -503,7 +498,7 @@
         {
           "name": "visibility_org",
           "number": 3,
-          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: everyone in the org sees all executions via inheritance\n once the instance opts in."
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
         },
         {
           "name": "visibility_child_orgs",

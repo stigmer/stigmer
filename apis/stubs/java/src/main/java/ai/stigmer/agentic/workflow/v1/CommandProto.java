@@ -45,7 +45,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "commons/apiresource/io.proto\0328ai/stigmer" +
       "/commons/apiresource/rpc_service_options" +
       ".proto\032+ai/stigmer/commons/rpc/method_op" +
-      "tions.proto2\221\t\n\031WorkflowCommandControlle" +
+      "tions.proto2\356\n\n\031WorkflowCommandControlle" +
       "r\022[\n\005apply\022(.ai.stigmer.agentic.workflow" +
       ".v1.Workflow\032(.ai.stigmer.agentic.workfl" +
       "ow.v1.Workflow\022\252\001\n\006create\022(.ai.stigmer.a" +
@@ -61,25 +61,30 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "isibilityInput\032(.ai.stigmer.agentic.work" +
       "flow.v1.Workflow\"A\302\270\030=\0100\0202\"\013resource_id*" +
       "*unauthorized to update workflow visibil" +
-      "ity\022\220\001\n\006delete\022*.ai.stigmer.agentic.work" +
-      "flow.v1.WorkflowId\032(.ai.stigmer.agentic." +
-      "workflow.v1.Workflow\"0\302\270\030,\010\003\0202\"\005value*\037u" +
-      "nauthorized to delete workflow\022\321\001\n\014valid" +
-      "ateSpec\022(.ai.stigmer.agentic.workflow.v1" +
-      ".Workflow\032G.ai.stigmer.agentic.workflow." +
-      "v1.serverless.ServerlessWorkflowValidati" +
-      "on\"N\302\270\030J\010\007\020\036\"\014metadata.org*6unauthorized" +
-      " to validate workflow in this organizati" +
-      "on\022\254\001\n\ntagVersion\0227.ai.stigmer.agentic.w" +
-      "orkflow.v1.TagWorkflowVersionInput\032(.ai." +
-      "stigmer.agentic.workflow.v1.Workflow\";\302\270" +
-      "\0307\010\002\0202\"\013workflow_id*$unauthorized to tag" +
-      " workflow version\032\004\240\377+2B\253\001B\014CommandProto" +
-      "P\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow." +
-      "V1\312\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai" +
-      "\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata" +
-      "\352\002\"Ai::Stigmer::Agentic::Workflow::V1b\006p" +
-      "roto3"
+      "ity\022\332\001\n\031updateExecutionVisibility\022F.ai.s" +
+      "tigmer.agentic.workflow.v1.UpdateWorkflo" +
+      "wExecutionVisibilityInput\032(.ai.stigmer.a" +
+      "gentic.workflow.v1.Workflow\"K\302\270\030G\0100\0202\"\013r" +
+      "esource_id*4unauthorized to update workf" +
+      "low execution visibility\022\220\001\n\006delete\022*.ai" +
+      ".stigmer.agentic.workflow.v1.WorkflowId\032" +
+      "(.ai.stigmer.agentic.workflow.v1.Workflo" +
+      "w\"0\302\270\030,\010\003\0202\"\005value*\037unauthorized to dele" +
+      "te workflow\022\321\001\n\014validateSpec\022(.ai.stigme" +
+      "r.agentic.workflow.v1.Workflow\032G.ai.stig" +
+      "mer.agentic.workflow.v1.serverless.Serve" +
+      "rlessWorkflowValidation\"N\302\270\030J\010\007\020\036\"\014metad" +
+      "ata.org*6unauthorized to validate workfl" +
+      "ow in this organization\022\254\001\n\ntagVersion\0227" +
+      ".ai.stigmer.agentic.workflow.v1.TagWorkf" +
+      "lowVersionInput\032(.ai.stigmer.agentic.wor" +
+      "kflow.v1.Workflow\";\302\270\0307\010\002\0202\"\013workflow_id" +
+      "*$unauthorized to tag workflow version\032\004" +
+      "\240\377+2B\253\001B\014CommandProtoP\001\242\002\004ASAW\252\002\036Ai.Stig" +
+      "mer.Agentic.Workflow.V1\312\002\036Ai\\Stigmer\\Age" +
+      "ntic\\Workflow\\V1\342\002*Ai\\Stigmer\\Agentic\\Wo" +
+      "rkflow\\V1\\GPBMetadata\352\002\"Ai::Stigmer::Age" +
+      "ntic::Workflow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

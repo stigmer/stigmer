@@ -70,6 +70,35 @@ service WorkflowCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow visibility";
   }
 
+  // Update who can observe the runs (executions) of this workflow.
+  //
+  // This is a SEPARATE axis from updateVisibility: it controls run
+  // observability (who sees execution inputs and outputs), not who can see or
+  // run the workflow itself. Making a workflow org-runnable does NOT expose
+  // other people's runs; that requires this opt-in. The setting covers every
+  // run of the workflow, past runs included.
+  //
+  // Supported levels: PRIVATE (only the person who started each run) and
+  // ORGANIZATION (all org members). Platform is unsupported.
+  //
+  // @internal
+  // Authorization: requires can_manage_audience on the workflow — who
+  // observes its runs is part of who reaches it, the owner's decision, like
+  // the workflow's own visibility. An editor may change the definition but
+  // not this. The level is spec.execution_visibility; update and apply keep
+  // the stored level, so this RPC is its one door after create. In an edition
+  // that stores authorization tuples the transition reconciles the workflow's
+  // `execution_viewer` relation:
+  // - PRIVATE -> ORGANIZATION: creates
+  //   workflow#execution_viewer@organization:<org>#viewer
+  // - ORGANIZATION -> PRIVATE: deletes that tuple
+  rpc updateExecutionVisibility(UpdateWorkflowExecutionVisibilityInput) returns (Workflow) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_audience;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow execution visibility";
+  }
+
   // Delete a workflow.
   rpc delete(WorkflowId) returns (Workflow) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow;
@@ -94,7 +123,7 @@ service WorkflowCommandController {
   //
   // gRPC errors are limited to input that cannot be validated at all (a missing
   // workflow or spec) and to genuine internal faults. This RPC does NOT persist,
-  // authorize, or create instances. It is a pure validation endpoint suitable for
+  // or authorize. It is a pure validation endpoint suitable for
   // iterative authoring where the caller needs fast feedback before committing.
   //
   // @internal

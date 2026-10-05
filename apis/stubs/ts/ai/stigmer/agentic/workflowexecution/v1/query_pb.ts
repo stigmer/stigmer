@@ -29,7 +29,7 @@ export const file_ai_stigmer_agentic_workflowexecution_v1_query: GenFile = /*@__
  * Authorization:
  * - get: Standard authorization - user must have "get" permission on the specific WorkflowExecution
  * - list: Custom authorization - filters results based on user's owner scope and permissions
- * - list_by_workflow: Custom authorization - verifies user has access to the Workflow/WorkflowInstance
+ * - list_by_workflow: Custom authorization - verifies user has access to the Workflow
  * - subscribe: Standard authorization - user must have "get" permission to subscribe to updates
  *
  * Service Options:
@@ -42,7 +42,7 @@ export const WorkflowExecutionQueryController: GenService<{
    * Get a single workflow execution by ID.
    *
    * Retrieves the complete WorkflowExecution resource including:
-   * - spec: User inputs (workflow_instance_id, trigger_message, etc.)
+   * - spec: User inputs (workflow_id, trigger_message, etc.)
    * - status: Current execution state (phase, tasks, progress_events, output/error)
    * - metadata: Resource identification (id, name, labels, tags)
    *
@@ -67,7 +67,7 @@ export const WorkflowExecutionQueryController: GenService<{
     output: typeof WorkflowExecutionListSchema;
   },
   /**
-   * List all executions for a specific Workflow or WorkflowInstance.
+   * List all executions for a specific Workflow.
    *
    * Returns executions filtered by a specific Workflow ID.
    * This is useful for viewing execution history of a particular workflow.

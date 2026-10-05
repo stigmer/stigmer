@@ -10,11 +10,10 @@ message WorkflowStatus {
   // Standard audit information (created_at, updated_at, created_by, etc.)
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 
-  // ID of the default workflow instance created automatically for this workflow.
-  // Every workflow has exactly one default instance that requires no configuration.
-  // This instance has no environment bindings and uses all workflow defaults.
-  // Created automatically when the workflow is created.
-  string default_instance_id = 1;
+  // Field 1 held the id of the workflow's default instance until the
+  // instance kind was removed; a run names its workflow directly.
+  reserved 1;
+  reserved "default_instance_id";
 
   // Serverless Workflow YAML generation and validation state.
   // Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
@@ -26,16 +25,16 @@ message WorkflowStatus {
   // with status.state = PENDING, then validation runs in the background.
   ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2;
 
-  // SHA-256 hash of the generated CNCF YAML for the current valid version.
+  // SHA-256 content hash of the workflow's current valid version.
   //
   // @internal
-  // Updated only when validation produces state=VALID and the generated YAML
-  // differs from the previous version's hash. Empty for workflows that have
-  // never passed validation.
-  //
-  // This is the content-addressed version identifier for the workflow definition.
-  // The hash is computed from the `serverless_workflow_validation.yaml` string,
-  // ensuring that "same YAML = same hash = same execution behavior."
+  // The canonical hash of the whole spec (the function agents use), taken
+  // with spec.execution_visibility cleared, so a version covers everything a
+  // run reads from its workflow: the task list, each step's environments, the
+  // declared env and the budget. Changing who sees the runs mints no version.
+  // Updated only when validation produces state=VALID. Empty for workflows
+  // that have never passed validation. A workflow last saved before this rule
+  // holds the hash of its generated YAML until its next save.
   //
   // Consumers:
   // - Execution create pipeline reads this to pin executions to a specific version

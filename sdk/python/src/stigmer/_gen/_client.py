@@ -33,7 +33,6 @@ from ._subscription import SubscriptionClient
 from ._team import TeamClient
 from ._workflow import WorkflowClient
 from ._workflowexecution import WorkflowExecutionClient
-from ._workflowinstance import WorkflowInstanceClient
 
 
 class GeneratedClient:
@@ -69,5 +68,4 @@ class GeneratedClient:
         self.teams = TeamClient(channel)
         self.workflows = WorkflowClient(channel)
         self.workflow_executions = WorkflowExecutionClient(channel)
-        self.workflow_instances = WorkflowInstanceClient(channel)
 

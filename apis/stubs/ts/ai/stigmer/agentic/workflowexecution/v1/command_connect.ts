@@ -18,7 +18,7 @@ import { ApiResourceId } from "../../../commons/apiresource/io_pbjs";
  * Authorization:
  * All RPCs use custom authorization logic implemented in middleware.
  * Custom authorization is needed because:
- * - create: Must verify user has "execute" permission on the referenced WorkflowInstance
+ * - create: Must verify user has "execute" permission on the referenced Workflow
  * - update: Only the workflow runner (system) can update execution status, not users
  *
  * Service Options:

@@ -35,7 +35,6 @@ type Client struct {
 	Team              *TeamClient
 	Workflow          *WorkflowClient
 	WorkflowExecution *WorkflowExecutionClient
-	WorkflowInstance  *WorkflowInstanceClient
 }
 
 // NewClient creates a Client with all resource sub-clients wired to the given connection.
@@ -70,6 +69,5 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		Team:              NewTeamClient(conn),
 		Workflow:          NewWorkflowClient(conn),
 		WorkflowExecution: NewWorkflowExecutionClient(conn),
-		WorkflowInstance:  NewWorkflowInstanceClient(conn),
 	}
 }

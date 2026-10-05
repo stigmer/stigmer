@@ -167,20 +167,16 @@ class WorkflowExecutionInput:
     slug: str | None = None
     labels: dict[str, str] | None = None
     visibility: int = 0
-    workflow_instance_id: str = ""
     workflow_id: str = ""
     trigger_message: str = ""
     trigger_metadata: dict[str, str] = field(default_factory=dict)
     runtime_env: dict[str, EnvVarInput] = field(default_factory=dict)
-    callback_token: bytes = b""
     execution_target: int = 0
 
     def _to_proto(self) -> api_pb2.WorkflowExecution:
         spec = spec_pb2.WorkflowExecutionSpec(
-            workflow_instance_id=self.workflow_instance_id,
             workflow_id=self.workflow_id,
             trigger_message=self.trigger_message,
-            callback_token=self.callback_token,
             execution_target=self.execution_target,
         )
         if self.trigger_metadata:

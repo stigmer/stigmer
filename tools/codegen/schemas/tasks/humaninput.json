@@ -98,7 +98,7 @@
           "kind": "string"
         }
       },
-      "description": "Channel identifiers for sending approval request notifications.\n\n When the task starts, the runtime sends notifications through these\n channels to alert potential approvers. Format examples:\n   - \"slack:#approvals\" — Slack channel\n   - \"email:ops@acme.com\" — email address\n   - \"teams:#incident-response\" — Microsoft Teams channel\n\n The format and routing of notifications is a runtime concern.\n The proto carries the identifiers; the runtime resolves them to\n actual notification providers configured in the workflow instance's\n environment.",
+      "description": "Channel identifiers for sending approval request notifications.\n\n When the task starts, the runtime sends notifications through these\n channels to alert potential approvers. Format examples:\n   - \"slack:#approvals\" — Slack channel\n   - \"email:ops@acme.com\" — email address\n   - \"teams:#incident-response\" — Microsoft Teams channel\n\n The format and routing of notifications is a runtime concern.\n The proto carries the identifiers; the runtime resolves them to\n actual notification providers configured in the workflow run's\n environment.",
       "required": false
     },
     {

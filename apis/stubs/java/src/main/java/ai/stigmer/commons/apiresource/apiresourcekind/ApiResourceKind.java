@@ -192,15 +192,7 @@ public enum ApiResourceKind
   workflow(50),
   /**
    * <pre>
-   * Configured deployment of a workflow with environment-specific bindings.
-   * </pre>
-   *
-   * <code>workflow_instance = 51 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  workflow_instance(51),
-  /**
-   * <pre>
-   * Single run of a workflow instance, tracking step progress and outcomes.
+   * Single run of a workflow, tracking step progress and outcomes.
    * </pre>
    *
    * <code>workflow_execution = 52 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -484,15 +476,7 @@ public enum ApiResourceKind
   public static final int workflow_VALUE = 50;
   /**
    * <pre>
-   * Configured deployment of a workflow with environment-specific bindings.
-   * </pre>
-   *
-   * <code>workflow_instance = 51 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  public static final int workflow_instance_VALUE = 51;
-  /**
-   * <pre>
-   * Single run of a workflow instance, tracking step progress and outcomes.
+   * Single run of a workflow, tracking step progress and outcomes.
    * </pre>
    *
    * <code>workflow_execution = 52 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -634,7 +618,6 @@ public enum ApiResourceKind
       case 47: return agent_channel;
       case 48: return channel_app;
       case 50: return workflow;
-      case 51: return workflow_instance;
       case 52: return workflow_execution;
       case 53: return environment;
       case 55: return artifact;

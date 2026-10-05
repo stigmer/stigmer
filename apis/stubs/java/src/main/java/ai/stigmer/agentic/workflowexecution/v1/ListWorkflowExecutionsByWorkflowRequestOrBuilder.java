@@ -12,7 +12,7 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
 
   /**
    * <pre>
-   * Workflow or WorkflowInstance ID to filter by.
+   * Workflow ID to filter by.
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
   java.lang.String getWorkflowId();
   /**
    * <pre>
-   * Workflow or WorkflowInstance ID to filter by.
+   * Workflow ID to filter by.
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>

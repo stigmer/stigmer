@@ -20,15 +20,15 @@ export const file_ai_stigmer_agentic_workflow_v1_version: GenFile = /*@__PURE__*
 /**
  * WorkflowVersionEntry represents a single historical version of a workflow.
  *
- * Each apply/update that changes the generated CNCF YAML (and passes validation)
+ * Each apply/update that changes the workflow's spec (and passes validation)
  * creates a new immutable version entry. The version is identified by its content
- * hash (SHA-256 of the validated YAML).
+ * hash (the canonical hash of the spec, run visibility excluded).
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry
  */
 export type WorkflowVersionEntry = Message<"ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry"> & {
   /**
-   * SHA-256 hash of the CNCF YAML — the immutable version identifier.
+   * Content hash of the version's spec — the immutable version identifier.
    *
    * @generated from field: string version_hash = 1;
    */
