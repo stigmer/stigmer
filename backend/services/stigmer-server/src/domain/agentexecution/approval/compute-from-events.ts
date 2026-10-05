@@ -88,5 +88,6 @@ function pendingApprovalFromRequest(req: ApprovalRequest): PendingApproval {
     mcpServerSlug: req.mcpServerSlug,
     toolKind: req.toolKind,
     approvalPolicySource: req.approvalPolicySource,
+    approvalPolicyHook: req.approvalPolicyHook,
   });
 }

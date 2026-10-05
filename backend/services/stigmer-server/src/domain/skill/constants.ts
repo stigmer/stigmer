@@ -76,12 +76,13 @@ export const REF_PREFIX = "sau_";
 export const UPLOADS_SEGMENT = "/uploads/";
 
 /**
- * Downloads are restricted to the skill artifact store's own keys
- * ("skills/<hash>.zip", and the staged uploads under STAGING_KEY_PREFIX);
- * everything else under the storage root — should the two ever share one
- * — stays unreachable from this lane.
+ * Downloads are restricted to the archive stores' own keys: skills
+ * ("skills/<hash>.zip", and the staged uploads under STAGING_KEY_PREFIX) and
+ * plugins ("plugins/<digest>.zip"). One blob driver holds both archive kinds
+ * (boot/compose.ts), so one lane serves both; everything else under the
+ * storage root stays unreachable from this lane.
  */
-export const DOWNLOAD_KEY_PREFIX = "skills/";
+export const DOWNLOAD_KEY_PREFIXES: readonly string[] = ["skills/", "plugins/"];
 
 /**
  * The #452 nested-only-SKILL.md hint — the "zipped the folder instead of

@@ -280,7 +280,7 @@ export function describePackageOn(
     "Hooks",
     plugin.hooks === undefined
       ? "none"
-      : hooksSummary(HOOK_FORMAT_LABELS[plugin.hooks.format], plugin.hooks.groups),
+      : hooksSummary(plugin.hooks.format, plugin.hooks.groups),
   );
   contents.field(
     "Variables",
@@ -324,12 +324,13 @@ const HOOK_FORMAT_LABELS = {
 } as const;
 
 /**
- * `Claude Code format: PreToolUse 2, PostToolUse 1 (recorded, not run yet)`:
- * handlers per event, in first-seen order. No engine runs a plugin hook
- * yet, and the line says so wherever it is printed.
+ * `Claude Code format: PreToolUse 2, PostToolUse 1`: handlers per event, in
+ * first-seen order. Claude Code-format hooks run on the native engine when
+ * an agent references the plugin; Cursor-format hooks are recorded and no
+ * engine runs them yet, so their line says so wherever it is printed.
  */
 export function hooksSummary(
-  format: string,
+  format: keyof typeof HOOK_FORMAT_LABELS,
   groups: readonly {
     readonly event: string;
     readonly handlers: readonly unknown[];
@@ -338,15 +339,13 @@ export function hooksSummary(
   const perEvent = new Map<string, number>();
   for (const group of groups)
     perEvent.set(group.event, (perEvent.get(group.event) ?? 0) + group.handlers.length);
-  return `${format} format: ${[...perEvent].map(([event, n]) => `${event} ${n}`).join(", ")} (recorded, not run yet)`;
+  const counts = [...perEvent].map(([event, n]) => `${event} ${n}`).join(", ");
+  const notRun = format === "cursor" ? " (not run yet)" : "";
+  return `${HOOK_FORMAT_LABELS[format]} format: ${counts}${notRun}`;
 }
 
 function installedHooksSummary(hooks: HookConfig): string {
-  const format =
-    hooks.format === HookFormatProto.CURSOR
-      ? HOOK_FORMAT_LABELS.cursor
-      : HOOK_FORMAT_LABELS["claude-code"];
-  return hooksSummary(format, hooks.groups);
+  return hooksSummary(hooks.format === HookFormatProto.CURSOR ? "cursor" : "claude-code", hooks.groups);
 }
 
 // ─── Push ────────────────────────────────────────────────────────────────

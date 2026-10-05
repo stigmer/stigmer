@@ -139,5 +139,6 @@ function projectToolCall(
     // compute-from-events.ts) so projectPendingApprovals fromEvents ==
     // fromScan holds (this scan is the retained cross-check).
     approvalPolicySource: tc.approvalPolicySource,
+    approvalPolicyHook: tc.approvalPolicyHook,
   });
 }

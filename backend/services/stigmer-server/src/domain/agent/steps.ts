@@ -3,7 +3,8 @@
  * pkg/domain/agent/controller/ (create.go, delete_cascade.go,
  * get_default.go, merge_mcp_env_specs.go).
  * Shared steps stay in src/pipeline/steps/; these exist because they
- * embody agent-specific contracts: the cascade rules and MCP env merging.
+ * embody agent-specific contracts: the cascade rules, MCP env merging and
+ * the agent's hooks.
  *
  * The agent's tool lists (spec.tools, spec.disallowed_tools and each
  * sub-agent's pair) have no step here on purpose: their shape is the
@@ -17,6 +18,12 @@ import { ConnectError } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
+import {
+  HOOK_CONDITION_PATTERN,
+  RUN_EVENTS,
+  isValidMatcher,
+} from "@stigmer/plugin-package";
+
 import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
 import type {
   Agent,
@@ -26,6 +33,8 @@ import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -161,6 +170,102 @@ export function newMergeMcpServerEnvSpecsStep(
       }
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// ValidateHooks — the agent's hook sources (spec.hooks), checked where the
+// proto's own rules cannot reach. Each plugin is listed once by slug: the
+// slug is what a run records as the deciding hook (ToolCall
+// .approval_policy_hook) and what a hook's "approve all" lease is keyed by,
+// so two plugins sharing one, even from two organizations, would share a
+// lease. One inline block at most, so "the agent's own hooks" names one
+// thing. An inline block is held to the rules a plugin's hooks are held to
+// at install, from the one library that reads them (@stigmer/plugin-package):
+// Claude Code's format only (the format the native engine runs), the two
+// tool-call events, a matcher that is "*", an exact list or a regular
+// expression, an `if` in a permission rule's shape, and no fail_closed,
+// which is Cursor's and which Claude Code hooks do not honour. An omitted
+// format is filled with Claude Code's, so an author writing a block by hand
+// never names an enum, the way the env merge completes the spec.
+//
+// Pipeline position: before NormalizeReferences, so malformed hooks are
+// INVALID_ARGUMENT before any reference is looked up; before the version
+// hash, so the filled format is part of what is hashed.
+// ---------------------------------------------------------------------------
+
+export function newValidateHooksStep(): PipelineStep<AgentDesc> {
+  return {
+    name: "ValidateHooks",
+    execute(ctx: RequestContext<AgentDesc>): void {
+      const pluginSlugs = new Set<string>();
+      let inlineBlocks = 0;
+      for (const source of ctx.newState.spec?.hooks ?? []) {
+        switch (source.source.case) {
+          case "plugin": {
+            const slug = source.source.value.slug;
+            if (pluginSlugs.has(slug)) {
+              throw invalidArgumentError(
+                `hooks lists plugin '${slug}' more than once; list each plugin once, and never two plugins that share a slug`,
+              );
+            }
+            pluginSlugs.add(slug);
+            break;
+          }
+          case "inline":
+            inlineBlocks++;
+            if (inlineBlocks > 1) {
+              throw invalidArgumentError(
+                "hooks carries more than one inline block; write the agent's own hooks in one block",
+              );
+            }
+            checkInlineHooks(source.source.value);
+            break;
+          case undefined:
+            // An empty source is the proto's own oneof rule to refuse.
+            break;
+        }
+      }
+    },
+  };
+}
+
+const CLAUDE_CODE_EVENTS = RUN_EVENTS["claude-code"];
+
+/** One inline block against the install rules; fills an omitted format. */
+function checkInlineHooks(block: HookConfig): void {
+  if (block.format === HookFormat.CURSOR) {
+    throw invalidArgumentError(
+      "the agent's hooks block is in Cursor's format; an agent's own hooks are written in Claude Code's format",
+    );
+  }
+  block.format = HookFormat.CLAUDE_CODE;
+  for (const group of block.groups) {
+    if (!CLAUDE_CODE_EVENTS.has(group.event)) {
+      throw invalidArgumentError(
+        `the agent's hooks block names event '${group.event}', which Stigmer does not run; use ${[...CLAUDE_CODE_EVENTS].join(" or ")}`,
+      );
+    }
+    if (!isValidMatcher(group.matcher, "claude-code")) {
+      throw invalidArgumentError(
+        `the agent's ${group.event} hook has matcher '${group.matcher}', which is not '*', a list of tool names or a regular expression`,
+      );
+    }
+    for (const handler of group.handlers) {
+      if (
+        handler.condition !== "" &&
+        !HOOK_CONDITION_PATTERN.test(handler.condition)
+      ) {
+        throw invalidArgumentError(
+          `the agent's ${group.event} hook has condition '${handler.condition}', which is not a permission rule such as 'Bash' or 'Bash(git push *)'`,
+        );
+      }
+      if (handler.failClosed) {
+        throw invalidArgumentError(
+          `the agent's ${group.event} hook sets fail_closed, which Claude Code hooks do not have: a Claude Code hook that fails lets the call through`,
+        );
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

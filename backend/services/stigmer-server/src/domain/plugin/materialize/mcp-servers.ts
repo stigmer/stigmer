@@ -116,7 +116,7 @@ export function planMcpServers(
 }
 
 /** Every declared variable, by name, as the runner's declaration shape. */
-function declaredVariables(
+export function declaredVariables(
   plugin: PluginPackage,
 ): Map<string, EnvVarDeclaration> {
   return new Map(
@@ -136,7 +136,7 @@ function declaredVariables(
  * undeclared `${VAR}` as a required secret — so this arm is the honest
  * default for a name the declaration list somehow lacks.
  */
-function inferredSecret(): EnvVarDeclaration {
+export function inferredSecret(): EnvVarDeclaration {
   return create(EnvVarDeclarationSchema, { isSecret: true, optional: false });
 }
 

@@ -12,7 +12,9 @@
  * ONE sentence whether it is missing or merely not shared; the MCP-server
  * copy that predates the rule is byte-identical and its siblings take its
  * shape; the walk reads a reference's kind from its field, not from the
- * message; the step over a real store loads each referenced kind once,
+ * message, and reaches a hook source's plugin reference inside its oneof,
+ * which the rule then judges like any other; the step over a real store
+ * loads each referenced kind once,
  * records the targets it resolved (RESOLVED_REFERENCE_TARGETS_KEY) for
  * every reference, and under `judge: "introduced"` judges only the
  * references the stored row does not already carry, loading nothing when
@@ -33,6 +35,7 @@ import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -169,7 +172,7 @@ describe("REFERENCE_TARGET_KINDS against the contract", () => {
   it("names the kinds the run reads as the person, and no other", () => {
     expect(
       REFERENCE_TARGET_KINDS.filter((e) => e.readByRun).map((e) => e.kind),
-    ).toEqual([K.skill, K.mcp_server, K.agent]);
+    ).toEqual([K.skill, K.mcp_server, K.agent, K.plugin]);
     expect(
       REFERENCE_TARGET_KINDS.filter((e) => !e.readByRun).map((e) => e.kind),
     ).toEqual([K.environment, K.channel_app, K.oauth_app]);
@@ -565,6 +568,104 @@ describe("the step over a store", () => {
       { kind: K.mcp_server, org: "acme", slug: "m", version: "" },
       { kind: K.skill, org: "acme", slug: "s", version: "v1" },
     ]);
+  });
+
+  it("the walk reaches a plugin reference inside a hook source's oneof, beside an inline block it ignores", () => {
+    const agent = create(AgentSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Agent",
+      metadata: { name: "Helper", org: "acme" },
+      spec: {
+        instructions: "help",
+        hooks: [
+          { source: { case: "plugin", value: { org: "acme", slug: "safety" } } },
+          { source: { case: "inline", value: { groups: [] } } },
+        ],
+      },
+    });
+    expect(collectSpecReferences(AgentSchema, agent)).toEqual([
+      { kind: K.plugin, org: "acme", slug: "safety", version: "" },
+    ]);
+  });
+
+  it("holds a hook's plugin reference to the rule: the target must exist, reach the floor, and be platform-visible across organizations", async () => {
+    async function seedPlugin(
+      id: string,
+      org: string,
+      slug: string,
+      visibility: ApiResourceVisibility,
+    ): Promise<void> {
+      await store.saveResource(
+        K.plugin,
+        id,
+        PluginSchema,
+        create(PluginSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Plugin",
+          metadata: { id, name: slug, slug, org, visibility },
+        }),
+      );
+    }
+    const hooked = (refs: ReadonlyArray<{ org: string; slug: string }>) =>
+      new RequestContext(
+        AgentSchema,
+        create(AgentSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Agent",
+          metadata: { name: "Helper", org: "acme", visibility: V.visibility_org },
+          spec: {
+            instructions: "help the user with their tasks",
+            hooks: refs.map((r) => ({
+              source: { case: "plugin" as const, value: { ...r } },
+            })),
+          },
+        }),
+        testCallerIdentity(),
+        K.agent,
+      );
+    const run = (ctx: RequestContext<typeof AgentSchema>) =>
+      failureOf(() =>
+        newValidateReferencesStep<typeof AgentSchema>(
+          store,
+          newPermissiveSingleTeamAuthorizer(),
+        ).execute(ctx),
+      );
+    const entry = referenceTargetKind(K.plugin)!;
+
+    const missing = await run(hooked([{ org: "acme", slug: "safety" }]));
+    expect((missing as ConnectError).rawMessage).toBe(
+      missingReferencesMessage(entry, [{ org: "acme", slug: "safety" }]),
+    );
+
+    await seedPlugin("plg_1", "acme", "safety", V.visibility_private);
+    await seedPlugin("plg_2", "globex", "theirs", V.visibility_org);
+    const refused = await run(
+      hooked([
+        { org: "acme", slug: "safety" },
+        { org: "globex", slug: "theirs" },
+      ]),
+    );
+    expect((refused as ConnectError).rawMessage).toBe(
+      belowFloorMessage(
+        entry,
+        ref(K.plugin, "acme", "safety"),
+        V.visibility_private,
+        V.visibility_org,
+      ) +
+        " " +
+        notAvailableReferenceMessage(entry, ref(K.plugin, "globex", "theirs")),
+    );
+
+    await seedPlugin("plg_1", "acme", "safety", V.visibility_org);
+    await seedPlugin("plg_2", "globex", "theirs", V.visibility_platform);
+    await expect(
+      run(
+        hooked([
+          { org: "acme", slug: "safety" },
+          { org: "globex", slug: "theirs" },
+        ]),
+      ),
+    ).resolves.toBeUndefined();
   });
 
   it("loads each referenced kind once and admits an existing same-organization target", async () => {

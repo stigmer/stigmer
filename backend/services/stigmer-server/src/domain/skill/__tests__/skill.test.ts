@@ -512,7 +512,7 @@ describe("transfer lane (#675) — mint → PUT → push-by-ref → download", (
     expect(await h2Put(mismatch.url, Buffer.from("short"))).toBe(400);
   });
 
-  it("getArtifactDownloadUrl serves the exact stored bytes over HTTP; download space is skills/-only", async () => {
+  it("getArtifactDownloadUrl serves the exact stored bytes over HTTP; download space is the archive stores' keys only", async () => {
     const artifact = makeArtifact(uniqueName());
     const pushed = await command.push({ org: ORG, artifact });
 

@@ -7,7 +7,11 @@
  * members with both labels; an MCP-only plugin materialises no agent; a
  * Claude plugin's hooks reach the status while its settings' main agent
  * and its agents' tool lists, rewritten to Stigmer's names, reach the
- * agent; a plugin that is only hooks installs with no members; a
+ * agent, which references the plugin's hooks and declares the variables
+ * they read, with no warning that they do not run; a plugin that is only
+ * hooks installs with no members; the archive a plugin was installed from
+ * is served back by key, inline and over the transfer lane, and a key
+ * outside the plugin store is not found; a
  * re-push of the same archive writes nothing; a client's edit, re-push or
  * delete of a member is refused naming the plugin while the plugin's own
  * upgrade drops what the archive dropped; uninstall removes every member
@@ -465,6 +469,88 @@ describe("Plugin push — materialisation", () => {
     expect(
       agent.spec?.mcpServerUsages.map((u) => u.mcpServerRef?.slug),
     ).toEqual([`${name}db`]);
+    expect(
+      agent.spec?.hooks.map((source) =>
+        source.source.case === "plugin"
+          ? {
+              kind: source.source.value.kind,
+              org: source.source.value.org,
+              slug: source.source.value.slug,
+              version: source.source.value.version,
+            }
+          : source.source.case,
+      ),
+    ).toEqual([
+      {
+        kind: ApiResourceKind.plugin,
+        org: ORG_ID,
+        slug: installed.metadata?.slug,
+        version: "",
+      },
+    ]);
+    expect(installed.status?.warnings.map((w) => w.kind)).not.toContain(
+      "hooks-not-run-yet",
+    );
+  });
+
+  it("declares on the composed agent the variables its hooks read, and serves the archive back by key", async () => {
+    const name = uniqueName("notify");
+    const artifact = archiveOf(
+      claudePlugin({
+        name,
+        skills: [{ name: `${name}-howto`, description: "How to", body: "# How\nDo it." }],
+        userConfig: { WEBHOOK: { type: "string", sensitive: true, required: true } },
+        hooks: {
+          PostToolUse: [
+            {
+              hooks: [
+                {
+                  type: "command",
+                  command: "node",
+                  args: ["notify.js", "${user_config.WEBHOOK}"],
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+    const installed = await plugins.push({ org: ORG, artifact });
+    const agent = await agentQuery.getByReference(
+      createMessage(ApiResourceReferenceSchema, {
+        org: ORG,
+        kind: ApiResourceKind.agent,
+        slug: name,
+      }),
+    );
+    expect(agent.spec?.env["WEBHOOK"]).toMatchObject({
+      isSecret: true,
+      optional: false,
+    });
+
+    const key = installed.status!.artifactStorageKey;
+    const inline = await pluginQuery.getArtifact({ artifactStorageKey: key });
+    expect(inline.artifact).toEqual(artifact);
+    const minted = await pluginQuery.getArtifactDownloadUrl({
+      artifactStorageKey: key,
+    });
+    expect(minted.sizeBytes).toBe(BigInt(artifact.length));
+    const response = await fetch(minted.url);
+    expect(response.status).toBe(200);
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(artifact);
+
+    await expectCode(
+      pluginQuery.getArtifact({ artifactStorageKey: "plugins/deadbeef.zip" }),
+      Code.NotFound,
+      "plugin artifact not found",
+    );
+    await expectCode(
+      pluginQuery.getArtifactDownloadUrl({
+        artifactStorageKey: key.replace("plugins/", "skills/"),
+      }),
+      Code.NotFound,
+      "plugin artifact not found",
+    );
   });
 
   it("installs a plugin that is only hooks with no members, and a re-push keeps its hooks", async () => {

@@ -32,6 +32,7 @@ export {
   MANIFEST_LOCATIONS,
   warningMessage,
 } from "./messages.js";
+export { HOOK_CONDITION_PATTERN, RUN_EVENTS, hookVariableReferences, isValidMatcher } from "./normalise/hooks.js";
 export { SUB_AGENT_INSTRUCTIONS_MIN, classifyModel } from "./normalise/sub-agents.js";
 export { PLACEHOLDER_PATTERN, VARIABLE_NAME_PATTERN } from "./placeholders.js";
 export type {

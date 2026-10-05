@@ -7,7 +7,10 @@
  * `updateVisibility` moves the plugin and every member together;
  * `listMembers` derives membership from the label on the children;
  * `getByReference` and `listVersions` are the shared content-addressed
- * version steps bound to the plugin's digest and manifest version.
+ * version steps bound to the plugin's digest and manifest version;
+ * `getArtifact` and `getArtifactDownloadUrl` hand the runner the archive a
+ * plugin was installed from, so it can mount the plugin whose hooks an
+ * agent runs (the skill controller's pair, over the plugin store).
  *
  * Wiring mirrors the skill controller's: the store and the archive store
  * are required; the transfer lane is an OPTIONAL modelled state (absent,
@@ -21,6 +24,7 @@
  * (CONFORMANCE_TARGET=local, local-postgres).
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -28,8 +32,10 @@ import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_p
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
 import {
+  GetArtifactResponseSchema,
   ListPluginMembersResponseSchema,
   ListPluginVersionsResponseSchema,
+  PluginArtifactDownloadUrlSchema,
   PluginArtifactUploadUrlSchema,
   PluginMemberSchema,
   PluginVersionEntrySchema,
@@ -37,9 +43,12 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import type {
   CreatePluginArtifactUploadUrlRequest,
+  GetArtifactRequest,
+  GetArtifactResponse,
   ListPluginMembersResponse,
   ListPluginVersionsInput,
   ListPluginVersionsResponse,
+  PluginArtifactDownloadUrl,
   PluginArtifactUploadUrl,
   PluginId,
   PluginVersionEntry,
@@ -53,6 +62,7 @@ import type {
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
+import { ArtifactNotFoundError } from "../../archive/content-store.js";
 import type { ContentAddressedArchiveStore } from "../../archive/content-store.js";
 import { MAX_ZIP_SIZE } from "../../archive/limits.js";
 import type { Logger } from "../../boot/logger.js";
@@ -109,9 +119,13 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type {
   ArchiveStaging,
+  DownloadCapability,
   StagedUpload,
 } from "../skill/transfer/staging.js";
-import { TRANSFER_LANE_NOT_CONFIGURED } from "./constants.js";
+import {
+  PLUGIN_ARTIFACT_KEY_PREFIX,
+  TRANSFER_LANE_NOT_CONFIGURED,
+} from "./constants.js";
 import type { PluginMaterializerProvider } from "./materialize/ports.js";
 import { findMembers } from "./members.js";
 import type { Member } from "./members.js";
@@ -171,6 +185,9 @@ export function registerPluginServices(
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
     listMembers: (id, ctx) => listMembers(deps, id, ctx),
     listVersions: (req, ctx) => listVersions(deps, req, ctx),
+    getArtifact: (req, ctx) => getArtifact(deps, req, ctx),
+    getArtifactDownloadUrl: (req, ctx) =>
+      getArtifactDownloadUrl(deps, req, ctx),
   });
 }
 
@@ -777,6 +794,127 @@ async function listMembers(
     .build()
     .execute(reqCtx);
   return reqCtx.get(LIST_MEMBERS_RESPONSE_KEY) as ListPluginMembersResponse;
+}
+
+/**
+ * GetArtifact — a plugin archive's bytes by storage key over gRPC (≤10MB
+ * messages; larger archives ride the download-URL lane). Authorization is
+ * skipped by proto config: the content-hash storage key is the capability
+ * token, as for the skill archive. A key outside the plugin store's own
+ * prefix is not found, so this read never reaches another kind's archives
+ * on the shared driver.
+ */
+async function getArtifact(
+  deps: PluginControllerDeps,
+  req: GetArtifactRequest,
+  ctx: HandlerContext,
+): Promise<GetArtifactResponse> {
+  const reqCtx = new RequestContext(
+    PluginQueryController.method.getArtifact.input,
+    req,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof PluginQueryController.method.getArtifact.input>(
+    "plugin-get-artifact",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        PluginQueryController.method.getArtifact,
+        deps.authorizer,
+      ),
+    )
+    .addStep(newValidateProtoStep())
+    .build()
+    .execute(reqCtx);
+
+  let artifact: Uint8Array;
+  try {
+    artifact = await deps.artifactStorage.get(pluginStorageKey(req));
+  } catch (error) {
+    throw artifactReadError(error, req, "failed to load plugin artifact");
+  }
+  return create(GetArtifactResponseSchema, { artifact });
+}
+
+/**
+ * GetArtifactDownloadUrl — the transfer-lane twin of GetArtifact: stats
+ * (never loads) the archive, then asks the shared staging port for its
+ * capability URL. ttl_seconds is the floor of the URL's validity, as on
+ * the skill lane.
+ */
+async function getArtifactDownloadUrl(
+  deps: PluginControllerDeps,
+  req: GetArtifactRequest,
+  ctx: HandlerContext,
+): Promise<PluginArtifactDownloadUrl> {
+  const staging = deps.staging;
+  if (staging === undefined) {
+    throw failedPreconditionError(TRANSFER_LANE_NOT_CONFIGURED);
+  }
+
+  const reqCtx = new RequestContext(
+    PluginQueryController.method.getArtifactDownloadUrl.input,
+    req,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<
+    typeof PluginQueryController.method.getArtifactDownloadUrl.input
+  >("plugin-get-artifact-download-url", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        PluginQueryController.method.getArtifactDownloadUrl,
+        deps.authorizer,
+      ),
+    )
+    .addStep(newValidateProtoStep())
+    .build()
+    .execute(reqCtx);
+
+  let size: number;
+  try {
+    size = await deps.artifactStorage.size(pluginStorageKey(req));
+  } catch (error) {
+    throw artifactReadError(error, req, "failed to stat plugin artifact");
+  }
+
+  let capability: DownloadCapability;
+  try {
+    capability = await staging.downloadUrl(req.artifactStorageKey);
+  } catch (error) {
+    throw internalError(error, "failed to mint plugin artifact download URL");
+  }
+
+  return create(PluginArtifactDownloadUrlSchema, {
+    url: capability.url,
+    ttlSeconds: Math.trunc(capability.ttlMs / 1000),
+    sizeBytes: BigInt(size),
+  });
+}
+
+/** The requested key when it is the plugin store's own; otherwise a key that reads as not found. */
+function pluginStorageKey(req: GetArtifactRequest): string {
+  if (!req.artifactStorageKey.startsWith(PLUGIN_ARTIFACT_KEY_PREFIX)) {
+    throw new ArtifactNotFoundError(req.artifactStorageKey);
+  }
+  return req.artifactStorageKey;
+}
+
+/** A missing archive is NotFound naming the key; any other failure is an infrastructure fault. */
+function artifactReadError(
+  error: unknown,
+  req: GetArtifactRequest,
+  message: string,
+): ConnectError {
+  if (error instanceof ArtifactNotFoundError) {
+    return new ConnectError(
+      `plugin artifact not found: ${req.artifactStorageKey}`,
+      Code.NotFound,
+    );
+  }
+  return internalError(error, message);
 }
 
 /** ListVersions — resolve by slug, authorize the resolved plugin, map audit records, paginate. */
