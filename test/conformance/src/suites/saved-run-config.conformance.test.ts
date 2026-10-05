@@ -108,4 +108,40 @@ describe("Saved run settings name the model their tier or thinking is for", () =
       expect(err.rawMessage).toContain("spec.run_config.model_name");
     }
   });
+
+  it("[rpc:ScheduleCommandController.create] each surface accepts thinking saved with the model it is for", async () => {
+    const { org } = await target.provisionTenancy();
+    const slug = await agentIn(org);
+
+    // A schedule and a share read an unset engine as native; a channel is
+    // judged against every engine's list, so it names the Cursor id.
+    const onNative = create(RunConfigSchema, { modelName: "claude-haiku-4.5", thinkingMode: ThinkingMode.ENABLED });
+    const onCursor = create(RunConfigSchema, { modelName: "claude-haiku-4-5", thinkingMode: ThinkingMode.ENABLED });
+
+    const schedule = create(ScheduleSchema, makeSchedule(org, uniqueName("sched-saved-ok"), slug));
+    if (schedule.spec?.target.case !== "agent") {
+      throw new Error("makeSchedule builds an agent target");
+    }
+    schedule.spec.target.value.runConfig = onNative;
+    const savedSchedule = await clients.scheduleCommand.create(schedule);
+    fixtures.defer(() => clients.scheduleCommand.delete({ value: savedSchedule.metadata!.id }));
+    expect(
+      savedSchedule.spec?.target.case === "agent" ? savedSchedule.spec.target.value.runConfig?.thinkingMode : undefined,
+    ).toBe(ThinkingMode.ENABLED);
+
+    const share = create(AgentShareSchema, makeAgentShare(org, slug, { name: uniqueName("share-saved-ok") }));
+    share.spec!.runConfig = onNative;
+    const savedShare = await clients.agentShareCommand.create(share);
+    fixtures.defer(() => clients.agentShareCommand.delete({ value: savedShare.metadata!.id }));
+    expect(savedShare.spec?.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
+
+    const channel = create(
+      AgentChannelSchema,
+      makeSlackAgentChannel(org, uniqueName("channel-saved-ok"), slug, { modelName: null }),
+    );
+    channel.spec!.runConfig = onCursor;
+    const savedChannel = await clients.agentChannelCommand.create(channel);
+    fixtures.defer(() => clients.agentChannelCommand.delete({ value: savedChannel.metadata!.id }));
+    expect(savedChannel.spec?.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
+  });
 });

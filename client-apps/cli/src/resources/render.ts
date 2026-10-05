@@ -139,7 +139,7 @@ function renderResourceFields(json: JsonValue, options: RenderFieldsOptions): st
   if (options.hideOrg !== true) pushField(fields, "Org", options.orgLabel ?? metadata.org);
   pushField(fields, "Visibility", metadata.visibility);
   pushField(fields, "Description", spec.description);
-  pushRunSettings(fields, spec);
+  pushRunSettings(fields, spec, asObject(obj.status));
 
   const width = Math.max(0, ...fields.map(([key]) => key.length));
   const lines = fields.map(([key, value]) => `  ${key}:${" ".repeat(width - key.length + 2)}${value}`);
@@ -147,10 +147,12 @@ function renderResourceFields(json: JsonValue, options: RenderFieldsOptions): st
 }
 
 // The engine and run settings a resource names, each only when set (protojson
-// omits defaults, so an absent field is "not set here").
-function pushRunSettings(fields: Array<[string, string]>, spec: JsonObject): void {
+// omits defaults, so an absent field is "not set here"). A turn records the
+// settings it ran with on status.run_config, resolved from its message, its
+// agent and its lane, so those are shown in place of what the message asked.
+function pushRunSettings(fields: Array<[string, string]>, spec: JsonObject, status: JsonObject): void {
   pushField(fields, "Engine", enumWord(spec.harness, "HARNESS_"));
-  const runConfig = asObject(spec.run_config);
+  const runConfig = asObject(status.run_config ?? spec.run_config);
   pushField(fields, "Model", runConfig.model_name);
   pushField(fields, "Speed tier", enumWord(runConfig.service_tier, "SERVICE_TIER_"));
   pushField(fields, "Thinking", enumWord(runConfig.thinking_mode, "THINKING_MODE_"));

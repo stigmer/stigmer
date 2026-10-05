@@ -416,7 +416,7 @@ export function useNewSessionFlow(
   // pins). Its engine opens the engine picker where the agent names one: a
   // remembered or seeded engine applies only where it names none. Guests
   // read nothing: the share policy fixes their engine.
-  const { spec: agentSpec } = useRunAgentSpec(isGuest ? null : agentRef);
+  const { spec: agentSpec, isLoading: isAgentLoading } = useRunAgentSpec(isGuest ? null : agentRef);
   const agentHarness = agentHarnessOf(agentSpec);
   const harness: HarnessOption =
     !isGuest && !harnessPicked && agentHarness !== undefined
@@ -616,6 +616,14 @@ export function useNewSessionFlow(
         let sessionAgentRef: ResourceRef | undefined;
 
         if (agentRef && resolution) {
+          // The agent's engine and run defaults decide what this
+          // conversation starts on: a send made before they are read would
+          // start it on the remembered engine instead.
+          if (!isGuest && isAgentLoading) {
+            throw new Error(
+              "This agent is still loading. Please try again in a moment.",
+            );
+          }
           sessionAgentRef = agentRef;
         } else if (isGuest) {
           // Fail closed: a guest session is only ever created against the
@@ -676,6 +684,7 @@ export function useNewSessionFlow(
       sessionContext,
       agentRef,
       resolution,
+      isAgentLoading,
       createExecution,
       sessionVariables,
       onSessionCreated,

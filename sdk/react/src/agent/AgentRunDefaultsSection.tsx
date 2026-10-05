@@ -282,10 +282,13 @@ function RunDefaultsEditor({
               value={modelName}
               onValueChange={setModelName}
               harness={engine}
+              // Speed and thinking are saved only with a model (saved
+              // settings name the model they were chosen for), so the
+              // switches show only once one is picked.
               serviceTier={serviceTier}
-              onServiceTierChange={setServiceTier}
+              onServiceTierChange={modelName !== "" ? setServiceTier : undefined}
               thinkingMode={thinkingMode}
-              onThinkingModeChange={setThinkingMode}
+              onThinkingModeChange={modelName !== "" ? setThinkingMode : undefined}
               placeholderLabel="Engine default model"
               disabled={isSaving}
             />

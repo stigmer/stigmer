@@ -48,6 +48,8 @@ export interface UseRunAgentSpecReturn {
   readonly agent: Agent | null;
   /** The spec of the version the next message runs; `undefined` until it is known. */
   readonly spec: AgentSpec | undefined;
+  /** `true` while the agent itself is being read. */
+  readonly isLoading: boolean;
 }
 
 /**
@@ -65,7 +67,7 @@ export function useRunAgentSpec(
   versionHash = "",
 ): UseRunAgentSpecReturn {
   const stigmer = useStigmer();
-  const { agent } = useAgent(agentRef?.org || null, agentRef?.slug || null);
+  const { agent, isLoading } = useAgent(agentRef?.org || null, agentRef?.slug || null);
   const agentId = agent?.metadata?.id ?? "";
   const pinned = versionHash !== "";
   const { data: pinnedSpec } = useFetch<PinnedSpec>(
@@ -91,5 +93,5 @@ export function useRunAgentSpec(
       : pinnedSpec.kind === "absent"
         ? agent?.spec
         : undefined;
-  return { agent, spec };
+  return { agent, spec, isLoading };
 }

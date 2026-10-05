@@ -283,10 +283,23 @@ describe("Agent conformance — run defaults", () => {
 
   it("[rpc:AgentCommandController.create] accepts an engine with no model, and bounds with no engine", async () => {
     const { org } = await target.provisionTenancy();
-    for (const spec of [{ harness: Harness.CURSOR }, { runConfig: { maxCostUsd: 1, maxToolRounds: 30 } }]) {
-      const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("defaults-ok"), ...spec }));
-      fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    }
+    const engineOnly = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("defaults-ok"), harness: Harness.CURSOR }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: engineOnly.metadata!.id }));
+    const boundsOnly = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("defaults-ok"), runConfig: { maxCostUsd: 1, maxToolRounds: 30 } }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: boundsOnly.metadata!.id }));
+
+    // Stored as written, read back.
+    const engine = await clients.agentQuery.get({ value: engineOnly.metadata!.id });
+    expect(engine.spec?.harness).toBe(Harness.CURSOR);
+    expect(engine.spec?.runConfig?.modelName ?? "").toBe("");
+    const bounds = await clients.agentQuery.get({ value: boundsOnly.metadata!.id });
+    expect(bounds.spec?.harness).toBe(Harness.UNSPECIFIED);
+    expect(bounds.spec?.runConfig?.maxCostUsd).toBe(1);
+    expect(bounds.spec?.runConfig?.maxToolRounds).toBe(30);
   });
 
   it.each<[string, Parameters<typeof makeAgent>[0]["runConfig"], Harness | undefined, string]>([

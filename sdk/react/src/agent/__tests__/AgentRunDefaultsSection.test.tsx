@@ -7,8 +7,8 @@
  * Pins: the read view; one save carrying harness and run_config with the
  * tool bounds intact; switching the engine dropping the model; "No
  * engine" clearing both; "Choose an engine" starting an agent with no
- * engine on native; Cancel leaving the edit unsaved; the refusal message
- * shown.
+ * engine on native; speed and thinking offered only once a model is
+ * picked; Cancel leaving the edit unsaved; the refusal message shown.
  */
 import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
@@ -179,6 +179,32 @@ describe("AgentRunDefaultsSection", () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
     expect(onSave.mock.calls[0][0]).toEqual({ harness: Harness.NATIVE, runConfig: undefined });
+  });
+
+  it("offers speed and thinking only once a model is picked", () => {
+    const { unmount } = render(
+      <AgentRunDefaultsSection
+        spec={create(AgentSpecSchema, { harness: Harness.NATIVE })}
+        editable
+        isSaving={false}
+        onSave={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Edit run defaults" }));
+    fireEvent.click(screen.getByRole("button", { expanded: false }));
+    expect(screen.queryByRole("switch", { name: "Fast tier" })).toBeNull();
+    expect(screen.queryByRole("switch", { name: "Thinking" })).toBeNull();
+    unmount();
+
+    render(
+      <AgentRunDefaultsSection spec={SPEC} editable isSaving={false} onSave={vi.fn()} />,
+      { wrapper: Wrapper },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Edit run defaults" }));
+    fireEvent.click(screen.getByRole("button", { expanded: false }));
+    expect(screen.getByRole("switch", { name: "Fast tier" })).toBeTruthy();
+    expect(screen.getByRole("switch", { name: "Thinking" })).toBeTruthy();
   });
 
   it("Cancel returns to the read view without saving", () => {

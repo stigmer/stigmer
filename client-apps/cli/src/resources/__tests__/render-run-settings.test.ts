@@ -1,10 +1,12 @@
 // The human field view of `get` names the settings a resource runs with: an
-// agent's run defaults (engine, model, speed tier, thinking, bounds), each
-// only when set. Pinned here because the view is generic over kinds and a
+// agent's run defaults (engine, model, speed tier, thinking, bounds), and a
+// turn's resolved settings rather than what its message asked, each only
+// when set. Pinned here because the view is generic over kinds and a
 // field it never names is invisible to a person reading `get agent`.
 
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   ServiceTier,
   ThinkingMode,
@@ -38,6 +40,21 @@ describe("renderResource — run settings in the human view", () => {
     expect(out).toMatch(/Cost cap:\s+\$2\.5 per message/);
     expect(out).toMatch(/Tool rounds:\s+at most 12 per message/);
     expect(out).toMatch(/Tool result size:\s+at most 20000 characters/);
+  });
+
+  it("names the settings a turn ran with, not only what its message asked", () => {
+    const execution = create(AgentExecutionSchema, {
+      metadata: { id: "aex_1", name: "aex_1" },
+      spec: { message: "hi", runConfig: { maxCostUsd: 1 } },
+      status: {
+        runConfig: { modelName: "claude-sonnet-4-6", thinkingMode: ThinkingMode.ENABLED, maxCostUsd: 1 },
+      },
+    });
+
+    const out = renderResource(AgentExecutionSchema, execution, "table", { hideOrg: true });
+    expect(out).toMatch(/Model:\s+claude-sonnet-4-6/);
+    expect(out).toMatch(/Thinking:\s+enabled/);
+    expect(out).toMatch(/Cost cap:\s+\$1 per message/);
   });
 
   it("names nothing for an agent with no run defaults", () => {

@@ -725,6 +725,20 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     setThinkingModePick(undefined);
   }, [agentKey, defaultModelId]);
 
+  // A tier or thinking pick made with no model of the person's own adjusts
+  // the model the picker showed. When the agent's default model arrives
+  // or changes under it (the agent's spec loads after the composer), the
+  // pick was made for another model, so it is dropped.
+  const inheritedModel = agentRunDefaults?.modelName ?? "";
+  const picksInheritedModelRef = useRef(inheritedModel);
+  useEffect(() => {
+    if (picksInheritedModelRef.current === inheritedModel) return;
+    picksInheritedModelRef.current = inheritedModel;
+    if (userOverrodeModel.current) return;
+    setServiceTierPick(undefined);
+    setThinkingModePick(undefined);
+  }, [inheritedModel]);
+
   // Active harness mirror: controlled hosts (both viewers) keep the
   // `harness` prop current, but with `showHarnessSelector` the dropdown
   // lives inside ModelSelector and an uncontrolled host would leave the

@@ -607,10 +607,12 @@ describe("useNewSessionFlow", () => {
       ["saved", { mode: "saved" } as const],
       ["direct", { mode: "direct" } as const],
     ])("starts the conversation on the agent itself for a %s resolution", async (_mode, resolution) => {
+      mockGetByReference.mockResolvedValue({ metadata: { id: "agt_9", org: "acme", slug: "reviewer" }, spec: {} });
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
-      act(() => {
+      // The send waits for the agent's read (its engine decides the start).
+      await act(async () => {
         result.current.setAgentRef({ org: "acme", slug: "reviewer" });
         result.current.setResolution(resolution);
       });
@@ -723,6 +725,32 @@ describe("useNewSessionFlow", () => {
       // The new agent's own default applies: the pick made for the
       // previous agent is not sent on.
       expect(result.current.modelId).toBeUndefined();
+    });
+
+    it("holds a send until the agent is read, so it starts on the agent's engine", async () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      let resolveAgent: (agent: unknown) => void = () => {};
+      mockGetByReference.mockReturnValue(new Promise((resolve) => { resolveAgent = resolve; }));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
+      await act(async () => {
+        result.current.setAgentRef({ org: "acme", slug: "reviewer" });
+        result.current.setResolution({ mode: "direct" });
+      });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+      expect(mockCreateExecution).not.toHaveBeenCalled();
+      expect(result.current.submitError).toMatch(/still loading/);
+
+      await act(async () => {
+        resolveAgent(AGENT_ON_CURSOR);
+      });
+      await waitFor(() => expect(result.current.harness).toBe("cursor"));
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.harness).toBe("cursor");
     });
 
     it("drops a model picked for the other engine when the agent's engine loads after the pick", async () => {

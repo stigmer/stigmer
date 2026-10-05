@@ -12,7 +12,9 @@
  * switches' shown state (the agent's thinking, and its fast tier on a
  * model that runs one) as explicit choices; an "Agent default" entry in
  * the picker as the way back from a pick; every pick dropped when the
- * agent changes; a picked model dropped when the engine changes under it
+ * agent changes; a tier or thinking pick made before the agent's
+ * defaults arrive dropped when they do; a picked model dropped when the
+ * engine changes under it
  * to one that does not list it (the unified lookup would otherwise send
  * it with an engine that does not run it), kept where the new engine
  * lists it, and the host's seed followed where nothing was picked.
@@ -278,6 +280,33 @@ describe("SessionComposer — the agent's run defaults", () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     expect(onSubmit.mock.calls[0][1]).toBeUndefined();
+    expect(onSubmit.mock.calls[0][2]?.thinkingMode).toBeUndefined();
+    expect(onSubmit.mock.calls[0][2]?.serviceTier).toBeUndefined();
+  });
+
+  it("drops a thinking pick made before the agent's defaults arrive", async () => {
+    const { onSubmit, rerender } = renderComposer({
+      agentRef: { org: "acme", slug: "a" },
+      agentRunDefaults: undefined,
+      defaultModelId: "claude-sonnet-4-6",
+    });
+
+    // Thinking turned on for the model shown while the agent loads...
+    fireEvent.click(screen.getByRole("button", { name: /Sonnet 4\.6/ }));
+    fireEvent.click(await screen.findByRole("switch", { name: "Thinking" }));
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+
+    // ...is not sent onto the agent's own model once its defaults arrive
+    // (the host then seeds no model: the agent's default applies).
+    rerender({
+      agentRef: { org: "acme", slug: "a" },
+      agentRunDefaults: { modelName: "claude-haiku-4-5" },
+      defaultModelId: undefined,
+    });
+    expect(await screen.findByRole("button", { name: /Agent default: Haiku 4\.5/ })).toBeTruthy();
+    submitMessage("The agent's way");
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     expect(onSubmit.mock.calls[0][2]?.thinkingMode).toBeUndefined();
     expect(onSubmit.mock.calls[0][2]?.serviceTier).toBeUndefined();
   });
