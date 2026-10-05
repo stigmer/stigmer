@@ -111,6 +111,7 @@ describe("a rewrite on the Cursor engine", () => {
     expect(back("search", { q: "a" }, "claude-code", { q: "b" }, "github")).toBe("Cursor's engine applies no rewrite of an MCP call");
     expect(back("Delete", { file_path: "/w/a" }, "claude-code", { file_path: "/w/b", content: "" })).toMatch(/as another tool/);
     expect(back("WriteShellStdin", { shell_id: 1 }, "cursor", { shell_id: 2 })).toBe("Cursor's engine does not apply a rewrite of WriteShellStdin's shell_id");
+    expect(back("WriteShellStdin", { shell_id: 1 }, "claude-code", { shell_id: 1 }), "a tool a format has no view of").toMatch(/as another tool/);
   });
 });
 
