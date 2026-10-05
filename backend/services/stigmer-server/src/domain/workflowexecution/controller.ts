@@ -83,6 +83,9 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { newRefuseBoundElsewhereStep } from "../../pipeline/steps/refuse-bound-elsewhere.js";
+import { newRunTargetReachableStep } from "../../pipeline/steps/run-target-reachable.js";
+import type { CredentialBinding } from "../../extensions/credential-binding.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
@@ -137,6 +140,8 @@ export interface WorkflowExecutionControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
+  /** The credential binding: a run's target must be readable from the run's organization (RunTargetReachable). */
+  readonly credentialBinding: CredentialBinding;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed summary read scope — undefined = the OSS full scan. */
@@ -291,12 +296,19 @@ async function createExecution(
         deps.authorizer,
       ),
     )
+    .addStep(newRefuseBoundElsewhereStep())
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
     .addStep(newValidateWorkflowOrInstanceStep())
     .addStep(
       newAuthorizeRunTargetStep(deps.authorizer, workflowExecutionRunTarget),
+    )
+    .addStep(
+      newRunTargetReachableStep(
+        deps.credentialBinding,
+        workflowExecutionRunTarget,
+      ),
     )
     .addStep(newEnsureEngineAvailableStep(deps.engineState))
     .addStep(

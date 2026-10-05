@@ -36,8 +36,8 @@ export interface UseUpdatePlatformClientReturn {
  *   name: "my-saas-backend",
  *   slug: "my-saas-backend",
  *   org: "acme",
- *   autoProvisionAccounts: true,
- *   autoGrantOnOrg: true,
+ *   createAccountsOnSignIn: true,
+ *   signInRole: IamRole.member,
  * });
  * refetch(); // refresh detail view
  * ```

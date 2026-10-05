@@ -30,19 +30,20 @@ package ai.stigmer.iam.platformclient.v1;
  * a customer with multiple PlatformClients (e.g., dashboard, mobile, admin)
  * sees one Stigmer identity per end user, with one set of FGA grants.
  *
- * Three provisioning modes for users presented via mintUserToken:
+ * Every user token a PlatformClient mints is bound to the client's owning
+ * organization: it works there and nowhere else, whatever roles the user
+ * holds in other organizations.
  *
- * 1. Manual (default): The platform explicitly creates identity accounts and IAM
- * policies before minting tokens. mintUserToken fails if the user does not exist.
+ * Two settings control what happens when mintUserToken meets a user:
  *
- * 2. JIT (Just-In-Time): When auto_provision_accounts is true, Stigmer creates an
- * IdentityAccount from the user identity provided in the mintUserToken request
- * on first encounter. Authorization is controlled independently via
- * auto_grant_on_org and auto_grant_role.
+ * 1. create_accounts_on_sign_in: whether Stigmer creates the user's identity
+ * account on first encounter. When false (the default), the platform
+ * creates identity accounts before minting; mintUserToken fails if the
+ * user does not exist.
  *
- * 3. JIT + Auto-Grant: When both auto_provision_accounts and auto_grant_on_org are
- * true, newly provisioned accounts are granted auto_grant_role on the
- * PlatformClient's owning organization.
+ * 2. sign_in_role: the role a newly created account receives on the owning
+ * organization. Unspecified means none: the platform grants roles itself
+ * through IAM policies.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.platformclient.v1.PlatformClientSpec}
@@ -70,10 +71,10 @@ private static final long serialVersionUID = 0L;
     clientId_ = "";
     clientSecretHash_ = "";
     secretFingerprint_ = "";
-    autoGrantRole_ = 0;
     allowedOrigins_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     environmentRefs_ = java.util.Collections.emptyList();
+    signInRole_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -303,93 +304,6 @@ private static final long serialVersionUID = 0L;
     return neverExpires_;
   }
 
-  public static final int AUTO_PROVISION_ACCOUNTS_FIELD_NUMBER = 6;
-  private boolean autoProvisionAccounts_ = false;
-  /**
-   * <pre>
-   * Whether to automatically create an identity account when mintUserToken is
-   * called with a user_id that has no existing account.
-   *
-   * When false (default), the platform must explicitly create identity accounts
-   * before minting tokens. mintUserToken returns FAILED_PRECONDITION if the
-   * user does not exist. This gives platforms full control over which users can
-   * access Stigmer resources.
-   *
-   * When true, Stigmer creates an IdentityAccount automatically on first
-   * encounter, using the user_email and user_name from the mintUserToken request
-   * for profile data.
-   * </pre>
-   *
-   * <code>bool auto_provision_accounts = 6 [json_name = "autoProvisionAccounts"];</code>
-   * @return The autoProvisionAccounts.
-   */
-  @java.lang.Override
-  public boolean getAutoProvisionAccounts() {
-    return autoProvisionAccounts_;
-  }
-
-  public static final int AUTO_GRANT_ON_ORG_FIELD_NUMBER = 7;
-  private boolean autoGrantOnOrg_ = false;
-  /**
-   * <pre>
-   * Whether to automatically grant a role on the PlatformClient's owning
-   * organization when an account is auto-provisioned.
-   *
-   * When false (default), auto-provisioned accounts receive no organization
-   * access. The platform must create IAM policies to grant access.
-   *
-   * When true, Stigmer grants auto_grant_role (default: viewer) on the
-   * PlatformClient's owning organization to every account it provisions.
-   * Accounts that already exist keep the roles they hold: changing this
-   * setting or auto_grant_role later does not reach them.
-   *
-   * Requires auto_provision_accounts to be true.
-   * </pre>
-   *
-   * <code>bool auto_grant_on_org = 7 [json_name = "autoGrantOnOrg"];</code>
-   * @return The autoGrantOnOrg.
-   */
-  @java.lang.Override
-  public boolean getAutoGrantOnOrg() {
-    return autoGrantOnOrg_;
-  }
-
-  public static final int AUTO_GRANT_ROLE_FIELD_NUMBER = 8;
-  private int autoGrantRole_ = 0;
-  /**
-   * <pre>
-   * The role to grant when auto_grant_on_org is true.
-   *
-   * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-   * is not permitted — organization ownership must be assigned explicitly.
-   *
-   * Only meaningful when auto_grant_on_org is true. Ignored otherwise.
-   * </pre>
-   *
-   * <code>.ai.stigmer.iam.v1.IamRole auto_grant_role = 8 [json_name = "autoGrantRole"];</code>
-   * @return The enum numeric value on the wire for autoGrantRole.
-   */
-  @java.lang.Override public int getAutoGrantRoleValue() {
-    return autoGrantRole_;
-  }
-  /**
-   * <pre>
-   * The role to grant when auto_grant_on_org is true.
-   *
-   * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-   * is not permitted — organization ownership must be assigned explicitly.
-   *
-   * Only meaningful when auto_grant_on_org is true. Ignored otherwise.
-   * </pre>
-   *
-   * <code>.ai.stigmer.iam.v1.IamRole auto_grant_role = 8 [json_name = "autoGrantRole"];</code>
-   * @return The autoGrantRole.
-   */
-  @java.lang.Override public ai.stigmer.iam.v1.IamRole getAutoGrantRole() {
-    ai.stigmer.iam.v1.IamRole result = ai.stigmer.iam.v1.IamRole.forNumber(autoGrantRole_);
-    return result == null ? ai.stigmer.iam.v1.IamRole.UNRECOGNIZED : result;
-  }
-
   public static final int ALLOWED_ORIGINS_FIELD_NUMBER = 9;
   @SuppressWarnings("serial")
   private com.google.protobuf.LazyStringArrayList allowedOrigins_ =
@@ -614,6 +528,71 @@ private static final long serialVersionUID = 0L;
     return environmentRefs_.get(index);
   }
 
+  public static final int CREATE_ACCOUNTS_ON_SIGN_IN_FIELD_NUMBER = 11;
+  private boolean createAccountsOnSignIn_ = false;
+  /**
+   * <pre>
+   * Whether mintUserToken creates an identity account for a user_id that has
+   * none yet.
+   *
+   * When false (the default), the platform creates identity accounts before
+   * minting tokens, and mintUserToken returns FAILED_PRECONDITION for a user
+   * that does not exist. When true, Stigmer creates the account on first
+   * encounter from the user_email and user_name in the mintUserToken request.
+   * </pre>
+   *
+   * <code>bool create_accounts_on_sign_in = 11 [json_name = "createAccountsOnSignIn"];</code>
+   * @return The createAccountsOnSignIn.
+   */
+  @java.lang.Override
+  public boolean getCreateAccountsOnSignIn() {
+    return createAccountsOnSignIn_;
+  }
+
+  public static final int SIGN_IN_ROLE_FIELD_NUMBER = 12;
+  private int signInRole_ = 0;
+  /**
+   * <pre>
+   * The role an account mintUserToken creates receives on the client's owning
+   * organization.
+   *
+   * A client's accounts belong to its owning organization alone, so an
+   * account's creation is its first sign-in there: the role is granted once,
+   * when the account is created. Accounts that already exist keep the roles
+   * they hold, and changing this setting later does not reach them.
+   * Unspecified (iam_role_unspecified) grants nothing. Requires
+   * create_accounts_on_sign_in. The owner role is refused: ownership is
+   * assigned explicitly.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
+   * @return The enum numeric value on the wire for signInRole.
+   */
+  @java.lang.Override public int getSignInRoleValue() {
+    return signInRole_;
+  }
+  /**
+   * <pre>
+   * The role an account mintUserToken creates receives on the client's owning
+   * organization.
+   *
+   * A client's accounts belong to its owning organization alone, so an
+   * account's creation is its first sign-in there: the role is granted once,
+   * when the account is created. Accounts that already exist keep the roles
+   * they hold, and changing this setting later does not reach them.
+   * Unspecified (iam_role_unspecified) grants nothing. Requires
+   * create_accounts_on_sign_in. The owner role is refused: ownership is
+   * assigned explicitly.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
+   * @return The signInRole.
+   */
+  @java.lang.Override public ai.stigmer.iam.v1.IamRole getSignInRole() {
+    ai.stigmer.iam.v1.IamRole result = ai.stigmer.iam.v1.IamRole.forNumber(signInRole_);
+    return result == null ? ai.stigmer.iam.v1.IamRole.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -643,20 +622,17 @@ private static final long serialVersionUID = 0L;
     if (neverExpires_ != false) {
       output.writeBool(5, neverExpires_);
     }
-    if (autoProvisionAccounts_ != false) {
-      output.writeBool(6, autoProvisionAccounts_);
-    }
-    if (autoGrantOnOrg_ != false) {
-      output.writeBool(7, autoGrantOnOrg_);
-    }
-    if (autoGrantRole_ != ai.stigmer.iam.v1.IamRole.iam_role_unspecified.getNumber()) {
-      output.writeEnum(8, autoGrantRole_);
-    }
     for (int i = 0; i < allowedOrigins_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, allowedOrigins_.getRaw(i));
     }
     for (int i = 0; i < environmentRefs_.size(); i++) {
       output.writeMessage(10, environmentRefs_.get(i));
+    }
+    if (createAccountsOnSignIn_ != false) {
+      output.writeBool(11, createAccountsOnSignIn_);
+    }
+    if (signInRole_ != ai.stigmer.iam.v1.IamRole.iam_role_unspecified.getNumber()) {
+      output.writeEnum(12, signInRole_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -684,18 +660,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(5, neverExpires_);
     }
-    if (autoProvisionAccounts_ != false) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(6, autoProvisionAccounts_);
-    }
-    if (autoGrantOnOrg_ != false) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(7, autoGrantOnOrg_);
-    }
-    if (autoGrantRole_ != ai.stigmer.iam.v1.IamRole.iam_role_unspecified.getNumber()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeEnumSize(8, autoGrantRole_);
-    }
     {
       int dataSize = 0;
       for (int i = 0; i < allowedOrigins_.size(); i++) {
@@ -713,6 +677,14 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (createAccountsOnSignIn_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(11, createAccountsOnSignIn_);
+    }
+    if (signInRole_ != ai.stigmer.iam.v1.IamRole.iam_role_unspecified.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(12, signInRole_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -741,15 +713,13 @@ private static final long serialVersionUID = 0L;
     }
     if (getNeverExpires()
         != other.getNeverExpires()) return false;
-    if (getAutoProvisionAccounts()
-        != other.getAutoProvisionAccounts()) return false;
-    if (getAutoGrantOnOrg()
-        != other.getAutoGrantOnOrg()) return false;
-    if (autoGrantRole_ != other.autoGrantRole_) return false;
     if (!getAllowedOriginsList()
         .equals(other.getAllowedOriginsList())) return false;
     if (!getEnvironmentRefsList()
         .equals(other.getEnvironmentRefsList())) return false;
+    if (getCreateAccountsOnSignIn()
+        != other.getCreateAccountsOnSignIn()) return false;
+    if (signInRole_ != other.signInRole_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -774,14 +744,6 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + NEVER_EXPIRES_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getNeverExpires());
-    hash = (37 * hash) + AUTO_PROVISION_ACCOUNTS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getAutoProvisionAccounts());
-    hash = (37 * hash) + AUTO_GRANT_ON_ORG_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getAutoGrantOnOrg());
-    hash = (37 * hash) + AUTO_GRANT_ROLE_FIELD_NUMBER;
-    hash = (53 * hash) + autoGrantRole_;
     if (getAllowedOriginsCount() > 0) {
       hash = (37 * hash) + ALLOWED_ORIGINS_FIELD_NUMBER;
       hash = (53 * hash) + getAllowedOriginsList().hashCode();
@@ -790,6 +752,11 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + ENVIRONMENT_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getEnvironmentRefsList().hashCode();
     }
+    hash = (37 * hash) + CREATE_ACCOUNTS_ON_SIGN_IN_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getCreateAccountsOnSignIn());
+    hash = (37 * hash) + SIGN_IN_ROLE_FIELD_NUMBER;
+    hash = (53 * hash) + signInRole_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -912,19 +879,20 @@ private static final long serialVersionUID = 0L;
    * a customer with multiple PlatformClients (e.g., dashboard, mobile, admin)
    * sees one Stigmer identity per end user, with one set of FGA grants.
    *
-   * Three provisioning modes for users presented via mintUserToken:
+   * Every user token a PlatformClient mints is bound to the client's owning
+   * organization: it works there and nowhere else, whatever roles the user
+   * holds in other organizations.
    *
-   * 1. Manual (default): The platform explicitly creates identity accounts and IAM
-   * policies before minting tokens. mintUserToken fails if the user does not exist.
+   * Two settings control what happens when mintUserToken meets a user:
    *
-   * 2. JIT (Just-In-Time): When auto_provision_accounts is true, Stigmer creates an
-   * IdentityAccount from the user identity provided in the mintUserToken request
-   * on first encounter. Authorization is controlled independently via
-   * auto_grant_on_org and auto_grant_role.
+   * 1. create_accounts_on_sign_in: whether Stigmer creates the user's identity
+   * account on first encounter. When false (the default), the platform
+   * creates identity accounts before minting; mintUserToken fails if the
+   * user does not exist.
    *
-   * 3. JIT + Auto-Grant: When both auto_provision_accounts and auto_grant_on_org are
-   * true, newly provisioned accounts are granted auto_grant_role on the
-   * PlatformClient's owning organization.
+   * 2. sign_in_role: the role a newly created account receives on the owning
+   * organization. Unspecified means none: the platform grants roles itself
+   * through IAM policies.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.platformclient.v1.PlatformClientSpec}
@@ -976,9 +944,6 @@ private static final long serialVersionUID = 0L;
         expiresAtBuilder_ = null;
       }
       neverExpires_ = false;
-      autoProvisionAccounts_ = false;
-      autoGrantOnOrg_ = false;
-      autoGrantRole_ = 0;
       allowedOrigins_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       if (environmentRefsBuilder_ == null) {
@@ -987,7 +952,9 @@ private static final long serialVersionUID = 0L;
         environmentRefs_ = null;
         environmentRefsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000040);
+      createAccountsOnSignIn_ = false;
+      signInRole_ = 0;
       return this;
     }
 
@@ -1022,9 +989,9 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(ai.stigmer.iam.platformclient.v1.PlatformClientSpec result) {
       if (environmentRefsBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0)) {
+        if (((bitField0_ & 0x00000040) != 0)) {
           environmentRefs_ = java.util.Collections.unmodifiableList(environmentRefs_);
-          bitField0_ = (bitField0_ & ~0x00000200);
+          bitField0_ = (bitField0_ & ~0x00000040);
         }
         result.environmentRefs_ = environmentRefs_;
       } else {
@@ -1054,17 +1021,14 @@ private static final long serialVersionUID = 0L;
         result.neverExpires_ = neverExpires_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.autoProvisionAccounts_ = autoProvisionAccounts_;
-      }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.autoGrantOnOrg_ = autoGrantOnOrg_;
-      }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.autoGrantRole_ = autoGrantRole_;
-      }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
         allowedOrigins_.makeImmutable();
         result.allowedOrigins_ = allowedOrigins_;
+      }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.createAccountsOnSignIn_ = createAccountsOnSignIn_;
+      }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.signInRole_ = signInRole_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1102,19 +1066,10 @@ private static final long serialVersionUID = 0L;
       if (other.getNeverExpires() != false) {
         setNeverExpires(other.getNeverExpires());
       }
-      if (other.getAutoProvisionAccounts() != false) {
-        setAutoProvisionAccounts(other.getAutoProvisionAccounts());
-      }
-      if (other.getAutoGrantOnOrg() != false) {
-        setAutoGrantOnOrg(other.getAutoGrantOnOrg());
-      }
-      if (other.autoGrantRole_ != 0) {
-        setAutoGrantRoleValue(other.getAutoGrantRoleValue());
-      }
       if (!other.allowedOrigins_.isEmpty()) {
         if (allowedOrigins_.isEmpty()) {
           allowedOrigins_ = other.allowedOrigins_;
-          bitField0_ |= 0x00000100;
+          bitField0_ |= 0x00000020;
         } else {
           ensureAllowedOriginsIsMutable();
           allowedOrigins_.addAll(other.allowedOrigins_);
@@ -1125,7 +1080,7 @@ private static final long serialVersionUID = 0L;
         if (!other.environmentRefs_.isEmpty()) {
           if (environmentRefs_.isEmpty()) {
             environmentRefs_ = other.environmentRefs_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000040);
           } else {
             ensureEnvironmentRefsIsMutable();
             environmentRefs_.addAll(other.environmentRefs_);
@@ -1138,7 +1093,7 @@ private static final long serialVersionUID = 0L;
             environmentRefsBuilder_.dispose();
             environmentRefsBuilder_ = null;
             environmentRefs_ = other.environmentRefs_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000040);
             environmentRefsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetEnvironmentRefsFieldBuilder() : null;
@@ -1146,6 +1101,12 @@ private static final long serialVersionUID = 0L;
             environmentRefsBuilder_.addAllMessages(other.environmentRefs_);
           }
         }
+      }
+      if (other.getCreateAccountsOnSignIn() != false) {
+        setCreateAccountsOnSignIn(other.getCreateAccountsOnSignIn());
+      }
+      if (other.signInRole_ != 0) {
+        setSignInRoleValue(other.getSignInRoleValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1200,21 +1161,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 40
-            case 48: {
-              autoProvisionAccounts_ = input.readBool();
-              bitField0_ |= 0x00000020;
-              break;
-            } // case 48
-            case 56: {
-              autoGrantOnOrg_ = input.readBool();
-              bitField0_ |= 0x00000040;
-              break;
-            } // case 56
-            case 64: {
-              autoGrantRole_ = input.readEnum();
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 64
             case 74: {
               ensureAllowedOriginsIsMutable();
               allowedOrigins_.add(input.readStringRequireUtf8());
@@ -1233,6 +1179,16 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 82
+            case 88: {
+              createAccountsOnSignIn_ = input.readBool();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 88
+            case 96: {
+              signInRole_ = input.readEnum();
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 96
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1762,261 +1718,13 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private boolean autoProvisionAccounts_ ;
-    /**
-     * <pre>
-     * Whether to automatically create an identity account when mintUserToken is
-     * called with a user_id that has no existing account.
-     *
-     * When false (default), the platform must explicitly create identity accounts
-     * before minting tokens. mintUserToken returns FAILED_PRECONDITION if the
-     * user does not exist. This gives platforms full control over which users can
-     * access Stigmer resources.
-     *
-     * When true, Stigmer creates an IdentityAccount automatically on first
-     * encounter, using the user_email and user_name from the mintUserToken request
-     * for profile data.
-     * </pre>
-     *
-     * <code>bool auto_provision_accounts = 6 [json_name = "autoProvisionAccounts"];</code>
-     * @return The autoProvisionAccounts.
-     */
-    @java.lang.Override
-    public boolean getAutoProvisionAccounts() {
-      return autoProvisionAccounts_;
-    }
-    /**
-     * <pre>
-     * Whether to automatically create an identity account when mintUserToken is
-     * called with a user_id that has no existing account.
-     *
-     * When false (default), the platform must explicitly create identity accounts
-     * before minting tokens. mintUserToken returns FAILED_PRECONDITION if the
-     * user does not exist. This gives platforms full control over which users can
-     * access Stigmer resources.
-     *
-     * When true, Stigmer creates an IdentityAccount automatically on first
-     * encounter, using the user_email and user_name from the mintUserToken request
-     * for profile data.
-     * </pre>
-     *
-     * <code>bool auto_provision_accounts = 6 [json_name = "autoProvisionAccounts"];</code>
-     * @param value The autoProvisionAccounts to set.
-     * @return This builder for chaining.
-     */
-    public Builder setAutoProvisionAccounts(boolean value) {
-
-      autoProvisionAccounts_ = value;
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Whether to automatically create an identity account when mintUserToken is
-     * called with a user_id that has no existing account.
-     *
-     * When false (default), the platform must explicitly create identity accounts
-     * before minting tokens. mintUserToken returns FAILED_PRECONDITION if the
-     * user does not exist. This gives platforms full control over which users can
-     * access Stigmer resources.
-     *
-     * When true, Stigmer creates an IdentityAccount automatically on first
-     * encounter, using the user_email and user_name from the mintUserToken request
-     * for profile data.
-     * </pre>
-     *
-     * <code>bool auto_provision_accounts = 6 [json_name = "autoProvisionAccounts"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearAutoProvisionAccounts() {
-      bitField0_ = (bitField0_ & ~0x00000020);
-      autoProvisionAccounts_ = false;
-      onChanged();
-      return this;
-    }
-
-    private boolean autoGrantOnOrg_ ;
-    /**
-     * <pre>
-     * Whether to automatically grant a role on the PlatformClient's owning
-     * organization when an account is auto-provisioned.
-     *
-     * When false (default), auto-provisioned accounts receive no organization
-     * access. The platform must create IAM policies to grant access.
-     *
-     * When true, Stigmer grants auto_grant_role (default: viewer) on the
-     * PlatformClient's owning organization to every account it provisions.
-     * Accounts that already exist keep the roles they hold: changing this
-     * setting or auto_grant_role later does not reach them.
-     *
-     * Requires auto_provision_accounts to be true.
-     * </pre>
-     *
-     * <code>bool auto_grant_on_org = 7 [json_name = "autoGrantOnOrg"];</code>
-     * @return The autoGrantOnOrg.
-     */
-    @java.lang.Override
-    public boolean getAutoGrantOnOrg() {
-      return autoGrantOnOrg_;
-    }
-    /**
-     * <pre>
-     * Whether to automatically grant a role on the PlatformClient's owning
-     * organization when an account is auto-provisioned.
-     *
-     * When false (default), auto-provisioned accounts receive no organization
-     * access. The platform must create IAM policies to grant access.
-     *
-     * When true, Stigmer grants auto_grant_role (default: viewer) on the
-     * PlatformClient's owning organization to every account it provisions.
-     * Accounts that already exist keep the roles they hold: changing this
-     * setting or auto_grant_role later does not reach them.
-     *
-     * Requires auto_provision_accounts to be true.
-     * </pre>
-     *
-     * <code>bool auto_grant_on_org = 7 [json_name = "autoGrantOnOrg"];</code>
-     * @param value The autoGrantOnOrg to set.
-     * @return This builder for chaining.
-     */
-    public Builder setAutoGrantOnOrg(boolean value) {
-
-      autoGrantOnOrg_ = value;
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Whether to automatically grant a role on the PlatformClient's owning
-     * organization when an account is auto-provisioned.
-     *
-     * When false (default), auto-provisioned accounts receive no organization
-     * access. The platform must create IAM policies to grant access.
-     *
-     * When true, Stigmer grants auto_grant_role (default: viewer) on the
-     * PlatformClient's owning organization to every account it provisions.
-     * Accounts that already exist keep the roles they hold: changing this
-     * setting or auto_grant_role later does not reach them.
-     *
-     * Requires auto_provision_accounts to be true.
-     * </pre>
-     *
-     * <code>bool auto_grant_on_org = 7 [json_name = "autoGrantOnOrg"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearAutoGrantOnOrg() {
-      bitField0_ = (bitField0_ & ~0x00000040);
-      autoGrantOnOrg_ = false;
-      onChanged();
-      return this;
-    }
-
-    private int autoGrantRole_ = 0;
-    /**
-     * <pre>
-     * The role to grant when auto_grant_on_org is true.
-     *
-     * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-     * is not permitted — organization ownership must be assigned explicitly.
-     *
-     * Only meaningful when auto_grant_on_org is true. Ignored otherwise.
-     * </pre>
-     *
-     * <code>.ai.stigmer.iam.v1.IamRole auto_grant_role = 8 [json_name = "autoGrantRole"];</code>
-     * @return The enum numeric value on the wire for autoGrantRole.
-     */
-    @java.lang.Override public int getAutoGrantRoleValue() {
-      return autoGrantRole_;
-    }
-    /**
-     * <pre>
-     * The role to grant when auto_grant_on_org is true.
-     *
-     * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-     * is not permitted — organization ownership must be assigned explicitly.
-     *
-     * Only meaningful when auto_grant_on_org is true. Ignored otherwise.
-     * </pre>
-     *
-     * <code>.ai.stigmer.iam.v1.IamRole auto_grant_role = 8 [json_name = "autoGrantRole"];</code>
-     * @param value The enum numeric value on the wire for autoGrantRole to set.
-     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
-     * @return This builder for chaining.
-     */
-    public Builder setAutoGrantRoleValue(int value) {
-      autoGrantRole_ = value;
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The role to grant when auto_grant_on_org is true.
-     *
-     * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-     * is not permitted — organization ownership must be assigned explicitly.
-     *
-     * Only meaningful when auto_grant_on_org is true. Ignored otherwise.
-     * </pre>
-     *
-     * <code>.ai.stigmer.iam.v1.IamRole auto_grant_role = 8 [json_name = "autoGrantRole"];</code>
-     * @return The autoGrantRole.
-     */
-    @java.lang.Override
-    public ai.stigmer.iam.v1.IamRole getAutoGrantRole() {
-      ai.stigmer.iam.v1.IamRole result = ai.stigmer.iam.v1.IamRole.forNumber(autoGrantRole_);
-      return result == null ? ai.stigmer.iam.v1.IamRole.UNRECOGNIZED : result;
-    }
-    /**
-     * <pre>
-     * The role to grant when auto_grant_on_org is true.
-     *
-     * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-     * is not permitted — organization ownership must be assigned explicitly.
-     *
-     * Only meaningful when auto_grant_on_org is true. Ignored otherwise.
-     * </pre>
-     *
-     * <code>.ai.stigmer.iam.v1.IamRole auto_grant_role = 8 [json_name = "autoGrantRole"];</code>
-     * @param value The autoGrantRole to set.
-     * @return This builder for chaining.
-     */
-    public Builder setAutoGrantRole(ai.stigmer.iam.v1.IamRole value) {
-      if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000080;
-      autoGrantRole_ = value.getNumber();
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The role to grant when auto_grant_on_org is true.
-     *
-     * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-     * is not permitted — organization ownership must be assigned explicitly.
-     *
-     * Only meaningful when auto_grant_on_org is true. Ignored otherwise.
-     * </pre>
-     *
-     * <code>.ai.stigmer.iam.v1.IamRole auto_grant_role = 8 [json_name = "autoGrantRole"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearAutoGrantRole() {
-      bitField0_ = (bitField0_ & ~0x00000080);
-      autoGrantRole_ = 0;
-      onChanged();
-      return this;
-    }
-
     private com.google.protobuf.LazyStringArrayList allowedOrigins_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     private void ensureAllowedOriginsIsMutable() {
       if (!allowedOrigins_.isModifiable()) {
         allowedOrigins_ = new com.google.protobuf.LazyStringArrayList(allowedOrigins_);
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000020;
     }
     /**
      * <pre>
@@ -2182,7 +1890,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureAllowedOriginsIsMutable();
       allowedOrigins_.set(index, value);
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2220,7 +1928,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureAllowedOriginsIsMutable();
       allowedOrigins_.add(value);
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2258,7 +1966,7 @@ private static final long serialVersionUID = 0L;
       ensureAllowedOriginsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, allowedOrigins_);
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2293,7 +2001,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearAllowedOrigins() {
       allowedOrigins_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000100);;
+      bitField0_ = (bitField0_ & ~0x00000020);;
       onChanged();
       return this;
     }
@@ -2332,7 +2040,7 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       ensureAllowedOriginsIsMutable();
       allowedOrigins_.add(value);
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2340,9 +2048,9 @@ private static final long serialVersionUID = 0L;
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_ =
       java.util.Collections.emptyList();
     private void ensureEnvironmentRefsIsMutable() {
-      if (!((bitField0_ & 0x00000200) != 0)) {
+      if (!((bitField0_ & 0x00000040) != 0)) {
         environmentRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(environmentRefs_);
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000040;
        }
     }
 
@@ -2602,7 +2310,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearEnvironmentRefs() {
       if (environmentRefsBuilder_ == null) {
         environmentRefs_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000200);
+        bitField0_ = (bitField0_ & ~0x00000040);
         onChanged();
       } else {
         environmentRefsBuilder_.clear();
@@ -2749,12 +2457,191 @@ private static final long serialVersionUID = 0L;
         environmentRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 environmentRefs_,
-                ((bitField0_ & 0x00000200) != 0),
+                ((bitField0_ & 0x00000040) != 0),
                 getParentForChildren(),
                 isClean());
         environmentRefs_ = null;
       }
       return environmentRefsBuilder_;
+    }
+
+    private boolean createAccountsOnSignIn_ ;
+    /**
+     * <pre>
+     * Whether mintUserToken creates an identity account for a user_id that has
+     * none yet.
+     *
+     * When false (the default), the platform creates identity accounts before
+     * minting tokens, and mintUserToken returns FAILED_PRECONDITION for a user
+     * that does not exist. When true, Stigmer creates the account on first
+     * encounter from the user_email and user_name in the mintUserToken request.
+     * </pre>
+     *
+     * <code>bool create_accounts_on_sign_in = 11 [json_name = "createAccountsOnSignIn"];</code>
+     * @return The createAccountsOnSignIn.
+     */
+    @java.lang.Override
+    public boolean getCreateAccountsOnSignIn() {
+      return createAccountsOnSignIn_;
+    }
+    /**
+     * <pre>
+     * Whether mintUserToken creates an identity account for a user_id that has
+     * none yet.
+     *
+     * When false (the default), the platform creates identity accounts before
+     * minting tokens, and mintUserToken returns FAILED_PRECONDITION for a user
+     * that does not exist. When true, Stigmer creates the account on first
+     * encounter from the user_email and user_name in the mintUserToken request.
+     * </pre>
+     *
+     * <code>bool create_accounts_on_sign_in = 11 [json_name = "createAccountsOnSignIn"];</code>
+     * @param value The createAccountsOnSignIn to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCreateAccountsOnSignIn(boolean value) {
+
+      createAccountsOnSignIn_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether mintUserToken creates an identity account for a user_id that has
+     * none yet.
+     *
+     * When false (the default), the platform creates identity accounts before
+     * minting tokens, and mintUserToken returns FAILED_PRECONDITION for a user
+     * that does not exist. When true, Stigmer creates the account on first
+     * encounter from the user_email and user_name in the mintUserToken request.
+     * </pre>
+     *
+     * <code>bool create_accounts_on_sign_in = 11 [json_name = "createAccountsOnSignIn"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCreateAccountsOnSignIn() {
+      bitField0_ = (bitField0_ & ~0x00000080);
+      createAccountsOnSignIn_ = false;
+      onChanged();
+      return this;
+    }
+
+    private int signInRole_ = 0;
+    /**
+     * <pre>
+     * The role an account mintUserToken creates receives on the client's owning
+     * organization.
+     *
+     * A client's accounts belong to its owning organization alone, so an
+     * account's creation is its first sign-in there: the role is granted once,
+     * when the account is created. Accounts that already exist keep the roles
+     * they hold, and changing this setting later does not reach them.
+     * Unspecified (iam_role_unspecified) grants nothing. Requires
+     * create_accounts_on_sign_in. The owner role is refused: ownership is
+     * assigned explicitly.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
+     * @return The enum numeric value on the wire for signInRole.
+     */
+    @java.lang.Override public int getSignInRoleValue() {
+      return signInRole_;
+    }
+    /**
+     * <pre>
+     * The role an account mintUserToken creates receives on the client's owning
+     * organization.
+     *
+     * A client's accounts belong to its owning organization alone, so an
+     * account's creation is its first sign-in there: the role is granted once,
+     * when the account is created. Accounts that already exist keep the roles
+     * they hold, and changing this setting later does not reach them.
+     * Unspecified (iam_role_unspecified) grants nothing. Requires
+     * create_accounts_on_sign_in. The owner role is refused: ownership is
+     * assigned explicitly.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
+     * @param value The enum numeric value on the wire for signInRole to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setSignInRoleValue(int value) {
+      signInRole_ = value;
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The role an account mintUserToken creates receives on the client's owning
+     * organization.
+     *
+     * A client's accounts belong to its owning organization alone, so an
+     * account's creation is its first sign-in there: the role is granted once,
+     * when the account is created. Accounts that already exist keep the roles
+     * they hold, and changing this setting later does not reach them.
+     * Unspecified (iam_role_unspecified) grants nothing. Requires
+     * create_accounts_on_sign_in. The owner role is refused: ownership is
+     * assigned explicitly.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
+     * @return The signInRole.
+     */
+    @java.lang.Override
+    public ai.stigmer.iam.v1.IamRole getSignInRole() {
+      ai.stigmer.iam.v1.IamRole result = ai.stigmer.iam.v1.IamRole.forNumber(signInRole_);
+      return result == null ? ai.stigmer.iam.v1.IamRole.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * The role an account mintUserToken creates receives on the client's owning
+     * organization.
+     *
+     * A client's accounts belong to its owning organization alone, so an
+     * account's creation is its first sign-in there: the role is granted once,
+     * when the account is created. Accounts that already exist keep the roles
+     * they hold, and changing this setting later does not reach them.
+     * Unspecified (iam_role_unspecified) grants nothing. Requires
+     * create_accounts_on_sign_in. The owner role is refused: ownership is
+     * assigned explicitly.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
+     * @param value The signInRole to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSignInRole(ai.stigmer.iam.v1.IamRole value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000100;
+      signInRole_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The role an account mintUserToken creates receives on the client's owning
+     * organization.
+     *
+     * A client's accounts belong to its owning organization alone, so an
+     * account's creation is its first sign-in there: the role is granted once,
+     * when the account is created. Accounts that already exist keep the roles
+     * they hold, and changing this setting later does not reach them.
+     * Unspecified (iam_role_unspecified) grants nothing. Requires
+     * create_accounts_on_sign_in. The owner role is refused: ownership is
+     * assigned explicitly.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSignInRole() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      signInRole_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.iam.platformclient.v1.PlatformClientSpec)

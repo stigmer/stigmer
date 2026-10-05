@@ -15,15 +15,16 @@
 // ceiling (visible-full, never silent eviction), and org-scoped listing.
 //
 // The create RPC's strict first-party-human-operator gate is capability
-// split (firstPartyMemoryCapture, see targets/target.ts): local OSS runs
-// the full matrix (single-user posture, no gate); on cloud the primary
-// conformance user is a PlatformClient-minted token — the credential
-// class the first-party gate deliberately excludes — so this suite pins
-// the gate refusal itself, and the full cloud lifecycle is covered by the
-// hosted edition's own suites.
+// split (firstPartyMemoryCapture, see targets/target.ts): a target whose
+// conformance user passes the gate (every target today: local OSS in its
+// single-user posture, cloud through a console sign-in) runs the full
+// matrix. The refusal itself is pinned where the target's enforcing lane
+// mints PlatformClient user tokens: such a user is refused even with the
+// organization's switch on.
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { MemoryLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/enum_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -38,10 +39,19 @@ import {
   makeMemory,
   memoryDisabledMessage,
 } from "../support/memories";
-import { createTarget, type TargetProfile } from "../targets";
+import {
+  createPlatformClient,
+  deletePlatformClient,
+  mintUserToken,
+} from "../support/platformclients";
+import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
 const ORG_API_VERSION = "tenancy.stigmer.ai/v1";
 const ORG_KIND = "Organization";
+
+// The gate's refusal, byte-pinned in the server (pipeline/steps/guard-memory-capture.ts).
+const FIRST_PARTY_ONLY_MESSAGE =
+  "memory can only be captured for a first-party human operator";
 
 let target: TargetProfile;
 // Read at collection time so an edition without a capability reports its cases
@@ -91,18 +101,40 @@ async function createMemory(org: string, content?: string) {
 }
 
 describe("Memory conformance", () => {
-  // Cloud-only pin (see the suite header): the primary conformance
-  // user is a PlatformClient-minted token, and even with the org
-  // switch ON the gate refuses — client-side context never overrides
-  // the control plane's caller classification.
-  it.skipIf(capabilities.firstPartyMemoryCapture)("create is refused for callers outside the first-party-human gate", async () => {
+  // A PlatformClient user is outside the gate (see the suite header): even
+  // with the org switch ON the gate refuses — client-side context never
+  // overrides the control plane's caller classification.
+  it("[rpc:MemoryCommandController.create] create is refused for a PlatformClient user token, outside the first-party-human gate", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    if (!target.capabilities.platformClientTokens) {
+      return ctx.skip("this target's enforcing lane mints no PlatformClient user tokens");
+    }
+    const on = enforcing.lane;
+    const created = await on.clients.organizationCommand.create({
+      apiVersion: ORG_API_VERSION,
+      kind: ORG_KIND,
+      metadata: { name: uniqueName("memorg") },
+      spec: { preferences: { memoryEnabled: true } },
+    });
+    const org = created.metadata!.id;
+    fixtures.defer(() => on.clients.organizationCommand.delete({ value: org }));
+    const client = await createPlatformClient(on.clients, {
+      org,
+      name: uniqueName("memory-pc"),
+      signInRole: IamRole.member,
+    });
+    fixtures.defer(() => deletePlatformClient(on.clients, client.id));
+    const asUser = on.clientsPresenting(
+      await mintUserToken(on.clients, client.credentials, uniqueName("memory-user")),
+    );
 
-    const org = await createOrg(true);
-    await expectGrpcCode(
-      () => clients.memoryCommand.create(makeMemory(org)),
+    const refused = await expectGrpcCode(
+      () => asUser.memoryCommand.create(makeMemory(org)),
       Code.PermissionDenied,
       "memory create as a platform-client-minted user",
     );
+    expect(refused.rawMessage).toContain(FIRST_PARTY_ONLY_MESSAGE);
   });
 
   it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryCommandController.create] create fails closed while the organization has memory disabled", async () => {

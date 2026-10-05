@@ -88,23 +88,22 @@ type IdentityProviderInput struct {
 	// set from a loaded resource. Required for updates to platform-scoped
 	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
 	// on create: the server assigns every new resource's id.
-	Id                    string
-	Name                  string
-	Slug                  string
-	Org                   string
-	Labels                map[string]string
-	Visibility            apiresource.ApiResourceVisibility
-	DisplayName           string
-	JwksUri               string
-	AllowedIssuers        []string
-	ExpectedAudience      string
-	UserinfoEndpoint      string
-	IsSsoProvider         bool
-	OidcClientId          string
-	AutoProvisionAccounts bool
-	AutoGrantOnOrg        bool
-	AutoGrantRole         iamv1.IamRole
-	TenantOrgClaim        string
+	Id                     string
+	Name                   string
+	Slug                   string
+	Org                    string
+	Labels                 map[string]string
+	Visibility             apiresource.ApiResourceVisibility
+	DisplayName            string
+	JwksUri                string
+	AllowedIssuers         []string
+	ExpectedAudience       string
+	UserinfoEndpoint       string
+	IsSsoProvider          bool
+	OidcClientId           string
+	TenantOrgClaim         string
+	CreateAccountsOnSignIn bool
+	SignInRole             iamv1.IamRole
 }
 
 func (i *IdentityProviderInput) toProto() (*identityproviderv1.IdentityProvider, error) {
@@ -128,10 +127,9 @@ func (i *IdentityProviderInput) toProto() (*identityproviderv1.IdentityProvider,
 	resource.Spec.UserinfoEndpoint = i.UserinfoEndpoint
 	resource.Spec.IsSsoProvider = i.IsSsoProvider
 	resource.Spec.OidcClientId = i.OidcClientId
-	resource.Spec.AutoProvisionAccounts = i.AutoProvisionAccounts
-	resource.Spec.AutoGrantOnOrg = i.AutoGrantOnOrg
-	resource.Spec.AutoGrantRole = i.AutoGrantRole
 	resource.Spec.TenantOrgClaim = i.TenantOrgClaim
+	resource.Spec.CreateAccountsOnSignIn = i.CreateAccountsOnSignIn
+	resource.Spec.SignInRole = i.SignInRole
 	return resource, nil
 }
 
@@ -157,10 +155,9 @@ func IdentityProviderInputFromProto(p *identityproviderv1.IdentityProvider) *Ide
 		input.UserinfoEndpoint = s.GetUserinfoEndpoint()
 		input.IsSsoProvider = s.GetIsSsoProvider()
 		input.OidcClientId = s.GetOidcClientId()
-		input.AutoProvisionAccounts = s.GetAutoProvisionAccounts()
-		input.AutoGrantOnOrg = s.GetAutoGrantOnOrg()
-		input.AutoGrantRole = s.GetAutoGrantRole()
 		input.TenantOrgClaim = s.GetTenantOrgClaim()
+		input.CreateAccountsOnSignIn = s.GetCreateAccountsOnSignIn()
+		input.SignInRole = s.GetSignInRole()
 	}
 	return input
 }

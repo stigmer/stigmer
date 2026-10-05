@@ -39,6 +39,7 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { PendingOAuthState } from "../../store/interface.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import { resolveOAuthAppRef } from "../oauthapp/refresolution.js";
@@ -90,6 +91,9 @@ export async function initiateOAuthConnect(
     identity,
     input,
   );
+  // The grant is the caller's in this organization: a credential bound to
+  // another may not open one here.
+  refuseBoundElsewhere(identity, input.org);
 
   const auth = mcpServer.spec?.auth;
   if (auth === undefined) {

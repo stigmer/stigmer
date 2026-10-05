@@ -48,19 +48,20 @@ const (
 // a customer with multiple PlatformClients (e.g., dashboard, mobile, admin)
 // sees one Stigmer identity per end user, with one set of FGA grants.
 //
-// Three provisioning modes for users presented via mintUserToken:
+// Every user token a PlatformClient mints is bound to the client's owning
+// organization: it works there and nowhere else, whatever roles the user
+// holds in other organizations.
 //
-//  1. Manual (default): The platform explicitly creates identity accounts and IAM
-//     policies before minting tokens. mintUserToken fails if the user does not exist.
+// Two settings control what happens when mintUserToken meets a user:
 //
-//  2. JIT (Just-In-Time): When auto_provision_accounts is true, Stigmer creates an
-//     IdentityAccount from the user identity provided in the mintUserToken request
-//     on first encounter. Authorization is controlled independently via
-//     auto_grant_on_org and auto_grant_role.
+//  1. create_accounts_on_sign_in: whether Stigmer creates the user's identity
+//     account on first encounter. When false (the default), the platform
+//     creates identity accounts before minting; mintUserToken fails if the
+//     user does not exist.
 //
-//  3. JIT + Auto-Grant: When both auto_provision_accounts and auto_grant_on_org are
-//     true, newly provisioned accounts are granted auto_grant_role on the
-//     PlatformClient's owning organization.
+//  2. sign_in_role: the role a newly created account receives on the owning
+//     organization. Unspecified means none: the platform grants roles itself
+//     through IAM policies.
 type PlatformClientSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// OAuth client identifier.
@@ -80,38 +81,6 @@ type PlatformClientSpec struct {
 	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	// When true, the client secret never expires regardless of expires_at.
 	NeverExpires bool `protobuf:"varint,5,opt,name=never_expires,json=neverExpires,proto3" json:"never_expires,omitempty"`
-	// Whether to automatically create an identity account when mintUserToken is
-	// called with a user_id that has no existing account.
-	//
-	// When false (default), the platform must explicitly create identity accounts
-	// before minting tokens. mintUserToken returns FAILED_PRECONDITION if the
-	// user does not exist. This gives platforms full control over which users can
-	// access Stigmer resources.
-	//
-	// When true, Stigmer creates an IdentityAccount automatically on first
-	// encounter, using the user_email and user_name from the mintUserToken request
-	// for profile data.
-	AutoProvisionAccounts bool `protobuf:"varint,6,opt,name=auto_provision_accounts,json=autoProvisionAccounts,proto3" json:"auto_provision_accounts,omitempty"`
-	// Whether to automatically grant a role on the PlatformClient's owning
-	// organization when an account is auto-provisioned.
-	//
-	// When false (default), auto-provisioned accounts receive no organization
-	// access. The platform must create IAM policies to grant access.
-	//
-	// When true, Stigmer grants auto_grant_role (default: viewer) on the
-	// PlatformClient's owning organization to every account it provisions.
-	// Accounts that already exist keep the roles they hold: changing this
-	// setting or auto_grant_role later does not reach them.
-	//
-	// Requires auto_provision_accounts to be true.
-	AutoGrantOnOrg bool `protobuf:"varint,7,opt,name=auto_grant_on_org,json=autoGrantOnOrg,proto3" json:"auto_grant_on_org,omitempty"`
-	// The role to grant when auto_grant_on_org is true.
-	//
-	// Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-	// is not permitted — organization ownership must be assigned explicitly.
-	//
-	// Only meaningful when auto_grant_on_org is true. Ignored otherwise.
-	AutoGrantRole v1.IamRole `protobuf:"varint,8,opt,name=auto_grant_role,json=autoGrantRole,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"auto_grant_role,omitempty"`
 	// Web origins allowed for browser-based requests using tokens minted by
 	// this PlatformClient.
 	//
@@ -142,8 +111,27 @@ type PlatformClientSpec struct {
 	// runtime, at the lowest priority, so the request's runtime values win on
 	// a key conflict. The agent stays untouched.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,10,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Whether mintUserToken creates an identity account for a user_id that has
+	// none yet.
+	//
+	// When false (the default), the platform creates identity accounts before
+	// minting tokens, and mintUserToken returns FAILED_PRECONDITION for a user
+	// that does not exist. When true, Stigmer creates the account on first
+	// encounter from the user_email and user_name in the mintUserToken request.
+	CreateAccountsOnSignIn bool `protobuf:"varint,11,opt,name=create_accounts_on_sign_in,json=createAccountsOnSignIn,proto3" json:"create_accounts_on_sign_in,omitempty"`
+	// The role an account mintUserToken creates receives on the client's owning
+	// organization.
+	//
+	// A client's accounts belong to its owning organization alone, so an
+	// account's creation is its first sign-in there: the role is granted once,
+	// when the account is created. Accounts that already exist keep the roles
+	// they hold, and changing this setting later does not reach them.
+	// Unspecified (iam_role_unspecified) grants nothing. Requires
+	// create_accounts_on_sign_in. The owner role is refused: ownership is
+	// assigned explicitly.
+	SignInRole    v1.IamRole `protobuf:"varint,12,opt,name=sign_in_role,json=signInRole,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"sign_in_role,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PlatformClientSpec) Reset() {
@@ -211,27 +199,6 @@ func (x *PlatformClientSpec) GetNeverExpires() bool {
 	return false
 }
 
-func (x *PlatformClientSpec) GetAutoProvisionAccounts() bool {
-	if x != nil {
-		return x.AutoProvisionAccounts
-	}
-	return false
-}
-
-func (x *PlatformClientSpec) GetAutoGrantOnOrg() bool {
-	if x != nil {
-		return x.AutoGrantOnOrg
-	}
-	return false
-}
-
-func (x *PlatformClientSpec) GetAutoGrantRole() v1.IamRole {
-	if x != nil {
-		return x.AutoGrantRole
-	}
-	return v1.IamRole(0)
-}
-
 func (x *PlatformClientSpec) GetAllowedOrigins() []string {
 	if x != nil {
 		return x.AllowedOrigins
@@ -246,27 +213,41 @@ func (x *PlatformClientSpec) GetEnvironmentRefs() []*apiresource.ApiResourceRefe
 	return nil
 }
 
+func (x *PlatformClientSpec) GetCreateAccountsOnSignIn() bool {
+	if x != nil {
+		return x.CreateAccountsOnSignIn
+	}
+	return false
+}
+
+func (x *PlatformClientSpec) GetSignInRole() v1.IamRole {
+	if x != nil {
+		return x.SignInRole
+	}
+	return v1.IamRole(0)
+}
+
 var File_ai_stigmer_iam_platformclient_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_platformclient_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/iam/platformclient/v1/spec.proto\x12 ai.stigmer.iam.platformclient.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaf\b\n" +
+	"+ai/stigmer/iam/platformclient/v1/spec.proto\x12 ai.stigmer.iam.platformclient.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc8\b\n" +
 	"\x12PlatformClientSpec\x12!\n" +
 	"\tclient_id\x18\x01 \x01(\tB\x04ȅ,\x01R\bclientId\x122\n" +
 	"\x12client_secret_hash\x18\x02 \x01(\tB\x04ȅ,\x01R\x10clientSecretHash\x123\n" +
 	"\x12secret_fingerprint\x18\x03 \x01(\tB\x04ȅ,\x01R\x11secretFingerprint\x129\n" +
 	"\n" +
 	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12#\n" +
-	"\rnever_expires\x18\x05 \x01(\bR\fneverExpires\x126\n" +
-	"\x17auto_provision_accounts\x18\x06 \x01(\bR\x15autoProvisionAccounts\x12)\n" +
-	"\x11auto_grant_on_org\x18\a \x01(\bR\x0eautoGrantOnOrg\x12B\n" +
-	"\x0fauto_grant_role\x18\b \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\rautoGrantRole\x12'\n" +
+	"\rnever_expires\x18\x05 \x01(\bR\fneverExpires\x12'\n" +
 	"\x0fallowed_origins\x18\t \x03(\tR\x0eallowedOrigins\x12\xd9\x01\n" +
 	"\x10environment_refs\x18\n" +
 	" \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs:\x80\x03\xbaH\xfc\x02\x1a\xdb\x01\n" +
-	"2platform_client.auto_grant_requires_auto_provision\x12lauto_grant_on_org requires auto_provision_accounts: only an account the client provisions receives the grant\x1a7!this.auto_grant_on_org || this.auto_provision_accounts\x1a\x9b\x01\n" +
-	")platform_client.auto_grant_role_not_owner\x12Sauto_grant_role cannot be owner; organization ownership must be assigned explicitly\x1a\x19this.auto_grant_role != 1B\xb4\x02\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12:\n" +
+	"\x1acreate_accounts_on_sign_in\x18\v \x01(\bR\x16createAccountsOnSignIn\x12<\n" +
+	"\fsign_in_role\x18\f \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\n" +
+	"signInRole:\xf7\x02\xbaH\xf3\x02\x1a\xdb\x01\n" +
+	"6platform_client.sign_in_role_requires_account_creation\x12fsign_in_role requires create_accounts_on_sign_in: only an account the client creates receives the role\x1a9this.sign_in_role == 0 || this.create_accounts_on_sign_in\x1a\x92\x01\n" +
+	"&platform_client.sign_in_role_not_owner\x12Psign_in_role cannot be owner; organization ownership must be assigned explicitly\x1a\x16this.sign_in_role != 1J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tR\x17auto_provision_accountsR\x11auto_grant_on_orgR\x0fauto_grant_roleB\xb4\x02\n" +
 	"$com.ai.stigmer.iam.platformclient.v1B\tSpecProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var (
@@ -285,13 +266,13 @@ var file_ai_stigmer_iam_platformclient_v1_spec_proto_msgTypes = make([]protoimpl
 var file_ai_stigmer_iam_platformclient_v1_spec_proto_goTypes = []any{
 	(*PlatformClientSpec)(nil),               // 0: ai.stigmer.iam.platformclient.v1.PlatformClientSpec
 	(*timestamppb.Timestamp)(nil),            // 1: google.protobuf.Timestamp
-	(v1.IamRole)(0),                          // 2: ai.stigmer.iam.v1.IamRole
-	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
+	(v1.IamRole)(0),                          // 3: ai.stigmer.iam.v1.IamRole
 }
 var file_ai_stigmer_iam_platformclient_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.iam.platformclient.v1.PlatformClientSpec.expires_at:type_name -> google.protobuf.Timestamp
-	2, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientSpec.auto_grant_role:type_name -> ai.stigmer.iam.v1.IamRole
-	3, // 2: ai.stigmer.iam.platformclient.v1.PlatformClientSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	2, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3, // 2: ai.stigmer.iam.platformclient.v1.PlatformClientSpec.sign_in_role:type_name -> ai.stigmer.iam.v1.IamRole
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name

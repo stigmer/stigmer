@@ -11,8 +11,9 @@ Step 1 (manual mode only): Platform creates a federated account
   └─► Platform backend calls createFederatedAccount with the user's
       external sub, email, name, and IdentityProvider reference.
       Stigmer returns the identity_account_id for role grants.
-      With auto_provision_accounts or is_sso_provider, skip this step:
-      Stigmer creates the account on the first sign-in (Step 5).
+      With create_accounts_on_sign_in (every SSO provider sets it),
+      skip this step: Stigmer creates the account on the first sign-in
+      (Step 6).
 
 Step 2: Platform authenticates user
   └─► User logs in to the external platform (e.g., Planton)
@@ -30,18 +31,25 @@ Step 4: Stigmer verifies the token
   ├─► Check exp (required), nbf (when present) and sub (required)
   └─► Token is valid — extract the sub claim and proceed
 
-Step 5: Stigmer resolves the federated account
+Step 5: Stigmer binds the token to one organization
+  ├─► tenant_org_claim set: read the claim from this token (every
+  │     token, returning users included) and find the platform-managed
+  │     organization whose identity_provider_ref is this provider and
+  │     whose external_org_id equals the value. A missing claim, a
+  │     non-string value or an unknown organization is refused with
+  │     Unauthenticated; the refusal does not name the tenant.
+  └─► tenant_org_claim empty: the provider's own organization
+
+Step 6: Stigmer resolves the federated account
   ├─► Look up the IdentityAccount by (this IdentityProvider, sub)
   ├─► If found: proceed
-  └─► If NOT found:
-        - SSO provider: create the account and grant viewer on the
-          owning organization
-        - JIT (auto_provision_accounts): create the account; with
-          auto_grant_on_org, grant auto_grant_role on the owning
-          organization, or on the tenant organization tenant_org_claim
-          resolves to
-        - Manual mode: refuse with Unauthenticated (the platform must
-          create the account first)
+  ├─► If NOT found:
+  │     - create_accounts_on_sign_in: create the account
+  │     - Manual mode: refuse with Unauthenticated (the platform must
+  │       create the account first)
+  └─► First sign-in of this account to the bound organization: grant
+        sign_in_role there, when one is set. Granted once per account
+        and organization; a role an admin later removes stays removed.
       A new account's profile comes from the token: the email from
       email; the first and last name from given_name and family_name,
       else split from name, else the email's local part; the picture
@@ -50,9 +58,13 @@ Step 5: Stigmer resolves the federated account
       removed, so an account never exists without the access it was
       created for.
 
-Step 6: Stigmer processes the API request
+Step 7: Stigmer processes the API request
   └─► The resolved identity account is used for the authorization
-      checks on the requested resource
+      checks on the requested resource, in the bound organization
+      only: a target in another organization is refused with
+      PermissionDenied, except what belongs to no organization (the
+      person's own account and API keys) and reading or running
+      blueprints shared at platform visibility
 ```
 
 ## OIDC Standards

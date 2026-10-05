@@ -120,7 +120,10 @@ import {
   TARGET_RESOURCE_KEY,
   TOKEN_TYPE_EXECUTION_SCOPED,
   WORKFLOW_ROUTING_EXECUTION,
+  BOUND_ELSEWHERE_DENY_REASON,
+  boundOrgOf,
 } from "@stigmer/server";
+import type { BindingVerdict, CredentialBinding } from "@stigmer/server";
 import type {
   AgentExecutionResponseDecorator,
   AgentExecutionTemporalConfig,
@@ -1387,6 +1390,22 @@ const organizationDirectory: OrganizationDirectory = {
   },
 };
 
+/**
+ * The credential binding as a unit's own lane meets it: kept from
+ * `onComposed` and asked, as the cloud's invitation redeem asks, whether
+ * the caller's credential may act in an organization; the verdict and the
+ * bound Authorizer's denial copy are part of the surface too.
+ */
+let consumerCredentialBinding: CredentialBinding | undefined;
+export function consumerMayActIn(caller: CallerIdentity, org: string): boolean {
+  if (boundOrgOf(caller) === undefined) {
+    return true;
+  }
+  return consumerCredentialBinding?.admitsOrganization(caller, org) ?? false;
+}
+export const consumerOutsideVerdict: BindingVerdict = "outside";
+export const consumerBoundDenial: string = BOUND_ELSEWHERE_DENY_REASON;
+
 /** The whole unit — every point a consumer can populate today. */
 export const fakeExtension: ServerExtension = {
   name: "consumer-fake",
@@ -1399,6 +1418,11 @@ export const fakeExtension: ServerExtension = {
   // literal `true` — `false` does not compile; omit the field instead.
   requireAuthentication: true,
   authorizer,
+  // The composition's own instances, the Authorizer bound by the
+  // credential binding among them.
+  onComposed: (composed) => {
+    consumerCredentialBinding = composed.credentialBinding;
+  },
   identityVerifiers: [verifier, consumerGuestTokenVerifier],
   // Post-authentication caller guards, serving
   // chain only.
@@ -1449,6 +1473,16 @@ export const fakeExtension: ServerExtension = {
       ["consumer-substrate", consumerSubstrateDriver],
     ]),
     resourceAuthorizationLifecycle: authorizationLifecycle,
+    // The rows of the Enterprise kinds the cloud edition serves: the
+    // credential binding reads every served kind's organization from its
+    // row in every posture, so a wider edition registers a reader for each.
+    resourceRowReaders: new Map(
+      [
+        ApiResourceKind.identity_provider,
+        ApiResourceKind.invitation,
+        ApiResourceKind.team,
+      ].map((kind) => [kind, { findById: () => Promise.resolve(undefined) }]),
+    ),
     organizationDirectory,
     // The list read scope, carrying the authorization parent on its
     // candidates.

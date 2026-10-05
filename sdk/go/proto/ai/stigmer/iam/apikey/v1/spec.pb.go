@@ -7,6 +7,7 @@
 package apikeyv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -25,8 +26,9 @@ const (
 
 // ApiKeySpec defines the configuration for an API key.
 //
-// API keys provide programmatic access to the Stigmer API. Each key is
-// scoped to an identity account and can have an optional expiration time.
+// API keys provide programmatic access to the Stigmer API. Each key speaks for
+// the identity account that created it and can have an optional expiration
+// time. A key may be limited to one organization (bound_org).
 type ApiKeySpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Hash of the raw API key.
@@ -37,7 +39,18 @@ type ApiKeySpec struct {
 	// Expiration time for the API key. Ignored when never_expires is true.
 	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	// When true, the API key never expires regardless of expires_at.
-	NeverExpires  bool `protobuf:"varint,4,opt,name=never_expires,json=neverExpires,proto3" json:"never_expires,omitempty"`
+	NeverExpires bool `protobuf:"varint,4,opt,name=never_expires,json=neverExpires,proto3" json:"never_expires,omitempty"`
+	// The organization this key works in, by id or slug; the server stores the
+	// id. Empty means the key speaks for its owner in every organization they
+	// hold a role in.
+	//
+	// A limited key is refused in every other organization, whatever roles its
+	// owner holds there, and cannot create an organization or a key that is not
+	// limited to the same organization. Creating a key limited to an
+	// organization its owner cannot view is refused. A key created with a
+	// credential that is itself limited to one organization is limited to that
+	// organization: an empty value takes it, and any other value is refused.
+	BoundOrg      string `protobuf:"bytes,5,opt,name=bound_org,json=boundOrg,proto3" json:"bound_org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -100,18 +113,26 @@ func (x *ApiKeySpec) GetNeverExpires() bool {
 	return false
 }
 
+func (x *ApiKeySpec) GetBoundOrg() string {
+	if x != nil {
+		return x.BoundOrg
+	}
+	return ""
+}
+
 var File_ai_stigmer_iam_apikey_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_apikey_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"#ai/stigmer/iam/apikey/v1/spec.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb5\x01\n" +
+	"#ai/stigmer/iam/apikey/v1/spec.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdc\x01\n" +
 	"\n" +
 	"ApiKeySpec\x12\x1f\n" +
 	"\bkey_hash\x18\x01 \x01(\tB\x04ȅ,\x01R\akeyHash\x12&\n" +
 	"\vfingerprint\x18\x02 \x01(\tB\x04ȅ,\x01R\vfingerprint\x129\n" +
 	"\n" +
 	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12#\n" +
-	"\rnever_expires\x18\x04 \x01(\bR\fneverExpiresB\xfc\x01\n" +
+	"\rnever_expires\x18\x04 \x01(\bR\fneverExpires\x12%\n" +
+	"\tbound_org\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\bboundOrgB\xfc\x01\n" +
 	"\x1ccom.ai.stigmer.iam.apikey.v1B\tSpecProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
 
 var (

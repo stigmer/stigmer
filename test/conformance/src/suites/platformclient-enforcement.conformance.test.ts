@@ -23,8 +23,8 @@
 //   - so the audit tells the clients apart instead (stigmer/stigmer#1256):
 //     a resource a minted user writes records the minting client on its
 //     created_by actor, beside that one account;
-//   - an auto-provisioned user holds exactly the auto-grant role on the
-//     owning organization and sees that organization alone;
+//   - a user the client creates holds exactly the client's sign-in role on
+//     the owning organization and sees that organization alone;
 //   - the owning organization's access list names that user as
 //     provisioned by a PlatformClient (identity origin `platform_client`)
 //     and its founder as not, which is how a members view tells the
@@ -97,7 +97,7 @@ function organizationMismatchMessage(owningOrg: string): string {
 function noAccountMessage(userId: string, org: string): string {
   return (
     `User '${userId}' has no Stigmer account in organization '${org}'. ` +
-    "Enable auto_provision_accounts on the PlatformClient or create the account first."
+    "Enable create_accounts_on_sign_in on the PlatformClient or create the account first."
   );
 }
 
@@ -140,8 +140,8 @@ async function platformClient(
   org: string,
   options: {
     allowedOrigins?: readonly string[];
-    autoProvisionAccounts?: boolean;
-    autoGrantRole?: IamRole;
+    createAccountsOnSignIn?: boolean;
+    signInRole?: IamRole;
     keep?: boolean;
   } = {},
 ): Promise<ProvisionedPlatformClient> {
@@ -265,10 +265,10 @@ describe.skipIf(!enforcementServed)(
     it("a resource a minted user creates records the minting client beside the one account", async () => {
       const context = await tenancy();
       const dashboard = await platformClient(context.org, {
-        autoGrantRole: IamRole.member,
+        signInRole: IamRole.member,
       });
       const mobile = await platformClient(context.org, {
-        autoGrantRole: IamRole.member,
+        signInRole: IamRole.member,
       });
       const userId = uniqueName("enforcement-user");
 
@@ -300,10 +300,10 @@ describe.skipIf(!enforcementServed)(
       expect(viaMobile?.platformClientId).toBe(mobile.id);
     });
 
-    it("[rpc:PlatformClientTokenController.mintUserToken] an auto-provisioned user holds the auto-grant role on the owning organization and sees it alone", async () => {
+    it("[rpc:PlatformClientTokenController.mintUserToken] a user the client creates holds its sign-in role on the owning organization and sees it alone", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org, {
-        autoGrantRole: IamRole.member,
+        signInRole: IamRole.member,
       });
       const token = await mintUserToken(
         lane.clients,
@@ -322,7 +322,7 @@ describe.skipIf(!enforcementServed)(
     it("[rpc:IamPolicyQueryController.listResourceAccessByPrincipal] the owning organization's access list names an auto-provisioned user as provisioned by a PlatformClient", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org, {
-        autoGrantRole: IamRole.viewer,
+        signInRole: IamRole.viewer,
       });
       const minted = lane.clientsPresenting(
         await mintUserToken(lane.clients, client.credentials, uniqueName("enforcement-user")),
@@ -410,7 +410,7 @@ describe.skipIf(!enforcementServed)(
     it("[rpc:PlatformClientTokenController.mintUserToken] a client that does not provision users refuses an unknown user", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org, {
-        autoProvisionAccounts: false,
+        createAccountsOnSignIn: false,
       });
       const userId = uniqueName("enforcement-user");
 

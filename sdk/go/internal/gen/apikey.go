@@ -80,6 +80,7 @@ type ApiKeyInput struct {
 	Fingerprint  string
 	ExpiresAt    string
 	NeverExpires bool
+	BoundOrg     string
 }
 
 func (i *ApiKeyInput) toProto() (*apikeyv1.ApiKey, error) {
@@ -106,6 +107,7 @@ func (i *ApiKeyInput) toProto() (*apikeyv1.ApiKey, error) {
 		resource.Spec.ExpiresAt = timestamppb.New(t)
 	}
 	resource.Spec.NeverExpires = i.NeverExpires
+	resource.Spec.BoundOrg = i.BoundOrg
 	return resource, nil
 }
 
@@ -130,6 +132,7 @@ func ApiKeyInputFromProto(p *apikeyv1.ApiKey) *ApiKeyInput {
 			input.ExpiresAt = ts.AsTime().Format(time.RFC3339)
 		}
 		input.NeverExpires = s.GetNeverExpires()
+		input.BoundOrg = s.GetBoundOrg()
 	}
 	return input
 }

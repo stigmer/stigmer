@@ -11,6 +11,12 @@
  * name. An organization belongs to no organization, so its own
  * metadata.org must be empty.
  *
+ * Organization create is a skip lane by annotation (any signed-in person
+ * may found one), so it is also where a credential limited to one
+ * organization is refused (RefuseBoundCredential): such a credential works
+ * in its organization only and never founds another
+ * (authorization/credential-binding.ts).
+ *
  * The delete revokes the organization's policy rows BEFORE its row is
  * deleted, and fails the delete when it cannot, so nothing that grants on
  * the organization outlives it.
@@ -22,6 +28,9 @@ import type { OrganizationNameResolver } from "../../pipeline/interceptors/organ
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
+import { Code, ConnectError } from "@connectrpc/connect";
+
+import { boundOrgOf } from "../../extensions/identity.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
@@ -77,6 +86,32 @@ export function newCheckOrgDuplicateStep(
       }
       if (entry !== undefined) {
         throw refusalForHeldName(entry);
+      }
+    },
+  };
+}
+
+/** Organization create's refusal of a credential limited to one organization. */
+export const BOUND_CREDENTIAL_CREATES_NO_ORGANIZATION_MESSAGE =
+  "this credential is limited to one organization and cannot create another; sign in as yourself to create an organization";
+
+/**
+ * Refuses organization create for a caller whose credential is bound to
+ * one organization (a limited API key, a PlatformClient user token, a
+ * composition's bound lane). Runs first after the Authorize step, before
+ * anything reads the request.
+ */
+export function newRefuseBoundCredentialStep<
+  Desc extends DescMessage,
+>(): PipelineStep<Desc> {
+  return {
+    name: "RefuseBoundCredential",
+    execute(ctx: RequestContext<Desc>): void {
+      if (boundOrgOf(ctx.callerIdentity) !== undefined) {
+        throw new ConnectError(
+          BOUND_CREDENTIAL_CREATES_NO_ORGANIZATION_MESSAGE,
+          Code.PermissionDenied,
+        );
       }
     },
   };

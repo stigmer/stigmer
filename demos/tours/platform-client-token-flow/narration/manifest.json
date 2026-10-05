@@ -2,35 +2,35 @@
   "steps": [
     {
       "src": "./step-0.mp3",
-      "durationMs": 6350
+      "durationMs": 6750
     },
     {
       "src": "./step-1.mp3",
-      "durationMs": 8850
+      "durationMs": 9175
     },
     {
       "src": "./step-2.mp3",
-      "durationMs": 8538
+      "durationMs": 10175
     },
     {
       "src": "./step-3.mp3",
-      "durationMs": 6413
+      "durationMs": 8263
     },
     {
       "src": "./step-4.mp3",
-      "durationMs": 9400
+      "durationMs": 9250
     },
     {
       "src": "./step-5.mp3",
-      "durationMs": 11238
+      "durationMs": 13463
     },
     {
       "src": "./step-6.mp3",
-      "durationMs": 6613
+      "durationMs": 6363
     },
     {
       "src": "./step-7.mp3",
-      "durationMs": 10988
+      "durationMs": 12075
     }
   ]
 }

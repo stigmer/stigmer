@@ -8,7 +8,7 @@
  *     or by org-scoped slug;
  *   - rotateSecret replaces the secret and fingerprint under the same
  *     client_id, and the row's hash follows;
- *   - the reserved slug is refused, the two auto-grant rules are refused on
+ *   - the reserved slug is refused, the two sign-in role rules are refused on
  *     the contract, and a system-managed client refuses update, delete and
  *     rotate with the cloud's copy;
  *   - create and update run the reference rule on `environment_refs`: a
@@ -106,7 +106,7 @@ function input(
     apiVersion: "iam.stigmer.ai/v1",
     kind: "PlatformClient",
     metadata: { name, org: "acme" },
-    spec: { autoProvisionAccounts: true, ...spec },
+    spec: { createAccountsOnSignIn: true, ...spec },
   });
 }
 
@@ -200,7 +200,7 @@ describe("PlatformClient chains", () => {
       apiVersion: "iam.stigmer.ai/v1",
       kind: "PlatformClient",
       metadata: { name: "Dashboard", org: "acme", slug: "dashboard" },
-      spec: { autoProvisionAccounts: false },
+      spec: { createAccountsOnSignIn: false },
     });
     const viaSlug = await command.update(bySlug);
     expect(viaSlug.metadata?.id).toBe(stored?.metadata?.id);
@@ -229,7 +229,7 @@ describe("PlatformClient chains", () => {
     );
   });
 
-  it("refuses the reserved slug and the two auto-grant rules", async () => {
+  it("refuses the reserved slug and the two sign-in role rules", async () => {
     const reserved = await refusal(
       command.create(
         create(PlatformClientSchema, {
@@ -247,8 +247,7 @@ describe("PlatformClient chains", () => {
     const owner = await refusal(
       command.create(
         input("Owner grant", {
-          autoGrantOnOrg: true,
-          autoGrantRole: IamRole.owner,
+          signInRole: IamRole.owner,
         }),
       ),
     );
@@ -257,8 +256,8 @@ describe("PlatformClient chains", () => {
     const noProvision = await refusal(
       command.create(
         input("No provision", {
-          autoProvisionAccounts: false,
-          autoGrantOnOrg: true,
+          createAccountsOnSignIn: false,
+          signInRole: IamRole.viewer,
         }),
       ),
     );

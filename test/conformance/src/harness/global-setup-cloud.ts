@@ -18,7 +18,9 @@
 import { CLOUD_ENV } from "./cloud-env";
 
 export default async function setup(): Promise<() => Promise<void>> {
-  const missing = [CLOUD_ENV.address, CLOUD_ENV.token].filter(
+  // The direct-login tenant is required: the targets sign their people in
+  // through it (cloud-env.ts, provisionConsolePerson).
+  const missing = [CLOUD_ENV.address, CLOUD_ENV.token, CLOUD_ENV.directLoginIssuer].filter(
     (name) => process.env[name] === undefined,
   );
   if (missing.length > 0) {

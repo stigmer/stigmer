@@ -30,8 +30,10 @@ export function MembersSection() {
     idpAvailable && org ? org : null,
   );
 
-  const hasJitProviders = identityProviders.some(
-    (idp) => idp.spec?.autoProvisionAccounts || idp.spec?.isSsoProvider,
+  // A provider with a sign-in role adds people here on their first
+  // sign-in; an SSO provider always has one.
+  const hasSignInRoleProviders = identityProviders.some(
+    (idp) => Boolean(idp.spec?.signInRole) || idp.spec?.isSsoProvider,
   );
 
   return (
@@ -62,12 +64,12 @@ export function MembersSection() {
         </p>
       ) : (
         <>
-          {hasJitProviders && (
+          {hasSignInRoleProviders && (
             <div className="stg:mb-3 stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2">
               <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-                This organization has identity providers with auto-provisioning
-                enabled. Members may appear here automatically when users
-                authenticate via federated identity.
+                This organization has identity providers that grant a sign-in
+                role. People appear here the first time they sign in through
+                one of them.
               </p>
             </div>
           )}

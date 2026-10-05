@@ -94,10 +94,9 @@ class IdentityProviderInput:
     userinfo_endpoint: str = ""
     is_sso_provider: bool = False
     oidc_client_id: str = ""
-    auto_provision_accounts: bool = False
-    auto_grant_on_org: bool = False
-    auto_grant_role: int = 0
     tenant_org_claim: str = ""
+    create_accounts_on_sign_in: bool = False
+    sign_in_role: int = 0
 
     def _to_proto(self) -> api_pb2.IdentityProvider:
         spec = spec_pb2.IdentityProviderSpec(
@@ -107,10 +106,9 @@ class IdentityProviderInput:
             userinfo_endpoint=self.userinfo_endpoint,
             is_sso_provider=self.is_sso_provider,
             oidc_client_id=self.oidc_client_id,
-            auto_provision_accounts=self.auto_provision_accounts,
-            auto_grant_on_org=self.auto_grant_on_org,
-            auto_grant_role=self.auto_grant_role,
             tenant_org_claim=self.tenant_org_claim,
+            create_accounts_on_sign_in=self.create_accounts_on_sign_in,
+            sign_in_role=self.sign_in_role,
         )
         if self.allowed_issuers:
             spec.allowed_issuers.extend(self.allowed_issuers)

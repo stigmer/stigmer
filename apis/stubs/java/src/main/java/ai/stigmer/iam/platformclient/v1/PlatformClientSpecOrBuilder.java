@@ -123,76 +123,6 @@ public interface PlatformClientSpecOrBuilder extends
 
   /**
    * <pre>
-   * Whether to automatically create an identity account when mintUserToken is
-   * called with a user_id that has no existing account.
-   *
-   * When false (default), the platform must explicitly create identity accounts
-   * before minting tokens. mintUserToken returns FAILED_PRECONDITION if the
-   * user does not exist. This gives platforms full control over which users can
-   * access Stigmer resources.
-   *
-   * When true, Stigmer creates an IdentityAccount automatically on first
-   * encounter, using the user_email and user_name from the mintUserToken request
-   * for profile data.
-   * </pre>
-   *
-   * <code>bool auto_provision_accounts = 6 [json_name = "autoProvisionAccounts"];</code>
-   * @return The autoProvisionAccounts.
-   */
-  boolean getAutoProvisionAccounts();
-
-  /**
-   * <pre>
-   * Whether to automatically grant a role on the PlatformClient's owning
-   * organization when an account is auto-provisioned.
-   *
-   * When false (default), auto-provisioned accounts receive no organization
-   * access. The platform must create IAM policies to grant access.
-   *
-   * When true, Stigmer grants auto_grant_role (default: viewer) on the
-   * PlatformClient's owning organization to every account it provisions.
-   * Accounts that already exist keep the roles they hold: changing this
-   * setting or auto_grant_role later does not reach them.
-   *
-   * Requires auto_provision_accounts to be true.
-   * </pre>
-   *
-   * <code>bool auto_grant_on_org = 7 [json_name = "autoGrantOnOrg"];</code>
-   * @return The autoGrantOnOrg.
-   */
-  boolean getAutoGrantOnOrg();
-
-  /**
-   * <pre>
-   * The role to grant when auto_grant_on_org is true.
-   *
-   * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-   * is not permitted — organization ownership must be assigned explicitly.
-   *
-   * Only meaningful when auto_grant_on_org is true. Ignored otherwise.
-   * </pre>
-   *
-   * <code>.ai.stigmer.iam.v1.IamRole auto_grant_role = 8 [json_name = "autoGrantRole"];</code>
-   * @return The enum numeric value on the wire for autoGrantRole.
-   */
-  int getAutoGrantRoleValue();
-  /**
-   * <pre>
-   * The role to grant when auto_grant_on_org is true.
-   *
-   * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-   * is not permitted — organization ownership must be assigned explicitly.
-   *
-   * Only meaningful when auto_grant_on_org is true. Ignored otherwise.
-   * </pre>
-   *
-   * <code>.ai.stigmer.iam.v1.IamRole auto_grant_role = 8 [json_name = "autoGrantRole"];</code>
-   * @return The autoGrantRole.
-   */
-  ai.stigmer.iam.v1.IamRole getAutoGrantRole();
-
-  /**
-   * <pre>
    * Web origins allowed for browser-based requests using tokens minted by
    * this PlatformClient.
    *
@@ -385,4 +315,57 @@ public interface PlatformClientSpecOrBuilder extends
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Whether mintUserToken creates an identity account for a user_id that has
+   * none yet.
+   *
+   * When false (the default), the platform creates identity accounts before
+   * minting tokens, and mintUserToken returns FAILED_PRECONDITION for a user
+   * that does not exist. When true, Stigmer creates the account on first
+   * encounter from the user_email and user_name in the mintUserToken request.
+   * </pre>
+   *
+   * <code>bool create_accounts_on_sign_in = 11 [json_name = "createAccountsOnSignIn"];</code>
+   * @return The createAccountsOnSignIn.
+   */
+  boolean getCreateAccountsOnSignIn();
+
+  /**
+   * <pre>
+   * The role an account mintUserToken creates receives on the client's owning
+   * organization.
+   *
+   * A client's accounts belong to its owning organization alone, so an
+   * account's creation is its first sign-in there: the role is granted once,
+   * when the account is created. Accounts that already exist keep the roles
+   * they hold, and changing this setting later does not reach them.
+   * Unspecified (iam_role_unspecified) grants nothing. Requires
+   * create_accounts_on_sign_in. The owner role is refused: ownership is
+   * assigned explicitly.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
+   * @return The enum numeric value on the wire for signInRole.
+   */
+  int getSignInRoleValue();
+  /**
+   * <pre>
+   * The role an account mintUserToken creates receives on the client's owning
+   * organization.
+   *
+   * A client's accounts belong to its owning organization alone, so an
+   * account's creation is its first sign-in there: the role is granted once,
+   * when the account is created. Accounts that already exist keep the roles
+   * they hold, and changing this setting later does not reach them.
+   * Unspecified (iam_role_unspecified) grants nothing. Requires
+   * create_accounts_on_sign_in. The owner role is refused: ownership is
+   * assigned explicitly.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
+   * @return The signInRole.
+   */
+  ai.stigmer.iam.v1.IamRole getSignInRole();
 }

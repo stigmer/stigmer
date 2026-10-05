@@ -299,9 +299,10 @@ where the environment hands the harness the tenant's signing key
 `_KID` / `_API_AUDIENCE` / optional `_MCP_AUDIENCE`): the composition readout
 substrate's mock tenant (`stigmer-cloud`
 `backend/services/stigmer-server/spike/identity-tenant.ts` writes that group
-beside the composition's own `STIGMER_IDP_*` boot trio). Every deployed
-endpoint (a real tenant's key is never conformance's) leaves the group unset,
-and the arms skip VISIBLY with the target's reason.
+beside the composition's own `STIGMER_IDP_*` boot trio). The cloud target's
+own people sign in through the same tenant, so its setup requires the group:
+a deployed endpoint (a real tenant's key is never conformance's) leaves it
+unset, and the cloud target does not run there at all.
 
 **The cloud-capability suites** cover the three surfaces only the hosted
 edition serves, which the retired Java service once owned: the billing ledger

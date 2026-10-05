@@ -12,9 +12,19 @@
  *     is the ONLY time the plaintext ever leaves the server; the store
  *     and audit rows hold the hash. The INTERNAL copy is byte-pinned to
  *     the Java step's.
- *   - PreserveKeyMaterial: update keeps spec.key_hash and
- *     spec.fingerprint from the STORED resource, so only the expiry
- *     fields are client-mutable. The point is not forgery: the Java
+ *   - BindApiKeyOrganization: the organization a key is limited to
+ *     (spec.bound_org). A credential limited to one organization creates only
+ *     keys limited to the same one, so a limited key or a PlatformClient
+ *     user can never mint a key that speaks for the person everywhere: an
+ *     empty spec.bound_org takes the caller's organization, and any other is
+ *     refused. For every caller, a key is limited only to an organization
+ *     its owner may view. API key create is a skip lane by annotation (any
+ *     signed-in person may hold keys), so this step is the one place its
+ *     organization is checked.
+ *   - PreserveKeyMaterial: update keeps spec.key_hash, spec.fingerprint
+ *     and spec.bound_org from the STORED resource, so only the expiry fields are
+ *     client-mutable (an update that cleared spec.bound_org would free a limited
+ *     key of its organization). The point is not forgery: the Java
  *     pipeline's computed-field clearing already stripped both fields
  *     from every update request — but nothing restored them, so every
  *     Java update persisted EMPTY key material and bricked the key. This
@@ -28,9 +38,17 @@ import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import type { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import type { ApiKeyHashSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { create } from "@bufbuild/protobuf";
+
+import { boundOrgOf } from "../../extensions/identity.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { internalError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
+import { authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import type { Store } from "../../store/interface.js";
@@ -70,6 +88,68 @@ export function newGenerateApiKeyStep(): PipelineStep<ApiKeyDesc> {
   };
 }
 
+/** A limited credential asked for a key limited elsewhere, or for none. */
+export const API_KEY_BOUND_ELSEWHERE_MESSAGE =
+  "this credential is limited to one organization, so it can only create API keys limited to that organization";
+
+/** The key's organization is one its owner may not view (or does not exist for them). */
+export const API_KEY_ORGANIZATION_NOT_VISIBLE_MESSAGE =
+  "an API key can only be limited to an organization you can view";
+
+/**
+ * Settles the organization the new key is limited to (the module header):
+ * a limited caller's own, filled when empty and required when set; then,
+ * when the key is limited, the owner's `can_view` on that organization
+ * through the composed Authorizer. Runs after BuildNewState, on the state
+ * that is persisted; spec.bound_org has already been resolved from a slug to the
+ * organization's id by the name resolver at the edge.
+ */
+export function newBindApiKeyOrganizationStep(
+  authorizer: Authorizer,
+): PipelineStep<ApiKeyDesc> {
+  return {
+    name: "BindApiKeyOrganization",
+    async execute(ctx: RequestContext<ApiKeyDesc>): Promise<void> {
+      const resource: ApiKey = ctx.newState;
+      resource.spec ??= create(ApiKeySpecSchema);
+      const bound = boundOrgOf(ctx.callerIdentity);
+      if (bound !== undefined) {
+        if (resource.spec.boundOrg === "") {
+          resource.spec.boundOrg = bound;
+        } else if (resource.spec.boundOrg !== bound) {
+          throw new ConnectError(
+            API_KEY_BOUND_ELSEWHERE_MESSAGE,
+            Code.PermissionDenied,
+          );
+        }
+      }
+      if (resource.spec.boundOrg === "") {
+        return;
+      }
+      await authorizeResolvedResource(
+        authorizer,
+        ctx.callerIdentity,
+        {
+          permission: IamPermission.can_view,
+          resourceKind: ApiResourceKind.organization,
+          resourceId: resource.spec.boundOrg,
+        },
+        API_KEY_ORGANIZATION_NOT_VISIBLE_MESSAGE,
+      ).catch((error: unknown) => {
+        // A missing organization answers like one the owner may not view,
+        // so a key's create never tells which organization ids exist.
+        if (error instanceof ConnectError && error.code === Code.NotFound) {
+          throw new ConnectError(
+            API_KEY_ORGANIZATION_NOT_VISIBLE_MESSAGE,
+            Code.PermissionDenied,
+          );
+        }
+        throw error;
+      });
+    },
+  };
+}
+
 /**
  * Swaps the plaintext into the response's spec.key_hash after Persist —
  * the store row keeps the hash; the client gets its one look. The
@@ -99,9 +179,10 @@ export function newReplaceHashWithPlainTextStep(): PipelineStep<ApiKeyDesc> {
 }
 
 /**
- * Restores key material from the stored resource after BuildUpdateState —
- * expiry fields (expires_at, never_expires) remain the only client-mutable
- * spec surface (the module header carries the reason).
+ * Restores key material and the key's organization from the stored
+ * resource after BuildUpdateState — expiry fields (expires_at,
+ * never_expires) remain the only client-mutable spec surface (the module
+ * header carries the reason).
  */
 export function newPreserveKeyMaterialStep(): PipelineStep<ApiKeyDesc> {
   return {
@@ -123,6 +204,7 @@ export function newPreserveKeyMaterialStep(): PipelineStep<ApiKeyDesc> {
       }
       resource.spec.keyHash = existing.spec.keyHash;
       resource.spec.fingerprint = existing.spec.fingerprint;
+      resource.spec.boundOrg = existing.spec.boundOrg;
     },
   };
 }

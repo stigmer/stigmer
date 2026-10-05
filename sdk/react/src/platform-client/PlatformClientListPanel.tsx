@@ -277,7 +277,7 @@ function PlatformClientRow({
           </Tooltip>
         )}
         <ExpiryBadge spec={spec} />
-        {spec?.autoProvisionAccounts && (
+        {spec?.createAccountsOnSignIn && (
           <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-primary">
             JIT
           </span>

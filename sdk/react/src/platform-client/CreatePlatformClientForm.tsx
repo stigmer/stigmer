@@ -7,6 +7,11 @@ import { getUserMessage } from "@stigmer/sdk";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { PlatformClientCreateResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import { useCreatePlatformClient } from "./useCreatePlatformClient.js";
+import {
+  ClientSignInSettingsSection,
+  toClientSignInInput,
+  type ClientSignInSettings,
+} from "./SignInSettings.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link CreatePlatformClientForm}. */
@@ -28,8 +33,8 @@ export interface CreatePlatformClientFormProps {
  * Form for creating a new platform client within an organization.
  *
  * Collects the required metadata (**name**) and optional spec fields:
- * JIT provisioning toggles, expiry configuration, and allowed
- * origins for CORS.
+ * sign-in settings (account creation and the sign-in role, which start
+ * on and viewer), expiry configuration, and allowed origins for CORS.
  *
  * On success it fires `onCreated` with the full
  * {@link PlatformClientCreateResponse}, which includes the one-time
@@ -63,30 +68,13 @@ export function CreatePlatformClientForm({
   const [neverExpires, setNeverExpires] = useState(true);
   const [expiresAt, setExpiresAt] = useState("");
 
-  // JIT provisioning
-  const [autoProvision, setAutoProvision] = useState(true);
-  const [autoGrant, setAutoGrant] = useState(true);
-  const [autoGrantRole, setAutoGrantRole] = useState<IamRole>(
-    IamRole.iam_role_unspecified,
+  const [signIn, setSignIn] = useState<ClientSignInSettings>(
+    NEW_CLIENT_SIGN_IN,
   );
 
   // CORS
   const [origins, setOrigins] = useState<string[]>([]);
   const [originInput, setOriginInput] = useState("");
-
-  const handleAutoProvisionChange = useCallback((v: boolean) => {
-    setAutoProvision(v);
-    if (!v) {
-      setAutoGrant(false);
-      setAutoGrantRole(IamRole.iam_role_unspecified);
-    }
-  }, []);
-
-  const handleAutoGrantChange = useCallback((v: boolean) => {
-    setAutoGrant(v);
-    if (v) setAutoProvision(true);
-    if (!v) setAutoGrantRole(IamRole.iam_role_unspecified);
-  }, []);
 
   const addOrigin = useCallback(() => {
     const trimmed = originInput.trim();
@@ -126,12 +114,7 @@ export function CreatePlatformClientForm({
           neverExpires,
           ...(!neverExpires &&
             expiresAt && { expiresAt: new Date(expiresAt).toISOString() }),
-          autoProvisionAccounts: autoProvision,
-          autoGrantOnOrg: autoGrant,
-          ...(autoGrant &&
-            autoGrantRole !== IamRole.iam_role_unspecified && {
-              autoGrantRole,
-            }),
+          ...toClientSignInInput(signIn),
           ...(origins.length > 0 && { allowedOrigins: origins }),
         });
         onCreated?.(response);
@@ -145,9 +128,7 @@ export function CreatePlatformClientForm({
       org,
       neverExpires,
       expiresAt,
-      autoProvision,
-      autoGrant,
-      autoGrantRole,
+      signIn,
       origins,
       create,
       clearError,
@@ -202,66 +183,11 @@ export function CreatePlatformClientForm({
         )}
       </fieldset>
 
-      {/* JIT provisioning */}
-      <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2.5")} disabled={isCreating}>
-        <hr className="stg:border-border-muted" />
-        <legend className="stg:text-xs stg:font-medium stg:text-foreground">
-          JIT provisioning
-        </legend>
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-          Configure automatic account creation and role assignment for
-          users authenticated via this platform client.
-        </p>
-
-        <ToggleSwitch
-          checked={autoProvision}
-          onChange={handleAutoProvisionChange}
-          label="Auto-provision accounts"
-          hint="Create a Stigmer identity account automatically on first token mint"
-          disabled={isCreating}
-        />
-
-        <ToggleSwitch
-          checked={autoGrant}
-          onChange={handleAutoGrantChange}
-          label="Auto-grant on organization"
-          hint="Grant a role on the owning organization when an account is provisioned"
-          disabled={isCreating || !autoProvision}
-        />
-
-        {autoGrant && (
-          <div className="stg:space-y-1">
-            <label
-              htmlFor={`${baseId}-grant-role`}
-              className="stg:text-xs stg:font-medium stg:text-foreground"
-            >
-              Auto-grant role
-            </label>
-            <select
-              id={`${baseId}-grant-role`}
-              value={String(autoGrantRole)}
-              onChange={(e) =>
-                setAutoGrantRole(Number(e.target.value) as IamRole)
-              }
-              disabled={isCreating}
-              className={cn(
-                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
-              {JIT_ROLE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-              Role granted automatically — org admins can upgrade later
-            </p>
-          </div>
-        )}
-      </fieldset>
+      <ClientSignInSettingsSection
+        value={signIn}
+        onChange={setSignIn}
+        disabled={isCreating}
+      />
 
       {/* Allowed origins */}
       <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={isCreating}>
@@ -373,15 +299,11 @@ export function CreatePlatformClientForm({
 // Constants
 // ---------------------------------------------------------------------------
 
-const JIT_ROLE_OPTIONS: readonly {
-  readonly value: string;
-  readonly label: string;
-}[] = [
-  { value: String(IamRole.iam_role_unspecified), label: "Default (viewer)" },
-  { value: String(IamRole.viewer), label: "Viewer" },
-  { value: String(IamRole.member), label: "Member" },
-  { value: String(IamRole.admin), label: "Admin" },
-];
+/** A new client creates its users' accounts and grants them viewer. */
+const NEW_CLIENT_SIGN_IN: ClientSignInSettings = {
+  createAccounts: true,
+  signInRole: IamRole.viewer,
+};
 
 // ---------------------------------------------------------------------------
 // Internal components

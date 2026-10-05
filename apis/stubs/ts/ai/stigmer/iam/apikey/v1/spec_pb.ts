@@ -5,6 +5,7 @@
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
+import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
@@ -13,13 +14,14 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/apikey/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_apikey_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvc3BlYy5wcm90bxIYYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxIoYBCgpBcGlLZXlTcGVjEhYKCGtleV9oYXNoGAEgASgJQgTIhSwBEhkKC2ZpbmdlcnByaW50GAIgASgJQgTIhSwBEi4KCmV4cGlyZXNfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBCABKAhiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_google_protobuf_timestamp]);
+  fileDesc("CiNhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvc3BlYy5wcm90bxIYYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxIqMBCgpBcGlLZXlTcGVjEhYKCGtleV9oYXNoGAEgASgJQgTIhSwBEhkKC2ZpbmdlcnByaW50GAIgASgJQgTIhSwBEi4KCmV4cGlyZXNfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBCABKAgSGwoJYm91bmRfb3JnGAUgASgJQgi6SAVyAxiAAWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * ApiKeySpec defines the configuration for an API key.
  *
- * API keys provide programmatic access to the Stigmer API. Each key is
- * scoped to an identity account and can have an optional expiration time.
+ * API keys provide programmatic access to the Stigmer API. Each key speaks for
+ * the identity account that created it and can have an optional expiration
+ * time. A key may be limited to one organization (bound_org).
  *
  * @generated from message ai.stigmer.iam.apikey.v1.ApiKeySpec
  */
@@ -52,6 +54,22 @@ export type ApiKeySpec = Message<"ai.stigmer.iam.apikey.v1.ApiKeySpec"> & {
    * @generated from field: bool never_expires = 4;
    */
   neverExpires: boolean;
+
+  /**
+   * The organization this key works in, by id or slug; the server stores the
+   * id. Empty means the key speaks for its owner in every organization they
+   * hold a role in.
+   *
+   * A limited key is refused in every other organization, whatever roles its
+   * owner holds there, and cannot create an organization or a key that is not
+   * limited to the same organization. Creating a key limited to an
+   * organization its owner cannot view is refused. A key created with a
+   * credential that is itself limited to one organization is limited to that
+   * organization: an empty value takes it, and any other value is refused.
+   *
+   * @generated from field: string bound_org = 5;
+   */
+  boundOrg: string;
 };
 
 /**

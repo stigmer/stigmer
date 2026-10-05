@@ -177,6 +177,7 @@ const apiKey = await stigmer.apiKey.create({
   fingerprint: "...",
   expiresAt: "...",
   neverExpires: false,
+  boundOrg: "...",
 });
 ```
 </Tab>
@@ -191,6 +192,7 @@ apiKey, err := client.ApiKey.Create(ctx, &stigmer.ApiKeyInput{
   Fingerprint:  "...",
   ExpiresAt:    "...",
   NeverExpires: false,
+  BoundOrg:     "...",
 })
 ```
 </Tab>
@@ -205,6 +207,7 @@ api_key = client.api_keys.create(ApiKeyInput(
     fingerprint="...",
     expires_at="...",
     never_expires=False,
+    bound_org="...",
 ))
 ```
 </Tab>
@@ -219,6 +222,7 @@ ApiKey apiKey = client.apiKeys().create(ApiKeyInput.builder()
     .fingerprint("...")
     .expiresAt("...")
     .neverExpires(false)
+    .boundOrg("...")
     .build());
 ```
 </Tab>
@@ -244,6 +248,7 @@ const apiKey = await stigmer.apiKey.update({
   fingerprint: "...",
   expiresAt: "...",
   neverExpires: false,
+  boundOrg: "...",
 });
 ```
 </Tab>
@@ -258,6 +263,7 @@ apiKey, err := client.ApiKey.Update(ctx, &stigmer.ApiKeyInput{
   Fingerprint:  "...",
   ExpiresAt:    "...",
   NeverExpires: false,
+  BoundOrg:     "...",
 })
 ```
 </Tab>
@@ -272,6 +278,7 @@ api_key = client.api_keys.update(ApiKeyInput(
     fingerprint="...",
     expires_at="...",
     never_expires=False,
+    bound_org="...",
 ))
 ```
 </Tab>
@@ -286,6 +293,7 @@ ApiKey apiKey = client.apiKeys().update(ApiKeyInput.builder()
     .fingerprint("...")
     .expiresAt("...")
     .neverExpires(false)
+    .boundOrg("...")
     .build());
 ```
 </Tab>
@@ -346,6 +354,7 @@ Input for creating or updating an API Key.
     fingerprint: { type: "string", description: "Short fingerprint of the key for display purposes (last 6 characters)." },
     expiresAt: { type: "string", description: "Expiration time for the API key." },
     neverExpires: { type: "boolean", description: "When true, the API key never expires regardless of expires_at." },
+    boundOrg: { type: "string", description: "The organization this key works in, by id or slug; the server stores the id." },
   }}
 />
 

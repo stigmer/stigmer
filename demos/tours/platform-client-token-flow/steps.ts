@@ -81,20 +81,20 @@ export const ERROR_UNAUTHENTICATED_LINES: readonly TerminalLine[] = [
 export const ERROR_NOT_FOUND_LINES: readonly TerminalLine[] = [
   {
     type: "prompt",
-    text: "# User not found, auto-provisioning disabled",
+    text: "# User not found, account creation disabled",
   },
   { type: "blank", text: "" },
-  { type: "error", text: "404 Not Found" },
+  { type: "error", text: "400 Bad Request" },
   { type: "output", text: "{" },
-  { type: "error", text: '  "code": "NOT_FOUND",' },
+  { type: "error", text: '  "code": "failed_precondition",' },
   {
     type: "error",
-    text: '  "message": "Identity account not found for',
+    text: '  "message": "User \'user_abc123\' has no Stigmer',
   },
-  { type: "error", text: '    user_id user_abc123"' },
+  { type: "error", text: '    account in organization \'acme\'..."' },
   { type: "output", text: "}" },
   { type: "blank", text: "" },
-  { type: "output", text: "Fix: Enable auto_provision_accounts on the" },
+  { type: "output", text: "Fix: Enable create_accounts_on_sign_in on the" },
   { type: "output", text: "PlatformClient or pre-create the account." },
 ];
 
@@ -143,7 +143,7 @@ export const USER_TOKEN_CHECKS: readonly CheckItem[] = [
   },
   {
     label: "IAM Policy check",
-    detail: "viewer on org_acme",
+    detail: "viewer on org_acme (token's org)",
     status: "pass",
   },
 ];
@@ -178,7 +178,7 @@ export const tokenFlowSteps: ScenarioStep<TokenFlowStep>[] = [
     delayMs: 3000,
     data: { view: "stigmer-validates-credentials" },
     narration:
-      "Stigmer verifies the client credentials, resolves Jane's identity, and auto-provisions her account if this is her first encounter.",
+      "Stigmer verifies the client credentials, resolves Jane's identity, and creates her account if this is her first encounter and create_accounts_on_sign_in is on.",
     interactions: [
       { atPercent: 0.12, type: "set_cursor", target: "check-0" },
       { atPercent: 0.3, type: "set_cursor", target: "check-1" },
@@ -191,7 +191,7 @@ export const tokenFlowSteps: ScenarioStep<TokenFlowStep>[] = [
     delayMs: 3000,
     data: { view: "token-response" },
     narration:
-      "Stigmer mints a short-lived JWT scoped to Jane's identity and returns it to your backend.",
+      "Stigmer mints a short-lived JWT scoped to Jane's identity and bound to your organization, and returns it to your backend.",
   },
   {
     delayMs: 3000,
@@ -203,7 +203,7 @@ export const tokenFlowSteps: ScenarioStep<TokenFlowStep>[] = [
     delayMs: 3000,
     data: { view: "stigmer-validates-user-token" },
     narration:
-      "When Jane's browser calls the Stigmer API, the minted token is verified in-process. The signature, issuer, expiry, and IAM policy are all checked.",
+      "When Jane's browser calls the Stigmer API, the minted token is verified in-process. The signature, issuer, expiry, and IAM policy are all checked, and the token works in your organization only.",
     interactions: [
       { atPercent: 0.12, type: "set_cursor", target: "check-0" },
       { atPercent: 0.3, type: "set_cursor", target: "check-1" },
@@ -222,6 +222,6 @@ export const tokenFlowSteps: ScenarioStep<TokenFlowStep>[] = [
     delayMs: 3000,
     data: { view: "error-not-found" },
     narration:
-      "If the user doesn't exist and auto-provisioning is disabled, Stigmer returns NOT_FOUND. Enable auto_provision_accounts or create the account first.",
+      "If the user doesn't exist and account creation is disabled, Stigmer returns FAILED_PRECONDITION. Enable create_accounts_on_sign_in or create the account first.",
   },
 ];

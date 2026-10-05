@@ -42,7 +42,7 @@ sequenceDiagram
   API->>JWKS: 5. Fetch public keys (cached)
   API->>API: 6. Validate signature, issuer, audience
   API->>DB: 7. Resolve sub → Identity Account
-  Note right of DB: JIT/SSO: auto-provision if new
+  Note right of DB: JIT/SSO: auto-provision if new<br/>Bind the token to one Organization
   API->>FGA: 8. Check IAM Policy
   FGA-->>API: 9. Authorized
   API-->>App: 10. Response
@@ -89,25 +89,37 @@ a federated Identity Account matching the Identity Provider + subject pair. If
 the account exists, Stigmer proceeds. If no account exists, what happens depends
 on the Identity Provider's provisioning mode:
 
-- **JIT-enabled Identity Provider** (`autoProvisionAccounts: true`) — Stigmer
+- **JIT-enabled Identity Provider** (`createAccountsOnSignIn: true`) — Stigmer
   creates a federated account automatically using the JWT's `sub` claim and its
   `email`, `given_name` and `family_name` (or `name`) and `picture` claims,
-  reading the `userinfo_endpoint` only when the token carries no email. If
-  `autoGrantOnOrg` is also enabled, Stigmer grants the configured role (default:
-  viewer) on the appropriate Organization. The request proceeds.
-- **SSO-enabled Identity Provider** (`isSsoProvider: true`) — Stigmer creates a
-  federated account and grants the **viewer** role on the Organization. See
-  [Set up SSO](/docs/guides/authentication/federation/sso-login) for details.
-- **Manual provisioning** (neither flag set) — The request fails with
-  `401 Unauthorized`. Your backend must provision the account first (see
+  reading the `userinfo_endpoint` only when the token carries no email. The
+  request proceeds.
+- **SSO-enabled Identity Provider** (`isSsoProvider: true`) — An SSO provider
+  always sets `createAccountsOnSignIn`, so Stigmer creates the account the same
+  way. See [Set up SSO](/docs/guides/authentication/federation/sso-login) for
+  details.
+- **Manual provisioning** (`createAccountsOnSignIn` unset) — The request fails
+  with `401 Unauthorized`. Your backend must provision the account first (see
   [Provision federated accounts](/docs/guides/authentication/federation/provision-federated-accounts)).
+
+**Step 7b: Bind the token.** Stigmer binds the token to one Organization: the
+tenant Organization its `tenantOrgClaim` claim names when the Identity Provider
+sets one, otherwise the Identity Provider's own Organization. With
+`tenantOrgClaim`, Stigmer reads the claim on every token, returning users
+included, and refuses a token that lacks it or names an unknown Organization
+with `401 Unauthorized`. The first time an account signs in to its bound
+Organization, Stigmer grants the Identity Provider's `signInRole` there, when
+one is set.
 
 **Step 8--9: Check authorization.** Stigmer checks whether the resolved Identity
 Account has an IAM Policy granting it the required permission on the target
 resource. If no matching policy exists, the request fails with `403 Forbidden`.
-With JIT provisioning, the automatic role grant creates the IAM Policy at
-provisioning time, so step 8 succeeds for the granted Organization. With manual
-provisioning, your backend must create IAM Policies explicitly.
+A target outside the token's bound Organization also fails with `403 Forbidden`,
+whatever roles the user holds there, unless it belongs to no Organization (the
+user's own account and API keys) or is a blueprint shared at Platform visibility
+that the request reads or runs. With a `signInRole`, the grant at the first
+sign-in creates the IAM Policy, so step 8 succeeds for the bound Organization.
+With manual provisioning, your backend must create IAM Policies explicitly.
 
 **Step 10: Response.** The request proceeds normally and the response is
 returned.
@@ -130,21 +142,22 @@ JWTs presented to Stigmer must contain these standard OIDC claims:
 When authentication or authorization fails, Stigmer returns specific error codes
 so you can diagnose issues:
 
-| Error              | Meaning                                      | Common cause                                               |
-| ------------------ | -------------------------------------------- | ---------------------------------------------------------- |
-| `401 Unauthorized` | Token validation failed                      | Wrong issuer, wrong audience, expired token, unknown `sub` |
-| `403 Forbidden`    | Token is valid but the user lacks permission | No IAM Policy grants the required relation on the resource |
+| Error              | Meaning                                      | Common cause                                                                                                            |
+| ------------------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `401 Unauthorized` | Token validation failed                      | Wrong issuer, wrong audience, expired token, unknown `sub`, missing or unknown tenant claim                             |
+| `403 Forbidden`    | Token is valid but the user lacks permission | No IAM Policy grants the required relation on the resource, or the resource is in another Organization than the token's |
 
 ### Distinguishing 401 causes
 
 A `401` can mean different things. Here's how to narrow it down:
 
-| Scenario                                     | What happened                                                                                    | Fix                                                                                                                                                                  |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No Identity Provider matches `iss` and `aud` | Stigmer routes a token by its issuer and audience together, and no provider registered this pair | Check that `iss` is one of your Identity Provider's `allowed_issuers`, and configure your auth provider to put its `expected_audience` in `aud`                      |
-| Signature verification failed                | JWKS keys don't match the signing key                                                            | Verify `jwks_uri` points to the correct endpoint                                                                                                                     |
-| Token expired                                | The `exp` claim is in the past                                                                   | Issue a fresh token                                                                                                                                                  |
-| No federated account for this `sub`          | Account wasn't provisioned (manual provisioning IdPs only)                                       | Enable JIT provisioning on the Identity Provider, or call `createFederatedAccount` before the user authenticates. JIT and SSO IdPs provision accounts automatically. |
+| Scenario                                     | What happened                                                                                                                                               | Fix                                                                                                                                                                       |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No Identity Provider matches `iss` and `aud` | Stigmer routes a token by its issuer and audience together, and no provider registered this pair                                                            | Check that `iss` is one of your Identity Provider's `allowed_issuers`, and configure your auth provider to put its `expected_audience` in `aud`                           |
+| Signature verification failed                | JWKS keys don't match the signing key                                                                                                                       | Verify `jwks_uri` points to the correct endpoint                                                                                                                          |
+| Token expired                                | The `exp` claim is in the past                                                                                                                              | Issue a fresh token                                                                                                                                                       |
+| No federated account for this `sub`          | Account wasn't provisioned (manual provisioning IdPs only)                                                                                                  | Set `createAccountsOnSignIn` on the Identity Provider, or call `createFederatedAccount` before the user authenticates. JIT and SSO IdPs provision accounts automatically. |
+| Tenant claim missing or unknown              | The Identity Provider sets `tenantOrgClaim`, and the token lacks the claim, carries a non-string value, or names no tenant Organization under this provider | Put the claim in every token, and create the tenant Organization with that `externalOrgId`. Stigmer checks it on every sign-in, not only the first                        |
 
 ## Calling the API from your app
 
@@ -255,7 +268,8 @@ relying party.
 
 **Steps 9--11** follow the same token validation and identity resolution
 described above. If this is the user's first login, Stigmer creates a federated
-account automatically and grants the viewer role on the Organization.
+account automatically and grants the Identity Provider's `signInRole` on the
+Organization. The token works in that Organization only.
 
 For full setup instructions, see
 [Set up SSO](/docs/guides/authentication/federation/sso-login).
@@ -296,7 +310,7 @@ Use [JWT.io](https://jwt.io) or a local tool to inspect the token. Verify:
 Use `getByExternalSub` with the token's `sub` claim. If this returns
 `NOT_FOUND`, the account hasn't been provisioned. For manual provisioning, call
 `createFederatedAccount`. For JIT provisioning, verify that
-`autoProvisionAccounts` is `true` on your Identity Provider.
+`createAccountsOnSignIn` is `true` on your Identity Provider.
 
 </Step>
 <Step>
@@ -307,12 +321,17 @@ If you get `403`, the account exists but lacks permissions. Use
 `getPrincipalResourceRoles` to check what roles the account has on the target
 resource. If empty, create the missing IAM Policy.
 
-With JIT provisioning, a `403` usually means `autoGrantOnOrg` is `false`. The
-account was provisioned automatically (identity established) but no role was
-granted (no authorization). Either enable `autoGrantOnOrg` on the Identity
-Provider or create the IAM Policy manually. Stigmer grants the automatic role
-only when it creates an account, so an account that already exists gets no role
-from enabling `autoGrantOnOrg` later; grant it with an IAM Policy.
+With JIT provisioning, a `403` usually means `signInRole` is unset. The account
+was provisioned automatically (identity established) but no role was granted (no
+authorization). Either set `signInRole` on the Identity Provider or create the
+IAM Policy manually. Stigmer grants the sign-in role only at an account's first
+sign-in to an Organization, so an account that already signed in there gets no
+role from setting `signInRole` later; grant it with an IAM Policy.
+
+A `403` can also mean the request targets another Organization than the one the
+token is bound to. A token works only in the Identity Provider's Organization,
+or in the tenant its `tenantOrgClaim` claim names. Check the claim's value
+against the target Organization's `externalOrgId`.
 
 </Step>
 <Step>
@@ -354,8 +373,8 @@ authorization, and processes the request.
 
 - **Multi-tenant platforms** --- If your platform serves multiple customers, see
   [Multi-tenant platform setup](/docs/guides/authentication/federation/multi-tenant-setup)
-  for creating tenant Organizations. JIT provisioning with `tenantOrgClaim` can
-  automatically route users to their tenant Organization.
+  for creating tenant Organizations. `tenantOrgClaim` binds each token to the
+  tenant Organization it names.
 - **Self-managed SSO** --- If your Organization is self-managed and you want
   team members to sign in through your Identity Provider, see
   [Set up SSO](/docs/guides/authentication/federation/sso-login).

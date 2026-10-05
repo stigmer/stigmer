@@ -2,6 +2,12 @@
 //
 // API keys are the non-interactive alternative to browser OAuth, for CI/CD and
 // service accounts. The unified get/list/delete verbs cover the rest.
+//
+// `--bound-org` limits the key to one organization (`spec.bound_org`, by
+// slug or id): the server refuses it in every other organization. Without
+// it, the key works in every organization its owner holds a role in, unless
+// the CLI's own credential is limited to one, whose organization it then
+// takes.
 
 import { createHash } from "node:crypto";
 import { create } from "@bufbuild/protobuf";
@@ -11,6 +17,7 @@ import {
   ApiKeySchema,
 } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyHashSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+import type { ApiKeyInput } from "@stigmer/sdk";
 import type { Command } from "commander";
 import {
   ensureAuthenticated,
@@ -27,10 +34,11 @@ import { parseExpiration } from "./duration.js";
 
 const DEFAULT_EXPIRATION_DAYS = 90;
 
-interface ApiKeyCreateFlags extends OutputFlags {
+export interface ApiKeyCreateFlags extends OutputFlags {
   name?: string;
   neverExpires?: boolean;
   expiresIn?: string;
+  boundOrg?: string;
 }
 
 export function registerApiKey(program: Command): void {
@@ -44,6 +52,10 @@ export function registerApiKey(program: Command): void {
     .option("--name <name>", "display name for the API key")
     .option("--never-expires", "create a key that never expires")
     .option("--expires-in <duration>", "custom expiration (e.g. 30d, 6h, 1y)")
+    .option(
+      "--bound-org <org>",
+      "limit the key to one organization (slug or id); it is refused everywhere else",
+    )
     .action(async (options: ApiKeyCreateFlags) => {
       await runCreate(options);
     });
@@ -65,12 +77,13 @@ async function runCreate(options: ApiKeyCreateFlags): Promise<void> {
   const client = connectBackend();
   ensureAuthenticated(client.config);
 
-  const created = await client.stigmer.apiKey.create({
-    name: options.name ?? "",
-    org: resolveContextOrganization(client.config),
-    neverExpires: options.neverExpires,
-    expiresAt,
-  });
+  const created = await client.stigmer.apiKey.create(
+    apiKeyCreateInput(
+      options,
+      resolveContextOrganization(client.config),
+      expiresAt,
+    ),
+  );
 
   const format = readFormat(options);
   if (format === "json") {
@@ -102,6 +115,27 @@ async function runFingerprint(
     create(ApiKeyHashSchema, { value: hash }),
   );
   renderApiKey(key, readFormat(options));
+}
+
+/**
+ * The create request for the flags: the context organization as the key's
+ * `metadata.org`, and `--bound-org` as the organization the key is limited
+ * to, sent only when given so an unlimited key names none.
+ */
+export function apiKeyCreateInput(
+  options: ApiKeyCreateFlags,
+  org: string,
+  expiresAt: Date | undefined,
+): ApiKeyInput {
+  return {
+    name: options.name ?? "",
+    org,
+    neverExpires: options.neverExpires,
+    expiresAt,
+    ...(options.boundOrg !== undefined && options.boundOrg !== ""
+      ? { boundOrg: options.boundOrg }
+      : {}),
+  };
 }
 
 function resolveExpiry(options: ApiKeyCreateFlags): Date | undefined {

@@ -28,9 +28,8 @@ package ai.stigmer.iam.platformclient.v1;
  * slug: acme-dashboard
  * org: acme
  * spec:
- * auto_provision_accounts: true
- * auto_grant_on_org: true
- * auto_grant_role: viewer
+ * create_accounts_on_sign_in: true
+ * sign_in_role: viewer
  * allowed_origins: ["https://app.acme.com"]
  * </pre>
  *
@@ -527,9 +526,8 @@ private static final long serialVersionUID = 0L;
    * slug: acme-dashboard
    * org: acme
    * spec:
-   * auto_provision_accounts: true
-   * auto_grant_on_org: true
-   * auto_grant_role: viewer
+   * create_accounts_on_sign_in: true
+   * sign_in_role: viewer
    * allowed_origins: ["https://app.acme.com"]
    * </pre>
    *

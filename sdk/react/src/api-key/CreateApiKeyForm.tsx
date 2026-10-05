@@ -14,7 +14,11 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link CreateApiKeyForm}. */
 export interface CreateApiKeyFormProps {
-  /** Organization id used as the `org` field when creating the key (a slug is also accepted). */
+  /**
+   * The active organization's id (a slug is also accepted): the key's
+   * `metadata.org`, and the organization **This organization only** limits
+   * the key to (`spec.bound_org`).
+   */
   readonly org: string;
   /**
    * Fired with the newly created API key after successful creation.
@@ -39,8 +43,11 @@ type ExpiryOption = "30" | "60" | "90" | "never";
 /**
  * Compact form for creating a new API key.
  *
- * Collects a **name** (required) and an **expiry** choice (30 / 60 /
- * 90 days or never), then creates the key via {@link useCreateApiKey}.
+ * Collects a **name** (required), an **expiry** choice (30 / 60 /
+ * 90 days or never) and **This organization only** (checked by default,
+ * which limits the key to `org`: it is refused in every other organization;
+ * unchecked, the key works in every organization the owner's sign-in reaches),
+ * then creates the key via {@link useCreateApiKey}.
  * On success it fires `onCreated` with the full {@link ApiKey}
  * response, which includes the raw key in `spec.keyHash`.
  *
@@ -67,9 +74,14 @@ export function CreateApiKeyForm({
 
   const [name, setName] = useState(initialName);
   const [expiry, setExpiry] = useState<ExpiryOption>("never");
+  const [thisOrgOnly, setThisOrgOnly] = useState(true);
 
   const trimmedName = name.trim();
-  const canSubmit = trimmedName !== "" && !isCreating;
+  // A limit needs an organization to name: with none active yet, an empty
+  // `bound_org` would mint a key that works everywhere, so the limited
+  // key waits for one rather than silently becoming unlimited.
+  const limitWithoutOrg = thisOrgOnly && org === "";
+  const canSubmit = trimmedName !== "" && !isCreating && !limitWithoutOrg;
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -81,6 +93,7 @@ export function CreateApiKeyForm({
         const apiKey = await create({
           name: trimmedName,
           org,
+          ...(thisOrgOnly ? { boundOrg: org } : {}),
           ...(expiry === "never"
             ? { neverExpires: true }
             : { expiresAt: daysFromNow(Number(expiry)) }),
@@ -90,7 +103,16 @@ export function CreateApiKeyForm({
         // error state is managed by useCreateApiKey
       }
     },
-    [canSubmit, trimmedName, org, expiry, create, clearError, onCreated],
+    [
+      canSubmit,
+      trimmedName,
+      org,
+      thisOrgOnly,
+      expiry,
+      create,
+      clearError,
+      onCreated,
+    ],
   );
 
   return (
@@ -143,6 +165,30 @@ export function CreateApiKeyForm({
             ))}
           </div>
         </fieldset>
+
+        {/* Organization limit */}
+        <div className="stg:space-y-0.5">
+          <label className="stg:inline-flex stg:cursor-pointer stg:items-center stg:gap-2 stg:text-xs stg:font-medium stg:text-foreground">
+            <input
+              type="checkbox"
+              checked={thisOrgOnly}
+              disabled={isCreating}
+              onChange={(e) => setThisOrgOnly(e.target.checked)}
+              aria-describedby={`${baseId}-org-only-hint`}
+            />
+            This organization only
+          </label>
+          <p
+            id={`${baseId}-org-only-hint`}
+            className="stg:text-[0.65rem] stg:text-muted-foreground"
+          >
+            {limitWithoutOrg
+              ? "Open an organization to limit the key to it, or clear the box."
+              : thisOrgOnly
+                ? "The key works in this organization and is refused in every other one."
+                : "The key works in every organization your sign-in reaches."}
+          </p>
+        </div>
       </div>
 
       {error && (

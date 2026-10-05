@@ -24,6 +24,15 @@
  * account); this one pays the same two reads. No cache: a run that ends,
  * or a connect that settles, stops admitting on the very next request.
  *
+ * The person is admitted BOUND to the execution's organization
+ * (`CallerIdentity.boundOrg`, authorization/credential-binding.ts): a run
+ * belongs to one organization, so its credential works there and nowhere
+ * else, whoever started the run and with whatever credential. Without it a
+ * credential bound to one organization could start a run there, exchange
+ * itself for the run's credential, and act as the person in every other
+ * organization they belong to. A row that names no organization admits
+ * nobody (an empty binding would read as no binding at all).
+ *
  * A token with no `exp` is a RUN credential and may bind only a run
  * (`bindsARun`): no mint produces a clockless connect token, so one that
  * arrives is refused as the credential it is not — the same predicate
@@ -128,11 +137,19 @@ export function newRunnerSubjectIdentityVerifier(
       if (!execution.live) {
         throw notLive();
       }
+      // A row that names no organization cannot bind the credential, and an
+      // empty binding would read as none (boundOrgOf): fail closed.
+      if (execution.org === "") {
+        throw invalidCredential();
+      }
       const account = await accountForStamp(deps.accounts, execution.createdBy);
       if (account === undefined) {
         throw notLive();
       }
-      return accountAsRunnerCaller(account, token);
+      return {
+        ...accountAsRunnerCaller(account, token),
+        boundOrg: execution.org,
+      };
     },
   };
 }

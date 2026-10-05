@@ -93,22 +93,21 @@ type PlatformClientInput struct {
 	// set from a loaded resource. Required for updates to platform-scoped
 	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
 	// on create: the server assigns every new resource's id.
-	Id                    string
-	Name                  string
-	Slug                  string
-	Org                   string
-	Labels                map[string]string
-	Visibility            apiresource.ApiResourceVisibility
-	ClientId              string
-	ClientSecretHash      string
-	SecretFingerprint     string
-	ExpiresAt             string
-	NeverExpires          bool
-	AutoProvisionAccounts bool
-	AutoGrantOnOrg        bool
-	AutoGrantRole         iamv1.IamRole
-	AllowedOrigins        []string
-	EnvironmentRefs       []ResourceRef
+	Id                     string
+	Name                   string
+	Slug                   string
+	Org                    string
+	Labels                 map[string]string
+	Visibility             apiresource.ApiResourceVisibility
+	ClientId               string
+	ClientSecretHash       string
+	SecretFingerprint      string
+	ExpiresAt              string
+	NeverExpires           bool
+	AllowedOrigins         []string
+	EnvironmentRefs        []ResourceRef
+	CreateAccountsOnSignIn bool
+	SignInRole             iamv1.IamRole
 }
 
 func (i *PlatformClientInput) toProto() (*platformclientv1.PlatformClient, error) {
@@ -136,15 +135,14 @@ func (i *PlatformClientInput) toProto() (*platformclientv1.PlatformClient, error
 		resource.Spec.ExpiresAt = timestamppb.New(t)
 	}
 	resource.Spec.NeverExpires = i.NeverExpires
-	resource.Spec.AutoProvisionAccounts = i.AutoProvisionAccounts
-	resource.Spec.AutoGrantOnOrg = i.AutoGrantOnOrg
-	resource.Spec.AutoGrantRole = i.AutoGrantRole
 	resource.Spec.AllowedOrigins = i.AllowedOrigins
 	for _, r := range i.EnvironmentRefs {
 		ref := r.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_environment
 		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
 	}
+	resource.Spec.CreateAccountsOnSignIn = i.CreateAccountsOnSignIn
+	resource.Spec.SignInRole = i.SignInRole
 	return resource, nil
 }
 
@@ -170,13 +168,12 @@ func PlatformClientInputFromProto(p *platformclientv1.PlatformClient) *PlatformC
 			input.ExpiresAt = ts.AsTime().Format(time.RFC3339)
 		}
 		input.NeverExpires = s.GetNeverExpires()
-		input.AutoProvisionAccounts = s.GetAutoProvisionAccounts()
-		input.AutoGrantOnOrg = s.GetAutoGrantOnOrg()
-		input.AutoGrantRole = s.GetAutoGrantRole()
 		input.AllowedOrigins = s.GetAllowedOrigins()
 		for _, r := range s.GetEnvironmentRefs() {
 			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
 		}
+		input.CreateAccountsOnSignIn = s.GetCreateAccountsOnSignIn()
+		input.SignInRole = s.GetSignInRole()
 	}
 	return input
 }

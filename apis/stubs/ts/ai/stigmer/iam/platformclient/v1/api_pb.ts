@@ -43,9 +43,8 @@ export const file_ai_stigmer_iam_platformclient_v1_api: GenFile = /*@__PURE__*/
  *     slug: acme-dashboard
  *     org: acme
  *   spec:
- *     auto_provision_accounts: true
- *     auto_grant_on_org: true
- *     auto_grant_role: viewer
+ *     create_accounts_on_sign_in: true
+ *     sign_in_role: viewer
  *     allowed_origins: ["https://app.acme.com"]
  *
  * @generated from message ai.stigmer.iam.platformclient.v1.PlatformClient

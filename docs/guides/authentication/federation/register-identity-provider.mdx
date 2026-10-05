@@ -204,21 +204,20 @@ System.out.println("Created IdP: " + idp.getMetadata().getId());
 
 ## Understand the fields
 
-| Field                   | Required | Purpose                                                                                                                                                                   |
-| ----------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`                  | Yes      | Human-readable name shown in the console                                                                                                                                  |
-| `org`                   | Yes      | The Organization slug that owns this Identity Provider                                                                                                                    |
-| `slug`                  | No       | URL-friendly identifier, unique within the Organization. Generated from `name` if omitted                                                                                 |
-| `jwksUri`               | Yes      | JWKS endpoint URL. Stigmer fetches public keys from here to verify JWT signatures. Must be the `jwks_uri` each issuer's discovery document names                          |
-| `allowedIssuers`        | Yes      | List of `iss` values Stigmer accepts, at most 10. Tokens with a different issuer are rejected. Each must publish an OpenID Connect discovery document                     |
-| `expectedAudience`      | Yes      | The `aud` value Stigmer expects. Tokens without this audience are rejected. With the issuer, it identifies this Identity Provider across the platform                     |
-| `displayName`           | No       | Display name in the console, and on the sign-in button of an SSO provider. The console's provider list and detail show `name` when it is empty                            |
-| `isSsoProvider`         | No       | Set to `true` only when configuring SSO for a self-managed Organization. Defaults to `false`                                                                              |
-| `oidcClientId`          | No       | OIDC client ID for browser-based SSO. Only required when `isSsoProvider` is `true`                                                                                        |
-| `autoProvisionAccounts` | No       | When `true`, Stigmer creates a federated account automatically on first authentication. Defaults to `false`                                                               |
-| `autoGrantOnOrg`        | No       | When `true`, Stigmer grants a role on an Organization when an account is provisioned automatically. Requires `autoProvisionAccounts`. Defaults to `false`                 |
-| `autoGrantRole`         | No       | Role to grant when `autoGrantOnOrg` is `true`. Options: `viewer` (default), `member`, `admin`. Owner is not permitted                                                     |
-| `tenantOrgClaim`        | No       | JWT claim name that identifies the tenant Organization for multi-tenant provisioning. See [Multi-tenant setup](/docs/guides/authentication/federation/multi-tenant-setup) |
+| Field                    | Required | Purpose                                                                                                                                                                                                            |
+| ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`                   | Yes      | Human-readable name shown in the console                                                                                                                                                                           |
+| `org`                    | Yes      | The Organization slug that owns this Identity Provider                                                                                                                                                             |
+| `slug`                   | No       | URL-friendly identifier, unique within the Organization. Generated from `name` if omitted                                                                                                                          |
+| `jwksUri`                | Yes      | JWKS endpoint URL. Stigmer fetches public keys from here to verify JWT signatures. Must be the `jwks_uri` each issuer's discovery document names                                                                   |
+| `allowedIssuers`         | Yes      | List of `iss` values Stigmer accepts, at most 10. Tokens with a different issuer are rejected. Each must publish an OpenID Connect discovery document                                                              |
+| `expectedAudience`       | Yes      | The `aud` value Stigmer expects. Tokens without this audience are rejected. With the issuer, it identifies this Identity Provider across the platform                                                              |
+| `displayName`            | No       | Display name in the console, and on the sign-in button of an SSO provider. The console's provider list and detail show `name` when it is empty                                                                     |
+| `isSsoProvider`          | No       | Set to `true` only when configuring SSO for a self-managed Organization. Defaults to `false`                                                                                                                       |
+| `oidcClientId`           | No       | OIDC client ID for browser-based SSO. Only required when `isSsoProvider` is `true`                                                                                                                                 |
+| `createAccountsOnSignIn` | No       | When `true`, Stigmer creates a federated account the first time a valid token arrives for a subject it has no account for. Defaults to `false`. Required for an SSO provider                                       |
+| `signInRole`             | No       | The role an account receives the first time it signs in to an Organization through this provider. Options: `viewer`, `member`, `admin`. Unset grants nothing. Owner is not permitted. Required for an SSO provider |
+| `tenantOrgClaim`         | No       | JWT claim name that names the tenant Organization each token works in. Read on every token. See [Multi-tenant setup](/docs/guides/authentication/federation/multi-tenant-setup)                                    |
 
 <Callout type="warn">
   Do not set `isSsoProvider` to `true` for platform-managed Organizations. SSO
@@ -227,15 +226,34 @@ System.out.println("Created IdP: " + idp.getMetadata().getId());
   authenticate on your platform and call the Stigmer API with their JWT.
 </Callout>
 
+## Which Organization a token works in
+
+Every token an Identity Provider vouches for is bound to one Organization and
+works there only, whatever roles the user holds elsewhere:
+
+- Without `tenantOrgClaim`, the token is bound to the Identity Provider's own
+  Organization (`acme` in the examples on this page).
+- With `tenantOrgClaim`, it is bound to the platform-managed Organization that
+  the claim names. Stigmer reads the claim on every token and refuses a token
+  that lacks it or names an unknown Organization. See
+  [Multi-tenant platform setup](/docs/guides/authentication/federation/multi-tenant-setup#bind-each-token-to-its-tenant).
+
+A bound token can still reach what belongs to no Organization, such as the
+user's own Identity Account and API keys, and can read and run Agents, Skills,
+Workflows, MCP Servers and Plugins shared at Platform visibility. It cannot
+create an Organization or accept an invitation to another one.
+
 ## Enable JIT provisioning
 
 JIT (Just-In-Time) provisioning lets Stigmer create federated accounts and grant
-roles automatically when users authenticate. Instead of your backend calling
-`createFederatedAccount` and `iamPolicy.create` for each user, you enable JIT
-fields on the Identity Provider and Stigmer handles the rest.
+roles automatically when users sign in. Instead of your backend calling
+`createFederatedAccount` and `iamPolicy.create` for each user, you set two
+fields on the Identity Provider and Stigmer handles the rest:
 
-To enable JIT, set `autoProvisionAccounts` and `autoGrantOnOrg` when you create
-the Identity Provider:
+- `createAccountsOnSignIn` creates the account the first time a valid token
+  arrives for an unknown subject.
+- `signInRole` grants a role the first time an account signs in to the
+  Organization its token is bound to.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -249,8 +267,8 @@ const idp = await stigmer.identityProvider.create({
   jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
   allowedIssuers: ["https://acme.us.auth0.com/"],
   expectedAudience: "https://api.acme.com/stigmer",
-  autoProvisionAccounts: true,
-  autoGrantOnOrg: true,
+  createAccountsOnSignIn: true,
+  signInRole: "viewer",
 });
 
 console.log(`Created JIT-enabled IdP: ${idp.metadata.id}`);
@@ -261,15 +279,15 @@ console.log(`Created JIT-enabled IdP: ${idp.metadata.id}`);
 
 ```go
 idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
-  Name:                  "Acme Cloud Auth",
-  Org:                   "acme",
-  Slug:                  "acme-cloud-auth",
-  DisplayName:           "Acme Cloud Auth",
-  JwksUri:               "https://acme.us.auth0.com/.well-known/jwks.json",
-  AllowedIssuers:        []string{"https://acme.us.auth0.com/"},
-  ExpectedAudience:      "https://api.acme.com/stigmer",
-  AutoProvisionAccounts: true,
-  AutoGrantOnOrg:        true,
+  Name:                   "Acme Cloud Auth",
+  Org:                    "acme",
+  Slug:                   "acme-cloud-auth",
+  DisplayName:            "Acme Cloud Auth",
+  JwksUri:                "https://acme.us.auth0.com/.well-known/jwks.json",
+  AllowedIssuers:         []string{"https://acme.us.auth0.com/"},
+  ExpectedAudience:       "https://api.acme.com/stigmer",
+  CreateAccountsOnSignIn: true,
+  SignInRole:             "viewer",
 })
 if err != nil {
   log.Fatal(err)
@@ -289,8 +307,8 @@ idp = client.identity_providers.create(IdentityProviderInput(
     jwks_uri="https://acme.us.auth0.com/.well-known/jwks.json",
     allowed_issuers=["https://acme.us.auth0.com/"],
     expected_audience="https://api.acme.com/stigmer",
-    auto_provision_accounts=True,
-    auto_grant_on_org=True,
+    create_accounts_on_sign_in=True,
+    sign_in_role="viewer",
 ))
 
 print(f"Created JIT-enabled IdP: {idp.metadata.id}")
@@ -308,8 +326,8 @@ IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.b
     .jwksUri("https://acme.us.auth0.com/.well-known/jwks.json")
     .allowedIssuers(List.of("https://acme.us.auth0.com/"))
     .expectedAudience("https://api.acme.com/stigmer")
-    .autoProvisionAccounts(true)
-    .autoGrantOnOrg(true)
+    .createAccountsOnSignIn(true)
+    .signInRole("viewer")
     .build());
 
 System.out.println("Created JIT-enabled IdP: " + idp.getMetadata().getId());
@@ -318,52 +336,53 @@ System.out.println("Created JIT-enabled IdP: " + idp.getMetadata().getId());
 </Tab>
 </SDKTabs>
 
-With these two fields enabled, the first time a user authenticates with a valid
-JWT, Stigmer:
+With these two fields set, the first time a user signs in with a valid JWT,
+Stigmer:
 
 1. Creates a federated Identity Account using the JWT's `sub` claim and its
    `email`, `given_name` and `family_name` (or `name`) and `picture` claims,
    reading the `userinfo_endpoint` only when the token carries no email
-2. Grants the **viewer** role on the Identity Provider's owning Organization
+2. Grants the **viewer** role on the Organization the token is bound to: the
+   Identity Provider's owning Organization here
 
-On subsequent authentications, Stigmer finds the existing account and proceeds:
-it does not refresh the profile or grant the role again. To change a user's
-profile, call `updateFederatedAccount` from your backend (see
+On later sign-ins, Stigmer finds the existing account and proceeds: it does not
+refresh the profile or grant the role again. To change a user's profile, call
+`updateFederatedAccount` from your backend (see
 [Update a federated account](/docs/guides/authentication/federation/provision-federated-accounts#update-a-federated-account)).
 
-### Choose the granted role
+### Choose the sign-in role
 
-By default, JIT grants the `viewer` role. To grant a different role, set
-`autoGrantRole`:
+Set `signInRole` to the role a user should start with:
 
-| Role               | Access level                                            |
-| ------------------ | ------------------------------------------------------- |
-| `viewer` (default) | Read-only access to the Organization and its resources  |
-| `member`           | Can create and modify resources within the Organization |
-| `admin`            | Full access to the Organization and all its resources   |
+| Role     | Access level                                            |
+| -------- | ------------------------------------------------------- |
+| `viewer` | Read-only access to the Organization and its resources  |
+| `member` | Can create and modify resources within the Organization |
+| `admin`  | Full access to the Organization and all its resources   |
 
-The `owner` role cannot be granted automatically. Organization ownership must be
-assigned explicitly.
+Stigmer grants the sign-in role once per account and Organization. If an
+administrator later removes it, it stays removed, and changing `signInRole` does
+not reach accounts that already signed in there. The `owner` role cannot be the
+sign-in role: Organization ownership must be assigned explicitly.
 
 ### JIT without automatic role grants
 
-If you set `autoProvisionAccounts` to `true` but leave `autoGrantOnOrg` as
-`false`, Stigmer creates the account but does not grant any Organization access.
-The user is authenticated (Stigmer knows who they are) but not authorized (they
-can't access anything). Your backend must still create IAM Policies to grant
-access.
+If you set `createAccountsOnSignIn` to `true` and leave `signInRole` unset,
+Stigmer creates the account but grants no Organization access. The user is
+authenticated (Stigmer knows who they are) but not authorized (they can't access
+anything). Your backend must still create IAM Policies to grant access.
 
-This is useful for multi-tenant platforms where users should access their tenant
-Organization, not the Identity Provider's owning Organization. See
-[Multi-tenant platform setup](/docs/guides/authentication/federation/multi-tenant-setup)
-for the `tenantOrgClaim` approach.
+This suits a platform that decides each user's role itself. A multi-tenant
+platform can also set `tenantOrgClaim` without either field: Stigmer then binds
+each token to its tenant and grants nothing. See
+[Multi-tenant platform setup](/docs/guides/authentication/federation/multi-tenant-setup).
 
 <Callout type="warn">
-  JIT provisioning fields (`autoGrantOnOrg`, `autoGrantRole`, `tenantOrgClaim`)
-  cannot be used with SSO providers. SSO has its own provisioning behavior
-  (automatic provisioning with viewer role). If you need configurable role
-  grants or multi-tenant routing, use JIT provisioning instead of SSO. See [Set
-  up SSO](/docs/guides/authentication/federation/sso-login) for the SSO path.
+  An SSO provider must set `createAccountsOnSignIn` to `true` and a
+  `signInRole`; the console fills in `viewer` for you. SSO is for self-managed
+  Organizations, so tenant routing with `tenantOrgClaim` belongs on a non-SSO
+  Identity Provider. See [Set up
+  SSO](/docs/guides/authentication/federation/sso-login) for the SSO path.
 </Callout>
 
 <Callout type="info">

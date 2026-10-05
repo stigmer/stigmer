@@ -5,7 +5,8 @@
  * "invalid token", expired → "token has expired"), the
  * authenticates-as-owner identity mapping (created_by actor → identityId
  * + display fields), and instant revocation (delete visible on the very
- * next verify — the no-cache posture).
+ * next verify — the no-cache posture), and a key limited to one
+ * organization (spec.bound_org) carried as the identity's `boundOrg`.
  *
  * The creator stamp is resolved to the owner's account
  * (`accountForStamp`): by account id, the stamp of every key a
@@ -141,6 +142,7 @@ afterAll(async () => {
 let seq = 0;
 async function seedKey(options?: {
   expiresAt?: Date;
+  boundOrg?: string;
   ownerId?: string;
   email?: string;
   displayName?: string;
@@ -167,6 +169,7 @@ async function seedKey(options?: {
         ...(options?.expiresAt !== undefined
           ? { expiresAt: timestampFromDate(options.expiresAt) }
           : {}),
+        ...(options?.boundOrg !== undefined ? { boundOrg: options.boundOrg } : {}),
       },
       status: {
         audit: {
@@ -224,6 +227,21 @@ describe("verification arms", () => {
       email: "owner@example.com",
       displayName: "Key Owner",
     });
+  });
+
+  it("a key limited to one organization is bound to it; an unlimited key carries no binding", async () => {
+    const ownerId = await provisionAccount(
+      "auth0|limited",
+      "limited@example.com",
+    );
+    const limited = await seedKey({ ownerId, boundOrg: "org_acme" });
+    expect((await verifier().verify(limited.plaintext))?.boundOrg).toBe(
+      "org_acme",
+    );
+    const everywhere = await seedKey({ ownerId });
+    const identity = await verifier().verify(everywhere.plaintext);
+    expect(identity).not.toBeNull();
+    expect(identity).not.toHaveProperty("boundOrg");
   });
 
   it("an expired key is rejected with the byte-pinned copy", async () => {
@@ -422,7 +440,10 @@ describe("a key created before sign-in was turned on (stigmer/stigmer#1169)", ()
   }
 
   it("a key stamped with the configured operator's email is refused by name and records no use", async () => {
-    await provisionAccount(localIdpIdFor("laptop@example.com"), "laptop@example.com");
+    await provisionAccount(
+      localIdpIdFor("laptop@example.com"),
+      "laptop@example.com",
+    );
     const { plaintext, id } = await seedKey({
       ownerId: "laptop@example.com",
       email: "laptop@example.com",
@@ -434,7 +455,7 @@ describe("a key created before sign-in was turned on (stigmer/stigmer#1169)", ()
     expect((await storedKey(id)).status?.lastUsedAt).toBeUndefined();
   });
 
-  it("a key stamped \"system\" by the unconfigured laptop is refused by name", async () => {
+  it('a key stamped "system" by the unconfigured laptop is refused by name', async () => {
     const { plaintext } = await seedKey({ ownerId: "system", email: "" });
 
     await expect(verifier().verify(plaintext)).rejects.toSatisfy(
@@ -533,7 +554,10 @@ describe("last use (stigmer/stigmer#1255)", () => {
       first?.audit?.statusAudit?.createdBy?.id,
       "the status-audit slot keeps who created the key",
     ).toBe("user@example.com");
-    expect(first?.audit?.specAudit?.updatedAt, "the spec audit is not touched").toBeUndefined();
+    expect(
+      first?.audit?.specAudit?.updatedAt,
+      "the spec audit is not touched",
+    ).toBeUndefined();
 
     clock = new Date(clock.getTime() + LAST_USED_RESOLUTION_MS - 1);
     await apikey.verify(plaintext);
@@ -544,14 +568,18 @@ describe("last use (stigmer/stigmer#1255)", () => {
 
     clock = new Date(clock.getTime() + 1);
     await apikey.verify(plaintext);
-    expect(timestampDate((await storedKey(id)).status!.lastUsedAt!)).toEqual(clock);
+    expect(timestampDate((await storedKey(id)).status!.lastUsedAt!)).toEqual(
+      clock,
+    );
   });
 
   it("a refused key records nothing", async () => {
     const { plaintext, id } = await seedKey({
       expiresAt: new Date(Date.now() - 60_000),
     });
-    await expect(verifier().verify(plaintext)).rejects.toBeInstanceOf(ConnectError);
+    await expect(verifier().verify(plaintext)).rejects.toBeInstanceOf(
+      ConnectError,
+    );
     expect((await storedKey(id)).status?.lastUsedAt).toBeUndefined();
   });
 
@@ -572,12 +600,20 @@ describe("last use (stigmer/stigmer#1255)", () => {
       updateResource: () => Promise.reject(new Error("disk full")),
     } as unknown as Store;
 
-    const identity = await verifier(accounts, { store: failingWrites, logger }).verify(plaintext);
+    const identity = await verifier(accounts, {
+      store: failingWrites,
+      logger,
+    }).verify(plaintext);
 
     expect(identity?.identityId).toBe(owner);
     expect(lines).toHaveLength(1);
     const entry = JSON.parse(lines[0]!) as Record<string, unknown>;
-    expect(entry).toMatchObject({ level: "warn", credential: "api key", id, error: "disk full" });
+    expect(entry).toMatchObject({
+      level: "warn",
+      credential: "api key",
+      id,
+      error: "disk full",
+    });
     expect(lines[0], "the token is never logged").not.toContain(plaintext);
   });
 });

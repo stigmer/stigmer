@@ -129,6 +129,7 @@ import {
   newCheckOrgDuplicateStep,
   newLoadExistingOrganizationStep,
   newLoadOrganizationForApplyStep,
+  newRefuseBoundCredentialStep,
   newRefuseOrganizationOrgStep,
   newRevokeOrganizationPoliciesStep,
 } from "./steps.js";
@@ -241,6 +242,7 @@ async function createOrganization(
         deps.authorizer,
       ),
     )
+    .addStep(newRefuseBoundCredentialStep())
     .addStep(newResolveSlugStep())
     .addStep(newValidateProtoStep())
     .addStep(newRefuseOrganizationOrgStep(newOrganizationNameResolver(deps.store)))
