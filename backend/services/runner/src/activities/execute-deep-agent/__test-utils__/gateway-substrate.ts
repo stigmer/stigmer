@@ -49,7 +49,7 @@ import { deriveLeaseScope, hookLeaseKey, mcpToolKey, type McpApprovalDefault } f
 import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
 import { HookSet, type HookSourceGroups } from "../../../shared/hooks/hook-set.js";
 import { NativeToolViews } from "../../../shared/hooks/tool-view.js";
-import { buildShellEnv } from "../shell-env.js";
+import { buildShellEnv } from "../../../shared/shell-env.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
 import { PLATFORM_ROUTE_PREFIX, confinedReadAdmission } from "../platform-route.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";

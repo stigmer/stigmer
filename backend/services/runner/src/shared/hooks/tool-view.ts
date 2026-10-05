@@ -1,14 +1,20 @@
 /**
- * Claude Code's view of a native tool call: the `tool_name`, `tool_input`
- * and `mcp_server` a Claude Code hook reads, and the way back for the input
- * a hook rewrites (`updatedInput`).
+ * How a hook sees a tool call: the call in each hook format's own terms, and
+ * the way back for the input a hook rewrites. A call reaches a format's
+ * hooks only under a name that format has for it; a call no format names
+ * reaches no hook (Stigmer's own tools, a tool one engine has and the other
+ * format never shows a hook).
  *
- * One rule shapes every row: a native argument keeps its value, a field is
- * renamed only where Claude's name differs, a path becomes real and
- * absolute (Claude promises hooks an absolute `file_path`; the native
+ * This module holds the shared shapes and the NATIVE engine's views. The
+ * Cursor engine's are its adapter's (`execute-cursor/hook-views.ts`), built
+ * from the hook payload Cursor sent.
+ *
+ * One rule shapes every native row: a native argument keeps its value, a
+ * field is renamed only where the format's name differs, a path becomes real
+ * and absolute (both formats promise hooks an absolute path; the native
  * engine speaks paths rooted at the workspace, `middleware/
- * path-normalization.ts`), and an argument Claude does not have rides along
- * unchanged. The rows:
+ * path-normalization.ts`), and an argument the format does not have rides
+ * along unchanged. The Claude Code rows:
  *
  *   execute     -> Bash        read_file  -> Read       write_file -> Write
  *   edit_file   -> Edit        glob       -> Glob       grep       -> Grep
@@ -17,28 +23,83 @@
  *               -> Agent {prompt: description, description, subagent_type}
  *   write_todos -> TodoWrite   web_fetch  -> WebFetch
  *
- * `delete` is never bound (`deepagents-profiles.ts`), so it has no row.
+ * The Cursor rows follow what Cursor's own engine sends a hook
+ * (`@cursor/sdk` 1.0.31, live, 2026-10-05): a create and an edit are both
+ * `Write`, a glob and a listing are both `Grep` with an empty pattern and a
+ * `glob`, a command is `Shell` with its `cwd`:
  *
- * An MCP tool is `mcp__<server>__<tool>`, its server an organisation's
- * resource (`mcp_server.source: "managed"`); a server a plugin brought with
- * it is named as Claude Code names a plugin's own server,
- * `mcp__plugin_<plugin>_<server>__<tool>` with `source: "plugin"`, so a
- * plugin's matchers find its tools unchanged. Stigmer's own tools (`think`,
- * and the channel, conversation and memory attachments) have no view and
- * never reach a hook: no plugin can name them, as no tool list can.
+ *   execute     -> Shell {command, cwd}
+ *   read_file   -> Read        write_file, edit_file -> Write (the edit's fields kept)
+ *   grep {path} -> Grep {file_path}
+ *   glob {pattern, path} -> Grep {pattern: "", glob: pattern, file_path: path}
+ *   ls {path}   -> Grep {pattern: "", glob: "*", file_path: path}
+ *
+ * `task`, `write_todos` and `web_fetch` have no Cursor row: Cursor shows a
+ * hook no delegation, no todo list and no web fetch. `delete` is never
+ * bound (`deepagents-profiles.ts`), so it has no row in either format.
+ *
+ * An MCP tool is Claude's `mcp__<server>__<tool>`, its server an
+ * organisation's resource (`mcp_server.source: "managed"`); a server a
+ * plugin brought with it is named as Claude Code names a plugin's own
+ * server, `mcp__plugin_<plugin>_<server>__<tool>` with `source: "plugin"`,
+ * so a plugin's matchers find its tools unchanged. To Cursor's hooks it is
+ * `MCP:<tool>` on `preToolUse`, and the bare tool with its server's slug on
+ * `beforeMCPExecution`. Stigmer's own tools (`think`, and the channel,
+ * conversation and memory attachments) have no view and never reach a
+ * hook: no plugin can name them, as no tool list can.
  *
  * The inverse of each row restores the native call, so view-then-inverse is
  * the identity on what the engine binds (pinned by the module's test).
  */
 
 import { join } from "node:path";
+import type { HookFormatName } from "./hook-set.js";
+
+type Args = Record<string, unknown>;
 
 /** A call as a Claude Code hook sees it. */
 export interface ToolView {
   readonly toolName: string;
-  readonly toolInput: Record<string, unknown>;
+  readonly toolInput: Args;
+  /** Further names a matcher takes the call by: the Cursor engine's `Write` is Claude's `Write` and `Edit` alike. */
+  readonly aliases?: readonly string[];
   /** Present for an MCP tool: Claude Code's `mcp_server` stdin field. */
   readonly mcpServer?: { readonly name: string; readonly source: "managed" | "plugin" };
+}
+
+/** A call as a Cursor hook sees it. */
+export interface CursorToolView {
+  /** `preToolUse`'s `tool_name`: the built-in's name, or `MCP:<tool>`. */
+  readonly toolName: string;
+  readonly toolInput: Args;
+  /** Present for a shell call: `beforeShellExecution`'s `command`. */
+  readonly command?: string;
+  /** Present for an MCP call: `beforeMCPExecution`'s bare `tool_name` and `mcp_server_name`. */
+  readonly mcp?: { readonly tool: string; readonly server: string };
+}
+
+/** One call as each format's hooks see it; a format with no name for the call has no view. */
+export interface CallViews {
+  readonly "claude-code"?: ToolView;
+  readonly cursor?: CursorToolView;
+}
+
+/** The call a view is asked about: the engine's name, its arguments, and its MCP server (`""` for a built-in). */
+export interface ViewedCall {
+  readonly name: string;
+  readonly args: Args;
+  readonly serverSlug: string;
+}
+
+/** One engine's views of its calls, for the evaluator (`evaluate.ts`). */
+export interface HookToolViews {
+  viewsOf(call: ViewedCall): CallViews;
+  /**
+   * A hook's rewritten input, in its format's view, as the call's arguments
+   * in the engine's own shape; a string says why the engine cannot run the
+   * call as the hook rewrote it.
+   */
+  argsFrom(call: ViewedCall, format: HookFormatName, input: Args): Args | string;
 }
 
 /** How Claude Code names a plugin's own server: the plugin's name and the server's key in it. */
@@ -47,7 +108,7 @@ export interface PluginServerName {
   readonly server: string;
 }
 
-/** What the views read from the turn. */
+/** What the native views read from the turn. */
 export interface NativeViewContext {
   /** The real directory the workspace's virtual `/` stands for. */
   readonly workspaceRoot: string;
@@ -61,28 +122,36 @@ export interface NativeViewContext {
   readonly platformServerSlugs: ReadonlySet<string>;
 }
 
-type Args = Record<string, unknown>;
-
 interface PathMapping {
   readonly real: (value: unknown) => unknown;
   readonly virtual: (value: unknown) => unknown;
 }
 
-interface BuiltinRow {
-  readonly claude: string;
-  readonly toClaude: (args: Args, paths: PathMapping) => Args;
-  readonly toNative: (input: Args, paths: PathMapping) => Args;
+interface Row {
+  readonly name: string;
+  readonly toView: (args: Args, paths: PathMapping) => Args;
+  /** The native arguments back, or why a rewrite cannot be taken back. */
+  readonly toNative: (input: Args, paths: PathMapping) => Args | string;
 }
 
-/** A row whose only difference from Claude's tool is a path argument. */
-function pathRow(claude: string, pathArg: string | undefined): BuiltinRow {
+/** A row whose only difference from the format's tool is a path argument. */
+function pathRow(name: string, pathArg: string | undefined): Row {
   if (pathArg === undefined) {
-    return { claude, toClaude: (args) => ({ ...args }), toNative: (input) => ({ ...input }) };
+    return { name, toView: (args) => ({ ...args }), toNative: (input) => ({ ...input }) };
   }
   return {
-    claude,
-    toClaude: (args, paths) => withMapped(args, pathArg, paths.real),
+    name,
+    toView: (args, paths) => withMapped(args, pathArg, paths.real),
     toNative: (input, paths) => withMapped(input, pathArg, paths.virtual),
+  };
+}
+
+/** A row that renames the native path argument `from` to the format's `to`. */
+function renamedPathRow(name: string, from: string, to: string): Row {
+  return {
+    name,
+    toView: (args, paths) => renamed(withMapped(args, from, paths.real), from, to),
+    toNative: (input, paths) => withMapped(renamed(input, to, from), from, paths.virtual),
   };
 }
 
@@ -90,10 +159,16 @@ function withMapped(args: Args, key: string, map: (value: unknown) => unknown): 
   return key in args ? { ...args, [key]: map(args[key]) } : { ...args };
 }
 
+function renamed(args: Args, from: string, to: string): Args {
+  if (!(from in args)) return { ...args };
+  const { [from]: value, ...rest } = args;
+  return { ...rest, [to]: value };
+}
+
 const GLOB_EVERYTHING = "*";
 
 /** The native tools Claude Code has a name for, by their bound names. */
-const BUILTIN_ROWS: ReadonlyMap<string, BuiltinRow> = new Map<string, BuiltinRow>([
+const CLAUDE_ROWS: ReadonlyMap<string, Row> = new Map<string, Row>([
   ["execute", pathRow("Bash", undefined)],
   ["read_file", pathRow("Read", "file_path")],
   ["write_file", pathRow("Write", "file_path")],
@@ -103,8 +178,8 @@ const BUILTIN_ROWS: ReadonlyMap<string, BuiltinRow> = new Map<string, BuiltinRow
   [
     "ls",
     {
-      claude: "Glob",
-      toClaude: (args, paths) => ({ pattern: GLOB_EVERYTHING, ...withMapped(args, "path", paths.real) }),
+      name: "Glob",
+      toView: (args, paths) => ({ pattern: GLOB_EVERYTHING, ...withMapped(args, "path", paths.real) }),
       toNative: (input, paths) => {
         const { pattern: _pattern, ...rest } = input;
         return withMapped(rest, "path", paths.virtual);
@@ -114,8 +189,8 @@ const BUILTIN_ROWS: ReadonlyMap<string, BuiltinRow> = new Map<string, BuiltinRow
   [
     "task",
     {
-      claude: "Agent",
-      toClaude: (args) => ({ prompt: args["description"], ...args }),
+      name: "Agent",
+      toView: (args) => ({ prompt: args["description"], ...args }),
       toNative: (input) => {
         const { prompt, ...rest } = input;
         return prompt === undefined ? rest : { ...rest, description: prompt };
@@ -126,11 +201,48 @@ const BUILTIN_ROWS: ReadonlyMap<string, BuiltinRow> = new Map<string, BuiltinRow
   ["web_fetch", pathRow("WebFetch", undefined)],
 ]);
 
-/** The native names a view exists for, for the module's test. */
-export const NATIVE_VIEWED_TOOLS: readonly string[] = [...BUILTIN_ROWS.keys()];
+/** A Cursor listing: an empty search pattern over files matching a glob, from `path`. */
+function cursorListingRow(globOf: (args: Args) => unknown, toNativeArgs: (glob: unknown, rest: Args) => Args | string): Row {
+  return {
+    name: "Grep",
+    toView: (args, paths) => {
+      const { pattern: _pattern, path, ...rest } = args;
+      return { ...rest, pattern: "", glob: globOf(args), file_path: paths.real(path ?? "/"), output_mode: "files_with_matches" };
+    },
+    toNative: (input, paths) => {
+      const { pattern, glob, file_path, output_mode: _mode, ...rest } = input;
+      if (typeof pattern === "string" && pattern !== "") {
+        return "the hook gave a file listing a search pattern, which the listing tool cannot take";
+      }
+      return toNativeArgs(glob, { ...rest, ...(file_path !== undefined ? { path: paths.virtual(file_path) } : {}) });
+    },
+  };
+}
 
-/** Claude Code's views of the native engine's calls for one turn. */
-export class NativeToolViews {
+/** The native tools Cursor's hooks have a name for, by their bound names. */
+const CURSOR_ROWS: ReadonlyMap<string, Row> = new Map<string, Row>([
+  ["read_file", pathRow("Read", "file_path")],
+  ["write_file", pathRow("Write", "file_path")],
+  ["edit_file", pathRow("Write", "file_path")],
+  ["grep", renamedPathRow("Grep", "path", "file_path")],
+  ["glob", cursorListingRow((args) => args["pattern"], (glob, rest) => ({ ...rest, pattern: glob }))],
+  [
+    "ls",
+    cursorListingRow(
+      () => GLOB_EVERYTHING,
+      (glob, rest) => (glob === GLOB_EVERYTHING || glob === undefined ? rest : "the hook gave a directory listing a glob, which the listing tool cannot take"),
+    ),
+  ],
+]);
+
+/** The native names a view exists for, per format, for the module's test. */
+export const NATIVE_VIEWED_TOOLS: Readonly<Record<HookFormatName, readonly string[]>> = {
+  "claude-code": [...CLAUDE_ROWS.keys()],
+  cursor: ["execute", ...CURSOR_ROWS.keys()],
+};
+
+/** The hooks' views of the native engine's calls for one turn, in both formats. */
+export class NativeToolViews implements HookToolViews {
   private readonly paths: PathMapping;
 
   constructor(private readonly ctx: NativeViewContext) {
@@ -145,28 +257,59 @@ export class NativeToolViews {
     };
   }
 
-  /** The call as Claude Code shows it to a hook, or `undefined` when no hook may see it. */
+  /** The call as Claude Code shows it to a hook, or `undefined` when no Claude Code hook may see it. */
   viewOf(name: string, args: Args): ToolView | undefined {
-    const slug = this.ctx.toolServerMap.get(name);
-    if (slug !== undefined) {
-      if (this.ctx.platformServerSlugs.has(slug)) return undefined;
-      const owned = this.ctx.pluginServers.get(slug);
-      return owned !== undefined
-        ? {
-            toolName: `mcp__plugin_${owned.plugin}_${owned.server}__${name}`,
-            toolInput: { ...args },
-            mcpServer: { name: `plugin:${owned.plugin}:${owned.server}`, source: "plugin" },
-          }
-        : { toolName: `mcp__${slug}__${name}`, toolInput: { ...args }, mcpServer: { name: slug, source: "managed" } };
-    }
-    const row = BUILTIN_ROWS.get(name);
-    return row === undefined ? undefined : { toolName: row.claude, toolInput: row.toClaude(args, this.paths) };
+    return this.viewsOf({ name, args, serverSlug: this.ctx.toolServerMap.get(name) ?? "" })["claude-code"];
   }
 
-  /** A hook's rewritten input as the native call's arguments. */
-  nativeArgsOf(name: string, input: Args): Args {
-    const row = this.ctx.toolServerMap.has(name) ? undefined : BUILTIN_ROWS.get(name);
+  viewsOf(call: ViewedCall): CallViews {
+    const slug = this.ctx.toolServerMap.get(call.name);
+    if (slug !== undefined) {
+      if (this.ctx.platformServerSlugs.has(slug)) return {};
+      const owned = this.ctx.pluginServers.get(slug);
+      const cursor: CursorToolView = { toolName: `MCP:${call.name}`, toolInput: { ...call.args }, mcp: { tool: call.name, server: slug } };
+      return owned !== undefined
+        ? {
+            "claude-code": {
+              toolName: `mcp__plugin_${owned.plugin}_${owned.server}__${call.name}`,
+              toolInput: { ...call.args },
+              mcpServer: { name: `plugin:${owned.plugin}:${owned.server}`, source: "plugin" },
+            },
+            cursor,
+          }
+        : {
+            "claude-code": { toolName: `mcp__${slug}__${call.name}`, toolInput: { ...call.args }, mcpServer: { name: slug, source: "managed" } },
+            cursor,
+          };
+    }
+    const claude = CLAUDE_ROWS.get(call.name);
+    return {
+      ...(claude !== undefined ? { "claude-code": { toolName: claude.name, toolInput: claude.toView(call.args, this.paths) } } : {}),
+      ...(this.cursorViewOf(call) ?? {}),
+    };
+  }
+
+  argsFrom(call: ViewedCall, format: HookFormatName, input: Args): Args | string {
+    if (this.ctx.toolServerMap.has(call.name)) return { ...input };
+    if (format === "cursor" && call.name === "execute") {
+      const cwd = input["cwd"];
+      if (cwd !== undefined && cwd !== "" && cwd !== this.ctx.workspaceRoot) {
+        return "the hook moved the command to another directory, which this engine's shell cannot take";
+      }
+      const { cwd: _cwd, ...rest } = input;
+      return rest;
+    }
+    const row = (format === "cursor" ? CURSOR_ROWS : CLAUDE_ROWS).get(call.name);
     return row === undefined ? { ...input } : row.toNative(input, this.paths);
+  }
+
+  private cursorViewOf(call: ViewedCall): { cursor: CursorToolView } | undefined {
+    if (call.name === "execute") {
+      const command = typeof call.args["command"] === "string" ? call.args["command"] : "";
+      return { cursor: { toolName: "Shell", toolInput: { ...call.args, cwd: this.ctx.workspaceRoot }, command } };
+    }
+    const row = CURSOR_ROWS.get(call.name);
+    return row === undefined ? undefined : { cursor: { toolName: row.name, toolInput: row.toView(call.args, this.paths) } };
   }
 }
 

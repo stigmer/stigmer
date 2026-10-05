@@ -61,7 +61,7 @@ export function resolveHeaders(
 /**
  * Filter env vars to only the keys a declarer declares in its spec.env:
  * an MCP server for its subprocess or HTTP environment, the agent for its
- * shell (activities/execute-deep-agent/shell-env.ts).
+ * shell (shared/shell-env.ts).
  *
  * Mirrors the agent-runner's _filter_env_to_declared_keys: prevents
  * secret over-sharing by restricting each consumer to explicitly declared

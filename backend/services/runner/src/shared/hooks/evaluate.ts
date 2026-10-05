@@ -1,54 +1,64 @@
 /**
- * The hook evaluator: one native tool call against the turn's hooks, in
- * Claude Code's format, with Claude Code's answers.
+ * The hook evaluator: one tool call, on either engine, against the turn's
+ * hooks in both formats, with each format's own answers.
  *
- * PreToolUse ({@link HookEvaluator.preToolUse}) finds the groups whose
- * matcher takes the call's Claude name (`matcher.ts`, over `tool-view.ts`),
- * keeps the handlers whose `if` takes the call (`condition.ts`), runs them
- * all at once, and combines their answers as Claude does:
+ * PreToolUse ({@link HookEvaluator.preToolUse}) offers the call to every
+ * format's events for it at once (`formats/claude-code.ts`:
+ * `PreToolUse`; `formats/cursor.ts`: `preToolUse`, `beforeShellExecution`,
+ * `beforeMCPExecution`), each format seeing the call under its own names
+ * (`tool-view.ts`). It keeps the groups whose matcher takes the call and
+ * the handlers whose `if` takes it (`condition.ts`, Claude Code's only),
+ * runs them all at once, and combines their answers as Claude does:
  * deny > defer > ask > allow. The hook recorded as the decider is the first
  * source, in the agent's order, that gave the winning answer, or, when a
  * winner rewrote the call, the first that did: the row names the hook
- * whose rewrite runs. A hook's `ask`
- * on a call its own "approve all" leased counts as its `allow`: the lease
- * clears exactly the asks that hook makes on that tool, and nothing wider
- * (`approval-policy.ts` `hookLeaseKey`). PostToolUse
+ * whose rewrite runs. A rewrite the engine cannot run as the hook wrote it
+ * refuses the call, naming why, so a call never silently runs as the model
+ * wrote it. A hook's `ask` on a call its own "approve all" leased counts as
+ * its `allow`: the lease clears exactly the asks that hook makes on that
+ * tool, and nothing wider (`approval-policy.ts` `hookLeaseKey`). PostToolUse
  * ({@link HookEvaluator.postToolUse}) runs after a call succeeded and
  * returns what its hooks hand back to the model.
  *
  * It holds no engine state and imports no engine: the native gate
- * (`middleware/approval-gate.ts`) decides what an answer does to the call.
- * Its one effect on the world is running commands, through an injected
- * {@link HookProcessRunner} (`run.ts`), each in a span `stigmer.hook.run`.
- *
- * What a hook reads on stdin is Claude Code's input for the event:
- * `session_id` (the Stigmer session), an empty `transcript_path` (Stigmer
- * keeps no Claude transcript file), `cwd`, `permission_mode`,
- * `hook_event_name`, `tool_name`, `tool_input`, `tool_use_id`, `mcp_server`
- * for an MCP tool, `agent_id` and `agent_type` inside a sub-agent, and on
- * PostToolUse `tool_response`.
- *
- * Its environment is the agent shell's (`buildShellEnv`, the runner's own
- * credentials stripped), plus `CLAUDE_PROJECT_DIR`, and for a plugin's hook
- * `CLAUDE_PLUGIN_ROOT`, `CLAUDE_PLUGIN_DATA`, the open format's
- * `PLUGIN_ROOT`, and `CLAUDE_PLUGIN_OPTION_<KEY>` for each value its hooks
- * reference in exec form; a key no exec-form handler references is not
- * exported, unlike Claude Code, which exports every declared option
- * (stigmer#1912). The three path variables are also substituted in `command`
- * and `args`, and `${user_config.KEY}` in an exec-form handler's; a
- * shell-form command that reaches for `${user_config.KEY}` does not run, as
- * in Claude Code, because the shell would re-parse the value.
+ * (`middleware/approval-gate.ts`) and the Cursor engine's hook server
+ * (`execute-cursor/hook-server.ts`) decide what an answer does to the call,
+ * and each injects its engine's views. Its one effect on the world is
+ * running commands, through an injected {@link HookProcessRunner}
+ * (`run.ts`), each in a span `stigmer.hook.run`. What a hook reads on stdin
+ * and in its environment is its format's (`formats/*.ts`).
  */
 
 import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type { HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { hookLeaseKey } from "../approval-policy.js";
-import { parsePostToolUse, parsePreToolUse, type HookDecision, type PreToolUseAnswer } from "./answer.js";
+import type { HookDecision, PostToolUseAnswer, PreToolUseAnswer } from "./answer.js";
 import { conditionVerdict } from "./condition.js";
-import { USER_CONFIG_REFERENCE, type HookEntry, type HookEvent, type HookSet, type HookSource } from "./hook-set.js";
-import { matcherMatches } from "./matcher.js";
-import { DEFAULT_HOOK_TIMEOUT_SECONDS, runHookProcess, type HookProcessRunner, type HookRunResult } from "./run.js";
-import { claudeToolResponse, type NativeToolViews, type ToolView } from "./tool-view.js";
+import {
+  CLAUDE_DEFAULT_TIMEOUT_SECONDS,
+  claudeCommand,
+  claudeEnv,
+  claudeMatches,
+  claudeStdin,
+  parseClaudePost,
+  parseClaudePre,
+} from "./formats/claude-code.js";
+import type { FormatContext, HookCommand, HookScope } from "./formats/common.js";
+import {
+  CURSOR_DEFAULT_TIMEOUT_SECONDS,
+  cursorCommand,
+  cursorEnv,
+  cursorMatches,
+  cursorPostEvents,
+  cursorPreEvents,
+  cursorStdin,
+  parseCursorPost,
+  parseCursorPre,
+  type CursorEventTarget,
+} from "./formats/cursor.js";
+import type { HookEntry, HookEvent, HookFormatName, HookSet, HookSource } from "./hook-set.js";
+import { runHookProcess, type HookProcessRunner, type HookRunResult } from "./run.js";
+import { claudeToolResponse, type CallViews, type HookToolViews } from "./tool-view.js";
 
 /** Claude Code's `permission_mode` values this runner reports. */
 export type HookPermissionMode = "default" | "plan" | "bypassPermissions";
@@ -56,17 +66,21 @@ export type HookPermissionMode = "default" | "plan" | "bypassPermissions";
 /** The call a hook is asked about, as the engine made it. */
 export interface HookToolCall {
   readonly id: string;
-  /** The bound (native) name. */
+  /** The engine's name for the tool (the bound name on native; the hook's `tool_name` on Cursor). */
   readonly name: string;
   readonly args: Record<string, unknown>;
   /** The MCP server the tool belongs to; `""` for a built-in. */
   readonly serverSlug: string;
+  /**
+   * The name the call's transcript row carries, when it differs from
+   * `name` (the Cursor engine names a row by its stream name); a hook lease
+   * is keyed by it, as the row that leased it was.
+   */
+  readonly rowName?: string;
 }
 
 /** Which graph made the call: a sub-agent's carries its type and invocation id. */
-export interface HookCallScope {
-  readonly subAgent?: { readonly type: string; readonly id: string };
-}
+export type HookCallScope = HookScope;
 
 /** The combined PreToolUse answer for one call. */
 export interface PreToolUseOutcome {
@@ -95,8 +109,12 @@ export interface PostToolUseOutcome {
 
 export interface HookEvaluatorDeps {
   readonly set: HookSet;
-  readonly views: NativeToolViews;
+  readonly views: HookToolViews;
   readonly sessionId: string;
+  /** The execution, Cursor's `generation_id`; `""` when not known. */
+  readonly executionId?: string;
+  /** The model the turn runs, Cursor's `model`; `""` when not known. */
+  readonly model?: string;
   readonly workspaceRoot: string;
   readonly permissionMode: HookPermissionMode;
   /** The agent shell's environment, the runner's credentials already stripped. */
@@ -120,12 +138,30 @@ const NO_POST_TOOL_USE: PostToolUseOutcome = { blockReasons: [], additionalConte
 /** Claude's precedence; the higher rank wins. */
 const RANK: Readonly<Record<HookDecision, number>> = { deny: 4, defer: 3, ask: 2, allow: 1 };
 
+/** A handler's own timeout, else its format's default. */
+export function defaultTimeoutSeconds(format: HookFormatName): number {
+  return format === "cursor" ? CURSOR_DEFAULT_TIMEOUT_SECONDS : CLAUDE_DEFAULT_TIMEOUT_SECONDS;
+}
+
 const TRACER_NAME = "stigmer-runner";
 const SPAN_HOOK_RUN = "stigmer.hook.run";
+
+/** One handler to run for a call, the event it answers and what it reads on stdin. */
+interface Run {
+  readonly entry: HookEntry;
+  readonly handler: HookHandler;
+  /** The handler's `if` took the call for sure (no `if` is a sure match). */
+  readonly sure: boolean;
+  readonly event: HookEvent;
+  /** The tool name the span records. */
+  readonly tool: string;
+  readonly stdin: Record<string, unknown>;
+}
 
 /** One handler's answer, with where it came from. */
 interface Answered extends PreToolUseAnswer {
   readonly source: HookSource;
+  readonly format: HookFormatName;
   readonly leased: boolean;
 }
 
@@ -144,35 +180,46 @@ function withoutUnsureAllow(answer: PreToolUseAnswer, sure: boolean, source: Hoo
 
 export class HookEvaluator {
   private readonly run: HookProcessRunner;
+  private readonly ctx: FormatContext;
 
   constructor(private readonly deps: HookEvaluatorDeps) {
     this.run = deps.run ?? runHookProcess;
+    this.ctx = {
+      sessionId: deps.sessionId,
+      executionId: deps.executionId ?? "",
+      model: deps.model ?? "",
+      workspaceRoot: deps.workspaceRoot,
+      permissionMode: deps.permissionMode,
+      baseEnv: deps.baseEnv,
+    };
   }
 
-  /** The call as hooks see it; `undefined` when no hook may see it. */
-  viewOf(call: HookToolCall): ToolView | undefined {
-    return this.deps.views.viewOf(call.name, call.args);
+  /** The longest any one of the turn's handlers may run, in seconds. */
+  get longestTimeoutSeconds(): number {
+    return this.deps.set.longestTimeoutSeconds(defaultTimeoutSeconds);
+  }
+
+  /** The tool's name as a hook sees it (Claude Code's when it has one); `undefined` when no hook may see the call. */
+  viewOf(call: HookToolCall): { readonly toolName: string } | undefined {
+    const views = this.deps.views.viewsOf(call);
+    return views["claude-code"] ?? views.cursor;
   }
 
   async preToolUse(call: HookToolCall, scope: HookCallScope): Promise<PreToolUseOutcome> {
-    const view = this.viewOf(call);
-    if (view === undefined) return NO_PRE_TOOL_USE;
-    const runs = this.matching("PreToolUse", view);
+    const runs = this.matching(call, scope, "pre");
     if (runs.length === 0) return NO_PRE_TOOL_USE;
 
     const answers = await Promise.all(
-      runs.map(async ({ entry, handler, sure }): Promise<Answered> => {
-        const answer = withoutUnsureAllow(
-          parsePreToolUse(await this.runOne(entry, handler, "PreToolUse", view, call, scope)),
-          sure,
-          entry.source,
-        );
+      runs.map(async (run): Promise<Answered> => {
+        const result = await this.runOne(run);
+        const parsed = run.entry.format === "cursor" ? parseCursorPre(result, run.handler) : parseClaudePre(result);
+        const answer = withoutUnsureAllow(parsed, run.sure, run.entry.source);
         // A lease answers the asks the hook makes on calls its rule names;
         // an ask behind an unsure `if` still reaches a person.
-        const leased = sure
+        const leased = run.sure
           && (answer.decision === "ask" || answer.decision === "defer")
-          && this.deps.leases.has(hookLeaseKey(entry.source.plugin, call.serverSlug, call.name));
-        return { ...answer, ...(leased ? { decision: "allow" as const } : {}), source: entry.source, leased };
+          && this.deps.leases.has(hookLeaseKey(run.entry.source.plugin, call.serverSlug, call.rowName ?? call.name));
+        return { ...answer, ...(leased ? { decision: "allow" as const } : {}), source: run.entry.source, format: run.entry.format, leased };
       }),
     );
     return this.combine(call, answers);
@@ -180,16 +227,13 @@ export class HookEvaluator {
 
   /** PostToolUse for a call that succeeded; `output` is the text the engine returned. */
   async postToolUse(call: HookToolCall, scope: HookCallScope, output: string): Promise<PostToolUseOutcome> {
-    const view = this.viewOf(call);
-    if (view === undefined) return NO_POST_TOOL_USE;
-    const runs = this.matching("PostToolUse", view);
+    const runs = this.matching(call, scope, "post", output);
     if (runs.length === 0) return NO_POST_TOOL_USE;
-    const response = claudeToolResponse(view, output);
-
-    const answers = await Promise.all(
-      runs.map(async ({ entry, handler }) =>
-        parsePostToolUse(await this.runOne(entry, handler, "PostToolUse", view, call, scope, response)),
-      ),
+    const answers: PostToolUseAnswer[] = await Promise.all(
+      runs.map(async (run) => {
+        const result = await this.runOne(run);
+        return run.entry.format === "cursor" ? parseCursorPost(result) : parseClaudePost(result);
+      }),
     );
     return {
       blockReasons: answers.flatMap((a) => (a.blockReason !== undefined ? [a.blockReason] : [])),
@@ -198,24 +242,35 @@ export class HookEvaluator {
     };
   }
 
-  /**
-   * The handlers to run for this call, in source order, each with whether
-   * its `if` matched for sure (no `if` is a sure match).
-   */
-  private matching(
-    event: HookEvent,
-    view: ToolView,
-  ): { readonly entry: HookEntry; readonly handler: HookHandler; readonly sure: boolean }[] {
+  /** The handlers to run for this call, in source order, each with the event it answers and its stdin. */
+  private matching(call: HookToolCall, scope: HookCallScope, phase: "pre" | "post", output = ""): Run[] {
+    const views: CallViews = this.deps.views.viewsOf(call);
+    const claude = views["claude-code"];
+    const cursor = views.cursor;
+    const cursorEvents: readonly CursorEventTarget[] = cursor === undefined ? [] : phase === "pre" ? cursorPreEvents(cursor) : cursorPostEvents(cursor);
+    const claudeEvent = phase === "pre" ? "PreToolUse" : "PostToolUse";
     const conditionContext = { workspaceRoot: this.deps.workspaceRoot, homeDir: this.deps.homeDir };
-    return this.deps.set
-      .forEvent(event)
-      .filter((entry) => matcherMatches(entry.matcher, view.toolName))
-      .flatMap((entry) =>
-        entry.handlers.flatMap((handler) => {
-          const verdict = handler.condition === "" ? "match" : conditionVerdict(handler.condition, view, conditionContext);
-          return verdict === "no" ? [] : [{ entry, handler, sure: verdict === "match" }];
-        }),
-      );
+
+    const runs: Run[] = [];
+    for (const entry of this.deps.set.all) {
+      if (entry.format === "cursor") {
+        const fired = cursorEvents.find((e) => e.event === entry.event);
+        if (cursor === undefined || fired === undefined || !cursorMatches(entry.matcher, fired.target)) continue;
+        const stdin = cursorStdin(fired.event, cursor, call.id, this.ctx, phase === "post" ? output : undefined);
+        for (const handler of entry.handlers) {
+          runs.push({ entry, handler, sure: true, event: fired.event, tool: cursor.toolName, stdin });
+        }
+        continue;
+      }
+      if (claude === undefined || entry.event !== claudeEvent || !claudeMatches(entry.matcher, claude)) continue;
+      const stdin = claudeStdin(claudeEvent, claude, call.id, scope, this.ctx, phase === "post" ? claudeToolResponse(claude, output) : undefined);
+      for (const handler of entry.handlers) {
+        const verdict = handler.condition === "" ? "match" : conditionVerdict(handler.condition, claude, conditionContext);
+        if (verdict === "no") continue;
+        runs.push({ entry, handler, sure: verdict === "match", event: claudeEvent, tool: claude.toolName, stdin });
+      }
+    }
+    return runs;
   }
 
   private combine(call: HookToolCall, answers: readonly Answered[]): PreToolUseOutcome {
@@ -232,30 +287,30 @@ export class HookEvaluator {
     // is the hook whose rewrite runs.
     const rewriter = top === RANK.deny ? undefined : winners.find((a) => a.updatedInput !== undefined);
     const decider = rewriter ?? winners[0]!;
-    const rewrite = rewriter?.updatedInput;
-    return {
-      decision: decider.decision === "defer" ? "ask" : decider.decision,
-      hook: decider.source.plugin,
-      leased: decider.leased,
-      reason: decider.reason ?? "",
-      ...(rewrite !== undefined ? { updatedArgs: this.deps.views.nativeArgsOf(call.name, rewrite) } : {}),
-      additionalContext,
-      errors,
-    };
+    const base = { hook: decider.source.plugin, leased: decider.leased, additionalContext, errors };
+    if (rewriter?.updatedInput !== undefined) {
+      const args = this.deps.views.argsFrom(call, rewriter.format, rewriter.updatedInput);
+      if (typeof args === "string") {
+        console.warn(`[hooks] ${label(rewriter.source)} rewrote a call this engine cannot run as rewritten: ${args}`);
+        return {
+          ...base,
+          decision: "deny",
+          leased: false,
+          reason: `A hook rewrote this call in a way it cannot run as rewritten (${args}), so the call was refused.`,
+        };
+      }
+      return { ...base, decision: decider.decision === "defer" ? "ask" : decider.decision, reason: decider.reason ?? "", updatedArgs: args };
+    }
+    return { ...base, decision: decider.decision === "defer" ? "ask" : decider.decision, reason: decider.reason ?? "" };
   }
 
   /** Run one handler, the plugin's tree verified first, in a span. */
-  private async runOne(
-    entry: HookEntry,
-    handler: HookHandler,
-    event: HookEvent,
-    view: ToolView,
-    call: HookToolCall,
-    scope: HookCallScope,
-    response?: unknown,
-  ): Promise<HookRunResult> {
+  private async runOne(run: Run): Promise<HookRunResult> {
+    const { entry, handler } = run;
     const { source } = entry;
-    const command = this.commandOf(source, handler);
+    const command: HookCommand | string = entry.format === "cursor"
+      ? cursorCommand(source, handler, this.ctx)
+      : claudeCommand(source, handler, this.ctx);
     if (typeof command === "string") {
       return { exitCode: null, stdout: "", stderr: "", timedOut: false, spawnError: command };
     }
@@ -270,26 +325,13 @@ export class HookEvaluator {
       return { exitCode: 2, stdout: "", stderr: reason, timedOut: false };
     }
 
-    const stdin = JSON.stringify({
-      session_id: this.deps.sessionId,
-      transcript_path: "",
-      cwd: this.deps.workspaceRoot,
-      permission_mode: this.deps.permissionMode,
-      hook_event_name: event,
-      tool_name: view.toolName,
-      tool_input: view.toolInput,
-      tool_use_id: call.id,
-      ...(view.mcpServer ? { mcp_server: view.mcpServer } : {}),
-      ...(scope.subAgent ? { agent_id: scope.subAgent.id, agent_type: scope.subAgent.type } : {}),
-      ...(event === "PostToolUse" ? { tool_response: response } : {}),
-    });
-
     const span = trace.getTracer(TRACER_NAME).startSpan(SPAN_HOOK_RUN, {
       attributes: {
         "stigmer.hook.source": label(source),
-        "stigmer.hook.event": event,
+        "stigmer.hook.format": entry.format,
+        "stigmer.hook.event": run.event,
         "stigmer.hook.matcher": entry.matcher,
-        "stigmer.hook.tool": view.toolName,
+        "stigmer.hook.tool": run.tool,
       },
     });
     const started = performance.now();
@@ -297,10 +339,10 @@ export class HookEvaluator {
       const result = await this.run(
         {
           ...command,
-          timeoutSeconds: handler.timeoutSeconds > 0 ? handler.timeoutSeconds : DEFAULT_HOOK_TIMEOUT_SECONDS,
+          timeoutSeconds: handler.timeoutSeconds > 0 ? handler.timeoutSeconds : defaultTimeoutSeconds(entry.format),
           cwd: this.deps.workspaceRoot,
-          env: this.envOf(source),
-          stdin,
+          env: entry.format === "cursor" ? cursorEnv(source, this.ctx) : claudeEnv(source, this.ctx),
+          stdin: JSON.stringify(run.stdin),
         },
         {
           ...(this.deps.signal ? { signal: this.deps.signal } : {}),
@@ -318,45 +360,6 @@ export class HookEvaluator {
     } finally {
       span.end();
     }
-  }
-
-  /** The command and arguments to spawn, placeholders substituted; a string says why it cannot run. */
-  private commandOf(
-    source: HookSource,
-    handler: HookHandler,
-  ): { readonly command: string; readonly args: readonly string[] | null } | string {
-    const execForm = handler.args.length > 0;
-    if (!execForm && handler.command.includes("${user_config.")) {
-      return "a shell-form command cannot reference ${user_config.*}; pass the value in args (exec form)";
-    }
-    const substitute = (value: string): string => {
-      let out = value.replaceAll("${CLAUDE_PROJECT_DIR}", this.deps.workspaceRoot);
-      if (source.root !== "") {
-        out = out.replaceAll("${CLAUDE_PLUGIN_ROOT}", source.root).replaceAll("${CLAUDE_PLUGIN_DATA}", source.data);
-      }
-      if (execForm) {
-        out = out.replace(USER_CONFIG_REFERENCE, (match, key: string) => source.options.get(key) ?? match);
-      }
-      return out;
-    };
-    return {
-      command: substitute(handler.command),
-      args: execForm ? handler.args.map(substitute) : null,
-    };
-  }
-
-  private envOf(source: HookSource): Record<string, string> {
-    const env: Record<string, string> = { ...this.deps.baseEnv, CLAUDE_PROJECT_DIR: this.deps.workspaceRoot };
-    if (source.root !== "") {
-      env["CLAUDE_PLUGIN_ROOT"] = source.root;
-      env["CLAUDE_PLUGIN_DATA"] = source.data;
-      env["PLUGIN_ROOT"] = source.root;
-      // Python would otherwise write `__pycache__` into the plugin's tree,
-      // which the tamper guard then rebuilds before every later run.
-      env["PYTHONDONTWRITEBYTECODE"] = "1";
-    }
-    for (const [key, value] of source.options) env[`CLAUDE_PLUGIN_OPTION_${key.toUpperCase()}`] = value;
-    return env;
   }
 }
 

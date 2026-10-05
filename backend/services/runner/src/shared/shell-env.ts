@@ -1,5 +1,6 @@
 /**
- * Shell environment for the native harness `execute` tool.
+ * The agent shell's environment, and what an agent's hooks run with: the
+ * native harness's `execute` tool, and both engines' hooks (`hooks/setup.ts`).
  *
  * Two halves. The base is the runner's own process env minus the runner's
  * credentials: since #508's boot capture, runner secrets never LIVE in
@@ -26,11 +27,11 @@
  * now, not at process start.
  */
 
-import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
-import { filterEnvToDeclaredKeys } from "../../shared/placeholder-resolver.js";
-import { RUNNER_SECRET_ENV_KEYS } from "../../shared/runner-credential-keys.js";
-import { GITHUB_TOKEN_KEY } from "../../shared/workspace/sources/git.js";
-import type { ProvisionResult } from "../../shared/workspace/types.js";
+import type { ResolvedMcpServer } from "./mcp-resolver.js";
+import { filterEnvToDeclaredKeys } from "./placeholder-resolver.js";
+import { RUNNER_SECRET_ENV_KEYS } from "./runner-credential-keys.js";
+import { GITHUB_TOKEN_KEY } from "./workspace/sources/git.js";
+import type { ProvisionResult } from "./workspace/types.js";
 
 /**
  * Runner-internal keys that must never reach agent shell commands: every

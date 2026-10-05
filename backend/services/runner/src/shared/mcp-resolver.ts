@@ -70,7 +70,7 @@ export interface ResolvedMcpServer {
   /**
    * Every run value this server claims: the keys its `spec.env` declares
    * and its OAuth token's target variable. The agent's shell never
-   * receives one (activities/execute-deep-agent/shell-env.ts), even though
+   * receives one (shared/shell-env.ts), even though
    * agent save copies them into the agent's own `env`. REQUIRED for the
    * same reason as {@link destructiveTools}: a synthesized server declares
    * none and says so.
