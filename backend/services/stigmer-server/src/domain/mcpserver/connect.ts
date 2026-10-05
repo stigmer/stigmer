@@ -46,6 +46,7 @@ import { resolveDeclaredFromPersonalEnvironment } from "../environment/personal.
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import {
   failedPreconditionError,
@@ -289,6 +290,7 @@ export async function connect(
     identity,
     input,
   );
+  refuseBoundElsewhere(identity, input.org);
 
   const engineState = deps.engineState();
   if (!engineState.connected) {
@@ -478,6 +480,10 @@ export async function prepareConnect(
 ): Promise<PreparedConnect> {
   const mcpServerId = mcpServer.metadata?.id ?? "";
   const callerOrg = input.org;
+  // The connect resolves the caller's environment and grant in this
+  // organization and files its context there: a credential bound to
+  // another may not (refuse-bound-elsewhere.ts).
+  refuseBoundElsewhere(identity, callerOrg);
 
   // Pre-flight: refresh expired OAuth tokens before env resolution. Only
   // applies when runtime_env is empty and the MCP server has an auth

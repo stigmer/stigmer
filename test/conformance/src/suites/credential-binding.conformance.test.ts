@@ -36,7 +36,12 @@ import {
   API_KEY_KIND,
   plaintextKeyOf,
 } from "../support/apikeys";
+import { makeAgent } from "../support/agents";
+import { makeAgentExecution } from "../support/agentexecutions";
 import { makeEnvironment } from "../support/environments";
+import { makeMcpServer } from "../support/mcpservers";
+import { makeWorkflow } from "../support/workflows";
+import { makeWorkflowExecution } from "../support/workflowexecutions";
 import { organizationRole, policyTriple, ref } from "../support/iampolicies";
 import { uniqueName } from "../support/naming";
 import {
@@ -57,6 +62,8 @@ import {
 // PERMISSION_DENIED cannot stand in for the binding's.
 const BOUND_CREDENTIAL_CREATES_NO_ORGANIZATION_MESSAGE =
   "this credential is limited to one organization and cannot create another; sign in as yourself to create an organization";
+const BOUND_ELSEWHERE_MESSAGE =
+  "this credential is bound to another organization";
 const API_KEY_BOUND_ELSEWHERE_MESSAGE =
   "this credential is limited to one organization, so it can only create API keys limited to that organization";
 
@@ -406,6 +413,95 @@ describe("credential binding — a credential that names an organization works t
       Code.NotFound,
       "the key limited to A that the limited key deleted",
     );
+  });
+
+  it("[rpc:WorkflowExecutionCommandController.create] a key limited to A files no run and opens no connect in B, even with A's own workflow, agent or MCP server", async (ctx) => {
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
+    const a = await tenancy(on);
+    const b = await tenancy(on);
+    const person = await on.provisionMember(a);
+    await on.clients.iamPolicyCommand.create(
+      organizationRole(await on.accountIdOf(person), "member", b.org),
+    );
+    const key = await keyOf(on, person, a.org);
+    const orgVisible = { visibility: ApiResourceVisibility.visibility_org };
+
+    const workflowInput = makeWorkflow({
+      org: a.org,
+      name: uniqueName("binding-wf"),
+    });
+    const workflow = await on.clients.workflowCommand.create({
+      ...workflowInput,
+      metadata: { ...workflowInput.metadata, ...orgVisible },
+    });
+    fixtures.defer(() =>
+      on.clients.workflowCommand.delete({ value: workflow.metadata?.id ?? "" }),
+    );
+    const agentInput = makeAgent({
+      org: a.org,
+      name: uniqueName("binding-agent"),
+    });
+    const agent = await on.clients.agentCommand.create({
+      ...agentInput,
+      metadata: { ...agentInput.metadata, ...orgVisible },
+    });
+    fixtures.defer(() =>
+      on.clients.agentCommand.delete({ value: agent.metadata?.id ?? "" }),
+    );
+    const serverInput = makeMcpServer({
+      org: a.org,
+      name: uniqueName("binding-mcp"),
+    });
+    const server = await on.clients.mcpServerCommand.create({
+      ...serverInput,
+      metadata: { ...serverInput.metadata, ...orgVisible },
+    });
+    fixtures.defer(() =>
+      on.clients.mcpServerCommand.delete({
+        resourceId: server.metadata?.id ?? "",
+      }),
+    );
+
+    const workflowRun = await expectGrpcCode(
+      () =>
+        key.clients.workflowExecutionCommand.create(
+          makeWorkflowExecution({
+            org: b.org,
+            name: uniqueName("binding-wex"),
+            workflowId: workflow.metadata?.id ?? "",
+          }),
+        ),
+      Code.PermissionDenied,
+      "file a workflow run in B through a key limited to A",
+    );
+    expect(workflowRun.rawMessage).toBe(BOUND_ELSEWHERE_MESSAGE);
+
+    const agentRun = await expectGrpcCode(
+      () =>
+        key.clients.agentExecutionCommand.create(
+          makeAgentExecution({
+            org: b.org,
+            name: uniqueName("binding-aex"),
+            agentId: agent.metadata?.id ?? "",
+            message: "Say hello.",
+          }),
+        ),
+      Code.PermissionDenied,
+      "file an agent run in B through a key limited to A",
+    );
+    expect(agentRun.rawMessage).toBe(BOUND_ELSEWHERE_MESSAGE);
+
+    const connect = await expectGrpcCode(
+      () =>
+        key.clients.mcpServerCommand.connect({
+          mcpServerId: server.metadata?.id ?? "",
+          org: b.org,
+        }),
+      Code.PermissionDenied,
+      "connect in B through a key limited to A",
+    );
+    expect(connect.rawMessage).toBe(BOUND_ELSEWHERE_MESSAGE);
   });
 
   it("[rpc:ApiKeyCommandController.create] a key can be limited only to an organization its owner can view", async (ctx) => {

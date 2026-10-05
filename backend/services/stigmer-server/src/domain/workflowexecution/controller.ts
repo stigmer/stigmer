@@ -83,6 +83,7 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { newRefuseBoundElsewhereStep } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
@@ -291,6 +292,7 @@ async function createExecution(
         deps.authorizer,
       ),
     )
+    .addStep(newRefuseBoundElsewhereStep())
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())

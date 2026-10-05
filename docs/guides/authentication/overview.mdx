@@ -35,8 +35,9 @@ Organization ID or slug. A limited key:
 
 - Works in that Organization only, and is refused with `PERMISSION_DENIED` in
   every other Organization, whatever roles its owner holds there
-- Cannot create an Organization, and can create, change or delete only keys
-  limited to the same Organization
+- Cannot create an Organization, and can create, read, change or delete only
+  keys limited to the same Organization (its key list still names its owner's
+  other keys)
 - Can only be limited to an Organization its owner can view, and keeps that
   limit for life: `bound_org` is fixed at create
 

@@ -55,6 +55,7 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
+import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { ChannelRuntime } from "./channel-runtime.js";
 import {
   CONVERSATION_PARTICIPATION_UNAVAILABLE_MESSAGE,
@@ -124,8 +125,12 @@ export function registerChannelConversationServices(
 
   const { conversations } = channelRuntime;
   router.service(ChannelConversationQueryController, {
-    listConversations: (input, ctx) =>
-      conversations.listConversations(input, callerIdentityOf(ctx)),
+    // A credential bound to one organization lists no other's
+    // conversations (refuse-bound-elsewhere.ts); the runtime decides the rest.
+    listConversations: (input, ctx) => {
+      refuseBoundElsewhere(callerIdentityOf(ctx), input.org);
+      return conversations.listConversations(input, callerIdentityOf(ctx));
+    },
     getConversation: (input, ctx) =>
       conversations.getConversation(input, callerIdentityOf(ctx)),
     getTimeline: (input, ctx) =>

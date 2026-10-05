@@ -1,6 +1,8 @@
 /**
  * Persist — ports steps/persist.go: saves newState through the store
- * (metadata.id must be set by an earlier step).
+ * (metadata.id must be set by an earlier step). A credential bound to one
+ * organization saves no row filed in another (refuse-bound-elsewhere.ts):
+ * the backstop under every lane's own check.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -8,6 +10,7 @@ import type { Store } from "../../store/interface.js";
 import { internalError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
+import { refuseBoundElsewhere } from "./refuse-bound-elsewhere.js";
 import { metadataOf } from "./shapes.js";
 
 export function newPersistStep<Desc extends DescMessage>(
@@ -26,6 +29,7 @@ export function newPersistStep<Desc extends DescMessage>(
           "persist",
         );
       }
+      refuseBoundElsewhere(ctx.callerIdentity, metadata.org);
       try {
         await store.saveResource(
           ctx.apiResourceKind,

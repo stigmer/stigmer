@@ -44,6 +44,7 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import {
   persistConnectFailure,
@@ -108,6 +109,7 @@ export async function startConnect(
     identity,
     input,
   );
+  refuseBoundElsewhere(identity, input.org);
 
   const engineState = deps.engineState();
   if (!engineState.connected) {
