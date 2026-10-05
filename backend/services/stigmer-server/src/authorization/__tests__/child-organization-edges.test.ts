@@ -11,7 +11,8 @@
  *   - `child_org` names every child the loader answers;
  *   - the loader reads one parent's children once per source, whatever the
  *     number of checks that ask, keeps only the rows that still name the
- *     parent, and reads nothing for an empty id.
+ *     parent, skips a row that is not an organization, and reads nothing
+ *     for an empty id.
  */
 import { create, toBinary } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -66,12 +67,16 @@ describe("the derived organization edges", () => {
 });
 
 describe("the loader's read of an organization's children", () => {
-  it("reads one parent's children once per source, keeps only rows that still name it, and reads nothing for an empty id", async () => {
+  it("reads one parent's children once per source, keeps only rows that still name it, skips a row that is not one, and reads nothing for an empty id", async () => {
     let queries = 0;
     const store = {
       async queryResources() {
         queries += 1;
-        return [childRow("org_c1", "org_p"), childRow("org_moved", "org_q")];
+        return [
+          childRow("org_c1", "org_p"),
+          childRow("org_moved", "org_q"),
+          { id: "org_bad", data: new Uint8Array([0xff, 0xff, 0xff]) },
+        ];
       },
     } as unknown as Store;
     const source = newDerivedTupleSource(

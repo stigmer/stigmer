@@ -68,8 +68,8 @@
  * source derives from the child's `spec.parent_org` and from the
  * organization list index when a check asks (authorization/model/
  * child-organizations.ts) and an edition that stores tuples must write.
- * `onChildOrganizationLinked` hands the driver both, once, after a child
- * persists; the edges never change (`spec.parent_org` is fixed at create)
+ * `onChildOrganizationLinked` hands the driver both, once, just before a
+ * child's row is first stored; the edges never change (`spec.parent_org` is fixed at create)
  * and die with the child's delete cleanup, which removes tuples naming
  * the child on either side.
  *
@@ -230,12 +230,15 @@ export interface DefaultInstanceLinkedEvent {
 }
 
 /**
- * Fired synchronously after a child organization is first persisted and
- * its creation event handled: the driver writes
+ * Fired synchronously once per child organization, immediately before its
+ * row is first persisted (the id is minted, every claim and gate has
+ * passed): the driver writes
  * `organization:<childId>#parent_org@organization:<parentId>` and
- * `organization:<parentId>#child_org@organization:<childId>`. Idempotent;
- * a throw fails the create with the row in place, and a retry of the
- * create (apply) converges.
+ * `organization:<parentId>#child_org@organization:<childId>`. A throw fails
+ * the create with nothing stored. Should the row's own write then fail,
+ * the two edges name an id no row will hold and grant nothing; once the
+ * row is stored, its parent's admins manage it, so a later failure in the
+ * create is theirs to retry (apply) or to delete.
  */
 export interface ChildOrganizationLinkedEvent {
   readonly childId: string;

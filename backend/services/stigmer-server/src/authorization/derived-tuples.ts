@@ -457,8 +457,12 @@ async function loadRow(
 
 /**
  * The ids of an organization's children, through the organization list
- * index: one indexed read, memoised per source by the loader, whatever
- * the number of blueprints a list checks against the same parent.
+ * index: one indexed read of every child, memoised per source by the
+ * loader, whatever the number of blueprints a list checks against the same
+ * parent. A check that walks `child_org` then loads each child's row once
+ * per source to evaluate `viewer` there, so its cost grows with the number
+ * of children. A row that does not decode as an organization is skipped,
+ * as the organization domain's own list skips it.
  */
 async function childOrganizationIds(
   store: Store,
@@ -471,12 +475,17 @@ async function childOrganizationIds(
     anyKey: [{ name: "parent_org", value: organizationId }],
   });
   return rows
-    .filter(
-      (row) =>
-        fromBinary(OrganizationSchema, row.data).spec?.parentOrg ===
-        organizationId,
-    )
+    .filter((row) => parentOrgOfRow(row.data) === organizationId)
     .map((row) => row.id);
+}
+
+/** A stored organization row's `spec.parent_org`; undefined when the bytes are not an organization. */
+function parentOrgOfRow(data: Uint8Array): string | undefined {
+  try {
+    return fromBinary(OrganizationSchema, data).spec?.parentOrg ?? "";
+  } catch {
+    return undefined;
+  }
 }
 
 /**

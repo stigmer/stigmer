@@ -4,9 +4,9 @@
 //
 // A parent organization P creates a child C (`spec.parent_org`, with the
 // parent's own identifier for it, `spec.external_id`). Nobody owns C: P's
-// admins manage it (its settings, members, access, billing) and grant its
-// people, but hold no role in it, so they read none of its sessions,
-// agents or environments. A P admin who needs to look inside grants
+// admins manage it (its settings, members and access), see its billing,
+// and grant its people, but hold no role in it, so they read none of its
+// sessions, agents or environments. A P admin who needs to look inside grants
 // themselves a role in C, which C's access list shows. Everyone in C reads
 // and runs what P shares at visibility_child_orgs; nobody in another
 // parent's child does. A parent with children is not deleted. A
@@ -192,7 +192,7 @@ describe("child organizations — managed by the parent, never read by it", () =
       customer.clients.environmentCommand.delete({ resourceId: environmentId }),
     );
 
-    // Management: settings, members, access, billing's gate.
+    // Management: settings, members, access; billing is read only.
     const settings = await on.clients.organizationQuery.get({ value: child.org });
     expect(settings.metadata?.id).toBe(child.org);
     const updated = await on.clients.organizationCommand.update({

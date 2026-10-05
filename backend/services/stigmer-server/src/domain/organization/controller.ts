@@ -210,8 +210,11 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * claims are released so a retry can take them.
  *
  * A child has no creator owner: the creation event carries NONE
- * (childOwnerAttribution), and LinkChildOrganization then hands an
- * edition that stores tuples the parent and child edges.
+ * (childOwnerAttribution). LinkChildOrganization hands an edition that
+ * stores tuples the parent and child edges just before Persist, after the
+ * claims: a link that fails stores nothing, and a failure after Persist
+ * leaves a child its parent's admins already manage, so a retry (apply)
+ * converges through the update arm.
  *
  * The post-persist gate slot splices after Persist, before IndexSearch —
  * the verified Java OrganizationCreateHandler ordering (FGA tuple
@@ -271,6 +274,7 @@ async function createOrganization(
   builder
     .addStep(newClaimOrganizationSlugStep(deps.store))
     .addStep(newClaimExternalIdStep(deps.store))
+    .addStep(newLinkChildOrganizationStep(deps.authorizationLifecycle))
     .addStep(newPersistStep(deps.store))
     // The tuple steps run BEFORE the post-persist slot, so a unit's
     // post-persist work (a billing account) meets the organization's
@@ -281,8 +285,7 @@ async function createOrganization(
         deps.logger,
         childOwnerAttribution,
       ),
-    )
-    .addStep(newLinkChildOrganizationStep(deps.authorizationLifecycle));
+    );
   // The post-persist gate slot (see the doc comment above for the
   // inherited failure semantics). Empty in OSS.
   for (const step of stepsForSlot<typeof OrganizationSchema>(

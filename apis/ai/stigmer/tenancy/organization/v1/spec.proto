@@ -58,7 +58,8 @@ message OrganizationSpec {
   // Fixed at create: update and apply keep the stored value. Creating a
   // child needs can_manage_child_orgs on the parent, and the parent may not
   // itself be a child (one level). The parent's admins manage the child
-  // (settings, members, access, billing) but read none of its resources;
+  // (settings, members, access) and see its billing, but read none of its
+  // resources;
   // to look inside, one grants themselves a role in the child, which the
   // child's members and access history show. The edge resolver turns a
   // slug into the parent's id, so the stored value is always an id.

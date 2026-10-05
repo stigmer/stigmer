@@ -1603,7 +1603,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
     expect(mine.entries.map((org) => org.metadata?.id)).toEqual(myOrgIds);
   });
 
-  it("a child organization's create fires its creation event with NO owner, then links it to its parent", async () => {
+  it("a child organization's create links it to its parent and fires its creation event with NO owner", async () => {
     const command = createClient(OrganizationCommandController, portTransport);
     createdEvents.length = 0;
     childLinkEvents.length = 0;

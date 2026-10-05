@@ -82,7 +82,8 @@ type organization
     # shared at visibility_child_orgs, which names this userset.
     define child_org_viewer: viewer from child_org
     # The parent's admins, on a child. They manage the child (its
-    # settings, members, access and billing) and read nothing it holds:
+    # settings, members and access), see its billing, and read nothing it
+    # holds:
     # parent_admin feeds the management permissions below and never a
     # role, so no resource type, report or list reaches them. To look
     # inside, a parent admin grants themselves a role in the child, which

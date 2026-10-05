@@ -676,10 +676,10 @@ An admin of a parent organization, as seen from one of its child organizations.
   (`fga/model/tenancy/organization.fga`), which feeds `can_view_settings`,
   `can_edit`, `can_delete`, `can_grant_access`, `can_view_access`,
   `can_assign_roles` and `can_view_billing`, and no role.
-- **Note**: A parent admin manages a child (settings, members, access, billing)
-  and reads nothing it holds. To look inside, they join the child as a member,
-  which its member list and access history show; nothing impersonates a child's
-  user.
+- **Note**: A parent admin manages a child (settings, members, access), sees its
+  billing, and reads nothing it holds. To look inside, they join the child as a
+  member, which its member list and access history show; nothing impersonates a
+  child's user.
 - **Context rule**: Use in concepts and reference. In how-to, say "your
   Organization's admins" when the reader is the parent.
 

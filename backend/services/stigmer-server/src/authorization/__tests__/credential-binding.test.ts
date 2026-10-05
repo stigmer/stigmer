@@ -394,7 +394,7 @@ describe("the rule, for a caller bound to one organization", () => {
     ).toBe("outside");
   });
 
-  it("lets a credential bound to a parent manage its children's settings, members, access and billing, and read none of their rows", async () => {
+  it("lets a credential bound to a parent manage its children's settings, members and access, see their billing, and read none of their rows", async () => {
     const f = fixture([
       ...ORGANIZATIONS,
       row("session", "ses_child", ALPHA),

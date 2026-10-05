@@ -25,9 +25,12 @@
  *     manage it (`parent_admin`, fga/model/tenancy/organization.fga) and
  *     grant its people; the membership rules skip it
  *     (domain/iampolicy/membership.ts).
- *   - LinkChildOrganization (create, after the creation event): the
- *     lifecycle's `onChildOrganizationLinked`, so an edition that stores
- *     tuples writes both edges. Open source derives them at check time
+ *   - LinkChildOrganization (create, after the claims and just before
+ *     Persist): the lifecycle's `onChildOrganizationLinked`, so an edition
+ *     that stores tuples writes both edges before the row exists. A link
+ *     that fails stores nothing; a failure after Persist leaves a child its
+ *     parent's admins already manage (`parent_admin`), so they can retry
+ *     or delete it. Open source derives the edges at check time
  *     (authorization/model/child-organizations.ts).
  *   - PreserveChildLink (update): `parent_org` and `external_id` stay as
  *     stored; a manifest carries both, so apply is idempotent.
@@ -450,9 +453,12 @@ export async function releaseExternalIdClaimAfterFailure(
 }
 
 /**
- * LinkChildOrganization — after CreateAuthorizationTuples: the lifecycle's
- * child-organization event, for an edition that stores the edges. No
- * driver, or one without the method: nothing to do.
+ * LinkChildOrganization — after the claims, immediately before Persist:
+ * the lifecycle's child-organization event, for an edition that stores the
+ * edges. The edges name the minted id before its row exists, so a failed
+ * link stores nothing; if Persist then fails, the two edges name an id no
+ * row will ever hold and grant nothing. No driver, or one without the
+ * method: nothing to do.
  */
 export function newLinkChildOrganizationStep(
   lifecycle: ResourceAuthorizationLifecycle | undefined,
@@ -527,7 +533,10 @@ export function newPreserveChildLinkStep(): PipelineStep<
 /**
  * RefuseDeletingParent — before the pre-delete slot: an organization that
  * still has children is not deleted. Its children are deleted first, each
- * by its parent's admins or its own owners.
+ * by its parent's admins or its own owners. The check is not serialized
+ * against a child create under the same organization running at the same
+ * moment, which can store a child under a parent this delete then removes
+ * (https://github.com/stigmer/stigmer/issues/1917).
  */
 export function newRefuseDeletingParentStep<Desc extends DescMessage>(
   store: Store,
