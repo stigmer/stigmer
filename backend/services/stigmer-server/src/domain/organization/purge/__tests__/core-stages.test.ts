@@ -11,13 +11,16 @@
  *     faults; every session's and workflow run's sandbox is torn down; the
  *     side-store records of the organization go and another's stay;
  *   - content: kind purges in order, one batch of the first with rows left;
- *   - children: waits while a child row names the organization;
+ *   - children: waits while a child row names the organization, deleting
+ *     with it a child no delete marked and leaving a pending child's
+ *     delete to it;
  *   - quiesce reads every page of runs, terminates both workflows of a
  *     workflow run that may still be live (a run the engine no longer
  *     holds is fine, any other engine fault fails the stage, and with the
  *     engine unreachable it faults), and tears down every workflow run's
  *     sandbox;
- *   - final: the policy rows, the lifecycle's organization event, the row,
+ *   - final: its sweeps (quiesce and content again) to their end first;
+ *     then the policy rows, the lifecycle's organization event, the row,
  *     its slug and its mark go, in that order relative to the mark; a
  *     row already gone still ends with the slug and the mark released; a
  *     row that cannot be read fails the stage.
@@ -351,6 +354,22 @@ describe("the children stage", () => {
     await store.deleteResource(ApiResourceKind.organization, OTHER);
     expect(await stage.run(context)).toEqual({ more: false });
   });
+
+  it("deletes a child no delete marked with its parent, and leaves a pending child's delete to it", async () => {
+    const PENDING = "org_01kpendingpendingpendingpen";
+    for (const child of [OTHER, PENDING]) {
+      await store.saveResource(
+        ApiResourceKind.organization,
+        child,
+        OrganizationSchema,
+        create(OrganizationSchema, { metadata: { id: child, name: child }, spec: { parentOrg: ORG } }),
+      );
+    }
+    await store.organizationDeletions.mark(PENDING, new Date().toISOString());
+    await newChildrenStage(store).run(context);
+    expect((await store.organizationDeletions.get(OTHER))?.phase).toBe("accepted");
+    expect((await store.organizationDeletions.get(PENDING))?.phase).toBe("pending");
+  });
 });
 
 describe("the final stage", () => {
@@ -431,6 +450,32 @@ describe("the final stage", () => {
     await stage.run(context);
     expect(await store.deleteSearchIndexByOrg(ORG)).toBe(0);
     expect((await store.listScheduleRuns("sch_left", 0, 0)).total).toBe(0);
+  });
+
+  it("runs its sweeps to their end before anything final", async () => {
+    const order: string[] = [];
+    const answers = [true, true, false];
+    const stage = newFinalStage({
+      store,
+      logger: silentLogger,
+      grantPath: {
+        async cleanupResource() {
+          order.push("policies");
+        },
+      } as unknown as IamPolicyGrantPath,
+      lifecycle: undefined,
+      sweepFirst: [
+        {
+          name: "content-again",
+          async run() {
+            order.push("sweep");
+            return { more: answers.shift() ?? false };
+          },
+        },
+      ],
+    });
+    await stage.run(context);
+    expect(order).toEqual(["sweep", "sweep", "sweep", "policies"]);
   });
 
   it("finishes when the row is already gone", async () => {

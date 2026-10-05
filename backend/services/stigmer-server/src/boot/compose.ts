@@ -1505,20 +1505,22 @@ export async function composeServer(
     accounts: identityAccounts,
     accountLifecycle: roleLifecycle,
   });
+  const purgeQuiesce = newQuiesceStage({
+    store,
+    logger,
+    schedulePurge: corePurges.quiesce,
+    agentEngine: executionEngineState,
+    workflowEngine: workflowExecutionEngineState,
+    sandboxLane,
+  });
+  const purgeContent = newContentStage(corePurges.content);
   const organizationPurge = new OrganizationPurgeRunner({
     store,
     logger,
     stages: orderOrganizationPurgeStages({
-      quiesce: newQuiesceStage({
-        store,
-        logger,
-        schedulePurge: corePurges.quiesce,
-        agentEngine: executionEngineState,
-        workflowEngine: workflowExecutionEngineState,
-        sandboxLane,
-      }),
+      quiesce: purgeQuiesce,
       units: extensions.orgPurge,
-      content: newContentStage(corePurges.content),
+      content: purgeContent,
       shred: newShredStage(secretService),
       children: newChildrenStage(store),
       final: newFinalStage({
@@ -1526,6 +1528,8 @@ export async function composeServer(
         logger,
         grantPath: iamPolicyGrantPath,
         lifecycle: roleLifecycle,
+        // A row a racing create stored after its kind's purge passed.
+        sweepFirst: [purgeQuiesce, purgeContent],
       }),
     }),
   });

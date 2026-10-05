@@ -56,7 +56,7 @@ export function newWorkflowExecutionPurge(
   });
 }
 
-/** DeleteExecutionEvents — the execution's event log, after its row. */
+/** DeleteExecutionEvents — the execution's event log, before its row (the row is how a retry finds it). */
 function newDeleteExecutionEventsStep(
   store: Pick<Store, "deleteWorkflowExecutionEvents">,
 ): PipelineStep<DeleteInput> {

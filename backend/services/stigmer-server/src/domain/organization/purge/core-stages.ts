@@ -23,8 +23,13 @@
  *              deployment, so there it destroys nothing.
  *   children — waits until no organization names this one as its parent:
  *              a parent may be deleted once every child is being deleted,
- *              and its purge finishes after theirs.
- *   final    — the organization's policy rows (failing closed), the
+ *              and its purge finishes after theirs. A child no delete has
+ *              marked (left by a fault in its create's re-read of the
+ *              parent, or by a stale mark cleared) is marked here, since
+ *              it cannot outlive its parent.
+ *   final    — first quiesce and content again, to their end, for a row a
+ *              create stored after its kind's purge had passed; then
+ *              the organization's policy rows (failing closed), the
  *              composed lifecycle's organization arm, a sweep of the
  *              search entries and fire-ledger rows that name it (the kind
  *              purges' own removals of those log a fault and go on), the
@@ -303,9 +308,24 @@ export function newChildrenStage(store: Store): OrganizationPurgeStage {
     async run(context) {
       const children = await store.queryResources(organizationListIndex, {
         anyKey: [{ name: "parent_org", value: context.org.id }],
-        limit: 1,
       });
-      return children.length === 0 ? DONE : { more: true, wait: true };
+      if (children.length === 0) {
+        return DONE;
+      }
+      // A child no delete has marked can sit under a parent whose purge
+      // runs only after a fault (its create's re-read of the parent failed
+      // after its row landed, or its own delete's mark was cleared as
+      // stale). It cannot outlive its parent, so it is deleted with it, as
+      // the create's re-read would have done; a child whose own delete is
+      // pending is left to that delete.
+      const now = new Date().toISOString();
+      for (const child of children) {
+        if (!(await store.organizationDeletions.isDeleting(child.id))) {
+          await store.organizationDeletions.mark(child.id, now);
+          await store.organizationDeletions.accept(child.id, now);
+        }
+      }
+      return { more: true, wait: true };
     },
   };
 }
@@ -316,12 +336,24 @@ export interface FinalStageDeps {
   readonly grantPath: IamPolicyGrantPath;
   /** The organization's lifecycle (the composed driver, or open source's role lifecycle). */
   readonly lifecycle: ResourceAuthorizationLifecycle | undefined;
+  /**
+   * Stages run again, to their end, before anything final (quiesce and
+   * content): a create that passed every check before the mark and stored
+   * its row after the content stage passed its kind, or a run that started
+   * after quiesce, is removed before the mark goes.
+   */
+  readonly sweepFirst?: ReadonlyArray<OrganizationPurgeStage>;
 }
 
 export function newFinalStage(deps: FinalStageDeps): OrganizationPurgeStage {
   return {
     name: FINAL_STAGE,
     async run(context) {
+      for (const sweep of deps.sweepFirst ?? []) {
+        while ((await sweep.run(context)).more) {
+          // A batch at a time, as the runner would run it.
+        }
+      }
       const id = context.org.id;
       const organization =
         (await loadOrganization(deps.store, id)) ??

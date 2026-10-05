@@ -15,10 +15,9 @@
  * when no remaining artifact row names its hash, answered through the
  * artifact list index's `blob` key (list-index.ts). Rows are removed one
  * at a time, so the last of an organization's artifacts sharing a blob
- * removes it. A create of the same bytes elsewhere that uploads between
- * the check and the delete and stores its row after it would lose its blob
- * (a download answers that the blob is gone); the window is one store
- * round trip, and the create's upload is the cue to re-upload.
+ * removes it. A create of the same bytes elsewhere races the count; the
+ * step below and the create close it from both sides (DeleteUnsharedBlob
+ * says how).
  */
 import type { MessageShape } from "@bufbuild/protobuf";
 
