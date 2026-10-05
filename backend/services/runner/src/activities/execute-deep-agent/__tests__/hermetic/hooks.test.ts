@@ -26,6 +26,11 @@
  * Claude's `defer` re-fires PreToolUse), asks again, and the stored decision
  * answers it; the publish runs; COMPLETED. Every row says the hook decided.
  *
+ * "Approve all" on the hook's card leases that hook's asks on that tool and
+ * nothing wider: the approved row keeps HOOK on resume (a person decided it),
+ * so the next turn derives the hook lease, a later ask of the hook runs as
+ * the lease, and the shell default still asks before a call the hook passes.
+ *
  * Two refusals settle as the tool lists' does, EXECUTION_FAILED on the
  * actionable surface with their own sentence: a referenced plugin that cannot
  * be read, and a hook that reads a variable the run does not give the agent.
@@ -38,7 +43,7 @@ import { createHash } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create, toJson } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
-import { AgentExecutionStatusSchema, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentExecutionSchema, AgentExecutionStatusSchema, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   ApprovalAction,
@@ -65,6 +70,7 @@ import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fix
 import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../../__test-utils__/hermetic-deep-agent.js";
 import type { ScriptedToolCall } from "../../__test-utils__/scripted-model.js";
 import { CLOSING_TURN } from "../../__test-utils__/hitl-script.js";
+import { deriveActiveLeases, hookLeaseKey } from "../../../../shared/approval-policy.js";
 
 const GUARD = `#!/usr/bin/env bash
 input=$(cat)
@@ -200,6 +206,68 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect(getPluginArtifact).toHaveBeenCalledTimes(1);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
     await expect(statusJson(final)).toMatchFileSnapshot("./goldens/hooks.turn2.status.json");
+  });
+
+  it("approve all on the hook's card leases that hook's asks, never the whole shell", async () => {
+    clock.reset();
+    const record = deepAgentExecutionRecord({
+      message: "Publish twice, then show where you are.",
+      hooks: [create(HookSourceSchema, {
+        source: { case: "plugin", value: create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "safety" }) },
+      })],
+    });
+    const again: ScriptedToolCall = { id: "call-hooks-publish-again", name: "execute", args: { command: "echo publish again" } };
+    const where: ScriptedToolCall = { id: "call-hooks-where", name: "execute", args: { command: "pwd" } };
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      checkpointer: "sqlite",
+      clientOverrides: {
+        getPluginByReference: vi.fn(async () => SAFETY),
+        getPluginArtifactDownloadUrl: vi.fn(async () => {
+          throw new ConnectError("no download lane", Code.Unimplemented);
+        }),
+        getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE })),
+      },
+      script: () => ({
+        turns: [
+          { text: "Publishing.", toolCalls: [PUBLISH], usage: { inputTokens: 1_600, outputTokens: 40 } },
+          { text: "Publishing again.", toolCalls: [again], usage: { inputTokens: 1_700, outputTokens: 40 } },
+          { text: "Showing where I am.", toolCalls: [where], usage: { inputTokens: 1_800, outputTokens: 40 } },
+          CLOSING_TURN,
+        ],
+      }),
+    });
+    const row = (status: AgentExecutionStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+
+    await runDeepAgentTurn(scenario, { turnSeq: 0 });
+    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE_ALL, "2026-01-01T00:00:30.000Z")).toBe(1);
+
+    await runDeepAgentTurn(scenario, { turnSeq: 1 });
+    expect(record.persistedPhases.at(-1), "the shell default still asks before pwd").toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    const status = record.lastFullStatus!;
+
+    const approved = row(status, PUBLISH.id);
+    expect(approved.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect([approved.approvalPolicySource, approved.approvalPolicyHook, approved.approvalAction]).toEqual([
+      ApprovalPolicySource.HOOK, "safety", ApprovalAction.APPROVE_ALL,
+    ]);
+
+    const leased = row(status, again.id);
+    expect(leased.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(leased.requiresApproval).toBe(false);
+    expect([leased.approvalPolicySource, leased.approvalPolicyHook]).toEqual([ApprovalPolicySource.APPROVAL_LEASE, "safety"]);
+
+    const held = row(status, where.id);
+    expect(held.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(held.approvalPolicySource).toBe(ApprovalPolicySource.BUILTIN_CATEGORY);
+
+    const leases = deriveActiveLeases(create(AgentExecutionSchema, { status }));
+    expect([...leases.categories]).toEqual([]);
+    expect([...leases.servers]).toEqual([]);
+    expect([...leases.hooks]).toEqual([hookLeaseKey("safety", "", "execute")]);
   });
 
   it("refuses the turn, naming the plugin, when an agent's plugin cannot be read", async () => {

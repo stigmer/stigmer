@@ -123,6 +123,7 @@ import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agen
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import {
+  ApprovalAction,
   MessageType,
   SubAgentStatus,
   ToolCallStatus,
@@ -554,7 +555,11 @@ export class TranscriptBuilder {
   /**
    * A hook's provenance for a call that runs (`ToolPolicyEvent`): stamped on
    * the row now, or held until the row opens, so it outranks whatever its
-   * `tool_started` said in either order.
+   * `tool_started` said in either order. A row a person already decided
+   * keeps the provenance that asked them, as a re-emitted start does: on
+   * resume the hook runs again and an "approve all" it just leased answers
+   * it, and re-stamping that as the lease would make the next turn read the
+   * row as the tool's whole category or server instead of the hook.
    */
   private handleToolPolicy(scope: Transcript, event: ToolPolicyEvent): void {
     const existing = scope.toolCalls.get(event.callId);
@@ -562,6 +567,7 @@ export class TranscriptBuilder {
       this.pendingPolicies.set(event.callId, event);
       return;
     }
+    if (existing.approvalAction !== ApprovalAction.UNSPECIFIED) return;
     stampProvenance(existing, event.provenance, event.policyHook);
     this._dirty = true;
   }
