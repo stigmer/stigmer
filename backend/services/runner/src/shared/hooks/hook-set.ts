@@ -35,6 +35,11 @@ export type HookEvent = "PreToolUse" | "PostToolUse";
 
 const RUN_EVENTS: ReadonlySet<string> = new Set<HookEvent>(["PreToolUse", "PostToolUse"]);
 
+/** Whether this runner runs a group of this event. */
+export function isRunEvent(event: string): event is HookEvent {
+  return RUN_EVENTS.has(event);
+}
+
 /** Where one entry's hooks come from, and what their commands run with. */
 export interface HookSource {
   /** The plugin's slug; `""` for the agent's own hooks block. */
@@ -74,7 +79,7 @@ export class HookSet {
     const entries: HookEntry[] = [];
     sources.forEach(({ source, groups }, order) => {
       for (const group of groups) {
-        if (!RUN_EVENTS.has(group.event) || group.handlers.length === 0) continue;
+        if (!isRunEvent(group.event) || group.handlers.length === 0) continue;
         entries.push({
           source,
           order,

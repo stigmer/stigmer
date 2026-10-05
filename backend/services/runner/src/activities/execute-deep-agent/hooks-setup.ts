@@ -26,7 +26,7 @@ import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecuti
 import type { TurnInput, TurnSink } from "../../harness/types.js";
 import { normalizeWorkspacePathArg } from "../../middleware/path-normalization.js";
 import { HookEvaluator, type HookPermissionMode } from "../../shared/hooks/evaluate.js";
-import { HookSet, userConfigKeys, type HookSourceGroups } from "../../shared/hooks/hook-set.js";
+import { HookSet, isRunEvent, userConfigKeys, type HookSourceGroups } from "../../shared/hooks/hook-set.js";
 import { activityPulseFor, HOOK_SHELL } from "../../shared/hooks/run.js";
 import { NativeToolViews } from "../../shared/hooks/tool-view.js";
 import { buildShellEnv, shellRunValues } from "./shell-env.js";
@@ -57,14 +57,25 @@ export async function buildHookEvaluator(
   );
 
   const sources: HookSourceGroups[] = input.hooks.sources.map(({ plugin, groups }) => {
+    const who = plugin === null ? "A hook in the agent's own hooks block" : `A hook of the plugin '${plugin.slug}'`;
+    const handlers = groups.filter((group) => isRunEvent(group.event)).flatMap((group) => group.handlers);
+    if (handlers.some((handler) => handler.args.length === 0 && handler.command.includes("${user_config."))) {
+      throw new HookSetupError(
+        `${who} reads \${user_config.*} in a command that runs in ${HOOK_SHELL}, where the value is not substituted. ` +
+          "Pass it in args (exec form), then run again.",
+      );
+    }
     const options = new Map<string, string>();
-    for (const key of groups.flatMap((group) => group.handlers.flatMap(userConfigKeys))) {
+    for (const key of handlers.flatMap(userConfigKeys)) {
       const value = values[key];
       if (value === undefined) {
+        const claimant = input.mcp.servers.find((server) => server.declaredEnvKeys.includes(key));
         throw new HookSetupError(
-          `${plugin === null ? "A hook in the agent's own hooks block" : `A hook of the plugin '${plugin.slug}'`} ` +
-            `reads the variable ${key}, which this run does not give the agent. ` +
-            `Declare ${key} in the agent's env and set its value, then run again.`,
+          claimant === undefined
+            ? `${who} reads the variable ${key}, which this run does not give the agent. ` +
+                `Declare ${key} in the agent's env and set its value, then run again.`
+            : `${who} reads the variable ${key}, which this run keeps for its MCP server '${claimant.slug}' ` +
+                "and gives neither the agent's shell nor its hooks. Give the hook a variable of its own, then run again.",
         );
       }
       options.set(key, value);

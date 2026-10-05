@@ -11,7 +11,9 @@
  * The command gets its own process group, and the whole group is killed when
  * its timeout passes or the turn is stopped, so a hook that forks cannot
  * keep its call waiting. A child it leaves running after it exits by itself
- * is left alone: a hook may start a helper on purpose. A timed-out or failed command answers no decision; what it
+ * is left alone (a hook may start a helper on purpose), and its answer is
+ * the command's: the runner settles {@link EXIT_DRAIN_MS} after the command
+ * exits even when a helper still holds the output pipes. A timed-out or failed command answers no decision; what it
  * printed is kept for the log.
  *
  * While the command lives, `onPulse` is called every `pulseMs` (at most
@@ -28,6 +30,13 @@ export const DEFAULT_HOOK_TIMEOUT_SECONDS = 600;
 
 /** The most of each output stream kept; the rest is dropped. */
 export const OUTPUT_CAP_BYTES = 1024 * 1024;
+
+/**
+ * How long the runner keeps reading a command's output after the command
+ * exits. A helper it started in the background may hold the pipes open for
+ * as long as it lives; the command's own answer is written by then.
+ */
+export const EXIT_DRAIN_MS = 250;
 
 /** How often, at most, a running hook reports that the turn is alive. */
 export const ACTIVITY_PULSE_MS = 30_000;
@@ -132,9 +141,22 @@ export const runHookProcess: HookProcessRunner = (spec, options) =>
     child.on("error", (err) => {
       finish({ exitCode: null, stdout: stdout.text(), stderr: stderr.text(), timedOut, spawnError: err.message });
     });
-    child.on("close", (code) => {
-      finish({ exitCode: timedOut ? null : code, stdout: stdout.text(), stderr: stderr.text(), timedOut });
+    let exitCode: number | null = null;
+    let drain: NodeJS.Timeout | undefined;
+    const settle = (): void => {
+      if (drain) clearTimeout(drain);
+      finish({ exitCode: timedOut ? null : exitCode, stdout: stdout.text(), stderr: stderr.text(), timedOut });
+    };
+    child.on("exit", (code) => {
+      exitCode = code;
+      // A background helper may keep the pipes open; stop reading soon after.
+      drain = setTimeout(() => {
+        child.stdout.destroy();
+        child.stderr.destroy();
+        settle();
+      }, EXIT_DRAIN_MS);
     });
+    child.on("close", settle);
 
     // A command that never reads its input closes the pipe first; that is not a failure.
     child.stdin.on("error", () => undefined);

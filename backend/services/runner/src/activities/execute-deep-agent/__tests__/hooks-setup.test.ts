@@ -18,6 +18,7 @@ import { HookGroupSchema, HookHandlerSchema, type HookGroup } from "@stigmer/pro
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import type { TurnHookSource, TurnInput } from "../../../harness/types.js";
+import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import type { MountedPlugin } from "../../../shared/plugin-mount.js";
 import { buildHookEvaluator, HookSetupError, permissionModeOf } from "../hooks-setup.js";
 
@@ -74,6 +75,39 @@ describe("buildHookEvaluator", () => {
     );
     const own = input([{ plugin: null, groups: groups({ command: "check", args: ["${user_config.X}"] }) }]);
     await expect(buildHookEvaluator(own, sink, tools, 180_000)).rejects.toThrow("A hook in the agent's own hooks block reads the variable X");
+  });
+
+  it("names the MCP server that keeps a variable a hook reads", async () => {
+    const base = input([{ plugin: mounted, groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], {
+      declare: ["API_TOKEN"],
+      values: { API_TOKEN: "t" },
+    });
+    const server = { slug: "github", declaredEnvKeys: ["API_TOKEN"] } as Partial<ResolvedMcpServer> as ResolvedMcpServer;
+    const claimed: TurnInput = { ...base, mcp: { ...base.mcp, servers: [server] } };
+    await expect(buildHookEvaluator(claimed, sink, tools, 180_000)).rejects.toThrow(
+      new HookSetupError(
+        "A hook of the plugin 'safety' reads the variable API_TOKEN, which this run keeps for its MCP server 'github' " +
+          "and gives neither the agent's shell nor its hooks. Give the hook a variable of its own, then run again.",
+      ),
+    );
+  });
+
+  it("refuses a shell-form command that reads user_config, and judges only the events it runs", async () => {
+    const shellForm = input([{ plugin: mounted, groups: groups({ command: "check ${user_config.API_TOKEN}" }) }]);
+    await expect(buildHookEvaluator(shellForm, sink, tools, 180_000)).rejects.toThrow(
+      new HookSetupError(
+        "A hook of the plugin 'safety' reads ${user_config.*} in a command that runs in bash, where the value is not substituted. " +
+          "Pass it in args (exec form), then run again.",
+      ),
+    );
+    const notRun = [create(HookGroupSchema, {
+      event: "Stop",
+      handlers: [
+        create(HookHandlerSchema, { command: "notify ${user_config.WEBHOOK}" }),
+        create(HookHandlerSchema, { command: "notify", args: ["${user_config.WEBHOOK}"] }),
+      ],
+    })];
+    expect(await buildHookEvaluator(input([{ plugin: mounted, groups: notRun }]), sink, tools, 180_000)).toBeNull();
   });
 
   it("hands the evaluator the workspace's paths and the turn's activity", async () => {

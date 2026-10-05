@@ -2,8 +2,9 @@
  * Pins the hook process runner (`run.ts`) on real processes: exec form runs
  * without a shell and shell form in bash; stdin is the call; the output is
  * capped; a timeout or the turn's stop kills the whole process group (a
- * forked child included); a command that cannot start says so; and a
- * running hook pulses the turn's activity.
+ * forked child included); a command that exits while a helper it started
+ * still holds the pipes answers at once and the helper lives on; a command
+ * that cannot start says so; and a running hook pulses the turn's activity.
  */
 
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
@@ -64,6 +65,19 @@ describe("runHookProcess", () => {
     expect(result.exitCode).toBeNull();
     await new Promise((resolve) => setTimeout(resolve, 2500));
     expect(existsSync(marker)).toBe(false);
+  });
+
+  it("answers as soon as the command exits, leaving a helper it started running", async () => {
+    const marker = join(dir, "helper-ran");
+    const started = Date.now();
+    const result = await runHookProcess(
+      spec({ command: `(sleep 2; touch ${marker}) & printf '%s' '{"decision":"block","reason":"no"}'; exit 0`, timeoutSeconds: 10 }),
+      {},
+    );
+    expect(Date.now() - started).toBeLessThan(1500);
+    expect(result).toMatchObject({ exitCode: 0, timedOut: false, stdout: '{"decision":"block","reason":"no"}' });
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    expect(existsSync(marker), "the helper was left alone").toBe(true);
   });
 
   it("kills the command when the turn stops", async () => {

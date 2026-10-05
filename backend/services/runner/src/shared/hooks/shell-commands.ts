@@ -21,8 +21,9 @@
  *
  * Its one safety rule: what it cannot be sure it understood answers `null`,
  * and the caller then runs the hook. An unbalanced quote or bracket, a
- * heredoc, `eval`, a `function` definition, and `sh -c` or `bash -c` over
- * anything but a literal string are all `null`. Matching too widely runs a hook more often and the
+ * heredoc, `eval`, a `function` definition, arithmetic that runs a command
+ * (`$(( $(…) ))`), and `sh -c` or `bash -c` over anything but a literal
+ * string are all `null`. Matching too widely runs a hook more often and the
  * hook still decides; matching too narrowly would skip a policy.
  */
 
@@ -172,6 +173,7 @@ function scan(line: string): Scanned | null {
       const end = closingParen(line, i + 1);
       if (end === -1) return null;
       if (line[i + 2] !== "(") nested.push(line.slice(i + 2, end));
+      else if (arithmeticRunsCommands(line.slice(i + 3, end))) return null;
       text += line.slice(i, end + 1);
       literal = false;
       inWord = true;
@@ -241,6 +243,7 @@ function scanDoubleQuoted(
       const end = closingParen(line, i + 1);
       if (end === -1) return null;
       if (line[i + 2] !== "(") nested.push(line.slice(i + 2, end));
+      else if (arithmeticRunsCommands(line.slice(i + 3, end))) return null;
       text += line.slice(i, end + 1);
       literal = false;
       i = end + 1;
@@ -251,6 +254,15 @@ function scanDoubleQuoted(
     i += 1;
   }
   return null;
+}
+
+/**
+ * Whether `$(( … ))` text runs a command: bash expands substitutions inside
+ * arithmetic, and the scanner does not take them apart there, so one makes
+ * the line unsure.
+ */
+function arithmeticRunsCommands(text: string): boolean {
+  return text.includes("$(") || text.includes("`");
 }
 
 /** The index of the `)` closing the `(` at `open`, skipping quoted text; -1 when unbalanced. */
