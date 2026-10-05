@@ -7,7 +7,9 @@
  * keeps the handlers whose `if` takes the call (`condition.ts`), runs them
  * all at once, and combines their answers as Claude does:
  * deny > defer > ask > allow. The hook recorded as the decider is the first
- * source, in the agent's order, that gave the winning answer. A hook's `ask`
+ * source, in the agent's order, that gave the winning answer, or, when a
+ * winner rewrote the call, the first that did: the row names the hook
+ * whose rewrite runs. A hook's `ask`
  * on a call its own "approve all" leased counts as its `allow`: the lease
  * clears exactly the asks that hook makes on that tool, and nothing wider
  * (`approval-policy.ts` `hookLeaseKey`). PostToolUse
@@ -196,8 +198,12 @@ export class HookEvaluator {
 
     const top = Math.max(...decided.map((a) => RANK[a.decision]));
     const winners = decided.filter((a) => RANK[a.decision] === top);
-    const decider = winners[0]!;
-    const rewrite = decider.decision === "deny" ? undefined : winners.find((a) => a.updatedInput !== undefined)?.updatedInput;
+    // The decider is the first winner in the agent's order, or the first
+    // winner that rewrote the call when one did, so the hook the row names
+    // is the hook whose rewrite runs.
+    const rewriter = top === RANK.deny ? undefined : winners.find((a) => a.updatedInput !== undefined);
+    const decider = rewriter ?? winners[0]!;
+    const rewrite = rewriter?.updatedInput;
     return {
       decision: decider.decision === "defer" ? "ask" : decider.decision,
       hook: decider.source.plugin,

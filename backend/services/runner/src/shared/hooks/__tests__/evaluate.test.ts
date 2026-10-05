@@ -155,6 +155,15 @@ describe("how answers combine", () => {
     expect((await deny.preToolUse(READ, {})).updatedArgs).toBeUndefined();
   });
 
+  it("names the hook whose rewrite runs when two hooks give the same answer", async () => {
+    const { run } = scripted({ plain: decide("allow"), rewrites: decide("allow", { updatedInput: { file_path: "/ws/src/b.ts" } }) });
+    const hooks = evaluator([
+      { source: plugin("first"), groups: [group("PreToolUse", "Read", { command: "plain" })] },
+      { source: plugin("second"), groups: [group("PreToolUse", "Read", { command: "rewrites" })] },
+    ], run);
+    expect(await hooks.preToolUse(READ, {})).toMatchObject({ decision: "allow", hook: "second", updatedArgs: { file_path: "/src/b.ts" } });
+  });
+
   it("gathers every hook's context and every failure, and no failure decides", async () => {
     const { run } = scripted({
       ctx: decide("allow", { additionalContext: "the branch is protected" }),
