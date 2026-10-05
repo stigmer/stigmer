@@ -19,6 +19,14 @@
  *      a handler's guard function that exists by that name in `src/`
  *      outside the tests, so a renamed or removed guard cannot leave the
  *      doc pointing at nothing.
+ *   3. Every skip lane whose request names no organization (by the
+ *      organization-name resolver's own field rule, `organizationFieldsOf`
+ *      and `annotatedOrganizationPath`, the rule the deleting rule's
+ *      interceptor reads) says how an organization being deleted is refused
+ *      there: `deleting: <Name>`, which must exist like a guard, or
+ *      `deleting: inert, <reason>`. Such a lane reaches neither the
+ *      interceptor nor, unless its guard asks it, the Authorizer's deleting
+ *      seat (domain/organization/lifecycle.ts).
  *
  * The rule lives in the doc; this test only enforces it. The doc is the
  * one inventory (the package guide mandates updating it with every
@@ -37,6 +45,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { getOption } from "@bufbuild/protobuf";
+import type { DescMethod } from "@bufbuild/protobuf";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { is_skip_authorization } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
@@ -49,6 +58,10 @@ import {
   servedMethods,
   silentLogger,
 } from "../../extensions/__tests__/composed-support.js";
+import {
+  annotatedOrganizationPath,
+  organizationFieldsOf,
+} from "../../pipeline/interceptors/organization-names.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(HERE, "../../..");
@@ -80,6 +93,43 @@ function skipRowsOf(doc: string): SkipRow[] {
 /** Every `guard: <Name>` a handler cell names. */
 function guardsOf(handler: string): string[] {
   return [...handler.matchAll(/guard: ([A-Za-z]+)/g)].map((m) => m[1] ?? "");
+}
+
+/** Every `deleting: <Name>` a handler cell names; `deleting: inert` names none. */
+function deletingGuardsOf(handler: string): string[] {
+  return [...handler.matchAll(/deleting: ([A-Za-z]+)/g)]
+    .map((m) => m[1] ?? "")
+    .filter((name) => name !== "inert");
+}
+
+/** Whether a step or a guard function exists by that name in the source. */
+function namedInSource(source: string, name: string): boolean {
+  // A step is registered by its quoted name; a guard function by its
+  // declaration.
+  return (
+    source.includes(`"${name}"`) ||
+    new RegExp(`function ${name}\\(`).test(source)
+  );
+}
+
+/** Whether a method's request names an organization, by the resolver's rule. */
+function namesAnOrganization(method: DescMethod): boolean {
+  return (
+    organizationFieldsOf(method.input).length > 0 ||
+    annotatedOrganizationPath(method) !== undefined
+  );
+}
+
+/** The served skip-annotated methods, by `Service.method`. */
+function servedSkipLanes(server: ComposedServer): Map<string, DescMethod> {
+  const lanes = new Map<string, DescMethod>();
+  for (const method of servedMethods(server.routes)) {
+    if (getOption(method, is_skip_authorization)) {
+      const serviceName = method.parent.typeName.split(".").at(-1) ?? "";
+      lanes.set(`${serviceName}.${method.name}`, method);
+    }
+  }
+  return lanes;
 }
 
 /** Every non-test `.ts` source under `src/`, read once. */
@@ -121,13 +171,7 @@ describe("the skip-lane inventory (docs/authorization-coverage.md) is true to th
   });
 
   it("the doc's skip rows are exactly the skip-annotated methods the server serves", () => {
-    const served = new Set<string>();
-    for (const method of servedMethods(server.routes)) {
-      if (getOption(method, is_skip_authorization)) {
-        const serviceName = method.parent.typeName.split(".").at(-1) ?? "";
-        served.add(`${serviceName}.${method.name}`);
-      }
-    }
+    const served = new Set(servedSkipLanes(server).keys());
     const documented = new Set(
       skipRowsOf(readFileSync(COVERAGE_DOC, "utf8")).map((r) => r.method),
     );
@@ -146,15 +190,34 @@ describe("the skip-lane inventory (docs/authorization-coverage.md) is true to th
     const dangling: string[] = [];
     for (const row of skipRowsOf(readFileSync(COVERAGE_DOC, "utf8"))) {
       for (const guard of guardsOf(row.handler)) {
-        // A step is registered by its quoted name; a guard function by its
-        // declaration.
-        const isStep = source.includes(`"${guard}"`);
-        const isFunction = new RegExp(`function ${guard}\\(`).test(source);
-        if (!isStep && !isFunction) {
+        if (!namedInSource(source, guard)) {
           dangling.push(`${row.method} names guard ${guard}`);
         }
       }
     }
+    expect(dangling).toEqual([]);
+  });
+
+  it("every skip lane whose request names no organization says how an organization being deleted is refused there", () => {
+    const lanes = servedSkipLanes(server);
+    const source = sourceText();
+    const unmarked: string[] = [];
+    const dangling: string[] = [];
+    for (const row of skipRowsOf(readFileSync(COVERAGE_DOC, "utf8"))) {
+      const method = lanes.get(row.method);
+      if (method === undefined || namesAnOrganization(method)) {
+        continue;
+      }
+      if (!row.handler.includes("deleting: ")) {
+        unmarked.push(row.method);
+      }
+      for (const guard of deletingGuardsOf(row.handler)) {
+        if (!namedInSource(source, guard)) {
+          dangling.push(`${row.method} names deleting guard ${guard}`);
+        }
+      }
+    }
+    expect(unmarked).toEqual([]);
     expect(dangling).toEqual([]);
   });
 });

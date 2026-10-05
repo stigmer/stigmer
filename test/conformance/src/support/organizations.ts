@@ -8,7 +8,11 @@
 // this one create, whose caller becomes the Organization's owner. The
 // slug and id come from the server's answer, because the name is all the
 // create sends and the slug is derived from it.
+import { Code, ConnectError } from "@connectrpc/connect";
+import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { setTimeout as delay } from "node:timers/promises";
 import type { ConformanceClients } from "../harness/clients";
+import { DEFAULT_POLL_MS, DEFAULT_TIMEOUT_MS } from "./execution-poll";
 import { uniqueOrg } from "./naming";
 
 const ORG_API_VERSION = "tenancy.stigmer.ai/v1";
@@ -81,4 +85,34 @@ export async function createChildOrganization(
     );
   }
   return { slug, id };
+}
+
+/**
+ * Creates an Organization under `slug` once a deleted organization's purge
+ * has released it. A delete holds its organization's slug until the purge
+ * that removes what it owned finishes, so until then a create of the slug
+ * answers ALREADY_EXISTS; this polls the create until it lands, and fails
+ * on any other answer or when the purge does not finish in time.
+ */
+export async function createOrganizationOnceReleased(
+  organizationCommand: ConformanceClients["organizationCommand"],
+  slug: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<Organization> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      return await organizationCommand.create({
+        apiVersion: ORG_API_VERSION,
+        kind: ORG_KIND,
+        metadata: { name: slug, slug },
+      });
+    } catch (error) {
+      const refused = ConnectError.from(error);
+      if (refused.code !== Code.AlreadyExists || Date.now() >= deadline) {
+        throw error;
+      }
+    }
+    await delay(DEFAULT_POLL_MS);
+  }
 }

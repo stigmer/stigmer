@@ -389,6 +389,21 @@ export class SecretService {
   }
 
   /**
+   * Destroys every registered codec's keys and external state for one
+   * organization (SecretCodec.destroyOrganizationKeys), every version's,
+   * not only the write version's: a value an older version sealed in the
+   * organization's scope must become unreadable too. Codecs without the
+   * capability keep nothing per organization and are skipped. A failure
+   * propagates; the caller (the purge) retries the whole call, which each
+   * codec takes idempotently.
+   */
+  async destroyOrganization(org: string): Promise<void> {
+    for (const codec of this.codecs.values()) {
+      await codec.destroyOrganizationKeys?.(org);
+    }
+  }
+
+  /**
    * Re-encrypts a stored value to the current write version — the ONE
    * deliberate exception to the no-silent-upgrades doctrine, built for
    * the secret-convergence sweep and the future v3 migration pass. Three

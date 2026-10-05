@@ -126,6 +126,18 @@ import { registerPlatformClientTokenService } from "../domain/platformclient/tok
 import { newPlatformClientTokenVerifier } from "../domain/platformclient/verifier.js";
 import { newChildOrganizations } from "../domain/organization/children.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
+import {
+  createDeletingOrganizationInterceptor,
+  newOrganizationLifecycle,
+} from "../domain/organization/lifecycle.js";
+import {
+  newChildrenStage,
+  newContentStage,
+  newFinalStage,
+  newQuiesceStage,
+  newShredStage,
+} from "../domain/organization/purge/core-stages.js";
+import { OrganizationPurgeRunner } from "../domain/organization/purge/runner.js";
 import { registerMcpServerServices } from "../domain/mcpserver/controller.js";
 import { registerPlatformServices } from "../domain/platform/controller.js";
 import { SERVER_VERSION } from "../domain/platform/version.js";
@@ -251,6 +263,12 @@ import type { ServerConfig } from "./config.js";
 import { createInProcessClients } from "./inprocess.js";
 import type { InProcessClients } from "./inprocess.js";
 import { LIST_INDEXES } from "./list-indexes.js";
+import {
+  CORE_PURGED_KINDS,
+  assertOrganizationPurgeCoverage,
+  newCoreKindPurges,
+  orderOrganizationPurgeStages,
+} from "./organization-purge.js";
 import type { Logger } from "./logger.js";
 
 export interface ComposedServer {
@@ -323,6 +341,12 @@ export interface ComposedServer {
    * server registers no reflection service, deliberately).
    */
   routes: (router: ConnectRouter) => void;
+  /**
+   * The organization purge runner (domain/organization/purge/runner.ts),
+   * exposed for composed tests and a composition's own proofs: `runPass`
+   * runs one pass over the deletion table now, as the interval would.
+   */
+  organizationPurge: Pick<OrganizationPurgeRunner, "runPass">;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
   start(): Promise<number>;
   /**
@@ -398,6 +422,7 @@ export async function composeServer(
       units: extensions.unitNames.join(", "),
     });
   }
+
   // Stage: storage — the driver selection seam: DATABASE_URL
   // present → Postgres (async connect + advisory-locked migrations), else
   // sqlite on DB_PATH (its whole chain, incl. adopting a Go-created
@@ -422,6 +447,16 @@ export async function composeServer(
       dbPath: config.dbPath,
     });
   }
+
+  // The deleting rule (domain/organization/lifecycle.ts): an organization
+  // being deleted answers as if it did not exist, at each of its seats —
+  // the interceptor on both chains, the credential binding's target
+  // resolution, and the walks over every organization.
+  const organizationLifecycle = newOrganizationLifecycle(
+    store.organizationDeletions,
+  );
+  const deletingOrganizations =
+    createDeletingOrganizationInterceptor(organizationLifecycle);
 
   // The require-authentication posture has two sources OR'd here: the
   // OSS OIDC issuer and a composed unit's declaration (registry
@@ -486,6 +521,14 @@ export async function composeServer(
         : `the composition serves edition '${ServerEdition[extensions.edition]}' but registers no row reader for ${quoteJoin(unreadable.map(kindEnumName))} — the credential binding reads every served kind's organization from its row: register a reader for each kind a unit serves (drivers.resourceRowReaders)`,
     );
   }
+  // Every kind an organization can own is removed by a purge or kept on
+  // purpose, or the composition does not boot (boot/organization-purge.ts);
+  // checked with the other boot refusals, before the first write.
+  assertOrganizationPurgeCoverage({
+    edition: extensions.edition,
+    coreKinds: CORE_PURGED_KINDS,
+    units: extensions.orgPurge,
+  });
 
   // Stage: identity accounts — the first domain whose
   // persistence is a PORT rather than the generic Store. The composed
@@ -678,6 +721,7 @@ export async function composeServer(
     rowReaders: extensions.drivers.resourceRowReaders,
     policies: iamPolicies,
     platformClients,
+    lifecycle: organizationLifecycle,
   });
   const authorizer: Authorizer = bindAuthorizer(
     postureAuthorizer,
@@ -686,11 +730,18 @@ export async function composeServer(
   const organizationDirectory: OrganizationDirectory | undefined =
     postureOrganizationDirectory === undefined
       ? undefined
-      : bindOrganizationDirectory(postureOrganizationDirectory);
+      : bindOrganizationDirectory(
+          postureOrganizationDirectory,
+          organizationLifecycle,
+        );
   const listReadScope: ListReadScope | undefined =
     postureListReadScope === undefined
       ? undefined
-      : bindListReadScope(postureListReadScope, credentialBinding);
+      : bindListReadScope(
+          postureListReadScope,
+          credentialBinding,
+          organizationLifecycle,
+        );
   // The persons callers stand for (stigmer#1387): under the
   // require-authentication posture every caller is someone the
   // identity-account domain can name, so memory and the person's declared
@@ -1436,6 +1487,56 @@ export async function composeServer(
   // domain providers are only invoked at request time, after boot
   // completes, so the throw is the composition-root loudness idiom — never
   // expected to fire.
+  // The organization purge (domain/organization/purge/): the core's kind
+  // purges over the same stores and drivers the delete chains use, the
+  // units' stages after the core's quiesce, and the runner that drives
+  // them from the deletion table. Started with the server's loops and
+  // stopped before Temporal and the store close.
+  const corePurges = newCoreKindPurges({
+    store,
+    logger,
+    grantPath: iamPolicyGrantPath,
+    authorizationLifecycle,
+    secretService,
+    artifactStorage,
+    scheduleClock: () => scheduleSyncer,
+    channelRuntime: extensions.drivers.channelRuntime,
+    platformClients,
+    accounts: identityAccounts,
+    accountLifecycle: roleLifecycle,
+  });
+  const purgeQuiesce = newQuiesceStage({
+    store,
+    logger,
+    schedulePurge: corePurges.quiesce,
+    agentEngine: executionEngineState,
+    workflowEngine: workflowExecutionEngineState,
+    sandboxLane,
+  });
+  const purgeContent = newContentStage(corePurges.content);
+  const organizationPurge = new OrganizationPurgeRunner({
+    store,
+    logger,
+    stages: orderOrganizationPurgeStages({
+      quiesce: purgeQuiesce,
+      units: extensions.orgPurge,
+      content: purgeContent,
+      shred: newShredStage(secretService),
+      children: newChildrenStage(store),
+      final: newFinalStage({
+        store,
+        logger,
+        grantPath: iamPolicyGrantPath,
+        lifecycle: roleLifecycle,
+        // A row a racing create stored after its stage passed.
+        sweepFirst: [
+          purgeQuiesce,
+          ...extensions.orgPurge.stages.map(({ stage }) => stage),
+          purgeContent,
+        ],
+      }),
+    }),
+  });
   let inProcess: InProcessClients | undefined;
   function requireInProcess(): InProcessClients {
     if (inProcess === undefined) {
@@ -1464,6 +1565,8 @@ export async function composeServer(
       organizationDirectory,
       // The composition's organization count (ServerExtension.orgLimit).
       orgLimit: extensions.orgLimit,
+      // The delete hands an accepted organization to the purge.
+      purge: organizationPurge,
     });
     // ApiKey is the first domain born AFTER the Go port (the apikey
     // contract is wholly OSS), so it has no Go
@@ -1846,7 +1949,9 @@ export async function composeServer(
     // shadow a route already served is a boot throw (route-shadowing.ts).
     registerExtensionServicesUnshadowed(router, extensions.services);
   };
-  const inProcessWiring = createInProcessClients(routes, logger);
+  const inProcessWiring = createInProcessClients(routes, logger, {
+    deletingOrganizations,
+  });
   inProcess = inProcessWiring.clients;
 
   // What the posture (resolved in the storage stage) registers, in Java's
@@ -2016,6 +2121,7 @@ export async function composeServer(
                 createSingleOrganizationInterceptor(singleOrganization),
             }),
       },
+      { deletingOrganizations },
     ),
     taskKindRegistryLane: registryLanes.taskKindRegistryLane,
     modelRegistryLane: registryLanes.modelRegistryLane,
@@ -2062,6 +2168,7 @@ export async function composeServer(
     inProcessTransport: inProcessWiring.transport,
     identityVerifiers,
     routes,
+    organizationPurge,
 
     boundPorts(): BoundPorts | undefined {
       // Both are recorded inside start(): the lane binds before the
@@ -2120,6 +2227,9 @@ export async function composeServer(
       // periodic loop, and the reconnect kick — Go server.go 763–764.
       const kickScheduleReconcile = scheduleReconciler.startReconciliation();
       temporalManager.addReconnectHook(kickScheduleReconcile);
+      // The organization purge: a first pass over the deletion table now
+      // (a purge a stopped server left unfinished resumes), then its loop.
+      organizationPurge.start();
       // The sandbox driver's background work, when it has any: it reads the
       // store and the sandbox platform, never Temporal.
       if (sandboxLane.enabled) {
@@ -2209,6 +2319,9 @@ export async function composeServer(
       // still call through the manager's client, and nothing may fire
       // after shutdown.
       await scheduleReconciler.stop();
+      // The purge stops before the manager and the store: a stage in
+      // flight may still terminate a run or write through the store.
+      await organizationPurge.stop();
       // Workers stop before the transport drains: an in-flight activity
       // may still write through the store, which closes LAST.
       await temporalManager.close();

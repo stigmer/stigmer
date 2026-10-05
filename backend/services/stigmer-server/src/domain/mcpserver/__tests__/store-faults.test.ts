@@ -128,6 +128,8 @@ const pendingStates: PendingOAuthStateStore = {
   getAndDelete: () => Promise.resolve(PENDING_STATE),
   cleanupExpired: () =>
     Promise.reject(new Error("pendingOAuthStates.cleanupExpired reached")),
+  deleteByOrg: () =>
+    Promise.reject(new Error("pendingOAuthStates.deleteByOrg reached")),
 };
 
 /** The provider's token endpoint: the exchange succeeds, so the load is next. */

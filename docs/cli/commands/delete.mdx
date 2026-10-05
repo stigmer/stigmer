@@ -44,20 +44,20 @@ stigmer delete agent my-agent --force
 
 ### Supported resource types
 
-| Type              | Aliases                                | Behavior                                                          |
-| ----------------- | -------------------------------------- | ----------------------------------------------------------------- |
-| Agent             | `agent`, `agt`, `agents`               | Permanently deletes the agent definition                          |
-| Agent Channel     | `agent-channel`, `agentchannel`, `ach` | Disconnects the channel; the bound number stops serving the agent |
-| API Key           | `apikey`, `key`                        | Revokes the key; callers using it are cut off immediately         |
-| Channel App       | `channel-app`, `channelapp`, `chapp`   | Permanently deletes the app and its stored provider secrets       |
-| Environment       | `environment`, `env`, `environments`   | Permanently deletes the environment and its values                |
-| Execution         | `execution`, `exec`                    | Gracefully cancels a running execution                            |
-| MCP Server        | `mcpserver`, `mcp`, `mcp-server`       | Permanently deletes the MCP server                                |
-| Organization      | `organization`, `org`, `organizations` | Permanently deletes the organization                              |
-| Schedule          | `schedule`, `sch`, `schedules`         | Permanently deletes the schedule and tears down its firing clock  |
-| Skill             | `skill`, `skills`                      | Permanently deletes the skill                                     |
-| Workflow          | `workflow`, `wf`, `workflows`          | Permanently deletes the workflow                                  |
-| Workflow Instance | `workflow-instance`, `win`             | Permanently deletes the instance and its configuration            |
+| Type              | Aliases                                | Behavior                                                                                                        |
+| ----------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Agent             | `agent`, `agt`, `agents`               | Permanently deletes the agent definition                                                                        |
+| Agent Channel     | `agent-channel`, `agentchannel`, `ach` | Disconnects the channel; the bound number stops serving the agent                                               |
+| API Key           | `apikey`, `key`                        | Revokes the key; callers using it are cut off immediately                                                       |
+| Channel App       | `channel-app`, `channelapp`, `chapp`   | Permanently deletes the app and its stored provider secrets                                                     |
+| Environment       | `environment`, `env`, `environments`   | Permanently deletes the environment and its values                                                              |
+| Execution         | `execution`, `exec`                    | Gracefully cancels a running execution                                                                          |
+| MCP Server        | `mcpserver`, `mcp`, `mcp-server`       | Permanently deletes the MCP server                                                                              |
+| Organization      | `organization`, `org`, `organizations` | Deletes the organization at once and everything it owned in the background; its slug is free when that finishes |
+| Schedule          | `schedule`, `sch`, `schedules`         | Permanently deletes the schedule and tears down its firing clock                                                |
+| Skill             | `skill`, `skills`                      | Permanently deletes the skill                                                                                   |
+| Workflow          | `workflow`, `wf`, `workflows`          | Permanently deletes the workflow                                                                                |
+| Workflow Instance | `workflow-instance`, `win`             | Permanently deletes the instance and its configuration                                                          |
 
 ### Confirmation
 

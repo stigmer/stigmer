@@ -117,6 +117,7 @@ function federatedAccount(overrides: {
 function platformClientAccount(overrides: {
   idpId: string;
   email: string;
+  org?: string;
 }): IdentityAccount {
   return create(IdentityAccountSchema, {
     apiVersion: "iam.stigmer.ai/v1",
@@ -124,7 +125,7 @@ function platformClientAccount(overrides: {
     metadata: {
       id: accountIdFor(overrides.idpId),
       name: overrides.email,
-      org: "acme",
+      org: overrides.org ?? "acme",
     },
     spec: {
       idpId: overrides.idpId,
@@ -449,6 +450,31 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
         IdentityAccountProvisioningMode.platform_client,
         "the any-mode subject lookup — the mint's — must answer the platform-client account",
       );
+    },
+  ],
+  [
+    "findByOrg answers the accounts whose row names the organization, and never a person's own",
+    async ({ store }) => {
+      await store.save(
+        platformClientAccount({ idpId: "stgm_pc|acme|user-1", email: "a@example.com" }),
+      );
+      await store.save(
+        platformClientAccount({ idpId: "stgm_pc|acme|user-2", email: "b@example.com" }),
+      );
+      await store.save(
+        platformClientAccount({
+          idpId: "stgm_pc|globex|user-1",
+          email: "c@example.com",
+          org: "globex",
+        }),
+      );
+      await store.save(directAccount({ idpId: "auth0|person" }));
+      assert.deepEqual(
+        subjectsOf(await store.findByOrg("acme")).sort(),
+        ["stgm_pc|acme|user-1", "stgm_pc|acme|user-2"],
+        "the organization's own accounts, and no other organization's or person's",
+      );
+      assert.deepEqual(await store.findByOrg(""), [], "an empty organization names nothing");
     },
   ],
   [

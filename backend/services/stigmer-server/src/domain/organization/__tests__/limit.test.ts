@@ -5,10 +5,13 @@
  * on delete; and a delete that reaches the refusal with no loaded
  * organization is a pipeline wiring bug, refused INTERNAL rather than as the
  * wire's ORGANIZATION_IS_SINGLE.
+ * Both count live organizations only: one being deleted is not the
+ * store's any more, so it frees a place under the limit and does not count
+ * as another organization a one-organization store could delete down to.
  * The composed behaviour (the refusals' codes, reasons and copy, nothing
  * written) is single-organization.test.ts's.
  */
-import { create } from "@bufbuild/protobuf";
+import { create, toBinary } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
@@ -36,6 +39,56 @@ async function codeOf(run: () => Promise<void> | void): Promise<Code> {
 const DOWN = {
   listResources: () => Promise.reject(new Error("the store is down")),
 } as unknown as Store;
+
+/** A store holding `held` organizations, the first `deleting` of them being deleted. */
+function holding(held: number, deleting: number): Store {
+  const ids = Array.from({ length: held }, (_, i) => `org_${i}`);
+  return {
+    listResources: () =>
+      Promise.resolve(
+        ids.map((id) =>
+          toBinary(OrganizationSchema, create(OrganizationSchema, { metadata: { id } })),
+        ),
+      ),
+    organizationDeletions: {
+      list: () =>
+        Promise.resolve(ids.slice(0, deleting).map((org) => ({ org }))),
+    },
+  } as unknown as Store;
+}
+
+describe("the live count", () => {
+  it("frees a place under the limit for each organization being deleted", async () => {
+    const ctx = new RequestContext(
+      OrganizationSchema,
+      create(OrganizationSchema),
+      testCallerIdentity(),
+    );
+    const step = (store: Store) =>
+      newOrganizationLimitStep<typeof OrganizationSchema>(store, 2);
+    expect(await codeOf(() => step(holding(2, 0)).execute(ctx))).toBe(
+      Code.FailedPrecondition,
+    );
+    await step(holding(2, 1)).execute(ctx);
+  });
+
+  it("refuses deleting the one live organization while another is being deleted", async () => {
+    const ctx = new RequestContext(
+      OrganizationIdSchema,
+      create(OrganizationIdSchema, { value: "org_1" }),
+      testCallerIdentity(),
+    );
+    ctx.set(
+      EXISTING_RESOURCE_KEY,
+      create(OrganizationSchema, { metadata: { id: "org_1" } }),
+    );
+    const step =
+      newRefuseDeletingSingleOrganizationStep<typeof OrganizationIdSchema>(
+        holding(2, 1),
+      );
+    expect(await codeOf(() => step.execute(ctx))).toBe(Code.FailedPrecondition);
+  });
+});
 
 describe("OrganizationLimit", () => {
   it("a store that cannot count is INTERNAL", async () => {

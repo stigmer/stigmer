@@ -27,7 +27,18 @@
  *   - the list scope drops candidates by their facts (and, for a shared
  *     blueprint, the bound organization's parent), the enumeration
  *     narrows by each id's row, and the directory answers the bound
- *     organization alone.
+ *     organization alone;
+ *   - the deleting rule's decision seat, for every caller: an
+ *     organization being deleted, and any row whose organization is, is
+ *     not found before the inner driver is asked (a per-resource owner
+ *     row the delete's revocation leaves cannot reach it); the list scope
+ *     drops such candidates and the directory such organizations; and the
+ *     cost: while nothing is being deleted, an unbound by-id check reads
+ *     the deletion table once per request and no row; while something is,
+ *     it reads the target's row too, once per request; a check with
+ *     nothing to read reads nothing; a deletion table that cannot be read answers
+ *     unavailable; an enumeration of organizations drops a deleting one by
+ *     its id alone.
  */
 import type { Message } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
@@ -59,6 +70,7 @@ import {
   newCredentialBinding,
 } from "../credential-binding.js";
 import type { CredentialBindingDeps } from "../credential-binding.js";
+import { newOrganizationLifecycle } from "../../domain/organization/lifecycle.js";
 import { fixtureRow, storedDeclaration } from "./support.js";
 
 /** ALPHA is a child of BETA; GAMMA is another parent, with its own child. */
@@ -843,3 +855,188 @@ describe("bindOrganizationDirectory", () => {
     ).toEqual([ALPHA]);
   });
 });
+
+describe("the deleting rule's decision seat", () => {
+  const DELETING = BETA;
+  function lifecycle(reads: string[], deleting: ReadonlyArray<string> = [DELETING]) {
+    return newOrganizationLifecycle({
+      async isDeleting(org) {
+        reads.push(`deleting:${org}`);
+        return deleting.includes(org);
+      },
+      async list() {
+        reads.push("deleting:*");
+        return deleting.map((org) => (
+          {
+            org,
+            phase: "accepted" as const,
+            markedAt: "",
+            acceptedAt: "",
+            heartbeatAt: "",
+            stage: "",
+            lastError: "",
+          }));
+      },
+    });
+  }
+  const sessionCheck = (id: string): AuthzCheck => ({
+    permission: IamPermission.can_view,
+    resourceKind: ApiResourceKind.session,
+    resourceId: id,
+  });
+
+  it("answers not-found for a deleting organization's row, to an unbound caller the inner driver would allow", async () => {
+    const f = fixture([row("session", "ses_b", BETA), row("session", "ses_a", ALPHA)]);
+    const deletionReads: string[] = [];
+    const inner = recordingAuthorizer();
+    const bound = bindAuthorizer(
+      inner,
+      newCredentialBinding({ ...f.deps, lifecycle: lifecycle(deletionReads) }),
+    );
+    expect(await bound.authorize(unbound, sessionCheck("ses_b"))).toEqual({
+      kind: "not-found",
+    });
+    expect(
+      await bound.authorize(unbound, {
+        permission: IamPermission.can_view,
+        resourceKind: ApiResourceKind.organization,
+        resourceId: DELETING,
+      }),
+    ).toEqual({ kind: "not-found" });
+    expect(inner.checks, "the inner driver is never asked").toEqual([]);
+    expect(await bound.authorize(unbound, sessionCheck("ses_a"))).toEqual({
+      kind: "allow",
+    });
+  });
+
+  it("costs an unbound by-id check one deletion read and no row per request while nothing is being deleted", async () => {
+    const f = fixture([row("session", "ses_a", ALPHA)]);
+    const deletionReads: string[] = [];
+    const bound = bindAuthorizer(
+      recordingAuthorizer(),
+      newCredentialBinding({ ...f.deps, lifecycle: lifecycle(deletionReads, []) }),
+    );
+    const caller = { ...unbound };
+    expect((await bound.authorize(caller, sessionCheck("ses_a"))).kind).toBe("allow");
+    await bound.authorize(caller, sessionCheck("ses_a"));
+    expect(f.reads).toEqual([]);
+    expect(deletionReads).toEqual(["deleting:*"]);
+  });
+
+  it("costs an unbound by-id check one row read and one deletion read per request while something is, and nothing without a target", async () => {
+    const f = fixture([row("session", "ses_a", ALPHA)]);
+    const deletionReads: string[] = [];
+    const bound = bindAuthorizer(
+      recordingAuthorizer(),
+      newCredentialBinding({ ...f.deps, lifecycle: lifecycle(deletionReads) }),
+    );
+    const caller = { ...unbound };
+    await bound.authorize(caller, sessionCheck("ses_a"));
+    await bound.authorize(caller, sessionCheck("ses_a"));
+    expect(f.reads).toEqual([`${ApiResourceKind.session}:ses_a`]);
+    expect(deletionReads).toEqual(["deleting:*"]);
+    await bound.authorize(caller, {
+      permission: IamPermission.can_view,
+      resourceKind: ApiResourceKind.session,
+      resourceId: "",
+    });
+    expect(f.reads).toHaveLength(1);
+    expect(deletionReads).toHaveLength(1);
+  });
+
+  it("passes, while something is being deleted, a kind no organization owns with no read, and a missing row to the inner driver", async () => {
+    const f = fixture([]);
+    const deletionReads: string[] = [];
+    const inner = recordingAuthorizer();
+    const bound = bindAuthorizer(
+      inner,
+      newCredentialBinding({ ...f.deps, lifecycle: lifecycle(deletionReads) }),
+    );
+    expect(
+      (
+        await bound.authorize(unbound, {
+          permission: IamPermission.can_view,
+          resourceKind: ApiResourceKind.platform,
+          resourceId: "x",
+        })
+      ).kind,
+    ).toBe("allow");
+    expect(f.reads, "no row read for a kind no organization owns").toEqual([]);
+    expect((await bound.authorize(unbound, sessionCheck("ses_gone"))).kind).toBe("allow");
+    expect(f.reads).toEqual([`${ApiResourceKind.session}:ses_gone`]);
+    expect(inner.checks, "the inner driver answers both").toHaveLength(2);
+  });
+
+  it("drops a deleting organization's candidates from lists and the organization from the directory", async () => {
+    const f = fixture([
+      row("agent", "agt_a", ALPHA),
+      row("agent", "agt_b", BETA),
+    ]);
+    const reads: string[] = [];
+    const binding = newCredentialBinding({ ...f.deps, lifecycle: lifecycle(reads) });
+    const offered: string[][] = [];
+    const scope = bindListReadScope(
+      {
+        authorizedResourceIds: () => Promise.resolve(new Set(["agt_a", "agt_b"])),
+        restrictListEntries(_caller, _kind, entries) {
+          offered.push(entries.map((e) => e.id));
+          return Promise.resolve(new Set(entries.map((e) => e.id)));
+        },
+      },
+      binding,
+      lifecycle(reads),
+    );
+    await scope.restrictListEntries(unbound, ApiResourceKind.agent, [
+      entry("agt_a", ALPHA),
+      entry("agt_b", BETA),
+    ]);
+    expect(offered).toEqual([["agt_a"]]);
+    expect([
+      ...(await scope.authorizedResourceIds(unbound, ApiResourceKind.agent)),
+    ]).toEqual(["agt_a"]);
+    const directory = bindOrganizationDirectory(
+      {
+        refusesEnumeration: false,
+        listMyOrganizationIds: () => Promise.resolve([ALPHA, BETA]),
+      },
+      lifecycle(reads),
+    );
+    expect(await directory.listMyOrganizationIds(unbound)).toEqual([ALPHA]);
+    expect(await directory.listMyOrganizationIds(boundTo(BETA))).toEqual([]);
+  });
+
+  it("answers unavailable when the deletion table cannot be read, never a pass", async () => {
+    const f = fixture([row("session", "ses_a", ALPHA)]);
+    const failing = newOrganizationLifecycle({
+      isDeleting: () => Promise.reject(new Error("store down")),
+      list: () => Promise.reject(new Error("store down")),
+    });
+    const inner = recordingAuthorizer();
+    const bound = bindAuthorizer(
+      inner,
+      newCredentialBinding({ ...f.deps, lifecycle: failing }),
+    );
+    expect((await bound.authorize(unbound, sessionCheck("ses_a"))).kind).toBe(
+      "unavailable",
+    );
+    expect(inner.checks).toEqual([]);
+  });
+
+  it("drops a deleting organization from an enumeration of organizations without reading its row", async () => {
+    const f = fixture([]);
+    const reads: string[] = [];
+    const scope = bindListReadScope(
+      {
+        authorizedResourceIds: () => Promise.resolve(new Set([ALPHA, BETA])),
+        restrictListEntries: () => Promise.resolve(new Set<string>()),
+      },
+      newCredentialBinding({ ...f.deps, lifecycle: lifecycle(reads) }),
+      lifecycle(reads),
+    );
+    expect([
+      ...(await scope.authorizedResourceIds(unbound, ApiResourceKind.organization)),
+    ]).toEqual([ALPHA]);
+    expect(f.reads).toEqual([]);
+  });
+});
+

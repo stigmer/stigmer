@@ -31,8 +31,38 @@ import type {
 } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
 import { createLogger } from "../../boot/logger.js";
 import type { CallerIdentity, IdentityVerifier } from "../identity.js";
+import type { OrganizationPurgeContribution } from "../organization-purge.js";
+
+/**
+ * The organization purge ownership a fake unit of a wider edition declares:
+ * boot refuses a composition that serves a kind an organization owns with
+ * nothing to remove or keep it (boot/organization-purge.ts), and the
+ * Enterprise and Cloud kinds have no core purge. A stage that removes
+ * nothing owns the identity kinds; the subscription is kept.
+ */
+export const widerEditionPurge: OrganizationPurgeContribution = {
+  stages: [
+    {
+      name: "fake-wider-edition-kinds",
+      kinds: [
+        ApiResourceKind.identity_provider,
+        ApiResourceKind.team,
+        ApiResourceKind.invitation,
+      ],
+      run: () => Promise.resolve({ more: false }),
+    },
+  ],
+  retains: [
+    {
+      kind: ApiResourceKind.subscription,
+      reason: "a fake unit's subscription, kept as a billing record",
+    },
+  ],
+};
 
 export const silentLogger = createLogger({
   level: "error",

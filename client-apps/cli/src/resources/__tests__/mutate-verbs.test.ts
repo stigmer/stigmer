@@ -37,6 +37,9 @@ import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/work
 import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
 import type { Stigmer } from "@stigmer/sdk";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
@@ -49,6 +52,11 @@ import { tagVersion } from "../tag.js";
 const knownAgent = create(AgentSchema, {
   metadata: { name: "Reviewer", slug: "reviewer", org: "acme", id: "agt_1" },
 });
+
+const knownOrganization = create(OrganizationSchema, {
+  metadata: { name: "Acme", slug: "acme", id: "org_01jacme00000000000000000000" },
+});
+let organizationDeleteIds: string[] = [];
 
 const knownMcp = create(McpServerSchema, {
   metadata: { name: "Filesystem", slug: "filesystem", org: "acme", id: "mcp_1" },
@@ -118,6 +126,7 @@ beforeEach(() => {
   channelDeleteIds = [];
   scheduleDeleteIds = [];
   workflowInstanceDeleteIds = [];
+  organizationDeleteIds = [];
 });
 
 beforeAll(async () => {
@@ -225,6 +234,22 @@ beforeAll(async () => {
       tagVersion: (req) => {
         tagCalls.push({ workflowId: req.workflowId, versionHash: req.versionHash, tag: req.tag });
         return knownWorkflow;
+      },
+    });
+
+    router.service(OrganizationQueryController, {
+      get: (req) => {
+        if (req.value !== knownOrganization.metadata?.id) {
+          throw new ConnectError("organization not found", Code.NotFound);
+        }
+        return knownOrganization;
+      },
+      findMyOrganizations: () => ({ entries: [knownOrganization] }),
+    });
+    router.service(OrganizationCommandController, {
+      delete: (req) => {
+        organizationDeleteIds.push(req.value);
+        return knownOrganization;
       },
     });
 
@@ -345,6 +370,25 @@ describe("delete (standard kinds)", () => {
     const err = await planDelete(client, "session", "ses_1", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
     expect(String(err.message)).toContain("does not support");
+  });
+});
+
+describe("delete (organization)", () => {
+  it("says the organization is being deleted, removed in the background, and its name released after", async () => {
+    const plan = await planDelete(client, "organization", "acme", "");
+    expect(plan.warning.hints).toContain(
+      "This will delete the organization and everything it owns.",
+    );
+
+    const result = await plan.perform();
+    expect(organizationDeleteIds).toEqual([knownOrganization.metadata?.id]);
+    expect(result.status).toBe("success");
+    expect(result.message).toBe("Organization is being deleted");
+    expect(result.sections[0].fields).toContainEqual({ key: "Slug", value: "acme" });
+    expect(result.hints).toEqual([
+      "It no longer answers any request, and everything it owned is being removed in the background.",
+      "Its name 'acme' is released once the removal finishes.",
+    ]);
   });
 });
 

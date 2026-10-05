@@ -150,10 +150,13 @@ export function sharedNotFound(shareId: string): ConnectError {
  * reused, so no rename of the share's organization breaks it and no later
  * holder of that organization's name can capture it. A missing row (an
  * unknown id, or another kind's id) and a share whose organization no
- * longer exists answer the uniform refusal: deleting an organization
- * removes its row but not yet what it owned, and a link must stop working
- * when its organization is deleted. Each read is by primary key; any
- * other store failure is Internal.
+ * longer exists, or is being deleted, answer the uniform refusal: a
+ * deleted organization's row stays until its purge has removed what it
+ * owned (domain/organization/lifecycle.ts), and a link must stop working
+ * the moment its organization is deleted. The link names no organization,
+ * so neither the deleting rule's interceptor nor the anonymous lane's
+ * Authorizer reaches it; this loader is its seat for both profile lanes.
+ * Each read is by primary key; any other store failure is Internal.
  */
 export async function loadLinkedShare(
   store: Store,
@@ -183,6 +186,17 @@ export async function loadLinkedShare(
       throw sharedNotFound(shareId);
     }
     throw internalError(error, "failed to load organization");
+  }
+  let deleting: boolean;
+  try {
+    deleting = await store.organizationDeletions.isDeleting(
+      share.metadata?.org ?? "",
+    );
+  } catch (error) {
+    throw internalError(error, "failed to load organization");
+  }
+  if (deleting) {
+    throw sharedNotFound(shareId);
   }
   return share;
 }

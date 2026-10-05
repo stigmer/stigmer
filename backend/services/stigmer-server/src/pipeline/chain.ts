@@ -21,6 +21,11 @@
  *                         (interceptors/organization-names.ts: every
  *                         organization a request names by slug becomes its
  *                         id, before authorization and the handler read it)
+ *      deleting orgs    — BOTH chains, when the composition passes it
+ *                         (domain/organization/lifecycle.ts: a request
+ *                         that names an organization being deleted answers
+ *                         as if it did not exist, the in-process lane
+ *                         included, so server code cannot start work there)
  *   4. apiresource      — kind context from the service option
  *
  * ConnectRPC applies array order as nesting order (first = outermost),
@@ -58,10 +63,17 @@ export interface ServingChainInterceptors {
   readonly organizationNames: Interceptor;
 }
 
+/** The interceptors both chains compose, when the composition passes them. */
+export interface SharedChainInterceptors {
+  /** Refuses a request naming an organization being deleted. */
+  readonly deletingOrganizations?: Interceptor;
+}
+
 export function buildInterceptorChain(
   logger: Logger,
   identitySource: Interceptor,
   serving?: ServingChainInterceptors,
+  shared: SharedChainInterceptors = {},
 ): Interceptor[] {
   return [
     ...(serving === undefined ? [] : [serving.errorBoundary]),
@@ -73,6 +85,9 @@ export function buildInterceptorChain(
       : [serving.singleOrganization]),
     createProtovalidateInterceptor(),
     ...(serving === undefined ? [] : [serving.organizationNames]),
+    ...(shared.deletingOrganizations === undefined
+      ? []
+      : [shared.deletingOrganizations]),
     createApiResourceInterceptor(),
   ];
 }
