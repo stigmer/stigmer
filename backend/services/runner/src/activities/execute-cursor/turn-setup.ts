@@ -478,6 +478,7 @@ export async function installGate(
     ? undefined
     : await startHookServer({
         evaluator: hooks.evaluator,
+        captureMode: workspace.captureMode,
         refusals: approvalDecisions.size > 0
           ? buildPersonRefusals(rows.adjudicatedApprovals, approvalDecisions, rows.adjudicatedContentDigests)
           : new Map(),

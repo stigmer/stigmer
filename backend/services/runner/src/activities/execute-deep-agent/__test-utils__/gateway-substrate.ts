@@ -40,14 +40,13 @@ import { z } from "zod";
 import { Command, MemorySaver } from "@langchain/langgraph";
 import { createDeepAgent, LocalShellBackend, StateBackend } from "deepagents";
 
-import { create } from "@bufbuild/protobuf";
-import { HookGroupSchema, HookHandlerSchema, type HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { createApprovalGateMiddleware } from "../../../middleware/approval-gate.js";
 import { normalizeWorkspacePathArg } from "../../../middleware/path-normalization.js";
 import { createToolScopeMiddleware } from "../../../middleware/tool-scope.js";
 import { deriveLeaseScope, hookLeaseKey, mcpToolKey, type McpApprovalDefault } from "../../../shared/approval-policy.js";
 import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
 import { HookSet, type HookSourceGroups } from "../../../shared/hooks/hook-set.js";
+import { contractHookSources } from "../../../__test-utils__/approval-contract/hook-commands.js";
 import { NativeToolViews } from "../../../shared/hooks/tool-view.js";
 import { buildShellEnv } from "../../../shared/shell-env.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
@@ -320,31 +319,7 @@ function claudeInputOf(action: ProposedAction, root: string): Record<string, unk
   }
 }
 
-/** The bash command a contract hook runs: log its stdin, then answer as `does` says. */
-function hookCommand(does: ContractHookBehaviour, files: { runs: string; state: string }, root: string): string {
-  const log = `cat >> ${shellWord(files.runs)}; echo >> ${shellWord(files.runs)}; `;
-  const print = (json: unknown) => `printf '%s' ${shellWord(JSON.stringify(json))}`;
-  const decide = (permissionDecision: string, extra: Record<string, unknown> = {}) =>
-    print({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision, ...extra } });
-  if ("hang" in does) return `${log}sleep 30`;
-  if ("exit" in does) return `${log}printf '%s' ${shellWord(does.stderr ?? "")} >&2; exit ${does.exit}`;
-  if ("postBlock" in does) {
-    return log + print({
-      decision: "block",
-      reason: does.postBlock,
-      ...(does.context ? { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: does.context } } : {}),
-    });
-  }
-  if (does.answer === "ask-then-deny") {
-    return `${log}if [ -e ${shellWord(files.state)} ]; then ${decide("deny", { permissionDecisionReason: "asked once already" })}; ` +
-      `else : > ${shellWord(files.state)}; ${decide("ask")}; fi`;
-  }
-  return log + decide(does.answer, {
-    ...(does.reason ? { permissionDecisionReason: does.reason } : {}),
-    ...(does.rewrite ? { updatedInput: claudeInputOf(does.rewrite, root) } : {}),
-    ...(does.context ? { additionalContext: does.context } : {}),
-  });
-}
+
 
 /** The write resources a hooks probe may create, checked after it runs. */
 const WRITE_RESOURCES = ["/work/alpha.txt", "/work/beta.txt", "/work/.env"];
@@ -379,25 +354,7 @@ async function runHooksProbe(
         : [];
     const toolServerMap = serverSlug ? new Map([[name, serverSlug]]) : new Map<string, string>();
 
-    const groupsByPlugin = new Map<string, HookGroup[]>();
-    for (const hook of hooks) {
-      const plugin = hook.plugin ?? "safety";
-      const groups = groupsByPlugin.get(plugin) ?? [];
-      groups.push(create(HookGroupSchema, {
-        event: hook.event,
-        matcher: hook.matcher,
-        handlers: [create(HookHandlerSchema, {
-          command: hookCommand(hook.does, files, root),
-          timeoutSeconds: "hang" in hook.does ? 1 : 0,
-          condition: hook.condition ?? "",
-        })],
-      }));
-      groupsByPlugin.set(plugin, groups);
-    }
-    const sources: HookSourceGroups[] = [...groupsByPlugin].map(([plugin, groups]) => ({
-      source: { plugin, root: pluginRoot, data: pluginRoot, options: new Map() },
-      groups,
-    }));
+    const sources: HookSourceGroups[] = contractHookSources(hooks, files, pluginRoot, (rewrite) => claudeInputOf(rewrite, root));
     const leased = options.hookLease;
     const evaluator = new HookEvaluator({
       set: HookSet.of(sources),
@@ -514,6 +471,7 @@ export function createDeepAgentSubstrate(): GatewaySubstrate {
       surfacesGatePolicySource: true,
       enforcesSubAgentLists: true,
       runsHooks: true,
+      hookSeesSubAgent: true,
     },
 
     async authorize(action: ProposedAction, decision: GatewayDecision): Promise<GatewayOutcome> {

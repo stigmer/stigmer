@@ -30,10 +30,10 @@
  *
  * A rewrite is taken back to Cursor's payload and allowed only where
  * Cursor's engine applies it ({@link APPLIED_FIELDS}, each tool adapter's
- * `applyUpdatedInput` in the 1.0.31 bundle) and the gate can still review
- * it: a write or a deletion, any MCP call, or a Claude view built from
- * another tool cannot be rewritten, so a hook that rewrites them refuses
- * the call instead of letting it run as the model wrote it.
+ * `applyUpdatedInput` in the 1.0.31 bundle): a file's new content, any MCP
+ * call, or a Claude view built from another tool cannot be applied, so a
+ * hook that rewrites them refuses the call instead of letting it run as
+ * the model wrote it.
  */
 
 import { isAbsolute, resolve } from "node:path";
@@ -44,14 +44,15 @@ type Args = Record<string, unknown>;
 
 /**
  * The fields of each tool's input a hook's `updated_input` may change on this
- * engine: those Cursor's engine applies, less a write's or a deletion's
- * path. Cursor would move those, but the gate's capture and its secret-like
- * path block judge the path the model wrote before any hook answers
- * (`hook-script.ts`), so a moved write would escape both.
+ * engine: those Cursor's engine applies. A write's or a deletion's new path
+ * is checked again by the hook server (`hook-server.ts`), since the gate's
+ * capture and its secret-like path block judged the path the model wrote.
  */
 export const APPLIED_FIELDS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
   ["Shell", new Set(["command", "cwd", "timeout"])],
   ["Read", new Set(["file_path"])],
+  ["Write", new Set(["file_path"])],
+  ["Delete", new Set(["file_path"])],
   ["Grep", new Set(["pattern", "file_path"])],
   ["List", new Set(["file_path"])],
   ["Fetch", new Set(["url"])],

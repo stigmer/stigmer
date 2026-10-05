@@ -39,6 +39,11 @@
  * the model's retry, as on the native engine. Only a hook's deny comes
  * before it.
  *
+ * A hook that moves a write or a deletion to another file is checked
+ * again, as the native engine checks a rewrite: onto a secret-like path the
+ * call is blocked as the gate blocks such a write; in capture mode it is
+ * refused, since capture reviewed the path the model wrote.
+ *
  * Every allow and ask is recorded ({@link HookDecisionLog}) under the
  * call's identity, so the translator can name the deciding hook on the row
  * of a call that ran.
@@ -54,7 +59,8 @@ import type { HookEvaluator, HookToolCall } from "../../shared/hooks/evaluate.js
 import { HOOK_FEEDBACK_HEADING, hookAskMessage, hookRefusalMessage, personDecisionSentence } from "../../shared/hooks/messages.js";
 import { grantToken, toolIdentity, type PersonRefusal } from "./approval-state.js";
 import { rowNameOf } from "./hook-views.js";
-import { APPROVAL_REQUIRED_AGENT_MESSAGE, UNATTENDED_SKIP_AGENT_MESSAGE } from "./hook-script.js";
+import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
+import { APPROVAL_REQUIRED_AGENT_MESSAGE, SECRET_BLOCKED_AGENT_MESSAGE, UNATTENDED_SKIP_AGENT_MESSAGE } from "./hook-script.js";
 
 const SOCKET_FILE = "hooks.sock";
 
@@ -129,6 +135,8 @@ export interface HookServerParams {
   readonly evaluator: HookEvaluator;
   /** The calls a person skipped or rejected this run, by identity token (`buildPersonRefusals`). */
   readonly refusals: ReadonlyMap<string, PersonRefusal>;
+  /** The turn captures its file changes for review (`TurnWorkspace.captureMode`). */
+  readonly captureMode: boolean;
 }
 
 /** A socket path the platform cannot bind: an infrastructure fault, never a silent skip. */
@@ -150,7 +158,7 @@ export async function startHookServer(params: HookServerParams): Promise<HookSer
 
   const token = randomBytes(32).toString("hex");
   const decisions = new HookDecisionLog();
-  const handler = new HookRequestHandler(params.evaluator, params.refusals, decisions, token);
+  const handler = new HookRequestHandler(params.evaluator, params.refusals, decisions, token, params.captureMode);
   const server = createServer((socket) => handler.serve(socket));
   try {
     await new Promise<void>((resolve, reject) => {
@@ -195,6 +203,7 @@ export class HookRequestHandler {
     private readonly refusals: ReadonlyMap<string, PersonRefusal>,
     private readonly decisions: HookDecisionLog,
     token: string,
+    private readonly captureMode = false,
   ) {
     this.tokenBytes = Buffer.from(token, "utf-8");
   }
@@ -263,6 +272,8 @@ export class HookRequestHandler {
       }
       case "allow":
       case "ask": {
+        const moved = this.movedFile(call, outcome.updatedArgs);
+        if (moved !== undefined) return moved;
         const refusal = this.refusals.get(identity) ?? this.refusals.get(coarse);
         if (refusal !== undefined) {
           const message = personDecisionSentence(refusal.toolName, refusal.action, "");
@@ -292,6 +303,21 @@ export class HookRequestHandler {
       }
       /* v8 ignore stop */
     }
+  }
+
+  /** A write or a deletion a hook moved to another file, refused or blocked; `undefined` when it stays put. */
+  private movedFile(call: HookToolCall, rewrite: Record<string, unknown> | undefined): PreReply | undefined {
+    if ((call.name !== "Write" && call.name !== "Delete") || rewrite === undefined) return undefined;
+    const target = rewrite["file_path"];
+    if (typeof target !== "string" || target === call.args["file_path"]) return undefined;
+    if (isSecretLikePath(target)) {
+      return { decision: "deny", deny: JSON.stringify({ permission: "deny", agent_message: SECRET_BLOCKED_AGENT_MESSAGE, user_message: SECRET_BLOCKED_AGENT_MESSAGE }), message: SECRET_BLOCKED_AGENT_MESSAGE };
+    }
+    if (this.captureMode) {
+      const message = "A hook moved this file change to another file, which this turn's review cannot follow, so the call was refused.";
+      return { decision: "deny", deny: denyAnswer(message), message };
+    }
+    return undefined;
   }
 
   private async post(payload: Record<string, unknown>): Promise<string> {

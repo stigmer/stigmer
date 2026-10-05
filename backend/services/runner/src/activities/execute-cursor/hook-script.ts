@@ -194,7 +194,7 @@ export const UNATTENDED_SKIP_AGENT_MESSAGE =
 // the write is discarded and never captured for review, so the model must move on
 // rather than wait or retry. Same embedding constraint (single-quoted bash echo
 // of a JSON object): no double quotes, apostrophes, or backslashes.
-const SECRET_BLOCKED_AGENT_MESSAGE =
+export const SECRET_BLOCKED_AGENT_MESSAGE =
   "This file was blocked for security because its path matches a secret-like " +
   "pattern Stigmer will not capture for review. Nothing was written. This is the " +
   "platform safety gate working as intended — it is not an error and not a Cursor " +

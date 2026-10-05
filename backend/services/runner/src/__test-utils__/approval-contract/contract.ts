@@ -53,10 +53,22 @@
  * 27. a hook's rewritten input replaces the arguments.
  * 28. PostToolUse feedback reaches the model; a failed tool runs none.
  * 29. a secret-like write is blocked whatever a hook says.
- * 30. inside a sub-agent a hook sees the sub-agent's type.
+ * 30. inside a sub-agent a hook sees the sub-agent's type (capability:
+ *     hookSeesSubAgent).
  * 31. on resume the hook runs again, and a deny then binds even after an
  *     approval.
  * 32. a call the tool lists exclude never reaches a hook.
+ *
+ * An agent's hooks in Cursor's format, on either engine (capability: runsHooks):
+ * 33. a deny refuses the call with its message, an allow runs it, and an ask
+ *     shows the card naming the hook (where Cursor's own engine would let
+ *     the call through).
+ * 34. exit code 2 refuses the call with what the hook printed.
+ * 35. a hook marked fail_closed refuses the call when it crashes; one that
+ *     is not decides nothing, and the default decides.
+ * 36. output that is not JSON refuses a call before it runs.
+ * 37. beforeShellExecution's matcher is tested against the command, and an
+ *     MCP call's against `MCP:<tool>`.
  *
  * Capability-gated invariants (9, 10, 11, 19) run only where the substrate supports
  * the relevant lease; the "executes exactly once" count in (2) is asserted only
@@ -448,11 +460,13 @@ function describeHooksContract(
       expect(outcome.writtenPaths).toEqual([]);
     });
 
-    it("inside a sub-agent a hook sees the sub-agent's type (invariant 30)", async () => {
-      const outcome = await under([onShell({ answer: "allow" })], SHELL, { subAgent: "helper" });
-      expect(outcome.hookRuns[0]?.["agent_type"]).toBe("helper");
-      expect(outcome.hookRuns[0]?.["agent_id"]).toBeTruthy();
-    });
+    if (substrate.capabilities.hookSeesSubAgent) {
+      it("inside a sub-agent a hook sees the sub-agent's type (invariant 30)", async () => {
+        const outcome = await under([onShell({ answer: "allow" })], SHELL, { subAgent: "helper" });
+        expect(outcome.hookRuns[0]?.["agent_type"]).toBe("helper");
+        expect(outcome.hookRuns[0]?.["agent_id"]).toBeTruthy();
+      });
+    }
 
     it("on resume the hook runs again, and its deny binds after an approval (invariant 31)", async () => {
       const outcome = await under([onShell({ answer: "ask-then-deny" })], SHELL, { decision: "approve" });
@@ -464,6 +478,57 @@ function describeHooksContract(
       const outcome = await under([onShell({ answer: "deny" })], SHELL, { lists: { tools: [], disallowedTools: ["Bash"] } });
       expect(outcome.refusedBy).toBe("lists");
       expect(outcome.hookRuns).toEqual([]);
+    });
+  });
+
+  describe("hooks in Cursor's format", () => {
+    const cursorShell = (does: ContractHookBehaviour, extra: Partial<ContractHook> = {}): ContractHook =>
+      ({ event: "preToolUse", matcher: "Shell", does, format: "cursor", ...extra });
+
+    it("a deny refuses, an allow runs, an ask shows the card naming the hook (invariant 33)", async () => {
+      const denied = await under([cursorShell({ answer: "deny", reason: "no recursive deletes" })], SHELL);
+      expectHookRefused(substrate, "a shell a Cursor hook denies", denied);
+      expect(denied.modelRead).toContain("no recursive deletes");
+      const allowed = await under([cursorShell({ answer: "allow" })], SHELL);
+      expect(allowed.gated, `${substrate.name}: an allowed shell must not ask`).toBe(false);
+      expect(allowed.executed).toBe(true);
+      const held = await under([{ event: "preToolUse", matcher: "Read", does: { answer: "ask" }, format: "cursor" }], READ);
+      expect(held.gated, `${substrate.name}: a Cursor hook's ask is enforced`).toBe(true);
+      expect(held.executed).toBe(false);
+      expect(held.policySource).toBe("hook");
+      expect(held.policyHook).toBe("safety");
+    });
+
+    it("exit 2 refuses the call with what the hook printed (invariant 34)", async () => {
+      const outcome = await under([cursorShell({ exit: 2, stderr: "blocked by policy" })], SHELL);
+      expectHookRefused(substrate, "a shell a Cursor hook exits 2 on", outcome);
+      expect(outcome.modelRead).toContain("blocked by policy");
+    });
+
+    it("fail_closed refuses on a crash; without it the default decides (invariant 35)", async () => {
+      const closed = await under([{ event: "preToolUse", matcher: "Read", does: { exit: 1, stderr: "crashed" }, format: "cursor", failClosed: true }], READ);
+      expect(closed.executed, `${substrate.name}: a fail-closed hook's crash refuses even a read`).toBe(false);
+      expect(closed.refusedBy).toBe("hook");
+      const open = await under([cursorShell({ exit: 1, stderr: "crashed" })], SHELL);
+      expect(open.gated, `${substrate.name}: the default still asks before a shell`).toBe(true);
+      expect(open.policySource).toBe("builtin_category");
+    });
+
+    it("output that is not JSON refuses a call before it runs (invariant 36)", async () => {
+      expectHookRefused(substrate, "a shell whose Cursor hook prints no JSON", await under([cursorShell({ invalidJson: true })], SHELL));
+    });
+
+    it("beforeShellExecution matches the command, an MCP event matches MCP:<tool> (invariant 37)", async () => {
+      const onCommand = (matcher: string): ContractHook =>
+        ({ event: "beforeShellExecution", matcher, does: { answer: "deny" }, format: "cursor" });
+      expectHookRefused(substrate, "a shell whose command the matcher takes", await under([onCommand("^rm ")], SHELL));
+      const missed = await under([onCommand("^ls")], SHELL);
+      expect(missed.refusedBy, `${substrate.name}: a matcher that misses the command decides nothing`).toBeUndefined();
+      expect(missed.gated).toBe(true);
+      for (const event of ["preToolUse", "beforeMCPExecution"] as const) {
+        const mcp = await under([{ event, matcher: "MCP:search_issues", does: { answer: "deny" }, format: "cursor" }], MCP);
+        expectHookRefused(substrate, `an MCP call a Cursor ${event} hook denies`, mcp);
+      }
     });
   });
 }
@@ -501,6 +566,29 @@ export function describeCrossSubstrateAgreement(substrates: GatewaySubstrate[]):
         const executed = outcomes.map((o) => o.executed);
         const detail = available.map((s, i) => `${s.name}=${executed[i]}`).join(", ");
         expect(new Set(executed).size, `substrates disagree on "${label}" (executed): ${detail}`).toBe(1);
+      });
+    }
+
+    const withHooks = available.filter((s) => s.capabilities.runsHooks && s.authorizeUnderHooks);
+    const hookCases: Array<{ label: string; hooks: ContractHook[]; action: ProposedAction; decision?: GatewayDecision }> = [
+      { label: "a hook's deny refuses a shell", hooks: [onShell({ answer: "deny" })], action: SHELL },
+      { label: "a hook's allow runs a shell", hooks: [onShell({ answer: "allow" })], action: SHELL },
+      { label: "a hook's ask holds a read", hooks: [{ event: "PreToolUse", matcher: "Read", does: { answer: "ask" } }], action: READ },
+      { label: "an approved hook ask runs", hooks: [onShell({ answer: "ask" })], action: SHELL, decision: "approve" },
+      { label: "a rejected hook ask never runs", hooks: [onShell({ answer: "ask" })], action: SHELL, decision: "reject" },
+      { label: "a failed hook leaves the default", hooks: [onShell({ exit: 1 })], action: SHELL },
+      { label: "a Cursor-format deny refuses a shell", hooks: [{ event: "preToolUse", matcher: "Shell", does: { answer: "deny" }, format: "cursor" }], action: SHELL },
+      { label: "a Cursor-format ask holds a shell", hooks: [{ event: "preToolUse", matcher: "Shell", does: { answer: "ask" }, format: "cursor" }], action: SHELL },
+      { label: "a secret write is blocked whatever the hook says", hooks: [{ event: "PreToolUse", matcher: "Write", does: { answer: "allow" } }], action: SECRET_WRITE },
+    ];
+    for (const { label, hooks, action, decision } of hookCases) {
+      (withHooks.length >= 2 ? it : it.skip)(`both substrates agree on the hooks: ${label}`, async () => {
+        const outcomes = await Promise.all(
+          withHooks.map((s) => s.authorizeUnderHooks!(hooks, action, decision !== undefined ? { decision } : {})),
+        );
+        const seen = outcomes.map((o) => `${o.executed}/${o.refusedBy ?? "-"}`);
+        const detail = withHooks.map((s, i) => `${s.name}=${seen[i]}`).join(", ");
+        expect(new Set(seen).size, `substrates disagree on "${label}" (executed/refusedBy): ${detail}`).toBe(1);
       });
     }
 
