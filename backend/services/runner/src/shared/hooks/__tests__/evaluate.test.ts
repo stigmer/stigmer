@@ -432,6 +432,20 @@ describe("both formats on one call", () => {
     expect((await hooks.preToolUse(SHELL, {})).updatedArgs).toEqual({ command: "git push origin feature" });
   });
 
+  it("sees a Cursor hook that echoes a listing with no path as no rewrite", async () => {
+    const { run } = scripted({ "cursor-echo": { stdout: JSON.stringify({ permission: "ask", updated_input: { pattern: "", glob: "*", file_path: ROOT, output_mode: "files_with_matches" } }) } });
+    const hooks = evaluator([{ source: plugin("echo"), format: "cursor", groups: [cursorGroup("preToolUse", "Grep", "cursor-echo")] }], run);
+    const listing = await hooks.preToolUse({ id: "call_8", name: "ls", args: {}, serverSlug: "" }, {});
+    expect([listing.decision, listing.updatedArgs]).toEqual(["ask", undefined]);
+  });
+
+  it("holds a Cursor hook's web fetch policy on this engine, where the tool is always bound", async () => {
+    const { run } = scripted({ "cursor-egress": { stdout: JSON.stringify({ permission: "deny", agent_message: "no egress" }) } });
+    const hooks = evaluator([{ source: plugin("egress"), format: "cursor", groups: [cursorGroup("preToolUse", "Fetch", "cursor-egress")] }], run);
+    const fetch = { id: "call_9", name: "web_fetch", args: { url: "https://example.com" }, serverSlug: "" };
+    expect(await hooks.preToolUse(fetch, {})).toMatchObject({ decision: "deny", hook: "egress", reason: "no egress" });
+  });
+
   it("runs Cursor's post events after a call and hands back their context", async () => {
     const { run, runs } = scripted({ "cursor-post": { stdout: '{"additional_context":"reviewed"}' } });
     const hooks = evaluator(

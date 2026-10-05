@@ -34,6 +34,7 @@ import {
 import {
   claudeSettingsWithHooks,
   CursorWorkspaceHooksRefusal,
+  refuseLinkedGateFile,
   refuseOwnFolderHooks,
   restoreAbandonedWorkspaceFiles,
   rewriteWorkspaceFiles,
@@ -558,6 +559,21 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     await expect(refuseOwnFolderHooks(workspaceFolders([linkedDir.workspaceRoot], []))).rejects.toThrow(/through a link/);
   });
 
+  it("refuses a turn whose gate file, or its directory, is a link the engine would not load", async () => {
+    const { workspaceRoot } = workspace();
+    await expect(refuseLinkedGateFile(workspaceRoot)).resolves.toBeUndefined();
+    await expect(refuseLinkedGateFile("")).resolves.toBeUndefined();
+    const elsewhere = mkdtempSync(join(tmpdir(), "elsewhere-"));
+    tempDirs.push(elsewhere);
+    writeFileSync(join(elsewhere, "hooks.json"), "{}", "utf-8");
+    mkdirSync(join(workspaceRoot, ".cursor"), { recursive: true });
+    symlinkSync(join(elsewhere, "hooks.json"), join(workspaceRoot, ".cursor", "hooks.json"));
+    await expect(refuseLinkedGateFile(workspaceRoot)).rejects.toThrow(/approval gate would not run/);
+    rmSync(join(workspaceRoot, ".cursor"), { recursive: true });
+    symlinkSync(elsewhere, join(workspaceRoot, ".cursor"));
+    await expect(refuseLinkedGateFile(workspaceRoot)).rejects.toThrow(CursorWorkspaceHooksRefusal);
+  });
+
   it("refuses nothing for an empty hooks object or a file that does not parse", async () => {
     const { workspaceRoot, settings } = workspace();
     writeFileSync(settings, JSON.stringify({ hooks: {} }), "utf-8");
@@ -617,6 +633,44 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     expect(readFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "utf-8")).toBe("{ half written");
   });
 
+  it("puts the set-aside files back when setting one aside fails partway", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    const local = join(workspaceRoot, ".claude", "settings.local.json");
+    writeFileSync(local, JSON.stringify({ hooks: { PreToolUse: [] } }), "utf-8");
+    chmodSync(local, 0o400);
+    try {
+      await expect(
+        installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders: workspaceFolders([workspaceRoot], []) }),
+      ).rejects.toThrow();
+    } finally {
+      chmodSync(local, 0o600);
+    }
+    expect(readFileSync(settings, "utf-8"), "settings.json was set aside before the failing write").toBe(original);
+  });
+
+  it("never restores through a link put in a set-aside file's place, and leaves a file back as it was untouched", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    const folders = workspaceFolders([workspaceRoot], []);
+    const elsewhere = mkdtempSync(join(tmpdir(), "elsewhere-"));
+    tempDirs.push(elsewhere);
+    const outside = join(elsewhere, "settings.json");
+    writeFileSync(outside, '{"model":"mine"}\n', "utf-8");
+    const linked = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    rmSync(settings);
+    symlinkSync(outside, settings);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await removeHitlGate(linked);
+    warn.mockRestore();
+    expect(readFileSync(outside, "utf-8"), "the file the link reaches is not written").toBe('{"model":"mine"}\n');
+
+    rmSync(settings);
+    writeFileSync(settings, original, "utf-8");
+    const next = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    writeFileSync(settings, original, "utf-8");
+    await removeHitlGate(next);
+    expect(readFileSync(settings, "utf-8"), "its bytes, not a reformatted copy").toBe(original);
+  });
+
   it("puts the set-aside files back when the install fails after setting them aside", async () => {
     const { workspaceRoot, hitlDir, settings, original } = workspace();
     mkdirSync(join(workspaceRoot, ".cursor"), { recursive: true });
@@ -665,24 +719,27 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     tempDirs.push(gatesRoot);
     // The pid of a process that has exited: a runner that crashed.
     const stopped = spawnSync(process.execPath, ["-e", ""]).pid!;
-    const setAside = async (name: string, writer: number | undefined) => {
+    const setAside = async (name: string, writer: number | undefined, writerStarted?: number) => {
       const { settings, original } = workspace();
       const gateDir = join(gatesRoot, name);
       await rewriteWorkspaceFiles(gateDir, [{ path: settings, kind: "claude-settings", original, written: '{"model":"x"}\n' }]);
       const snapshotPath = join(gateDir, "workspace-files.json");
       const { rewrites } = JSON.parse(readFileSync(snapshotPath, "utf-8")) as { rewrites: unknown[] };
-      writeFileSync(snapshotPath, JSON.stringify(writer === undefined ? { rewrites } : { writer, rewrites }), "utf-8");
+      writeFileSync(snapshotPath, JSON.stringify({ rewrites, ...(writer !== undefined ? { writer } : {}), ...(writerStarted !== undefined ? { writerStarted } : {}) }), "utf-8");
       return { settings, original, snapshotPath };
     };
     const crashed = await setAside("crashed", stopped);
     const running = await setAside("running", process.ppid);
     const unnamed = await setAside("unnamed", undefined);
+    // A running process whose id a stopped runner had: it started long after.
+    const reused = await setAside("reused", process.ppid, 1);
     mkdirSync(join(gatesRoot, "empty"));
 
     await restoreAbandonedWorkspaceFiles(gatesRoot, () => false);
     expect(readFileSync(crashed.settings, "utf-8")).toBe(crashed.original);
     expect(existsSync(crashed.snapshotPath)).toBe(false);
     expect(readFileSync(unnamed.settings, "utf-8"), "a snapshot naming no writer is restored").toBe(unnamed.original);
+    expect(readFileSync(reused.settings, "utf-8"), "a process id taken again is not the runner").toBe(reused.original);
     expect(readFileSync(running.settings, "utf-8"), "a running runner's turn keeps its set-aside").toBe('{"model":"x"}\n');
     expect(existsSync(running.snapshotPath)).toBe(true);
     await restoreAbandonedWorkspaceFiles(join(gatesRoot, "missing"), () => false);

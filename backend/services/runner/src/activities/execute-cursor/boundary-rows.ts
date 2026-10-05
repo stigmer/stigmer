@@ -361,7 +361,7 @@ function proposeOnStreamedRow(
   asked: HookAsk | undefined,
 ): void {
   const args = proposalArgs(input);
-  const digest = approvalDigest(tc.mcpServerSlug, args ? contentDigest(args) : "", input, asked);
+  const digest = approvalDigest(tc.mcpServerSlug, args ? contentDigest(args) : "", input, asked !== undefined);
   transcript.apply({
     kind: "approval_proposed",
     callId: tc.id,
@@ -380,13 +380,13 @@ function proposeOnStreamedRow(
  * hook asked on, the hook's whole input ({@link hookAskDigest}), so the grant
  * lets through that call and no other, as the native engine asks for each.
  */
-function approvalDigest(
+export function approvalDigest(
   mcpServerSlug: string,
   content: string,
   input: Record<string, unknown> | undefined,
-  asked: HookAsk | undefined,
+  askedByHook: boolean,
 ): string {
-  if (asked === undefined || input === undefined) return content;
+  if (!askedByHook || input === undefined) return content;
   return content && !mcpServerSlug ? content : hookAskDigest(input);
 }
 
@@ -449,7 +449,7 @@ function proposeSynthesizedGate(
     ...(args !== undefined ? { args } : {}),
     ...(provenance !== undefined ? { provenance } : {}),
     ...(asked !== undefined ? { policyHook: asked.hook } : {}),
-    contentDigest: approvalDigest("", captured ? contentDigest(captured) : digest, input, asked),
+    contentDigest: approvalDigest("", captured ? contentDigest(captured) : digest, input, asked !== undefined),
   });
   const row = findToolCallById(messages, callId);
   if (!row) throw new Error(`reconcileDeniedToolCalls: the builder did not create the proposed row ${callId}`);

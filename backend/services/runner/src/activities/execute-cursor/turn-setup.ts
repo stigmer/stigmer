@@ -71,7 +71,7 @@ import {
 import { startHookServer, type HookDecisionLog } from "./hook-server.js";
 import { toolsHiddenByHooks, withToolsHidden } from "./hook-tool-hiding.js";
 import { CursorEngineToolViews } from "./hook-views.js";
-import { refuseOwnFolderHooks, workspaceFolders } from "./workspace-hook-files.js";
+import { refuseLinkedGateFile, refuseOwnFolderHooks, workspaceFolders } from "./workspace-hook-files.js";
 import { readSidecarSnapshot } from "./cas-observations.js";
 import { CURSOR_CAPABILITIES } from "./cursor-capabilities.js";
 import { toCursorMcpConfig, validateMcpServerEnv } from "./cursor-mcp-config.js";
@@ -290,13 +290,15 @@ export interface CursorHooks {
 }
 
 /**
- * A Cursor turn on a person's own folder whose `.claude` settings carry
- * hooks is refused before any agent exists (`workspace-hook-files.ts` says
- * why): the SDK would run them beside the agent's own, and Stigmer does not
- * edit a person's folder. Throws `CursorWorkspaceHooksRefusal`, which
- * settles the turn `failed` on the `actionable` surface.
+ * A Cursor turn the workspace's hook files would leave unsafe is refused
+ * before any agent exists (`workspace-hook-files.ts` says why): a person's
+ * own folder whose `.claude` settings carry hooks, such settings reached
+ * through a link, or a gate file that is a link, which the engine would not
+ * load. Throws `CursorWorkspaceHooksRefusal`, which settles the turn
+ * `failed` on the `actionable` surface.
  */
 export async function checkWorkspaceHookFiles(input: TurnInput): Promise<void> {
+  await refuseLinkedGateFile(input.workspace.primaryDir);
   await refuseOwnFolderHooks(workspaceFolders(input.workspace.dirs, input.workspace.provision.provisionResults));
 }
 

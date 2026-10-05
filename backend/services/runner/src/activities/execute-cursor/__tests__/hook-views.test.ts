@@ -17,6 +17,7 @@ import { create } from "@bufbuild/protobuf";
 import { HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { describe, expect, it, vi } from "vitest";
 import { HookSet, type HookFormatName } from "../../../shared/hooks/hook-set.js";
+import { rewriteEchoes } from "../../../shared/hooks/tool-view.js";
 import { toolsHiddenByHooks, withToolsHidden } from "../hook-tool-hiding.js";
 import { CursorEngineToolViews, rowNameOf } from "../hook-views.js";
 
@@ -94,11 +95,14 @@ describe("a rewrite on the Cursor engine", () => {
     expect(back("Grep", { pattern: "a", file_path: "/w" }, "claude-code", { pattern: "b", path: "/w" })).toEqual({ pattern: "b", file_path: "/w" });
   });
 
-  it("takes a rewrite that repeats the call as the call itself, an MCP call's and a Delete's included", () => {
-    expect(back("search", { q: "a" }, "claude-code", { q: "a" }, "github")).toEqual({ q: "a" });
-    expect(back("search", { q: "a" }, "cursor", { q: "a" }, "github")).toEqual({ q: "a" });
-    expect(back("Delete", { file_path: "/w/a" }, "claude-code", { file_path: "/w/a", content: "" })).toEqual({ file_path: "/w/a" });
-    expect(back("Shell", { command: "ls", cwd: "/w" }, "cursor", { command: "ls" }), "a Cursor-format one names only some keys").toEqual({ command: "ls", cwd: "/w" });
+  it("sees a rewrite that repeats the view as none, an MCP call's and a Delete's included", () => {
+    const echoes = (name: string, args: Record<string, unknown>, format: HookFormatName, input: Record<string, unknown>, serverSlug = "") =>
+      rewriteEchoes(views.viewsOf(call(name, args, serverSlug))[format]!.toolInput, format, input);
+    expect(echoes("search", { q: "a" }, "claude-code", { q: "a" }, "github")).toBe(true);
+    expect(echoes("search", { q: "a" }, "cursor", { q: "a" }, "github")).toBe(true);
+    expect(echoes("Delete", { file_path: "/w/a" }, "claude-code", { file_path: "/w/a", content: "" })).toBe(true);
+    expect(echoes("Shell", { command: "ls", cwd: "/w" }, "cursor", { command: "ls" }), "a Cursor-format one names only some keys").toBe(true);
+    expect(echoes("Shell", { command: "ls" }, "claude-code", { command: "pwd" })).toBe(false);
   });
 
   it("refuses what Cursor's engine would drop, naming it", () => {

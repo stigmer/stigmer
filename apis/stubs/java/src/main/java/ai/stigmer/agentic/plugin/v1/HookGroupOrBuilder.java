@@ -42,10 +42,13 @@ public interface HookGroupOrBuilder extends
 
   /**
    * <pre>
-   * Which tools the handlers run for: a name such as "Bash", a list such as
-   * "Write|Edit", or a regular expression such as "mcp__github__.*". Empty or
-   * "*" matches every tool. A plugin's own MCP server's tools are named
-   * mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;, as in Claude Code.
+   * Which tools the handlers run for, in the format's own names. In Claude
+   * Code's format: a name such as "Bash", a list such as "Write|Edit", or a
+   * regular expression such as "mcp__github__.*"; a plugin's own MCP
+   * server's tools are named mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;, as in
+   * Claude Code. In Cursor's: a regular expression tested against the tool's
+   * name ("Shell", "Write", "MCP:&lt;tool&gt;"), or, on "beforeShellExecution",
+   * against the command itself. Empty or "*" matches every tool.
    * </pre>
    *
    * <code>string matcher = 2 [json_name = "matcher"];</code>
@@ -54,10 +57,13 @@ public interface HookGroupOrBuilder extends
   java.lang.String getMatcher();
   /**
    * <pre>
-   * Which tools the handlers run for: a name such as "Bash", a list such as
-   * "Write|Edit", or a regular expression such as "mcp__github__.*". Empty or
-   * "*" matches every tool. A plugin's own MCP server's tools are named
-   * mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;, as in Claude Code.
+   * Which tools the handlers run for, in the format's own names. In Claude
+   * Code's format: a name such as "Bash", a list such as "Write|Edit", or a
+   * regular expression such as "mcp__github__.*"; a plugin's own MCP
+   * server's tools are named mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;, as in
+   * Claude Code. In Cursor's: a regular expression tested against the tool's
+   * name ("Shell", "Write", "MCP:&lt;tool&gt;"), or, on "beforeShellExecution",
+   * against the command itself. Empty or "*" matches every tool.
    * </pre>
    *
    * <code>string matcher = 2 [json_name = "matcher"];</code>

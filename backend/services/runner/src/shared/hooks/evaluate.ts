@@ -59,7 +59,7 @@ import {
 } from "./formats/cursor.js";
 import type { HookEntry, HookEvent, HookFormatName, HookSet, HookSource } from "./hook-set.js";
 import { runHookProcess, type HookProcessRunner, type HookRunResult } from "./run.js";
-import { claudeToolResponse, type CallViews, type HookToolViews } from "./tool-view.js";
+import { claudeToolResponse, rewriteEchoes, type CallViews, type HookToolViews } from "./tool-view.js";
 
 /** Claude Code's `permission_mode` values this runner reports. */
 export type HookPermissionMode = "default" | "plan" | "bypassPermissions";
@@ -302,7 +302,9 @@ export class HookEvaluator {
     const rewriter = top === RANK.deny ? undefined : winners.find((a) => a.updatedInput !== undefined);
     const decider = rewriter ?? winners[0]!;
     const base = { hook: decider.source.plugin, leased: decider.leased, additionalContext, errors };
-    if (rewriter?.updatedInput !== undefined) {
+    const seen = rewriter?.updatedInput !== undefined ? this.deps.views.viewsOf(call)[rewriter.format]?.toolInput : undefined;
+    const echoed = seen !== undefined && rewriter?.updatedInput !== undefined && rewriteEchoes(seen, rewriter.format, rewriter.updatedInput);
+    if (rewriter?.updatedInput !== undefined && !echoed) {
       const args = this.deps.views.argsFrom(call, rewriter.format, rewriter.updatedInput);
       if (typeof args === "string") {
         console.warn(`[hooks] ${label(rewriter.source)} rewrote a call this engine cannot run as rewritten: ${args}`);

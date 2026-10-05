@@ -219,6 +219,45 @@ describe("the hook server's answers", () => {
   });
 });
 
+describe("an MCP call's server, for its postToolUse", () => {
+  it("is remembered for a call that may run, newest first, and never for one a hook refused", async () => {
+    const ev = new HookEvaluator({
+      set: HookSet.of([{
+        source: { plugin: "safety", root: "", data: "", options: new Map() },
+        groups: [
+          create(HookGroupSchema, { event: "PreToolUse", matcher: "", handlers: [create(HookHandlerSchema, { command: "pre" })] }),
+          create(HookGroupSchema, { event: "PostToolUse", matcher: "", handlers: [create(HookHandlerSchema, { command: "post" })] }),
+        ],
+      }]),
+      views: new CursorEngineToolViews({ workspaceRoot: "/w", pluginServers: new Map(), platformServerSlugs: new Set() }),
+      sessionId: "ses_1",
+      workspaceRoot: "/w",
+      permissionMode: "default",
+      baseEnv: {},
+      homeDir: "/home",
+      leases: new Set(),
+      run: async (spec) => {
+        const stdin = JSON.parse(spec.stdin) as { hook_event_name: string; tool_name: string; tool_input: { q?: string } };
+        if (stdin.hook_event_name === "PreToolUse") {
+          return { exitCode: 0, stdout: stdin.tool_input.q === "x" ? JSON.stringify({ hookSpecificOutput: { permissionDecision: "deny" } }) : "", stderr: "", timedOut: false };
+        }
+        return { exitCode: 2, stdout: "", stderr: `ran as ${stdin.tool_name}`, timedOut: false };
+      },
+    });
+    const { h } = handler(ev);
+    const pre = (q: string, server: string) =>
+      h.answer(request({ hook_event_name: "beforeMCPExecution", tool_name: "search", tool_input: JSON.stringify({ q }), mcp_server_name: server }));
+    const post = async (q: string) =>
+      ((await h.answer(JSON.stringify({ token: "tok", mode: "post", payload: { hook_event_name: "postToolUse", tool_name: "MCP:search", tool_input: { q } } }))) as { response: string }).response;
+    await pre("x", "github");
+    expect(await post("x"), "a refused call never ran").toBe("{}");
+    await pre("a", "one");
+    await pre("a", "two");
+    expect(await post("a")).toContain("mcp__two__search");
+    expect(await post("a")).toContain("mcp__one__search");
+  });
+});
+
 describe("the decision log", () => {
   it("hands each decision to its row once: by identity, by the rewrite's identity, or by the same path spelled relatively; never by the tool alone", () => {
     const log = new HookDecisionLog();
@@ -268,6 +307,16 @@ describe("the socket", () => {
     expect(JSON.parse(await ask(JSON.stringify({ token: "wrong", mode: "pre", payload: shellPayload("ls") })))).toEqual({ error: "unauthorized" });
     await server.close();
     await server.close();
+    expect(existsSync(dirname(server.socketPath))).toBe(false);
+  });
+
+  it("closes while a client holds a connection open without asking", async () => {
+    const server = await startHookServer({ evaluator: evaluator(() => decide("allow")), refusals: new Map(), captureMode: false, globalBypass: false });
+    const held = createConnection(server.socketPath);
+    held.on("error", () => {});
+    await new Promise<void>((resolve) => held.once("connect", () => resolve()));
+    const closed = await Promise.race([server.close().then(() => "closed"), new Promise((resolve) => setTimeout(() => resolve("hung"), 2000))]);
+    expect(closed).toBe("closed");
     expect(existsSync(dirname(server.socketPath))).toBe(false);
   });
 

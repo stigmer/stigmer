@@ -159,8 +159,12 @@ describe("Cursor's view of a native call", () => {
     expect(cursorOf("ls")?.toolInput).toEqual({ pattern: "", glob: "*", file_path: "/work/repo/src", output_mode: "files_with_matches" });
   });
 
-  it("shows Cursor's hooks no delegation, todo list or web fetch, as Cursor's engine does", () => {
-    expect([cursorOf("task"), cursorOf("write_todos"), cursorOf("web_fetch")]).toEqual([undefined, undefined, undefined]);
+  it("shows Cursor's hooks no delegation or todo list, as Cursor's engine does, and the always-bound web fetch as WebFetch", () => {
+    expect([cursorOf("task"), cursorOf("write_todos")]).toEqual([undefined, undefined]);
+    expect(cursorOf("web_fetch"), "Cursor's engine hides it from a hook that would take it; here it is bound, so the hook sees it").toEqual({
+      toolName: "WebFetch",
+      toolInput: CALLS["web_fetch"],
+    });
   });
 
   it("names an MCP call as Cursor does on each event", () => {

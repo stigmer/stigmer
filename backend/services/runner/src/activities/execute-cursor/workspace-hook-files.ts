@@ -47,8 +47,9 @@
  * 0600): a settings file can carry tokens in its `env`.
  */
 
+import { execFileSync } from "node:child_process";
 import { lstat, mkdir, readdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
-import { join, sep } from "node:path";
+import { dirname, join, sep } from "node:path";
 import type { ProvisionResult } from "../../shared/workspace/types.js";
 
 const CLAUDE_DIR = ".claude";
@@ -74,22 +75,52 @@ export function workspaceFolders(dirs: readonly string[], provisionResults: read
 }
 
 /**
- * A Cursor turn whose `.claude` settings carry hooks the SDK would run and
- * the runner may not set aside: in a person's own folder, or reached
- * through a link (a file that is one, or that resolves outside its folder).
+ * A Cursor turn the workspace's hook files would leave unsafe:
+ *  - `own-folder`: a person's own folder's `.claude` settings carry hooks
+ *    the SDK would run, and the runner does not edit a person's folder;
+ *  - `linked`: `.claude` settings that carry hooks are reached through a
+ *    link (a file that is one, or that resolves outside its folder), which
+ *    the runner never edits;
+ *  - `gate-link`: the gate's own `.cursor/hooks.json`, or `.cursor`, is a
+ *    link. `@cursor/sdk` 1.0.31 loads no project hook file through a link,
+ *    so the gate would not run at all.
  */
 export class CursorWorkspaceHooksRefusal extends Error {
-  constructor(files: readonly string[], why: "own-folder" | "linked" = "own-folder") {
-    super(
-      `${files.join(" and ")} ${files.length === 1 ? "carries" : "carry"} Claude Code hooks, which the Cursor engine ` +
-        "would run beside the agent's own. " +
-        (why === "own-folder"
-          ? "Stigmer does not edit a folder of yours, so it cannot set them aside for the turn. " +
-            "Run this session on Stigmer's native engine, or move the hooks out of the folder's .claude settings."
-          : "Stigmer does not edit a file through a link, so it cannot set them aside for the turn. " +
-            "Run this session on Stigmer's native engine, or replace the link with a file."),
-    );
+  constructor(files: readonly string[], why: "own-folder" | "linked" | "gate-link" = "own-folder") {
+    super(refusalMessage(files, why));
     this.name = "CursorWorkspaceHooksRefusal";
+  }
+}
+
+function refusalMessage(files: readonly string[], why: "own-folder" | "linked" | "gate-link"): string {
+  const named = files.join(" and ");
+  const carry = files.length === 1 ? "carries" : "carry";
+  switch (why) {
+    case "own-folder":
+      return (
+        `${named} ${carry} Claude Code hooks, which the Cursor engine would run beside the agent's own. ` +
+        "Stigmer does not edit a folder of yours, so it cannot set them aside for the turn. " +
+        "Run this session on Stigmer's native engine, or move the hooks out of the folder's .claude settings."
+      );
+    case "linked":
+      return (
+        `${named} ${carry} Claude Code hooks and ${files.length === 1 ? "is" : "are"} reached through a link. ` +
+        "Stigmer does not edit a file through a link, so it cannot set those hooks aside for the turn. " +
+        "Run this session on Stigmer's native engine, or replace the link with a file."
+      );
+    case "gate-link":
+      return (
+        `${named} is a link. The Cursor engine loads no hook file through a link, so Stigmer's approval gate would not run. ` +
+        "Replace the link with a file, or run this session on Stigmer's native engine."
+      );
+  }
+}
+
+/** Refuse the turn when the gate's `.cursor/hooks.json`, or `.cursor`, is a link. Throws {@link CursorWorkspaceHooksRefusal}. */
+export async function refuseLinkedGateFile(workspaceRoot: string): Promise<void> {
+  if (workspaceRoot === "") return;
+  for (const path of [join(workspaceRoot, ".cursor"), join(workspaceRoot, ".cursor", "hooks.json")]) {
+    if (await isLink(path)) throw new CursorWorkspaceHooksRefusal([path], "gate-link");
   }
 }
 
@@ -173,7 +204,7 @@ export async function rewriteWorkspaceFiles(gateDir: string, rewrites: readonly 
   const snapshotPath = join(gateDir, SNAPSHOT_FILE);
   await mkdir(gateDir, { recursive: true });
   const tmp = `${snapshotPath}.${process.pid}.tmp`;
-  const snapshot: Snapshot = { writer: process.pid, rewrites: [...rewrites] };
+  const snapshot: Snapshot = { writer: process.pid, writerStarted: PROCESS_STARTED, rewrites: [...rewrites] };
   await writeFile(tmp, JSON.stringify(snapshot), { encoding: "utf-8", mode: 0o600 });
   await rename(tmp, snapshotPath);
   for (const rewrite of rewrites) await writeFile(rewrite.path, rewrite.written, "utf-8");
@@ -212,37 +243,64 @@ export async function restoreAbandonedWorkspaceFiles(gatesRoot: string, isGateEn
   }
   for (const dir of dirs) {
     const gateDir = join(gatesRoot, dir);
-    const { writer, rewrites } = await readSnapshot(join(gateDir, SNAPSHOT_FILE));
-    if (rewrites.length === 0 || (writer !== process.pid && isRunning(writer))) continue;
+    const { writer, writerStarted, rewrites } = await readSnapshot(join(gateDir, SNAPSHOT_FILE));
+    if (rewrites.length === 0 || (writer !== process.pid && isRunning(writer, writerStarted))) continue;
     console.log(`[workspace hooks] restoring the workspace files a stopped runner set aside (${gateDir})`);
     await restoreWorkspaceFiles(gateDir, isGateEntry);
   }
 }
 
-/** Whether a process runs; one this user may not signal still does. */
-function isRunning(pid: number | undefined): boolean {
+/** When this process started, in epoch milliseconds. */
+const PROCESS_STARTED = Date.now() - Math.round(process.uptime() * 1000);
+
+/**
+ * Whether the runner that wrote a snapshot still runs: its process lives and,
+ * where `ps` can tell, started when the snapshot says (a process id can be
+ * taken again by another process once its runner stopped). One this user may
+ * not signal still runs.
+ */
+function isRunning(pid: number | undefined, started: number | undefined): boolean {
   if (pid === undefined) return false;
   try {
     process.kill(pid, 0);
-    return true;
   } catch (err) {
-    return (err as NodeJS.ErrnoException).code === "EPERM";
+    if ((err as NodeJS.ErrnoException).code !== "EPERM") return false;
+  }
+  return started === undefined || startedNear(pid, started);
+}
+
+/** Whether `ps` reports the process started within two seconds of `started`; true when it cannot tell. */
+function startedNear(pid: number, started: number): boolean {
+  try {
+    const at = Date.parse(execFileSync("ps", ["-o", "lstart=", "-p", String(pid)], { encoding: "utf-8" }).trim());
+    return Number.isNaN(at) || Math.abs(at - started) <= 2000;
+  } catch {
+    return true;
   }
 }
 
-/** The snapshot file: the rewrites, and the runner process that wrote them. */
+/** The snapshot file: the rewrites, and the runner process that wrote them, with when it started. */
 interface Snapshot {
   readonly writer?: number;
+  readonly writerStarted?: number;
   readonly rewrites: readonly WorkspaceFileRewrite[];
 }
 
 async function restoreOne(rewrite: WorkspaceFileRewrite, isGateEntry: (entry: unknown) => boolean): Promise<void> {
+  // A link put in the file's place, or its directory's, during the turn
+  // reaches a file the folder does not hold: never written through.
+  if ((await isLink(rewrite.path)) || (await isLink(dirname(rewrite.path)))) {
+    console.warn(`[workspace hooks] ${rewrite.path} became a link during the turn; it is left as it is`);
+    return;
+  }
   const current = await readOrNull(rewrite.path);
   if (current === null) {
     // The agent deleted it: its edit, kept for the turn's review to show.
     if (rewrite.original !== null) console.log(`[workspace hooks] ${rewrite.path} was deleted during the turn; the deletion is kept`);
     return;
   }
+  // The gate never got to write it: the file is as its owners left it.
+  if (current === rewrite.original) return;
   if (current === rewrite.written) {
     if (rewrite.original === null) await rm(rewrite.path, { force: true });
     else await writeFile(rewrite.path, rewrite.original, "utf-8");
@@ -303,7 +361,12 @@ async function readSnapshot(path: string): Promise<Snapshot> {
   const parsed = parseObject(await readOrNull(path));
   const rewrites = parsed !== undefined && Array.isArray(parsed["rewrites"]) ? (parsed["rewrites"].filter(isRewrite) as WorkspaceFileRewrite[]) : [];
   const writer = parsed?.["writer"];
-  return typeof writer === "number" ? { writer, rewrites } : { rewrites };
+  const writerStarted = parsed?.["writerStarted"];
+  return {
+    rewrites,
+    ...(typeof writer === "number" ? { writer } : {}),
+    ...(typeof writerStarted === "number" ? { writerStarted } : {}),
+  };
 }
 
 function isRewrite(value: unknown): boolean {
@@ -314,6 +377,14 @@ function isRewrite(value: unknown): boolean {
     (value["original"] === null || typeof value["original"] === "string") &&
     typeof value["written"] === "string"
   );
+}
+
+async function isLink(path: string): Promise<boolean> {
+  try {
+    return (await lstat(path)).isSymbolicLink();
+  } catch {
+    return false;
+  }
 }
 
 async function readOrNull(path: string): Promise<string | null> {

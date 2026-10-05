@@ -199,19 +199,21 @@ export async function installHitlGate(params: {
   // A hook may run as long as its own timeout; Cursor must not cut the
   // script short while the hook server is still answering.
   const timeoutSeconds = hooks ? hooks.longestTimeoutSeconds + HOOK_TIMEOUT_MARGIN_SECONDS : HOOK_TIMEOUT_SECONDS;
-  const hooksJsonPath = await installWorkspaceHook(workspaceRoot, gateDir, registrations, timeoutSeconds, folders);
-
-  // Install the always-applied tool-approval rule. The deny-based gate surfaces
-  // an approval pause to the model as a tool failure (Cursor's generic "blocked
-  // by a hook" text), and the SDK exposes no non-leaky approval primitive — so
-  // this rule, which takes precedence over MCP-server instructions and persists
-  // across resumed turns, is the strongest available lever to stop the model
-  // from misreading the gate as a broken environment.
+  let hooksJsonPath: string;
   let rule: WorkspaceFileSnapshot;
   try {
+    hooksJsonPath = await installWorkspaceHook(workspaceRoot, gateDir, registrations, timeoutSeconds, folders);
+
+    // Install the always-applied tool-approval rule. The deny-based gate
+    // surfaces an approval pause to the model as a tool failure (Cursor's
+    // generic "blocked by a hook" text), and the SDK exposes no non-leaky
+    // approval primitive — so this rule, which takes precedence over
+    // MCP-server instructions and persists across resumed turns, is the
+    // strongest available lever to stop the model from misreading the gate
+    // as a broken environment.
     rule = await installWorkspaceRule(workspaceRoot);
   } catch (err) {
-    // No handle reaches the caller to restore them: the set-aside files come back here.
+    // Whatever was set aside comes back here: no handle reaches the caller to restore it.
     await restoreWorkspaceFiles(gateDir, isStigmerHookEntry);
     throw err;
   }

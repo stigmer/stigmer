@@ -150,10 +150,13 @@ type HookGroup struct {
 	// commands) and "beforeMCPExecution" (MCP tools) before a call, and
 	// "postToolUse" and "afterMCPExecution" (MCP tools) after one.
 	Event string `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
-	// Which tools the handlers run for: a name such as "Bash", a list such as
-	// "Write|Edit", or a regular expression such as "mcp__github__.*". Empty or
-	// "*" matches every tool. A plugin's own MCP server's tools are named
-	// mcp__plugin_<plugin>_<server>__<tool>, as in Claude Code.
+	// Which tools the handlers run for, in the format's own names. In Claude
+	// Code's format: a name such as "Bash", a list such as "Write|Edit", or a
+	// regular expression such as "mcp__github__.*"; a plugin's own MCP
+	// server's tools are named mcp__plugin_<plugin>_<server>__<tool>, as in
+	// Claude Code. In Cursor's: a regular expression tested against the tool's
+	// name ("Shell", "Write", "MCP:<tool>"), or, on "beforeShellExecution",
+	// against the command itself. Empty or "*" matches every tool.
 	Matcher string `protobuf:"bytes,2,opt,name=matcher,proto3" json:"matcher,omitempty"`
 	// The handlers to run, in order.
 	Handlers      []*HookHandler `protobuf:"bytes,3,rep,name=handlers,proto3" json:"handlers,omitempty"`

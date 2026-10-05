@@ -734,7 +734,7 @@ HookGroup is one event, an optional matcher, and the handlers that run when both
 <TypeTable
   type={{
     event: { type: "string", description: "The event the handlers run on, spelled as the format spells it." },
-    matcher: { type: "string", description: "Which tools the handlers run for: a name such as \"Bash\", a list such as \"Write|Edit\", or a regular expression such as \"mcp__github__.*\"." },
+    matcher: { type: "string", description: "Which tools the handlers run for, in the format's own names." },
     handlers: { type: "HookHandler[]", description: "The handlers to run, in order.", typeDescriptionLink: "#hookhandler" },
   }}
 />

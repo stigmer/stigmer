@@ -70,10 +70,13 @@ export type HookGroup = Message<"ai.stigmer.agentic.plugin.v1.HookGroup"> & {
   event: string;
 
   /**
-   * Which tools the handlers run for: a name such as "Bash", a list such as
-   * "Write|Edit", or a regular expression such as "mcp__github__.*". Empty or
-   * "*" matches every tool. A plugin's own MCP server's tools are named
-   * mcp__plugin_<plugin>_<server>__<tool>, as in Claude Code.
+   * Which tools the handlers run for, in the format's own names. In Claude
+   * Code's format: a name such as "Bash", a list such as "Write|Edit", or a
+   * regular expression such as "mcp__github__.*"; a plugin's own MCP
+   * server's tools are named mcp__plugin_<plugin>_<server>__<tool>, as in
+   * Claude Code. In Cursor's: a regular expression tested against the tool's
+   * name ("Shell", "Write", "MCP:<tool>"), or, on "beforeShellExecution",
+   * against the command itself. Empty or "*" matches every tool.
    *
    * @generated from field: string matcher = 2;
    */

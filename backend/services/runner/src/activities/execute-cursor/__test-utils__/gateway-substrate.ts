@@ -35,7 +35,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { setupCursorHookHarness, hasBash, hookInputFor, hookMcp, hookRead, streamArgsFor, STREAM_NAME } from "./cursor-hook-harness.js";
-import { decodeIdentityToken, hookAskDigest, toolIdentity, type ApprovalGrant, type PersonRefusal } from "../approval-state.js";
+import { decodeIdentityToken, toolIdentity, type ApprovalGrant, type PersonRefusal } from "../approval-state.js";
+import { approvalDigest } from "../boundary-rows.js";
 import { startHookServer } from "../hook-server.js";
 import { CursorEngineToolViews, rowNameOf } from "../hook-views.js";
 import { hookLeaseKey } from "../../../shared/approval-policy.js";
@@ -195,10 +196,11 @@ async function runCursorHooksProbe(hooks: readonly ContractHook[], action: Propo
     if (card !== undefined && decision !== "none") {
       const decoded = decodeIdentityToken(card.token)!;
       const call = hooksCallOf(action);
-      // The grant the boundary leaves: a hook's ask on a call without file
-      // content is approved under the call's whole input, as the hook saw it.
+      // The grant the boundary leaves, by its own rule (`approvalDigest`): a
+      // hook's ask on a call without file content is approved under the
+      // call's whole input, as the hook saw it.
       const input = card.input ? (JSON.parse(Buffer.from(card.input, "base64").toString("utf-8")) as Record<string, unknown>) : undefined;
-      const digest = card.hook !== undefined && input !== undefined && (decoded.digest === "" || call.serverSlug !== "") ? hookAskDigest(input) : decoded.digest;
+      const digest = approvalDigest(call.serverSlug, decoded.digest, input, card.hook !== undefined);
       final = decision === "approve"
         ? await turn([{ toolName: rowNameOf(call), mcpServerSlug: call.serverSlug, key: decoded.key, salient: decoded.salient, contentDigest: digest, sourceToolCallId: "consent-hook" }], new Map())
         : await turn([], new Map([[card.token, { action: decision === "skip" ? "skip" : "reject", toolName: rowNameOf(call) } as const]]));

@@ -34,9 +34,15 @@
  *   glob {pattern, path} -> Grep {pattern: "", glob: pattern, file_path: path}
  *   ls {path}   -> Grep {pattern: "", glob: "*", file_path: path}
  *
- * `task`, `write_todos` and `web_fetch` have no Cursor row: Cursor shows a
- * hook no delegation, no todo list and no web fetch. `delete` is never
- * bound (`deepagents-profiles.ts`), so it has no row in either format.
+ *   web_fetch   -> WebFetch (a matcher on Cursor's `Fetch` takes it too: unanchored)
+ *
+ * `task` and `write_todos` have no Cursor row: Cursor shows a hook no
+ * delegation and has no todo tool in 1.0.31. Web fetch reaches no hook on
+ * Cursor's own engine either, which hides the tool from an agent whose
+ * hooks would take it (`execute-cursor/hook-tool-hiding.ts`); this engine
+ * binds it always, so a Cursor-format hook sees it here under the name that
+ * hiding matches, and its policy holds. `delete` is never bound
+ * (`deepagents-profiles.ts`), so it has no row in either format.
  *
  * An MCP tool is Claude's `mcp__<server>__<tool>`, its server an
  * organisation's resource (`mcp_server.source: "managed"`); a server a
@@ -52,6 +58,7 @@
  * the identity on what the engine binds (pinned by the module's test).
  */
 
+import { isDeepStrictEqual } from "node:util";
 import { join } from "node:path";
 import type { HookFormatName } from "./hook-set.js";
 
@@ -100,6 +107,24 @@ export interface HookToolViews {
    * call as the hook rewrote it.
    */
   argsFrom(call: ViewedCall, format: HookFormatName, input: Args): Args | string;
+}
+
+/**
+ * Whether a hook's rewrite hands back the input it saw: all of it for a
+ * Claude Code hook, whose rewrite replaces the input; every key it names for
+ * a Cursor one, whose rewrite is laid over the call's. Such a rewrite is no
+ * rewrite, even where the engine could not take one back.
+ */
+export function rewriteEchoes(seen: Args, format: HookFormatName, input: Args): boolean {
+  const before = asJson(seen);
+  const after = asJson(input);
+  if (format === "claude-code") return isDeepStrictEqual(after, before);
+  return Object.keys(after).every((key) => isDeepStrictEqual(after[key], before[key]));
+}
+
+/** A value as JSON would carry it: an absent key and an undefined one are alike. */
+function asJson(value: Args): Args {
+  return JSON.parse(JSON.stringify(value)) as Args;
 }
 
 /** How Claude Code names a plugin's own server: the plugin's name and the server's key in it. */
@@ -233,6 +258,7 @@ const CURSOR_ROWS: ReadonlyMap<string, Row> = new Map<string, Row>([
       (glob, rest) => (glob === GLOB_EVERYTHING || glob === undefined ? rest : "the hook gave a directory listing a glob, which the listing tool cannot take"),
     ),
   ],
+  ["web_fetch", pathRow("WebFetch", undefined)],
 ]);
 
 /** The native names a view exists for, per format, for the module's test. */

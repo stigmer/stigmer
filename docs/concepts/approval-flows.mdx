@@ -69,7 +69,8 @@ Stigmer's own. A few things differ:
   fetch and web search reach no hook there, so an Agent whose hooks would match
   them runs without those tools on that engine; the sub-agent tool is left out
   too when a hook's matcher names it. A sub-agent's own calls still reach every
-  hook.
+  hook. On Stigmer's own engine, a Cursor-format hook sees web fetch as
+  `WebFetch`, so its policy holds there too.
 - On the Cursor engine, a hook that rewrites a call takes effect only where
   Cursor applies a rewrite: a shell command, its directory or timeout, a file
   path, a search pattern or a URL. A rewrite of a file's content or of an MCP

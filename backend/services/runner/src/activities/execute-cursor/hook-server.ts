@@ -75,6 +75,9 @@ const SOCKET_FILE = "hooks.sock";
 /** The longest socket path the platform takes (`sun_path`: 104 bytes on macOS, 108 on Linux). */
 const MAX_SOCKET_PATH_BYTES = process.platform === "darwin" ? 103 : 107;
 
+/** The most servers remembered for one MCP tool and its arguments. */
+const MAX_REMEMBERED_SERVERS = 8;
+
 /** The most a request may carry; a call's payload is far smaller. */
 const MAX_REQUEST_BYTES = 64 * 1024 * 1024;
 
@@ -193,7 +196,13 @@ export async function startHookServer(params: HookServerParams): Promise<HookSer
     captureMode: params.captureMode,
     globalBypass: params.globalBypass,
   });
-  const server = createServer((socket) => handler.serve(socket));
+  // Every served connection, so closing never waits on one a client holds open.
+  const sockets = new Set<Socket>();
+  const server = createServer((socket) => {
+    sockets.add(socket);
+    socket.once("close", () => sockets.delete(socket));
+    handler.serve(socket);
+  });
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
     server.listen(socketPath, () => {
@@ -211,7 +220,9 @@ export async function startHookServer(params: HookServerParams): Promise<HookSer
     close: async () => {
       if (closed) return;
       closed = true;
-      await closeServer(server);
+      const closing = closeServer(server);
+      for (const socket of sockets) socket.destroy();
+      await closing;
       await rm(socketDir, { recursive: true, force: true });
     },
   };
@@ -224,7 +235,7 @@ function closeServer(server: Server): Promise<void> {
 /** Answers the script's requests; exported for the module's tests. */
 export class HookRequestHandler {
   private readonly tokenBytes: Buffer;
-  /** Each MCP call's server, by tool and arguments, from its `beforeMCPExecution`: `postToolUse` names no server. */
+  /** Each MCP call's server, by tool and arguments, from its `beforeMCPExecution`: `postToolUse` names no server ({@link rememberMcpServer}). */
   private readonly mcpServers = new Map<string, string[]>();
 
   constructor(
@@ -296,6 +307,7 @@ export class HookRequestHandler {
 
     switch (outcome.decision) {
       case undefined:
+        this.rememberMcpServer(call);
         return { decision: "none" };
       case "deny": {
         const message = hookRefusalMessage(outcome.hook, outcome.reason);
@@ -318,6 +330,7 @@ export class HookRequestHandler {
         const called = coarse || identity;
         const rewritten = outcome.updatedArgs !== undefined ? [grantToken(identityOfToken(called).key, extractArgKey(outcome.updatedArgs))] : [];
         this.decisions.record([called, ...rewritten], record);
+        this.rememberMcpServer(call);
         if (outcome.decision === "allow") return { decision: "allow", hook: outcome.hook, allow };
         const message = outcome.reason || hookAskMessage(outcome.hook, toolName);
         return {
@@ -394,7 +407,6 @@ export class HookRequestHandler {
         const args = typeof raw === "string" ? (parseObject(raw) ?? {}) : isObject(raw) ? raw : {};
         const server = typeof payload["mcp_server_name"] === "string" ? payload["mcp_server_name"] : "";
         if (server === "") return undefined;
-        this.rememberMcpServer(name, args, server);
         return { id: "", name, args, serverSlug: server, rowName: name };
       }
       default:
@@ -402,17 +414,26 @@ export class HookRequestHandler {
     }
   }
 
-  private rememberMcpServer(tool: string, args: Record<string, unknown>, server: string): void {
-    const key = `${tool}\n${JSON.stringify(args)}`;
-    const servers = this.mcpServers.get(key);
-    if (servers) servers.push(server);
-    else this.mcpServers.set(key, [server]);
+  /**
+   * An MCP call that may run, by tool and arguments, for its `postToolUse`,
+   * which names no server. A refused call never runs, so it is not
+   * remembered; the newest is taken first, since a call's `postToolUse`
+   * follows its own `beforeMCPExecution`, and each list keeps only the
+   * latest few (a call held for a person, or refused by the default gate,
+   * stays behind).
+   */
+  private rememberMcpServer(call: HookToolCall): void {
+    if (call.serverSlug === "") return;
+    const key = `${call.name}\n${JSON.stringify(call.args)}`;
+    const servers = this.mcpServers.get(key) ?? [];
+    servers.push(call.serverSlug);
+    this.mcpServers.set(key, servers.slice(-MAX_REMEMBERED_SERVERS));
   }
 
   private takeMcpServer(tool: string, args: Record<string, unknown>): string | undefined {
     const key = `${tool}\n${JSON.stringify(args)}`;
     const servers = this.mcpServers.get(key);
-    const server = servers?.shift();
+    const server = servers?.pop();
     if (servers !== undefined && servers.length === 0) this.mcpServers.delete(key);
     return server;
   }
