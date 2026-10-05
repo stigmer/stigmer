@@ -684,7 +684,7 @@ ${categoryCaseArms}
       *) CATEGORY="" ;;
   esac
   TOKEN=$(printf '%s\\n%s' "$CATEGORY" "$SALIENT" | base64 | tr -d '\\n')
-  MCP_TOKEN=$(printf '%s\\n' "$TOOL_NAME" | base64 | tr -d '\\n')
+  MCP_TOKEN=$(printf '%s/%s\\n' "$MCP_SERVER" "$TOOL_NAME" | base64 | tr -d '\\n')
   # The grep fallback cannot reliably capture full multi-line tool_input, so the
   # gated call degrades to today's stream-recovered args (no authoritative input)
   # and cannot compute a content digest — the coarse token is the only identity.

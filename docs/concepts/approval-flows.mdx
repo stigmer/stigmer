@@ -80,6 +80,10 @@ Stigmer's own. A few things differ:
   Running the Cursor engine on a folder of your own whose `.claude` settings
   carry hooks is refused, naming the file, so your other tools keep them; the
   native engine runs it.
+- An Agent with hooks does not run in
+  [Cursor's cloud mode](/docs/guides/runners/cursor-harness#cursor-cloud-mode),
+  where Cursor runs the agent on its own machines and no hook of Stigmer's can
+  reach it. The run is refused; run it with a Workspace or on the native engine.
 
 ## Keeping an Agent away from a tool
 

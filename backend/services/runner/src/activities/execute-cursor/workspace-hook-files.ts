@@ -30,10 +30,12 @@
  * is written ({@link rewriteWorkspaceFiles}). At the turn's end
  * ({@link restoreWorkspaceFiles}) a file that still holds what the gate
  * wrote gets its original back; a file the agent edited keeps the agent's
- * edit with the gate's own change undone (the `hooks` key put back, the
- * repository's hook entries returned and the gate's removed), with a log
- * line. A snapshot a crashed turn left behind is restored at the next
- * install, before anything else.
+ * edit with the gate's own change undone (the set-aside hook entries
+ * returned, any the agent added kept beside them, and the gate's removed),
+ * with a log line; the turn's file review then sees what the agent changed.
+ * A snapshot a crashed turn left behind is restored at the next install,
+ * before anything else. The snapshot is the owner's alone (mode 0600): a
+ * settings file can carry tokens in its `env`.
  */
 
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
@@ -133,7 +135,7 @@ export async function rewriteWorkspaceFiles(gateDir: string, rewrites: readonly 
   const snapshotPath = join(gateDir, SNAPSHOT_FILE);
   await mkdir(gateDir, { recursive: true });
   const tmp = `${snapshotPath}.${process.pid}.tmp`;
-  await writeFile(tmp, JSON.stringify(rewrites), "utf-8");
+  await writeFile(tmp, JSON.stringify(rewrites), { encoding: "utf-8", mode: 0o600 });
   await rename(tmp, snapshotPath);
   for (const rewrite of rewrites) await writeFile(rewrite.path, rewrite.written, "utf-8");
 }
@@ -175,9 +177,16 @@ async function restoreOne(rewrite: WorkspaceFileRewrite, isGateEntry: (entry: un
   console.log(`[workspace hooks] ${rewrite.path} was changed during the turn; the change is kept, with the gate's own change undone`);
 }
 
-/** The agent's edit of a settings file, with the `hooks` key the gate set aside put back (the gate rewrites only a file that has one). */
+/**
+ * The agent's edit of a settings file, with the `hooks` the gate set aside
+ * put back (the gate rewrites only a file that has one) and any the agent
+ * added kept beside them.
+ */
 function withOriginalHooks(edited: Record<string, unknown>, original: Record<string, unknown>): Record<string, unknown> {
-  return { ...edited, hooks: original["hooks"] };
+  const originalHooks = original["hooks"];
+  const editedHooks = edited["hooks"];
+  if (!isObject(originalHooks) || !isObject(editedHooks)) return { ...edited, hooks: originalHooks };
+  return { ...edited, hooks: mergedEntries(editedHooks, originalHooks, () => false) };
 }
 
 /** The agent's edit of `.cursor/hooks.json`, the gate's entries removed and the repository's set-aside ones returned. */
@@ -188,6 +197,15 @@ function withRepositoryEntries(
 ): Record<string, unknown> {
   const editedHooks = isObject(edited["hooks"]) ? edited["hooks"] : {};
   const originalHooks = isObject(original["hooks"]) ? original["hooks"] : {};
+  return { ...edited, hooks: mergedEntries(editedHooks, originalHooks, isGateEntry) };
+}
+
+/** Each event's original entries, then the edit's new ones that are not the gate's. */
+function mergedEntries(
+  editedHooks: Record<string, unknown>,
+  originalHooks: Record<string, unknown>,
+  isGateEntry: (entry: unknown) => boolean,
+): Record<string, unknown> {
   const hooks: Record<string, unknown> = {};
   for (const event of new Set([...Object.keys(originalHooks), ...Object.keys(editedHooks)])) {
     const kept = Array.isArray(originalHooks[event]) ? (originalHooks[event] as unknown[]) : [];
@@ -196,7 +214,7 @@ function withRepositoryEntries(
     );
     if (kept.length > 0 || added.length > 0 || event in originalHooks) hooks[event] = [...kept, ...added];
   }
-  return { ...edited, hooks };
+  return hooks;
 }
 
 async function readSnapshot(path: string): Promise<WorkspaceFileRewrite[]> {

@@ -44,6 +44,11 @@
  * call is blocked as the gate blocks such a write; in capture mode it is
  * refused, since capture reviewed the path the model wrote.
  *
+ * A hook that asks and also rewrites the call is refused unless the run is
+ * trusted whole: this engine's card is the model's own call, so a person
+ * would approve arguments other than the ones that run, and the grant that
+ * approval leaves would let the rewrite through on the retry.
+ *
  * Every allow and ask is recorded ({@link HookDecisionLog}) under the
  * call's identity, so the translator can name the deciding hook on the row
  * of a call that ran.
@@ -56,7 +61,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { PolicySource } from "../../shared/approval-policy.js";
 import type { HookEvaluator, HookToolCall } from "../../shared/hooks/evaluate.js";
-import { HOOK_FEEDBACK_HEADING, hookAskMessage, hookRefusalMessage, personDecisionSentence } from "../../shared/hooks/messages.js";
+import { HOOK_FEEDBACK_HEADING, hookAskMessage, hookLabel, hookRefusalMessage, personDecisionSentence } from "../../shared/hooks/messages.js";
 import { grantToken, toolIdentity, type PersonRefusal } from "./approval-state.js";
 import { rowNameOf } from "./hook-views.js";
 import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
@@ -103,6 +108,17 @@ export class HookDecisionLog {
   }
 }
 
+/** Why a hook's ask with a rewrite is refused; the agent reads it. */
+export function askWithRewriteMessage(hook: string): string {
+  return `${hookLabel(hook)} asked for approval of this call and rewrote it too. An approval here would show the call as written, not as rewritten, so the call was refused.`;
+}
+
+/** How a hook's allow or ask is stamped on its row, as the native gate stamps it. */
+function provenanceOf(decision: "allow" | "ask", leased: boolean, globalBypass: boolean): PolicySource {
+  if (decision === "ask" && globalBypass) return "auto_approve_all";
+  return leased ? "approval_lease" : "hook";
+}
+
 function keyOfToken(token: string): string {
   const decoded = Buffer.from(token, "base64").toString("utf-8");
   const newline = decoded.indexOf("\n");
@@ -131,12 +147,18 @@ export interface HookServer {
   close(): Promise<void>;
 }
 
-export interface HookServerParams {
+/** What of the turn's approval state the server's answers depend on. */
+export interface HookTurnMode {
+  /** The turn captures its file changes for review (`TurnWorkspace.captureMode`). */
+  readonly captureMode: boolean;
+  /** "Trust this whole run" is armed: every ask is satisfied, and its row says so. */
+  readonly globalBypass: boolean;
+}
+
+export interface HookServerParams extends HookTurnMode {
   readonly evaluator: HookEvaluator;
   /** The calls a person skipped or rejected this run, by identity token (`buildPersonRefusals`). */
   readonly refusals: ReadonlyMap<string, PersonRefusal>;
-  /** The turn captures its file changes for review (`TurnWorkspace.captureMode`). */
-  readonly captureMode: boolean;
 }
 
 /** A socket path the platform cannot bind: an infrastructure fault, never a silent skip. */
@@ -158,7 +180,10 @@ export async function startHookServer(params: HookServerParams): Promise<HookSer
 
   const token = randomBytes(32).toString("hex");
   const decisions = new HookDecisionLog();
-  const handler = new HookRequestHandler(params.evaluator, params.refusals, decisions, token, params.captureMode);
+  const handler = new HookRequestHandler(params.evaluator, params.refusals, decisions, token, {
+    captureMode: params.captureMode,
+    globalBypass: params.globalBypass,
+  });
   const server = createServer((socket) => handler.serve(socket));
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
@@ -198,7 +223,7 @@ export class HookRequestHandler {
     private readonly refusals: ReadonlyMap<string, PersonRefusal>,
     private readonly decisions: HookDecisionLog,
     token: string,
-    private readonly captureMode = false,
+    private readonly turn: HookTurnMode = { captureMode: false, globalBypass: false },
     private readonly maxRequestBytes = MAX_REQUEST_BYTES,
   ) {
     this.tokenBytes = Buffer.from(token, "utf-8");
@@ -268,6 +293,10 @@ export class HookRequestHandler {
       }
       case "allow":
       case "ask": {
+        if (outcome.decision === "ask" && outcome.updatedArgs !== undefined && !this.turn.globalBypass) {
+          const message = askWithRewriteMessage(outcome.hook);
+          return { decision: "deny", hook: outcome.hook, deny: denyAnswer(message), message };
+        }
         const moved = this.movedFile(call, outcome.updatedArgs);
         if (moved !== undefined) return moved;
         const refusal = this.refusals.get(identity) ?? this.refusals.get(coarse);
@@ -275,7 +304,7 @@ export class HookRequestHandler {
           const message = personDecisionSentence(refusal.toolName, refusal.action, "");
           return { decision: "refused", deny: denyAnswer(message), message };
         }
-        const record: HookDecisionRecord = { provenance: outcome.leased ? "approval_lease" : "hook", hook: outcome.hook };
+        const record: HookDecisionRecord = { provenance: provenanceOf(outcome.decision, outcome.leased, this.turn.globalBypass), hook: outcome.hook };
         this.decisions.record(coarse || identity, record);
         if (outcome.decision === "allow") return { decision: "allow", hook: outcome.hook, allow };
         const message = outcome.reason || hookAskMessage(outcome.hook, toolName);
@@ -309,7 +338,7 @@ export class HookRequestHandler {
     if (isSecretLikePath(target)) {
       return { decision: "deny", deny: JSON.stringify({ permission: "deny", agent_message: SECRET_BLOCKED_AGENT_MESSAGE, user_message: SECRET_BLOCKED_AGENT_MESSAGE }), message: SECRET_BLOCKED_AGENT_MESSAGE };
     }
-    if (this.captureMode) {
+    if (this.turn.captureMode) {
       const message = "A hook moved this file change to another file, which this turn's review cannot follow, so the call was refused.";
       return { decision: "deny", deny: denyAnswer(message), message };
     }

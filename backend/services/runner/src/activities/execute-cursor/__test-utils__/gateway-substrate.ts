@@ -160,7 +160,7 @@ async function runCursorHooksProbe(hooks: readonly ContractHook[], action: Propo
 
     /** One turn's gate: a fresh server and state, as the runtime installs them. */
     const turn = async (grants: ApprovalGrant[], refusals: ReadonlyMap<string, PersonRefusal>) => {
-      const server = await startHookServer({ evaluator, refusals, captureMode: false });
+      const server = await startHookServer({ evaluator, refusals, captureMode: false, globalBypass: false });
       try {
         const harness = setupCursorHookHarness({
           grants,

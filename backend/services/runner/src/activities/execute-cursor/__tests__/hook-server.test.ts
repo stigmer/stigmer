@@ -7,6 +7,8 @@
  *  - a person's refusal binds over a hook's allow or ask, never over its deny;
  *  - a write a hook moves onto a secret-like path is blocked, and in capture
  *    mode any move is refused;
+ *  - an ask that also rewrites the call is refused, as no card shows the
+ *    rewrite, unless the run is trusted whole, where it is stamped as such;
  *  - after a call, the hooks' feedback comes back under the native heading,
  *    an MCP call's server remembered from its `beforeMCPExecution`;
  *  - every allow and ask is recorded for the row, found by its identity or,
@@ -24,7 +26,7 @@ import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
 import { HookSet } from "../../../shared/hooks/hook-set.js";
 import type { HookRunResult } from "../../../shared/hooks/run.js";
 import { grantToken, type PersonRefusal } from "../approval-state.js";
-import { HookDecisionLog, HookRequestHandler, HookSocketPathError, startHookServer } from "../hook-server.js";
+import { HookDecisionLog, HookRequestHandler, HookSocketPathError, startHookServer, type HookTurnMode } from "../hook-server.js";
 import { CursorEngineToolViews } from "../hook-views.js";
 
 /** An evaluator whose one hook (plugin `safety`, matching everything) answers by the command or tool it is asked about. */
@@ -54,9 +56,9 @@ const decide = (permissionDecision: string, extra: Record<string, unknown> = {})
 const shellPayload = (command: string) => ({ hook_event_name: "preToolUse", tool_name: "Shell", tool_input: { command }, tool_use_id: "c1" });
 const SHELL_ID = grantToken("shell", "rm -rf x");
 
-function handler(ev: HookEvaluator, refusals: ReadonlyMap<string, PersonRefusal> = new Map(), captureMode = false) {
+function handler(ev: HookEvaluator, refusals: ReadonlyMap<string, PersonRefusal> = new Map(), turn: Partial<HookTurnMode> = {}) {
   const decisions = new HookDecisionLog();
-  return { decisions, h: new HookRequestHandler(ev, refusals, decisions, "tok", captureMode) };
+  return { decisions, h: new HookRequestHandler(ev, refusals, decisions, "tok", { captureMode: false, globalBypass: false, ...turn }) };
 }
 
 const request = (payload: object, extra: Record<string, unknown> = {}) =>
@@ -103,6 +105,26 @@ describe("the hook server's answers", () => {
     expect(JSON.parse(reply["allow"]!)).toEqual({ permission: "allow" });
   });
 
+  it("refuses an ask that rewrites the call, which a card would show as written; under trust it is an ask stamped as trusted", async () => {
+    const askAndRewrite = () => decide("ask", { updatedInput: { command: "ls -a" } });
+    const { h, decisions } = handler(evaluator(askAndRewrite));
+    const reply = (await h.answer(request(shellPayload("ls")))) as Record<string, string>;
+    expect([reply["decision"], reply["hook"]]).toEqual(["deny", "safety"]);
+    expect(reply["message"]).toBe(
+      "The safety plugin's hook asked for approval of this call and rewrote it too. An approval here would show the call as written, not as rewritten, so the call was refused.",
+    );
+    expect(decisions.take("shell", "", { command: "rm -rf x" }), "a refused call never runs").toBeUndefined();
+
+    const trusted = handler(evaluator(askAndRewrite), new Map(), { globalBypass: true });
+    const satisfied = (await trusted.h.answer(request(shellPayload("ls")))) as Record<string, string>;
+    expect(satisfied["decision"]).toBe("ask");
+    expect(JSON.parse(satisfied["allow"]!)).toEqual({ permission: "allow", updated_input: { command: "ls -a" } });
+    expect(trusted.decisions.take("shell", "", { command: "rm -rf x" }), "stamped as the native gate stamps it").toEqual({
+      provenance: "auto_approve_all",
+      hook: "safety",
+    });
+  });
+
   it("answers none when no hook decides, or the payload names no tool", async () => {
     const { h } = handler(evaluator(() => ({})));
     expect(await h.answer(request(shellPayload("ls")))).toEqual({ decision: "none" });
@@ -134,7 +156,7 @@ describe("the hook server's answers", () => {
     const blocked = (await toEnv.h.answer(request(write))) as Record<string, string>;
     expect(blocked["decision"]).toBe("deny");
     expect(blocked["message"]).toContain("secret-like pattern");
-    const moved = handler(evaluator(() => decide("allow", { updatedInput: { file_path: "/w/b.txt", content: "x" } })), new Map(), true);
+    const moved = handler(evaluator(() => decide("allow", { updatedInput: { file_path: "/w/b.txt", content: "x" } })), new Map(), { captureMode: true });
     expect(((await moved.h.answer(request(write))) as Record<string, string>)["message"]).toContain("review cannot follow");
     const free = handler(evaluator(() => decide("allow", { updatedInput: { file_path: "/w/b.txt", content: "x" } })));
     expect(((await free.h.answer(request(write))) as Record<string, string>)["decision"]).toBe("allow");
@@ -195,7 +217,7 @@ describe("the socket", () => {
   });
 
   it("serves the turn's token over a socket only its owner can open, and goes with the server", async () => {
-    const server = await startHookServer({ evaluator: evaluator(() => decide("allow")), refusals: new Map(), captureMode: false });
+    const server = await startHookServer({ evaluator: evaluator(() => decide("allow")), refusals: new Map(), captureMode: false, globalBypass: false });
     started.push(() => server.close());
     expect(statSync(server.socketPath).mode & 0o777).toBe(0o600);
     expect(statSync(dirname(server.socketPath)).mode & 0o777).toBe(0o700);
@@ -225,7 +247,7 @@ describe("the socket", () => {
     mkdirSync(long, { recursive: true });
     process.env["TMPDIR"] = long;
     try {
-      await expect(startHookServer({ evaluator: evaluator(() => ({})), refusals: new Map(), captureMode: false })).rejects.toThrow(HookSocketPathError);
+      await expect(startHookServer({ evaluator: evaluator(() => ({})), refusals: new Map(), captureMode: false, globalBypass: false })).rejects.toThrow(HookSocketPathError);
     } finally {
       if (realTmp === undefined) delete process.env["TMPDIR"];
       else process.env["TMPDIR"] = realTmp;
@@ -255,7 +277,7 @@ describe("the hook server's edges", () => {
     const same = handler(evaluator(() => decide("allow", { updatedInput: { file_path: "/w/a.txt", content: "x" } })));
     expect(((await same.h.answer(request(write))) as Record<string, string>)["decision"]).toBe("allow");
     const del = { hook_event_name: "preToolUse", tool_name: "Delete", tool_input: { file_path: "/w/a.txt" } };
-    const ontoEnv = handler(evaluator(() => decide("allow", { updatedInput: { file_path: "/w/.env" } })), new Map(), false);
+    const ontoEnv = handler(evaluator(() => decide("allow", { updatedInput: { file_path: "/w/.env" } })), new Map());
     expect(((await ontoEnv.h.answer(request(del))) as Record<string, string>)["decision"]).toBe("deny");
   });
 
@@ -343,7 +365,7 @@ describe("the hook server's edges", () => {
     expect(JSON.parse(await talk(slow.path, [`${line}\n`])), "still serving after a client hung up").toMatchObject({ decision: "allow" });
     await slow.close();
 
-    const small = await serve(new HookRequestHandler(evaluator(() => decide("allow")), new Map(), new HookDecisionLog(), "tok", false, 16));
+    const small = await serve(new HookRequestHandler(evaluator(() => decide("allow")), new Map(), new HookDecisionLog(), "tok", { captureMode: false, globalBypass: false }, 16));
     expect(await talk(small.path, ["x".repeat(40)]), "an oversized request gets no answer").toBe("");
     await small.close();
 

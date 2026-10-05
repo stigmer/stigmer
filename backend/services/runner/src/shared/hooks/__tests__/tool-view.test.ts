@@ -5,7 +5,8 @@
  *    in either format;
  *  - Cursor's view names a call as Cursor's own engine sends it to a hook
  *    (a create and an edit are `Write`, a glob and a listing are `Grep` with
- *    an empty pattern), and a rewrite this engine cannot take is refused;
+ *    an empty pattern), a rewrite is laid over the call's own arguments as
+ *    Cursor lays it, and a rewrite this engine cannot take is refused;
  *  - paths become real and absolute, names change only where Claude's
  *    differ, extra arguments ride along;
  *  - MCP tools are named `mcp__<server>__<tool>`, a plugin's own server as
@@ -179,6 +180,11 @@ describe("Cursor's view of a native call", () => {
 
   it("takes back a shell rewrite in the workspace, and refuses one that moves the command", () => {
     expect(back("execute", { command: "ls", cwd: ROOT }, "cursor")).toEqual({ command: "ls" });
+    const partial = (name: string, rewrite: Record<string, unknown>) =>
+      views.argsFrom({ name, args: CALLS[name]!, serverSlug: "" }, "cursor", rewrite);
+    expect(partial("edit_file", { file_path: `${ROOT}/src/b.ts` }), "a Cursor rewrite names only what it changes").toEqual({ ...CALLS["edit_file"], file_path: "/src/b.ts" });
+    expect(partial("execute", { command: "ls" })).toEqual({ ...CALLS["execute"], command: "ls" });
+    expect(views.argsFrom({ name: "edit_file", args: CALLS["edit_file"]!, serverSlug: "" }, "claude-code", { file_path: `${ROOT}/src/b.ts` }), "Claude Code's replaces the input").toEqual({ file_path: "/src/b.ts" });
     expect(back("execute", { command: "ls", cwd: "/elsewhere" }, "cursor")).toMatch(/another directory/);
     expect(back("glob", { pattern: "x", glob: "*.md", file_path: ROOT }, "cursor")).toMatch(/search pattern/);
     expect(back("ls", { pattern: "", glob: "*.md", file_path: ROOT }, "cursor")).toMatch(/takes no glob|cannot take/);

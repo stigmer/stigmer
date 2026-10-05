@@ -479,6 +479,7 @@ export async function installGate(
     : await startHookServer({
         evaluator: hooks.evaluator,
         captureMode: workspace.captureMode,
+        globalBypass,
         refusals: approvalDecisions.size > 0
           ? buildPersonRefusals(rows.adjudicatedApprovals, approvalDecisions, rows.adjudicatedContentDigests)
           : new Map(),
@@ -529,8 +530,11 @@ export async function installGate(
     ...(hookServer !== undefined ? { hookDecisions: hookServer.decisions } : {}),
     stopDenialWatcher,
     removeGate: async () => {
-      await removeHitlGate(hitlGate);
-      await hookServer?.close();
+      try {
+        await removeHitlGate(hitlGate);
+      } finally {
+        await hookServer?.close();
+      }
     },
   };
 }

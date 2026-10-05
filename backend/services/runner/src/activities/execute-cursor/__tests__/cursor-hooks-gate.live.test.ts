@@ -71,7 +71,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Cursor engine: an agent's hooks 
       homeDir: workspaceRoot,
       leases: new Set(),
     });
-    const server = await startHookServer({ evaluator, refusals: new Map(), captureMode: false });
+    const server = await startHookServer({ evaluator, refusals: new Map(), captureMode: false, globalBypass: false });
     const gate = await installHitlGate({
       workspaceRoot,
       hitlDir,

@@ -542,8 +542,9 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
       workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
       folders: workspaceFolders([workspaceRoot], []),
     });
-    // The agent edits both files during the turn.
-    writeFileSync(settings, JSON.stringify({ model: "y" }), "utf-8");
+    expect(statSync(join(getHitlGateDir(workspaceRoot), "workspace-files.json")).mode & 0o777, "the snapshot is the owner's alone").toBe(0o600);
+    // The agent edits both files during the turn, adding a hook to each.
+    writeFileSync(settings, JSON.stringify({ model: "y", hooks: { PostToolUse: [{ matcher: "", hooks: [{ type: "command", command: "added" }] }] } }), "utf-8");
     const during = JSON.parse(readFileSync(cursorHooks, "utf-8"));
     during.hooks.preToolUse.push({ command: "./added-by-agent.sh" });
     writeFileSync(cursorHooks, JSON.stringify(during), "utf-8");
@@ -551,7 +552,10 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     await removeHitlGate(handle);
     expect(JSON.parse(readFileSync(settings, "utf-8"))).toEqual({
       model: "y",
-      hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "touch fired" }] }] },
+      hooks: {
+        PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "touch fired" }] }],
+        PostToolUse: [{ matcher: "", hooks: [{ type: "command", command: "added" }] }],
+      },
     });
     expect(JSON.parse(readFileSync(cursorHooks, "utf-8")).hooks.preToolUse.map((e: any) => e.command)).toEqual([
       "./mine.sh",

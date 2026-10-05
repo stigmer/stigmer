@@ -223,6 +223,20 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(h.ledger()[0]!.token).toBe(grantToken("srv/click", ""));
     });
 
+    it("keys an MCP grant on server and tool in the bash fallback too, when the Node binary is unavailable", () => {
+      const grant = (slug: string) => [{ toolName: "click", mcpServerSlug: slug, key: `${slug}/click`, salient: "", contentDigest: "", sourceToolCallId: "consent-1" }];
+      const withoutNode = (h: ReturnType<typeof setup>) => {
+        const scriptPath = join(h.hitlDir, "hook.sh");
+        writeFileSync(scriptPath, readFileSync(scriptPath, "utf-8").replace(`NODE_BIN="${process.execPath}"`, 'NODE_BIN="/nonexistent/node"'), "utf-8");
+        return h;
+      };
+      const granted = withoutNode(setup({ destructiveMcpTools: ["click"], grants: grant("srv") }));
+      expect(granted.decide(hookMcp("click")).permission).toBe("allow");
+      const elsewhere = withoutNode(setup({ destructiveMcpTools: ["click"], grants: grant("other") }));
+      expect(elsewhere.decide(hookMcp("click")).permission).toBe("deny");
+      expect(elsewhere.ledger()[0]!.token, "the token the stream row's identity recomputes").toBe(grantToken("srv/click", ""));
+    });
+
     it("allows an MCP tool its server does not mark destructive", () => {
       const h = setup({ destructiveMcpTools: ["click"] });
       expect(h.decide(hookMcp("list_apps")).permission).toBe("allow");
@@ -1177,7 +1191,7 @@ d("generated approval hook: a hook's answer under capture and the secret block",
       homeDir: tmpdir(),
       leases: new Set(),
     });
-    const server = await startHookServer({ evaluator, refusals: new Map(), captureMode: opts?.captureMode ?? false });
+    const server = await startHookServer({ evaluator, refusals: new Map(), captureMode: opts?.captureMode ?? false, globalBypass: opts?.autoApproveAll ?? false });
     try {
       await run(setup({ ...opts, hookServer: { socketPath: server.socketPath, token: server.token } }));
     } finally {
@@ -1206,6 +1220,27 @@ d("generated approval hook: a hook's answer under capture and the secret block",
       const res = await h.decideAsync({ ...hookWrite(file, "x"), hook_event_name: "preToolUse" });
       expect(res.permission).toBe("allow");
       expect((await h.observations()).captured, "staged for review").toHaveLength(1);
+    });
+  });
+
+  it("refuses a call a hook asks on and rewrites, though a grant holds for the call as written; under trust the rewrite runs", async () => {
+    const root = mkdtempSync(join(tmpdir(), "ask-rewrite-"));
+    onTestFinished(() => rmSync(root, { recursive: true, force: true }));
+    const file = join(root, "a.txt");
+    const askAndMove = { hookSpecificOutput: { permissionDecision: "ask", updatedInput: { file_path: join(root, "b.txt"), content: "x" } } };
+    await withHook(askAndMove, {}, async (h) => {
+      // The approval's grant for the call as the model wrote it.
+      const statePath = join(h.hitlDir, "state.json");
+      const state = JSON.parse(readFileSync(statePath, "utf-8")) as { approvedGrantTokens: string[] };
+      state.approvedGrantTokens.push(primaryToken("write", file, contentDigest({ file_path: file, content: "x" })));
+      writeFileSync(statePath, JSON.stringify(state), "utf-8");
+      const res = await h.decideAsync({ ...hookWrite(file, "x"), hook_event_name: "preToolUse" });
+      expect(res.permission).toBe("deny");
+      expect(h.ledger().map((e) => [e.kind, Buffer.from(String(e.hook), "base64").toString("utf-8")]), "the ledger carries the hook in base64").toEqual([["hook", "guard"]]);
+    });
+    await withHook(askAndMove, { autoApproveAll: true }, async (h) => {
+      const res = await h.decideAsync({ ...hookWrite(file, "x"), hook_event_name: "preToolUse" });
+      expect(JSON.parse(res.raw.trim())).toEqual({ permission: "allow", updated_input: { file_path: join(root, "b.txt"), content: "x" } });
     });
   });
 
