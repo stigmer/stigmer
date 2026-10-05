@@ -121,6 +121,7 @@ describe("conditionMatches: Bash rules (any subcommand)", () => {
     ["a function definition", "function f { rm -rf build; }; f"],
     ["a function defined with parentheses", "f() { rm -rf build; }; f"],
     ["a wrapper chain too long to unfold", `${"sudo ".repeat(300)}true`],
+    ["a wrapper over more path-named words than it can try", `sudo ${"/bin/x ".repeat(200)}true`],
     ["an unmatched bracket", "echo )"],
   ])("matches when it cannot parse %s, so the hook runs", (_what, command) => {
     expect(conditionMatches("Bash(git push *)", bash(command), CTX)).toBe(true);
