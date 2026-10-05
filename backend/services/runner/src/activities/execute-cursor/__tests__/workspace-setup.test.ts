@@ -563,6 +563,17 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     ]);
   });
 
+  it("puts the set-aside hooks back beside an agent's edit that has none", async () => {
+    const { workspaceRoot, hitlDir, settings } = workspace();
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders: workspaceFolders([workspaceRoot], []) });
+    writeFileSync(settings, JSON.stringify({ model: "z" }), "utf-8");
+    await removeHitlGate(handle);
+    expect(JSON.parse(readFileSync(settings, "utf-8"))).toEqual({
+      model: "z",
+      hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "touch fired" }] }] },
+    });
+  });
+
   it("restores the original when the agent deleted a set-aside file, and keeps an edit that no longer parses", async () => {
     const { workspaceRoot, hitlDir, settings, original } = workspace();
     const folders = workspaceFolders([workspaceRoot], []);
