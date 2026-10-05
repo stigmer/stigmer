@@ -43,6 +43,11 @@ describe("prepareHooks", () => {
     expect(await prepareHooks(turnInputFixture(), sink(), config, { agentMode: "local" })).toBeNull();
   });
 
+  it("refuses an agent with a hook longer than the engine's one gate timeout allows", async () => {
+    const slow = create(HookGroupSchema, { event: "PreToolUse", matcher: "Bash", handlers: [create(HookHandlerSchema, { command: "true", timeoutSeconds: 3601 })] });
+    await expect(prepareHooks(inputWith([slow]), sink(), config, { agentMode: "local" })).rejects.toThrow(/3601 seconds, longer than the 3600/);
+  });
+
   it("refuses a cloud agent with hooks", async () => {
     await expect(prepareHooks(inputWith([preToolUse("Bash", "true")]), sink(), config, { agentMode: "cloud" })).rejects.toThrow(HookSetupError);
   });
@@ -72,8 +77,9 @@ describe("installGate", () => {
     const input = inputWith([preToolUse("Bash", "true")], dir);
     const s = { stopSignal: new AbortController().signal, recordActivity: vi.fn() };
     const hooks = await prepareHooks(input, s, config, { agentMode: "local" });
-    // A temporary directory of the test's own: other suites' hook servers come and go in the shared one.
-    const ownTmp = mkdtempSync(join(tmpdir(), "prepare-hooks-tmp-"));
+    // A temporary directory of the test's own: other suites' hook servers come
+    // and go in the shared one. Short, so the server's socket path fits.
+    const ownTmp = mkdtempSync("/tmp/ph-");
     const realTmp = process.env["TMPDIR"];
     process.env["TMPDIR"] = ownTmp;
     onTestFinished(() => {
