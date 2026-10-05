@@ -45,7 +45,7 @@
  * .conformance.test.ts.
  */
 import type { DescMessage, Message } from "@bufbuild/protobuf";
-import { fromBinary, isMessage } from "@bufbuild/protobuf";
+import { create, fromBinary, isMessage } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -53,6 +53,7 @@ import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apireso
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationSpecSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -454,15 +455,24 @@ export function newPreserveChildLinkStep(): PipelineStep<
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as
         | Organization
         | undefined;
-      const spec = ctx.newState.spec;
-      if (existing === undefined || spec === undefined) {
+      if (existing === undefined) {
         throw internalError(
-          new Error("organization update reached PreserveChildLink without its loaded row or spec"),
+          new Error("organization update reached PreserveChildLink without its loaded row"),
           "failed to update organization",
         );
       }
-      spec.parentOrg = existing.spec?.parentOrg ?? "";
-      spec.externalId = existing.spec?.externalId ?? "";
+      const parentOrg = existing.spec?.parentOrg ?? "";
+      const externalId = existing.spec?.externalId ?? "";
+      // An update that carries no spec keeps the stored link as well.
+      const spec =
+        ctx.newState.spec ??
+        (parentOrg === "" && externalId === ""
+          ? undefined
+          : (ctx.newState.spec = create(OrganizationSpecSchema)));
+      if (spec !== undefined) {
+        spec.parentOrg = parentOrg;
+        spec.externalId = externalId;
+      }
     },
   };
 }

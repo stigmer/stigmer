@@ -130,7 +130,7 @@ async function refusalOf(run: () => Promise<unknown>): Promise<ConnectError> {
 }
 
 describe("child organizations — managed by the parent, never read by it", () => {
-  it("[rpc:OrganizationCommandController.create] a parent's admin creates a child that nobody owns, and finds and lists it", async (ctx) => {
+  it("[rpc:OrganizationCommandController.create] [rpc:OrganizationQueryController.getByExternalId] a parent's admin creates a child that nobody owns, and finds and lists it", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const parent = await tenancy(on);
@@ -337,8 +337,20 @@ describe("child organizations — managed by the parent, never read by it", () =
     const on = lane;
     const parent = await tenancy(on);
     const child = await childOf(on, parent);
-    const grandchild = await refusalOf(() =>
+    // The parent's admin manages the child but not the child's children:
+    // only the child's own admin reaches the one-level rule.
+    const parentAdminTriesGrandchild = await refusalOf(() =>
       on.clients.organizationCommand.create({
+        apiVersion: ORGANIZATION_API_VERSION,
+        kind: ORGANIZATION_KIND,
+        metadata: { name: uniqueOrg() },
+        spec: { parentOrg: child.org },
+      }),
+    );
+    expect(parentAdminTriesGrandchild.code).toBe(Code.PermissionDenied);
+    const childAdmin = await personWith(on, child.org, "admin");
+    const grandchild = await refusalOf(() =>
+      childAdmin.clients.organizationCommand.create({
         apiVersion: ORGANIZATION_API_VERSION,
         kind: ORGANIZATION_KIND,
         metadata: { name: uniqueOrg() },
