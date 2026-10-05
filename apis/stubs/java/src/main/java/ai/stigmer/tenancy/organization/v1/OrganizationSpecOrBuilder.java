@@ -74,16 +74,6 @@ public interface OrganizationSpecOrBuilder extends
 
   /**
    * <pre>
-   * Whether this is a personal organization, auto-created during identity provisioning.
-   * </pre>
-   *
-   * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
-   * @return The isPersonal.
-   */
-  boolean getIsPersonal();
-
-  /**
-   * <pre>
    * Standing preferences declared by the organization.
    * </pre>
    *

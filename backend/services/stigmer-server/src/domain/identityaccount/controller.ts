@@ -6,8 +6,8 @@
  * replaced; the byte-pinned copy moved with it
  * (constants.ts). The cloud keeps only what differs per edition — its row
  * store as `drivers.identityAccountStore`, the federated arms as
- * `drivers.identityFederation`, the personal organization as a gate on
- * `identity-account-provision:post-persist`.
+ * `drivers.identityFederation`, the organization it creates at sign-up as a
+ * gate on `identity-account-provision:post-persist`.
  *
  * Persistence is the IdentityAccountStore PORT, never the generic Store
  * (steps.ts explains); the storage-free shared steps are reused as they
@@ -573,12 +573,13 @@ async function lookupThenAuthorize(
  *      the rule's writes
  *      are idempotent, so a partial run is harmless, and the recovery is
  *      an administrator's grant.
- *   2. The composed post-persist gates (the cloud's personal
- *      organization), on EVERY call — the cloud's step backfills accounts
- *      that predate personal organizations there, which is why this is a
- *      slot rather than onResourceCreated. Non-transactional in the
- *      `org-create:post-persist` sense: a gate failure fails the request,
- *      the row survives, the next call heals it.
+ *   2. The composed post-persist gates (the cloud's first-organization
+ *      step), on EVERY call — a step that could not finish on the creating
+ *      call retries on the next one, which is why this is a slot rather
+ *      than onResourceCreated (never fired for a row that already exists).
+ *      Non-transactional in the `org-create:post-persist` sense: a gate
+ *      failure fails the request, the row survives, the next call heals
+ *      it.
  */
 async function provisionMyAccount(
   deps: IdentityAccountControllerDeps,

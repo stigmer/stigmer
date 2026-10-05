@@ -45,16 +45,6 @@
       }
     },
     {
-      "name": "IsPersonal",
-      "jsonName": "isPersonal",
-      "protoField": "is_personal",
-      "type": {
-        "kind": "bool"
-      },
-      "description": "Whether this is a personal organization, auto-created during identity provisioning.",
-      "required": false
-    },
-    {
       "name": "Preferences",
       "jsonName": "preferences",
       "protoField": "preferences",

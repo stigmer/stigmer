@@ -19,7 +19,6 @@ public final class OrganizationInput {
     private final String description;
     private final String logoUrl;
     private final String externalId;
-    private final boolean isPersonal;
     private final OrganizationPreferencesInput preferences;
     private final String parentOrg;
 
@@ -33,7 +32,6 @@ public final class OrganizationInput {
         this.description = builder.description;
         this.logoUrl = builder.logoUrl;
         this.externalId = builder.externalId;
-        this.isPersonal = builder.isPersonal;
         this.preferences = builder.preferences;
         this.parentOrg = builder.parentOrg;
     }
@@ -49,7 +47,6 @@ public final class OrganizationInput {
         if (this.externalId != null) {
             spec.setExternalId(this.externalId);
         }
-        spec.setIsPersonal(this.isPersonal);
         if (this.preferences != null) {
             spec.setPreferences(this.preferences.toProto());
         }
@@ -93,7 +90,6 @@ public final class OrganizationInput {
         private String description;
         private String logoUrl;
         private String externalId;
-        private boolean isPersonal;
         private OrganizationPreferencesInput preferences;
         private String parentOrg;
 
@@ -113,7 +109,6 @@ public final class OrganizationInput {
         public Builder description(String description) { this.description = description; return this; }
         public Builder logoUrl(String logoUrl) { this.logoUrl = logoUrl; return this; }
         public Builder externalId(String externalId) { this.externalId = externalId; return this; }
-        public Builder isPersonal(boolean isPersonal) { this.isPersonal = isPersonal; return this; }
         public Builder preferences(OrganizationPreferencesInput preferences) { this.preferences = preferences; return this; }
         public Builder parentOrg(String parentOrg) { this.parentOrg = parentOrg; return this; }
 

@@ -32,8 +32,6 @@ type OrganizationSpec struct {
 	// The parent's own identifier for this organization, such as the
 	// customer id an integrator keeps for it ("cust-4411").
 	ExternalId string `protobuf:"bytes,5,opt,name=external_id,json=externalId,proto3" json:"external_id,omitempty"`
-	// Whether this is a personal organization, auto-created during identity provisioning.
-	IsPersonal bool `protobuf:"varint,6,opt,name=is_personal,json=isPersonal,proto3" json:"is_personal,omitempty"`
 	// Standing preferences declared by the organization.
 	Preferences *OrganizationPreferences `protobuf:"bytes,7,opt,name=preferences,proto3" json:"preferences,omitempty"`
 	// The organization this one is a child of, by id or slug; empty for an
@@ -92,13 +90,6 @@ func (x *OrganizationSpec) GetExternalId() string {
 		return x.ExternalId
 	}
 	return ""
-}
-
-func (x *OrganizationSpec) GetIsPersonal() bool {
-	if x != nil {
-		return x.IsPersonal
-	}
-	return false
 }
 
 func (x *OrganizationSpec) GetPreferences() *OrganizationPreferences {
@@ -178,18 +169,16 @@ var File_ai_stigmer_tenancy_organization_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\x1bbuf/validate/validate.proto\"\x99\x04\n" +
+	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\x1bbuf/validate/validate.proto\"\x8b\x04\n" +
 	"\x10OrganizationSpec\x12*\n" +
 	"\vdescription\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\vdescription\x12#\n" +
 	"\blogo_url\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\alogoUrl\x12)\n" +
 	"\vexternal_id\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\n" +
-	"externalId\x12\x1f\n" +
-	"\vis_personal\x18\x06 \x01(\bR\n" +
-	"isPersonal\x12]\n" +
+	"externalId\x12]\n" +
 	"\vpreferences\x18\a \x01(\v2;.ai.stigmer.tenancy.organization.v1.OrganizationPreferencesR\vpreferences\x12&\n" +
 	"\n" +
 	"parent_org\x18\b \x01(\tB\a\xbaH\x04r\x02\x18@R\tparentOrg:\xac\x01\xbaH\xa8\x01\x1a\xa5\x01\n" +
-	",organization.external_id_requires_parent_org\x12Dexternal_id is set only on a child organization: name its parent_org\x1a/this.external_id == '' || this.parent_org != ''J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\x0fmanagement_modeR\x15identity_provider_ref\"u\n" +
+	",organization.external_id_requires_parent_org\x12Dexternal_id is set only on a child organization: name its parent_org\x1a/this.external_id == '' || this.parent_org != ''J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x06\x10\aR\x0fmanagement_modeR\x15identity_provider_refR\vis_personal\"u\n" +
 	"\x17OrganizationPreferences\x123\n" +
 	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12%\n" +
 	"\x0ememory_enabled\x18\x02 \x01(\bR\rmemoryEnabledB\xbc\x02\n" +

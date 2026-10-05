@@ -23,11 +23,11 @@
  * call or found by the idempotent early return — and before the reply,
  * with the caller RE-STAMPED as the account (the position-1 identity was
  * idp-shaped because no row existed when the verifier ran). It fires on
- * EVERY provisionMyAccount, not only the creating one: the cloud's
- * personal-organization step backfills accounts that predate personal
- * organizations on the idempotent path, which is exactly why a slot was
- * chosen over the tuple lifecycle's onResourceCreated (never fired for a
- * row that already exists). Never on the create RPC and never at the
+ * EVERY provisionMyAccount, not only the creating one: a step that could
+ * not finish on the creating call (the cloud's first-organization step,
+ * whose failed create is not fatal) retries on the idempotent path, which
+ * is exactly why a slot was chosen over the tuple lifecycle's
+ * onResourceCreated (never fired for a row that already exists). Never on the create RPC and never at the
  * boot-time operator ensure, which take the create path, not this one.
  * Non-transactional in the `org-create:post-persist` sense: a gate
  * failure fails the request, the row survives, the next call heals.

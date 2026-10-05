@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Building2,
   AlertCircle,
   RefreshCw,
   ChevronsUpDown,
   Plus,
-  User,
 } from "lucide-react";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -48,9 +47,10 @@ export interface OrgSwitcherProps {
 /**
  * Organization switcher dropdown for sidebar navigation.
  *
- * Shows the active organization (name + slug), lists personal and team
- * organizations grouped with icons, and provides a "Create organization"
- * action that opens an inline dialog with {@link CreateOrganizationForm}.
+ * Shows the active organization (name + slug), lists every organization the
+ * caller belongs to in the order the server returns them, and provides a
+ * "Create organization" action that opens an inline dialog with
+ * {@link CreateOrganizationForm}.
  *
  * Designed for sidebar placement — the trigger uses `sidebar-*` design
  * tokens. The portaled dropdown and dialog use standard `popover-*` /
@@ -91,15 +91,6 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
     [refresh, onOrgChanged],
   );
 
-  const personalOrgs = useMemo(
-    () => orgs.filter((o) => o.spec?.isPersonal),
-    [orgs],
-  );
-  const teamOrgs = useMemo(
-    () => orgs.filter((o) => !o.spec?.isPersonal),
-    [orgs],
-  );
-
   if (isLoading) {
     return <OrgSwitcherSkeleton className={className} />;
   }
@@ -121,7 +112,6 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
   }
 
   const hasOrgs = orgs.length > 0 && activeOrg;
-  const TriggerIcon = activeOrg?.spec?.isPersonal ? User : Building2;
 
   return (
     <>
@@ -133,7 +123,7 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
             className,
           )}
         >
-          <TriggerIcon className="stg:text-sidebar-muted-foreground stg:mt-0.5 stg:size-4 stg:shrink-0 stg:self-start" />
+          <Building2 className="stg:text-sidebar-muted-foreground stg:mt-0.5 stg:size-4 stg:shrink-0 stg:self-start" />
           {hasOrgs ? (
             <OrgLabel
               org={activeOrg}
@@ -153,20 +143,7 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
               value={activeOrg.metadata?.id ?? ""}
               onValueChange={handleOrgSwitch}
             >
-              {personalOrgs.map((org) => (
-                <MenuRadioItem
-                  key={org.metadata?.id}
-                  value={org.metadata?.id ?? ""}
-                  className="stg:items-start"
-                >
-                  <User className="stg:mt-0.5 stg:size-3.5 stg:shrink-0" />
-                  <OrgLabel org={org} />
-                </MenuRadioItem>
-              ))}
-              {personalOrgs.length > 0 && teamOrgs.length > 0 && (
-                <MenuSeparator />
-              )}
-              {teamOrgs.map((org) => (
+              {orgs.map((org) => (
                 <MenuRadioItem
                   key={org.metadata?.id}
                   value={org.metadata?.id ?? ""}

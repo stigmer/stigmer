@@ -23,7 +23,8 @@
  * keyed on first provisioning (the membership rules) runs exactly once per
  * account and never on the idempotent path.
  *
- * Step 4 of the cloud's flow (the personal organization) is not core: it
+ * Step 4 of the cloud's flow (the organization it creates at sign-up) is
+ * not core: it
  * fires on `identity-account-provision:post-persist` in the composition.
  */
 import { create } from "@bufbuild/protobuf";

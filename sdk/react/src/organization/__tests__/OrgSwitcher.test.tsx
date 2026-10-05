@@ -1,8 +1,9 @@
 /**
- * OrgSwitcher picks organizations by id: choosing one in the menu makes it
- * active (and remembered by id) and reports the choice, choosing the active
- * one again does nothing, and an organization created from the menu becomes
- * the active one once the list is fetched again.
+ * OrgSwitcher picks organizations by id: it lists every organization in the
+ * order the server returns them, choosing one in the menu makes it active
+ * (and remembered by id) and reports the choice, choosing the active one
+ * again does nothing, and an organization created from the menu becomes the
+ * active one once the list is fetched again.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
@@ -18,11 +19,11 @@ afterEach(cleanup);
 
 const INITECH_ID = "org_01jcccccccccccccccccccccccc";
 
-function org(id: string, slug: string, isPersonal = false): Organization {
-  return { metadata: { id, slug, name: slug }, spec: { isPersonal } } as Organization;
+function org(id: string, slug: string): Organization {
+  return { metadata: { id, slug, name: slug }, spec: {} } as Organization;
 }
 
-const ACME = org(ACME_ID, "acme", true);
+const ACME = org(ACME_ID, "acme");
 const GLOBEX = org(GLOBEX_ID, "globex");
 const INITECH = org(INITECH_ID, "initech");
 
@@ -62,13 +63,22 @@ function renderSwitcher(client: unknown, onOrgChanged = vi.fn()) {
 describe("OrgSwitcher", () => {
   beforeEach(() => localStorage.clear());
 
+  it("lists every organization in the order the server returns them", async () => {
+    renderSwitcher(clientFor([[GLOBEX, ACME, INITECH]]));
+    await waitFor(() => expect(screen.getByLabelText("active org").textContent).toBe(GLOBEX_ID));
+
+    await openMenu(screen.getByRole("button", { name: "Organization menu" }));
+    const names = screen.getAllByRole("menuitemradio").map((item) => item.textContent);
+    expect(names).toEqual(["globexglobex", "acmeacme", "initechinitech"]);
+  });
+
   it("switches to the organization chosen by its id and remembers the id", async () => {
     const onOrgChanged = renderSwitcher(clientFor([[ACME, GLOBEX]]));
     await waitFor(() => expect(screen.getByLabelText("active org").textContent).toBe(ACME_ID));
 
     await openMenu(screen.getByRole("button", { name: "Organization menu" }));
-    const personal = screen.getByRole("menuitemradio", { name: /acme/ });
-    expect(personal.getAttribute("aria-checked")).toBe("true");
+    const active = screen.getByRole("menuitemradio", { name: /acme/ });
+    expect(active.getAttribute("aria-checked")).toBe("true");
     fireEvent.click(screen.getByRole("menuitemradio", { name: /globex/ }));
 
     await waitFor(() => expect(screen.getByLabelText("active org").textContent).toBe(GLOBEX_ID));

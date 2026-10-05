@@ -1484,7 +1484,7 @@ export const fakeExtension: ServerExtension = {
     ["sandbox-acquisition:gate", [consumerCapacityGateStep()]],
     // The seventh: after the caller's account is
     // persisted or found inside provisionMyAccount — the cloud's
-    // personal-organization ensure and backfill ride it.
+    // first-organization step rides it.
     ["identity-account-provision:post-persist", [consumerGateStep()]],
     // The eighth: the IamPolicy create chain, before the grant is written
     // — where an edition that serves teams refuses a team it cannot admit.

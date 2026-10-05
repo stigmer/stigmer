@@ -101,7 +101,6 @@ type OrganizationInput struct {
 	Description string
 	LogoUrl     string
 	ExternalId  string
-	IsPersonal  bool
 	Preferences *OrganizationPreferencesInput
 	ParentOrg   string
 }
@@ -129,7 +128,6 @@ func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
 	resource.Spec.Description = i.Description
 	resource.Spec.LogoUrl = i.LogoUrl
 	resource.Spec.ExternalId = i.ExternalId
-	resource.Spec.IsPersonal = i.IsPersonal
 	if i.Preferences != nil {
 		v, err := i.Preferences.toProto()
 		if err != nil {
@@ -166,7 +164,6 @@ func OrganizationInputFromProto(p *organizationv1.Organization) *OrganizationInp
 		input.Description = s.GetDescription()
 		input.LogoUrl = s.GetLogoUrl()
 		input.ExternalId = s.GetExternalId()
-		input.IsPersonal = s.GetIsPersonal()
 		input.Preferences = organizationPreferencesInputFromProto(s.GetPreferences())
 		input.ParentOrg = s.GetParentOrg()
 	}
