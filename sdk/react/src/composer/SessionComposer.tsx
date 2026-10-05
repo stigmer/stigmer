@@ -312,10 +312,24 @@ export interface SessionComposerProps {
    * model, tier or thinking, so the server applies the agent's. A model
    * remembered on the device does not belong here: the host passes it as
    * `defaultModelId` only where the agent names no model.
+   *
+   * Once the person picked a model, the picker lists "Agent default:
+   * <model>" as the way back: choosing it drops their model, tier and
+   * thinking picks (and calls {@link onModelPickCleared}). Every pick is
+   * also dropped when {@link agentRef} names another agent, and a model
+   * pick when the engine changes to one that does not list the model.
    */
   readonly agentRunDefaults?: AgentRunDefaults;
   /** Called when the user changes the selected model. */
   readonly onModelChange?: (modelId: string) => void;
+  /**
+   * Called when the person chooses the agent's default model back in the
+   * picker (see {@link agentRunDefaults}). A host that remembers the
+   * person's model pick and sends it when the composer names none (the
+   * built-in session flows do) forgets the pick here, or the agent's
+   * default the picker shows would not be what the send runs.
+   */
+  readonly onModelPickCleared?: () => void;
   /** Show the model selector. @default true */
   readonly showModelSelector?: boolean;
 
@@ -629,6 +643,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   defaultModelId,
   agentRunDefaults,
   onModelChange,
+  onModelPickCleared,
   showModelSelector = true,
   workspace,
   gitHubConnection,
@@ -692,6 +707,23 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
   // Thinking mode (#772): the tier's twin, same intent-vs-effective split.
   const [thinkingModePick, setThinkingModePick] = useState<ThinkingModeOption | undefined>(undefined);
+
+  // The person's picks belong to the agent they were made for: a thinking
+  // turned off for one agent sent to the next as an explicit off, under a
+  // pill reading that agent's default, is a choice nobody made. A change
+  // of agent drops every pick and follows the host's seed again. Keyed on
+  // the agent itself, not its version: the setup bridge re-reports the
+  // same agent as its resolution settles.
+  const agentKey = agentRef ? `${agentRef.org}/${agentRef.slug}` : "";
+  const picksAgentKeyRef = useRef(agentKey);
+  useEffect(() => {
+    if (picksAgentKeyRef.current === agentKey) return;
+    picksAgentKeyRef.current = agentKey;
+    userOverrodeModel.current = false;
+    setModelIdRaw(defaultModelId);
+    setServiceTierPick(undefined);
+    setThinkingModePick(undefined);
+  }, [agentKey, defaultModelId]);
 
   // Active harness mirror: controlled hosts (both viewers) keep the
   // `harness` prop current, but with `showHarnessSelector` the dropdown
@@ -822,6 +854,29 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const { defaultModel: harnessDefaultModel, getModel: harnessGetModel } = useModelRegistry({
     harness: activeHarness,
   });
+
+  // A model belongs to one engine. When the engine changes under a
+  // model the person picked (their own engine pick, or an agent whose
+  // engine loads after the pick), a model the new engine does not list
+  // is dropped, with the tier and thinking chosen for it, and the host's
+  // seed applies again: the unified lookup below would still find it and
+  // send it with an engine that does not run it. A model the new engine
+  // lists stays picked.
+  const picksHarnessRef = useRef(activeHarness);
+  useEffect(() => {
+    if (picksHarnessRef.current === activeHarness) return;
+    picksHarnessRef.current = activeHarness;
+    if (!userOverrodeModel.current || modelId === undefined) return;
+    const key = parseModelKey(modelId);
+    const listed =
+      (key === undefined || key.harness === activeHarness)
+      && harnessGetModel(key?.modelId ?? modelId) !== undefined;
+    if (listed) return;
+    userOverrodeModel.current = false;
+    setModelIdRaw(defaultModelId);
+    setServiceTierPick(undefined);
+    setThinkingModePick(undefined);
+  }, [activeHarness, modelId, defaultModelId, harnessGetModel]);
 
   // -------------------------------------------------------------------------
   // Effective run selection (stigmer/stigmer#663) — the ONE resolution of
@@ -1203,6 +1258,17 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     },
     [onModelChange, inheritsAgentModel, agentRunDefaults, serviceTierPick, thinkingModePick],
   );
+
+  // The way back to the agent's default model: the person's model, tier
+  // and thinking picks all go, so the send names none and the server
+  // applies the agent's, exactly what the pill then shows. Recorded as
+  // the person's choice, so a host seed arriving later does not replace it.
+  const handleUseAgentDefault = useCallback(() => {
+    setModelId(undefined);
+    setServiceTierPick(undefined);
+    setThinkingModePick(undefined);
+    onModelPickCleared?.();
+  }, [setModelId, onModelPickCleared]);
 
   const handleHarnessChange = useCallback(
     (h: HarnessOption) => {
@@ -1963,10 +2029,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           // submit payload carries (#663), never a fallback of its own.
           modelId={effective.modelId}
           inheritedModel={
-            inheritsAgentModel
+            agentRunDefaults
               ? { modelId: agentRunDefaults.modelName, source: "Agent default" }
               : undefined
           }
+          onInheritedModelSelect={agentRunDefaults ? handleUseAgentDefault : undefined}
           onModelChange={handleModelChange}
           serviceTier={effective.shownServiceTier}
           onServiceTierChange={setServiceTierPick}

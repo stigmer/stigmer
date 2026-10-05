@@ -11,16 +11,16 @@ package ai.stigmer.agentic.agentexecution.v1;
  *
  * The approval default (shell commands, file writes and deletes, and MCP tools
  * their server marks destructive) decides WHICH tools are gated; this mode
- * decides WHAT HAPPENS when a gate fires. It exists for surfaces where
- * no approver is present at the conversation — messaging channels
- * (Slack/WhatsApp) and guest shares — where an interactive pause would park
- * the execution in EXECUTION_WAITING_FOR_APPROVAL forever.
+ * decides WHAT HAPPENS when a gate fires. It exists for lanes where no
+ * approver is present at the conversation — a schedule's fire, messaging
+ * channels (Slack/WhatsApp) and guest shares — where an interactive pause
+ * would park the execution in EXECUTION_WAITING_FOR_APPROVAL forever.
  *
- * The mode is stamped by the SURFACE that creates the execution (the channel
- * session broker, the guest execution scope step), never chosen by the
- * external user: it is runtime policy owned by the delivery surface, exactly
- * like the bounded channel execution profile. Interactive surfaces (console,
- * CLI) leave it unset.
+ * The mode is a fact of the lane the execution came through, recorded by
+ * the server on AgentExecutionStatus.approval_mode, never chosen by the
+ * request or the external user: it is runtime policy owned by the lane,
+ * exactly like the bounded execution profile. Every other turn (console,
+ * CLI, a workflow step) is INTERACTIVE.
  *
  * Two different consents, deliberately separated:
  * - Operator consent (this gate) protects the org's tools and data and is

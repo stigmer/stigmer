@@ -1085,6 +1085,7 @@ const ConversationColumn = memo(function ConversationColumn({
             defaultModelId={modelId}
             agentRunDefaults={flow.agentRunDefaults}
             onModelChange={setModelId}
+            onModelPickCleared={flow.clearModelPick}
             interactionMode={interactionMode}
             onInteractionModeChange={setInteractionMode}
             showInteractionModePicker={!isGuest}

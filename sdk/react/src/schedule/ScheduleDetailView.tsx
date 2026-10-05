@@ -1180,6 +1180,14 @@ function BudgetInlineEditor({
  * run-config fields the editor does not own (budget; the API-only tool
  * rounds and tool-result size), and dropping an all-empty run_config — the proto's "empty =
  * inherit" contract.
+ *
+ * A stored tier or thinking mode survives a save that leaves it alone:
+ * an explicit standard or disabled is a choice in its own right (it
+ * turns off the fast tier or thinking the agent's run defaults would
+ * apply), and the editor's switches cannot tell it from an unset one.
+ * "Alone" means the same engine and model and the switch showing what
+ * was stored; a changed model is a new choice, whose variants ride it
+ * (no model, no tier and no thinking, #357/#772).
  */
 function applyEngineModel(
   invocation: AgentInvocation,
@@ -1188,20 +1196,36 @@ function applyEngineModel(
   serviceTier: ServiceTierOption,
   thinkingMode: ThinkingModeOption,
 ): void {
+  const stored = invocation.runConfig;
+  const model = modelName.trim();
+  const sameModel =
+    model === (stored?.modelName ?? "").trim() && harness === invocation.harness;
+  const storedTier = stored?.serviceTier ?? ServiceTier.UNSPECIFIED;
+  const storedThinking = stored?.thinkingMode ?? ThinkingMode.UNSPECIFIED;
   invocation.harness = harness;
   invocation.runConfig = normalizeRunConfig(
-    modelName,
-    invocation.runConfig?.maxCostUsd ?? 0,
-    invocation.runConfig?.maxToolRounds ?? 0,
-    // The variant attributes ride the model choice: no model, no tier and
-    // no thinking (#357/#772).
-    modelName.trim() !== "" ? serviceTier : "standard",
-    modelName.trim() !== "" ? thinkingMode : "disabled",
-    invocation.runConfig?.maxToolResultChars ?? 0,
+    model,
+    stored?.maxCostUsd ?? 0,
+    stored?.maxToolRounds ?? 0,
+    sameModel && serviceTier === (fromProtoServiceTier(storedTier) ?? "standard")
+      ? storedTier
+      : model !== "" && serviceTier === "fast"
+        ? toProtoServiceTier(serviceTier)
+        : ServiceTier.UNSPECIFIED,
+    sameModel && thinkingMode === (fromProtoThinkingMode(storedThinking) ?? "disabled")
+      ? storedThinking
+      : model !== "" && thinkingMode === "enabled"
+        ? toProtoThinkingMode(thinkingMode)
+        : ThinkingMode.UNSPECIFIED,
+    stored?.maxToolResultChars ?? 0,
   );
 }
 
-/** Budget twin of {@link applyEngineModel} — writes only the cost cap. */
+/**
+ * Budget twin of {@link applyEngineModel} — writes only the cost cap;
+ * every other stored field, an explicit tier or thinking among them,
+ * survives as stored.
+ */
 function applyBudget(
   invocation: AgentInvocation,
   maxCostUsd: number | undefined,
@@ -1210,8 +1234,8 @@ function applyBudget(
     invocation.runConfig?.modelName ?? "",
     maxCostUsd ?? 0,
     invocation.runConfig?.maxToolRounds ?? 0,
-    fromProtoServiceTier(invocation.runConfig?.serviceTier) ?? "standard",
-    fromProtoThinkingMode(invocation.runConfig?.thinkingMode) ?? "disabled",
+    invocation.runConfig?.serviceTier ?? ServiceTier.UNSPECIFIED,
+    invocation.runConfig?.thinkingMode ?? ThinkingMode.UNSPECIFIED,
     invocation.runConfig?.maxToolResultChars ?? 0,
   );
 }
@@ -1220,8 +1244,8 @@ function normalizeRunConfig(
   modelName: string,
   maxCostUsd: number,
   maxToolRounds: number,
-  serviceTier: ServiceTierOption,
-  thinkingMode: ThinkingModeOption,
+  serviceTier: ServiceTier,
+  thinkingMode: ThinkingMode,
   maxToolResultChars: number,
 ): RunConfig | undefined {
   const fields: {
@@ -1236,11 +1260,10 @@ function normalizeRunConfig(
   if (maxCostUsd > 0) fields.maxCostUsd = maxCostUsd;
   if (maxToolRounds > 0) fields.maxToolRounds = maxToolRounds;
   if (maxToolResultChars > 0) fields.maxToolResultChars = maxToolResultChars;
-  // Only an active fast choice is carried — an untouched tier stays
-  // absent, preserving the unspecified-vs-explicit ledger distinction (#357).
-  if (serviceTier === "fast") fields.serviceTier = toProtoServiceTier(serviceTier);
-  // The tier's #772 twin: only an active enabled choice is carried.
-  if (thinkingMode === "enabled") fields.thinkingMode = toProtoThinkingMode(thinkingMode);
+  // The callers decide which tier and thinking are written; unset stays
+  // absent, preserving the unspecified-vs-explicit distinction (#357/#772).
+  if (serviceTier !== ServiceTier.UNSPECIFIED) fields.serviceTier = serviceTier;
+  if (thinkingMode !== ThinkingMode.UNSPECIFIED) fields.thinkingMode = thinkingMode;
 
   return Object.keys(fields).length > 0
     ? create(RunConfigSchema, fields)

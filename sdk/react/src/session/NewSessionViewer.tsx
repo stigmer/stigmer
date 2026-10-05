@@ -468,6 +468,7 @@ export function NewSessionViewer({
           defaultModelId={flow.modelId}
           agentRunDefaults={flow.agentRunDefaults}
           onModelChange={flow.setModelId}
+          onModelPickCleared={flow.clearModelPick}
           placeholder={placeholder}
           initialRows={initialRows}
           autoFocus={autoFocus}

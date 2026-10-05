@@ -105,14 +105,17 @@ export function newValidateHarnessImmutabilityStep(): PipelineStep<SessionDesc> 
         return;
       }
 
-      // Treat UNSPECIFIED as NATIVE for comparison.
+      // An update that names no harness keeps the stored one
+      // (ResolveSessionAgent carries it over), so it changes nothing.
+      if (inputSpec.harness === Harness.UNSPECIFIED) {
+        return;
+      }
+
+      // Treat a stored UNSPECIFIED as NATIVE for comparison.
       let existingHarness = existingSpec.harness;
-      let inputHarness = inputSpec.harness;
+      const inputHarness = inputSpec.harness;
       if (existingHarness === Harness.UNSPECIFIED) {
         existingHarness = Harness.NATIVE;
-      }
-      if (inputHarness === Harness.UNSPECIFIED) {
-        inputHarness = Harness.NATIVE;
       }
 
       if (inputHarness !== existingHarness) {

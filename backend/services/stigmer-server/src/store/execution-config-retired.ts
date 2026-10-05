@@ -54,8 +54,11 @@ import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecuti
 /** The `kind` column value of the rows the step rewrites. */
 export const EXECUTION_KIND = "agent_execution";
 
-/** How many execution rows the step decodes per page. */
-export const EXECUTION_CONFIG_PAGE_SIZE = 500;
+/**
+ * How many execution rows the step decodes per page: fewer than the other
+ * data migrations' 500, because a turn's row carries its whole transcript.
+ */
+export const EXECUTION_CONFIG_PAGE_SIZE = 100;
 
 /** The retired AgentExecutionSpec field that held the ExecutionConfig. */
 const SPEC_EXECUTION_CONFIG_FIELD = 4;

@@ -215,6 +215,13 @@ export interface UseNewSessionFlowReturn {
   readonly agentRunDefaults: AgentRunDefaults | undefined;
   /** Update the selected model. Automatically persists to localStorage. */
   readonly setModelId: (id: string) => void;
+  /**
+   * Forget the model the person picked on this surface, so the selected
+   * agent's default model applies again: pass it to the composer's
+   * `onModelPickCleared`. Picks are also forgotten when the agent
+   * changes, and a pick the engine does not list when the engine changes.
+   */
+  readonly clearModelPick: () => void;
 
   /** Currently selected agent reference, or `null` for the built-in assistant. */
   readonly agentRef: ResourceRef | null;
@@ -434,6 +441,9 @@ export function useNewSessionFlow(
     setPickedModelId(id);
     setModelIdRaw(id);
   }, []);
+  const clearModelPick = useCallback(() => {
+    setPickedModelId(undefined);
+  }, []);
   const [resolution, setResolution] = useState<AgentResolution | null>(null);
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
@@ -441,6 +451,32 @@ export function useNewSessionFlow(
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const validModelId = modelId && getModel(modelId) ? modelId : undefined;
+
+  // The person's model pick belongs to the agent and the engine it was
+  // made under. A new agent drops it: the agent's own default is what a
+  // person choosing that agent expects, and a pick sent on would override
+  // it unseen. An engine change for any other reason than the person's
+  // engine pick (an agent naming its engine, perhaps after the pick, as
+  // its spec loads) drops a model the new engine does not list, as the
+  // engine pick does: a model name sent with an engine that does not run
+  // it silently runs another model, or none. The remembered model is
+  // realigned the same way, so the persist effect never files one
+  // engine's model under the other's key. Adjusted while rendering, so no
+  // commit ever pairs the new engine with the old model.
+  const agentKey = agentRef ? `${agentRef.org}/${agentRef.slug}` : "";
+  const [pickScope, setPickScope] = useState({ agentKey, harness });
+  if (pickScope.agentKey !== agentKey || pickScope.harness !== harness) {
+    setPickScope({ agentKey, harness });
+    if (
+      pickedModelId !== undefined
+      && (pickScope.agentKey !== agentKey || getModel(pickedModelId) === undefined)
+    ) {
+      setPickedModelId(undefined);
+    }
+    if (pickScope.harness !== harness && validModelId === undefined && modelId !== undefined) {
+      setModelIdRaw(undefined);
+    }
+  }
 
   // The account's model for the active harness, registry-validated the same
   // way as the stored choice (a stale/removed preference silently falls
@@ -652,6 +688,7 @@ export function useNewSessionFlow(
     setHarness,
     modelId: effectiveModelId,
     setModelId,
+    clearModelPick,
     agentRunDefaults,
     agentRef,
     setAgentRef,

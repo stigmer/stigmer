@@ -130,6 +130,12 @@ export interface UseSessionPageFlowReturn {
    * agent loads.
    */
   readonly agentRunDefaults: AgentRunDefaults | undefined;
+  /**
+   * Choose the agent's default model back: the next message names no
+   * model, not even this conversation's last pick, until the person picks
+   * one again. Pass it to the composer's `onModelPickCleared`.
+   */
+  readonly clearModelPick: () => void;
 
   /**
    * Composer interaction mode: `[interactionMode, setInteractionMode]`.
@@ -552,10 +558,21 @@ export function useSessionPageFlow(
   // own last pick seeds the composer: a model remembered on this device was
   // picked for other conversations, and sending it would override the
   // agent's default the person never touched here.
+  // The person chose the agent's default back in the picker: the last
+  // pick no longer seeds the composer or the send until they pick again.
+  const [modelPickCleared, setModelPickCleared] = useState(false);
   const modelId = agentRunDefaults
-    ? lastRequestedModelId
+    ? (modelPickCleared ? undefined : lastRequestedModelId)
     : (persistedModelId ?? lastRequestedModelId);
-  const model: UsePersistedModelReturn = [modelId, setPersistedModelId] as const;
+  const setModelId = useCallback(
+    (id: string) => {
+      setModelPickCleared(false);
+      setPersistedModelId(id);
+    },
+    [setPersistedModelId],
+  );
+  const clearModelPick = useCallback(() => setModelPickCleared(true), []);
+  const model: UsePersistedModelReturn = [modelId, setModelId] as const;
 
   // -------------------------------------------------------------------------
   // Session spec sync — hydrate workspace, MCP servers, and skills on first load
@@ -699,6 +716,7 @@ export function useSessionPageFlow(
     executionTarget,
     model,
     agentRunDefaults,
+    clearModelPick,
     interactionMode,
     agentRef,
     setAgentRef,

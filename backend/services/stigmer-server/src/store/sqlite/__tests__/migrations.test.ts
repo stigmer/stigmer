@@ -1356,14 +1356,19 @@ describe("v15: a turn's settings leave the retired execution_config", () => {
     );
   });
 
-  it("an unreadable turn fails the step and leaves the database at v14", () => {
+  it("an unreadable turn fails the step, rolls back the turns it rewrote, and leaves the database at v14", () => {
     const { dbPath, db: setup } = v14Database();
-    insert(setup, "aex_bad", new Uint8Array([0xff, 0xff, 0xff]));
+    // A readable turn ahead of the unreadable one in id order is rewritten
+    // first; the failure must take that rewrite back.
+    const good = retiredExecutionRow({ metadata: metadata("aex_a_good"), config: { maxCostUsd: 1 } });
+    insert(setup, "aex_a_good", good);
+    insert(setup, "aex_b_bad", new Uint8Array([0xff, 0xff, 0xff]));
     setup.close();
 
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
-    expect(() => runMigrations(db, SCHEMA_VERSION_15)).toThrow("agent_execution 'aex_bad'");
+    expect(() => runMigrations(db, SCHEMA_VERSION_15)).toThrow("agent_execution 'aex_b_bad'");
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_15 - 1);
+    expect(row(db, "aex_a_good").data).toEqual(good);
   });
 });

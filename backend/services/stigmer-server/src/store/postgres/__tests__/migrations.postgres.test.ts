@@ -1309,15 +1309,20 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         }
       });
 
-      it("an unreadable turn fails the step and leaves the database at v9", async () => {
+      it("an unreadable turn fails the step, rolls back the turns it rewrote, and leaves the database at v9", async () => {
         const client = await v9Client();
         try {
-          await insert(client, "aex_bad", new Uint8Array([0xff, 0xff, 0xff]));
+          // A readable turn ahead of the unreadable one in id order is
+          // rewritten first; the failure must take that rewrite back.
+          const good = retiredExecutionRow({ metadata: metadata("aex_a_good"), config: { maxCostUsd: 1 } });
+          await insert(client, "aex_a_good", good);
+          await insert(client, "aex_b_bad", new Uint8Array([0xff, 0xff, 0xff]));
           await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_10)).rejects.toThrow(
-            "agent_execution 'aex_bad'",
+            "agent_execution 'aex_b_bad'",
           );
           const version = await client.query(`SELECT MAX(version) AS version FROM schema_version`);
           expect(Number(version.rows[0].version)).toBe(SCHEMA_VERSION_10 - 1);
+          expect((await row(client, "aex_a_good")).data).toEqual(good);
         } finally {
           await client.end();
         }

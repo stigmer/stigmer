@@ -54,6 +54,8 @@ export interface ComposerToolbarProps {
    * defaults): the picker names it as "Agent default: <model>".
    */
   readonly inheritedModel?: InheritedModel;
+  /** Chooses {@link inheritedModel} back; lists it in the picker as an entry. */
+  readonly onInheritedModelSelect?: () => void;
   readonly onModelChange: (id: string) => void;
   /** Current service tier for the selected model (#357). */
   readonly serviceTier?: ServiceTierOption;
@@ -136,6 +138,7 @@ export function ComposerToolbar({
   showModelSelector,
   modelId,
   inheritedModel,
+  onInheritedModelSelect,
   onModelChange,
   serviceTier,
   onServiceTierChange,
@@ -169,6 +172,7 @@ export function ComposerToolbar({
           <ModelSelector
             value={modelId}
             inheritedModel={inheritedModel}
+            onInheritedModelSelect={onInheritedModelSelect}
             onValueChange={onModelChange}
             harness={showHarnessSelector ? undefined : harness}
             initialHarness={showHarnessSelector ? harness : undefined}

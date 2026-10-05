@@ -4,6 +4,8 @@ import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type RunConfigInput } from "@stigmer/sdk";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { Button } from "../button/Button.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { ModelSelector } from "../models/ModelSelector.js";
@@ -62,7 +64,8 @@ export interface ChannelRunConfigDialogProps {
  * agent reference, provider marker, credential bindings, and install
  * status all survive; clearing the model with no budget set is an
  * explicit reset to the platform defaults (`run_config` absent). Untouched
- * variant switches stay off the wire — unspecified-vs-explicit is a
+ * variant switches keep what was stored — an explicit choice stays
+ * explicit, an unset one stays off the wire; unspecified-vs-explicit is a
  * load-bearing ledger distinction (#357).
  *
  * Built on the native `<dialog>` element, matching the SDK's modal
@@ -150,8 +153,7 @@ function ChannelRunConfigDialogBody({
           budgetUsd,
           serviceTier,
           thinkingMode,
-          stored?.maxToolRounds ?? 0,
-          stored?.maxToolResultChars ?? 0,
+          stored,
         ),
       });
       onSaved?.();
@@ -299,38 +301,55 @@ function ChannelRunConfigDialogBody({
 
 /**
  * Assemble the run_config the save writes. The schedule form's
- * `buildRunConfig` contract (#357/#772) plus the edit-surface rule from
- * the schedule detail view's `normalizeRunConfig`: fields this editor
+ * `buildRunConfig` contract (#357/#772) plus the edit-surface rules of
+ * the schedule detail view's `applyEngineModel`: fields this editor
  * does not own (`max_tool_rounds`, `max_tool_result_chars`) are
- * preserved verbatim, and an
- * all-empty result clears the block ("empty = inherit").
+ * preserved verbatim, a stored tier or thinking mode survives a save
+ * that leaves it alone (same model, the switch showing what was
+ * stored), and an all-empty result clears the block ("empty =
+ * inherit").
+ *
+ * The carry matters for an explicit standard or disabled: it turns off
+ * the fast tier or thinking the agent's run defaults would apply, and
+ * the switches cannot tell it from an unset value, so rebuilding it from
+ * them would wipe it on a budget-only edit.
  */
 function buildRunConfig(
   modelName: string,
   budgetUsd: string,
   serviceTier: ServiceTierOption,
   thinkingMode: ThinkingModeOption,
-  storedMaxToolRounds: number,
-  storedMaxToolResultChars: number,
+  stored: RunConfig | undefined,
 ): RunConfigInput | undefined {
   const model = modelName.trim();
   const cost = Number.parseFloat(budgetUsd);
+  const sameModel = model === (stored?.modelName ?? "").trim();
+  const storedTier = stored?.serviceTier ?? ServiceTier.UNSPECIFIED;
+  const storedThinking = stored?.thinkingMode ?? ThinkingMode.UNSPECIFIED;
 
   const config: RunConfigInput = {};
   if (model !== "") config.modelName = model;
   if (Number.isFinite(cost) && cost > 0) config.maxCostUsd = cost;
-  if (storedMaxToolRounds > 0) config.maxToolRounds = storedMaxToolRounds;
-  if (storedMaxToolResultChars > 0) config.maxToolResultChars = storedMaxToolResultChars;
-  // Carried only when the user actively chose the variant AND pinned a
-  // model (both are per-model; the server refuses them without one). An
-  // untouched switch stays absent — unspecified-vs-explicit is a
+  if ((stored?.maxToolRounds ?? 0) > 0) config.maxToolRounds = stored?.maxToolRounds;
+  if ((stored?.maxToolResultChars ?? 0) > 0) config.maxToolResultChars = stored?.maxToolResultChars;
+  // Otherwise carried only when the person actively chose the variant AND
+  // pinned a model (both are per-model; the server refuses them without
+  // one). An untouched switch stays absent — unspecified-vs-explicit is a
   // load-bearing ledger distinction (#357/#772).
-  if (serviceTier === "fast" && model !== "") {
-    config.serviceTier = toProtoServiceTier(serviceTier);
-  }
-  if (thinkingMode === "enabled" && model !== "") {
-    config.thinkingMode = toProtoThinkingMode(thinkingMode);
-  }
+  const tier =
+    sameModel && serviceTier === (fromProtoServiceTier(storedTier) ?? "standard")
+      ? storedTier
+      : serviceTier === "fast" && model !== ""
+        ? toProtoServiceTier(serviceTier)
+        : ServiceTier.UNSPECIFIED;
+  const thinking =
+    sameModel && thinkingMode === (fromProtoThinkingMode(storedThinking) ?? "disabled")
+      ? storedThinking
+      : thinkingMode === "enabled" && model !== ""
+        ? toProtoThinkingMode(thinkingMode)
+        : ThinkingMode.UNSPECIFIED;
+  if (tier !== ServiceTier.UNSPECIFIED) config.serviceTier = tier;
+  if (thinking !== ThinkingMode.UNSPECIFIED) config.thinkingMode = thinking;
 
   return Object.keys(config).length > 0 ? config : undefined;
 }

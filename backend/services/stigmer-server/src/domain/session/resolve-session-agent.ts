@@ -41,7 +41,10 @@
  * cleared it on create, and BuildUpdateState carried the stored status
  * over it on update.
  *
- * A new conversation that names no engine starts on the engine its agent's
+ * An update that names no engine keeps the conversation's stored one, so a
+ * caller re-applying a session it created (a workflow step's retry) never
+ * resets the engine its agent's defaults chose; the same holds when the
+ * write keeps the stored pin. A new conversation that names no engine starts on the engine its agent's
  * pinned version names (AgentSpec.harness), the engine the agent's run
  * defaults were chosen for: the request's engine first, then the agent's,
  * then the platform default (native, the core's reading of unset). A turn
@@ -111,6 +114,10 @@ export function newResolveSessionAgentStep(
     async execute(ctx) {
       const session = ctx.newState;
       const status = (session.status ??= create(SessionStatusSchema));
+      keepStoredEngine(
+        session,
+        ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined,
+      );
       const ref = session.spec?.agentRef;
       if (ref === undefined || ref.slug === "") {
         const stored = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
@@ -184,6 +191,17 @@ export function newResolveSessionAgentStep(
       });
     },
   };
+}
+
+/** An update naming no engine keeps the stored conversation's (the module header). */
+function keepStoredEngine(session: Session, stored: Session | undefined): void {
+  if (
+    stored !== undefined &&
+    session.spec !== undefined &&
+    session.spec.harness === Harness.UNSPECIFIED
+  ) {
+    session.spec.harness = stored.spec?.harness ?? Harness.UNSPECIFIED;
+  }
 }
 
 /** The reference grammar's name for an agent's current version. */

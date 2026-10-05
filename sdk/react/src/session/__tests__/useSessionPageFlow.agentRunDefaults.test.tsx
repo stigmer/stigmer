@@ -12,10 +12,11 @@
  * Pins: the seed reads spec, not status; the remembered model applies
  * only where the agent names none; the agent's defaults apply only on
  * the agent's engine and only for the session's own agent at its pinned
- * version.
+ * version; choosing the agent's default back drops the last pick from the
+ * seed until the person picks again.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
@@ -111,6 +112,21 @@ describe("useSessionPageFlow — the agent's run defaults and the model seed", (
       },
     ];
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
+    expect(result.current.model[0]).toBe("claude-haiku-4-5");
+  });
+
+  it("choosing the agent's default back drops the last pick until the next pick", () => {
+    mockAgentSpec = AGENT_ON_NATIVE;
+    mockConv.completedExecutions = [
+      { spec: { runConfig: { modelName: "claude-haiku-4-5" } }, status: {} },
+    ];
+    const { result } = renderHook(() => useSessionPageFlow(OPTS));
+    expect(result.current.model[0]).toBe("claude-haiku-4-5");
+
+    act(() => result.current.clearModelPick());
+    expect(result.current.model[0]).toBeUndefined();
+
+    act(() => result.current.model[1]("claude-haiku-4-5"));
     expect(result.current.model[0]).toBe("claude-haiku-4-5");
   });
 
