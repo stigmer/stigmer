@@ -62,7 +62,7 @@ spec:
         required: true
         default: "main"
 status:
-  default_instance_id: "wfi_01xyz789"
+  version_hash: "3f9a1c..."
   serverless_workflow_validation:
     state: VALID
     yaml: |
@@ -137,6 +137,7 @@ metadata:
 | `spec.document` | Yes | Workflow DSL metadata block. See [Document Fields](#document-fields) below. |
 | `spec.tasks` | Yes (≥1) | Ordered list of workflow tasks. See [task-reference.md](task-reference.md) for all task types. |
 | `spec.env_spec` | No | Environment variables declared for use in task configs. |
+| `spec.execution_visibility` | No | Who can see the workflow's runs. `workflow_execution_visibility_private` (the default): each run is visible to the person who started it. `workflow_execution_visibility_organization`: every member of the organization sees every run, past runs included, with its input and output. Read at create; afterwards it changes only through `updateExecutionVisibility`, which requires the workflow's owner (`can_manage_audience`). Update and apply keep the stored level, and changing it records no version. |
 
 ### Document Fields
 
@@ -199,7 +200,7 @@ If `flow` is omitted, execution continues to the next task in the `tasks` list. 
 
 ### Environment Spec
 
-`env_spec` declares the environment variables the workflow uses. These are resolved at execution time from the Workflow Instance's environment bindings.
+`env_spec` declares the environment variables the workflow uses. A run receives the values passed with it (`runtime_env`); every declared key it does not pass is read from the personal environment of the person who started the run, for a workflow of the run's own organization. A workflow that declares keys receives only those keys.
 
 ```yaml
 spec:
@@ -220,7 +221,7 @@ Declared variables are accessible in task configs via `${.env.VARIABLE_NAME}`.
 
 | Field | Description |
 |---|---|
-| `status.default_instance_id` | ID of the default Workflow Instance created automatically. Every workflow has exactly one default instance with no environment bindings. |
+| `status.version_hash` | Hash of the workflow's current valid version: the whole spec with `execution_visibility` cleared. A run pins it at start (`WorkflowExecution.status.workflow_version_hash`) and every step reads that version. A workflow last saved before this rule holds the hash of its generated YAML until its next save. |
 | `status.serverless_workflow_validation` | Asynchronous DSL validation result. See [Validation State](#validation-state) below. |
 | `status.audit` | Standard audit record: `created_by`, `created_at`, `updated_by`, `updated_at`. |
 
@@ -256,7 +257,7 @@ PENDING ──► VALID
    └───────► FAILED (retry by re-applying)
 ```
 
-**Important**: A workflow in `INVALID` state cannot be executed. Always check `status.serverless_workflow_validation.state` before creating Workflow Instances.
+**Important**: A workflow in `INVALID` state cannot be executed. Always check `status.serverless_workflow_validation.state` before starting a run.
 
 ## CLI Commands
 

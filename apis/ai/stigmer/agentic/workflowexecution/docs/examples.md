@@ -9,7 +9,7 @@ Complete examples from minimal workflow triggers to multi-task pipeline monitori
 The simplest possible WorkflowExecution — trigger a workflow with no input message and let it run.
 
 ```bash
-# Trigger using a workflow slug (resolves to default instance)
+# Run the workflow by slug; the run names its workflow and pins its current version
 stigmer run workflow customer-onboarding
 ```
 
@@ -23,9 +23,10 @@ metadata:
   name: customer-onboarding-20250111-143022
   org: acme-corp
 spec:
-  workflow_id: wf-customer-onboarding
+  workflow_id: wfl_01customeronboarding
 status:
   phase: EXECUTION_PENDING
+  workflow_version_hash: 3f9a1c...
   audit:
     created_at: "2025-01-11T14:30:22Z"
     created_by: usr-jane-admin
@@ -47,7 +48,7 @@ metadata:
     - environment:production
     - team:growth
 spec:
-  workflow_instance_id: wfi-customer-onboarding-prod
+  workflow_id: wfl_01customeronboarding
   trigger_message: "New signup: john.doe@example.com"
   trigger_metadata:
     source: api
@@ -73,7 +74,6 @@ Or trigger directly:
 
 ```bash
 stigmer run workflow customer-onboarding \
-  --instance wfi-customer-onboarding-prod \
   --message "New signup: john.doe@example.com" \
   --env CUSTOMER_EMAIL=john.doe@example.com \
   --env CUSTOMER_PLAN=pro \
@@ -179,7 +179,7 @@ metadata:
   name: order-fulfillment-20250111-143025
   org: acme-corp
 spec:
-  workflow_instance_id: wfi-order-fulfillment-prod
+  workflow_id: wfl_01orderfulfillment
   trigger_message: '{"payment_intent_id": "pi_abc123", "amount": 9900, "currency": "usd", "customer_id": "cus-xyz789"}'
   trigger_metadata:
     source: webhook
@@ -590,41 +590,7 @@ status:
 
 ---
 
-## Example 10: Workflow-Calling-Workflow (Async Token Handshake)
-
-Workflow A completes a task and triggers Workflow B, waiting for B to finish before continuing.
-
-**Workflow A creates Workflow B execution with a Temporal callback token:**
-
-```yaml
-# Created by Workflow A's activity, not by user YAML
-api_version: agentic.stigmer.ai/v1
-kind: WorkflowExecution
-metadata:
-  name: data-enrichment-20250111-143030
-  org: acme-corp
-spec:
-  workflow_instance_id: wfi-data-enrichment-prod
-  trigger_message: '{"customer_id": "cus-abc123", "source_execution_id": "wfx-parent-xyz"}'
-  trigger_metadata:
-    source: workflow_chain
-    parent_workflow_execution_id: wfx-parent-xyz
-    parent_workflow_id: wf-customer-onboarding
-  callback_token: "<opaque-temporal-task-token-bytes>"
-```
-
-**What happens:**
-1. Workflow A's activity extracts its Temporal task token
-2. Creates `WorkflowExecution` for Workflow B with `callback_token` set
-3. Activity returns `ErrResultPending` — Temporal releases the worker thread
-4. Workflow B executes independently (minutes or hours later)
-5. Workflow B completes and calls `ActivityCompletionClient.complete(token, result)`
-6. Temporal resumes Workflow A's paused activity with Workflow B's output
-7. Workflow A continues with the enriched data
-
----
-
-## Example 11: Listing and Filtering Executions
+## Example 10: Listing and Filtering Executions
 
 **List all in-progress executions:**
 
@@ -641,11 +607,11 @@ stigmer list workflow-executions \
   --tag environment:production
 ```
 
-**List execution history for a specific WorkflowInstance:**
+**List execution history for a specific Workflow:**
 
 ```bash
 stigmer list workflow-executions \
-  --workflow-instance wfi-customer-onboarding-prod
+  --workflow customer-onboarding
 ```
 
 **Example response:**

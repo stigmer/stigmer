@@ -24,7 +24,6 @@ apis/
 │   ├── skill/                    # Agent skills
 │   ├── workflow/                 # Workflow definitions
 │   ├── workflowexecution/        # Workflow execution tracking
-│   ├── workflowinstance/         # Workflow instances
 │   └── workflowrunner/           # Workflow execution interface
 ├── buf.yaml                      # Buf configuration
 ├── buf.gen.go.yaml              # Go code generation config

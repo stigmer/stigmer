@@ -476,9 +476,18 @@ A step-by-step automation that runs tasks in a defined order.
 - **Key fields**: `spec.document` (contains the Workflow DSL definition),
   `spec.tasks` (the task list). Task kinds include `set_vars`, `http_call`,
   `agent_call`, `wait`, and control flow via `flow.then`.
-- **Pattern**: Workflows follow the Template → Instance → Execution pattern. A
-  Workflow is the template. A WorkflowInstance is a configured deployment. A
-  WorkflowExecution is one run.
+- **Pattern**: Workflow → Execution. A Workflow is the template; a
+  WorkflowExecution is one run of it, started on the Workflow itself
+  (`spec.workflow_id`) and pinned to the version the Workflow had when the run
+  started. A version covers the whole spec (tasks, each step's Environments, the
+  declared `env`, the budget, the description); run visibility is outside it.
+- **Run visibility**: who can see a Workflow's runs, a setting on the Workflow
+  (`spec.execution_visibility`): `workflow_execution_visibility_private` (the
+  default; each run is visible to the person who started it) or
+  `workflow_execution_visibility_organization` (every member of the Organization
+  sees every run, past runs included). Only the Workflow's owner changes it,
+  through `updateExecutionVisibility` or the Workflow's page. User-facing copy
+  says "who can see the runs", never "execution visibility".
 - **DSL**: Based on CNCF Serverless Workflow specification. Only mention the
   spec name in reference docs---it adds no value for the general audience.
 
@@ -968,9 +977,11 @@ One run of a Workflow from start to finish.
 - **Capitalize**: Yes, as a compound proper noun.
 - **API surface**: `kind: WorkflowExecution`, prefix `wex`. proto:
   `workflowexecution/v1/api.proto`.
-- **Pattern**: Follows Workflow → WorkflowInstance → WorkflowExecution. The
-  Instance (`kind: WorkflowInstance`, prefix `win`) sits between the template
-  and the execution, holding deployment configuration.
+- **Pattern**: Follows Workflow → WorkflowExecution. A run names its Workflow
+  (`spec.workflow_id`, required) and records the version it runs
+  (`status.workflow_version_hash`). Its keys come from the values passed with
+  it, then, for declared keys still missing, from the personal Environment of
+  the person who started it.
 
 ---
 
@@ -1295,7 +1306,28 @@ comes only from the sign-in to that server).
 - **Context rule**: Do not use in new writing. A reader still meets the word in
   the sentence `stigmer apply -f` and `stigmer validate -f` print for a manifest
   that still carries `kind: AgentInstance`, which says what happened and names
-  `stigmer run`. "Workflow Instance" is a different, current kind.
+  `stigmer run`.
+
+---
+
+#### Workflow Instance
+
+Retired term. A `kind: WorkflowInstance` (prefix `win`) was a deployed copy of a
+Workflow bound to Environments, and every Workflow carried a default one; a run
+went through an instance, and the setting for who can see the runs lived on it.
+The kind and its calls were removed: a run names its Workflow directly
+(`spec.workflow_id`) and runs the version it started on, the declared keys a run
+does not pass come from the personal Environment of the person who started it
+(for a Workflow of the run's own Organization), and run visibility is a setting
+on the Workflow that only its owner changes.
+
+- **Capitalize**: Yes, when naming the retired kind in an upgrade note.
+- **Context rule**: Do not use in new writing. A reader still meets the word in
+  the sentence `stigmer apply -f` and `stigmer validate -f` print for a manifest
+  that still carries `kind: WorkflowInstance`, which says what happened and
+  names `stigmer run`. A key the team bound once on an instance has no shared
+  home yet: each person saves it in their own personal Environment or passes it
+  with the run.
 
 ---
 

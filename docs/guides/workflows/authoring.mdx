@@ -146,9 +146,13 @@ env:
     is_secret: true
 ```
 
-Values are supplied at execution time through the CLI (`--env KEY=value`), the
-SDK (`runtimeEnv`), or resolved from [Environments](/docs/concepts/environments)
-bound to the Workflow Instance.
+Values are supplied when a run starts: through the CLI (`--env KEY=value`), the
+console's run form, or the SDK (`runtimeEnv`). A declared key the run does not
+pass is read from the personal Environment of the person who started the run,
+when the Workflow belongs to the run's Organization. A key the whole team uses
+cannot yet be bound once for everyone: each person saves it in their own
+personal Environment or passes it with the run. See
+[where a run gets its values](/docs/concepts/workflows#where-a-run-gets-its-values).
 
 ## Flow control
 
@@ -451,7 +455,10 @@ workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
 ### What gets validated
 
 - **Structure**: required fields, valid `kind` values, DSL version
-- **Task names**: uniqueness within the workflow
+- **Task names**: uniqueness within the workflow. An `agent_call` task's name is
+  unique across the whole Workflow, the tasks inside `for_each`, `fork` and
+  `try_catch` and every `compensate` list included; a duplicate is refused when
+  you save, and the refusal names both places
 - **Cross-references**: `flow.then` targets, `switch_case` case targets,
   `human_input` outcome targets, `agent_call` fallback targets — all must
   reference valid task names (with typo suggestions on near-misses)
@@ -488,7 +495,8 @@ When the task runs, it starts a new [Session](/docs/concepts/sessions) on the
 Agent it names, at the Agent's current version, and sends the message there. It
 runs that Agent or fails saying why; it never falls back to the
 [built-in assistant](/docs/concepts/agents#the-built-in-assistant). The task's
-`environment_refs` supply the keys the Agent declares.
+`environment_refs` supply the keys the Agent declares, wherever the task sits in
+the Workflow, and are read from the Workflow version the run started on.
 
 `stigmer apply -f <directory>` applies files in dependency order — MCP Servers,
 Skills, Agents, then Workflows — so a directory that holds both is fine. When

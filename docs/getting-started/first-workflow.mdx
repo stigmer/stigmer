@@ -87,7 +87,7 @@ stigmer apply -f summarize.yaml
 ```
 
 This registers the Workflow definition. Stigmer validates the YAML structure and
-task references, then creates a default Workflow Instance.
+task references, and records the definition as the Workflow's first version.
 
 </Step>
 <Step>
@@ -137,10 +137,15 @@ const stigmer = new Stigmer({
   apiKey: process.env.STIGMER_API_KEY!,
 });
 
+const workflow = await stigmer.workflow.getByReference({
+  org: "my-org",
+  slug: "summarize",
+});
+
 const execution = await stigmer.workflowExecution.create({
   name: `run-${Date.now()}`,
   org: "my-org",
-  workflowRef: { slug: "summarize" },
+  workflowId: workflow.metadata!.id,
   runtimeEnv: {
     TOPIC: { value: "the history of the internet" },
   },
@@ -166,12 +171,18 @@ for await (const snapshot of stigmer.workflowExecution.subscribe({
 <Tab value="Go">
 
 ```go
+workflow, err := client.Workflow.GetByReference(ctx,
+    stigmer.ResourceRef{Org: "my-org", Slug: "summarize"})
+if err != nil {
+    log.Fatal(err)
+}
+
 exec, err := client.WorkflowExecution.Create(ctx,
     &stigmer.WorkflowExecutionInput{
-        Name:        "run-" + ts,
-        Org:         "my-org",
-        WorkflowRef: &stigmer.ApiResourceReference{Slug: "summarize"},
-        RuntimeEnv: map[string]*stigmer.RuntimeEnvValue{
+        Name:       "run-" + ts,
+        Org:        "my-org",
+        WorkflowId: workflow.GetMetadata().GetId(),
+        RuntimeEnv: map[string]stigmer.EnvVarInput{
             "TOPIC": {Value: "the history of the internet"},
         },
     })
@@ -213,17 +224,21 @@ for {
 
 ```python
 from stigmer import (
-    StigmerClient, WorkflowExecutionInput,
-    SubscribeWorkflowExecutionRequest, ApiResourceReference,
+    StigmerClient, WorkflowExecutionInput, EnvVarInput, ResourceRef,
+    SubscribeWorkflowExecutionRequest,
 )
 
 client = StigmerClient(os.environ["STIGMER_API_KEY"])
 
+workflow = client.workflows.get_by_reference(
+    ResourceRef(org="my-org", slug="summarize"),
+)
+
 execution = client.workflow_executions.create(WorkflowExecutionInput(
     name=f"run-{int(time.time() * 1000)}",
     org="my-org",
-    workflow_ref=ApiResourceReference(slug="summarize"),
-    runtime_env={"TOPIC": {"value": "the history of the internet"}},
+    workflow_id=workflow.metadata.id,
+    runtime_env={"TOPIC": EnvVarInput(value="the history of the internet")},
 ))
 
 for snapshot in client.workflow_executions.subscribe(
@@ -255,10 +270,10 @@ For the complete streaming reference, see the
 You defined a multi-step process in YAML — an LLM call followed by a data
 transform — and ran it as a durable execution. Behind the scenes:
 
-1. `stigmer apply` registered the Workflow blueprint and created a default
-   Workflow Instance
-2. `stigmer run` created a Workflow Execution, passing your `TOPIC` as a runtime
-   environment variable
+1. `stigmer apply` registered the Workflow blueprint and recorded its first
+   version
+2. `stigmer run` created a Workflow Execution of that version, passing your
+   `TOPIC` as a runtime environment variable
 3. The workflow runner picked up the execution and ran each task in sequence
 4. Task outputs flowed through the context — `generate_summary` produced text
    that `format_output` consumed via `${ $context.generate_summary.text }`
@@ -278,7 +293,7 @@ next tutorial puts your Agent in front of them, as chat inside your own app.
   />
   <Card
     title="Workflow Concepts"
-    description="Understand how Workflows, Instances, and Executions fit together."
+    description="Understand how Workflows, their versions, and their runs fit together."
     href="/docs/concepts/workflows"
   />
   <Card

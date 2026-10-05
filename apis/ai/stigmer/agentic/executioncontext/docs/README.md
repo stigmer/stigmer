@@ -9,7 +9,7 @@ An ExecutionContext is an **ephemeral, operator-managed collection of runtime co
 ```
 Schedule / agent_call task / PlatformClient (environment_refs)
   + runtime_env + personal environment ──► [merge at start] ──► ExecutionContext ──► AgentExecution runner
-WorkflowInstance (environment_refs) ──────────────────────────────────────────► WorkflowExecution runner
+runtime_env + personal environment (declared keys) ──► [merge at start] ──► ExecutionContext ──► WorkflowExecution runner
 ```
 
 | Resource | Lifecycle | Who creates it | Purpose |

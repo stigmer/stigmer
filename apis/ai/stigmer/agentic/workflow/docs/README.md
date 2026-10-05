@@ -6,7 +6,7 @@ Comprehensive documentation for the `agentic.stigmer.ai/v1` Workflow resource.
 
 A Workflow is a versioned, structured orchestration definition. It describes a sequence of tasks — HTTP calls, gRPC calls, agent invocations, conditional branches, parallel forks, loops, and more — that the platform executes as a durable Temporal workflow.
 
-Workflows are authored as YAML files and applied with `stigmer apply`. Once applied, the platform validates the workflow structure asynchronously and makes it available for execution via Workflow Instances.
+Workflows are authored as YAML files and applied with `stigmer apply`. Once applied, the platform validates the workflow structure and records a version; a run starts on the workflow itself (`WorkflowExecution.spec.workflow_id`) and is pinned to the version the workflow had when the run started.
 
 ## Workflow vs. Agent: A Critical Distinction
 
@@ -20,7 +20,7 @@ Workflows and Agents serve different purposes and execute differently.
 | **Executes as** | LLM + tool calls | Temporal durable workflow |
 | **Control flow** | Emergent (LLM-driven) | Explicit (defined in spec) |
 | **Invokes agents** | Not applicable | `agent_call` task |
-| **Referenced by** | Agent YAML (`skill_refs`) | Workflow Instance |
+| **Run by** | Session (`agent_ref`) | WorkflowExecution (`workflow_id`) |
 
 An agent *thinks*. A workflow *orchestrates*. Workflows can invoke agents as tasks, giving them a place inside deterministic pipelines.
 
@@ -30,7 +30,7 @@ An agent *thinks*. A workflow *orchestrates*. Workflows can invoke agents as tas
 Author workflow.yaml  ──►  stigmer apply  ──►  Platform stores resource
         │                      │                      │
         │               Creates/updates         status.state = PENDING
-        │               Workflow resource       default instance created
+        │               Workflow resource       version recorded
         │
         ▼
 Validation (async)  ──►  Temporal validates DSL  ──►  status.state = VALID
@@ -39,7 +39,7 @@ Validation (async)  ──►  Temporal validates DSL  ──►  status.state =
         │                                           in status.serverless_
         │                                           workflow_validation.yaml
         ▼
-Execute via Instance  ──►  stigmer apply workflow-instance.yaml
+Run  ──►  stigmer run workflow <org>/<workflow>  (WorkflowExecution, spec.workflow_id)
 ```
 
 Workflow creation does not block on validation. The resource is created immediately with `validation_state: PENDING`. Validation runs in the background via Temporal. Users can poll `status.serverless_workflow_validation.state` to confirm validity before executing.
@@ -76,8 +76,14 @@ Use the Stigmer MCP server (`slug: stigmer-mcp-server`) to discover existing wor
 | `search` | Full-text search across workflows, agents, skills, MCP servers |
 | `get_workflow` | Get a specific workflow by org and slug |
 
-Always query before referencing a workflow from a workflow instance. A reference to a nonexistent workflow fails at execution time.
+Always query before starting a run: a run that names a workflow the caller cannot run, or one that does not exist, is refused.
 
 ## Related Documentation
 
 - [WorkflowExecution Documentation](../../workflowexecution/docs/README.md) — how to trigger, monitor, and control workflow runs
+
+## Versions and run visibility
+
+- **Version**: the hash of the whole spec — tasks, each `agent_call` step's `environment_refs`, the declared `env`, the budget and the description — with `execution_visibility` cleared. Saving a spec that differs from every earlier version records a new one; a run reads the version it pinned at start for every step.
+- **Run visibility** (`spec.execution_visibility`): who can see the workflow's runs. `workflow_execution_visibility_private` (the default) shows each run to the person who started it; `workflow_execution_visibility_organization` shows every run, past runs included, to every member of the organization. It is set at create and changed only through `WorkflowCommandController.updateExecutionVisibility`, which requires `can_manage_audience` (the workflow's owner); update and apply keep the stored level, and changing it records no version.
+- **Step names**: an `agent_call` task's name is unique across the whole workflow, the tasks nested in `for_each`, `fork` and `try_catch` and every `compensate` list included. A save that repeats one is refused, naming both places.
