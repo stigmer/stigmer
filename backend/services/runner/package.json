@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/runner",
   "version": "0.0.0-dev",
-  "description": "Embeddable Temporal worker for the Stigmer AI agent platform — handles agent execution, workflow orchestration, and MCP server management",
+  "description": "Embeddable Temporal worker for the Stigmer AI agent platform \u2014 handles agent execution, workflow orchestration, and MCP server management",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
