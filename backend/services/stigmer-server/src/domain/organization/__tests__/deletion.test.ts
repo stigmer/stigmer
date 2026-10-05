@@ -10,6 +10,8 @@
  *     when the mark is no longer pending;
  *   - unmarkAfterFailure removes the request's own pending mark and
  *     nothing else;
+ *   - an organization update that loaded the row before the mark and
+ *     writes it after cannot erase the mark (it is not on the row);
  *   - the child create that persists before the delete's mark is seen by
  *     the delete's second RefuseDeletingParent; the one that persists after
  *     sees its parent's mark, deletes itself and answers
@@ -141,6 +143,25 @@ describe("the delete's own steps", () => {
       newAcceptPurgeStep(store, purge).execute(deleteContext(parentRow())),
     );
     expect(again.code).toBe(Code.Internal);
+  });
+
+  it("an organization update that loaded the row before the mark and writes after it leaves the organization deleting", async () => {
+    // The update's load, then the delete's mark, then the update's write of
+    // what it loaded: the mark is not on the row, so the write cannot erase it.
+    const loaded = await store.getResource(
+      ApiResourceKind.organization,
+      PARENT,
+      OrganizationSchema,
+    );
+    await newMarkDeletingStep(store).execute(deleteContext(parentRow()));
+    loaded.metadata = { ...loaded.metadata!, name: "acme, updated" };
+    await store.saveResource(
+      ApiResourceKind.organization,
+      PARENT,
+      OrganizationSchema,
+      loaded,
+    );
+    expect(await store.organizationDeletions.isDeleting(PARENT)).toBe(true);
   });
 
   it("unmarkAfterFailure removes the request's own pending mark, and only that", async () => {

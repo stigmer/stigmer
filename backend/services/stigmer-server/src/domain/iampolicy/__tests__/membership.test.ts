@@ -18,6 +18,8 @@
  *   - `admin` when the account's email is STIGMER_OPERATOR_EMAIL (and that
  *     email is configured — an empty one matches nobody);
  *   - `member` otherwise;
+ *   - nothing on an organization being deleted (its delete revoked every
+ *     row, which is the state arms 4 and 5 grant on);
  *   - nothing for a non-`user` caller class; nothing on an organization
  *     the account already holds a row on (idempotent by construction), so
  *     a run that faulted midway converges on the next;
@@ -476,6 +478,22 @@ describe("membership rules", () => {
       await rules.onAccountCreated(dave, userCaller(dave.metadata!.id));
 
       expect(rolesOf(alice.metadata!.id)).toEqual(["owner@acme"]);
+      expect(rolesOf(operator.metadata!.id)).toEqual(["admin@acme"]);
+      expect(rolesOf(dave.metadata!.id)).toEqual(["member@acme"]);
+    });
+
+    it("skips an organization being deleted: its delete revoked every row, and nobody provisioned during the purge gets one there", async () => {
+      await seedOrg("acme", "auth0|founder");
+      await seedOrg("globex", "auth0|alice");
+      await store.organizationDeletions.mark("globex", new Date().toISOString());
+      const alice = account("auth0|alice", "alice@example.com");
+      await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
+      const operator = account("auth0|op", OPERATOR_EMAIL);
+      await rules.onAccountCreated(operator, userCaller(operator.metadata!.id));
+      const dave = account("auth0|dave", "dave@example.com");
+      await rules.onAccountCreated(dave, userCaller(dave.metadata!.id));
+
+      expect(rolesOf(alice.metadata!.id)).toEqual(["member@acme"]);
       expect(rolesOf(operator.metadata!.id)).toEqual(["admin@acme"]);
       expect(rolesOf(dave.metadata!.id)).toEqual(["member@acme"]);
     });
