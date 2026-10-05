@@ -84,4 +84,12 @@ export interface IdentityAccountStore {
   findByIds(
     ids: ReadonlyArray<string>,
   ): Promise<ReadonlyArray<IdentityAccount>>;
+  /**
+   * The accounts that belong to one organization: every account whose row
+   * names it in `metadata.org` (a platform client's end users, a
+   * composition's own per-organization accounts), in no promised order. A
+   * person's own account names no organization and is never answered.
+   * The organization's purge reads it (domain/identityaccount/purge.ts).
+   */
+  findByOrg(org: string): Promise<ReadonlyArray<IdentityAccount>>;
 }

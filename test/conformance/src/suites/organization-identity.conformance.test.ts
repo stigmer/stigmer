@@ -6,8 +6,9 @@
 // request may name the organization by its id or its slug and the resource
 // lands in the same place; a rename moves no resource, secret or grant, and
 // the old slug keeps leading to the organization (and is refused to everyone
-// else) until it is released; a deleted organization's slug is free, and the
-// organization a later holder makes reaches nothing the deleted one owned.
+// else) until it is released; a deleted organization's slug is free once its
+// purge finishes, and the organization a later holder makes reaches nothing
+// the deleted one owned.
 // A hosted chat link names a share by its id alone, so a rename never breaks
 // it and a later holder of a released slug can never capture it: the deleted
 // organization's link resolves nowhere, never to the new holder's share.
@@ -26,6 +27,7 @@ import { makeAgent } from "../support/agents";
 import { makeAgentShare } from "../support/agentshares";
 import { makeEnvironment } from "../support/environments";
 import { uniqueName } from "../support/naming";
+import { createOrganizationOnceReleased } from "../support/organizations";
 import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
 const API_VERSION = "tenancy.stigmer.ai/v1";
@@ -58,6 +60,13 @@ async function createOrg(slug: string, using: ConformanceClients = clients) {
     kind: KIND,
     metadata: { name: slug, slug },
   });
+  fixtures.defer(() => using.organizationCommand.delete({ value: org.metadata!.id }));
+  return org;
+}
+
+/** An organization under a deleted one's slug, once the purge released it; deleted at the end of the arm. */
+async function createOrgOnceReleased(slug: string, using: ConformanceClients = clients) {
+  const org = await createOrganizationOnceReleased(using.organizationCommand, slug);
   fixtures.defer(() => using.organizationCommand.delete({ value: org.metadata!.id }));
   return org;
 }
@@ -167,13 +176,13 @@ describe("Organization identity conformance", () => {
     expect(back.metadata?.slug, "an organization takes back its own old slug").toBe(before);
   });
 
-  it("[rpc:OrganizationCommandController.delete] [rpc:OrganizationCommandController.create] a deleted organization's slug is free, and the next organization of it reaches nothing the deleted one owned", async () => {
+  it("[rpc:OrganizationCommandController.delete] [rpc:OrganizationCommandController.create] a deleted organization's slug is free once its purge finishes, and the next organization of it reaches nothing the deleted one owned", async () => {
     const slug = uniqueName("ident");
     const first = await clients.organizationCommand.create({ apiVersion: API_VERSION, kind: KIND, metadata: { name: slug, slug } });
     const environment = await createSecretEnvironment(slug);
     await clients.organizationCommand.delete({ value: first.metadata!.id });
 
-    const second = await createOrg(slug);
+    const second = await createOrgOnceReleased(slug);
     expect(second.metadata?.id, "a new organization, not the deleted one again").not.toBe(first.metadata?.id);
 
     const listed = await clients.environmentQuery.list({ org: slug });
@@ -201,8 +210,9 @@ describe("Organization identity conformance", () => {
   });
 
   it("[rpc:OrganizationCommandController.delete] [rpc:AgentShareQueryController.getSharedProfile] a released slug captures no share link: the deleted organization's link resolves nowhere, never to the new holder's share", async () => {
-    // A deleted organization's slug is free at once; a renamed-away one is
-    // held for 30 days, too long for a suite, and the capture is the same.
+    // A deleted organization's slug is free once its purge finishes; a
+    // renamed-away one is held for 30 days, too long for a suite, and the
+    // capture is the same.
     const slug = uniqueName("ident");
     const agentName = uniqueName("linked-agent");
     const first = await clients.organizationCommand.create({ apiVersion: API_VERSION, kind: KIND, metadata: { name: slug, slug } });
@@ -213,7 +223,7 @@ describe("Organization identity conformance", () => {
     // The slug's next holder publishes a share of a same-named agent: the
     // same organization slug, agent slug and share slug the old link once
     // stood for.
-    await createOrg(slug);
+    await createOrgOnceReleased(slug);
     const next = await createSharedAgent(slug, agentName);
     expect(next.share.metadata?.slug).toBe(old.share.metadata?.slug);
     expect(next.share.metadata?.id, "the new share has its own id").not.toBe(old.share.metadata?.id);
@@ -275,7 +285,7 @@ describe("Organization identity conformance", () => {
     await lane.clients.organizationCommand.delete({ value: first.metadata!.id });
 
     const stranger = await lane.provisionIdentity();
-    const second = await createOrg(slug, stranger);
+    const second = await createOrgOnceReleased(slug, stranger);
     expect(second.metadata?.id).not.toBe(first.metadata?.id);
 
     expect((await stranger.environmentQuery.list({ org: slug })).items).toEqual([]);

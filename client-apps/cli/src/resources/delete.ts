@@ -204,7 +204,7 @@ async function planOrganizationDelete(
     .field("ID", meta.id)
     .field("Name", meta.name)
     .field("Slug", meta.slug);
-  warning.hint("This will delete the organization and all its resources.");
+  warning.hint("This will delete the organization and everything it owns.");
   warning.hint("This action cannot be undone.");
 
   return {
@@ -212,12 +212,20 @@ async function planOrganizationDelete(
     confirmPrompt: "Proceed with deletion? [y/N]",
     perform: async () => {
       const deleted = metaOf(await client.organization.delete(meta.id));
-      const out = CommandResult.success("Organization deleted successfully");
+      // The server answers once the organization is marked; what it owned
+      // is removed in the background, and its slug is held until then.
+      const out = CommandResult.success("Organization is being deleted");
       out
         .addSection("Deleted Organization")
         .field("ID", deleted.id)
         .field("Name", deleted.name)
         .field("Slug", deleted.slug);
+      out.hint(
+        "It no longer answers any request, and everything it owned is being removed in the background.",
+      );
+      out.hint(
+        `Its name '${deleted.slug}' is released once the removal finishes.`,
+      );
       return out;
     },
   };

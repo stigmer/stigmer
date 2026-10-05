@@ -106,6 +106,7 @@ import { newResourceIdentityAccountStore } from "../../domain/identityaccount/re
 import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
 import { deleteExecutionContextForExecution } from "../../domain/executioncontext/internal-delete.js";
 import { apiResourceKindName } from "../../store/proto-fields.js";
+import { widerEditionPurge } from "./composed-support.js";
 
 /** The refusal a call answered; a call that succeeds fails the case. */
 async function refusalOf(work: Promise<unknown>): Promise<ConnectError> {
@@ -177,6 +178,7 @@ describe("extension composition (composed server)", () => {
   const fakeBillingExtension: ServerExtension = {
     name: "fake-billing",
     edition: ServerEdition.cloud,
+    orgPurge: widerEditionPurge,
     requireAuthentication: true,
     identityVerifiers: [editionVerifier],
     authorizer: newPermissiveSingleTeamAuthorizer(),
@@ -302,6 +304,7 @@ describe("extension composition (enterprise edition on the wire)", () => {
   const enterpriseUnit: ServerExtension = {
     name: "fake-enterprise",
     edition: ServerEdition.enterprise,
+    orgPurge: widerEditionPurge,
     requireAuthentication: true,
     identityVerifiers: [editionVerifier],
     drivers: {

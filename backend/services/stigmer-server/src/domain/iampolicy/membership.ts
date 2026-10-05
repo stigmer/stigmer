@@ -117,6 +117,13 @@
  * integrator identity that created it. `scanOrganizations` drops children
  * before any arm runs, so all four moments skip them by construction.
  *
+ * Organizations being deleted are outside every moment too
+ * (domain/organization/lifecycle.ts). Their delete revoked every role row,
+ * which is exactly the state arm 5 grants on and arm 4 hands over, so a
+ * person provisioned while a purge runs would otherwise be given a role in
+ * an organization that no longer exists. `scanOrganizations` drops them
+ * with the children.
+ *
  * What a creator stamp is. The rules read `status.audit.spec_audit
  * .created_by.id` off organizations and blueprints. That stamp is the
  * caller's identityId at the time: a provisioned caller's ACCOUNT id, an
@@ -385,14 +392,21 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
 
   /**
    * Every organization the rules may grant on: the organization scan
-   * without the child organizations (the header says why).
+   * without the child organizations and the ones being deleted (the
+   * header says why).
    */
   async function scanOrganizations(): Promise<ScannedResource[]> {
     const rows = await store.listResources(ApiResourceKind.organization);
+    const deleting = new Set(
+      (await store.organizationDeletions.list()).map((row) => row.org),
+    );
     const scanned: ScannedResource[] = [];
     for (const bytes of rows) {
       const organization = fromBinary(OrganizationSchema, bytes);
-      if ((organization.spec?.parentOrg ?? "") !== "") {
+      if (
+        (organization.spec?.parentOrg ?? "") !== "" ||
+        deleting.has(organization.metadata?.id ?? "")
+      ) {
         continue;
       }
       scanned.push({

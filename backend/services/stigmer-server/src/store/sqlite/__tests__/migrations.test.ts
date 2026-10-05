@@ -217,6 +217,7 @@ describe("fresh database", () => {
       "oauth_grant",
       "pending_oauth_state",
       "resource_names",
+      "organization_deletions",
     ]) {
       expect(tables, `table ${expected} should exist`).toContain(expected);
     }
@@ -235,7 +236,7 @@ describe("fresh database", () => {
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
     ]);
   });
 

@@ -6,8 +6,10 @@
  * unknown-gate-slot boot throw, and the driver points (single-instance
  * providers, name-keyed storage-driver registration with duplicate and
  * built-in-shadow throws), the row readers' kind-keyed merge with its
- * reserved kinds, and the units' hand-over and start points kept in unit
- * order. The composed-server behavior (services on
+ * reserved kinds, the units' hand-over and start points kept in unit
+ * order, and the organization purge point (stages in unit order, names
+ * unique and non-empty, every retention naming exactly one table or kind,
+ * with a reason). The composed-server behavior (services on
  * both routers, edition on the wire) is pinned by
  * extension-composition.test.ts; empty-set wire byte-identity is pinned by
  * the conformance rosters.
@@ -861,3 +863,57 @@ describe("resolveExtensions — the hand-over and start points", () => {
     expect(resolved.start).toEqual([{ unit: "first", hook: startFirst }]);
   });
 });
+
+describe("resolveExtensions — the organization purge point", () => {
+  const stage = (name: string) => ({
+    name,
+    run: () => Promise.resolve({ more: false }),
+  });
+
+  it("keeps stages in unit order and every retention with its unit", () => {
+    const resolved = resolveExtensions([
+      { name: "a", orgPurge: { stages: [stage("one")] } },
+      {
+        name: "b",
+        orgPurge: {
+          stages: [stage("two")],
+          retains: [{ kind: ApiResourceKind.subscription, reason: "money" }],
+        },
+      },
+    ]);
+    expect(resolved.orgPurge.stages.map((s) => `${s.unit}:${s.stage.name}`)).toEqual([
+      "a:one",
+      "b:two",
+    ]);
+    expect(resolved.orgPurge.retains.map((r) => r.unit)).toEqual(["b"]);
+  });
+
+  it("refuses a stage with no name, and one name registered by two units", () => {
+    expect(() =>
+      resolveExtensions([{ name: "a", orgPurge: { stages: [stage("")] } }]),
+    ).toThrowError("extension 'a' registers an organization purge stage with no name");
+    expect(() =>
+      resolveExtensions([
+        { name: "a", orgPurge: { stages: [stage("same")] } },
+        { name: "b", orgPurge: { stages: [stage("same")] } },
+      ]),
+    ).toThrowError(
+      "organization purge stage 'same' is registered by both extension 'a' and extension 'b'",
+    );
+  });
+
+  it("refuses a retention that names neither or both of a table and a kind, or no table or reason", () => {
+    const refusal = (retained: {
+      table?: string;
+      kind?: ApiResourceKind;
+      reason: string;
+    }) => () => resolveExtensions([{ name: "a", orgPurge: { retains: [retained] } }]);
+    expect(refusal({ reason: "why" })).toThrowError("neither a table nor a kind");
+    expect(
+      refusal({ table: "t", kind: ApiResourceKind.subscription, reason: "why" }),
+    ).toThrowError("both a table and a kind");
+    expect(refusal({ table: "", reason: "why" })).toThrowError("with no table");
+    expect(refusal({ table: "t", reason: "  " })).toThrowError("with no reason");
+  });
+});
+

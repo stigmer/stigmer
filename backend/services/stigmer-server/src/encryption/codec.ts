@@ -110,4 +110,20 @@ export interface SecretCodec {
    * on.
    */
   isEnabled?(): boolean;
+
+  /**
+   * Destroys every key and every piece of external state this codec keeps
+   * for one organization (its deletion's shred stage,
+   * domain/organization/purge/core-stages.ts): once it returns, nothing
+   * this codec sealed in the organization's scope can be opened again,
+   * from the database or from any backup of it. OPTIONAL — absent means
+   * the codec keeps nothing per organization (open source's v1 holds one
+   * key for the whole deployment, and a deleted organization's values go
+   * with their rows). Idempotent by contract: a purge retried after a
+   * crash calls it again.
+   *
+   * @throws EncryptionUnavailableError when the key store is unreachable
+   *   (the purge retries)
+   */
+  destroyOrganizationKeys?(org: string): Promise<void>;
 }

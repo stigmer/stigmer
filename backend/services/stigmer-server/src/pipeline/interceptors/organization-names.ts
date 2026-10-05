@@ -322,6 +322,34 @@ function visitRequest(
   }
 }
 
+const annotatedPaths = new Map<DescMethod, string | undefined>();
+
+/**
+ * Every organization value a request carries, by rules 1 to 3, in the
+ * order met (an id, or a name the resolver left as written): what the
+ * deleting rule asks about (domain/organization/lifecycle.ts), read with
+ * this module's one rule so the two cannot disagree on which fields name
+ * an organization.
+ */
+export function organizationValuesOf(
+  method: DescMethod,
+  message: Message,
+): string[] {
+  if (!annotatedPaths.has(method)) {
+    annotatedPaths.set(method, annotatedOrganizationPath(method));
+  }
+  const path = annotatedPaths.get(method);
+  if (planOf(method.input) === null && path === undefined) {
+    return [];
+  }
+  const values: string[] = [];
+  visitRequest(reflect(method.input, message), path, (value) => {
+    values.push(value);
+    return undefined;
+  });
+  return values;
+}
+
 export function createOrganizationNameInterceptor(
   resolver: OrganizationNameResolver,
 ): Interceptor {

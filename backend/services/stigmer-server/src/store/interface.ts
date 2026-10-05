@@ -328,6 +328,8 @@ export interface SignalDedupeStore {
    * that was actually delivered.
    */
   release(org: string, idempotencyKey: string): Promise<void>;
+  /** Removes every record of an organization, whatever its status (its purge). Returns the count. */
+  deleteByOrg(org: string): Promise<number>;
 }
 
 // =============================================================================
@@ -450,6 +452,67 @@ export interface ResourceNameStore {
 }
 
 // =============================================================================
+// Organization deletions (the organizations being deleted)
+// =============================================================================
+
+/**
+ * Where an organization's delete stands. `pending`: its delete request
+ * has marked it and is still running its refusals and its revocations;
+ * `accepted`: the request answered, and the purge owns it until the
+ * row is gone.
+ */
+export type OrganizationDeletionPhase = "pending" | "accepted";
+
+/** One organization being deleted, as its row in the deletion table holds it. */
+export interface OrganizationDeletion {
+  readonly org: string;
+  readonly phase: OrganizationDeletionPhase;
+  /** RFC-3339 time the delete marked it. */
+  readonly markedAt: string;
+  /** RFC-3339 time the delete was accepted; "" while pending. */
+  readonly acceptedAt: string;
+  /** RFC-3339 time a purge last reported progress; "" before one took it. */
+  readonly heartbeatAt: string;
+  /** The purge stage last reported; "" before one took it. */
+  readonly stage: string;
+  /** The last fault's fixed copy; "" when the last pass succeeded. */
+  readonly lastError: string;
+}
+
+/**
+ * The organizations being deleted, one row each, kept apart from the
+ * organization's own row on purpose: request-path writes to a resource
+ * row are upserts of what the chain loaded, so a deleting state written
+ * into the organization's row would be erased by any update that loaded
+ * it first. Nothing but the delete and the purge writes this table, and
+ * every transition is one conditional statement, so of two racing
+ * writers exactly one wins.
+ *
+ * The whole table is the set of organizations that answer "not found".
+ * A row goes when the purge has removed everything else, last.
+ */
+export interface OrganizationDeletionStore {
+  /** Marks `org` pending; false, with nothing changed, when a row for it exists. */
+  mark(org: string, now: string): Promise<boolean>;
+  /** Moves `org` from pending to accepted; false when it is not pending. */
+  accept(org: string, now: string): Promise<boolean>;
+  /** Removes `org`'s row while it is pending (a refused or failed delete); false when it is not pending. */
+  unmark(org: string): Promise<boolean>;
+  /** Whether `org` has a row, in either phase: one primary-key read. */
+  isDeleting(org: string): Promise<boolean>;
+  /** `org`'s row, or undefined. */
+  get(org: string): Promise<OrganizationDeletion | undefined>;
+  /** Every organization being deleted, in either phase, ordered by org. */
+  list(): Promise<OrganizationDeletion[]>;
+  /** Records a purge's progress on an accepted row: the stage and the time; clears the last error. No-op on any other row. */
+  heartbeat(org: string, stage: string, now: string): Promise<void>;
+  /** Records a purge fault's fixed copy on an accepted row, with the time. No-op on any other row. */
+  recordError(org: string, stage: string, message: string, now: string): Promise<void>;
+  /** Removes `org`'s row whatever its phase: the purge's last write. Idempotent. */
+  release(org: string): Promise<void>;
+}
+
+// =============================================================================
 // MCP OAuth (Go: pkg/domain/mcpserver/oauth, tables consolidated by migration v7)
 // =============================================================================
 
@@ -501,6 +564,8 @@ export interface OAuthGrantStore {
    * normal state, not an error — teardown is idempotent.
    */
   deleteByResourceId(resourceId: string, orgId: string): Promise<number>;
+  /** Deletes every grant made in an organization (its purge). Returns the count. */
+  deleteByOrg(orgId: string): Promise<number>;
 }
 
 /**
@@ -548,6 +613,8 @@ export interface PendingOAuthStateStore {
   getAndDelete(stateParam: string): Promise<PendingOAuthState | undefined>;
   /** Removes all expired states; returns the count removed. */
   cleanupExpired(): Promise<number>;
+  /** Removes every state begun in an organization (its purge); returns the count. */
+  deleteByOrg(org: string): Promise<number>;
 }
 
 /**
@@ -896,6 +963,9 @@ export interface Store {
   /** Highest sequenceNumber for an execution; 0 when no events exist. */
   getMaxEventSequence(executionId: string): Promise<number>;
 
+  /** Removes every event of an execution (its purge); returns the count. */
+  deleteWorkflowExecutionEvents(executionId: string): Promise<number>;
+
   // ---------------------------------------------------------------------------
   // Schedule runs (fire ledger — every fire leaves a row, incl. fires that
   // created no execution: the only durable trace of a refused launch gate
@@ -938,6 +1008,9 @@ export interface Store {
   /** Delete-cascade twin, called after the resource row delete succeeds. */
   deleteScheduleRunsBySchedule(scheduleId: string): Promise<number>;
 
+  /** Removes every ledger row of an organization's schedules (its purge's sweep); returns the count. */
+  deleteScheduleRunsByOrg(org: string): Promise<number>;
+
   /**
    * Removes ledger rows recorded before the cutoff (RFC-3339, compared
    * lexicographically) — the retention policy the table was born with.
@@ -961,6 +1034,9 @@ export interface Store {
 
   /** Removes a resource's search-index row (post-delete). */
   deleteSearchIndex(kind: ApiResourceKind, resourceId: string): Promise<void>;
+
+  /** Removes every search-index row of an organization's resources (its purge's sweep); returns the count. */
+  deleteSearchIndexByOrg(org: string): Promise<number>;
 
   /**
    * One search-index read: full counts per kind, short-circuiting to an
@@ -988,6 +1064,7 @@ export interface Store {
   readonly resourceNames: ResourceNameStore;
   readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
+  readonly organizationDeletions: OrganizationDeletionStore;
 
   // ---------------------------------------------------------------------------
   // Lifecycle

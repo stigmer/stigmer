@@ -74,6 +74,7 @@ function harness() {
     saveResource: async (_kind: ApiResourceKind, id: string) => {
       saved.push(id);
     },
+    organizationDeletions: { isDeleting: async () => false },
   } as unknown as Store;
   const transport = createRouterTransport(
     (router) => {
@@ -83,6 +84,7 @@ function harness() {
           upload: async (hash: string) => {
             uploads.push(hash);
           },
+          exists: async () => true,
         } as never,
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),

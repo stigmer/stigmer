@@ -21,7 +21,10 @@
  * concurrent claims, lazy expiry, renames that move, take back, revert and
  * overlap to one current name, a name equal to its id reserved for good,
  * a release that frees only its own names), OAuth grants, once-only pending-state
- * redemption with its 10-minute TTL, the closed-store failure mode, and
+ * redemption with its 10-minute TTL, the organization deletion table (one
+ * winner of concurrent marks, transitions that apply only from the phase
+ * they name), removal of one organization's side-store records, the
+ * closed-store failure mode, and
  * the list index (../list-index.ts): one organization's or one parent's
  * rows newest first, a cursor walk with no gap and no duplicate, keys
  * that follow an update and vanish with a delete, and exactness whoever
@@ -861,6 +864,17 @@ export function describeStoreContract(
       expect(rows).toHaveLength(1);
       expect(Array.from(rows[0]!.data)).toEqual([7]);
       expect(rows[0]!.createdAt).not.toBe("");
+    });
+
+    it("deleteWorkflowExecutionEvents removes one execution's events only", async () => {
+      await fx.store.appendWorkflowExecutionEvents("wfe_1", [event(1), event(2)]);
+      await fx.store.appendWorkflowExecutionEvents("wfe_2", [
+        { ...event(1), executionId: "wfe_2" },
+      ]);
+      expect(await fx.store.deleteWorkflowExecutionEvents("wfe_1")).toBe(2);
+      expect(await fx.store.deleteWorkflowExecutionEvents("wfe_1")).toBe(0);
+      expect(await fx.store.getMaxEventSequence("wfe_1")).toBe(0);
+      expect(await fx.store.getMaxEventSequence("wfe_2")).toBe(1);
     });
 
     it("empty batches and unknown executions are calm no-ops", async () => {
@@ -1863,6 +1877,179 @@ export function describeStoreContract(
       expect(
         await fx.store.pendingOAuthStates.getAndDelete("state-1"),
       ).toBeDefined();
+    });
+  });
+
+  describe("organization deletions", () => {
+    const T0 = "2026-10-05T10:00:00.000Z";
+    const T1 = "2026-10-05T10:01:00.000Z";
+
+    it("mark has one winner; a marked organization is deleting until it is released", async () => {
+      const deletions = fx.store.organizationDeletions;
+      expect(await deletions.isDeleting("org_a")).toBe(false);
+      const marks = await Promise.all([
+        deletions.mark("org_a", T0),
+        deletions.mark("org_a", T0),
+      ]);
+      expect(marks.filter(Boolean)).toHaveLength(1);
+      expect(await deletions.isDeleting("org_a")).toBe(true);
+      expect(await deletions.isDeleting("org_b")).toBe(false);
+      expect(await deletions.get("org_a")).toEqual({
+        org: "org_a",
+        phase: "pending",
+        markedAt: T0,
+        acceptedAt: "",
+        heartbeatAt: "",
+        stage: "",
+        lastError: "",
+      });
+    });
+
+    it("accept moves pending to accepted once; unmark removes only a pending row", async () => {
+      const deletions = fx.store.organizationDeletions;
+      await deletions.mark("org_a", T0);
+      await deletions.mark("org_b", T0);
+      expect(await deletions.accept("org_a", T1)).toBe(true);
+      expect(await deletions.accept("org_a", T1), "already accepted").toBe(
+        false,
+      );
+      expect(await deletions.accept("org_c", T1), "never marked").toBe(false);
+      expect(await deletions.unmark("org_a"), "accepted is the purge's").toBe(
+        false,
+      );
+      expect(await deletions.isDeleting("org_a")).toBe(true);
+      expect(await deletions.unmark("org_b")).toBe(true);
+      expect(await deletions.isDeleting("org_b")).toBe(false);
+      expect(await deletions.accept("org_b", T1), "unmarked").toBe(false);
+      expect((await deletions.get("org_a"))?.acceptedAt).toBe(T1);
+    });
+
+    it("heartbeat and recordError touch accepted rows only; release removes any row", async () => {
+      const deletions = fx.store.organizationDeletions;
+      await deletions.mark("org_a", T0);
+      await deletions.mark("org_b", T0);
+      await deletions.accept("org_a", T0);
+      await deletions.recordError("org_a", "content", "failed to purge", T1);
+      expect(await deletions.get("org_a")).toMatchObject({
+        heartbeatAt: T1,
+        stage: "content",
+        lastError: "failed to purge",
+      });
+      await deletions.heartbeat("org_a", "final", T1);
+      expect(await deletions.get("org_a")).toMatchObject({
+        stage: "final",
+        lastError: "",
+      });
+      await deletions.heartbeat("org_b", "final", T1);
+      expect((await deletions.get("org_b"))?.heartbeatAt, "pending").toBe("");
+      expect((await deletions.list()).map((row) => row.org)).toEqual([
+        "org_a",
+        "org_b",
+      ]);
+      await deletions.release("org_a");
+      await deletions.release("org_b");
+      await deletions.release("org_b");
+      expect(await deletions.list()).toEqual([]);
+    });
+  });
+
+  describe("removal by organization (a purge's side-store writes)", () => {
+    it("the search index and the fire ledger remove one organization's rows only", async () => {
+      for (const org of ["org_a", "org_b"]) {
+        await fx.store.upsertSearchIndex(ApiResourceKind.agent, `agt_${org}`, {
+          name: "kubernetes helper",
+          description: "",
+          tags: "",
+          org,
+          visibility: "visibility_private",
+          createdAt: 1_700_000_000,
+        });
+        await fx.store.upsertScheduleRun({
+          scheduleId: `sch_${org}`,
+          org,
+          nominalFireTime: "2026-08-20T00:00:00Z",
+          origin: "cron",
+          outcome: "started",
+          reason: "",
+          executionId: "",
+          recordedAt: "2026-08-20T00:00:01Z",
+          completedAt: "",
+        });
+      }
+      expect(await fx.store.deleteSearchIndexByOrg("org_a")).toBe(1);
+      expect(await fx.store.deleteSearchIndexByOrg("")).toBe(0);
+      expect(await fx.store.deleteScheduleRunsByOrg("org_a")).toBe(1);
+      expect((await fx.store.listScheduleRuns("sch_org_a", 0, 0)).total).toBe(0);
+      expect((await fx.store.listScheduleRuns("sch_org_b", 0, 0)).total).toBe(1);
+      const left = await fx.store.querySearchIndex({
+        kinds: ["agent"],
+        terms: ["kubernetes"],
+        orgFilter: "",
+        limit: 20,
+        offset: 0,
+      });
+      expect(left.totalCount).toBe(1);
+      expect(JSON.stringify(left)).toContain("agt_org_b");
+    });
+
+    it("signal dedupe, OAuth grants and pending OAuth states remove one organization's records only", async () => {
+      for (const org of ["org_a", "org_b"]) {
+        await fx.store.signalDedupe.claim(
+          org,
+          "key-1",
+          "wfe_1",
+          "resume",
+          IN_FLIGHT_CLAIM_TTL_MS,
+        );
+        await fx.store.oauthGrants.upsert({
+          identityAccountId: "ida_1",
+          resourceId: "mcp_1",
+          resourceKind: "mcp_server",
+          orgId: org,
+          accessTokenExpiresAt: 0,
+          clientId: "client-1",
+          authMethod: "mcp_oauth",
+          tokenEndpoint: "https://example.test/token",
+          accessTokenEnvVar: "TOKEN",
+          refreshTokenEnvVar: "",
+          environmentId: "",
+          createdAt: 0,
+          updatedAt: 0,
+        });
+        await fx.store.pendingOAuthStates.save({
+          state: `state-${org}`,
+          codeVerifier: "enc:v1:sealed",
+          clientId: "client-1",
+          clientSecret: "",
+          tokenEndpoint: "https://example.test/token",
+          mcpServerId: "mcp_1",
+          identityAccountId: "ida_1",
+          targetEnvVar: "TOKEN",
+          authMethod: "mcp_oauth",
+          tokenAuthMethod: "",
+          redirectUri: "http://127.0.0.1/cb",
+          org,
+          createdAt: 0,
+        });
+      }
+      expect(await fx.store.signalDedupe.deleteByOrg("org_a")).toBe(1);
+      expect(await fx.store.oauthGrants.deleteByOrg("org_a")).toBe(1);
+      expect(await fx.store.pendingOAuthStates.deleteByOrg("org_a")).toBe(1);
+      expect(await fx.store.signalDedupe.deleteByOrg("org_a")).toBe(0);
+      expect(
+        await fx.store.oauthGrants.find("ida_1", "mcp_1", "org_b"),
+      ).toBeDefined();
+      expect(
+        await fx.store.pendingOAuthStates.getAndDelete("state-org_b"),
+      ).toBeDefined();
+      const other = await fx.store.signalDedupe.claim(
+        "org_b",
+        "key-1",
+        "wfe_2",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
+      );
+      expect(other.status, "org_b's hold survives").toBe("DUPLICATE");
     });
   });
 

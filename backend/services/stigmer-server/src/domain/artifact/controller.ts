@@ -59,7 +59,12 @@ import type { ApiResourceId } from "@stigmer/protos/ai/stigmer/commons/apiresour
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
-import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
+import { getKindName } from "../../pipeline/apiresource-meta.js";
+import {
+  internalError,
+  invalidArgumentError,
+  notFoundError,
+} from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
@@ -127,6 +132,33 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
+ * Re-uploads the content when its blob is gone once the row is stored. A
+ * fault here is logged and the create still answers its artifact: the row
+ * is stored and the blob was uploaded before it, so an error would only
+ * send the caller to retry into a second row for content that is almost
+ * always in place.
+ */
+async function ensureBlobAfterPersist(
+  deps: ArtifactControllerDeps,
+  artifactId: string,
+  contentHash: string,
+  content: Uint8Array,
+  contentType: string,
+): Promise<void> {
+  try {
+    if (!(await deps.artifactStorage.exists(contentHash))) {
+      await deps.artifactStorage.upload(contentHash, content, contentType);
+    }
+  } catch (error) {
+    deps.logger.error("failed to re-check artifact content after its row", {
+      artifactId,
+      contentHash,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
  * Create — Go's direct handler, step for step: validate spec/content/
  * source, SHA-256 the content (the hex hash IS the blob key), upload,
  * derive org best-effort, build the resource with an art_ id and the
@@ -178,6 +210,7 @@ async function createArtifact(
   // refused with nothing uploaded (refuse-bound-elsewhere.ts).
   const org = await deriveOrgFromSource(deps, source);
   refuseBoundElsewhere(identity, org);
+  await refuseDeletingSourceOrganization(deps, org);
 
   try {
     await deps.artifactStorage.upload(contentHash, content, spec.contentType);
@@ -232,6 +265,20 @@ async function createArtifact(
     throw internalError(error, "failed to persist artifact");
   }
 
+  // Blobs are shared by content hash, so an organization's purge may have
+  // deleted this one between the upload and the row (it counted holders
+  // before this row existed). The purge re-counts after its delete and
+  // restores a blob a holder appeared for; this re-check after the row is
+  // the other side, so whichever moves last sees the other
+  // (domain/artifact/purge.ts).
+  await ensureBlobAfterPersist(
+    deps,
+    artifactId,
+    contentHash,
+    content,
+    spec.contentType,
+  );
+
   deps.logger.info("artifact created successfully", {
     artifactId,
     contentHash,
@@ -279,6 +326,32 @@ async function deriveOrgFromSource(
     }
   }
   return "";
+}
+
+/**
+ * An execution of an organization being deleted files no artifact
+ * (domain/organization/lifecycle.ts): the request names only the
+ * execution, so the deleting rule's interceptor cannot see the
+ * organization, and a late write from a run the purge is terminating would
+ * otherwise land after the purge removed the organization's artifacts.
+ * Refused before the upload with the copy a missing organization answers.
+ */
+async function refuseDeletingSourceOrganization(
+  deps: ArtifactControllerDeps,
+  org: string,
+): Promise<void> {
+  if (org === "") {
+    return;
+  }
+  let deleting: boolean;
+  try {
+    deleting = await deps.store.organizationDeletions.isDeleting(org);
+  } catch (error) {
+    throw internalError(error, "failed to read the artifact's organization");
+  }
+  if (deleting) {
+    throw notFoundError(getKindName(ApiResourceKind.organization), org);
+  }
 }
 
 /** Go computeExpiresAt: 30-day default; -1 permanent; <=0 falls back. */

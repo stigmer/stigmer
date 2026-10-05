@@ -59,6 +59,8 @@ import type {
   ResourceNameRenamed,
   ResourceNameStore,
   PendingOAuthState,
+  OrganizationDeletion,
+  OrganizationDeletionStore,
   PendingOAuthStateStore,
   RawResourceDocument,
   ScheduleRunRecord,
@@ -157,6 +159,7 @@ export class PostgresStore implements Store {
   readonly resourceNames: ResourceNameStore;
   readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
+  readonly organizationDeletions: OrganizationDeletionStore;
 
   private pool: Pool | undefined;
   private readonly logger: StoreLogger;
@@ -178,6 +181,9 @@ export class PostgresStore implements Store {
     this.resourceNames = new PostgresResourceNameStore(() => this.open());
     this.oauthGrants = new PostgresOAuthGrantStore(() => this.open());
     this.pendingOAuthStates = new PostgresPendingOAuthStateStore(() =>
+      this.open(),
+    );
+    this.organizationDeletions = new PostgresOrganizationDeletionStore(() =>
       this.open(),
     );
   }
@@ -966,6 +972,14 @@ export class PostgresStore implements Store {
     return Number((result.rows[0] as { max_seq: string | number }).max_seq);
   }
 
+  async deleteWorkflowExecutionEvents(executionId: string): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM workflow_execution_events WHERE execution_id = $1`,
+      [executionId],
+    );
+    return result.rowCount ?? 0;
+  }
+
   // ---------------------------------------------------------------------------
   // Schedule runs (fire ledger)
   // ---------------------------------------------------------------------------
@@ -1078,6 +1092,14 @@ export class PostgresStore implements Store {
     return result.rowCount ?? 0;
   }
 
+  async deleteScheduleRunsByOrg(org: string): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM schedule_runs WHERE org = $1`,
+      [org],
+    );
+    return result.rowCount ?? 0;
+  }
+
   async pruneScheduleRuns(recordedBefore: string): Promise<number> {
     const result = await this.open().query(
       `DELETE FROM schedule_runs WHERE recorded_at < $1`,
@@ -1131,6 +1153,17 @@ export class PostgresStore implements Store {
       `DELETE FROM search_index WHERE kind = $1 AND resource_id = $2`,
       [apiResourceKindName(kind), resourceId],
     );
+  }
+
+  async deleteSearchIndexByOrg(org: string): Promise<number> {
+    if (org === "") {
+      return 0;
+    }
+    const result = await this.open().query(
+      `DELETE FROM search_index WHERE org = $1`,
+      [org],
+    );
+    return result.rowCount ?? 0;
   }
 
   async querySearchIndex(
@@ -1458,6 +1491,14 @@ class PostgresSignalDedupeStore implements SignalDedupeStore {
       `DELETE FROM signal_dedupe WHERE id = $1 AND status = 'CLAIMED'`,
       [id],
     );
+  }
+
+  async deleteByOrg(org: string): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM signal_dedupe WHERE org = $1`,
+      [org],
+    );
+    return result.rowCount ?? 0;
   }
 
   private async loadRecord(
@@ -1887,6 +1928,14 @@ class PostgresOAuthGrantStore implements OAuthGrantStore {
     );
     return result.rowCount ?? 0;
   }
+
+  async deleteByOrg(orgId: string): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM oauth_grant WHERE org_id = $1`,
+      [orgId],
+    );
+    return result.rowCount ?? 0;
+  }
 }
 
 // =============================================================================
@@ -1987,6 +2036,14 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
     const result = await this.open().query(
       `DELETE FROM pending_oauth_state WHERE created_at < $1`,
       [cutoff],
+    );
+    return result.rowCount ?? 0;
+  }
+
+  async deleteByOrg(org: string): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM pending_oauth_state WHERE org = $1`,
+      [org],
     );
     return result.rowCount ?? 0;
   }
@@ -2115,4 +2172,120 @@ function escapeLikePattern(value: string): string {
     .replaceAll("\\", "\\\\")
     .replaceAll("%", "\\%")
     .replaceAll("_", "\\_");
+}
+
+// =============================================================================
+// Organization deletions (interface.ts, OrganizationDeletionStore)
+// =============================================================================
+
+const ORGANIZATION_DELETION_COLUMNS =
+  "org, phase, marked_at, accepted_at, heartbeat_at, stage, last_error";
+
+interface OrganizationDeletionRow {
+  org: string;
+  phase: string;
+  marked_at: string;
+  accepted_at: string;
+  heartbeat_at: string;
+  stage: string;
+  last_error: string;
+}
+
+class PostgresOrganizationDeletionStore implements OrganizationDeletionStore {
+  constructor(private readonly open: () => Pool) {}
+
+  async mark(org: string, now: string): Promise<boolean> {
+    // ON CONFLICT DO NOTHING: the primary key picks the one winner of
+    // concurrent deletes, with no error-text sniffing.
+    const result = await this.open().query(
+      `INSERT INTO organization_deletions (org, phase, marked_at)
+       VALUES ($1, 'pending', $2)
+       ON CONFLICT (org) DO NOTHING`,
+      [org, now],
+    );
+    return (result.rowCount ?? 0) === 1;
+  }
+
+  async accept(org: string, now: string): Promise<boolean> {
+    const result = await this.open().query(
+      `UPDATE organization_deletions SET phase = 'accepted', accepted_at = $1
+       WHERE org = $2 AND phase = 'pending'`,
+      [now, org],
+    );
+    return (result.rowCount ?? 0) === 1;
+  }
+
+  async unmark(org: string): Promise<boolean> {
+    const result = await this.open().query(
+      `DELETE FROM organization_deletions WHERE org = $1 AND phase = 'pending'`,
+      [org],
+    );
+    return (result.rowCount ?? 0) === 1;
+  }
+
+  async isDeleting(org: string): Promise<boolean> {
+    const result = await this.open().query(
+      `SELECT 1 FROM organization_deletions WHERE org = $1`,
+      [org],
+    );
+    return result.rows.length > 0;
+  }
+
+  async get(org: string): Promise<OrganizationDeletion | undefined> {
+    const result = await this.open().query<OrganizationDeletionRow>(
+      `SELECT ${ORGANIZATION_DELETION_COLUMNS} FROM organization_deletions WHERE org = $1`,
+      [org],
+    );
+    const row = result.rows[0];
+    return row === undefined ? undefined : organizationDeletionOf(row);
+  }
+
+  async list(): Promise<OrganizationDeletion[]> {
+    const result = await this.open().query<OrganizationDeletionRow>(
+      `SELECT ${ORGANIZATION_DELETION_COLUMNS} FROM organization_deletions ORDER BY org COLLATE "C"`,
+    );
+    return result.rows.map(organizationDeletionOf);
+  }
+
+  async heartbeat(org: string, stage: string, now: string): Promise<void> {
+    await this.open().query(
+      `UPDATE organization_deletions SET heartbeat_at = $1, stage = $2, last_error = ''
+       WHERE org = $3 AND phase = 'accepted'`,
+      [now, stage, org],
+    );
+  }
+
+  async recordError(
+    org: string,
+    stage: string,
+    message: string,
+    now: string,
+  ): Promise<void> {
+    await this.open().query(
+      `UPDATE organization_deletions SET heartbeat_at = $1, stage = $2, last_error = $3
+       WHERE org = $4 AND phase = 'accepted'`,
+      [now, stage, message, org],
+    );
+  }
+
+  async release(org: string): Promise<void> {
+    await this.open().query(
+      `DELETE FROM organization_deletions WHERE org = $1`,
+      [org],
+    );
+  }
+}
+
+function organizationDeletionOf(
+  row: OrganizationDeletionRow,
+): OrganizationDeletion {
+  return {
+    org: row.org,
+    phase: row.phase === "accepted" ? "accepted" : "pending",
+    markedAt: row.marked_at,
+    acceptedAt: row.accepted_at,
+    heartbeatAt: row.heartbeat_at,
+    stage: row.stage,
+    lastError: row.last_error,
+  };
 }

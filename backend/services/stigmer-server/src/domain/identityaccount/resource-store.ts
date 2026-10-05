@@ -39,6 +39,8 @@
  * adapter on both drivers in __tests__/resource-store.postgres.test.ts, which
  * also pins the two invariants above that are this adapter's own.
  */
+import { fromBinary } from "@bufbuild/protobuf";
+
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -148,6 +150,19 @@ export function newResourceIdentityAccountStore(
         }
       }
       return found;
+    },
+
+    async findByOrg(org): Promise<ReadonlyArray<IdentityAccount>> {
+      if (org === "") {
+        return [];
+      }
+      const rows = await store.findAllByField(
+        KIND,
+        "metadata.org",
+        org,
+        IdentityAccountSchema,
+      );
+      return rows.map((bytes) => fromBinary(IdentityAccountSchema, bytes));
     },
   };
 }

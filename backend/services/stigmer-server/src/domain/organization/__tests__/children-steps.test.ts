@@ -7,7 +7,8 @@
  * What it pins:
  *   - the lookups a composition receives: `findByExternalId` answers a
  *     child only while its claim and its row both name it, and `listIds`
- *     keeps only rows that still name the parent; `isChildOf` and
+ *     keeps only rows that still name the parent; both leave out a child
+ *     being deleted; `isChildOf` and
  *     `childrenOf` answer nothing for an empty or missing organization;
  *     every read fault propagates;
  *   - the getByExternalId lane's read answers one NotFound for every miss
@@ -23,7 +24,8 @@
  *     landed, keeps one whose row did, and logs a fault;
  *   - LinkChildOrganization, PreserveChildLink, RefuseDeletingParent and
  *     ReleaseExternalId answer a fault or a missing loaded row as their
- *     headers say.
+ *     headers say; RefuseDeletingParent counts only children not being
+ *     deleted.
  */
 import { create, toBinary } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -98,8 +100,8 @@ interface FakeStore {
 
 /**
  * An in-memory store: organization rows by id (an Error value makes the
- * read of that id fail), the list index's rows for a parent, and the
- * name table's answers.
+ * read of that id fail), the list index's rows for a parent, the name
+ * table's answers, and the deletion table.
  */
 function fakeStore(
   options: {
@@ -109,6 +111,10 @@ function fakeStore(
     resolved?: ResourceNameEntry | Error;
     claim?: ReadonlyArray<{ claimed: boolean; entry: ResourceNameEntry } | Error>;
     releaseFault?: Error;
+    /** Organizations the deletion table holds, accepted. */
+    deleting?: ReadonlyArray<string>;
+    /** Organizations the deletion table holds whose delete is still pending. */
+    pending?: ReadonlyArray<string>;
   } = {},
 ): FakeStore {
   const released: string[] = [];
@@ -138,6 +144,17 @@ function fakeStore(
         throw options.queryFault;
       }
       return options.indexed ?? [];
+    },
+    organizationDeletions: {
+      async isDeleting(org: string) {
+        return [...(options.deleting ?? []), ...(options.pending ?? [])].includes(org);
+      },
+      async list() {
+        return [
+          ...(options.deleting ?? []).map((org) => ({ org, phase: "accepted" })),
+          ...(options.pending ?? []).map((org) => ({ org, phase: "pending" })),
+        ];
+      },
     },
     resourceNames: {
       async resolve() {
@@ -248,6 +265,12 @@ describe("the child-organization lookups", () => {
         label,
       ).toBeUndefined();
     }
+    expect(
+      await newChildOrganizations(
+        fakeStore({ rows: [child], resolved: entry("org_c", "org_p", "cust-1"), deleting: ["org_c"] }).store,
+      ).findByExternalId("org_p", "cust-1"),
+      "a child being deleted",
+    ).toBeUndefined();
     const empty = newChildOrganizations(fakeStore({ rows: [child] }).store);
     expect(await empty.findByExternalId("", "cust-1")).toBeUndefined();
     expect(await empty.findByExternalId("org_p", "")).toBeUndefined();
@@ -275,6 +298,13 @@ describe("the child-organization lookups", () => {
     });
     expect(await newChildOrganizations(rig.store).listIds("org_p")).toEqual(["org_c1", "org_c2"]);
     expect(await childrenOf(rig.store, "")).toEqual([]);
+    const deleting = fakeStore({
+      indexed: [indexedRow(org("org_c1", "org_p")), indexedRow(org("org_c2", "org_p"))],
+      deleting: ["org_c2"],
+    });
+    expect(await newChildOrganizations(deleting.store).listIds("org_p"), "a child being deleted is left out").toEqual([
+      "org_c1",
+    ]);
   });
 
   it("isChildOf answers false for an empty, self or missing organization, and lets a fault propagate", async () => {
@@ -437,6 +467,25 @@ describe("the link, update and delete steps", () => {
     );
     expect(fault.code).toBe(Code.Internal);
     expect(fault.rawMessage).toContain("failed to read the organization's child organizations");
+  });
+
+  it("RefuseDeletingParent refuses a parent with a live child and passes one whose children are all being deleted", async () => {
+    const indexed = [indexedRow(org("org_c1", "org_p")), indexedRow(org("org_c2", "org_p"))];
+    const live = await refusal(() =>
+      newRefuseDeletingParentStep<typeof OrganizationIdSchema>(
+        fakeStore({ indexed, deleting: ["org_c1"] }).store,
+      ).execute(deleteContext(org("org_p"))),
+    );
+    expect(live.code).toBe(Code.FailedPrecondition);
+    await newRefuseDeletingParentStep<typeof OrganizationIdSchema>(
+      fakeStore({ indexed, deleting: ["org_c1", "org_c2"] }).store,
+    ).execute(deleteContext(org("org_p")));
+    const pending = await refusal(() =>
+      newRefuseDeletingParentStep<typeof OrganizationIdSchema>(
+        fakeStore({ indexed, deleting: ["org_c1"], pending: ["org_c2"] }).store,
+      ).execute(deleteContext(org("org_p"))),
+    );
+    expect(pending.code, "a child whose own delete may still be refused").toBe(Code.FailedPrecondition);
   });
 
   it("ReleaseExternalId logs a release fault and lets the delete stand", async () => {

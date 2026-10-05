@@ -33,13 +33,19 @@
  * store that holds two can both pass and leave none. The next boot then
  * makes the organization again.
  *
+ * Both counts are of live organizations: one being deleted
+ * (lifecycle.ts) is no longer the customer's, and counting it would let a
+ * one-organization store delete down to none while the first purge runs.
+ *
  * Both reasons are wire contract, documented on OrganizationCommandController
  * create and delete.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
+import { fromBinary } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import type { Store } from "../../store/interface.js";
 import {
@@ -86,7 +92,7 @@ export function newOrganizationLimitStep<Desc extends DescMessage>(
     async execute(): Promise<void> {
       let held: number;
       try {
-        held = (await store.listResources(ApiResourceKind.organization)).length;
+        held = await countLiveOrganizations(store);
       } catch (error) {
         throw internalError(error, "failed to count organizations");
       }
@@ -123,7 +129,7 @@ export function newRefuseDeletingSingleOrganizationStep<
       }
       let held: number;
       try {
-        held = (await store.listResources(ApiResourceKind.organization)).length;
+        held = await countLiveOrganizations(store);
       } catch (error) {
         throw internalError(error, "failed to count organizations");
       }
@@ -136,4 +142,18 @@ export function newRefuseDeletingSingleOrganizationStep<
       );
     },
   };
+}
+
+/** How many organizations the store holds that are not being deleted. */
+export async function countLiveOrganizations(store: Store): Promise<number> {
+  const rows = await store.listResources(ApiResourceKind.organization);
+  const deletions = await store.organizationDeletions.list();
+  if (deletions.length === 0) {
+    return rows.length;
+  }
+  const deleting = new Set(deletions.map((row) => row.org));
+  return rows.filter(
+    (bytes) =>
+      !deleting.has(fromBinary(OrganizationSchema, bytes).metadata?.id ?? ""),
+  ).length;
 }

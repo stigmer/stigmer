@@ -86,9 +86,11 @@ export const SCHEMA_VERSION_8 = 8;
 export const SCHEMA_VERSION_9 = 9;
 /** v10: every turn's settings move out of the retired execution_config. */
 export const SCHEMA_VERSION_10 = 10;
+/** v11: the organization deletion table (DDL only). */
+export const SCHEMA_VERSION_11 = 11;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_10;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_11;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -138,6 +140,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_8, migrateToV8],
       [SCHEMA_VERSION_9, migrateToV9],
       [SCHEMA_VERSION_10, migrateToV10],
+      [SCHEMA_VERSION_11, migrateToV11],
     ];
 
     for (const [version, migrate] of chain) {
@@ -763,4 +766,26 @@ async function migrateToV10(client: PoolClient): Promise<void> {
     }
     after = rows[rows.length - 1]!.id;
   }
+}
+
+/**
+ * v11: the organizations being deleted, one row each (interface.ts,
+ * OrganizationDeletionStore, says why the state is not on the
+ * organization's row). DDL only: no database before this version holds an
+ * organization being deleted. The times are RFC-3339 TEXT, byte-collated so
+ * the purge's age comparisons are the strings' order whatever the locale
+ * (the v8 precedent).
+ */
+async function migrateToV11(client: PoolClient): Promise<void> {
+  await client.query(`
+    CREATE TABLE organization_deletions (
+      org TEXT NOT NULL PRIMARY KEY,
+      phase TEXT NOT NULL,
+      marked_at TEXT COLLATE "C" NOT NULL,
+      accepted_at TEXT COLLATE "C" NOT NULL DEFAULT '',
+      heartbeat_at TEXT COLLATE "C" NOT NULL DEFAULT '',
+      stage TEXT NOT NULL DEFAULT '',
+      last_error TEXT NOT NULL DEFAULT ''
+    );
+  `);
 }

@@ -23,9 +23,9 @@ const PINNED: Readonly<
     fingerprint: "agent_execution{session=field:spec.session_id}",
   },
   artifact: {
-    revision: 1,
+    revision: 2,
     fingerprint:
-      "artifact{agent_execution=field:spec.source.agent_execution_id,workflow_execution=field:spec.source.workflow_execution_id}",
+      "artifact{agent_execution=field:spec.source.agent_execution_id,blob=field:status.content_hash,workflow_execution=field:spec.source.workflow_execution_id}",
   },
   iam_policy: {
     revision: 1,

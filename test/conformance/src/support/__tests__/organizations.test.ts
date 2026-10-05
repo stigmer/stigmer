@@ -2,10 +2,13 @@
 // refusal copy names an organization the caller acts in (its slug, read from
 // the organization the value names, and the value as given when the server
 // answers no slug), and the child organization helper (it sends the parent
-// and external id, and refuses a create that answers no slug or id).
+// and external id, and refuses a create that answers no slug or id), and the
+// create of a deleted organization's slug (it retries while the slug is held,
+// ALREADY_EXISTS, and fails on any other answer or once its time is up).
+import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
-import { createChildOrganization, organizationSlug } from "../organizations";
+import { createChildOrganization, createOrganizationOnceReleased, organizationSlug } from "../organizations";
 
 function queryAnswering(slug: string | undefined): ConformanceClients["organizationQuery"] {
   return {
@@ -56,3 +59,47 @@ describe("createChildOrganization", () => {
     ).rejects.toThrow("cannot provision the test");
   });
 });
+
+/** A command that answers each create from a script: an error to throw, or the organization. */
+function commandScripted(answers: Array<ConnectError | { id: string }>): {
+  command: ConformanceClients["organizationCommand"];
+  calls: () => number;
+} {
+  let calls = 0;
+  return {
+    calls: () => calls,
+    command: {
+      create: async () => {
+        calls += 1;
+        const answer = answers.shift();
+        if (answer === undefined || answer instanceof ConnectError) {
+          throw answer ?? new Error("script exhausted");
+        }
+        return { metadata: { id: answer.id } };
+      },
+    } as unknown as ConformanceClients["organizationCommand"],
+  };
+}
+
+describe("createOrganizationOnceReleased", () => {
+  const held = () => new ConnectError("held", Code.AlreadyExists);
+
+  it("retries while the slug is held and answers the organization once it lands", async () => {
+    const scripted = commandScripted([held(), { id: "org_new" }]);
+    const created = await createOrganizationOnceReleased(scripted.command, "acme");
+    expect(created.metadata?.id).toBe("org_new");
+    expect(scripted.calls()).toBe(2);
+  });
+
+  it("fails at once on any answer but a held slug", async () => {
+    const scripted = commandScripted([new ConnectError("denied", Code.PermissionDenied)]);
+    await expect(createOrganizationOnceReleased(scripted.command, "acme")).rejects.toThrow("denied");
+    expect(scripted.calls()).toBe(1);
+  });
+
+  it("fails with the held slug's refusal once its time is up", async () => {
+    const scripted = commandScripted([held()]);
+    await expect(createOrganizationOnceReleased(scripted.command, "acme", 0)).rejects.toThrow("held");
+  });
+});
+
