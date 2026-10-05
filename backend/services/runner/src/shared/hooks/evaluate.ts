@@ -348,6 +348,9 @@ export class HookEvaluator {
       env["CLAUDE_PLUGIN_ROOT"] = source.root;
       env["CLAUDE_PLUGIN_DATA"] = source.data;
       env["PLUGIN_ROOT"] = source.root;
+      // Python would otherwise write `__pycache__` into the plugin's tree,
+      // which the tamper guard then rebuilds before every later run.
+      env["PYTHONDONTWRITEBYTECODE"] = "1";
     }
     for (const [key, value] of source.options) env[`CLAUDE_PLUGIN_OPTION_${key.toUpperCase()}`] = value;
     return env;

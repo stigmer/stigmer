@@ -235,7 +235,9 @@ describe("conditionMatches: WebFetch, Agent, arguments, MCP", () => {
     expect(conditionMatches("Grep(output_mode:content)", grep({ output_mode: "content" }), CTX)).toBe(true);
     expect(conditionMatches("Grep(pattern:TODO*)", grep({ pattern: "TODO(me)" }), CTX)).toBe(true);
     expect(conditionMatches("Grep(output_mode:content)", grep({ output_mode: "files" }), CTX)).toBe(false);
-    expect(conditionMatches("Grep(output_mode:content)", grep({}), CTX)).toBe(false);
+    expect(conditionVerdict("Grep(output_mode:content)", grep({}), CTX), "a call without the argument might be meant").toBe("unsure");
+    expect(conditionVerdict("WebFetch(https://evil.example/*)", { toolName: "WebFetch", toolInput: { url: "https://evil.example/x" } }, CTX)).toBe("unsure");
+    expect(conditionVerdict("Grep(output mode:content)", grep({}), CTX)).toBe("unsure");
     expect(conditionMatches("Grep(nested:x)", grep({ nested: { a: 1 } }), CTX)).toBe(true);
     expect(conditionMatches("Grep(no colon)", grep({}), CTX)).toBe(true);
   });
@@ -290,6 +292,12 @@ describe("wildcardMatch", () => {
     ["(x)", "(x)", true],
   ])("%j on %j is %s", (pattern, text, expected) => {
     expect(wildcardMatch(pattern, text)).toBe(expected);
+  });
+
+  it("reads a long option word after a shell quickly", () => {
+    const started = performance.now();
+    expect(conditionVerdict("Bash(git push *)", bash(`bash -${"c".repeat(50_000)}1`), CTX)).toBe("no");
+    expect(performance.now() - started).toBeLessThan(1_000);
   });
 
   it("answers a many-star rule over a long near-miss quickly", () => {

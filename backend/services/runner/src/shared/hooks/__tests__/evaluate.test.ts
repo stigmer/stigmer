@@ -274,6 +274,7 @@ describe("what a command runs with", () => {
       CLAUDE_PLUGIN_DATA: "/platform/plugin-data/safety",
       PLUGIN_ROOT: "/platform/plugins/safety",
       CLAUDE_PLUGIN_OPTION_API_TOKEN: "t0k",
+      PYTHONDONTWRITEBYTECODE: "1",
     });
     expect(runs[0]!.cwd).toBe(ROOT);
   });

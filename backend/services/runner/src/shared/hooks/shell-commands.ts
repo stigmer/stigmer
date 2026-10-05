@@ -46,8 +46,10 @@ const OPENING_WORDS = new Set(["if", "then", "elif", "else", "do", "while", "unt
 /** Words that close a compound command, and run nothing. */
 const CLOSING_WORDS = new Set(["fi", "done", "}", "esac"]);
 
-/** A shell's option word that includes `c`: `-c`, `-lc`, `-ec`. */
-const SCRIPT_FLAG = /^-[A-Za-z]*c[A-Za-z]*$/;
+/** A shell's option word that includes `c`: `-c`, `-lc`, `-ec`. Linear: the word is the model's. */
+function isScriptFlag(word: string): boolean {
+  return /^-[A-Za-z]+$/.test(word) && word.includes("c");
+}
 
 /** Every simple command `line` runs, nested ones included; `null` when it cannot be sure. */
 export function splitShellCommands(line: string): readonly ShellCommand[] | null {
@@ -95,7 +97,7 @@ function withoutCompoundWords(words: ShellCommand): ShellCommand {
 function interpreterScript(command: ShellCommand): string | null | undefined {
   const shell = command.findIndex((word) => INTERPRETERS.has(word.text.slice(word.text.lastIndexOf("/") + 1)));
   if (shell === -1) return undefined;
-  const flag = command.findIndex((word, i) => i > shell && SCRIPT_FLAG.test(word.text));
+  const flag = command.findIndex((word, i) => i > shell && isScriptFlag(word.text));
   if (flag === -1) return undefined;
   const script = command[flag + 1];
   if (script === undefined || !script.literal || script.text.startsWith("-")) return null;
