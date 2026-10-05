@@ -32,6 +32,7 @@ import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/m
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { McpServerConnectDeps } from "./connect.js";
 
 export async function disconnectOAuth(
@@ -47,6 +48,8 @@ export async function disconnectOAuth(
   if (org === "") {
     throw invalidArgumentError("org is required");
   }
+  // The grant removed is the caller's in this organization.
+  refuseBoundElsewhere(identity, org);
   // The annotation's can_connect check (validate → authorize, the Java
   // McpServerDisconnectOAuthHandler order — no load step; on the
   // multi-tenant edition an unresolvable id answers through the

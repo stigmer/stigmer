@@ -79,6 +79,7 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
+import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -172,6 +173,12 @@ async function createArtifact(
     displayName: spec.displayName,
   });
 
+  // The artifact is filed under its execution's organization, derived
+  // before any write so a credential bound to another organization is
+  // refused with nothing uploaded (refuse-bound-elsewhere.ts).
+  const org = await deriveOrgFromSource(deps, source);
+  refuseBoundElsewhere(identity, org);
+
   try {
     await deps.artifactStorage.upload(contentHash, content, spec.contentType);
   } catch (error) {
@@ -181,8 +188,6 @@ async function createArtifact(
     });
     throw internalError(error, "failed to upload artifact content");
   }
-
-  const org = await deriveOrgFromSource(deps, source);
 
   const artifactId = generateId("art");
   const artifact = create(ArtifactSchema, {

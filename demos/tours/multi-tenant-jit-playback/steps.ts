@@ -6,7 +6,7 @@
  * create tenant orgs, and let Stigmer handle per-user provisioning
  * automatically from a JWT claim.
  *
- * Covers the "JIT provisioning for multi-tenant platforms" section of the
+ * Covers the "Create accounts and grant a role at sign-in" section of the
  * multi-tenant setup guide. Ported from the in-repo inline demo; the timeline
  * (steps, narration, interactions) is preserved 1:1.
  */
@@ -39,9 +39,8 @@ export const REGISTER_IDP_JIT_CODE = [
   '  jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",',
   '  allowedIssuers: ["https://acme.us.auth0.com/"],',
   '  expectedAudience: "https://api.stigmer.ai/",',
-  "  autoProvisionAccounts: true,",
-  "  autoGrantOnOrg: true,",
-  '  autoGrantRole: "member",',
+  "  createAccountsOnSignIn: true,",
+  '  signInRole: "member",',
   '  tenantOrgClaim: "org_id",',
   "});",
 ];
@@ -88,12 +87,12 @@ export const TENANT_RESOLVE_CHECKS: readonly CheckItem[] = [
   { label: "Read JWT claim", detail: 'org_id → "acme-tenant-alpha-id"', status: "pass" },
   { label: "Tenant org resolved", detail: "tenant-alpha (org_01xyz789)", status: "pass" },
   { label: "Account auto-provisioned", detail: "ida_02def456 (JIT)", status: "pass" },
-  { label: "Role granted", detail: "member on tenant-alpha (JIT)", status: "pass" },
+  { label: "Role granted", detail: "member on tenant-alpha (first sign-in)", status: "pass" },
 ];
 
 export const SUCCESS_CHECKS: readonly CheckItem[] = [
   { label: "Token validated", detail: "signature + claims OK", status: "pass" },
-  { label: "Tenant: tenant-alpha", detail: "resolved via org_id claim", status: "pass" },
+  { label: "Tenant: tenant-alpha", detail: "token bound via org_id claim", status: "pass" },
   { label: "Access authorized", detail: "member on org_01xyz789", status: "pass" },
 ];
 
@@ -107,7 +106,7 @@ export const multiTenantJitSteps: ScenarioStep<MultiTenantJitStep>[] = [
     delayMs: 0,
     data: { view: "code-register-idp" },
     narration:
-      "Register your Identity Provider with JIT provisioning and tenant org claim. The four fields — auto-provision, auto-grant, auto-grant role, and tenant org claim — eliminate all per-user provisioning code.",
+      "Register your Identity Provider with JIT provisioning and tenant org claim. The three fields — create accounts on sign-in, sign-in role, and tenant org claim — eliminate all per-user provisioning code.",
   },
   {
     delayMs: 3500,
@@ -126,13 +125,13 @@ export const multiTenantJitSteps: ScenarioStep<MultiTenantJitStep>[] = [
     delayMs: 3500,
     data: { view: "jwt-auth" },
     narration:
-      "Jane signs in on Tenant Alpha's portal. Her JWT includes an org_id claim with the tenant's external ID. Stigmer reads this claim to route her to the right Organization.",
+      "Jane signs in on Tenant Alpha's portal. Her JWT includes an org_id claim with the tenant's external ID. Stigmer reads this claim on every sign-in to bind her token to the right Organization.",
   },
   {
     delayMs: 3500,
     data: { view: "tenant-resolved" },
     narration:
-      "Stigmer reads the org_id claim, finds the matching tenant Organization, creates Jane's account, and grants the member role — all automatically. No backend code needed.",
+      "Stigmer reads the org_id claim, finds the matching tenant Organization, creates Jane's account, and grants the member role because this is her first sign-in there — all automatically. No backend code needed.",
     interactions: [
       { atPercent: 0.1, type: "set_cursor", target: "check-0" },
       { atPercent: 0.3, type: "set_cursor", target: "check-1" },
@@ -145,7 +144,7 @@ export const multiTenantJitSteps: ScenarioStep<MultiTenantJitStep>[] = [
     delayMs: 3000,
     data: { view: "success" },
     narration:
-      "Jane's request succeeds. She has a federated account and a member role scoped to Tenant Alpha. She cannot access Tenant Beta's resources.",
+      "Jane's request succeeds. She has a federated account and a member role scoped to Tenant Alpha, and her token works in Tenant Alpha only: it is refused in Tenant Beta, even if she holds a role there.",
     interactions: [
       { atPercent: 0.15, type: "set_cursor", target: "check-0" },
       { atPercent: 0.4, type: "set_cursor", target: "check-1" },

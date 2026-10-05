@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MSKQBwoSUGxhdGZvcm1DbGllbnRTcGVjEhcKCWNsaWVudF9pZBgBIAEoCUIEyIUsARIgChJjbGllbnRfc2VjcmV0X2hhc2gYAiABKAlCBMiFLAESIAoSc2VjcmV0X2ZpbmdlcnByaW50GAMgASgJQgTIhSwBEi4KCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBSABKAgSHwoXYXV0b19wcm92aXNpb25fYWNjb3VudHMYBiABKAgSGQoRYXV0b19ncmFudF9vbl9vcmcYByABKAgSMwoPYXV0b19ncmFudF9yb2xlGAggASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRIXCg9hbGxvd2VkX29yaWdpbnMYCSADKAkSyAEKEGVudmlyb25tZW50X3JlZnMYCiADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCeLpIcZIBbiJsugFpChVlbnZpcm9ubWVudF9yZWZzLmtpbmQSP2Vudmlyb25tZW50X3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1lbnZpcm9ubWVudBoPdGhpcy5raW5kID09IDUz4IUsNTqAA7pI/AIa2wEKMnBsYXRmb3JtX2NsaWVudC5hdXRvX2dyYW50X3JlcXVpcmVzX2F1dG9fcHJvdmlzaW9uEmxhdXRvX2dyYW50X29uX29yZyByZXF1aXJlcyBhdXRvX3Byb3Zpc2lvbl9hY2NvdW50czogb25seSBhbiBhY2NvdW50IHRoZSBjbGllbnQgcHJvdmlzaW9ucyByZWNlaXZlcyB0aGUgZ3JhbnQaNyF0aGlzLmF1dG9fZ3JhbnRfb25fb3JnIHx8IHRoaXMuYXV0b19wcm92aXNpb25fYWNjb3VudHMamwEKKXBsYXRmb3JtX2NsaWVudC5hdXRvX2dyYW50X3JvbGVfbm90X293bmVyElNhdXRvX2dyYW50X3JvbGUgY2Fubm90IGJlIG93bmVyOyBvcmdhbml6YXRpb24gb3duZXJzaGlwIG11c3QgYmUgYXNzaWduZWQgZXhwbGljaXRseRoZdGhpcy5hdXRvX2dyYW50X3JvbGUgIT0gMWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MSK7BwoSUGxhdGZvcm1DbGllbnRTcGVjEhcKCWNsaWVudF9pZBgBIAEoCUIEyIUsARIgChJjbGllbnRfc2VjcmV0X2hhc2gYAiABKAlCBMiFLAESIAoSc2VjcmV0X2ZpbmdlcnByaW50GAMgASgJQgTIhSwBEi4KCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBSABKAgSFwoPYWxsb3dlZF9vcmlnaW5zGAkgAygJEsgBChBlbnZpcm9ubWVudF9yZWZzGAogAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQni6SHGSAW4ibLoBaQoVZW52aXJvbm1lbnRfcmVmcy5raW5kEj9lbnZpcm9ubWVudF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9ZW52aXJvbm1lbnQaD3RoaXMua2luZCA9PSA1M+CFLDUSIgoaY3JlYXRlX2FjY291bnRzX29uX3NpZ25faW4YCyABKAgSMAoMc2lnbl9pbl9yb2xlGAwgASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZTr3ArpI8wIa2wEKNnBsYXRmb3JtX2NsaWVudC5zaWduX2luX3JvbGVfcmVxdWlyZXNfYWNjb3VudF9jcmVhdGlvbhJmc2lnbl9pbl9yb2xlIHJlcXVpcmVzIGNyZWF0ZV9hY2NvdW50c19vbl9zaWduX2luOiBvbmx5IGFuIGFjY291bnQgdGhlIGNsaWVudCBjcmVhdGVzIHJlY2VpdmVzIHRoZSByb2xlGjl0aGlzLnNpZ25faW5fcm9sZSA9PSAwIHx8IHRoaXMuY3JlYXRlX2FjY291bnRzX29uX3NpZ25faW4akgEKJnBsYXRmb3JtX2NsaWVudC5zaWduX2luX3JvbGVfbm90X293bmVyElBzaWduX2luX3JvbGUgY2Fubm90IGJlIG93bmVyOyBvcmdhbml6YXRpb24gb3duZXJzaGlwIG11c3QgYmUgYXNzaWduZWQgZXhwbGljaXRseRoWdGhpcy5zaWduX2luX3JvbGUgIT0gMUoECAYQB0oECAcQCEoECAgQCVIXYXV0b19wcm92aXNpb25fYWNjb3VudHNSEWF1dG9fZ3JhbnRfb25fb3JnUg9hdXRvX2dyYW50X3JvbGViBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * PlatformClientSpec defines the configuration for a platform client credential.
@@ -44,19 +44,20 @@ export const file_ai_stigmer_iam_platformclient_v1_spec: GenFile = /*@__PURE__*/
  * a customer with multiple PlatformClients (e.g., dashboard, mobile, admin)
  * sees one Stigmer identity per end user, with one set of FGA grants.
  *
- * Three provisioning modes for users presented via mintUserToken:
+ * Every user token a PlatformClient mints is bound to the client's owning
+ * organization: it works there and nowhere else, whatever roles the user
+ * holds in other organizations.
  *
- *   1. Manual (default): The platform explicitly creates identity accounts and IAM
- *      policies before minting tokens. mintUserToken fails if the user does not exist.
+ * Two settings control what happens when mintUserToken meets a user:
  *
- *   2. JIT (Just-In-Time): When auto_provision_accounts is true, Stigmer creates an
- *      IdentityAccount from the user identity provided in the mintUserToken request
- *      on first encounter. Authorization is controlled independently via
- *      auto_grant_on_org and auto_grant_role.
+ *   1. create_accounts_on_sign_in: whether Stigmer creates the user's identity
+ *      account on first encounter. When false (the default), the platform
+ *      creates identity accounts before minting; mintUserToken fails if the
+ *      user does not exist.
  *
- *   3. JIT + Auto-Grant: When both auto_provision_accounts and auto_grant_on_org are
- *      true, newly provisioned accounts are granted auto_grant_role on the
- *      PlatformClient's owning organization.
+ *   2. sign_in_role: the role a newly created account receives on the owning
+ *      organization. Unspecified means none: the platform grants roles itself
+ *      through IAM policies.
  *
  * @generated from message ai.stigmer.iam.platformclient.v1.PlatformClientSpec
  */
@@ -104,53 +105,6 @@ export type PlatformClientSpec = Message<"ai.stigmer.iam.platformclient.v1.Platf
   neverExpires: boolean;
 
   /**
-   * Whether to automatically create an identity account when mintUserToken is
-   * called with a user_id that has no existing account.
-   *
-   * When false (default), the platform must explicitly create identity accounts
-   * before minting tokens. mintUserToken returns FAILED_PRECONDITION if the
-   * user does not exist. This gives platforms full control over which users can
-   * access Stigmer resources.
-   *
-   * When true, Stigmer creates an IdentityAccount automatically on first
-   * encounter, using the user_email and user_name from the mintUserToken request
-   * for profile data.
-   *
-   * @generated from field: bool auto_provision_accounts = 6;
-   */
-  autoProvisionAccounts: boolean;
-
-  /**
-   * Whether to automatically grant a role on the PlatformClient's owning
-   * organization when an account is auto-provisioned.
-   *
-   * When false (default), auto-provisioned accounts receive no organization
-   * access. The platform must create IAM policies to grant access.
-   *
-   * When true, Stigmer grants auto_grant_role (default: viewer) on the
-   * PlatformClient's owning organization to every account it provisions.
-   * Accounts that already exist keep the roles they hold: changing this
-   * setting or auto_grant_role later does not reach them.
-   *
-   * Requires auto_provision_accounts to be true.
-   *
-   * @generated from field: bool auto_grant_on_org = 7;
-   */
-  autoGrantOnOrg: boolean;
-
-  /**
-   * The role to grant when auto_grant_on_org is true.
-   *
-   * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-   * is not permitted — organization ownership must be assigned explicitly.
-   *
-   * Only meaningful when auto_grant_on_org is true. Ignored otherwise.
-   *
-   * @generated from field: ai.stigmer.iam.v1.IamRole auto_grant_role = 8;
-   */
-  autoGrantRole: IamRole;
-
-  /**
    * Web origins allowed for browser-based requests using tokens minted by
    * this PlatformClient.
    *
@@ -189,6 +143,35 @@ export type PlatformClientSpec = Message<"ai.stigmer.iam.platformclient.v1.Platf
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10;
    */
   environmentRefs: ApiResourceReference[];
+
+  /**
+   * Whether mintUserToken creates an identity account for a user_id that has
+   * none yet.
+   *
+   * When false (the default), the platform creates identity accounts before
+   * minting tokens, and mintUserToken returns FAILED_PRECONDITION for a user
+   * that does not exist. When true, Stigmer creates the account on first
+   * encounter from the user_email and user_name in the mintUserToken request.
+   *
+   * @generated from field: bool create_accounts_on_sign_in = 11;
+   */
+  createAccountsOnSignIn: boolean;
+
+  /**
+   * The role an account mintUserToken creates receives on the client's owning
+   * organization.
+   *
+   * A client's accounts belong to its owning organization alone, so an
+   * account's creation is its first sign-in there: the role is granted once,
+   * when the account is created. Accounts that already exist keep the roles
+   * they hold, and changing this setting later does not reach them.
+   * Unspecified (iam_role_unspecified) grants nothing. Requires
+   * create_accounts_on_sign_in. The owner role is refused: ownership is
+   * assigned explicitly.
+   *
+   * @generated from field: ai.stigmer.iam.v1.IamRole sign_in_role = 12;
+   */
+  signInRole: IamRole;
 };
 
 /**

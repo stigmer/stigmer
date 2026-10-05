@@ -42,22 +42,24 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n#ai/stigmer/iam/apikey/v1/spec.proto\022\030a" +
       "i.stigmer.iam.apikey.v1\0322ai/stigmer/comm" +
-      "ons/apiresource/field_options.proto\032\037goo" +
-      "gle/protobuf/timestamp.proto\"\265\001\n\nApiKeyS" +
-      "pec\022\037\n\010key_hash\030\001 \001(\tB\004\310\205,\001R\007keyHash\022&\n\013" +
-      "fingerprint\030\002 \001(\tB\004\310\205,\001R\013fingerprint\0229\n\n" +
-      "expires_at\030\003 \001(\0132\032.google.protobuf.Times" +
-      "tampR\texpiresAt\022#\n\rnever_expires\030\004 \001(\010R\014" +
-      "neverExpiresB\220\001B\tSpecProtoP\001\242\002\004ASIA\252\002\030Ai" +
-      ".Stigmer.Iam.Apikey.V1\312\002\030Ai\\Stigmer\\Iam\\" +
-      "Apikey\\V1\342\002$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPB" +
-      "Metadata\352\002\034Ai::Stigmer::Iam::Apikey::V1b" +
-      "\006proto3"
+      "ons/apiresource/field_options.proto\032\033buf" +
+      "/validate/validate.proto\032\037google/protobu" +
+      "f/timestamp.proto\"\334\001\n\nApiKeySpec\022\037\n\010key_" +
+      "hash\030\001 \001(\tB\004\310\205,\001R\007keyHash\022&\n\013fingerprint" +
+      "\030\002 \001(\tB\004\310\205,\001R\013fingerprint\0229\n\nexpires_at\030" +
+      "\003 \001(\0132\032.google.protobuf.TimestampR\texpir" +
+      "esAt\022#\n\rnever_expires\030\004 \001(\010R\014neverExpire" +
+      "s\022%\n\tbound_org\030\005 \001(\tB\010\272H\005r\003\030\200\001R\010boundOrg" +
+      "B\220\001B\tSpecProtoP\001\242\002\004ASIA\252\002\030Ai.Stigmer.Iam" +
+      ".Apikey.V1\312\002\030Ai\\Stigmer\\Iam\\Apikey\\V1\342\002$" +
+      "Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\352\002\034A" +
+      "i::Stigmer::Iam::Apikey::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
+          build.buf.validate.ValidateProto.getDescriptor(),
           com.google.protobuf.TimestampProto.getDescriptor(),
         });
     internal_static_ai_stigmer_iam_apikey_v1_ApiKeySpec_descriptor =
@@ -65,13 +67,15 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_apikey_v1_ApiKeySpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_apikey_v1_ApiKeySpec_descriptor,
-        new java.lang.String[] { "KeyHash", "Fingerprint", "ExpiresAt", "NeverExpires", });
+        new java.lang.String[] { "KeyHash", "Fingerprint", "ExpiresAt", "NeverExpires", "BoundOrg", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
+    build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.computed);
+    registry.add(build.buf.validate.ValidateProto.field);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

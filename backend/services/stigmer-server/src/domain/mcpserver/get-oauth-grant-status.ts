@@ -28,6 +28,7 @@ import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcp
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { OAuthGrant } from "../../store/interface.js";
 import type { McpServerConnectDeps } from "./connect.js";
 import { REFRESH_EXPIRY_BUFFER_SECONDS } from "./oauth/refresh.js";
@@ -43,6 +44,8 @@ export async function getOAuthGrantStatus(
   if (input.org === "") {
     throw invalidArgumentError("org is required");
   }
+  // The grant read is the caller's in this organization.
+  refuseBoundElsewhere(identity, input.org);
   // The annotation's can_view check (validate → authorize, the Java
   // McpServerGetOAuthGrantStatusHandler order — no load step).
   await authorizeDirect(

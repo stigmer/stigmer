@@ -59,8 +59,8 @@ export function ApiKeysSection() {
       </div>
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         API keys authenticate CLI sessions and programmatic access to the
-        Stigmer API. Keys are scoped to your identity and work across all
-        your organizations.
+        Stigmer API. A key speaks for you: it works in every organization
+        you belong to, unless it is limited to one organization.
       </p>
 
       {!apiKeysAvailable ? (

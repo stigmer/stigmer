@@ -30,6 +30,12 @@
 //     to its execution's family is a later entry's), it is admitted on the
 //     member's OWN run Y, pinned so that narrowing turns this arm red on
 //     purpose;
+//   - a run's credential works in its run's organization: the operator's run
+//     credential is refused on the operator's own row in a second
+//     organization, and a key the operator limited to that second
+//     organization cannot swap itself through the exchange for the run's
+//     credential, so a credential limited to one organization never widens
+//     itself through a run;
 //   - a workflow that calls an agent runs to terminal under enforcement, and
 //     the child the runner created carries the workflow lineage labels and
 //     the member's stamp;
@@ -175,6 +181,13 @@ const UNTITLED_SESSION_SUBJECT = "Auto-created session";
 // code, because the code alone is what a can_view refusal would also answer.
 const NOT_RUNS_PERSON_MESSAGE =
   "a run credential is minted only for the person whose run it is";
+
+// The exchange's refusal of a credential bound to another organization than
+// the run's, byte-pinned in the server's credential binding (a read
+// refusal answers the Authorize step's own copy, so only the code is
+// asserted there).
+const BOUND_ELSEWHERE_MESSAGE =
+  "this credential is bound to another organization";
 
 describe.skipIf(!runnerActsAsRunCreator)(
   "runner as the run's subject — a member's run served by the operator-keyed runner (on the enforcing execution lane)",
@@ -644,6 +657,71 @@ describe.skipIf(!runnerActsAsRunCreator)(
         awaitTerminal(people.member, runY.metadata!.id),
         awaitTerminal(people.founder, founderRun.metadata!.id),
       ]);
+    });
+
+    it("[rpc:PlatformQueryController.getRunnerScopedToken] a run's credential works in its run's organization: refused on the person's row in another, and a key limited to the other cannot swap itself for it", async (ctx) => {
+      const { lane, mock } = laneOrSkip(ctx);
+      const people = await provisionPeople(lane);
+      const elsewhere = await lane.provisionTenancy();
+      fixtures.defer(() => lane.cleanupTenancy(elsewhere));
+      const agent = await createAgent(
+        people,
+        ApiResourceVisibility.visibility_org,
+        "ras-bound",
+      );
+      const agentElsewhere = await people.founder.agentCommand.create(
+        makeAgent({ org: elsewhere.org, name: uniqueName("ras-bound-other") }),
+      );
+      fixtures.defer(() =>
+        people.founder.agentCommand.delete({
+          value: agentElsewhere.metadata!.id,
+        }),
+      );
+      const run = await dispatchRun(
+        mock,
+        people.founder,
+        people.org,
+        agentRefOf(agent),
+        "operator",
+      );
+
+      const asRun = lane.clientsPresenting(
+        await runCredentialOf(people.founder, run.metadata!.id),
+      );
+      const inside = await asRun.agentQuery.get({ value: agent.metadata!.id });
+      expect(
+        inside.metadata?.id,
+        "the run credential reads its run's organization",
+      ).toBe(agent.metadata!.id);
+      await expectGrpcCode(
+        () => asRun.agentQuery.get({ value: agentElsewhere.metadata!.id }),
+        Code.PermissionDenied,
+        "the run credential reading the person's own agent in another organization",
+      );
+
+      const key = await people.founder.apiKeyCommand.create({
+        ...makeApiKey({
+          name: uniqueName("ras-bound-key"),
+          org: elsewhere.org,
+        }),
+        spec: { boundOrg: elsewhere.org },
+      });
+      fixtures.defer(() =>
+        people.founder.apiKeyCommand.delete({ value: key.metadata!.id }),
+      );
+      const swap = await expectGrpcCode(
+        () =>
+          lane
+            .clientsPresenting(plaintextKeyOf(key))
+            .platformQuery.getRunnerScopedToken({
+              scope: { case: "agentExecutionId", value: run.metadata!.id },
+            }),
+        Code.PermissionDenied,
+        "a key limited to another organization asking for the run's credential",
+      );
+      expect(swap.rawMessage).toContain(BOUND_ELSEWHERE_MESSAGE);
+
+      await awaitTerminal(people.founder, run.metadata!.id);
     });
 
     it("a workflow calling an agent runs to terminal under enforcement, and the child rows the runner wrote are the member's", async (ctx) => {

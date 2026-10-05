@@ -31,29 +31,30 @@ import "google/protobuf/timestamp.proto";
 // a customer with multiple PlatformClients (e.g., dashboard, mobile, admin)
 // sees one Stigmer identity per end user, with one set of FGA grants.
 //
-// Three provisioning modes for users presented via mintUserToken:
+// Every user token a PlatformClient mints is bound to the client's owning
+// organization: it works there and nowhere else, whatever roles the user
+// holds in other organizations.
 //
-//   1. Manual (default): The platform explicitly creates identity accounts and IAM
-//      policies before minting tokens. mintUserToken fails if the user does not exist.
+// Two settings control what happens when mintUserToken meets a user:
 //
-//   2. JIT (Just-In-Time): When auto_provision_accounts is true, Stigmer creates an
-//      IdentityAccount from the user identity provided in the mintUserToken request
-//      on first encounter. Authorization is controlled independently via
-//      auto_grant_on_org and auto_grant_role.
+//   1. create_accounts_on_sign_in: whether Stigmer creates the user's identity
+//      account on first encounter. When false (the default), the platform
+//      creates identity accounts before minting; mintUserToken fails if the
+//      user does not exist.
 //
-//   3. JIT + Auto-Grant: When both auto_provision_accounts and auto_grant_on_org are
-//      true, newly provisioned accounts are granted auto_grant_role on the
-//      PlatformClient's owning organization.
+//   2. sign_in_role: the role a newly created account receives on the owning
+//      organization. Unspecified means none: the platform grants roles itself
+//      through IAM policies.
 message PlatformClientSpec {
   option (buf.validate.message).cel = {
-    id: "platform_client.auto_grant_requires_auto_provision"
-    message: "auto_grant_on_org requires auto_provision_accounts: only an account the client provisions receives the grant"
-    expression: "!this.auto_grant_on_org || this.auto_provision_accounts"
+    id: "platform_client.sign_in_role_requires_account_creation"
+    message: "sign_in_role requires create_accounts_on_sign_in: only an account the client creates receives the role"
+    expression: "this.sign_in_role == 0 || this.create_accounts_on_sign_in"
   };
   option (buf.validate.message).cel = {
-    id: "platform_client.auto_grant_role_not_owner"
-    message: "auto_grant_role cannot be owner; organization ownership must be assigned explicitly"
-    expression: "this.auto_grant_role != 1"
+    id: "platform_client.sign_in_role_not_owner"
+    message: "sign_in_role cannot be owner; organization ownership must be assigned explicitly"
+    expression: "this.sign_in_role != 1"
   };
 
   // OAuth client identifier.
@@ -78,42 +79,10 @@ message PlatformClientSpec {
   // When true, the client secret never expires regardless of expires_at.
   bool never_expires = 5;
 
-  // --- JIT (Just-In-Time) Provisioning ---
-
-  // Whether to automatically create an identity account when mintUserToken is
-  // called with a user_id that has no existing account.
-  //
-  // When false (default), the platform must explicitly create identity accounts
-  // before minting tokens. mintUserToken returns FAILED_PRECONDITION if the
-  // user does not exist. This gives platforms full control over which users can
-  // access Stigmer resources.
-  //
-  // When true, Stigmer creates an IdentityAccount automatically on first
-  // encounter, using the user_email and user_name from the mintUserToken request
-  // for profile data.
-  bool auto_provision_accounts = 6;
-
-  // Whether to automatically grant a role on the PlatformClient's owning
-  // organization when an account is auto-provisioned.
-  //
-  // When false (default), auto-provisioned accounts receive no organization
-  // access. The platform must create IAM policies to grant access.
-  //
-  // When true, Stigmer grants auto_grant_role (default: viewer) on the
-  // PlatformClient's owning organization to every account it provisions.
-  // Accounts that already exist keep the roles they hold: changing this
-  // setting or auto_grant_role later does not reach them.
-  //
-  // Requires auto_provision_accounts to be true.
-  bool auto_grant_on_org = 7;
-
-  // The role to grant when auto_grant_on_org is true.
-  //
-  // Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-  // is not permitted — organization ownership must be assigned explicitly.
-  //
-  // Only meaningful when auto_grant_on_org is true. Ignored otherwise.
-  ai.stigmer.iam.v1.IamRole auto_grant_role = 8;
+  // Replaced by create_accounts_on_sign_in and sign_in_role (fields 11 and
+  // 12), the names identity providers use for the same two settings.
+  reserved 6, 7, 8;
+  reserved "auto_provision_accounts", "auto_grant_on_org", "auto_grant_role";
 
   // Web origins allowed for browser-based requests using tokens minted by
   // this PlatformClient.
@@ -169,4 +138,25 @@ message PlatformClientSpec {
       expression: "this.kind == 53"
     }
   ];
+
+  // Whether mintUserToken creates an identity account for a user_id that has
+  // none yet.
+  //
+  // When false (the default), the platform creates identity accounts before
+  // minting tokens, and mintUserToken returns FAILED_PRECONDITION for a user
+  // that does not exist. When true, Stigmer creates the account on first
+  // encounter from the user_email and user_name in the mintUserToken request.
+  bool create_accounts_on_sign_in = 11;
+
+  // The role an account mintUserToken creates receives on the client's owning
+  // organization.
+  //
+  // A client's accounts belong to its owning organization alone, so an
+  // account's creation is its first sign-in there: the role is granted once,
+  // when the account is created. Accounts that already exist keep the roles
+  // they hold, and changing this setting later does not reach them.
+  // Unspecified (iam_role_unspecified) grants nothing. Requires
+  // create_accounts_on_sign_in. The owner role is refused: ownership is
+  // assigned explicitly.
+  ai.stigmer.iam.v1.IamRole sign_in_role = 12;
 }

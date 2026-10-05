@@ -22,6 +22,8 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountPreferencesSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
+import type { ConformanceClients } from "../harness/clients";
+
 export const IDENTITY_ACCOUNT_API_VERSION = "iam.stigmer.ai/v1";
 export const IDENTITY_ACCOUNT_KIND = "IdentityAccount";
 
@@ -70,6 +72,28 @@ export function withPreferences(
       ? undefined
       : create(IdentityAccountPreferencesSchema, preferences);
   return copy;
+}
+
+// Opts the caller behind `clients` in to memory on their own account — the
+// member half of memory's double opt-in, the switch a person flips in the
+// console's account preferences — keeping every other preference as it is.
+// A no-op for an account already opted in.
+export async function optInToMemory(
+  clients: Pick<
+    ConformanceClients,
+    "identityAccountQuery" | "identityAccountCommand"
+  >,
+): Promise<void> {
+  const me = await clients.identityAccountQuery.whoAmI({});
+  if (me.spec?.preferences?.memoryEnabled === true) {
+    return;
+  }
+  const preferences = clone(
+    IdentityAccountPreferencesSchema,
+    me.spec?.preferences ?? create(IdentityAccountPreferencesSchema),
+  );
+  preferences.memoryEnabled = true;
+  await clients.identityAccountCommand.update(withPreferences(me, preferences));
 }
 
 // The fetched account with a different subject — the request the server

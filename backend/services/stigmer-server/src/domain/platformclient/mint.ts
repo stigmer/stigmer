@@ -19,9 +19,12 @@
  *
  *   1. The account's input is built and validated, so nothing below runs
  *      for a user the create chain would refuse.
- *   2. When the client auto-grants, the role (viewer by default; never
- *      owner) is granted on the owning organization to the DERIVED account
- *      id, before the account row exists. The grant path is idempotent.
+ *   2. When the client names a sign-in role (never owner), it is granted
+ *      on the owning organization to the DERIVED account id, before the
+ *      account row exists. The grant path is idempotent. A client's
+ *      accounts belong to its organization alone, so an account's creation
+ *      is its one first sign-in there, and no ledger is needed to grant
+ *      once.
  *   3. The account is created through the identity-account domain's one
  *      create path, in `platform_client` mode. A concurrent first mint that
  *      won the race is read back.
@@ -99,7 +102,7 @@ import {
   INVALID_CLIENT_CREDENTIALS_MESSAGE,
   MINTING_DISABLED_MESSAGE,
   MINTING_REQUIRES_AUTHENTICATION_MESSAGE,
-  OWNER_AUTO_GRANT_MESSAGE,
+  OWNER_SIGN_IN_ROLE_MESSAGE,
   PROVISIONING_FAILED_MESSAGE,
   USER_TOKEN_CLAIMS,
   blankSubjectPartMessage,
@@ -113,9 +116,6 @@ import type { PlatformClientStore } from "./store.js";
 
 /** The separator of the composite subject; neither part may contain it. */
 const SUBJECT_SEPARATOR = "|";
-
-/** The role an auto-grant gives when the client leaves it unspecified (the proto's default). */
-const DEFAULT_AUTO_GRANT_ROLE = IamRole.viewer;
 
 export interface PlatformClientMintDeps {
   readonly clients: PlatformClientStore;
@@ -270,7 +270,7 @@ async function resolveOrProvisionAccount(
   }
 
   const spec = client.spec;
-  if (spec?.autoProvisionAccounts !== true) {
+  if (spec?.createAccountsOnSignIn !== true) {
     throw new ConnectError(
       noAccountMessage(user.externalUserId, org),
       Code.FailedPrecondition,
@@ -279,8 +279,8 @@ async function resolveOrProvisionAccount(
   const input = accountInput(idpId, org, user);
   const actor = serverActingFor(client.metadata?.id ?? "");
 
-  if (spec.autoGrantOnOrg) {
-    await grantAutoRole(deps, client, org, accountIdFor(idpId), actor);
+  if (spec.signInRole !== IamRole.iam_role_unspecified) {
+    await grantSignInRole(deps, client, org, accountIdFor(idpId), actor);
   }
 
   try {
@@ -369,26 +369,22 @@ function accountInput(
 }
 
 /**
- * Grants the client's auto-grant role on the owning organization to the
+ * Grants the client's sign-in role on the owning organization to the
  * derived account id, as the client. Owner is refused here too: the
- * contract refuses it on every write since this release, and a row stored
- * before that must still never make an end user an owner.
+ * contract refuses it on every write, and a stored row must still never
+ * make an end user an owner.
  */
-async function grantAutoRole(
+async function grantSignInRole(
   deps: PlatformClientMintDeps,
   client: PlatformClient,
   org: string,
   accountId: string,
   actor: CallerIdentity,
 ): Promise<void> {
-  const configured = client.spec?.autoGrantRole ?? IamRole.iam_role_unspecified;
-  if (configured === IamRole.owner) {
-    throw new ConnectError(OWNER_AUTO_GRANT_MESSAGE, Code.InvalidArgument);
+  const role = client.spec?.signInRole ?? IamRole.iam_role_unspecified;
+  if (role === IamRole.owner) {
+    throw new ConnectError(OWNER_SIGN_IN_ROLE_MESSAGE, Code.InvalidArgument);
   }
-  const role =
-    configured === IamRole.iam_role_unspecified
-      ? DEFAULT_AUTO_GRANT_ROLE
-      : configured;
   try {
     await deps.grantPath.grant(
       organizationRole(accountId, role, org),
@@ -397,7 +393,7 @@ async function grantAutoRole(
     );
   } catch (error) {
     deps.logger.error(
-      "platform client auto-grant failed; nothing was provisioned",
+      "platform client sign-in role grant failed; nothing was provisioned",
       {
         accountId,
         platformClientId: client.metadata?.id ?? "",

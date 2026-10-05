@@ -9,6 +9,12 @@ import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import type { PlatformClientCreateResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import { useUpdatePlatformClient } from "./useUpdatePlatformClient.js";
+import {
+  ClientSignInSettingsSection,
+  clientSignInSettingsFromSpec,
+  formatClientSignInRole,
+  toClientSignInInput,
+} from "./SignInSettings.js";
 import { useRotatePlatformClientSecret } from "./useRotatePlatformClientSecret.js";
 import { useDeletePlatformClient } from "./useDeletePlatformClient.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
@@ -55,8 +61,8 @@ export interface PlatformClientDetailPanelProps {
  * organization, whoever created it; someone granted viewer on a client sees
  * it with no actions.
  *
- * In **edit mode**, mutable spec fields become editable: JIT
- * provisioning toggles, expiry, auto-grant role, and allowed
+ * In **edit mode**, mutable spec fields become editable: the sign-in
+ * settings (account creation and the sign-in role), expiry, and allowed
  * origins. Credential fields (`clientId`, `secretFingerprint`) are
  * read-only. "Save" submits the update; "Cancel" discards changes.
  *
@@ -121,33 +127,11 @@ export function PlatformClientDetailPanel({
     }
     return "";
   });
-  const [autoProvision, setAutoProvision] = useState(
-    spec?.autoProvisionAccounts ?? false,
-  );
-  const [autoGrant, setAutoGrant] = useState(
-    spec?.autoGrantOnOrg ?? false,
-  );
-  const [autoGrantRole, setAutoGrantRole] = useState<IamRole>(
-    spec?.autoGrantRole ?? IamRole.iam_role_unspecified,
-  );
+  const [signIn, setSignIn] = useState(() => clientSignInSettingsFromSpec(spec));
   const [origins, setOrigins] = useState<string[]>(
     [...(spec?.allowedOrigins ?? [])],
   );
   const [originInput, setOriginInput] = useState("");
-
-  const handleAutoProvisionChange = useCallback((v: boolean) => {
-    setAutoProvision(v);
-    if (!v) {
-      setAutoGrant(false);
-      setAutoGrantRole(IamRole.iam_role_unspecified);
-    }
-  }, []);
-
-  const handleAutoGrantChange = useCallback((v: boolean) => {
-    setAutoGrant(v);
-    if (v) setAutoProvision(true);
-    if (!v) setAutoGrantRole(IamRole.iam_role_unspecified);
-  }, []);
 
   const addOrigin = useCallback(() => {
     const trimmed = originInput.trim();
@@ -178,11 +162,7 @@ export function PlatformClientDetailPanel({
         ? toDatetimeLocalValue(timestampDate(spec.expiresAt))
         : "",
     );
-    setAutoProvision(spec?.autoProvisionAccounts ?? false);
-    setAutoGrant(spec?.autoGrantOnOrg ?? false);
-    setAutoGrantRole(
-      spec?.autoGrantRole ?? IamRole.iam_role_unspecified,
-    );
+    setSignIn(clientSignInSettingsFromSpec(spec));
     setOrigins([...(spec?.allowedOrigins ?? [])]);
     setOriginInput("");
     clearUpdateError();
@@ -209,12 +189,7 @@ export function PlatformClientDetailPanel({
           neverExpires,
           expiresAt:
             !neverExpires && expiresAt ? new Date(expiresAt) : undefined,
-          autoProvisionAccounts: autoProvision,
-          autoGrantOnOrg: autoGrant,
-          autoGrantRole:
-            autoGrant && autoGrantRole !== IamRole.iam_role_unspecified
-              ? autoGrantRole
-              : undefined,
+          ...toClientSignInInput(signIn),
           allowedOrigins: origins,
         });
         setMode("view");
@@ -227,9 +202,7 @@ export function PlatformClientDetailPanel({
       platformClient,
       neverExpires,
       expiresAt,
-      autoProvision,
-      autoGrant,
-      autoGrantRole,
+      signIn,
       origins,
       update,
       clearUpdateError,
@@ -285,7 +258,7 @@ export function PlatformClientDetailPanel({
                 {meta.slug}
               </span>
             )}
-            {spec?.autoProvisionAccounts && (
+            {spec?.createAccountsOnSignIn && (
               <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-primary">
                 JIT
               </span>
@@ -364,61 +337,11 @@ export function PlatformClientDetailPanel({
             )}
           </fieldset>
 
-          {/* JIT provisioning */}
-          <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2.5")} disabled={isUpdating}>
-            <hr className="stg:border-border-muted" />
-            <legend className="stg:text-xs stg:font-medium stg:text-foreground">
-              JIT provisioning
-            </legend>
-
-            <ToggleSwitch
-              checked={autoProvision}
-              onChange={handleAutoProvisionChange}
-              label="Auto-provision accounts"
-              hint="Create a Stigmer identity account automatically on first token mint"
-              disabled={isUpdating}
-            />
-
-            <ToggleSwitch
-              checked={autoGrant}
-              onChange={handleAutoGrantChange}
-              label="Auto-grant on organization"
-              hint="Grant a role on the owning organization when an account is provisioned"
-              disabled={isUpdating || !autoProvision}
-            />
-
-            {autoGrant && (
-              <div className="stg:space-y-1">
-                <label
-                  htmlFor={`${baseId}-grant-role`}
-                  className="stg:text-xs stg:font-medium stg:text-foreground"
-                >
-                  Auto-grant role
-                </label>
-                <select
-                  id={`${baseId}-grant-role`}
-                  value={String(autoGrantRole)}
-                  onChange={(e) =>
-                    setAutoGrantRole(
-                      Number(e.target.value) as IamRole,
-                    )
-                  }
-                  disabled={isUpdating}
-                  className={cn(
-                    "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-                    "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-                    "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                  )}
-                >
-                  {JIT_ROLE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </fieldset>
+          <ClientSignInSettingsSection
+            value={signIn}
+            onChange={setSignIn}
+            disabled={isUpdating}
+          />
 
           {/* Allowed origins */}
           <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={isUpdating}>
@@ -704,22 +627,16 @@ function ViewMode({
         )
       ) : null}
 
-      {/* JIT provisioning */}
+      {/* Sign-in settings */}
       <hr className="stg:border-border-muted" />
       <Field
-        label="Auto-provision accounts"
-        value={spec?.autoProvisionAccounts ? "Enabled" : "Disabled"}
+        label="Create accounts on sign-in"
+        value={spec?.createAccountsOnSignIn ? "On" : "Off"}
       />
       <Field
-        label="Auto-grant on organization"
-        value={spec?.autoGrantOnOrg ? "Enabled" : "Disabled"}
+        label="Sign-in role"
+        value={formatClientSignInRole(spec?.signInRole ?? IamRole.iam_role_unspecified)}
       />
-      {spec?.autoGrantOnOrg && (
-        <Field
-          label="Auto-grant role"
-          value={formatIamRole(spec.autoGrantRole)}
-        />
-      )}
 
       {/* Allowed origins */}
       {(spec?.allowedOrigins.length ?? 0) > 0 && (
@@ -852,37 +769,8 @@ function ToggleSwitch({
 }
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const JIT_ROLE_OPTIONS: readonly {
-  readonly value: string;
-  readonly label: string;
-}[] = [
-  { value: String(IamRole.iam_role_unspecified), label: "Default (viewer)" },
-  { value: String(IamRole.viewer), label: "Viewer" },
-  { value: String(IamRole.member), label: "Member" },
-  { value: String(IamRole.admin), label: "Admin" },
-];
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function formatIamRole(role: IamRole): string {
-  switch (role) {
-    case IamRole.viewer:
-      return "Viewer";
-    case IamRole.member:
-      return "Member";
-    case IamRole.admin:
-      return "Admin";
-    case IamRole.owner:
-      return "Owner";
-    default:
-      return "Viewer (default)";
-  }
-}
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString(undefined, {

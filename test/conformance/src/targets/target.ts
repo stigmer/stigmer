@@ -157,16 +157,12 @@ export interface CapabilityFlags {
   // The conformance caller passes the Memory create RPC's strict
   // first-party-human-operator gate, which memory capture inherits.
   //
-  // True for the local OSS targets: single-user posture, no caller
-  // identity, no gate.
-  //
-  // False for cloud — BY DESIGN, not a harness gap: the conformance
-  // primary user is minted through the bootstrap PlatformClient, and
-  // platform-client user tokens are exactly the credential class the
-  // first-party gate excludes. Where false, the suite pins the gate itself:
-  // create answers PermissionDenied even with both memory_enabled flags on.
-  // Cloud's full memory lifecycle is covered by the hosted edition's own
-  // suites.
+  // True for the local OSS targets (single-user posture, no caller
+  // identity, no gate) and for cloud, whose conformance primary signs in
+  // through the environment's tenant as a console person does. Where false
+  // (a target whose primary were a credential the gate excludes, such as a
+  // PlatformClient user token), the suite pins the gate itself: create
+  // answers PermissionDenied even with both memory_enabled flags on.
   firstPartyMemoryCapture: boolean;
   // The channel RUNTIME lanes exist here: provider installs
   // (initiateInstall/completeInstall), conversation participation

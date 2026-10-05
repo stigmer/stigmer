@@ -26,6 +26,10 @@ import { PlatformClientDetailPanel } from "../PlatformClientDetailPanel";
  * because rotation leaves the expiry as it is. A live client shows
  * neither.
  *
+ * The sign-in settings: turning account creation off clears the sign-in
+ * role with it, because only an account the client creates receives one,
+ * and the view reads an unspecified role as "None", which grants nothing.
+ *
  * And what the view offers (stigmer/stigmer#1302): Edit and Rotate secret
  * only with `can_edit`, Delete only with `can_delete` on the client, so an
  * organization admin who may view a client they did not create reads it
@@ -45,9 +49,8 @@ const PLATFORM_CLIENT: PlatformClient = create(PlatformClientSchema, {
     clientId: "client-abc",
     expiresAt: timestampFromDate(new Date("2027-06-01T00:00:00Z")),
     neverExpires: false,
-    autoProvisionAccounts: true,
-    autoGrantOnOrg: true,
-    autoGrantRole: IamRole.admin,
+    createAccountsOnSignIn: true,
+    signInRole: IamRole.admin,
     allowedOrigins: ["https://embed.acme.example"],
     environmentRefs: [
       { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
@@ -110,12 +113,45 @@ describe("PlatformClientDetailPanel save payload", () => {
     ]);
     // Form-owned fields round-trip from the edit state.
     expect(input.allowedOrigins).toEqual(["https://embed.acme.example"]);
-    expect(input.autoGrantRole).toBe(IamRole.admin);
+    expect(input.createAccountsOnSignIn).toBe(true);
+    expect(input.signInRole).toBe(IamRole.admin);
     expect(input.expiresAt).toBeInstanceOf(Date);
     // Addressing fields for the update pipeline's org+slug lookup.
     expect(input.org).toBe("acme");
     expect(input.slug).toBe("embed-client");
     expect(input.name).toBe("Embed Client");
+  });
+});
+
+describe("PlatformClientDetailPanel sign-in settings", () => {
+  it("clears the sign-in role when account creation is turned off", async () => {
+    const update = vi.fn(async (_input: PlatformClientInput) => PLATFORM_CLIENT);
+    renderPanel(update);
+
+    expect(screen.getByText("Admin")).toBeTruthy();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
+    fireEvent.click(
+      screen.getByRole("switch", { name: "Create accounts on sign-in" }),
+    );
+    expect(
+      (screen.getByLabelText("Sign-in role") as HTMLSelectElement).disabled,
+    ).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    const input = update.mock.calls[0]![0];
+    expect(input.createAccountsOnSignIn).toBeUndefined();
+    expect(input.signInRole).toBeUndefined();
+  });
+
+  it("reads an unspecified sign-in role as None", () => {
+    const platformClient = clone(PlatformClientSchema, PLATFORM_CLIENT);
+    platformClient.spec!.signInRole = IamRole.iam_role_unspecified;
+    renderPanel(vi.fn(), platformClient);
+
+    expect(screen.getByText("Sign-in role")).toBeTruthy();
+    expect(screen.getByText("None")).toBeTruthy();
   });
 });
 

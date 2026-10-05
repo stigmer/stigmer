@@ -97,14 +97,14 @@ export const VALIDATION_CHECKS: readonly CheckItem[] = [
 ];
 
 export const RESOLVE_CHECKS: readonly CheckItem[] = [
-  { label: "Resolve identity", detail: "sub auth0|jane_doe → auto-provisioned", status: "pass" },
-  { label: "Auto-grant role", detail: "viewer on org_acme456 (JIT)", status: "pass" },
+  { label: "Resolve identity", detail: "sub auth0|jane_doe → account created on sign-in", status: "pass" },
+  { label: "Grant sign-in role", detail: "viewer on org_acme456 (first sign-in)", status: "pass" },
   { label: "Check IAM Policy", detail: "viewer on org_acme456", status: "pass" },
 ];
 
 export const RESOLVE_RESULT = {
   label: "Authorized",
-  detail: "Jane (auto-provisioned) → viewer on org_acme456",
+  detail: "Jane (bound to org_acme456) → viewer on org_acme456",
   status: "pass" as const,
 };
 
@@ -151,7 +151,7 @@ export const authFlowSteps: ScenarioStep<AuthFlowStep>[] = [
     delayMs: 3000,
     data: { view: "resolve-authorize" },
     narration:
-      "Stigmer maps the subject claim to Jane's identity. With JIT provisioning, if this is her first authentication, Stigmer creates the account and grants the viewer role automatically.",
+      "Stigmer maps the subject claim to Jane's identity. If this is her first sign-in and the provider creates accounts on sign-in, Stigmer creates the account and grants the provider's sign-in role.",
     interactions: [
       { atPercent: 0.15, type: "set_cursor", target: "check-0" },
       { atPercent: 0.4, type: "set_cursor", target: "check-1" },

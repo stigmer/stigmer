@@ -37,6 +37,8 @@ export interface UseUpdateIdentityProviderReturn {
  *   displayName: "Acme Corp SSO",
  *   isSsoProvider: true,
  *   oidcClientId: "abc123",
+ *   createAccountsOnSignIn: true,
+ *   signInRole: IamRole.viewer,
  * });
  * refetch(); // refresh detail view
  * ```

@@ -10,7 +10,7 @@
 //     fingerprint kept from the stored client);
 //   - rotateSecret answers a new secret and fingerprint under the same
 //     client_id;
-//   - `system-share-client` is refused on create, the auto-grant rules are
+//   - `system-share-client` is refused on create, the sign-in role rules are
 //     refused on the contract, and a deleted client is gone;
 //   - `environment_refs` is held to the reference rule every spec reference
 //     is: a missing environment of the client's organization is refused
@@ -181,7 +181,7 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
     expectRedacted(rotated.platformClient, "rotateSecret");
   });
 
-  it("[rpc:PlatformClientCommandController.create] the reserved slug and the auto-grant rules are refused on create", async () => {
+  it("[rpc:PlatformClientCommandController.create] the reserved slug and the sign-in role rules are refused on create", async () => {
     const org = await organization();
 
     const reserved = await expectGrpcCode(
@@ -208,13 +208,12 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
           kind: "PlatformClient",
           metadata: { name: uniqueName("owner-grant"), org },
           spec: {
-            autoProvisionAccounts: true,
-            autoGrantOnOrg: true,
-            autoGrantRole: IamRole.owner,
+            createAccountsOnSignIn: true,
+            signInRole: IamRole.owner,
           },
         }),
       Code.InvalidArgument,
-      "a client that would auto-grant ownership",
+      "a client whose sign-in role would grant ownership",
     );
 
     await expectGrpcCode(
@@ -223,10 +222,10 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
           apiVersion: "iam.stigmer.ai/v1",
           kind: "PlatformClient",
           metadata: { name: uniqueName("grant-no-provision"), org },
-          spec: { autoProvisionAccounts: false, autoGrantOnOrg: true },
+          spec: { createAccountsOnSignIn: false, signInRole: IamRole.viewer },
         }),
       Code.InvalidArgument,
-      "a client that would auto-grant without provisioning",
+      "a client with a sign-in role that creates no accounts",
     );
   });
 
@@ -239,7 +238,7 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
           kind: "PlatformClient",
           metadata: { name: uniqueName("ghost-env"), org },
           spec: {
-            autoProvisionAccounts: true,
+            createAccountsOnSignIn: true,
             environmentRefs: [
               { kind: ApiResourceKind.environment, slug: "ghost-environment" },
             ],

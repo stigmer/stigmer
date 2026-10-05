@@ -69,7 +69,10 @@
  *     does not exist → NOT_FOUND with the load-first copy (what a `get`
  *     on that id answers), a caller who is not the run's person, or a run
  *     whose stamp names nobody → PERMISSION_DENIED with one sentence
- *     (constants.ts). The id decides which execution kind is read (the
+ *     (constants.ts), and a caller bound to another organization than the
+ *     run's → PERMISSION_DENIED with the binding's sentence
+ *     (authorization/credential-binding.ts; the credential it would mint
+ *     is bound to the run's organization, runner-subject-verifier.ts). The id decides which execution kind is read (the
  *     lane's rule everywhere); the request's arm only chooses the
  *     not-found copy; an id that resolves to a CONNECT binding is
  *     NOT_FOUND too, because the exchange mints run credentials and a
@@ -92,6 +95,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import { accountForStamp } from "../domain/identityaccount/resolve.js";
 import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
+import { BOUND_ELSEWHERE_DENY_REASON } from "../authorization/credential-binding.js";
+import { boundOrgOf } from "../extensions/identity.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import { getKindName } from "../pipeline/apiresource-meta.js";
 import { notFoundError } from "../pipeline/errors.js";
@@ -212,6 +217,16 @@ export function newBuiltInRunnerCredentialProvider(
           ) {
             throw new ConnectError(
               RUN_CREDENTIAL_NOT_RUNS_PERSON_MESSAGE,
+              Code.PermissionDenied,
+            );
+          }
+          // A credential bound to one organization swaps itself only for
+          // a run in that organization; the credential it would mint
+          // works in the run's.
+          const bound = boundOrgOf(caller);
+          if (bound !== undefined && bound !== execution.org) {
+            throw new ConnectError(
+              BOUND_ELSEWHERE_DENY_REASON,
               Code.PermissionDenied,
             );
           }

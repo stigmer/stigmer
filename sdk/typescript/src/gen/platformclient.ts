@@ -108,11 +108,10 @@ export interface PlatformClientInput {
   secretFingerprint?: string;
   expiresAt?: Date | string;
   neverExpires?: boolean;
-  autoProvisionAccounts?: boolean;
-  autoGrantOnOrg?: boolean;
-  autoGrantRole?: IamRole;
   allowedOrigins?: string[];
   environmentRefs?: ResourceRef[];
+  createAccountsOnSignIn?: boolean;
+  signInRole?: IamRole;
 }
 
 export function buildPlatformClientProto(input: PlatformClientInput): PlatformClient {
@@ -135,11 +134,10 @@ export function buildPlatformClientProto(input: PlatformClientInput): PlatformCl
       secretFingerprint: input.secretFingerprint,
       expiresAt,
       neverExpires: input.neverExpires,
-      autoProvisionAccounts: input.autoProvisionAccounts,
-      autoGrantOnOrg: input.autoGrantOnOrg,
-      autoGrantRole: input.autoGrantRole,
       allowedOrigins: input.allowedOrigins,
       environmentRefs,
+      createAccountsOnSignIn: input.createAccountsOnSignIn,
+      signInRole: input.signInRole,
     })),
   }) as PlatformClient;
 }
@@ -174,10 +172,9 @@ export function toPlatformClientUpdateInput(resource: PlatformClient): PlatformC
     secretFingerprint: spec.secretFingerprint || undefined,
     expiresAt: spec.expiresAt ? timestampDate(spec.expiresAt) : undefined,
     neverExpires: spec.neverExpires || undefined,
-    autoProvisionAccounts: spec.autoProvisionAccounts || undefined,
-    autoGrantOnOrg: spec.autoGrantOnOrg || undefined,
-    autoGrantRole: spec.autoGrantRole || undefined,
     allowedOrigins: spec.allowedOrigins?.length ? [...spec.allowedOrigins] : undefined,
     environmentRefs: toResourceRefInputs(spec.environmentRefs),
+    createAccountsOnSignIn: spec.createAccountsOnSignIn || undefined,
+    signInRole: spec.signInRole || undefined,
   };
 }

@@ -82,13 +82,15 @@ class PlatformClientTokenControllerServicer(object):
 
         Authentication flow:
         1. Validate client_id + client_secret against stored hash
-        2. Resolve the identity account for user_id; on first use, provision it
-        (and grant auto_grant_role when auto_grant_on_org is enabled)
-        3. Sign a JWT with the server's platform-token key containing the user's identity
+        2. Resolve the identity account for user_id; on first use, create it when
+        create_accounts_on_sign_in is set (and grant sign_in_role when one is set)
+        3. Sign a JWT with the server's platform-token key containing the user's
+        identity and the client's owning organization, which binds the token:
+        it works in that organization only
 
         Error scenarios:
         - UNAUTHENTICATED: Invalid client_id or client_secret
-        - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts
+        - FAILED_PRECONDITION: user_id does not exist and create_accounts_on_sign_in
         is false, the PlatformClient secret has expired, or the server does not
         authenticate its callers
         - INTERNAL: Account provisioning could not be completed. No partial

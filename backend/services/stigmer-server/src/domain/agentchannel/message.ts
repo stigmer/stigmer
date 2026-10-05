@@ -47,6 +47,7 @@ import type { MessagingChannels } from "@stigmer/protos/ai/stigmer/agentic/agent
 
 import { failedPreconditionError } from "../../pipeline/errors.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
+import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { ChannelRuntime } from "./channel-runtime.js";
 import { PROACTIVE_MESSAGING_UNAVAILABLE_MESSAGE } from "./constants.js";
 
@@ -79,13 +80,19 @@ export function registerChannelMessageServices(
   }
 
   const { messaging } = channelRuntime;
+  // The runtime decides who may message or read templates; a credential
+  // bound to one organization names no other (refuse-bound-elsewhere.ts).
   router.service(ChannelMessageCommandController, {
-    sendMessage: (input, ctx) =>
-      messaging.sendMessage(input, callerIdentityOf(ctx)),
+    sendMessage: (input, ctx) => {
+      refuseBoundElsewhere(callerIdentityOf(ctx), input.org);
+      return messaging.sendMessage(input, callerIdentityOf(ctx));
+    },
   });
   router.service(ChannelMessageQueryController, {
-    listTemplates: (input, ctx) =>
-      messaging.listTemplates(input, callerIdentityOf(ctx)),
+    listTemplates: (input, ctx) => {
+      refuseBoundElsewhere(callerIdentityOf(ctx), input.org);
+      return messaging.listTemplates(input, callerIdentityOf(ctx));
+    },
     listMessagingChannels: (input, ctx) =>
       messaging.listMessagingChannels(input, callerIdentityOf(ctx)),
   });

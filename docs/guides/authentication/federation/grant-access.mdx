@@ -11,9 +11,10 @@ This page shows how to grant roles manually so federated users can access your
 Organization's resources.
 
 <Callout type="info">
-  **Using JIT provisioning?** If your Identity Provider has `autoGrantOnOrg`
-  enabled, Stigmer grants roles automatically when accounts are provisioned. You
-  don't need to create IAM Policies manually. See [Enable JIT
+  **Using JIT provisioning?** If your Identity Provider sets a `signInRole`,
+  Stigmer grants that role the first time an account signs in to an
+  Organization. You don't need to create IAM Policies for that role. See [Enable
+  JIT
   provisioning](/docs/guides/authentication/federation/register-identity-provider#enable-jit-provisioning)
   for the automatic setup.
 </Callout>
@@ -350,8 +351,9 @@ client.iamPolicies().revokeOrgAccess(RevokeOrgAccessInput.builder()
   exists but can no longer access any resources. If you also want to remove the
   account, call `identityAccount.delete` after revoking access. With a JIT or
   SSO Identity Provider, keep the account instead: a deleted account is created
-  again, with any role the provider grants automatically, at the user's next
-  sign-in.
+  again, with the provider's sign-in role, at the user's next sign-in. A kept
+  account does not get the sign-in role back once it has signed in to the
+  Organization.
 </Callout>
 
 ## What's next

@@ -6,7 +6,9 @@
  *     token naming no client, refuses a deleted client's token with the
  *     cloud's liveness copy, lets a store fault propagate (never a
  *     revocation), and stamps the account from `sub` as a `user` with the
- *     minting client it verified, for the audit actor (#1256);
+ *     minting client it verified, for the audit actor (#1256), bound to
+ *     the organization its `org` claim names; a token whose `org` claim is
+ *     missing, empty or not its client's organization is refused;
  *   - the guard reads no client for a request without an Origin, passes an
  *     open allowlist and a listed origin case-insensitively, refuses an
  *     unlisted origin and the opaque "null" with the cloud's copy, and
@@ -27,7 +29,11 @@ import type { CallerIdentity } from "../../../extensions/identity.js";
 import { signPlatformToken } from "../../../platformtoken/envelope.js";
 import { platformTokenKeyRingFromPem } from "../../../platformtoken/key-ring.js";
 import type { SigningPlatformTokenKeyRing } from "../../../platformtoken/key-ring.js";
-import { DELETED_CLIENT_MESSAGE, originRefusalMessage } from "../constants.js";
+import {
+  DELETED_CLIENT_MESSAGE,
+  TOKEN_ORGANIZATION_MISMATCH_MESSAGE,
+  originRefusalMessage,
+} from "../constants.js";
 import { newPlatformClientOriginGuard } from "../origin-guard.js";
 import { newPlatformClientTokenVerifier } from "../verifier.js";
 
@@ -60,6 +66,7 @@ function userToken(claims: Record<string, string> = {}): string {
     email: "pat@example.com",
     name: "Pat",
     platform_client_id: "pcl_dashboard",
+    org: "acme",
     ...claims,
   }).token;
 }
@@ -98,7 +105,28 @@ describe("the PlatformClient user-token verifier", () => {
       email: "pat@example.com",
       displayName: "Pat",
       platformClientId: "pcl_dashboard",
+      boundOrg: "acme",
     });
+  });
+
+  it("refuses a token whose org claim is missing, empty or another organization's", async () => {
+    const verifier = newPlatformClientTokenVerifier({
+      keys: ring,
+      clients: storeOf(client()),
+    });
+    const unsigned = signPlatformToken(ring, {
+      sub: "ida_pat",
+      platform_client_id: "pcl_dashboard",
+    }).token;
+    for (const token of [
+      unsigned,
+      userToken({ org: "" }),
+      userToken({ org: "globex" }),
+    ]) {
+      const refused = await refusal(verifier.verify(token));
+      expect(refused.code).toBe(Code.Unauthenticated);
+      expect(refused.rawMessage).toBe(TOKEN_ORGANIZATION_MISMATCH_MESSAGE);
+    }
   });
 
   it("passes a foreign token and a typed platform token to the next verifier", async () => {

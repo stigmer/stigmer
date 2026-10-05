@@ -79,9 +79,8 @@ const SECRET = "stgm_cs_the-secret";
 
 function platformClient(
   spec: Partial<{
-    autoProvisionAccounts: boolean;
-    autoGrantOnOrg: boolean;
-    autoGrantRole: IamRole;
+    createAccountsOnSignIn: boolean;
+    signInRole: IamRole;
     neverExpires: boolean;
     expiresAt: Date;
   }> = {},
@@ -91,9 +90,8 @@ function platformClient(
     spec: {
       clientId: "stgm_cid_dashboard",
       clientSecretHash: hashClientSecret(SECRET),
-      autoProvisionAccounts: spec.autoProvisionAccounts ?? true,
-      autoGrantOnOrg: spec.autoGrantOnOrg ?? false,
-      autoGrantRole: spec.autoGrantRole ?? IamRole.iam_role_unspecified,
+      createAccountsOnSignIn: spec.createAccountsOnSignIn ?? true,
+      signInRole: spec.signInRole ?? IamRole.iam_role_unspecified,
       neverExpires: spec.neverExpires ?? false,
       ...(spec.expiresAt !== undefined
         ? { expiresAt: timestampFromDate(spec.expiresAt) }
@@ -297,7 +295,9 @@ describe("mintUserToken — the server and the client", () => {
 
 describe("mintUserToken — the user", () => {
   it("reuses an existing platform-client account with no grant and no write", async () => {
-    const h = harness({ client: platformClient({ autoGrantOnOrg: true }) });
+    const h = harness({
+      client: platformClient({ signInRole: IamRole.viewer }),
+    });
     h.accounts.set(
       SUBJECT,
       create(IdentityAccountSchema, {
@@ -335,7 +335,7 @@ describe("mintUserToken — the user", () => {
 
   it("refuses an unknown user when the client does not provision", async () => {
     const h = harness({
-      client: platformClient({ autoProvisionAccounts: false }),
+      client: platformClient({ createAccountsOnSignIn: false }),
     });
     const denied = await refusal(mintUserToken(h.deps, request()));
     expect(denied.code).toBe(Code.FailedPrecondition);
@@ -346,8 +346,7 @@ describe("mintUserToken — the user", () => {
   it("grants first on the derived id, then creates the account as the client with the cloud's shape", async () => {
     const h = harness({
       client: platformClient({
-        autoGrantOnOrg: true,
-        autoGrantRole: IamRole.member,
+        signInRole: IamRole.member,
       }),
     });
     const minted = await mintUserToken(h.deps, request());
@@ -394,15 +393,15 @@ describe("mintUserToken — the user", () => {
     expect(verified.token.tokenType).toBeUndefined();
   });
 
-  it("grants viewer when the role is unspecified, and refuses an owner auto-grant", async () => {
-    const h = harness({ client: platformClient({ autoGrantOnOrg: true }) });
+  it("grants nothing when no sign-in role is set, and refuses an owner sign-in role", async () => {
+    const h = harness({ client: platformClient({}) });
     await mintUserToken(h.deps, request());
-    expect(h.granted[0]?.spec.relation).toBe("viewer");
+    expect(h.granted).toEqual([]);
+    expect(h.events).toEqual(["create"]);
 
     const owner = harness({
       client: platformClient({
-        autoGrantOnOrg: true,
-        autoGrantRole: IamRole.owner,
+        signInRole: IamRole.owner,
       }),
     });
     const denied = await refusal(mintUserToken(owner.deps, request()));
@@ -412,7 +411,7 @@ describe("mintUserToken — the user", () => {
 
   it("writes nothing when the grant fails, and says the request is safe to retry", async () => {
     const h = harness({
-      client: platformClient({ autoGrantOnOrg: true }),
+      client: platformClient({ signInRole: IamRole.viewer }),
       failGrant: true,
     });
     const failed = await refusal(mintUserToken(h.deps, request()));
@@ -424,7 +423,7 @@ describe("mintUserToken — the user", () => {
 
   it("leaves the grant when the create fails, and the next mint completes the account", async () => {
     const failing = harness({
-      client: platformClient({ autoGrantOnOrg: true }),
+      client: platformClient({ signInRole: IamRole.viewer }),
       failCreate: "fault",
     });
     await expect(mintUserToken(failing.deps, request())).rejects.toThrow(
@@ -432,7 +431,9 @@ describe("mintUserToken — the user", () => {
     );
     expect(failing.events).toEqual(["grant", "create"]);
 
-    const retry = harness({ client: platformClient({ autoGrantOnOrg: true }) });
+    const retry = harness({
+      client: platformClient({ signInRole: IamRole.viewer }),
+    });
     await mintUserToken(retry.deps, request());
     expect(retry.granted[0]?.spec.principal?.id).toBe(
       failing.granted[0]?.spec.principal?.id,

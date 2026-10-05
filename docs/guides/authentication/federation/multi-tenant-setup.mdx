@@ -81,8 +81,10 @@ The Identity Provider is registered once in your platform's Organization. For
 each new customer, your backend creates a platform-managed Organization linked
 to that Identity Provider. Each user has one federated account, which belongs to
 the Identity Provider; a role on a tenant Organization is what lets that user
-into the tenant. Tenants share the same authentication system but have
-completely separate resources and access controls.
+into the tenant. Each token your auth provider issues names one tenant in a
+claim, and Stigmer lets that token work in that tenant only. Tenants share the
+same authentication system but have completely separate resources and access
+controls.
 
 ## Create a platform-managed Organization
 
@@ -268,6 +270,146 @@ looking up their Stigmer Organization. Your platform knows its own tenant ID;
 `getByExternalOrgId` maps it to the Stigmer Organization without requiring you
 to store Stigmer IDs in a separate mapping.
 
+## Bind each token to its tenant
+
+Every token an Identity Provider vouches for works in one Organization only.
+Without `tenantOrgClaim`, that Organization is the Identity Provider's own
+(`acme` here), so your users' tokens would never reach a tenant. Set
+`tenantOrgClaim` to the name of the JWT claim that carries your tenant ID, and
+put that claim in every token your auth provider issues for Stigmer:
+
+```json
+{
+  "iss": "https://acme.us.auth0.com/",
+  "sub": "auth0|507f1f77bcf86cd799439011",
+  "aud": "https://api.acme.com/stigmer",
+  "org_id": "acme-tenant-alpha-id"
+}
+```
+
+On every request, Stigmer:
+
+1. Reads the claim value from the token (here, claim `org_id` yields
+   `acme-tenant-alpha-id`)
+2. Looks up the platform-managed Organization whose `identityProviderRef` is
+   this Identity Provider and whose `externalOrgId` matches the value
+3. Binds the token to that Organization: the token works there and nowhere else,
+   whatever roles the user holds in other tenants
+
+Stigmer reads the claim on every token, from a user's first sign-in to their
+latest. A user who belongs to several tenants signs in to each one with a token
+that names it.
+
+<Callout type="info">
+  **Example.** Alice is a user at two of your customers, Alpha and Beta, and
+  holds a role in both tenant Organizations. Her token that claims Alpha is
+  refused in Beta, even though she holds a role there. To work in Beta, she
+  signs in with a token that claims Beta. If your Identity Provider sets a
+  `signInRole`, the first time she signs in to Beta with a Beta token she
+  receives that role in Beta, once.
+</Callout>
+
+Set `tenantOrgClaim` when you register the Identity Provider:
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+const idp = await stigmer.identityProvider.create({
+  name: "Acme Cloud Auth",
+  org: "acme",
+  slug: "acme-cloud-auth",
+  displayName: "Acme Cloud Auth",
+  jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
+  allowedIssuers: ["https://acme.us.auth0.com/"],
+  expectedAudience: "https://api.acme.com/stigmer",
+  tenantOrgClaim: "org_id",
+});
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
+  Name:             "Acme Cloud Auth",
+  Org:              "acme",
+  Slug:             "acme-cloud-auth",
+  DisplayName:      "Acme Cloud Auth",
+  JwksUri:          "https://acme.us.auth0.com/.well-known/jwks.json",
+  AllowedIssuers:   []string{"https://acme.us.auth0.com/"},
+  ExpectedAudience: "https://api.acme.com/stigmer",
+  TenantOrgClaim:   "org_id",
+})
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+idp = client.identity_providers.create(IdentityProviderInput(
+    name="Acme Cloud Auth",
+    org="acme",
+    slug="acme-cloud-auth",
+    display_name="Acme Cloud Auth",
+    jwks_uri="https://acme.us.auth0.com/.well-known/jwks.json",
+    allowed_issuers=["https://acme.us.auth0.com/"],
+    expected_audience="https://api.acme.com/stigmer",
+    tenant_org_claim="org_id",
+))
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.builder()
+    .name("Acme Cloud Auth")
+    .org("acme")
+    .slug("acme-cloud-auth")
+    .displayName("Acme Cloud Auth")
+    .jwksUri("https://acme.us.auth0.com/.well-known/jwks.json")
+    .allowedIssuers(List.of("https://acme.us.auth0.com/"))
+    .expectedAudience("https://api.acme.com/stigmer")
+    .tenantOrgClaim("org_id")
+    .build());
+```
+
+</Tab>
+</SDKTabs>
+
+`tenantOrgClaim` works on its own: Stigmer binds each token to its tenant and
+grants nothing. That suits a platform that creates accounts and grants roles
+from its backend, as the next two sections show. To have Stigmer create accounts
+and grant a role as well, see
+[Create accounts and grant a role at sign-in](#create-accounts-and-grant-a-role-at-sign-in).
+
+### What a bound token can reach
+
+A token bound to a tenant can still reach:
+
+- The tenant Organization's resources, as the user's role there allows
+- What belongs to no Organization: the user's own Identity Account and API keys
+- Agents, Skills, Workflows, MCP Servers and Plugins shared at Platform
+  visibility, to read and to run
+
+It cannot create an Organization or accept an invitation to another
+Organization.
+
+### Errors
+
+| Error                       | When                                                                                            | What to do                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `UNAUTHENTICATED` (`401`)   | The token lacks the `tenantOrgClaim` claim, or its value is not a string                        | Put the claim, as a string, in every token your auth provider issues for Stigmer               |
+| `UNAUTHENTICATED` (`401`)   | The claim names no platform-managed Organization's `externalOrgId` under this Identity Provider | Create the tenant Organization with that `externalOrgId`, or fix the value your provider sends |
+| `PERMISSION_DENIED` (`403`) | The token names one tenant and the request targets another                                      | Sign in with a token that names the tenant the request targets                                 |
+| `PERMISSION_DENIED` (`403`) | The token names the right tenant, but the user's role there doesn't allow the request           | Grant a role on the tenant Organization                                                        |
+
+Stigmer refuses a missing or unknown claim on every sign-in, returning users
+included, and the refusal does not name the tenant. A first sign-in refused this
+way leaves no account behind. This is a fail-closed design: a token that names
+no known tenant reaches nothing.
+
 ## Provision users and place them in tenants
 
 When a user signs up on your platform, provision their federated Identity
@@ -275,7 +417,8 @@ Account once, under the Organization that owns your Identity Provider: the `org`
 field must be the Identity Provider reference's own `org`, and Stigmer refuses
 any other value with `INVALID_ARGUMENT`. The account belongs to your Identity
 Provider, not to a tenant. What places the user in a tenant is the role you
-grant on that tenant's Organization in the next step.
+grant on that tenant's Organization in the next step, and what lets their token
+reach the tenant is the claim that [binds it](#bind-each-token-to-its-tenant).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -426,46 +569,23 @@ client.iamPolicies().create(IamPolicySpec.builder()
 </SDKTabs>
 
 Because IAM Policies are scoped to a specific Organization, a user with `viewer`
-on `tenant-alpha` cannot see resources in `tenant-beta`. The Organization
+on `tenant-alpha` cannot see resources in `tenant-beta`. The token is bound too:
+a token that names `tenant-alpha` works in `tenant-alpha` only. The Organization
 boundary enforces tenant isolation at the authorization layer.
 
-## JIT provisioning for multi-tenant platforms
+## Create accounts and grant a role at sign-in
 
-With JIT provisioning and `tenantOrgClaim`, you can eliminate per-user
-provisioning code entirely. You still create tenant Organizations, but Stigmer
-handles account creation and role grants automatically based on a JWT claim.
-
-### How `tenantOrgClaim` works
-
-When you set `tenantOrgClaim` on an Identity Provider, Stigmer reads that claim
-from the JWT when it creates the user's account, at their first sign-in, and
-uses it to place the user in the correct tenant Organization. The resolution
-algorithm:
-
-1. Read the claim value from the JWT (for example, claim `org_id` yields value
-   `tenant-123`)
-2. Look up the platform-managed Organization where `identityProviderRef` matches
-   this Identity Provider and `externalOrgId` matches the claim value
-3. Create a federated account if one doesn't exist (because
-   `autoProvisionAccounts` is `true`)
-4. Grant `autoGrantRole` (default: viewer) on the resolved tenant Organization
-   (because `autoGrantOnOrg` is `true`)
-
-<Callout type="warn">
-  Stigmer reads the claim only at the sign-in that creates the account. A
-  returning user is not placed again: if their token names another tenant,
-  Stigmer grants nothing there, so grant that role from your backend with an IAM
-  Policy, as in manual setup.
-</Callout>
+With `createAccountsOnSignIn` and `signInRole` beside `tenantOrgClaim`, you can
+drop per-user provisioning code. You still create tenant Organizations, but
+Stigmer creates each user's account the first time they sign in and grants the
+sign-in role the first time they sign in to each tenant.
 
 <ScenarEmbed
   id="multi-tenant-jit-playback"
   title="Multi-tenant JIT provisioning walkthrough"
 />
 
-### Set up JIT with tenant routing
-
-Register an Identity Provider with JIT provisioning and `tenantOrgClaim`:
+Register the Identity Provider with all three settings:
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -479,9 +599,8 @@ const idp = await stigmer.identityProvider.create({
   jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
   allowedIssuers: ["https://acme.us.auth0.com/"],
   expectedAudience: "https://api.acme.com/stigmer",
-  autoProvisionAccounts: true,
-  autoGrantOnOrg: true,
-  autoGrantRole: "member",
+  createAccountsOnSignIn: true,
+  signInRole: "member",
   tenantOrgClaim: "org_id",
 });
 ```
@@ -491,17 +610,16 @@ const idp = await stigmer.identityProvider.create({
 
 ```go
 idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
-  Name:                  "Acme Cloud Auth",
-  Org:                   "acme",
-  Slug:                  "acme-cloud-auth",
-  DisplayName:           "Acme Cloud Auth",
-  JwksUri:               "https://acme.us.auth0.com/.well-known/jwks.json",
-  AllowedIssuers:        []string{"https://acme.us.auth0.com/"},
-  ExpectedAudience:      "https://api.acme.com/stigmer",
-  AutoProvisionAccounts: true,
-  AutoGrantOnOrg:        true,
-  AutoGrantRole:         "member",
-  TenantOrgClaim:        "org_id",
+  Name:                   "Acme Cloud Auth",
+  Org:                    "acme",
+  Slug:                   "acme-cloud-auth",
+  DisplayName:            "Acme Cloud Auth",
+  JwksUri:                "https://acme.us.auth0.com/.well-known/jwks.json",
+  AllowedIssuers:         []string{"https://acme.us.auth0.com/"},
+  ExpectedAudience:       "https://api.acme.com/stigmer",
+  CreateAccountsOnSignIn: true,
+  SignInRole:             "member",
+  TenantOrgClaim:         "org_id",
 })
 ```
 
@@ -517,9 +635,8 @@ idp = client.identity_providers.create(IdentityProviderInput(
     jwks_uri="https://acme.us.auth0.com/.well-known/jwks.json",
     allowed_issuers=["https://acme.us.auth0.com/"],
     expected_audience="https://api.acme.com/stigmer",
-    auto_provision_accounts=True,
-    auto_grant_on_org=True,
-    auto_grant_role="member",
+    create_accounts_on_sign_in=True,
+    sign_in_role="member",
     tenant_org_claim="org_id",
 ))
 ```
@@ -536,9 +653,8 @@ IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.b
     .jwksUri("https://acme.us.auth0.com/.well-known/jwks.json")
     .allowedIssuers(List.of("https://acme.us.auth0.com/"))
     .expectedAudience("https://api.acme.com/stigmer")
-    .autoProvisionAccounts(true)
-    .autoGrantOnOrg(true)
-    .autoGrantRole("member")
+    .createAccountsOnSignIn(true)
+    .signInRole("member")
     .tenantOrgClaim("org_id")
     .build());
 ```
@@ -549,42 +665,35 @@ IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.b
 With this configuration, your platform only needs to:
 
 1. Create tenant Organizations with `externalOrgId` set (same as manual setup)
-2. Include the tenant identifier as a claim in your JWTs (for example,
+2. Put the tenant identifier in a claim in every JWT (for example,
    `"org_id": "acme-tenant-alpha-id"`)
 
-When a user authenticates, Stigmer reads the `org_id` claim from the JWT, finds
-the Organization with that `externalOrgId`, creates the user's account, and
-grants the member role on that Organization. No per-user provisioning code
-needed.
+The first time a user signs in to a tenant, Stigmer reads the `org_id` claim,
+finds the Organization with that `externalOrgId`, creates the user's account if
+they have none, and grants `member` on that Organization. When the same user
+first signs in to a second tenant, with a token that names it, Stigmer grants
+`member` there too. No per-user provisioning code needed.
 
-### Error handling
+<Callout type="info">
+  Stigmer grants the sign-in role once per account and tenant. If an
+  administrator later removes it, it stays removed, and changing `signInRole`
+  does not reach users who already signed in to that tenant. To give one user a
+  different role, grant it from your backend with an IAM Policy. The `owner`
+  role cannot be the sign-in role.
+</Callout>
 
-If, at a user's first sign-in, the JWT does not contain the `tenantOrgClaim`, or
-its value does not match any platform-managed Organization's `externalOrgId`
-under this Identity Provider, Stigmer refuses the sign-in with
-`401 Unauthenticated` and removes the account it began to create. This is a
-fail-closed design: no account remains and no partial access is granted.
+### Automatic vs. manual for multi-tenant
 
-The refusal says that provisioning failed and the account was rolled back; it
-does not name the tenant. When it happens, check that the token carries the
-claim, and that an Organization with that `externalOrgId` exists under this
-Identity Provider. When `tenantOrgClaim` is configured, include the claim in
-every JWT.
+|                                | `createAccountsOnSignIn` and `signInRole`                          | Manual per-tenant provisioning                                   |
+| ------------------------------ | ------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| **Tenant org creation**        | You create them (same for both)                                    | You create them (same for both)                                  |
+| **Per-user provisioning code** | None — Stigmer handles it                                          | Your backend calls `createFederatedAccount` + `iamPolicy.create` |
+| **Tenant claim in every JWT**  | Required (same for both)                                           | Required (same for both)                                         |
+| **Role control**               | One role for every user, granted at their first sign-in per tenant | Different roles per user possible                                |
 
-### JIT vs. manual for multi-tenant
-
-|                                | JIT with `tenantOrgClaim`              | Manual per-tenant provisioning                                   |
-| ------------------------------ | -------------------------------------- | ---------------------------------------------------------------- |
-| **Tenant org creation**        | You create them (same for both)        | You create them (same for both)                                  |
-| **Per-user provisioning code** | None — Stigmer handles it              | Your backend calls `createFederatedAccount` + `iamPolicy.create` |
-| **JWT requirement**            | Must include a tenant identifier claim | No additional claim needed                                       |
-| **Role control**               | Same role for all users (configurable) | Different roles per user possible                                |
-| **Tenant resolution**          | Automatic from JWT claim               | Your backend maps tenant to org                                  |
-
-Choose JIT with `tenantOrgClaim` when all users in a tenant should get the same
-role and your auth provider can include a tenant identifier in the JWT. Choose
-manual provisioning when you need per-user role differences or your JWT doesn't
-carry tenant information.
+Choose automatic account creation when every user in a tenant should start with
+the same role. Choose manual provisioning when you need per-user role
+differences, or when you want to decide who gets an account before they sign in.
 
 ## Complete tenant onboarding flow (manual)
 
@@ -606,7 +715,7 @@ flowchart TD
   D --> E["Look up tenant org by external ID"]
   E --> F["Find or create the user's federated account"]
   F --> G["Grant org role via IAM Policy"]
-  G --> H["User calls Stigmer API with JWT"]
+  G --> H["User calls Stigmer API with a JWT naming the tenant"]
 `}
 />
 

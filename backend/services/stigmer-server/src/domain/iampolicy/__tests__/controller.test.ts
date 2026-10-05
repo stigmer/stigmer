@@ -48,7 +48,10 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import {
+  ApiResourceRefSchema,
+  IamPolicySpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import {
   IamPermission,
@@ -63,6 +66,8 @@ import type {
   AuthzCheck,
   AuthzDecision,
 } from "../../../extensions/authorizer.js";
+import type { CredentialBinding } from "../../../extensions/credential-binding.js";
+import { boundOrgOf } from "../../../extensions/identity.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { PolicyGrantScope } from "../../../extensions/policy-grant-scope.js";
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";
@@ -197,9 +202,50 @@ interface Harness {
   readonly policies: ReturnType<typeof fakeIamPolicyStore>;
 }
 
+/**
+ * A binding that reads no row: every target outside the bound organization
+ * is outside, which is all the self-query lanes' arms need to show that a
+ * bound person's answers are narrowed (the rule itself is pinned in
+ * authorization/__tests__/credential-binding.test.ts).
+ */
+function stubCredentialBinding(
+  outsideIds: ReadonlySet<string>,
+  fault?: Error,
+): CredentialBinding {
+  return {
+    verdict(caller, target) {
+      if (fault !== undefined) {
+        return Promise.reject(fault);
+      }
+      if (boundOrgOf(caller) === undefined) {
+        return Promise.resolve("unbound");
+      }
+      return Promise.resolve(outsideIds.has(target.id) ? "outside" : "inside");
+    },
+    admitsOrganization: (caller, org) => {
+      const bound = boundOrgOf(caller);
+      return bound === undefined || bound === org;
+    },
+    keepsEntry: () => true,
+    narrowIds(caller, _kind, ids) {
+      if (fault !== undefined) {
+        return Promise.reject(fault);
+      }
+      if (boundOrgOf(caller) === undefined) {
+        return Promise.resolve(ids);
+      }
+      return Promise.resolve(
+        new Set([...ids].filter((id) => !outsideIds.has(id))),
+      );
+    },
+  };
+}
+
 async function harness(options: {
   caller: CallerIdentity;
   engine?: boolean;
+  outsideIds?: ReadonlySet<string>;
+  bindingFault?: Error;
   edition?: ServerEdition;
   scope?: PolicyGrantScope;
   createGate?: PipelineStep<DescMessage>;
@@ -243,6 +289,10 @@ async function harness(options: {
         accounts,
         authorizer,
         grantScope: options.scope ?? newOrganizationOnlyGrantScope(),
+        credentialBinding: stubCredentialBinding(
+          options.outsideIds ?? new Set(),
+          options.bindingFault,
+        ),
         queries: engine,
         principalDisplay: undefined,
         gateSteps: new Map(
@@ -646,6 +696,83 @@ describe("checkAuthorization's principal-trust rule (the cloud's three refusals 
     expect(error.rawMessage).toContain(
       AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
     );
+  });
+});
+
+describe("the self-query lanes under a credential bound to one organization", () => {
+  const boundAlice: CallerIdentity = { ...alice, boundOrg: "acme" };
+
+  it("checkAuthorization answers false for a resource outside the binding, and never asks the engine", async () => {
+    const h = await harness({
+      caller: boundAlice,
+      engine: true,
+      outsideIds: new Set(["agt_elsewhere"]),
+    });
+    const result = await h.query.checkAuthorization({
+      policy: create(IamPolicySpecSchema, {
+        principal: ref("identity_account", ALICE_ID),
+        resource: ref("agent", "agt_elsewhere"),
+        relation: "can_view",
+      }),
+    });
+    expect(result.isAuthorized).toBe(false);
+    expect(h.engine?.calls).toEqual([]);
+  });
+
+  it("checkMyPermission with contextual policies answers false for a resource outside the binding, and never asks the engine", async () => {
+    const h = await harness({
+      caller: boundAlice,
+      engine: true,
+      outsideIds: new Set(["agt_elsewhere"]),
+    });
+    const result = await h.query.checkMyPermission({
+      resource: ref("agent", "agt_elsewhere"),
+      relation: "can_view",
+      contextualPolicies: [orgRole(ALICE_ID, "viewer", "acme")],
+    });
+    expect(result.isAuthorized).toBe(false);
+    expect(h.engine?.calls).toEqual([]);
+  });
+
+  it("answers INTERNAL, never a quiet answer, when the binding cannot read a target", async () => {
+    const h = await harness({
+      caller: boundAlice,
+      engine: true,
+      bindingFault: new Error("store unavailable"),
+    });
+    const checked = await refusal(() =>
+      h.query.checkAuthorization({
+        policy: create(IamPolicySpecSchema, {
+          principal: ref("identity_account", ALICE_ID),
+          resource: ref("agent", "agt_any"),
+          relation: "can_view",
+        }),
+      }),
+    );
+    expect(checked.code).toBe(Code.Internal);
+    const listed = await refusal(() =>
+      h.query.listAuthorizedResourceIds({
+        principal: ref("identity_account", ALICE_ID),
+        resourceKind: "agent",
+        relation: "can_view",
+      }),
+    );
+    expect(listed.code).toBe(Code.Internal);
+  });
+
+  it("listAuthorizedResourceIds drops the ids outside the binding", async () => {
+    const h = await harness({
+      caller: boundAlice,
+      engine: true,
+      outsideIds: new Set(["r1"]),
+    });
+    const listed = await h.query.listAuthorizedResourceIds({
+      principal: ref("identity_account", ALICE_ID),
+      resourceKind: "agent",
+      relation: "can_view",
+    });
+    expect(listed.resourceIds).toEqual([]);
+    expect(h.engine?.calls).toHaveLength(1);
   });
 });
 

@@ -476,7 +476,9 @@ is checked at a different moment:
   `${.env_vars.TEAM_ORG}/assistant` or `${ .input.agent }`, names its Agent only
   when the task runs, so Stigmer does not check it when you save. When the task
   runs, the value resolves to `slug` or `org/slug` and the Agent is read as the
-  person who ran the Workflow. If that person cannot view the Agent, the task
+  person who ran the Workflow, through a credential that works in the run's
+  Organization only. If that person cannot view the Agent, or it belongs to
+  another Organization and is not shared at `visibility_platform`, the task
   fails before the Agent starts.
 
 A Workflow that names an Agent nobody has applied yet is refused when saved. The

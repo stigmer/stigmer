@@ -27,6 +27,7 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecu
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import type { CallerIdentity } from "../../../extensions/identity.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 
@@ -220,6 +221,33 @@ describe("CreateDefaultInstanceIfNeeded (create.go resolution paths)", () => {
       WorkflowSchema,
     );
     expect(workflow.status?.defaultInstanceId).toBe("wfi_created");
+  });
+
+  it("creates the default instance unbound for a caller whose credential is bound to the run's organization", async () => {
+    const workflowId = await seedWorkflow({ slug: "shared" });
+    const callers: CallerIdentity[] = [];
+    const deps = {
+      store,
+      logger: silentLogger,
+      workflowInstanceCreator: () => ({
+        createAsCaller: async (_instance: WorkflowInstance, caller: CallerIdentity) => {
+          callers.push(caller);
+          return create(WorkflowInstanceSchema, {
+            metadata: { id: "wfi_shared", name: "n", slug: "s" },
+          });
+        },
+      }),
+    };
+    const ctx = new RequestContext(
+      WorkflowExecutionSchema,
+      create(WorkflowExecutionSchema, { spec: { workflowId } }),
+      { ...testCallerIdentity(), boundOrg: "org_a" },
+      ApiResourceKind.workflow_execution,
+    );
+    await newCreateDefaultInstanceIfNeededStep(deps).execute(ctx);
+    expect(callers).toHaveLength(1);
+    expect(callers[0]?.boundOrg).toBeUndefined();
+    expect(callers[0]?.identityId).toBe(testCallerIdentity().identityId);
   });
 
   it("a failing in-process create surfaces the inner code (goWrappedStatusError)", async () => {

@@ -44,7 +44,7 @@ spec:
 
 ## Just-In-Time Provisioning
 
-Let Stigmer create each user's account on their first sign-in instead of creating accounts ahead of time, and grant every new account a role on the owning organization.
+Let Stigmer create each user's account on their first sign-in instead of creating accounts ahead of time, and grant every account a role on the owning organization the first time it signs in there.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
@@ -60,9 +60,28 @@ spec:
     - "https://auth.partner.example.com/"
   expected_audience: "https://stigmer.partner.example.com/"
   userinfo_endpoint: "https://auth.partner.example.com/userinfo"
-  auto_provision_accounts: true
-  auto_grant_on_org: true
-  auto_grant_role: member
+  create_accounts_on_sign_in: true
+  sign_in_role: member
+```
+
+## Multi-Tenant Binding
+
+Bind each token to the tenant organization it names. Stigmer reads `org_id` from every token and resolves it to the platform-managed organization whose `external_org_id` matches under this provider; the token works in that organization only. A token without the claim, or naming an unknown tenant, is refused as unauthenticated. With no `sign_in_role`, Stigmer grants nothing and the platform grants roles itself through IAM policies.
+
+```yaml
+apiVersion: iam.stigmer.ai/v1
+kind: IdentityProvider
+metadata:
+  name: SaaS Platform
+  slug: saas-platform
+  org: saas-co
+spec:
+  display_name: "SaaS Platform"
+  jwks_uri: "https://auth.saas.example.com/.well-known/jwks.json"
+  allowed_issuers:
+    - "https://auth.saas.example.com/"
+  expected_audience: "https://stigmer.saas.example.com/"
+  tenant_org_claim: "org_id"
 ```
 
 ## CLI: Apply (Create or Update)

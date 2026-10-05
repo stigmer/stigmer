@@ -287,6 +287,8 @@ await update({
   displayName: "Acme Corp SSO",
   isSsoProvider: true,
   oidcClientId: "abc123",
+  createAccountsOnSignIn: true,
+  signInRole: IamRole.viewer,
 });
 refetch(); // refresh detail view
 ```
@@ -301,7 +303,10 @@ Form for creating a new identity provider within an organization.
 Collects the required OIDC trust configuration: **name** (display
 name), **JWKS URI**, **allowed issuers**, and **expected audience**.
 Optionally enables SSO by toggling the SSO switch and providing an
-**OIDC client ID**.
+**OIDC client ID**, and sets what a sign-in does: whether it creates
+the person's account, the role granted on their first sign-in to the
+organization, and the claim that binds a token to an organization. An
+SSO provider starts with account creation on and the viewer role.
 
 On success it fires `onCreated` with the full `IdentityProvider`
 response.
@@ -339,8 +344,9 @@ In **view mode**, displays all OIDC configuration fields in a
 structured label/value layout, with an "Edit" button for a caller who
 may edit the provider (`can_edit`).
 
-In **edit mode**, fields become editable inputs. The SSO toggle and
-OIDC client ID are editable. "Save" submits the update via
+In **edit mode**, fields become editable inputs. The SSO toggle,
+OIDC client ID and sign-in settings (account creation, sign-in role,
+tenant org claim) are editable. "Save" submits the update via
 [`useUpdateIdentityProvider`](#useupdateidentityprovider); "Cancel" discards changes and
 returns to view mode.
 
@@ -417,7 +423,8 @@ Guides the user through three steps:
 2. **Configure** — fill in provider-specific variables (e.g., Auth0
    tenant name) plus the IdP display name and expected audience
 3. **Review** — verify auto-populated OIDC configuration, optionally
-   enable SSO, and submit
+   enable SSO, set what a sign-in does (account creation, sign-in role,
+   tenant org claim), and submit
 
 For known presets, URLs are constructed from deterministic templates
 (no network call). For "Custom OIDC", the wizard attempts OIDC

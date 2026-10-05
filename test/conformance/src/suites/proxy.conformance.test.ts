@@ -29,7 +29,8 @@
 // measure the real edge alongside the authorization arms (FGA 403).
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { CLOUD_ENV, mintCloudUserToken } from "../harness/cloud-env";
+import { CLOUD_ENV, provisionConsolePerson, requireDirectLoginTenant } from "../harness/cloud-env";
+import { createTransport, makeClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { anthropicText, openAiText } from "@stigmer/test-support/llm-wire";
 import { makeAgent, agentRefOf } from "../support/agents";
@@ -531,15 +532,14 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
   });
 });
 
-// A fresh outsider's bearer: minted through the bootstrap PlatformClient the
-// same way CloudTarget.provisionIdentity mints, but returning the token itself
-// because the HTTP lanes need the raw bearer rather than gRPC clients.
+// A fresh outsider's bearer: a console person the environment's tenant signs
+// in, as CloudTarget.provisionIdentity makes one, but returning the token
+// itself because the HTTP lanes need the raw bearer rather than gRPC clients.
 async function mintOutsiderToken(): Promise<string> {
   const address = process.env[CLOUD_ENV.address] ?? "";
-  const clientId = process.env[CLOUD_ENV.platformClientId] ?? "";
-  const clientSecret = process.env[CLOUD_ENV.platformClientSecret] ?? "";
-  if (address === "" || clientId === "" || clientSecret === "") {
-    throw new Error("the proxy suite needs CLOUD_ENV.platformClientId/Secret to mint an outsider");
+  if (address === "") {
+    throw new Error(`the proxy suite needs ${CLOUD_ENV.address} to mint an outsider`);
   }
-  return mintCloudUserToken(address, { clientId, clientSecret }, uniqueName("conf-proxy-outsider"));
+  const presenting = (token: string) => makeClients(createTransport(address, { bearerToken: token }));
+  return (await provisionConsolePerson(requireDirectLoginTenant(), presenting)).token;
 }

@@ -13,16 +13,20 @@ Providers.
 
 Federation supports three provisioning modes:
 
-- **JIT provisioning** — Stigmer creates accounts and grants roles automatically
-  when a user authenticates with a valid JWT. Your backend only registers the
-  Identity Provider. Best for platforms where all authenticated users should
-  have Stigmer access.
+- **JIT provisioning** — Stigmer creates accounts and grants a sign-in role
+  automatically when a user authenticates with a valid JWT. Your backend only
+  registers the Identity Provider. Best for platforms where all authenticated
+  users should have Stigmer access.
 - **Manual provisioning** — Your platform backend creates federated accounts and
   grants roles via the API before users can authenticate. Best for platforms
   that need to control exactly who gets access and when.
 - **Self-managed SSO** — Your team members sign in to the Stigmer web console
   through your Organization's Identity Provider. Accounts are created
   automatically on first login.
+
+Whichever mode you choose, every token an Identity Provider vouches for is bound
+to one Organization and works there only: the Identity Provider's own
+Organization, or the tenant Organization a `tenantOrgClaim` claim names.
 
 ## When you need this
 
@@ -51,7 +55,7 @@ credentials needed.
 | -------------------- | --------------------------------------------- | ---------------------------------------------- | ------------------------------------ |
 | **Who it's for**     | Platform API integrations                     | Platform API integrations                      | Self-managed Organizations           |
 | **Account creation** | Automatic on first JWT                        | Your backend calls `createFederatedAccount`    | Automatic on first web login         |
-| **Role assignment**  | Automatic (configurable role)                 | Your backend creates IAM Policies              | Automatic (viewer)                   |
+| **Role assignment**  | Automatic (`signInRole`)                      | Your backend creates IAM Policies              | Automatic (`signInRole`)             |
 | **Setup steps**      | Register IdP with JIT enabled                 | Register IdP, provision accounts, grant access | Register IdP with SSO enabled        |
 | **Use when**         | All authenticated users should access Stigmer | You need gated, explicit access control        | Team members need web console access |
 
@@ -152,7 +156,8 @@ All integration paths start with step 1. If you enable JIT provisioning in step
 
 If your Organization is self-managed and you want team members to sign in to the
 Stigmer web console through your own Identity Provider, you can enable SSO.
-Stigmer creates accounts automatically on first login and assigns a viewer role.
+Stigmer creates accounts automatically on first login and grants the sign-in
+role you choose, `viewer` by default in the console.
 
 <Cards>
   <Card
@@ -168,9 +173,8 @@ Stigmer creates accounts automatically on first login and assigns a viewer role.
 
 The steps above cover federation for a single Organization. If your platform
 serves multiple customers and each customer needs isolated resources, you create
-a separate Organization per tenant. With JIT provisioning and `tenantOrgClaim`,
-Stigmer can automatically route users to their tenant Organization based on a
-JWT claim.
+a separate Organization per tenant. With `tenantOrgClaim`, each token names its
+tenant Organization in a JWT claim and works in that tenant only.
 
 <Cards>
   <Card

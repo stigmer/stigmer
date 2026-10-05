@@ -52,6 +52,6 @@ export const ssoLoginSteps: ScenarioStep<SsoLoginStep>[] = [
     delayMs: 3000,
     data: { view: "console-welcome" },
     narration:
-      "After authentication, the user lands in the Stigmer console. On first login, Stigmer creates a federated account and grants the viewer role on the organization.",
+      "After authentication, the user lands in the Stigmer console. On first login, Stigmer creates a federated account and grants the provider's sign-in role, viewer here, on the organization.",
   },
 ];

@@ -46,39 +46,39 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "tions.proto\032\'ai/stigmer/commons/apiresou" +
       "rce/io.proto\032\034ai/stigmer/iam/v1/enum.pro" +
       "to\032\033buf/validate/validate.proto\032\037google/" +
-      "protobuf/timestamp.proto\"\257\010\n\022PlatformCli" +
+      "protobuf/timestamp.proto\"\310\010\n\022PlatformCli" +
       "entSpec\022!\n\tclient_id\030\001 \001(\tB\004\310\205,\001R\010client" +
       "Id\0222\n\022client_secret_hash\030\002 \001(\tB\004\310\205,\001R\020cl" +
       "ientSecretHash\0223\n\022secret_fingerprint\030\003 \001" +
       "(\tB\004\310\205,\001R\021secretFingerprint\0229\n\nexpires_a" +
       "t\030\004 \001(\0132\032.google.protobuf.TimestampR\texp" +
       "iresAt\022#\n\rnever_expires\030\005 \001(\010R\014neverExpi" +
-      "res\0226\n\027auto_provision_accounts\030\006 \001(\010R\025au" +
-      "toProvisionAccounts\022)\n\021auto_grant_on_org" +
-      "\030\007 \001(\010R\016autoGrantOnOrg\022B\n\017auto_grant_rol" +
-      "e\030\010 \001(\0162\032.ai.stigmer.iam.v1.IamRoleR\raut" +
-      "oGrantRole\022\'\n\017allowed_origins\030\t \003(\tR\016all" +
-      "owedOrigins\022\331\001\n\020environment_refs\030\n \003(\01324" +
-      ".ai.stigmer.commons.apiresource.ApiResou" +
-      "rceReferenceBx\272Hq\222\001n\"l\272\001i\n\025environment_r" +
-      "efs.kind\022?environment_refs must referenc" +
-      "e resources with kind=environment\032\017this." +
-      "kind == 53\340\205,5R\017environmentRefs:\200\003\272H\374\002\032\333" +
-      "\001\n2platform_client.auto_grant_requires_a" +
-      "uto_provision\022lauto_grant_on_org require" +
-      "s auto_provision_accounts: only an accou" +
-      "nt the client provisions receives the gr" +
-      "ant\0327!this.auto_grant_on_org || this.aut" +
-      "o_provision_accounts\032\233\001\n)platform_client" +
-      ".auto_grant_role_not_owner\022Sauto_grant_r" +
-      "ole cannot be owner; organization owners" +
-      "hip must be assigned explicitly\032\031this.au" +
-      "to_grant_role != 1B\260\001B\tSpecProtoP\001\242\002\004ASI" +
-      "P\252\002 Ai.Stigmer.Iam.Platformclient.V1\312\002 A" +
-      "i\\Stigmer\\Iam\\Platformclient\\V1\342\002,Ai\\Sti" +
-      "gmer\\Iam\\Platformclient\\V1\\GPBMetadata\352\002" +
-      "$Ai::Stigmer::Iam::Platformclient::V1b\006p" +
-      "roto3"
+      "res\022\'\n\017allowed_origins\030\t \003(\tR\016allowedOri" +
+      "gins\022\331\001\n\020environment_refs\030\n \003(\01324.ai.sti" +
+      "gmer.commons.apiresource.ApiResourceRefe" +
+      "renceBx\272Hq\222\001n\"l\272\001i\n\025environment_refs.kin" +
+      "d\022?environment_refs must reference resou" +
+      "rces with kind=environment\032\017this.kind ==" +
+      " 53\340\205,5R\017environmentRefs\022:\n\032create_accou" +
+      "nts_on_sign_in\030\013 \001(\010R\026createAccountsOnSi" +
+      "gnIn\022<\n\014sign_in_role\030\014 \001(\0162\032.ai.stigmer." +
+      "iam.v1.IamRoleR\nsignInRole:\367\002\272H\363\002\032\333\001\n6pl" +
+      "atform_client.sign_in_role_requires_acco" +
+      "unt_creation\022fsign_in_role requires crea" +
+      "te_accounts_on_sign_in: only an account " +
+      "the client creates receives the role\0329th" +
+      "is.sign_in_role == 0 || this.create_acco" +
+      "unts_on_sign_in\032\222\001\n&platform_client.sign" +
+      "_in_role_not_owner\022Psign_in_role cannot " +
+      "be owner; organization ownership must be" +
+      " assigned explicitly\032\026this.sign_in_role " +
+      "!= 1J\004\010\006\020\007J\004\010\007\020\010J\004\010\010\020\tR\027auto_provision_a" +
+      "ccountsR\021auto_grant_on_orgR\017auto_grant_r" +
+      "oleB\260\001B\tSpecProtoP\001\242\002\004ASIP\252\002 Ai.Stigmer." +
+      "Iam.Platformclient.V1\312\002 Ai\\Stigmer\\Iam\\P" +
+      "latformclient\\V1\342\002,Ai\\Stigmer\\Iam\\Platfo" +
+      "rmclient\\V1\\GPBMetadata\352\002$Ai::Stigmer::I" +
+      "am::Platformclient::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -94,7 +94,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientSpec_descriptor,
-        new java.lang.String[] { "ClientId", "ClientSecretHash", "SecretFingerprint", "ExpiresAt", "NeverExpires", "AutoProvisionAccounts", "AutoGrantOnOrg", "AutoGrantRole", "AllowedOrigins", "EnvironmentRefs", });
+        new java.lang.String[] { "ClientId", "ClientSecretHash", "SecretFingerprint", "ExpiresAt", "NeverExpires", "AllowedOrigins", "EnvironmentRefs", "CreateAccountsOnSignIn", "SignInRole", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();

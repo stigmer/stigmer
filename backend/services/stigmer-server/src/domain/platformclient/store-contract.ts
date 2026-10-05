@@ -66,7 +66,7 @@ function platformClient(fields: {
       clientId: fields.clientId,
       clientSecretHash: `hash-of-${fields.clientId}`,
       secretFingerprint: "abcdef",
-      autoProvisionAccounts: true,
+      createAccountsOnSignIn: true,
       allowedOrigins: fields.allowedOrigins ?? [],
     },
   });

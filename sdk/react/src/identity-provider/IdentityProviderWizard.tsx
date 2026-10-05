@@ -2,11 +2,18 @@
 
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js";
+import {
+  EMPTY_SIGN_IN_SETTINGS,
+  SignInSettingsSection,
+  signInSettingsComplete,
+  toSignInInput,
+  useSignInSettings,
+  type SignInSettings,
+} from "./SignInSettings.js";
 import { ProviderPicker } from "./ProviderPicker.js";
 import { useCreateIdentityProvider } from "./useCreateIdentityProvider.js";
 import { useOidcDiscovery } from "./useOidcDiscovery.js";
@@ -36,7 +43,8 @@ type WizardStep = "pick" | "configure" | "review" | "success";
  * 2. **Configure** — fill in provider-specific variables (e.g., Auth0
  *    tenant name) plus the IdP display name and expected audience
  * 3. **Review** — verify auto-populated OIDC configuration, optionally
- *    enable SSO, and submit
+ *    enable SSO, set what a sign-in does (account creation, sign-in role,
+ *    tenant org claim), and submit
  *
  * For known presets, URLs are constructed from deterministic templates
  * (no network call). For "Custom OIDC", the wizard attempts OIDC
@@ -81,11 +89,9 @@ export function IdentityProviderWizard({
   const [oidcClientId, setOidcClientId] = useState("");
   const [discoveryFailed, setDiscoveryFailed] = useState(false);
 
-  // JIT provisioning
-  const [autoProvision, setAutoProvision] = useState(false);
-  const [autoGrant, setAutoGrant] = useState(false);
-  const [autoGrantRole, setAutoGrantRole] = useState<IamRole>(IamRole.iam_role_unspecified);
-  const [tenantOrgClaim, setTenantOrgClaim] = useState("");
+  const { signIn, setSignIn, switchSso, reset } = useSignInSettings(
+    () => EMPTY_SIGN_IN_SETTINGS,
+  );
 
   // Success step
   const [createdIdp, setCreatedIdp] = useState<IdentityProvider | null>(null);
@@ -112,9 +118,10 @@ export function IdentityProviderWizard({
     setIssuers(config?.allowedIssuers.join(", ") ?? "");
     setUserinfoEndpoint(config?.userinfoEndpoint ?? "");
     setIsSso(false);
+    reset(EMPTY_SIGN_IN_SETTINGS);
     setOidcClientId("");
     setDiscoveryFailed(!config);
-  }, []);
+  }, [reset]);
 
   const handleContinueToReview = useCallback(async () => {
     if (!preset) return;
@@ -139,23 +146,13 @@ export function IdentityProviderWizard({
 
   // -- Submit ----------------------------------------------------------
 
-  const handleAutoProvisionChange = useCallback((v: boolean) => {
-    setAutoProvision(v);
-    if (!v) {
-      setAutoGrant(false);
-      setAutoGrantRole(IamRole.iam_role_unspecified);
-      setTenantOrgClaim("");
-    }
-  }, []);
-
-  const handleAutoGrantChange = useCallback((v: boolean) => {
-    setAutoGrant(v);
-    if (v) setAutoProvision(true);
-    if (!v) {
-      setAutoGrantRole(IamRole.iam_role_unspecified);
-      setTenantOrgClaim("");
-    }
-  }, []);
+  const handleIsSsoChange = useCallback(
+    (next: boolean) => {
+      setIsSso(next);
+      switchSso(next);
+    },
+    [switchSso],
+  );
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -177,16 +174,7 @@ export function IdentityProviderWizard({
             isSsoProvider: true,
             oidcClientId: oidcClientId.trim(),
           }),
-          ...(!isSso && {
-            autoProvisionAccounts: autoProvision,
-            autoGrantOnOrg: autoGrant,
-            ...(autoGrant && autoGrantRole !== IamRole.iam_role_unspecified && {
-              autoGrantRole,
-            }),
-            ...(autoGrant && tenantOrgClaim.trim() && {
-              tenantOrgClaim: tenantOrgClaim.trim(),
-            }),
-          }),
+          ...toSignInInput(signIn, isSso),
         });
         setCreatedIdp(idp);
         setStep("success");
@@ -196,8 +184,7 @@ export function IdentityProviderWizard({
     },
     [
       name, org, jwksUri, issuers, audience, userinfoEndpoint,
-      isSso, oidcClientId, autoProvision, autoGrant, autoGrantRole,
-      tenantOrgClaim, create, clearError,
+      isSso, oidcClientId, signIn, create, clearError,
     ],
   );
 
@@ -252,17 +239,11 @@ export function IdentityProviderWizard({
           userinfoEndpoint={userinfoEndpoint}
           onUserinfoEndpointChange={setUserinfoEndpoint}
           isSso={isSso}
-          onIsSsoChange={setIsSso}
+          onIsSsoChange={handleIsSsoChange}
           oidcClientId={oidcClientId}
           onOidcClientIdChange={setOidcClientId}
-          autoProvision={autoProvision}
-          onAutoProvisionChange={handleAutoProvisionChange}
-          autoGrant={autoGrant}
-          onAutoGrantChange={handleAutoGrantChange}
-          autoGrantRole={autoGrantRole}
-          onAutoGrantRoleChange={setAutoGrantRole}
-          tenantOrgClaim={tenantOrgClaim}
-          onTenantOrgClaimChange={setTenantOrgClaim}
+          signIn={signIn}
+          onSignInChange={setSignIn}
           isCreating={isCreating}
           createError={createError}
           onBack={handleBackToConfigure}
@@ -276,9 +257,7 @@ export function IdentityProviderWizard({
           identityProvider={createdIdp}
           org={org}
           isSso={isSso}
-          autoProvision={autoProvision}
-          autoGrant={autoGrant}
-          autoGrantRole={autoGrantRole}
+          signIn={signIn}
           onDone={() => onCreated?.(createdIdp)}
         />
       )}
@@ -468,14 +447,8 @@ function ReviewStep({
   onIsSsoChange,
   oidcClientId,
   onOidcClientIdChange,
-  autoProvision,
-  onAutoProvisionChange,
-  autoGrant,
-  onAutoGrantChange,
-  autoGrantRole,
-  onAutoGrantRoleChange,
-  tenantOrgClaim,
-  onTenantOrgClaimChange,
+  signIn,
+  onSignInChange,
   isCreating,
   createError,
   onBack,
@@ -493,14 +466,8 @@ function ReviewStep({
   onIsSsoChange: (v: boolean) => void;
   oidcClientId: string;
   onOidcClientIdChange: (v: string) => void;
-  autoProvision: boolean;
-  onAutoProvisionChange: (v: boolean) => void;
-  autoGrant: boolean;
-  onAutoGrantChange: (v: boolean) => void;
-  autoGrantRole: IamRole;
-  onAutoGrantRoleChange: (v: IamRole) => void;
-  tenantOrgClaim: string;
-  onTenantOrgClaimChange: (v: string) => void;
+  signIn: SignInSettings;
+  onSignInChange: (v: SignInSettings) => void;
   isCreating: boolean;
   createError: Error | null;
   onBack: () => void;
@@ -512,6 +479,7 @@ function ReviewStep({
     jwksUri.trim() !== "" &&
     issuers.trim() !== "" &&
     (!isSso || oidcClientId.trim() !== "") &&
+    signInSettingsComplete(signIn, isSso) &&
     !isCreating;
 
   return (
@@ -582,17 +550,10 @@ function ReviewStep({
         />
       )}
 
-      {/* JIT provisioning */}
-      <JitProvisioningSection
+      <SignInSettingsSection
         isSso={isSso}
-        autoProvision={autoProvision}
-        onAutoProvisionChange={onAutoProvisionChange}
-        autoGrant={autoGrant}
-        onAutoGrantChange={onAutoGrantChange}
-        autoGrantRole={autoGrantRole}
-        onAutoGrantRoleChange={onAutoGrantRoleChange}
-        tenantOrgClaim={tenantOrgClaim}
-        onTenantOrgClaimChange={onTenantOrgClaimChange}
+        value={signIn}
+        onChange={onSignInChange}
         disabled={isCreating}
       />
 
@@ -634,17 +595,13 @@ function SuccessStep({
   identityProvider,
   org,
   isSso,
-  autoProvision,
-  autoGrant,
-  autoGrantRole,
+  signIn,
   onDone,
 }: {
   identityProvider: IdentityProvider;
   org: string;
   isSso: boolean;
-  autoProvision: boolean;
-  autoGrant: boolean;
-  autoGrantRole: IamRole;
+  signIn: SignInSettings;
   onDone: () => void;
 }) {
   const displayName =
@@ -652,10 +609,10 @@ function SuccessStep({
     identityProvider.metadata?.name ||
     "Identity provider";
 
-  const roleName =
-    autoGrantRole !== IamRole.iam_role_unspecified
-      ? IamRole[autoGrantRole]
-      : "viewer";
+  const createsAccounts = isSso || signIn.createAccounts;
+  const grantsRole = signIn.signInRole !== IamRole.iam_role_unspecified;
+  const roleName = IamRole[signIn.signInRole];
+  const claim = signIn.tenantOrgClaim.trim();
 
   return (
     <div className="stg:space-y-4">
@@ -668,35 +625,43 @@ function SuccessStep({
       <div className="stg:space-y-2">
         <p className="stg:text-xs stg:font-medium stg:text-foreground">What happens next</p>
 
-        {isSso ? (
+        {isSso && (
           <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             Users can sign in via SSO at{" "}
             <span className="stg:font-mono stg:text-foreground">
               /login?org={org}
             </span>
-            . Accounts are auto-provisioned and granted the{" "}
-            <span className="stg:font-medium stg:text-foreground">viewer</span> role on
-            this organization.
-          </p>
-        ) : autoProvision && autoGrant ? (
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-            Users authenticating with JWTs from this provider will be
-            automatically provisioned and granted the{" "}
-            <span className="stg:font-medium stg:text-foreground">{roleName}</span> role
-            on this organization. No additional setup is required.
-          </p>
-        ) : autoProvision ? (
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-            Accounts are auto-provisioned on first authentication, but no
-            organization role is granted automatically. Use the Members page to
-            grant access.
-          </p>
-        ) : (
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-            The trust relationship is configured. Accounts must be created
-            manually before users can authenticate.
+            .
           </p>
         )}
+
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          {createsAccounts
+            ? "A person's first sign-in creates their account."
+            : "Accounts must be created through the API before people can sign in."}{" "}
+          {grantsRole ? (
+            <>
+              The first time someone signs in to the organization, they receive
+              the{" "}
+              <span className="stg:font-medium stg:text-foreground">{roleName}</span>{" "}
+              role there.
+            </>
+          ) : (
+            "No role is granted on sign-in: use the Members page to grant access."
+          )}
+        </p>
+
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          {claim ? (
+            <>
+              Each token is bound to the organization its{" "}
+              <span className="stg:font-mono stg:text-foreground">{claim}</span>{" "}
+              claim names, and works there only.
+            </>
+          ) : (
+            "Tokens from this provider work in this organization only."
+          )}
+        </p>
 
         <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           To verify the setup, have a user authenticate with a JWT from this
@@ -789,109 +754,6 @@ function FieldInput({
         <p className="stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
       )}
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// JIT provisioning section
-// ---------------------------------------------------------------------------
-
-const JIT_ROLE_OPTIONS: readonly { readonly value: string; readonly label: string }[] = [
-  { value: String(IamRole.iam_role_unspecified), label: "Default (viewer)" },
-  { value: String(IamRole.viewer), label: "Viewer" },
-  { value: String(IamRole.member), label: "Member" },
-  { value: String(IamRole.admin), label: "Admin" },
-];
-
-function JitProvisioningSection({
-  isSso,
-  autoProvision,
-  onAutoProvisionChange,
-  autoGrant,
-  onAutoGrantChange,
-  autoGrantRole,
-  onAutoGrantRoleChange,
-  tenantOrgClaim,
-  onTenantOrgClaimChange,
-  disabled,
-}: {
-  isSso: boolean;
-  autoProvision: boolean;
-  onAutoProvisionChange: (v: boolean) => void;
-  autoGrant: boolean;
-  onAutoGrantChange: (v: boolean) => void;
-  autoGrantRole: IamRole;
-  onAutoGrantRoleChange: (v: IamRole) => void;
-  tenantOrgClaim: string;
-  onTenantOrgClaimChange: (v: string) => void;
-  disabled?: boolean;
-}) {
-  const baseId = useId();
-  if (isSso) {
-    return (
-      <div className="stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2">
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-          SSO providers automatically provision accounts and grant the{" "}
-          <span className="stg:font-medium stg:text-foreground">viewer</span> role on
-          the owning organization. JIT provisioning settings are not applicable.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2.5")} disabled={disabled}>
-      <hr className="stg:border-border-muted" />
-      <legend className="stg:text-xs stg:font-medium stg:text-foreground">
-        JIT provisioning
-      </legend>
-      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-        Configure automatic account creation and role assignment for users
-        authenticating with this provider.
-      </p>
-
-      <ToggleSwitch
-        checked={autoProvision}
-        onChange={onAutoProvisionChange}
-        label="Auto-provision accounts"
-        hint="Create a federated account automatically on first authentication"
-        disabled={disabled}
-      />
-
-      <ToggleSwitch
-        checked={autoGrant}
-        onChange={onAutoGrantChange}
-        label="Auto-grant on organization"
-        hint="Grant a role on the owning organization when an account is provisioned"
-        disabled={disabled || !autoProvision}
-      />
-
-      {autoGrant && (
-        <>
-          <FieldInput
-            id={`${baseId}-grant-role`}
-            label="Auto-grant role"
-            value={String(autoGrantRole)}
-            onChange={(v) => onAutoGrantRoleChange(Number(v) as IamRole)}
-            placeholder=""
-            hint="Role granted automatically — org admins can upgrade later"
-            disabled={disabled}
-            type="select"
-            options={JIT_ROLE_OPTIONS}
-          />
-
-          <FieldInput
-            id={`${baseId}-tenant-claim`}
-            label="Tenant org claim"
-            value={tenantOrgClaim}
-            onChange={onTenantOrgClaimChange}
-            placeholder="e.g., org_id"
-            hint="JWT claim name that maps to a platform-managed organization (max 256 chars)"
-            disabled={disabled}
-          />
-        </>
-      )}
-    </fieldset>
   );
 }
 

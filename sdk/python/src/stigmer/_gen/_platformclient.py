@@ -101,11 +101,10 @@ class PlatformClientInput:
     secret_fingerprint: str = ""
     expires_at: str = ""
     never_expires: bool = False
-    auto_provision_accounts: bool = False
-    auto_grant_on_org: bool = False
-    auto_grant_role: int = 0
     allowed_origins: list[str] = field(default_factory=list)
     environment_refs: list[ResourceRef] = field(default_factory=list)
+    create_accounts_on_sign_in: bool = False
+    sign_in_role: int = 0
 
     def _to_proto(self) -> api_pb2.PlatformClient:
         spec = spec_pb2.PlatformClientSpec(
@@ -113,9 +112,8 @@ class PlatformClientInput:
             client_secret_hash=self.client_secret_hash,
             secret_fingerprint=self.secret_fingerprint,
             never_expires=self.never_expires,
-            auto_provision_accounts=self.auto_provision_accounts,
-            auto_grant_on_org=self.auto_grant_on_org,
-            auto_grant_role=self.auto_grant_role,
+            create_accounts_on_sign_in=self.create_accounts_on_sign_in,
+            sign_in_role=self.sign_in_role,
         )
         if self.expires_at:
             spec.expires_at.FromJsonString(self.expires_at)

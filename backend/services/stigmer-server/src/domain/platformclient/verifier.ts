@@ -35,6 +35,15 @@
  * only, and the minting client as `platformClientId` for the audit-actor
  * seam, so every resource a minted user writes names the client they came
  * through (stigmer/stigmer#1256).
+ *
+ * Every user token is bound to the organization its `org` claim names
+ * (`boundOrg`; authorization/credential-binding.ts): the mint always writes
+ * the client's owning organization there, so a minted user works in that
+ * organization only, whatever roles the account holds elsewhere. A token
+ * with no `org` claim, or one that names an organization other than its
+ * client's, is refused: the mint never signs either, so either is a token
+ * this server did not mean, and a token that names no organization must
+ * never fall back to speaking for the person everywhere.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -52,6 +61,7 @@ import type { PlatformTokenKeyRing } from "../../platformtoken/key-ring.js";
 import {
   DELETED_CLIENT_MESSAGE,
   TOKEN_NAMES_NO_CLIENT_MESSAGE,
+  TOKEN_ORGANIZATION_MISMATCH_MESSAGE,
   USER_TOKEN_CLAIMS,
 } from "./constants.js";
 import type { PlatformClientStore } from "./store.js";
@@ -95,8 +105,20 @@ export function newPlatformClientTokenVerifier(
           Code.Unauthenticated,
         );
       }
-      if ((await deps.clients.findById(platformClientId)) === undefined) {
+      const client = await deps.clients.findById(platformClientId);
+      if (client === undefined) {
         throw new ConnectError(DELETED_CLIENT_MESSAGE, Code.Unauthenticated);
+      }
+      const boundOrg = stringClaim(verified.payload, USER_TOKEN_CLAIMS.org);
+      if (
+        boundOrg === undefined ||
+        boundOrg === "" ||
+        boundOrg !== (client.metadata?.org ?? "")
+      ) {
+        throw new ConnectError(
+          TOKEN_ORGANIZATION_MISMATCH_MESSAGE,
+          Code.Unauthenticated,
+        );
       }
       const email = stringClaim(verified.payload, USER_TOKEN_CLAIMS.email);
       const displayName = stringClaim(verified.payload, USER_TOKEN_CLAIMS.name);
@@ -108,6 +130,7 @@ export function newPlatformClientTokenVerifier(
         ...(email !== undefined ? { email } : {}),
         ...(displayName !== undefined ? { displayName } : {}),
         platformClientId,
+        boundOrg,
       };
     },
   };

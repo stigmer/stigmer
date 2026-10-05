@@ -41,7 +41,8 @@ Platform Builder Backend                Stigmer API
         |                                    |
         |                          2. Validate credentials
         |                          3. Resolve/provision user
-        |                          4. Sign JWT with Stigmer key
+        |                          4. Sign JWT with Stigmer key,
+        |                             bound to the client's org
         |                                    |
         |  5. { access_token, expires_in }   |
         | <--------------------------------- |
@@ -55,27 +56,32 @@ Browser (React SDK)                     Stigmer API
         | ---------------------------------> |
         |                          8. Validate Stigmer JWT
         |                          9. Resolve identity account
+        |                         10. Authorize in the client's
+        |                             org only
         |                                    |
 ```
 
+Every user token a PlatformClient mints carries an `org` claim naming the client's owning organization, and works in that organization only, whatever roles the user holds elsewhere. A request into another organization is refused `PERMISSION_DENIED`; the token can still reach what belongs to no organization (the user's own account and API keys) and read and run blueprints shared at platform visibility. A token whose `org` claim is missing or is not its client's organization is refused `UNAUTHENTICATED`.
+
 ## JIT Provisioning
 
-PlatformClient supports three provisioning modes:
+Two settings control what `mintUserToken` does with a user it meets:
 
 ### Manual (default)
-- `auto_provision_accounts: false`
+- `create_accounts_on_sign_in: false`
 - Platform must create identity accounts before minting tokens
-- `mintUserToken` returns `NOT_FOUND` if the user does not exist
+- `mintUserToken` returns `FAILED_PRECONDITION` if the user does not exist
 
 ### JIT (Just-In-Time)
-- `auto_provision_accounts: true`, `auto_grant_on_org: false`
+- `create_accounts_on_sign_in: true`, `sign_in_role` unspecified
 - Stigmer creates an IdentityAccount on first `mintUserToken` call
 - The user has no organization access until explicitly granted via IAM policies
 
-### JIT + Auto-Grant
-- `auto_provision_accounts: true`, `auto_grant_on_org: true`
-- Stigmer creates an IdentityAccount and grants `auto_grant_role` (default: viewer) on the PlatformClient's owning organization
+### JIT with a sign-in role
+- `create_accounts_on_sign_in: true`, `sign_in_role: viewer` (or `member`, `admin`)
+- Stigmer creates an IdentityAccount and grants `sign_in_role` on the PlatformClient's owning organization, once, when it creates the account
 - Simplest setup — new users can immediately interact with org resources
+- `sign_in_role` requires `create_accounts_on_sign_in`, and `owner` is refused. Accounts that already exist keep their roles: changing the setting later does not reach them
 
 ## Authorization
 
@@ -111,9 +117,8 @@ metadata:
   slug: acme-dashboard
   org: acme
 spec:
-  auto_provision_accounts: true
-  auto_grant_on_org: true
-  auto_grant_role: viewer
+  create_accounts_on_sign_in: true
+  sign_in_role: viewer
   allowed_origins:
     - "https://app.acme.com"
     - "https://staging.acme.com"

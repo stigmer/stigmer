@@ -75,12 +75,14 @@ class ApiKeyInput:
     fingerprint: str = ""
     expires_at: str = ""
     never_expires: bool = False
+    bound_org: str = ""
 
     def _to_proto(self) -> api_pb2.ApiKey:
         spec = spec_pb2.ApiKeySpec(
             key_hash=self.key_hash,
             fingerprint=self.fingerprint,
             never_expires=self.never_expires,
+            bound_org=self.bound_org,
         )
         if self.expires_at:
             spec.expires_at.FromJsonString(self.expires_at)

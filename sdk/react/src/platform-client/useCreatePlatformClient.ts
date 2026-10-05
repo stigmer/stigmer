@@ -39,8 +39,8 @@ export interface UseCreatePlatformClientReturn {
  * const response = await create({
  *   name: "my-saas-backend",
  *   org: "acme",
- *   autoProvisionAccounts: true,
- *   autoGrantOnOrg: true,
+ *   createAccountsOnSignIn: true,
+ *   signInRole: IamRole.viewer,
  * });
  *
  * // response.clientSecret is the one-time raw secret

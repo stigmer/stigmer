@@ -32,21 +32,23 @@ const (
 // JWKS, and resolves the user's federated identity account by the JWT's sub claim and
 // this provider's reference.
 //
-// Three provisioning modes control how federated accounts are created:
+// Every token this provider vouches for is bound to one organization: the
+// organization tenant_org_claim names when it is set, otherwise the
+// provider's own. A bound token works in that organization only.
 //
-//  1. Manual (default): The platform explicitly creates federated accounts
-//     via CreateFederatedAccount and manages IAM policies. No accounts are
-//     created automatically.
+// Two settings control what happens when someone signs in:
 //
-//  2. JIT (Just-In-Time): When auto_provision_accounts is true, Stigmer
-//     creates an IdentityAccount from JWT claims on first authentication.
-//     Authorization is controlled independently via auto_grant_on_org and
-//     auto_grant_role. For multi-tenant platforms, tenant_org_claim maps
-//     a JWT claim to a platform-managed organization for automatic role grants.
+//  1. create_accounts_on_sign_in: whether Stigmer creates a federated
+//     identity account from the token's claims the first time it sees a
+//     user. When false (the default), the platform creates accounts through
+//     CreateFederatedAccount before its users can sign in.
 //
-//  3. SSO: When is_sso_provider is true, Stigmer auto-provisions accounts
-//     and grants viewer on the organization. This mode also enables the OIDC
-//     browser login flow via oidc_client_id.
+//  2. sign_in_role: the role an account receives the first time it signs in
+//     to an organization through this provider. Unspecified means none: the
+//     platform grants roles itself through IAM policies.
+//
+// An SSO provider (is_sso_provider) sets both, which also enables the OIDC
+// browser login flow via oidc_client_id.
 //
 // The spec contains only public validation configuration — no secrets are stored.
 // For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint
@@ -81,8 +83,8 @@ const (
 //	  allowed_issuers: ["https://auth.acme.com/"]
 //	  expected_audience: "https://api.acme.com/stigmer"
 //	  userinfo_endpoint: "https://auth.acme.com/userinfo"
-//	  auto_provision_accounts: true
-//	  auto_grant_on_org: true
+//	  create_accounts_on_sign_in: true
+//	  sign_in_role: viewer
 //
 // Example YAML (JIT provisioning, multi-tenant):
 //
@@ -98,9 +100,8 @@ const (
 //	  allowed_issuers: ["https://auth.saas.co/"]
 //	  expected_audience: "https://api.saas.co/stigmer"
 //	  userinfo_endpoint: "https://auth.saas.co/userinfo"
-//	  auto_provision_accounts: true
-//	  auto_grant_on_org: true
-//	  auto_grant_role: member
+//	  create_accounts_on_sign_in: true
+//	  sign_in_role: member
 //	  tenant_org_claim: "org_id"
 //
 // Example YAML (self-managed SSO):
@@ -118,6 +119,8 @@ const (
 //	  expected_audience: "api://acme-stigmer"
 //	  is_sso_provider: true
 //	  oidc_client_id: "0oa1bcdef2ghijk3lmno"
+//	  create_accounts_on_sign_in: true
+//	  sign_in_role: viewer
 type IdentityProviderSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable display name for this identity provider.
@@ -185,10 +188,9 @@ type IdentityProviderSpec struct {
 	// option on the organization's login page and initiates the OIDC
 	// Authorization Code flow with PKCE using the configured oidc_client_id.
 	//
-	// On first login, SSO users are auto-provisioned: Stigmer creates a
-	// federated identity account from the JWT's OIDC claims and grants the
-	// viewer role on the organization. Org admins can upgrade viewers to
-	// members when ready.
+	// An SSO provider sets create_accounts_on_sign_in and a sign_in_role, so
+	// a person's first sign-in creates their federated identity account from
+	// the JWT's OIDC claims and grants them sign_in_role on the organization.
 	//
 	// Constraints:
 	//   - At most one IdentityProvider per organization can be the SSO provider.
@@ -207,99 +209,56 @@ type IdentityProviderSpec struct {
 	//
 	// Required when is_sso_provider is true; must be empty otherwise.
 	OidcClientId string `protobuf:"bytes,8,opt,name=oidc_client_id,json=oidcClientId,proto3" json:"oidc_client_id,omitempty"`
-	// Whether to automatically create a federated identity account when a valid
-	// JWT arrives but no account exists for the token's sub claim.
+	// Name of the JWT claim that names the organization a token works in.
 	//
-	// This controls identity provisioning — establishing that Stigmer recognizes
-	// this user — and is independent of what access the user receives. An
-	// auto-provisioned account has no organization access by default; authorization
-	// is controlled separately by auto_grant_on_org.
-	//
-	// When false (default), the platform must explicitly create federated accounts
-	// via the CreateFederatedAccount API before users can authenticate. This gives
-	// platforms full control over which of their users can access Stigmer resources.
-	//
-	// When true, Stigmer creates the IdentityAccount automatically on first
-	// authentication, using profile data from the JWT claims, or from the
-	// userinfo_endpoint when the token carries no email claim. Later
-	// authentications do not refresh the profile.
-	//
-	// This field is independent of is_sso_provider. SSO providers always
-	// auto-provision accounts regardless of this setting. For non-SSO identity
-	// providers (platform delegation), this field enables JIT provisioning
-	// without requiring the OIDC browser flow.
-	AutoProvisionAccounts bool `protobuf:"varint,9,opt,name=auto_provision_accounts,json=autoProvisionAccounts,proto3" json:"auto_provision_accounts,omitempty"`
-	// Whether to automatically grant a role on an organization when an account
-	// is auto-provisioned.
-	//
-	// This controls authorization — determining what access an auto-provisioned
-	// user receives — and is separate from the identity provisioning decision
-	// controlled by auto_provision_accounts.
-	//
-	// When false (default), auto-provisioned accounts receive no organization
-	// access. The platform must create IAM policies to grant access to specific
-	// organizations. This is the appropriate setting for multi-tenant platforms
-	// where users should only access their tenant organization, not the
-	// platform's root organization.
-	//
-	// When true, Stigmer grants auto_grant_role (default: viewer) on the IdP's
-	// owning organization immediately after account creation. This is the
-	// appropriate setting for single-organization platforms where all
-	// authenticated users should have access to the same organization.
-	//
-	// When tenant_org_claim is also set, the role grant targets the resolved
-	// tenant organization instead of the IdP's owning organization.
-	//
-	// Requires auto_provision_accounts to be true.
-	AutoGrantOnOrg bool `protobuf:"varint,10,opt,name=auto_grant_on_org,json=autoGrantOnOrg,proto3" json:"auto_grant_on_org,omitempty"`
-	// The role to grant when auto_grant_on_org is true.
-	//
-	// Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-	// is not permitted — organization ownership must be assigned explicitly —
-	// and a provider that asks for it is refused with
-	// `identity_provider.auto_grant_role_not_owner`.
-	//
-	// This field is only meaningful when auto_grant_on_org is true. When
-	// auto_grant_on_org is false, this field is ignored regardless of its value.
-	//
-	// Common configurations:
-	//   - viewer (default): Users can browse resources but cannot modify them.
-	//     Org admins upgrade to member or admin when ready.
-	//   - member: Users can immediately create and modify resources.
-	//     Appropriate when all authenticated users are trusted collaborators.
-	AutoGrantRole v1.IamRole `protobuf:"varint,11,opt,name=auto_grant_role,json=autoGrantRole,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"auto_grant_role,omitempty"`
-	// Name of the JWT claim that identifies the tenant organization for
-	// multi-tenant provisioning.
-	//
-	// When set, Stigmer extracts this claim from the JWT payload and resolves
-	// it to a platform-managed organization. The resolution algorithm:
+	// When set, Stigmer reads this claim from every token the provider vouches
+	// for and resolves it to a platform-managed organization:
 	//
 	//  1. Read the claim value from the JWT (e.g., claim "org_id" yields
 	//     value "tenant-123").
 	//  2. Look up the platform-managed organization where
 	//     identity_provider_ref matches this IdP and external_org_id matches
 	//     the claim value.
-	//  3. If auto_grant_on_org is true, grant auto_grant_role on the resolved
-	//     organization instead of the IdP's owning organization.
+	//  3. Bind the token to that organization: it works there and nowhere
+	//     else, whatever roles the person holds in other organizations.
 	//
-	// This automates a new user's placement in a tenant: a platform JWT with a
-	// tenant claim needs no backend provisioning step for the user's first
-	// sign-in. The platform only needs to pre-create the tenant organizations
-	// with their external_org_id mappings. The claim is read only when Stigmer
-	// creates the account; a returning user is not placed again, so a role in
-	// another tenant is granted through an IAM policy.
+	// When empty, every token is bound to the provider's own organization.
 	//
-	// Requires auto_provision_accounts to be true. The claim name is
-	// case-sensitive and must match the JWT payload key exactly.
+	// The platform pre-creates its tenant organizations with their
+	// external_org_id mappings. The first time an account signs in to a tenant,
+	// it receives sign_in_role there when one is set; a role an admin later
+	// removes stays removed.
 	//
-	// If the JWT at that first sign-in does not contain this claim, or the
-	// claim value does not resolve to a known platform-managed organization,
-	// the sign-in is refused as unauthenticated and no account remains (the one
-	// being created is rolled back). The refusal says that provisioning failed;
-	// it does not name the tenant.
+	// The claim name is case-sensitive and must match the JWT payload key
+	// exactly. A token that lacks the claim, carries a value that is not a
+	// string, or names no known platform-managed organization is refused as
+	// unauthenticated on every sign-in, returning or first; the refusal does not
+	// name the tenant. A first sign-in refused this way leaves no account.
 	TenantOrgClaim string `protobuf:"bytes,12,opt,name=tenant_org_claim,json=tenantOrgClaim,proto3" json:"tenant_org_claim,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Whether Stigmer creates a federated identity account the first time a
+	// valid token arrives for a sub claim it has no account for.
+	//
+	// When false (the default), the platform creates federated accounts through
+	// the CreateFederatedAccount API before its users can sign in. When true,
+	// the account is created from the token's claims, or from the
+	// userinfo_endpoint when the token carries no email claim. Later sign-ins
+	// do not refresh the profile.
+	//
+	// Creating an account grants nothing by itself: sign_in_role does.
+	CreateAccountsOnSignIn bool `protobuf:"varint,13,opt,name=create_accounts_on_sign_in,json=createAccountsOnSignIn,proto3" json:"create_accounts_on_sign_in,omitempty"`
+	// The role an account receives the first time it signs in to an
+	// organization through this provider: the organization its token is bound
+	// to (tenant_org_claim's, or the provider's own).
+	//
+	// Granted once per account and organization. A role an admin later removes
+	// is not granted again, and changing this setting does not reach accounts
+	// that already signed in there. Unspecified (iam_role_unspecified) grants
+	// nothing. The owner role is refused with
+	// `identity_provider.sign_in_role_not_owner`: ownership is assigned
+	// explicitly.
+	SignInRole    v1.IamRole `protobuf:"varint,14,opt,name=sign_in_role,json=signInRole,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"sign_in_role,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *IdentityProviderSpec) Reset() {
@@ -381,27 +340,6 @@ func (x *IdentityProviderSpec) GetOidcClientId() string {
 	return ""
 }
 
-func (x *IdentityProviderSpec) GetAutoProvisionAccounts() bool {
-	if x != nil {
-		return x.AutoProvisionAccounts
-	}
-	return false
-}
-
-func (x *IdentityProviderSpec) GetAutoGrantOnOrg() bool {
-	if x != nil {
-		return x.AutoGrantOnOrg
-	}
-	return false
-}
-
-func (x *IdentityProviderSpec) GetAutoGrantRole() v1.IamRole {
-	if x != nil {
-		return x.AutoGrantRole
-	}
-	return v1.IamRole(0)
-}
-
 func (x *IdentityProviderSpec) GetTenantOrgClaim() string {
 	if x != nil {
 		return x.TenantOrgClaim
@@ -409,11 +347,25 @@ func (x *IdentityProviderSpec) GetTenantOrgClaim() string {
 	return ""
 }
 
+func (x *IdentityProviderSpec) GetCreateAccountsOnSignIn() bool {
+	if x != nil {
+		return x.CreateAccountsOnSignIn
+	}
+	return false
+}
+
+func (x *IdentityProviderSpec) GetSignInRole() v1.IamRole {
+	if x != nil {
+		return x.SignInRole
+	}
+	return v1.IamRole(0)
+}
+
 var File_ai_stigmer_iam_identityprovider_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xb0\a\n" +
+	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x9e\t\n" +
 	"\x14IdentityProviderSpec\x12+\n" +
 	"\fdisplay_name\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\x01R\vdisplayName\x12#\n" +
 	"\bjwks_uri\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\ajwksUri\x12:\n" +
@@ -423,14 +375,16 @@ const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\xbaH\ar\x05\x10\x01\x18\xc8\x01R\x10expectedAudience\x125\n" +
 	"\x11userinfo_endpoint\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x10userinfoEndpoint\x12&\n" +
 	"\x0fis_sso_provider\x18\a \x01(\bR\risSsoProvider\x12.\n" +
-	"\x0eoidc_client_id\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\foidcClientId\x126\n" +
-	"\x17auto_provision_accounts\x18\t \x01(\bR\x15autoProvisionAccounts\x12)\n" +
-	"\x11auto_grant_on_org\x18\n" +
-	" \x01(\bR\x0eautoGrantOnOrg\x12B\n" +
-	"\x0fauto_grant_role\x18\v \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\rautoGrantRole\x122\n" +
-	"\x10tenant_org_claim\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x0etenantOrgClaim:\xcd\x02\xbaH\xc9\x02\x1a\x9d\x01\n" +
-	"+identity_provider.auto_grant_role_not_owner\x12Sauto_grant_role cannot be owner; organization ownership must be assigned explicitly\x1a\x19this.auto_grant_role != 1\x1a\xa6\x01\n" +
-	"0identity_provider.jwks_uri_required_with_issuers\x129jwks_uri is required when allowed_issuers names an issuer\x1a7this.allowed_issuers.size() == 0 || this.jwks_uri != ''J\x04\b\x05\x10\x06R\x11rate_limit_budgetB\xc2\x02\n" +
+	"\x0eoidc_client_id\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\foidcClientId\x122\n" +
+	"\x10tenant_org_claim\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x0etenantOrgClaim\x12:\n" +
+	"\x1acreate_accounts_on_sign_in\x18\r \x01(\bR\x16createAccountsOnSignIn\x12<\n" +
+	"\fsign_in_role\x18\x0e \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\n" +
+	"signInRole:\x99\x04\xbaH\x95\x04\x1a\x94\x01\n" +
+	"(identity_provider.sign_in_role_not_owner\x12Psign_in_role cannot be owner; organization ownership must be assigned explicitly\x1a\x16this.sign_in_role != 1\x1a\xd2\x01\n" +
+	"2identity_provider.sso_creates_accounts_with_a_role\x12Fan SSO provider must set create_accounts_on_sign_in and a sign_in_role\x1aT!this.is_sso_provider || (this.create_accounts_on_sign_in && this.sign_in_role != 0)\x1a\xa6\x01\n" +
+	"0identity_provider.jwks_uri_required_with_issuers\x129jwks_uri is required when allowed_issuers names an issuer\x1a7this.allowed_issuers.size() == 0 || this.jwks_uri != ''J\x04\b\x05\x10\x06J\x04\b\t\x10\n" +
+	"J\x04\b\n" +
+	"\x10\vJ\x04\b\v\x10\fR\x11rate_limit_budgetR\x17auto_provision_accountsR\x11auto_grant_on_orgR\x0fauto_grant_roleB\xc2\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\tSpecProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (
@@ -451,7 +405,7 @@ var file_ai_stigmer_iam_identityprovider_v1_spec_proto_goTypes = []any{
 	(v1.IamRole)(0),              // 1: ai.stigmer.iam.v1.IamRole
 }
 var file_ai_stigmer_iam_identityprovider_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec.auto_grant_role:type_name -> ai.stigmer.iam.v1.IamRole
+	1, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec.sign_in_role:type_name -> ai.stigmer.iam.v1.IamRole
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
