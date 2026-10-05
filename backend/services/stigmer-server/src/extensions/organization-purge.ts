@@ -12,8 +12,9 @@
  *   content  → every kind the core keeps, leaves first
  *   shred    → every secret codec's per-organization keys destroyed
  *   children → wait until no child organization names it
- *   final    → its policies, its search entry, its row, its names, and
- *              last its deletion mark
+ *   final    → quiesce, the units' stages and content again; its
+ *              policies, its search entry, its row, its names, and last
+ *              its deletion mark
  *
  * A unit's stages run after quiesce and before content, while the
  * organization's core rows still exist, so a stage can find its own rows
@@ -27,7 +28,9 @@
  *     between calls.
  *   - `run` is idempotent: a pod that dies mid-stage leaves the purge to
  *     another, which calls the stage again from the start, and two pods
- *     overlapping repeat work, never answer wrong.
+ *     overlapping repeat work, never answer wrong. The final stage also
+ *     calls every stage again, to its end, before anything final, for a
+ *     row written after the stage first passed.
  *   - `run` works through the unit's own stores and the composed services,
  *     never the RPC surface: every RPC naming the organization answers
  *     not-found from the moment it is marked (domain/organization/

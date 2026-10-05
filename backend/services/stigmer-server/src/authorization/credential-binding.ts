@@ -450,8 +450,13 @@ export function newCredentialBinding(
     if (lifecycle === NOTHING_DELETING || target.id === "") {
       return false;
     }
+    // While nothing is being deleted (nearly always), no row is read.
+    const deletingIds = await lifecycle.deletingIds(caller);
+    if (deletingIds.size === 0) {
+      return false;
+    }
     if (target.kind === ApiResourceKind.organization) {
-      return lifecycle.isDeleting(caller, target.id);
+      return deletingIds.has(target.id);
     }
     if (!declaresKind(target.kind) || !belongsToAnOrganization(target.kind)) {
       return false;
@@ -460,7 +465,7 @@ export function newCredentialBinding(
     if (found === undefined || found === UNREADABLE) {
       return false;
     }
-    return lifecycle.isDeleting(caller, found.facts.org);
+    return deletingIds.has(found.facts.org);
   }
 
   return {
@@ -581,7 +586,7 @@ export function bindListReadScope(
       kind,
       entries: ReadonlyArray<ListEntryMeta>,
     ) {
-      const deletingIds = await lifecycle.deletingIds();
+      const deletingIds = await lifecycle.deletingIds(caller);
       const live =
         deletingIds.size === 0
           ? entries
@@ -610,7 +615,7 @@ export function bindListReadScope(
     kind: ApiResourceKind,
     ids: ReadonlySet<string>,
   ): Promise<ReadonlySet<string>> {
-    const deletingIds = await lifecycle.deletingIds();
+    const deletingIds = await lifecycle.deletingIds(caller);
     if (deletingIds.size === 0) {
       return ids;
     }
@@ -654,7 +659,7 @@ export function bindOrganizationDirectory(
       const deletingIds =
         listed === ALL_ORGANIZATIONS
           ? new Set<string>()
-          : await lifecycle.deletingIds();
+          : await lifecycle.deletingIds(caller);
       const ids =
         listed === ALL_ORGANIZATIONS || deletingIds.size === 0
           ? listed

@@ -27,14 +27,14 @@
  *              marked (left by a fault in its create's re-read of the
  *              parent, or by a stale mark cleared) is marked here, since
  *              it cannot outlive its parent.
- *   final    — first quiesce and content again, to their end, for a row a
- *              create stored after its kind's purge had passed; then
- *              the organization's policy rows (failing closed), the
- *              composed lifecycle's organization arm, a sweep of the
- *              search entries and fire-ledger rows that name it (the kind
- *              purges' own removals of those log a fault and go on), the
- *              search entry,
- *              the row, then its names, then its deletion mark. The names
+ *   final    — first quiesce, the units' stages and content again, to
+ *              their end, for a row a create stored after its stage had
+ *              passed; then the composed lifecycle's organization arm, a
+ *              sweep of the search entries and fire-ledger rows that name
+ *              it (the kind purges' own removals of those log a fault and
+ *              go on), the organization's policy rows (failing closed),
+ *              its search entry, the row, then its names, then its
+ *              deletion mark. The names
  *              follow the row on purpose: while the row stands the claim
  *              rule holds them (names.ts), so the slug is free exactly when
  *              the purge is done. The mark goes last, so a crash anywhere
@@ -337,10 +337,11 @@ export interface FinalStageDeps {
   /** The organization's lifecycle (the composed driver, or open source's role lifecycle). */
   readonly lifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
-   * Stages run again, to their end, before anything final (quiesce and
-   * content): a create that passed every check before the mark and stored
-   * its row after the content stage passed its kind, or a run that started
-   * after quiesce, is removed before the mark goes.
+   * Stages run again, to their end, before anything final (quiesce, the
+   * units' stages, content): a create that passed every check before the
+   * mark and stored its row after its stage passed, or a run that started
+   * after quiesce, is removed before the mark goes. A sweep that answers
+   * `wait` leaves the final stage to a later pass.
    */
   readonly sweepFirst?: ReadonlyArray<OrganizationPurgeStage>;
 }
@@ -350,8 +351,15 @@ export function newFinalStage(deps: FinalStageDeps): OrganizationPurgeStage {
     name: FINAL_STAGE,
     async run(context) {
       for (const sweep of deps.sweepFirst ?? []) {
-        while ((await sweep.run(context)).more) {
-          // A batch at a time, as the runner would run it.
+        // A batch at a time, as the runner would run it.
+        for (;;) {
+          const progress = await sweep.run(context);
+          if (!progress.more) {
+            break;
+          }
+          if (progress.wait === true) {
+            return progress;
+          }
         }
       }
       const id = context.org.id;

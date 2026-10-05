@@ -131,9 +131,16 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
   return ctx.values.get(apiResourceKindKey);
 }
 
-/** Re-uploads the content when its blob is gone once the row is stored. */
+/**
+ * Re-uploads the content when its blob is gone once the row is stored. A
+ * fault here is logged and the create still answers its artifact: the row
+ * is stored and the blob was uploaded before it, so an error would only
+ * send the caller to retry into a second row for content that is almost
+ * always in place.
+ */
 async function ensureBlobAfterPersist(
   deps: ArtifactControllerDeps,
+  artifactId: string,
   contentHash: string,
   content: Uint8Array,
   contentType: string,
@@ -143,7 +150,11 @@ async function ensureBlobAfterPersist(
       await deps.artifactStorage.upload(contentHash, content, contentType);
     }
   } catch (error) {
-    throw internalError(error, "failed to upload artifact content");
+    deps.logger.error("failed to re-check artifact content after its row", {
+      artifactId,
+      contentHash,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -260,7 +271,13 @@ async function createArtifact(
   // restores a blob a holder appeared for; this re-check after the row is
   // the other side, so whichever moves last sees the other
   // (domain/artifact/purge.ts).
-  await ensureBlobAfterPersist(deps, contentHash, content, spec.contentType);
+  await ensureBlobAfterPersist(
+    deps,
+    artifactId,
+    contentHash,
+    content,
+    spec.contentType,
+  );
 
   deps.logger.info("artifact created successfully", {
     artifactId,

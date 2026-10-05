@@ -33,9 +33,10 @@
  *     not found before the inner driver is asked (a per-resource owner
  *     row the delete's revocation leaves cannot reach it); the list scope
  *     drops such candidates and the directory such organizations; and the
- *     cost: an unbound by-id check reads the target's row and the
- *     deletion table once per request, and a check with nothing to read
- *     reads nothing; a deletion table that cannot be read answers
+ *     cost: while nothing is being deleted, an unbound by-id check reads
+ *     the deletion table once per request and no row; while something is,
+ *     it reads the target's row too, once per request; a check with
+ *     nothing to read reads nothing; a deletion table that cannot be read answers
  *     unavailable; an enumeration of organizations drops a deleting one by
  *     its id alone.
  */
@@ -857,24 +858,24 @@ describe("bindOrganizationDirectory", () => {
 
 describe("the deleting rule's decision seat", () => {
   const DELETING = BETA;
-  function lifecycle(reads: string[]) {
+  function lifecycle(reads: string[], deleting: ReadonlyArray<string> = [DELETING]) {
     return newOrganizationLifecycle({
       async isDeleting(org) {
         reads.push(`deleting:${org}`);
-        return org === DELETING;
+        return deleting.includes(org);
       },
       async list() {
-        return [
+        reads.push("deleting:*");
+        return deleting.map((org) => (
           {
-            org: DELETING,
-            phase: "accepted",
+            org,
+            phase: "accepted" as const,
             markedAt: "",
             acceptedAt: "",
             heartbeatAt: "",
             stage: "",
             lastError: "",
-          },
-        ];
+          }));
       },
     });
   }
@@ -908,7 +909,21 @@ describe("the deleting rule's decision seat", () => {
     });
   });
 
-  it("costs an unbound by-id check one row read and one deletion read per request, and nothing without a target", async () => {
+  it("costs an unbound by-id check one deletion read and no row per request while nothing is being deleted", async () => {
+    const f = fixture([row("session", "ses_a", ALPHA)]);
+    const deletionReads: string[] = [];
+    const bound = bindAuthorizer(
+      recordingAuthorizer(),
+      newCredentialBinding({ ...f.deps, lifecycle: lifecycle(deletionReads, []) }),
+    );
+    const caller = { ...unbound };
+    expect((await bound.authorize(caller, sessionCheck("ses_a"))).kind).toBe("allow");
+    await bound.authorize(caller, sessionCheck("ses_a"));
+    expect(f.reads).toEqual([]);
+    expect(deletionReads).toEqual(["deleting:*"]);
+  });
+
+  it("costs an unbound by-id check one row read and one deletion read per request while something is, and nothing without a target", async () => {
     const f = fixture([row("session", "ses_a", ALPHA)]);
     const deletionReads: string[] = [];
     const bound = bindAuthorizer(
@@ -919,7 +934,7 @@ describe("the deleting rule's decision seat", () => {
     await bound.authorize(caller, sessionCheck("ses_a"));
     await bound.authorize(caller, sessionCheck("ses_a"));
     expect(f.reads).toEqual([`${ApiResourceKind.session}:ses_a`]);
-    expect(deletionReads).toEqual([`deleting:${ALPHA}`]);
+    expect(deletionReads).toEqual(["deleting:*"]);
     await bound.authorize(caller, {
       permission: IamPermission.can_view,
       resourceKind: ApiResourceKind.session,
@@ -927,6 +942,29 @@ describe("the deleting rule's decision seat", () => {
     });
     expect(f.reads).toHaveLength(1);
     expect(deletionReads).toHaveLength(1);
+  });
+
+  it("passes, while something is being deleted, a kind no organization owns with no read, and a missing row to the inner driver", async () => {
+    const f = fixture([]);
+    const deletionReads: string[] = [];
+    const inner = recordingAuthorizer();
+    const bound = bindAuthorizer(
+      inner,
+      newCredentialBinding({ ...f.deps, lifecycle: lifecycle(deletionReads) }),
+    );
+    expect(
+      (
+        await bound.authorize(unbound, {
+          permission: IamPermission.can_view,
+          resourceKind: ApiResourceKind.platform,
+          resourceId: "x",
+        })
+      ).kind,
+    ).toBe("allow");
+    expect(f.reads, "no row read for a kind no organization owns").toEqual([]);
+    expect((await bound.authorize(unbound, sessionCheck("ses_gone"))).kind).toBe("allow");
+    expect(f.reads).toEqual([`${ApiResourceKind.session}:ses_gone`]);
+    expect(inner.checks, "the inner driver answers both").toHaveLength(2);
   });
 
   it("drops a deleting organization's candidates from lists and the organization from the directory", async () => {
@@ -971,7 +1009,7 @@ describe("the deleting rule's decision seat", () => {
     const f = fixture([row("session", "ses_a", ALPHA)]);
     const failing = newOrganizationLifecycle({
       isDeleting: () => Promise.reject(new Error("store down")),
-      list: () => Promise.resolve([]),
+      list: () => Promise.reject(new Error("store down")),
     });
     const inner = recordingAuthorizer();
     const bound = bindAuthorizer(

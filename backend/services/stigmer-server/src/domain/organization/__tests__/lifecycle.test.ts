@@ -6,7 +6,9 @@
  *   - `isDeleting` reads once per request scope and organization, reads
  *     every time without a scope, never for an empty id, and does not
  *     remember a failed read;
- *   - `deletingIds` answers the table's organizations;
+ *   - `deletingIds` answers the table's organizations, read once per
+ *     scope and every time without one, and does not remember a failed
+ *     read;
  *   - the interceptor refuses a request naming a deleting organization with
  *     the Authorize step's not-found copy, in any field the contract spells
  *     as an organization, passes one that names a live one, and reads
@@ -45,10 +47,16 @@ const LIVE = "org_01kliveliveliveliveliveliv0";
 function deletionTable(deleting: ReadonlyArray<string>) {
   const reads: string[] = [];
   let fail = false;
+  let lists = 0;
+  let failList = false;
   return {
     reads,
+    lists: () => lists,
     failNext: () => {
       fail = true;
+    },
+    failNextList: () => {
+      failList = true;
     },
     store: {
       async isDeleting(org: string) {
@@ -60,6 +68,11 @@ function deletionTable(deleting: ReadonlyArray<string>) {
         return deleting.includes(org);
       },
       async list(): Promise<OrganizationDeletion[]> {
+        lists += 1;
+        if (failList) {
+          failList = false;
+          throw new Error("store down");
+        }
         return deleting.map((org) => ({
           org,
           phase: "accepted",
@@ -88,6 +101,23 @@ describe("the deleting predicate", () => {
     expect(await lifecycle.isDeleting(scope, "")).toBe(false);
     expect(table.reads).toEqual([DELETING, LIVE, DELETING, LIVE, LIVE]);
     expect([...(await lifecycle.deletingIds())]).toEqual([DELETING]);
+  });
+
+  it("reads the whole table once per scope, every time without one, and does not remember a failed read", async () => {
+    const table = deletionTable([DELETING]);
+    const lifecycle = newOrganizationLifecycle(table.store);
+    const scope = {};
+    expect([...(await lifecycle.deletingIds(scope))]).toEqual([DELETING]);
+    expect([...(await lifecycle.deletingIds(scope))]).toEqual([DELETING]);
+    expect(table.lists()).toBe(1);
+    await lifecycle.deletingIds();
+    await lifecycle.deletingIds();
+    expect(table.lists()).toBe(3);
+    const other = {};
+    table.failNextList();
+    await expect(lifecycle.deletingIds(other)).rejects.toThrow("store down");
+    expect([...(await lifecycle.deletingIds(other))]).toEqual([DELETING]);
+    expect(table.lists()).toBe(5);
   });
 
   it("does not remember a failed read", async () => {

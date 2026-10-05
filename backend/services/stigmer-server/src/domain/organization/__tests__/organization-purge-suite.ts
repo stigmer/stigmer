@@ -16,6 +16,9 @@
  * grant and a pending OAuth state), and an access row on the agent. A
  * second organization holds the same shapes and must keep all of them.
  *
+ * A unit's stage runs twice: in its place and again in the final stage's
+ * sweep, for a row written after it first passed.
+ *
  * Between the delete and the purge, the organization answers not-found on
  * the wire and on the in-process lane, where server code starts work
  * (a create naming it is refused), so nothing new lands while it is purged.
@@ -127,6 +130,8 @@ export function describeOrganizationPurge(
 
     /** Organizations the purge holds until the test lets go. */
     const held = new Set<string>();
+    /** How often the unit's stage finished for each organization. */
+    const finished = new Map<string, number>();
     const holding: ServerExtension = {
       name: "purge-hold",
       orgPurge: {
@@ -134,9 +139,11 @@ export function describeOrganizationPurge(
           {
             name: "test-hold",
             async run(context) {
-              return held.has(context.org.id)
-                ? { more: true, wait: true }
-                : { more: false };
+              if (held.has(context.org.id)) {
+                return { more: true, wait: true };
+              }
+              finished.set(context.org.id, (finished.get(context.org.id) ?? 0) + 1);
+              return { more: false };
             },
           },
         ],
@@ -343,6 +350,10 @@ export function describeOrganizationPurge(
       expect(refused.rawMessage).toBe(`Organization not found: ${doomed.org}`);
 
       await purged(doomed.org);
+      expect(
+        finished.get(doomed.org),
+        "the unit's stage runs in its place and again in the final stage's sweep",
+      ).toBe(2);
 
       const census = await database().census(dir);
       try {

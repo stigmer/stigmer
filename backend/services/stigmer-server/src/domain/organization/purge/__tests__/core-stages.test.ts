@@ -19,8 +19,9 @@
  *     holds is fine, any other engine fault fails the stage, and with the
  *     engine unreachable it faults), and tears down every workflow run's
  *     sandbox;
- *   - final: its sweeps (quiesce and content again) to their end first;
- *     then the policy rows, the lifecycle's organization event, the row,
+ *   - final: its sweeps (quiesce, the units' stages and content again) to
+ *     their end first, and a sweep that waits leaves it to a later pass
+ *     with nothing final done; then the policy rows, the lifecycle's organization event, the row,
  *     its slug and its mark go, in that order relative to the mark; a
  *     row already gone still ends with the slug and the mark released; a
  *     row that cannot be read fails the stage.
@@ -476,6 +477,31 @@ describe("the final stage", () => {
     });
     await stage.run(context);
     expect(order).toEqual(["sweep", "sweep", "sweep", "policies"]);
+  });
+
+  it("leaves itself to a later pass when a sweep waits, with nothing final done", async () => {
+    const order: string[] = [];
+    const stage = newFinalStage({
+      store,
+      logger: silentLogger,
+      grantPath: {
+        async cleanupResource() {
+          order.push("policies");
+        },
+      } as unknown as IamPolicyGrantPath,
+      lifecycle: undefined,
+      sweepFirst: [
+        {
+          name: "unit-waits",
+          async run() {
+            order.push("sweep");
+            return { more: true, wait: true };
+          },
+        },
+      ],
+    });
+    expect(await stage.run(context)).toEqual({ more: true, wait: true });
+    expect(order).toEqual(["sweep"]);
   });
 
   it("finishes when the row is already gone", async () => {

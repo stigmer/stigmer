@@ -1528,8 +1528,12 @@ export async function composeServer(
         logger,
         grantPath: iamPolicyGrantPath,
         lifecycle: roleLifecycle,
-        // A row a racing create stored after its kind's purge passed.
-        sweepFirst: [purgeQuiesce, purgeContent],
+        // A row a racing create stored after its stage passed.
+        sweepFirst: [
+          purgeQuiesce,
+          ...extensions.orgPurge.stages.map(({ stage }) => stage),
+          purgeContent,
+        ],
       }),
     }),
   });

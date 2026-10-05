@@ -43,9 +43,11 @@
  * (the caller identity the chain stamps once per request), so a request
  * naming one organization pays one read whichever seats ask.
  * `deletingIds` reads the whole table, which holds only the organizations
- * whose purge has not finished.
+ * whose purge has not finished, memoised per request scope the same way.
+ * The decision seat asks it before reading a target's row, so while no
+ * organization is being deleted a by-id check reads no row for the rule.
  *
- * What the tests pin (__tests__/lifecycle.test.ts): the memo, the
+ * What the tests pin (__tests__/lifecycle.test.ts): the memos, the
  * interceptor's refusal copy on both chains, and a request naming no
  * organization reading nothing.
  */
@@ -69,8 +71,12 @@ export interface OrganizationLifecycle {
    * request's caller identity); an undefined scope reads every time.
    */
   isDeleting(scope: object | undefined, org: string): Promise<boolean>;
-  /** Every organization being deleted, for a walk over many organizations. */
-  deletingIds(): Promise<ReadonlySet<string>>;
+  /**
+   * Every organization being deleted, for a walk over many organizations
+   * or a seat that would otherwise read a row to ask. Memoised for the life
+   * of `scope`, as `isDeleting` is.
+   */
+  deletingIds(scope?: object): Promise<ReadonlySet<string>>;
 }
 
 /** A lifecycle with no deletion table: nothing is ever deleting (a test's composition). */
@@ -83,6 +89,9 @@ export function newOrganizationLifecycle(
   deletions: Pick<OrganizationDeletionStore, "isDeleting" | "list">,
 ): OrganizationLifecycle {
   const memo = new WeakMap<object, Map<string, Promise<boolean>>>();
+  const sets = new WeakMap<object, Promise<ReadonlySet<string>>>();
+  const readAll = async (): Promise<ReadonlySet<string>> =>
+    new Set((await deletions.list()).map((row) => row.org));
   return {
     isDeleting(scope, org) {
       if (org === "") {
@@ -106,8 +115,19 @@ export function newOrganizationLifecycle(
       reading.catch(() => held.delete(org));
       return reading;
     },
-    async deletingIds() {
-      return new Set((await deletions.list()).map((row) => row.org));
+    deletingIds(scope) {
+      if (scope === undefined) {
+        return readAll();
+      }
+      const known = sets.get(scope);
+      if (known !== undefined) {
+        return known;
+      }
+      const reading = readAll();
+      sets.set(scope, reading);
+      // A failed read is not remembered: the next seat asks again.
+      reading.catch(() => sets.delete(scope));
+      return reading;
     },
   };
 }

@@ -9,7 +9,8 @@
  * filed as before; a deletion table that cannot be read answers INTERNAL,
  * with nothing uploaded. And the create's half of the shared-blob race
  * (artifact/purge.ts): a blob another organization's purge deleted
- * between this create's upload and its row is uploaded again. The registered handler runs on an in-process router;
+ * between this create's upload and its row is uploaded again, and a fault
+ * in that re-check is logged with the artifact still answered. The registered handler runs on an in-process router;
  * the store and the blob storage are recording fakes.
  */
 import { create } from "@bufbuild/protobuf";
@@ -33,17 +34,19 @@ import type { Store } from "../../../store/interface.js";
 
 import { registerArtifactServices } from "../controller.js";
 
-const silentLogger = createLogger({
-  level: "error",
-  pretty: false,
-  write: () => {},
-});
-
 function harness(
   deleting: ReadonlySet<string> | Error,
   options: { readonly blobGoneAfterSave?: boolean; readonly existsFault?: Error } = {},
 ) {
   const uploads: string[] = [];
+  const logged: string[] = [];
+  const logger = createLogger({
+    level: "error",
+    pretty: false,
+    write: (line: string) => {
+      logged.push(line);
+    },
+  });
   const saved: string[] = [];
   const executions: Record<string, string> = {
     aex_live: "org_live",
@@ -92,7 +95,7 @@ function harness(
             return options.blobGoneAfterSave !== true || uploads.length > 1;
           },
         } as never,
-        logger: silentLogger,
+        logger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
       });
     },
@@ -108,7 +111,7 @@ function harness(
       },
       content: new TextEncoder().encode("# notes"),
     });
-  return { uploads, saved, createFor };
+  return { uploads, saved, logged, createFor };
 }
 
 describe("artifact create for an execution of an organization being deleted", () => {
@@ -139,11 +142,12 @@ describe("artifact create for an execution of an organization being deleted", ()
     expect(h.uploads, "the upload, then the re-upload after the row").toHaveLength(2);
   });
 
-  it("answers INTERNAL when the blob store cannot say whether its blob is still there", async () => {
+  it("answers its artifact and logs the fault when the blob store cannot say whether its blob is still there", async () => {
     const h = harness(new Set(), { existsFault: new Error("bucket down") });
-    const error = await h.createFor("aex_live").catch((e: unknown) => e);
-    expect((error as ConnectError).code).toBe(Code.Internal);
-    expect((error as ConnectError).rawMessage).toBe("failed to upload artifact content");
+    const artifact = await h.createFor("aex_live");
+    expect(h.saved).toEqual([artifact.metadata?.id]);
+    expect(h.logged.join("\n")).toContain("failed to re-check artifact content after its row");
+    expect(h.logged.join("\n")).toContain("bucket down");
   });
 
   it("answers INTERNAL, with nothing uploaded, when the deletion table cannot be read", async () => {
