@@ -31,9 +31,11 @@
     "build:libs": "node scripts/turbo-set.mjs libs build",
     "build:web": "node scripts/turbo-set.mjs workspace build --only=web",
     "clean:libs": "node scripts/turbo-set.mjs libs clean",
-    "test:root": "node --test scripts/*.test.mjs scripts/lib/*.test.mjs test/install/*.test.mjs test/install/lib/*.test.mjs deploy/helm/stigmer/__tests__/*.test.mjs .github/actions/*/*.test.mjs tools/eslint-plugin-stigmer/rules/__tests__/*.test.js",
+    "test:root": "node --test scripts/*.test.mjs scripts/lib/*.test.mjs test/install/*.test.mjs test/install/lib/*.test.mjs deploy/helm/stigmer/__tests__/*.test.mjs .github/actions/*/*.test.mjs tools/eslint-plugin-stigmer/rules/__tests__/*.test.js && npm run test:brand",
     "test:scripts": "node scripts/turbo-set.mjs root test:root",
-    "test": "npm run test:scripts && node scripts/turbo-set.mjs libs test"
+    "test": "npm run test:scripts && node scripts/turbo-set.mjs libs test",
+    "generate:brand": "tsx brand/generate.ts",
+    "test:brand": "tsx --tsconfig marketing/tsconfig.json --test brand/*.test.ts"
   },
   "lint-staged": {
     "docs/**/*.{md,mdx}": [

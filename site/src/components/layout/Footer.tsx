@@ -28,7 +28,7 @@ function Footer({ className, ...props }: FooterProps) {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/Icon-bw.svg"
+                  src="/logo-white.svg"
                   alt="Stigmer"
                   className="w-8 h-8"
                 />

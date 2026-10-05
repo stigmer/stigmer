@@ -48,7 +48,7 @@ export function LoginScreen() {
     <div className="flex h-screen flex-col items-center justify-center bg-background p-8">
       <div className="flex w-full max-w-xs flex-col items-center gap-8">
         <img
-          src="/stigmer_light.svg"
+          src="/app-icon-light.svg"
           alt="Stigmer"
           className="size-14 rounded-2xl"
         />

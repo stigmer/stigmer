@@ -57,7 +57,7 @@ function Header({ className, ...props }: HeaderProps) {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/Icon-bw.svg"
+                src="/logo-white.svg"
                 alt="Stigmer"
                 className="w-10 h-10"
               />
