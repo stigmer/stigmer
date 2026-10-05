@@ -23,6 +23,8 @@
  * __tests__/store-faults.test.ts and plugin.conformance.test.ts
  * (CONFORMANCE_TARGET=local, local-postgres).
  */
+import { posix } from "node:path";
+
 import { create, fromBinary } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
@@ -894,9 +896,15 @@ async function getArtifactDownloadUrl(
   });
 }
 
-/** The requested key when it is the plugin store's own; otherwise a key that reads as not found. */
+/**
+ * The requested key when it is the plugin store's own; otherwise a key that
+ * reads as not found. A key must already be in normal form, so a `..`
+ * segment cannot climb out of `plugins/` into another kind's archives on a
+ * store that resolves keys as paths.
+ */
 function pluginStorageKey(req: GetArtifactRequest): string {
-  if (!req.artifactStorageKey.startsWith(PLUGIN_ARTIFACT_KEY_PREFIX)) {
+  const key = req.artifactStorageKey;
+  if (!key.startsWith(PLUGIN_ARTIFACT_KEY_PREFIX) || posix.normalize(key) !== key || key.split("/").includes("..")) {
     throw new ArtifactNotFoundError(req.artifactStorageKey);
   }
   return req.artifactStorageKey;

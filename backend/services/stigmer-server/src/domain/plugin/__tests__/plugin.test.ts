@@ -551,6 +551,13 @@ describe("Plugin push — materialisation", () => {
       Code.NotFound,
       "plugin artifact not found",
     );
+    for (const climbing of [`plugins/../${key}`, `plugins/./${key.slice("plugins/".length)}`]) {
+      await expectCode(
+        pluginQuery.getArtifact({ artifactStorageKey: climbing }),
+        Code.NotFound,
+        "plugin artifact not found",
+      );
+    }
   });
 
   it("installs a plugin that is only hooks with no members, and a re-push keeps its hooks", async () => {
