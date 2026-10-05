@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import sharp from "sharp";
-import { brandSvg } from "./assets.mjs";
+import { brandSvg } from "../assets.mjs";
 
 for (const size of [16, 24, 32, 1024]) {
   test(`transparent light and dark marks have identical silhouettes at ${size}px`, async () => {
@@ -28,7 +28,7 @@ for (const size of [16, 24, 32, 1024]) {
 
 test("the default avatar is opaque, square and safe for a circular crop", async () => {
   const avatar = sharp(
-    await readFile(new URL("./avatar.png", import.meta.url)),
+    await readFile(new URL("../avatar.png", import.meta.url)),
   );
   const { data, info } = await avatar
     .ensureAlpha()
@@ -105,7 +105,7 @@ for (const theme of ["light", "dark"]) {
       const actual = await sharp(
         await readFile(
           new URL(
-            `../client-apps/web/public/favicon-${theme}-${size}x${size}.png`,
+            `../../client-apps/web/public/favicon-${theme}-${size}x${size}.png`,
             import.meta.url,
           ),
         ),
@@ -134,7 +134,7 @@ for (const [filename, color, background] of [
       .raw()
       .toBuffer();
     const actual = await sharp(
-      await readFile(new URL(`./${filename}`, import.meta.url)),
+      await readFile(new URL(`../${filename}`, import.meta.url)),
     )
       .ensureAlpha()
       .raw()

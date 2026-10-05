@@ -35,7 +35,7 @@
     "test:scripts": "node scripts/turbo-set.mjs root test:root",
     "test": "npm run test:scripts && node scripts/turbo-set.mjs libs test",
     "generate:brand": "tsx brand/generate.ts",
-    "test:brand": "tsx --tsconfig marketing/tsconfig.json --test brand/*.test.ts"
+    "test:brand": "tsx --tsconfig marketing/tsconfig.json --test brand/__tests__/*.test.ts"
   },
   "lint-staged": {
     "docs/**/*.{md,mdx}": [

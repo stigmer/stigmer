@@ -4,8 +4,8 @@ import { test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import sharp from "sharp";
-import { StigmerMark } from "../marketing/src/films/intro/graphics/StigmerMark.js";
-import { brandSvg } from "./assets.mjs";
+import { StigmerMark } from "../../marketing/src/films/intro/graphics/StigmerMark.js";
+import { brandSvg } from "../assets.mjs";
 
 async function alpha(reveal?: (index: number) => number): Promise<Buffer> {
   const svg = renderToStaticMarkup(

@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 import sharp from "sharp";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { StigmerIcon } from "./stigmer-icon";
+import { StigmerIcon } from "../stigmer-icon";
 
 describe("refined brand mark", () => {
   it("uses an independent mask for each mounted logo", () => {
@@ -38,7 +38,7 @@ describe("refined brand mark", () => {
       await readFile(
         resolve(
           dirname(fileURLToPath(import.meta.url)),
-          "../../../../brand/logo.svg",
+          "../../../../../brand/logo.svg",
         ),
         "utf8",
       )

@@ -6,8 +6,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
 
-vi.mock("../../brand/assets.mjs", async (importOriginal) => {
-  const real = await importOriginal<typeof import("../../brand/assets.mjs")>();
+vi.mock("../../../brand/assets.mjs", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../../../brand/assets.mjs")>();
   return { ...real, brandSvg: vi.fn(real.brandSvg) };
 });
 let root: string | undefined;
@@ -31,7 +31,7 @@ async function prepare(): Promise<string> {
 describe("website brand exports", () => {
   it("generates browser sizes, an ICO, the social image and the README banner", async () => {
     const publicDir = await prepare();
-    const { generation } = await import("./generate-images");
+    const { generation } = await import("../generate-images");
     await generation;
     for (const [file, width, height] of [
       ["favicon-16x16.png", 16, 16],
@@ -53,7 +53,7 @@ describe("website brand exports", () => {
 
   it("reports source errors and exits unsuccessfully instead of declaring success", async () => {
     await prepare();
-    const { brandSvg } = await import("../../brand/assets.mjs");
+    const { brandSvg } = await import("../../../brand/assets.mjs");
     vi.mocked(brandSvg).mockRejectedValueOnce(
       new Error("brand source unavailable"),
     );
@@ -61,7 +61,7 @@ describe("website brand exports", () => {
     const exit = vi.spyOn(process, "exit").mockImplementation(() => {
       throw new Error("exit");
     });
-    const { generation } = await import("./generate-images");
+    const { generation } = await import("../generate-images");
     await expect(generation).rejects.toThrow("exit");
     expect(exit).toHaveBeenCalledWith(1);
     expect(error).toHaveBeenCalledWith(
