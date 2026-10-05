@@ -196,4 +196,32 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
     await expect(statusJson(final)).toMatchFileSnapshot("./goldens/hooks.turn2.status.json");
   });
+
+  it("refuses the turn, naming the plugin, when an agent's plugin cannot be read", async () => {
+    clock.reset();
+    const record = deepAgentExecutionRecord({
+      message: "Clean the build.",
+      hooks: [create(HookSourceSchema, {
+        source: { case: "plugin", value: create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "gone" }) },
+      })],
+    });
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      checkpointer: "sqlite",
+      clientOverrides: {
+        getPluginByReference: vi.fn(async () => {
+          throw new ConnectError("plugin not found", Code.NotFound);
+        }),
+      },
+      script: () => ({ turns: [CLOSING_TURN] }),
+    });
+
+    const turn = await runDeepAgentTurn(scenario, { turnSeq: 0 });
+
+    expect(turn.outcome.kind).toBe("returned");
+    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(record.lastFullStatus!.error).toMatch(/^The plugin 'gone' that the agent's hooks reference could not be read: /);
+  });
 });

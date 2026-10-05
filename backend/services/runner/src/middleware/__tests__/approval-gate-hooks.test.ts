@@ -202,6 +202,20 @@ describe("the gate's hooks", () => {
     expect(result.status).toBe("error");
   });
 
+  it("logs a failed PostToolUse hook and leaves the result as it was", async () => {
+    const handler = vi.fn(async () => new ToolMessage({ content: "pushed", tool_call_id: "call_1", name: "execute" }));
+    const result = (await gate(hooksAnswering(decide("allow"), { exitCode: 5 })).wrapToolCall!(call("execute", SHELL_ARGS).request, handler)) as ToolMessage;
+    expect(result.content).toBe("pushed");
+  });
+
+  it("under capture mode, a hook's allow on a write that names no file still runs it", async () => {
+    const handler = vi.fn(async () => new ToolMessage({ content: "ok", tool_call_id: "call_1", name: "write_file" }));
+    const isCapturablePath = vi.fn(async () => true);
+    await gate(hooksAnswering(decide("allow")), { fileCaptureMode: true, isCapturablePath }).wrapToolCall!(call("write_file", { content: "x" }).request, handler);
+    expect(handler).toHaveBeenCalledOnce();
+    expect(isCapturablePath).not.toHaveBeenCalled();
+  });
+
   it("with no hook decision, the default decides", async () => {
     mockedInterrupt.mockReturnValue({ action: "reject" });
     const handler = vi.fn();

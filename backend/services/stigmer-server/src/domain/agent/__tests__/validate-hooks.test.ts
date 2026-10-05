@@ -121,6 +121,10 @@ describe("ValidateHooks", () => {
     expect(() => newValidateHooksStep().execute(contextWith([]))).not.toThrow();
   });
 
+  it("leaves a source that names nothing to the proto's own oneof rule", () => {
+    expect(() => newValidateHooksStep().execute(contextWith([{}]))).not.toThrow();
+  });
+
   it.each([
     [
       "two plugins with one slug, even from two organizations",

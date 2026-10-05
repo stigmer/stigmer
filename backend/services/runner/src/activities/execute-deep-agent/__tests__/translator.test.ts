@@ -597,6 +597,10 @@ describe("V3ProtocolNormalizer", () => {
       expect(t.translate(policy("c2", ["tools:pregel-3"]))).toEqual([]);
     });
 
+    it("ignores a custom event that carries no data", () => {
+      expect(normalize(makeProtocolEvent("custom", undefined as never))).toEqual([]);
+    });
+
     it("is ignored without a source", () => {
       expect(normalize(policy("c5", [], { policy_source: undefined }))).toEqual([]);
     });

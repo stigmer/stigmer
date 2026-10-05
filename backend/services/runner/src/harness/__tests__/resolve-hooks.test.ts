@@ -156,6 +156,13 @@ describe("resolveHooks", () => {
     expect(labels).toEqual(["Resolving hooks"]);
   });
 
+  it("passes over a source that names nothing (the proto's oneof rule refuses it at apply)", async () => {
+    const { r } = await run([create(HookSourceSchema, {}), inline()], []);
+    expect(r).toMatchObject({ kind: "ready" });
+    if (r.kind !== "ready") return;
+    expect(r.hooks.sources.map((s) => s.plugin)).toEqual([null]);
+  });
+
   it("lets a plugin that records no hooks contribute none", async () => {
     const { r } = await run([pluginRef("quiet")], [plugin("quiet", { hooks: false })]);
     expect(r).toMatchObject({ kind: "ready", hooks: { sources: [] } });

@@ -82,6 +82,13 @@ describe("runHookProcess", () => {
     expect(result.exitCode).toBeNull();
   });
 
+  it("stops cleanly when a command that cannot start meets a stop that already fired", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const result = await runHookProcess(spec({ command: join(dir, "missing"), args: ["x"] }), { signal: controller.signal });
+    expect(result.spawnError).toContain("ENOENT");
+  });
+
   it("says when a command cannot start", async () => {
     const result = await runHookProcess(spec({ command: join(dir, "missing"), args: ["x"] }), {});
     expect(result.spawnError).toContain("ENOENT");

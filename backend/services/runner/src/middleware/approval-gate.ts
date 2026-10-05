@@ -302,7 +302,7 @@ export function createApprovalGateMiddleware(
         }
       }
 
-      const hookSource = await resolveHookDecision(config, call, serverSlug, pre, globalBypass);
+      const hookSource = await resolveHookDecision(config, call, serverSlug, pre, pre.decision, globalBypass);
       if (hookSource instanceof ToolMessage) return hookSource;
 
       const run = async (source: PolicySource | undefined, authorization: AuthorizationSource) => {
@@ -365,9 +365,10 @@ export function createApprovalGateMiddleware(
     call: ToolCallRequest,
     serverSlug: string,
     pre: PreToolUseOutcome,
+    decision: Exclude<PreToolUseOutcome["decision"], "deny">,
     bypass: boolean,
   ): Promise<PolicySource | undefined | ToolMessage> {
-    switch (pre.decision) {
+    switch (decision) {
       case undefined:
         return undefined;
       case "allow":
@@ -386,12 +387,12 @@ export function createApprovalGateMiddleware(
         });
         return decision === "approve" ? "hook" : decision;
       }
-      case "deny":
-        throw new Error("approval gate: a hook's deny is refused before its decision is resolved");
+      /* v8 ignore start -- @preserve: the never arm; the compiler proves no decision reaches it */
       default: {
-        const exhaustive: never = pre.decision;
+        const exhaustive: never = decision;
         throw new Error(`approval gate: unknown hook decision ${String(exhaustive)}`);
       }
+      /* v8 ignore stop */
     }
   }
 }

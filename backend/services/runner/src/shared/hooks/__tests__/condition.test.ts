@@ -70,6 +70,7 @@ describe("conditionMatches: Bash rules (any subcommand)", () => {
     ["Bash(git push *)", "GIT_TRACE=1 git push", true],
     ["Bash(git push *)", "FOO=1 BAR=2 command git push", true],
     ["Bash(git push *)", "xargs git push", true],
+    ["Bash(git push *)", "xargs -n1 git push", false],
     ["Bash(rm -rf *)", "cmd 2>&1 && rm -rf build", true],
     ["Bash(rm -rf *)", "rm  -rf   build", true],
     ["Bash(rm -rf *)", 'rm -rf "my dir"', true],
@@ -158,6 +159,10 @@ describe("conditionMatches: WebFetch, Agent, arguments, MCP", () => {
     expect(conditionMatches(rule, fetch(url), CTX)).toBe(expected);
   });
 
+  it("a call with no URL matches", () => {
+    expect(conditionMatches("WebFetch(domain:example.com)", { toolName: "WebFetch", toolInput: {} }, CTX)).toBe(true);
+  });
+
   it("a URL it cannot parse matches", () => {
     expect(conditionMatches("WebFetch(domain:example.com)", fetch("not a url"), CTX)).toBe(true);
   });
@@ -211,6 +216,36 @@ describe("splitShellCommands", () => {
   it("does not descend into arithmetic", () => {
     const commands = splitShellCommands("echo $((1 + 2))");
     expect(commands?.length).toBe(1);
+  });
+
+  it("reaches commands inside quotes, escapes and nested brackets", () => {
+    const reaches = (line: string) =>
+      splitShellCommands(line)?.some((words) => words.map((w) => w.text).join(" ") === "git push") ?? null;
+    expect(reaches('echo "run `git push`"')).toBe(true);
+    expect(reaches("echo $(echo \\) && git push)")).toBe(true);
+    expect(reaches("echo $(echo 'a)b' && git push)")).toBe(true);
+    expect(reaches('echo $(echo "a)\\"b" && git push)')).toBe(true);
+    expect(reaches("echo `echo \\`x\\` ; git push`")).toBe(true);
+    expect(reaches("bash -c 'git push'")).toBe(true);
+  });
+
+  it("reads escapes inside double quotes as the shell does", () => {
+    const [words] = splitShellCommands('echo "a \\"b\\" \\$c" plain*') ?? [];
+    expect(words?.map((w) => w.text)).toEqual(["echo", 'a "b" $c', "plain*"]);
+    expect(words?.map((w) => w.literal)).toEqual([true, true, false]);
+  });
+
+  it.each([
+    ["a nested eval", "echo $(eval x)"],
+    ["an interpreter over an eval", "bash -c 'eval x'"],
+    ["an open subshell", "(echo hi"],
+    ["an open substitution inside quotes", 'echo "$(open"'],
+    ["an open backtick inside quotes", 'echo "`open"'],
+    ["an open quote inside a substitution", "echo $(echo 'a)"],
+    ["an open double quote inside a substitution", 'echo $(echo "a)'],
+    ["nesting deeper than it follows", `echo ${"$(echo ".repeat(10)}x${")".repeat(10)}`],
+  ])("gives up on %s", (_what, line) => {
+    expect(splitShellCommands(line)).toBeNull();
   });
 
   it("gives up on unbalanced input", () => {

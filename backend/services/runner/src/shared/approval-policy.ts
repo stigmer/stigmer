@@ -157,10 +157,12 @@ export function deriveActiveLeases(execution: AgentExecution): ActiveLeases {
       case "hook":
         hooks.add(hookLeaseKey(scope.hook, scope.server, scope.tool));
         return;
+      /* v8 ignore start -- @preserve: the never arm; the compiler proves no scope kind reaches it */
       default: {
         const exhaustive: never = scope;
         throw new Error(`deriveActiveLeases: unknown lease scope ${JSON.stringify(exhaustive)}`);
       }
+      /* v8 ignore stop */
     }
   };
 

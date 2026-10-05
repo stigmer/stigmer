@@ -30,8 +30,12 @@ function groups(...handlers: { command: string; args?: string[] }[]): HookGroup[
   return [create(HookGroupSchema, { event: "PreToolUse", matcher: "Bash", handlers: handlers.map((h) => create(HookHandlerSchema, { command: h.command, args: h.args ?? [] })) })];
 }
 
-function input(sources: TurnHookSource[], extra: { declare?: string[]; values?: Record<string, string> } = {}): TurnInput {
+function input(
+  sources: TurnHookSource[],
+  extra: { declare?: string[]; values?: Record<string, string>; workspaceDir?: string } = {},
+): TurnInput {
   const base = turnInputFixture({
+    ...(extra.workspaceDir !== undefined ? { workspaceDir: extra.workspaceDir } : {}),
     hooks: { sources, pluginServers: new Map() },
     environment: { envVars: extra.values ?? {}, secretKeys: new Set() },
   });
@@ -72,10 +76,28 @@ describe("buildHookEvaluator", () => {
     await expect(buildHookEvaluator(own, sink, tools, 180_000)).rejects.toThrow("A hook in the agent's own hooks block reads the variable X");
   });
 
+  it("hands the evaluator the workspace's paths and the turn's activity", async () => {
+    const recordActivity = vi.fn();
+    const workspace = mkdtempSync(join(tmpdir(), "hooks-setup-"));
+    try {
+      const rewrite = JSON.stringify({ hookSpecificOutput: { permissionDecision: "allow", updatedInput: { file_path: "/WORKSPACE/notes.md" } } });
+      const turn = input(
+        [{ plugin: null, groups: [create(HookGroupSchema, { event: "PreToolUse", matcher: "Read", handlers: [create(HookHandlerSchema, { command: `sleep 0.2; printf '%s' '${rewrite}' | sed "s#/WORKSPACE#$CLAUDE_PROJECT_DIR#"` })] })] }],
+        { workspaceDir: workspace },
+      );
+      const hooks = await buildHookEvaluator(turn, { ...sink, recordActivity }, tools, 30);
+      const outcome = await hooks!.preToolUse({ id: "c", name: "read_file", args: { file_path: "/a.md" }, serverSlug: "" }, {});
+      expect(outcome.updatedArgs, "a real path back to the engine's").toEqual({ file_path: "/notes.md" });
+      expect(recordActivity).toHaveBeenCalledWith("hook the agent's hooks");
+    } finally {
+      rmSync(workspace, { recursive: true, force: true });
+    }
+  });
+
   it("refuses a shell-form hook when no bash is on the hook's PATH; exec form needs none", async () => {
     const empty = mkdtempSync(join(tmpdir(), "no-bash-"));
     try {
-      vi.stubEnv("PATH", empty);
+      vi.stubEnv("PATH", `:${empty}`);
       await expect(buildHookEvaluator(input([{ plugin: mounted, groups: groups({ command: "check" }) }]), sink, tools, 180_000)).rejects.toThrow(
         "no bash is on this runner's PATH",
       );

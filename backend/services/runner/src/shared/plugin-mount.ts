@@ -35,7 +35,7 @@
 
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { lstat, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -213,14 +213,27 @@ export class PluginTree {
   }
 
   private async check(): Promise<void> {
-    if (await this.matches()) return;
+    if (await this.intact()) return;
     if (existsSync(this.root)) {
       console.warn(`[plugin-mount] ${this.root} differs from its verified archive; rebuilding it`);
     }
     await this.rebuild();
   }
 
-  /** Whether the tree on disk is exactly the archive; records each file's signature as it goes. */
+  /**
+   * Whether the tree on disk is exactly the archive. Anything that fails
+   * while reading it (the tree missing, a file the shell removed between the
+   * listing and its read) is a difference.
+   */
+  private async intact(): Promise<boolean> {
+    try {
+      return await this.matches();
+    } catch {
+      return false;
+    }
+  }
+
+  /** The comparison itself; records each file's signature as it goes, and throws when the tree cannot be read. */
   private async matches(): Promise<boolean> {
     const onDisk = await this.listFiles();
     if (onDisk === undefined || onDisk.size !== this.expected.size) return false;
@@ -230,28 +243,20 @@ export class PluginTree {
       if (signature.size !== expected.size || (signature.mode & OWNER_EXEC) !== (expected.mode & OWNER_EXEC)) return false;
       const last = this.seen.get(path);
       if (last !== undefined && sameSignature(last, signature)) continue;
-      const bytes = await readFile(join(this.root, path)).catch(() => undefined);
-      if (bytes === undefined || sha256Hex(bytes) !== expected.sha256) return false;
+      if (sha256Hex(await readFile(join(this.root, path))) !== expected.sha256) return false;
       this.seen.set(path, signature);
     }
     return true;
   }
 
-  /** Every entry under the root as a regular file's signature; `undefined` when the tree is missing or holds anything else. */
+  /** Every entry under the root as a regular file's signature; `undefined` when it holds anything but files and directories. */
   private async listFiles(): Promise<Map<string, StatSignature> | undefined> {
-    let dirents;
-    try {
-      dirents = await readdir(this.root, { recursive: true, withFileTypes: true });
-    } catch {
-      return undefined;
-    }
     const files = new Map<string, StatSignature>();
-    for (const dirent of dirents) {
+    for (const dirent of await readdir(this.root, { recursive: true, withFileTypes: true })) {
       if (dirent.isDirectory()) continue;
       if (!dirent.isFile()) return undefined;
       const absolute = join(dirent.parentPath, dirent.name);
-      const stat = await lstat(absolute).catch(() => undefined);
-      if (stat === undefined || !stat.isFile()) return undefined;
+      const stat = await lstat(absolute);
       files.set(relative(this.root, absolute), {
         size: stat.size,
         mode: stat.mode,
@@ -263,16 +268,17 @@ export class PluginTree {
     return files;
   }
 
+  /**
+   * Write the archive's files afresh. A write that fails leaves a partial
+   * tree the next check rebuilds; a tree that still differs once written
+   * (a filesystem that folds two names into one, say) refuses, because a
+   * hook would run from something other than the archive.
+   */
   private async rebuild(): Promise<void> {
     this.seen.clear();
     await resetDirectory(this.root);
-    try {
-      await writeArchiveEntries(this.root, this.entries, ARCHIVE_LABEL);
-    } catch (err) {
-      await rm(this.root, { recursive: true, force: true });
-      throw err;
-    }
-    if (!(await this.matches())) {
+    await writeArchiveEntries(this.root, this.entries, ARCHIVE_LABEL);
+    if (!(await this.intact())) {
       throw new Error(`${this.root} does not match its verified archive after a rebuild`);
     }
   }

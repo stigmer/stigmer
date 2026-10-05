@@ -6,13 +6,14 @@
  *    not verify refuses;
  *  - the tree equals the archive, scripts (by extension or `#!`) executable;
  *  - the tamper guard rebuilds the tree after an edit, an added file, a
- *    removed file, a mode change and a file replaced together with any
- *    marker beside it, because its reference lives in memory;
+ *    removed file, a mode change, a file swapped for a link, and a file
+ *    replaced together with any marker beside it, because its reference
+ *    lives in memory;
  *  - an entry that escapes the mount refuses.
  */
 
 import { createHash } from "node:crypto";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
@@ -136,6 +137,14 @@ describe("the tamper guard", () => {
     await tree.verify();
     expect(existsSync(join(tree.root, "hooks/extra.sh"))).toBe(false);
     expect(read("scripts/guard.py")).toBe(FILES["scripts/guard.py"]);
+  });
+
+  it("replaces a file the shell swapped for a link", async () => {
+    unlinkSync(join(tree.root, "hooks/check"));
+    symlinkSync("/bin/sh", join(tree.root, "hooks/check"));
+    await tree.verify();
+    expect(lstatSync(join(tree.root, "hooks/check")).isFile()).toBe(true);
+    expect(read("hooks/check")).toBe(FILES["hooks/check"]);
   });
 
   it("restores the executable bit a shell took away", async () => {

@@ -341,6 +341,8 @@ describe("ApprovalCard approve-all action", () => {
       { toolName: "write_file", hook: "safety", expected: "Approve all file writes the safety plugin asks about" },
       { toolName: "edit_file", hook: "", expected: "Approve all file edits the agent's hooks ask about" },
       { toolName: "create_issue", mcpServerSlug: "github", hook: "safety", expected: "Approve all create_issue calls the safety plugin asks about" },
+      { toolName: "delete_file", hook: "safety", expected: "Approve all file deletions the safety plugin asks about" },
+      { toolName: "web_fetch", hook: "safety", expected: "Approve all web_fetch calls the safety plugin asks about" },
     ];
     for (const { toolName, mcpServerSlug, hook, expected } of cases) {
       const approval = create(PendingApprovalSchema, {
