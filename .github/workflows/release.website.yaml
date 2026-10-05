@@ -11,6 +11,7 @@ on:
     branches: [main]
     paths:
       - "site/**"
+      - "brand/**"
       - "docs/**"
       - "demos/**"
       - "vale/**"

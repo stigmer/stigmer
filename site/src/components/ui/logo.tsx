@@ -50,7 +50,7 @@ const Logo = React.forwardRef<HTMLAnchorElement, LogoProps>(
       <>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/Icon-bw.svg"
+          src="/logo-white.svg"
           alt=""
           aria-hidden="true"
           className={cn(logoMarkSizeMap[resolvedSize])}

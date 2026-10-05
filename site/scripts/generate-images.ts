@@ -18,6 +18,7 @@
  */
 
 import sharp from "sharp";
+import { brandSvg } from "../../brand/assets.mjs";
 import pngToIco from "png-to-ico";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -27,9 +28,6 @@ import * as path from "path";
 // ============================================================================
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
-const FAVICON_SVG_PATH = path.join(PUBLIC_DIR, "favicon.svg");
-const APP_ICON_SVG_PATH = path.join(PUBLIC_DIR, "stigmer_dark.svg");
-const ICON_SVG_PATH = path.join(PUBLIC_DIR, "Icon-bw.svg");
 
 // Monochromatic palette from Figma design system
 const COLORS = {
@@ -41,15 +39,6 @@ const COLORS = {
   border: "#1c1c1c",
 } as const;
 
-// Icon sizes to generate
-const ICON_SIZES = {
-  favicon16: 16,
-  favicon32: 32,
-  appleTouch: 180,
-  pwa192: 192,
-  pwa512: 512,
-} as const;
-
 // OG Image dimensions (standard for social media)
 const OG_IMAGE = {
   width: 1200,
@@ -57,39 +46,8 @@ const OG_IMAGE = {
 } as const;
 
 // ============================================================================
-// Logo Rendering
-// ============================================================================
-
-/**
- * Renders an SVG at 1024x1024 for high-quality downscaling.
- */
-async function renderSvgAt1024(svgPath: string): Promise<Buffer> {
-  const svgContent = await fs.readFile(svgPath, "utf-8");
-  return sharp(Buffer.from(svgContent)).resize(1024, 1024).png().toBuffer();
-}
-
-// ============================================================================
 // Icon Generation
 // ============================================================================
-
-/**
- * Generates a PNG icon at the specified size from the source logo.
- */
-async function generateIcon(
-  logoBuffer: Buffer,
-  size: number,
-  outputPath: string
-): Promise<void> {
-  await sharp(logoBuffer)
-    .resize(size, size, {
-      fit: "contain",
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
-    .png({ quality: 100, compressionLevel: 9 })
-    .toFile(outputPath);
-
-  console.log(`  ✓ Generated ${path.basename(outputPath)} (${size}x${size})`);
-}
 
 /**
  * Generates multi-resolution favicon.ico from PNG sources.
@@ -97,7 +55,7 @@ async function generateIcon(
 async function generateFavicon(
   png16Path: string,
   png32Path: string,
-  outputPath: string
+  outputPath: string,
 ): Promise<void> {
   const png16 = await fs.readFile(png16Path);
   const png32 = await fs.readFile(png32Path);
@@ -111,29 +69,40 @@ async function generateFavicon(
 /**
  * Generates all icon variants.
  * Favicons (16/32) use the tight-cropped favicon.svg for maximum visibility.
- * Larger icons (apple-touch, PWA) use the designer's original stigmer_dark.svg
- * with its intended padding and rounded corners.
+ * Larger icons retain standard padding and rounded backgrounds.
  */
 async function generateAllIcons(): Promise<void> {
-  console.log("\n📦 Generating icons...");
-
-  const [faviconLogo, appIconLogo] = await Promise.all([
-    renderSvgAt1024(FAVICON_SVG_PATH),
-    renderSvgAt1024(APP_ICON_SVG_PATH),
-  ]);
-
-  await Promise.all([
-    generateIcon(faviconLogo, ICON_SIZES.favicon16, path.join(PUBLIC_DIR, "favicon-16x16.png")),
-    generateIcon(faviconLogo, ICON_SIZES.favicon32, path.join(PUBLIC_DIR, "favicon-32x32.png")),
-    generateIcon(appIconLogo, ICON_SIZES.appleTouch, path.join(PUBLIC_DIR, "apple-touch-icon.png")),
-    generateIcon(appIconLogo, ICON_SIZES.pwa192, path.join(PUBLIC_DIR, "icon-192.png")),
-    generateIcon(appIconLogo, ICON_SIZES.pwa512, path.join(PUBLIC_DIR, "icon-512.png")),
-  ]);
-
+  const faviconSvg = await brandSvg({
+    size: 32,
+    color: "#fefefe",
+    background: COLORS.darkBg,
+    tight: true,
+  });
+  await fs.writeFile(path.join(PUBLIC_DIR, "favicon.svg"), faviconSvg);
+  await fs.writeFile(
+    path.join(PUBLIC_DIR, "logo-white.svg"),
+    await brandSvg({ color: "#fefefe" }),
+  );
+  for (const [size, filename, tight] of [
+    [16, "favicon-16x16.png", true],
+    [32, "favicon-32x32.png", true],
+    [180, "apple-touch-icon.png", false],
+    [192, "icon-192.png", false],
+    [512, "icon-512.png", false],
+  ] as const) {
+    const svg = await brandSvg({
+      size,
+      color: "#fefefe",
+      background: COLORS.darkBg,
+      tight,
+      rounded: !tight,
+    });
+    await sharp(Buffer.from(svg)).png().toFile(path.join(PUBLIC_DIR, filename));
+  }
   await generateFavicon(
     path.join(PUBLIC_DIR, "favicon-16x16.png"),
     path.join(PUBLIC_DIR, "favicon-32x32.png"),
-    path.join(PUBLIC_DIR, "favicon.ico")
+    path.join(PUBLIC_DIR, "favicon.ico"),
   );
 }
 
@@ -166,7 +135,8 @@ function createOgBackground(): Buffer {
  */
 function createOgText(): Buffer {
   const headline = "Build agents that work for your business";
-  const subheadline = "Teach them your domain. Connect your tools. Set your rules.";
+  const subheadline =
+    "Teach them your domain. Connect your tools. Set your rules.";
 
   const svg = `
     <svg width="${OG_IMAGE.width}" height="${OG_IMAGE.height}" xmlns="http://www.w3.org/2000/svg">
@@ -197,7 +167,8 @@ function createOgBadges(): Buffer {
   const badgeWidth = 170;
   const badgeHeight = 44;
   const badgeGap = 20;
-  const totalWidth = badges.length * badgeWidth + (badges.length - 1) * badgeGap;
+  const totalWidth =
+    badges.length * badgeWidth + (badges.length - 1) * badgeGap;
   const startX = (OG_IMAGE.width - totalWidth) / 2;
   const badgeY = 480;
 
@@ -233,8 +204,8 @@ function createOgBadges(): Buffer {
  * image. The white paths sit directly on the dark gradient background.
  */
 async function prepareLogoForOgImage(): Promise<Buffer> {
-  const svgContent = await fs.readFile(ICON_SVG_PATH, "utf-8");
   const logoSize = 120;
+  const svgContent = await brandSvg({ size: logoSize, color: "#fefefe" });
 
   return sharp(Buffer.from(svgContent))
     .resize(logoSize, logoSize, {
@@ -277,7 +248,7 @@ async function generateOgImage(): Promise<void> {
     .toFile(path.join(PUBLIC_DIR, "og-image.png"));
 
   console.log(
-    `  ✓ Generated og-image.png (${OG_IMAGE.width}x${OG_IMAGE.height})`
+    `  ✓ Generated og-image.png (${OG_IMAGE.width}x${OG_IMAGE.height})`,
   );
 }
 
@@ -295,6 +266,10 @@ async function main(): Promise<void> {
 
     // Generate OG image
     await generateOgImage();
+    await fs.copyFile(
+      path.join(PUBLIC_DIR, "og-image.png"),
+      path.resolve(PUBLIC_DIR, "../../docs/banner_dark.png"),
+    );
 
     console.log("\n✅ All images generated successfully!");
     console.log("\nGenerated files:");
@@ -311,4 +286,4 @@ async function main(): Promise<void> {
   }
 }
 
-main();
+export const generation = main();

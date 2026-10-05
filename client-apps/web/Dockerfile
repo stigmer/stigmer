@@ -27,6 +27,7 @@ COPY sdk/embed/ sdk/embed/
 
 # Copy the web console source
 COPY client-apps/web/ client-apps/web/
+COPY brand/ brand/
 
 # Install dependencies and build. Three workspace packages are built
 # explicitly because transpilePackages reaches source, not compiled
