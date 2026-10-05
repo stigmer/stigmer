@@ -167,7 +167,10 @@ export class HookEvaluator {
           sure,
           entry.source,
         );
-        const leased = (answer.decision === "ask" || answer.decision === "defer")
+        // A lease answers the asks the hook makes on calls its rule names;
+        // an ask behind an unsure `if` still reaches a person.
+        const leased = sure
+          && (answer.decision === "ask" || answer.decision === "defer")
           && this.deps.leases.has(hookLeaseKey(entry.source.plugin, call.serverSlug, call.name));
         return { ...answer, ...(leased ? { decision: "allow" as const } : {}), source: entry.source, leased };
       }),

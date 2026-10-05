@@ -29,7 +29,10 @@
  * not a lock: a shell call running in the same model step can still write
  * the tree between the check and the hook reading it. Neither can it stop
  * an interpreter on `PATH` replaced by the shell. Both walls are the
- * sandbox's.
+ * sandbox's. A hook that writes into its own tree has it rebuilt before the
+ * next run, even under another of the plugin's hooks still running from it;
+ * `${CLAUDE_PLUGIN_DATA}` is the plugin's writable place, and its hooks run
+ * with Python's bytecode cache off (`hooks/evaluate.ts`).
  *
  * Turns of one workspace are serialised (`harness/turn-context.ts`
  * `acquireWorkspaceTurnLock`), so no two turns mount one tree at once; within
@@ -69,8 +72,8 @@ export interface MountedPlugin {
 
 /** A plugin that cannot be mounted; its message names the plugin. */
 export class PluginMountError extends Error {
-  constructor(slug: string, detail: string) {
-    super(`the plugin '${slug}' could not be mounted: ${detail}`);
+  constructor(slug: string, detail: string, options?: { readonly cause?: unknown }) {
+    super(`the plugin '${slug}' could not be mounted: ${detail}`, options);
     this.name = "PluginMountError";
   }
 }
@@ -167,7 +170,7 @@ async function cachedArchive(
       storageKey,
     );
   } catch (err) {
-    throw new PluginMountError(slug, `its archive could not be fetched (${err instanceof Error ? err.message : String(err)})`);
+    throw new PluginMountError(slug, `its archive could not be fetched (${err instanceof Error ? err.message : String(err)})`, { cause: err });
   }
   if (fetched === undefined) {
     throw new PluginMountError(slug, "the server holds no archive for it");

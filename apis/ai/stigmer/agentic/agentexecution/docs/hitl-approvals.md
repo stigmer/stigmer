@@ -170,7 +170,7 @@ stigmer agent execution reject aex_abc123 \
 
 **On Approve all ("approve all of this kind"):** The clicked tool is approved, and it grants a lease for the rest of this execution scoped to ONE class of call, derived from the clicked call:
 
-- when a hook asked (`approval_policy_source = HOOK`), that hook's asks on that one tool: a later ask from the same hook on the same tool counts as the hook's allow, so the call runs without asking. Nothing else is cleared: the default keeps asking wherever the hook does not answer, another hook's ask still asks, and a hook's refusal still binds;
+- when a hook asked (`approval_policy_source = HOOK`), that hook's asks on that one tool: a later ask from the same hook on the same tool counts as the hook's allow, so the call runs without asking, where the hook's condition names the call for sure (an ask behind a condition the runner cannot read for sure still asks). Nothing else is cleared: the default keeps asking wherever the hook does not answer, another hook's ask still asks, and a hook's refusal still binds;
 - otherwise, for a built-in tool, its approval category (shell commands, file edits and writes, or deletions);
 - otherwise, for an MCP tool, every tool of its server.
 

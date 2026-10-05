@@ -210,6 +210,17 @@ describe("hook leases", () => {
     expect((await hooks.preToolUse(READ, {})).decision).toBe("ask");
   });
 
+  it("never clear an ask behind an `if` that only might match", async () => {
+    const { run } = scripted({ asks: decide("ask") });
+    const hooks = evaluator(
+      [{ source: plugin("safety"), groups: [group("PreToolUse", "Bash", { command: "asks", condition: "Bash(git push *)" })] }],
+      run,
+      { leases: new Set([hookLeaseKey("safety", "", "execute")]) },
+    );
+    expect((await hooks.preToolUse(SHELL, {})).decision, "a sure match is leased").toBe("allow");
+    expect(await hooks.preToolUse({ ...SHELL, args: { command: "$(echo git) push" } }, {})).toMatchObject({ decision: "ask", leased: false });
+  });
+
   it("never clear another hook's ask, or a deny", async () => {
     const { run } = scripted({ ask: decide("ask"), no: decide("deny") });
     const other = evaluator(sources, run, { leases: new Set([hookLeaseKey("audit", "", "execute")]) });

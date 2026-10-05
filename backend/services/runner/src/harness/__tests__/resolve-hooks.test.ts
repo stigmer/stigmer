@@ -8,6 +8,8 @@
  *    taken as written; a plugin with no hooks contributes none; a plugin in
  *    Cursor's format, an unreadable plugin, an archive that fails to mount
  *    and a plugin server that cannot be named each refuse the turn by name;
+ *    a transient fault (the server unreachable, a download that failed in
+ *    transit) is thrown instead, as the infrastructure's, never the owner's;
  *    every server a plugin brought is named as Claude Code names it.
  *
  * The client is doubled with scripted plugins; `HOME` is the hermetic
@@ -189,6 +191,32 @@ describe("resolveHooks", () => {
     expect(r).toMatchObject({ kind: "ready" });
     if (r.kind !== "ready") return;
     expect([...r.hooks.pluginServers]).toEqual([["safety-checks", { plugin: "safety-rails", server: "checks" }]]);
+  });
+
+  it("throws a transient fault instead of refusing the turn as the owner's to fix", async () => {
+    const unavailable = () => new ConnectError("connection refused", Code.Unavailable);
+    const resolve = (client: ResolutionDeps["client"], hooks: HookSource[], servers: ResolvedMcpServer[] = []) =>
+      resolveHooks(deps(client).deps, { blueprint: blueprintWith(hooks), sessionId: `ses-hooks-${++session}`, servers });
+
+    const unreachable = clientWith([plugin("safety")]);
+    unreachable.getPluginByReference = vi.fn(async () => {
+      throw unavailable();
+    });
+    await expect(resolve(unreachable, [pluginRef("safety")])).rejects.toThrow("connection refused");
+
+    const inTransit = clientWith([plugin("safety")]);
+    inTransit.getPluginArtifact = vi.fn(async () => {
+      throw unavailable();
+    });
+    await expect(resolve(inTransit, [pluginRef("safety")])).rejects.toThrow("its archive could not be fetched");
+
+    const ownerUnreachable = clientWith([plugin("safety")]);
+    ownerUnreachable.getPlugin = vi.fn(async () => {
+      throw unavailable();
+    });
+    await expect(resolve(ownerUnreachable, [inline()], [server("safety-checks", { pluginId: "plg_safety", server: "checks" })])).rejects.toThrow(
+      "connection refused",
+    );
   });
 
   it("refuses when a plugin server's plugin cannot be read", async () => {

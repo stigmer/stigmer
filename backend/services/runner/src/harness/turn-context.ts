@@ -100,7 +100,8 @@ import { buildMcpApprovalDefault, deriveActiveLeases } from "../shared/approval-
 import { ToolScope } from "../shared/tool-lists.js";
 import { resolveAttachments } from "../shared/attachment-resolver.js";
 import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
-import { mountPlugin } from "../shared/plugin-mount.js";
+import { mountPlugin, PluginMountError } from "../shared/plugin-mount.js";
+import { isTerminalError } from "../shared/grpc-retry.js";
 import type { PluginServerName } from "../shared/hooks/tool-view.js";
 import { getPlatformDir } from "../shared/workspace/platform-dir.js";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
@@ -934,6 +935,7 @@ export async function resolveHooks(
     try {
       plugin = await deps.client.getPluginByReference(ref);
     } catch (err) {
+      if (!ownersToFix(err)) throw err;
       return refused(`The plugin '${ref.slug}' that the agent's hooks reference could not be read: ${errorText(err)}`);
     }
     const hooks = plugin.status?.hooks;
@@ -950,6 +952,7 @@ export async function resolveHooks(
     try {
       resolved.push({ plugin: await mountPlugin(deps.client, plugin, platformDir), groups: hooks.groups });
     } catch (err) {
+      if (!ownersToFix(err)) throw err;
       return refused(`The agent's hooks could not be prepared: ${errorText(err)}`);
     }
   }
@@ -965,6 +968,7 @@ export async function resolveHooks(
         const owner = await deps.client.getPlugin(origin.pluginId);
         name = owner.metadata?.name || owner.metadata?.slug || "";
       } catch (err) {
+        if (!ownersToFix(err)) throw err;
         return refused(
           `The MCP server '${server.slug}' came from a plugin that could not be read, so the agent's hooks cannot see its tools by name: ${errorText(err)}`,
         );
@@ -976,6 +980,18 @@ export async function resolveHooks(
 
   deps.timing.mark("resolve_hooks");
   return { kind: "ready", hooks: { sources: resolved, pluginServers } };
+}
+
+/**
+ * Whether a failure reading or mounting a hook's plugin is the agent owner's
+ * to fix (the plugin is gone, not theirs to read, or its archive does not
+ * verify), and so refuses the turn with a sentence naming it. A transient
+ * fault (the server unreachable, a download that failed in transit) is the
+ * infrastructure's: it is thrown and settles as any other failure there.
+ */
+function ownersToFix(err: unknown): boolean {
+  if (err instanceof PluginMountError) return err.cause === undefined || isTerminalError(err.cause);
+  return isTerminalError(err);
 }
 
 function errorText(err: unknown): string {
