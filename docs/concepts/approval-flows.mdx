@@ -48,8 +48,8 @@ An Agent's hooks can change that, call by call. A hook is a command in Claude
 Code's hooks format, from a plugin or written in the Agent itself, that runs
 before a tool call. It can refuse the call, ask you first, or let it run without
 the approval it would otherwise need; a call it says nothing about keeps the
-default above. A hook's refusal holds even when you trust the whole run. To
-apply a plugin's hooks, reference the plugin in the Agent's `hooks`:
+default. A hook's refusal holds even when you trust the whole run. To apply a
+plugin's hooks, reference the plugin in the Agent's `hooks`:
 
 ```yaml validate-as="Agent"
 spec:

@@ -12,6 +12,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -244,6 +245,26 @@ describe("toAgentUpdateInput", () => {
         env: { API_KEY: { isSecret: true, description: "Vendor key", optional: true } },
         tools: ["Read", "Grep", "Agent(researcher)", "mcp__github-mcp"],
         disallowedTools: ["mcp__github-mcp__delete_repo"],
+        hooks: [
+          { source: { case: "plugin", value: { org: "acme", slug: "safety", kind: ApiResourceKind.plugin } } },
+          {
+            source: {
+              case: "inline",
+              value: {
+                format: HookFormat.CLAUDE_CODE,
+                groups: [
+                  {
+                    event: "PreToolUse",
+                    matcher: "Bash",
+                    handlers: [
+                      { command: "/opt/guard", args: ["--strict"], timeoutSeconds: 30, condition: "Bash(git push *)", failClosed: false },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        ],
       },
     });
 

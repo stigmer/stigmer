@@ -250,7 +250,8 @@ describe("ApprovalPrompt", () => {
       <ApprovalPrompt pendingApproval={pending} onSubmit={() => {}} />,
     );
     const output = lastFrame() ?? "";
-    expect(output).toContain("[a] Approve all shell commands the safety plugin asks about");
+    // The label wraps inside the prompt's frame; its first line names the lease.
+    expect(output).toContain("[a] Approve all shell commands the safety plugin asks");
     expect(output).toContain("decided by the safety plugin's hook");
   });
 

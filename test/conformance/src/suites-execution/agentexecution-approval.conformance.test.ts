@@ -89,6 +89,8 @@ import {
 } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { zipFiles } from "../support/skills";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -687,5 +689,86 @@ describe("AgentExecution — an agent's hooks decide at the gate", () => {
     expect(ApprovalPolicySource[row!.approvalPolicySource], "the row says the hook decided").toBe(
       ApprovalPolicySource[ApprovalPolicySource.HOOK],
     );
+  });
+});
+
+// A plugin's hooks, end to end over the wire: a hooks-only Claude Code plugin
+// is pushed, an agent references it, and the runner reads it by reference,
+// downloads its archive over the transfer lane, verifies and mounts it, and
+// runs the plugin's own extensionless script.
+describe("AgentExecution — a pushed plugin's hooks decide at the gate", () => {
+  const GUARD = [
+    "#!/usr/bin/env bash",
+    "input=$(cat)",
+    'case "$input" in',
+    "  *'\"command\":\"rm -rf'*) echo 'recursive deletes are not allowed' >&2; exit 2 ;;",
+    "  *'\"command\":\"echo published'*) printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"publishing needs a person\"}}' ;;",
+    "esac",
+    "exit 0",
+    "",
+  ].join("\n");
+
+  it("refuses the delete, holds the publish for a person, and names the plugin on both", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("safety");
+    const plugin = await clients.pluginCommand.push({
+      org,
+      artifact: zipFiles({
+        ".claude-plugin/plugin.json": JSON.stringify({ name }),
+        "hooks/hooks.json": JSON.stringify({
+          hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: '"${CLAUDE_PLUGIN_ROOT}"/hooks/guard' }] }] },
+        }),
+        "hooks/guard": GUARD,
+      }),
+    });
+    fixtures.defer(() => clients.pluginCommand.delete({ value: plugin.metadata!.id }).then(() => undefined, () => undefined));
+    const slug = plugin.metadata!.slug;
+
+    const agent = await clients.agentCommand.create(
+      makeAgent({
+        org,
+        name: uniqueName("agent-plugin-hooks"),
+        hooks: [{ source: { case: "plugin", value: { kind: ApiResourceKind.plugin, slug } } }],
+      }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+
+    mock.enqueue(anthropicToolUses([{ toolCallId: "call_hook_rm", toolName: "execute", toolInput: { command: "rm -rf build" } }]));
+    mock.enqueue(anthropicToolUses([{ toolCallId: "call_hook_publish", toolName: "execute", toolInput: { command: "echo published" } }]));
+    mock.enqueue(anthropicText("Done."));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-plugin-hooks"), agentRef: agentRefOf(agent) }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+
+    const gated = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, {
+      label: "WAITING_FOR_APPROVAL on the plugin's ask",
+    });
+    const refused = allToolCalls(gated).find((tc) => tc.id === "call_hook_rm");
+    expect(refused, `execution ${executionId}: the refused delete has a row`).toBeDefined();
+    expect(ToolCallStatus[refused!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
+    expect(refused!.error).toContain("recursive deletes are not allowed");
+    expect(refused!.approvalPolicyHook).toBe(slug);
+    const pending = gated.status!.pendingApprovals[0]!;
+    expect(pending.toolCallId).toBe("call_hook_publish");
+    expect(pending.message).toBe("publishing needs a person");
+    expect(ApprovalPolicySource[pending.approvalPolicySource]).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
+    expect(pending.approvalPolicyHook).toBe(slug);
+
+    await submitApprovalPerContract({
+      expectedRemaining: 0,
+      label: "approving the plugin's ask clears the gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId: pending.toolCallId,
+          action: ApprovalAction.APPROVE,
+        }),
+    });
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const published = allToolCalls(final).find((tc) => tc.id === "call_hook_publish");
+    expect(published?.result).toContain("published");
   });
 });

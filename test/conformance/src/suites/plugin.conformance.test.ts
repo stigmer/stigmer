@@ -991,6 +991,55 @@ describe("Plugin conformance — the transfer lane", () => {
   });
 });
 
+describe("Plugin conformance — the archive, for the runner to mount", () => {
+  it("[rpc:PluginQueryController.getArtifact] returns the exact bytes that were installed", async () => {
+    const archive = pluginArchive(thermosLike(uniqueName("plg-archive")));
+    const plugin = await install(archive);
+    const res = await clients.pluginQuery.getArtifact({
+      artifactStorageKey: plugin.status!.artifactStorageKey,
+    });
+    expect(Buffer.from(res.artifact).equals(Buffer.from(archive)), "the archive verbatim").toBe(true);
+  });
+
+  it("[rpc:PluginQueryController.getArtifact] refuses an empty key, an unknown one, and a key outside the plugin store", async () => {
+    await expectGrpcCode(
+      () => clients.pluginQuery.getArtifact({ artifactStorageKey: "" }),
+      Code.InvalidArgument,
+      "getArtifact empty key",
+    );
+    await expectGrpcCode(
+      () =>
+        clients.pluginQuery.getArtifact({
+          artifactStorageKey: `plugins/${"0".repeat(64)}.zip`,
+        }),
+      Code.NotFound,
+      "getArtifact unknown key",
+    );
+    await expectGrpcCode(
+      () =>
+        clients.pluginQuery.getArtifact({
+          artifactStorageKey: `skills/${"0".repeat(64)}.zip`,
+        }),
+      Code.NotFound,
+      "getArtifact on another kind's key",
+    );
+  });
+
+  it("[rpc:PluginQueryController.getArtifactDownloadUrl] serves the exact installed bytes over HTTP", async (ctx) => {
+    if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
+    const archive = pluginArchive(thermosLike(uniqueName("plg-download")));
+    const plugin = await install(archive);
+    const minted = await clients.pluginQuery.getArtifactDownloadUrl({
+      artifactStorageKey: plugin.status!.artifactStorageKey,
+    });
+    expect(minted.url).toMatch(/^https?:\/\//);
+    expect(minted.sizeBytes, "the mint reports the stored size").toBe(BigInt(archive.length));
+    const resp = await fetch(minted.url);
+    expect(resp.status).toBe(200);
+    expect(new Uint8Array(await resp.arrayBuffer()), "HTTP bytes equal the installed archive").toEqual(archive);
+  });
+});
+
 describe("Plugin conformance — the vendored Cursor plugins", () => {
   // The published catalogue's shapes, read from disk: five install as the
   // library describes them, `salesforce` is refused with the library's own
