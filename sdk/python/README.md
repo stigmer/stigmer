@@ -48,7 +48,6 @@ Every resource type has a typed client accessible as a property on `StigmerClien
 | `skills`               | Skill              |
 | `workflows`            | Workflow           |
 | `workflow_executions`   | WorkflowExecution  |
-| `workflow_instances`    | WorkflowInstance   |
 | `search`               | Cross-resource search |
 
 ## Common Operations

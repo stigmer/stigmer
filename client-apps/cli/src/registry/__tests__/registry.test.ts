@@ -106,14 +106,6 @@ describe("registry — verb support matrix", () => {
     );
   });
 
-  it("workflow_instance has no list verb", () => {
-    expect(
-      registry.supportsVerb(ApiResourceKind.workflow_instance, Verb.Get),
-    ).toBe(true);
-    expect(
-      registry.supportsVerb(ApiResourceKind.workflow_instance, Verb.List),
-    ).toBe(false);
-  });
 
   it("agent_channel supports the full declarative verb set", () => {
     for (const v of [Verb.Apply, Verb.Get, Verb.List, Verb.Delete]) {

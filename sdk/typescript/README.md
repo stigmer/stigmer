@@ -59,7 +59,6 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 | `skill`              | Skill              |
 | `workflow`           | Workflow           |
 | `workflowExecution`  | WorkflowExecution  |
-| `workflowInstance`   | WorkflowInstance   |
 | `search`             | Cross-resource search |
 | `billing`            | Billing (credits, ledger, Stripe) |
 

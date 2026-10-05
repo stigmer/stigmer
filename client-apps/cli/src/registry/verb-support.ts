@@ -106,11 +106,6 @@ export const VERB_SUPPORT: ReadonlyMap<
     ApiResourceKind.schedule,
     new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
   ],
-  // No list: proto exposes getByWorkflow (requires workflow_id), not a generic list.
-  [
-    ApiResourceKind.workflow_instance,
-    new Set<Verb>([Verb.Apply, Verb.Get, Verb.Delete]),
-  ],
   // Session list is served by its dedicated query RPC (a LIST_HANDLERS
   // entry); stigmer/stigmer#469 promoted it into the matrix after it shipped
   // working-but-unadvertised through a pre-gate bypass. get/delete remain

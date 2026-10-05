@@ -406,8 +406,3 @@ export {
   toWorkflowExecutionUpdateInput,
   type WorkflowExecutionInput,
 } from "./gen/workflowexecution.js";
-export {
-  WorkflowInstanceClient,
-  toWorkflowInstanceUpdateInput,
-  type WorkflowInstanceInput,
-} from "./gen/workflowinstance.js";

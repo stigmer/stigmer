@@ -151,7 +151,7 @@ This contract allows:
 
 ### Sub-Agents
 - **Inline sub-agents**: Define sub-agents with their own configuration
-- **Referenced sub-agents**: Reference deployed agent instances
+- **Referenced sub-agents**: Reference deployed agents
 - Tool selection and skill inheritance
 
 ### Environment Variables

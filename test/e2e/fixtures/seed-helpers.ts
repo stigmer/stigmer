@@ -2,7 +2,8 @@ import { Buffer } from "node:buffer";
 import { crc32 } from "node:zlib";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { type WorkflowExecutionVisibility, WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { UpdateWorkflowExecutionVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 
 const DEFAULT_ORG = "default";
 
@@ -168,31 +169,20 @@ export async function createTestWorkflow(
   };
 }
 
-export interface TestWorkflowInstanceResult {
-  id: string;
-  slug: string;
-  cleanup: () => Promise<void>;
-}
-
-/** A workflow instance (private, the kind's default) of an existing workflow. */
-export async function createTestWorkflowInstance(
+/**
+ * Sets who can see a workflow's runs through the workflow's one door for the
+ * setting (`updateExecutionVisibility`); a plain apply keeps the stored level.
+ * A workflow starts PRIVATE, so a spec that widens it needs no cleanup beyond
+ * deleting the workflow.
+ */
+export async function setTestWorkflowRunVisibility(
   client: Stigmer,
-  workflow: { id: string; org: string },
-): Promise<TestWorkflowInstanceResult> {
-  const name = `e2e-wi-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  const instance = await client.workflowInstance.create({
-    name,
-    org: workflow.org,
-    workflowId: workflow.id,
-  });
-  const id = instance.metadata!.id;
-  return {
-    id,
-    slug: instance.metadata!.slug,
-    cleanup: async () => {
-      await client.workflowInstance.delete(id).catch(() => {});
-    },
-  };
+  workflowId: string,
+  executionVisibility: WorkflowExecutionVisibility,
+): Promise<void> {
+  await client.workflow.updateExecutionVisibility(
+    create(UpdateWorkflowExecutionVisibilityInputSchema, { resourceId: workflowId, executionVisibility }),
+  );
 }
 
 export interface TestWorkflowExecutionResult {
