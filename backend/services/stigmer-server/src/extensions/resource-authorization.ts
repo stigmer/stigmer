@@ -320,11 +320,12 @@ export interface ResourceAuthorizationLifecycle {
    */
   onDefaultInstanceLinked?(event: DefaultInstanceLinkedEvent): Promise<void>;
   /**
-   * OPTIONAL: synchronous, post-persist, after `onResourceCreated` for a
-   * child organization; a throw fails the request (the row survives —
-   * retry converges, the writes are idempotent). Absent method = no edge
-   * is written (the OSS posture: the edges are derived from the row and
-   * the list index at check time).
+   * OPTIONAL: synchronous, pre-persist: fired for a child organization
+   * after its claims and immediately before its row is stored, so before
+   * `onResourceCreated`; a throw fails the request with nothing stored.
+   * The writes are idempotent. Absent method = no edge is written (the OSS
+   * posture: the edges are derived from the row and the list index at
+   * check time).
    */
   onChildOrganizationLinked?(event: ChildOrganizationLinkedEvent): Promise<void>;
   /**
