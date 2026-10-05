@@ -6,7 +6,8 @@
  * the person who started the run — never the workflow author's, never a
  * teammate's — and none at all for a workflow of another organization
  * than the run's. A run with no person reads nobody's, and a failed secret
- * read is non-fatal.
+ * read is non-fatal. The create step builds its context from the workflow
+ * row the pin loaded and clears runtime_env from the run it persists.
  *
  * Over a real store (the rows the personal lookup scans) with a reader
  * that answers the secret reads by environment id and records them, so a
@@ -39,8 +40,16 @@ import {
   PERSONAL_LABEL_VALUE,
 } from "../../environment/constants.js";
 
+import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
+
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { RequestContext } from "../../../pipeline/request-context.js";
 import type { WorkflowExecutionContextBuilderDeps } from "../create-execution-context-step.js";
-import { workflowRunEnvironment } from "../create-execution-context-step.js";
+import {
+  newCreateExecutionContextStep,
+  workflowRunEnvironment,
+} from "../create-execution-context-step.js";
+import { PINNED_WORKFLOW_KEY } from "../pin-workflow-version-step.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -243,3 +252,37 @@ describe("workflowRunEnvironment", () => {
     expect(reads).toEqual(["env_runner"]);
   });
 });
+
+describe("CreateExecutionContext", () => {
+  it("builds the context from the pinned row and clears runtime_env from the run", async () => {
+    const created: ExecutionContext[] = [];
+    const stepDeps: WorkflowExecutionContextBuilderDeps = {
+      ...deps([]),
+      executionContextCreator: () => ({
+        create: (ec) => {
+          created.push(ec);
+          return Promise.resolve(ec);
+        },
+      }),
+    };
+    const execution = run(RUNNER);
+    execution.spec!.runtimeEnv = { SLACK_WEBHOOK: value("typed-hook") };
+    const ctx = new RequestContext(
+      WorkflowExecutionSchema,
+      execution,
+      testCallerIdentity(),
+      ApiResourceKind.workflow_execution,
+    );
+    ctx.set(PINNED_WORKFLOW_KEY, workflow());
+
+    await newCreateExecutionContextStep(stepDeps).execute(ctx);
+
+    expect(created).toHaveLength(1);
+    const data = created[0]!.spec!.data;
+    expect(data.SLACK_WEBHOOK?.value).toBe("typed-hook");
+    expect(data.API_TOKEN?.value).toBe("runner-token");
+    expect(created[0]!.spec!.executionId).toBe("wex_1");
+    expect(ctx.newState.spec?.runtimeEnv).toEqual({});
+  });
+});
+

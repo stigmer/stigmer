@@ -854,7 +854,7 @@ async function resolvePlatformClientEnvironments(
  * the step is never handed another version's keys. An unresolvable REF
  * fails the create.
  */
-async function resolveWorkflowTaskEnvironments(
+export async function resolveWorkflowTaskEnvironments(
   deps: ExecutionContextBuilderDeps,
   execution: AgentExecution,
 ): Promise<Environment[]> {

@@ -1824,6 +1824,10 @@ export async function composeServer(
       executionContextBuilder: {
         store,
         logger,
+        // The personal-key fill reads through the in-process environment
+        // client; only a workflow run on a connected engine reaches it,
+        // which the execution conformance lane drives.
+        /* v8 ignore next -- @preserve: called only by a workflow run's context build on a connected engine (execution conformance), never by the composed unit tests, which have no engine */
         environmentReader: () => requireInProcess().executionEnvironmentReader,
         executionContextCreator: () =>
           requireInProcess().workflowExecutionContextCreator,

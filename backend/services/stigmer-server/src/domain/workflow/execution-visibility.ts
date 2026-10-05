@@ -201,19 +201,12 @@ export function newSetWorkflowExecutionVisibilityStep<
 
       workflow.spec ??= create(WorkflowSpecSchema);
       workflow.spec.executionVisibility = levelOf(ctx);
-
-      try {
-        setAuditFieldsForUpdate(
-          WorkflowSchema,
-          workflow,
-          "status_audit",
-          ctx.callerIdentity,
-        );
-      } catch (error) {
-        throw new Error(
-          `failed to set audit fields: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
+      setAuditFieldsForUpdate(
+        WorkflowSchema,
+        workflow,
+        "status_audit",
+        ctx.callerIdentity,
+      );
 
       ctx.set(UPDATE_EXECUTION_VISIBILITY_WORKFLOW_KEY, workflow);
     },

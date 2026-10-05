@@ -132,6 +132,11 @@ describe("validateUniqueAgentCallNames", () => {
     expect(validateUniqueAgentCallNames(spec)).toHaveLength(1);
   });
 
+  it("leaves an unnamed step to the validator that refuses it", () => {
+    const spec = specOf([agentCall(""), agentCall("")]);
+    expect(validateUniqueAgentCallNames(spec)).toEqual([]);
+  });
+
   it("lets other task kinds repeat a name across nested lists", () => {
     const spec = specOf([
       agentCall("review"),

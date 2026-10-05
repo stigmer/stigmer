@@ -10,7 +10,11 @@
  *   - the update door tells the driver the target audience every time, the
  *     empty one included, so a transition away from ORGANIZATION converges
  *     without knowing the old level;
- *   - update keeps the stored level whatever the request carried.
+ *   - update keeps the stored level whatever the request carried, and a
+ *     chain that reaches it with no stored row is a wiring fault (Internal);
+ *   - the targeted update's persist fault is Internal, and its reindex is
+ *     best-effort: a row the extractor cannot index, or an index write that
+ *     fails, never fails the change.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -28,15 +32,47 @@ import type {
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
+import { createLogger } from "../../../boot/logger.js";
+import type { Store } from "../../../store/interface.js";
 import {
   UPDATE_EXECUTION_VISIBILITY_WORKFLOW_KEY,
   newCreateExecutionVisibilityTuplesStep,
+  newIndexWorkflowAfterExecutionVisibilityUpdateStep,
+  newPersistWorkflowForExecutionVisibilityUpdateStep,
   newPreserveExecutionVisibilityStep,
   newUpdateExecutionVisibilityTuplesStep,
 } from "../execution-visibility.js";
 import { workflowVersionHash } from "../steps.js";
 
 const ORG = "org_acme";
+
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
+
+/** A store whose one write of the kind named fails; reads are untouched. */
+function writeFailingStore(op: "saveResource" | "upsertSearchIndex"): {
+  store: Store;
+  calls: string[];
+} {
+  const calls: string[] = [];
+  const store = {
+    [op]: () => {
+      calls.push(op);
+      return Promise.reject(new Error("SQLITE_BUSY: database is locked"));
+    },
+  } as unknown as Store;
+  return { store, calls };
+}
+
+async function errorOfStep(run: () => unknown): Promise<unknown> {
+  return Promise.resolve()
+    .then(run)
+    .then(() => undefined)
+    .catch((e: unknown) => e);
+}
 
 function workflow(
   level: WorkflowExecutionVisibility,
@@ -166,7 +202,67 @@ describe("UpdateExecutionVisibilityTuples", () => {
   });
 });
 
+describe("UpdateExecutionVisibilityTuples with no workflow stashed", () => {
+  it("fires nothing", async () => {
+    const { lifecycle, events } = recordingLifecycle();
+    await newUpdateExecutionVisibilityTuplesStep<typeof WorkflowSchema>(
+      lifecycle,
+    ).execute(workflowCtx(workflow(WorkflowExecutionVisibility.organization)));
+    expect(events).toEqual([]);
+  });
+});
+
+describe("the targeted update's persist and reindex", () => {
+  function stashed(row: Workflow): RequestContext<typeof WorkflowSchema> {
+    const ctx = workflowCtx(row);
+    ctx.set(UPDATE_EXECUTION_VISIBILITY_WORKFLOW_KEY, row);
+    return ctx;
+  }
+
+  it("a persist fault is a sanitized Internal", async () => {
+    const { store } = writeFailingStore("saveResource");
+    const error = await errorOfStep(() =>
+      newPersistWorkflowForExecutionVisibilityUpdateStep<typeof WorkflowSchema>(
+        store,
+      ).execute(stashed(workflow(WorkflowExecutionVisibility.organization))),
+    );
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.Internal);
+    expect((error as ConnectError).rawMessage).toBe("failed to save workflow");
+  });
+
+  it("a failing index write never fails the change", async () => {
+    const { store, calls } = writeFailingStore("upsertSearchIndex");
+    await newIndexWorkflowAfterExecutionVisibilityUpdateStep<
+      typeof WorkflowSchema
+    >(store, silentLogger).execute(
+      stashed(workflow(WorkflowExecutionVisibility.organization)),
+    );
+    expect(calls).toEqual(["upsertSearchIndex"]);
+  });
+
+  it("a row the extractor cannot index is skipped without a write", async () => {
+    const { store, calls } = writeFailingStore("upsertSearchIndex");
+    const row = workflow(WorkflowExecutionVisibility.organization);
+    row.metadata = undefined;
+    await newIndexWorkflowAfterExecutionVisibilityUpdateStep<
+      typeof WorkflowSchema
+    >(store, silentLogger).execute(stashed(row));
+    expect(calls).toEqual([]);
+  });
+});
+
 describe("PreserveExecutionVisibility", () => {
+  it("a chain that reaches it with no stored row is a wiring fault (Internal)", async () => {
+    const error = await errorOfStep(() =>
+      newPreserveExecutionVisibilityStep().execute(
+        workflowCtx(workflow(WorkflowExecutionVisibility.private)),
+      ),
+    );
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.Internal);
+  });
+
   it("keeps the stored level over whatever the request carried", () => {
     const ctx = workflowCtx(workflow(WorkflowExecutionVisibility.private));
     ctx.set(
