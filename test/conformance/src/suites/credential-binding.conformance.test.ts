@@ -504,6 +504,48 @@ describe("credential binding — a credential that names an organization works t
     expect(connect.rawMessage).toBe(BOUND_ELSEWHERE_MESSAGE);
   });
 
+  it("[rpc:McpServerCommandController.connect] a key limited to A connects, in A, to an MCP server B shares at platform visibility exactly as its person does", async (ctx) => {
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
+    const a = await tenancy(on);
+    const b = await tenancy(on);
+    const person = await on.provisionMember(a);
+    const key = await keyOf(on, person, a.org);
+    const serverInput = makeMcpServer({
+      org: b.org,
+      name: uniqueName("binding-shared-mcp"),
+    });
+    const shared = await on.clients.mcpServerCommand.create({
+      ...serverInput,
+      metadata: {
+        ...serverInput.metadata,
+        visibility: ApiResourceVisibility.visibility_platform,
+      },
+    });
+    fixtures.defer(() =>
+      on.clients.mcpServerCommand.delete({
+        resourceId: shared.metadata?.id ?? "",
+      }),
+    );
+
+    // Connecting is how an MCP server runs, the one path the model opens
+    // across organizations: the binding adds nothing to it, so the limited
+    // key gets exactly its person's answer, whatever the model and the
+    // engine make of that answer on this target.
+    const outcomeOf = (as: ConformanceClients) =>
+      as.mcpServerCommand
+        .connect({ mcpServerId: shared.metadata?.id ?? "", org: a.org })
+        .then(
+          () => "connected",
+          (error: unknown) =>
+            `${String((error as { code?: unknown }).code)} ${(error as { rawMessage?: string }).rawMessage ?? ""}`,
+        );
+    expect(
+      await outcomeOf(key.clients),
+      "the limited key's answer is its person's",
+    ).toBe(await outcomeOf(person));
+  });
+
   it("[rpc:ApiKeyCommandController.create] a key can be limited only to an organization its owner can view", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
