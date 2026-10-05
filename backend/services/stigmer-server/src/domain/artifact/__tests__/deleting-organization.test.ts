@@ -7,7 +7,9 @@
  * artifacts. Refused NOT_FOUND with a missing organization's copy, before
  * anything is uploaded or saved; an execution of a live organization is
  * filed as before; a deletion table that cannot be read answers INTERNAL,
- * with nothing uploaded. The registered handler runs on an in-process router;
+ * with nothing uploaded. And the create's half of the shared-blob race
+ * (artifact/purge.ts): a blob another organization's purge deleted
+ * between this create's upload and its row is uploaded again. The registered handler runs on an in-process router;
  * the store and the blob storage are recording fakes.
  */
 import { create } from "@bufbuild/protobuf";
@@ -37,7 +39,10 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
-function harness(deleting: ReadonlySet<string> | Error) {
+function harness(
+  deleting: ReadonlySet<string> | Error,
+  options: { readonly blobGoneAfterSave?: boolean } = {},
+) {
   const uploads: string[] = [];
   const saved: string[] = [];
   const executions: Record<string, string> = {
@@ -80,6 +85,9 @@ function harness(deleting: ReadonlySet<string> | Error) {
           upload: async (hash: string) => {
             uploads.push(hash);
           },
+          // A purge of another organization deleting the shared blob
+          // between this create's upload and its row.
+          exists: async () => options.blobGoneAfterSave !== true || uploads.length > 1,
         } as never,
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
@@ -119,6 +127,13 @@ describe("artifact create for an execution of an organization being deleted", ()
     expect(artifact.metadata?.org).toBe("org_live");
     expect(h.uploads).toHaveLength(1);
     expect(h.saved).toEqual([artifact.metadata?.id]);
+  });
+
+  it("uploads its content again when another organization's purge deleted the shared blob before its row", async () => {
+    const h = harness(new Set(), { blobGoneAfterSave: true });
+    const artifact = await h.createFor("aex_live");
+    expect(h.saved).toEqual([artifact.metadata?.id]);
+    expect(h.uploads, "the upload, then the re-upload after the row").toHaveLength(2);
   });
 
   it("answers INTERNAL, with nothing uploaded, when the deletion table cannot be read", async () => {

@@ -84,6 +84,7 @@ function harness() {
           upload: async (hash: string) => {
             uploads.push(hash);
           },
+          exists: async () => true,
         } as never,
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
