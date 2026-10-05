@@ -51,7 +51,9 @@ export function WorkflowDetailPageInner({
     resourceName,
   );
   const { yaml: initialYaml } = useWorkflowYaml(org, slug);
-  const { workflow } = useWorkflow(org, slug);
+  // The run dialog's own copy: refreshed whenever the detail view saves a
+  // change, so the dialog never reads a stale run audience or env.
+  const { workflow, refetch: refetchWorkflow } = useWorkflow(org, slug);
   const [showRunDialog, setShowRunDialog] = useState(false);
   const { copyYaml, copyJson, downloadYaml } = useExportResource({
     kind: "Workflow",
@@ -223,6 +225,7 @@ export function WorkflowDetailPageInner({
           org={org}
           slug={slug}
           onResourceLoad={handleResourceLoad}
+          onResourceUpdated={refetchWorkflow}
           editable
           primaryAction={primaryAction}
           actions={actions}

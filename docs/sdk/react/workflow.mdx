@@ -1579,7 +1579,7 @@ for someone who may change the workflow's audience (`can_manage_audience`).
 <TypeTable
   type={{
     executionVisibility: { type: "WorkflowExecutionVisibility", description: "Current `execution_visibility` from the workflow spec.", required: true },
-    onChanged: { type: "() => void", description: "Called after a successful change so the host can refresh the workflow." },
+    onChanged: { type: "(workflow: Workflow) => void", description: "Called with the updated workflow after a successful change, so the host can refresh its copy." },
     workflowId: { type: "string", description: "Id of the workflow whose run visibility is edited.", required: true },
   }}
 />
@@ -1789,7 +1789,7 @@ All visual properties flow through `--stgm-*` design tokens.
     onExecutionClick: { type: "(executionId: string) => void", description: "Called when a user clicks an execution row in the Executions tab. Receives the execution ID — use for navigation to the execution viewer." },
     onOpenInEditor: { type: "(taskName: string) => void", description: "Called when the user clicks \"Open in editor\" from the overview graph node popover. Receives the task name. Wire this to switch to the editor tab and optionally select the node." },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the workflow resource has been fetched successfully. Provides the resource display name for breadcrumbs, document titles, etc." },
-    onResourceUpdated: { type: "(workflow: Workflow) => void", description: "Called after a successful inline field save with the updated workflow." },
+    onResourceUpdated: { type: "(workflow: Workflow) => void", description: "Called with the updated workflow after a successful inline field save or a run-visibility change, so a host that holds its own copy (the run dialog's workflow) can refresh it." },
     onTabChange: { type: "(tabId: string) => void", description: "Controlled tab change handler." },
     onViewLatestRun: { type: "(executionId: string) => void", description: "Called when the user clicks \"View latest run\" in the overview quick actions. Receives the execution ID of the most recent execution." },
     org: { type: "string", description: "Id of the organization that owns the workflow (a slug is also accepted).", required: true },

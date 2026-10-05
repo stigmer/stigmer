@@ -18,6 +18,7 @@
 
 import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
+import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { getUserMessage } from "@stigmer/sdk";
 import { useUpdateWorkflowExecutionVisibility } from "./useUpdateWorkflowExecutionVisibility.js";
@@ -28,8 +29,8 @@ export interface RunVisibilityControlProps {
   readonly workflowId: string;
   /** Current `execution_visibility` from the workflow spec. */
   readonly executionVisibility: WorkflowExecutionVisibility;
-  /** Called after a successful change so the host can refresh the workflow. */
-  readonly onChanged?: () => void;
+  /** Called with the updated workflow after a successful change, so the host can refresh its copy. */
+  readonly onChanged?: (workflow: Workflow) => void;
 }
 
 interface RunVisibilityOption {
@@ -83,8 +84,8 @@ export function RunVisibilityControl({
     async (value: WorkflowExecutionVisibility) => {
       if (value === current || isUpdating) return;
       try {
-        await updateExecutionVisibility(workflowId, value);
-        onChanged?.();
+        const updated = await updateExecutionVisibility(workflowId, value);
+        onChanged?.(updated);
       } catch {
         // The hook's error state renders below.
       }

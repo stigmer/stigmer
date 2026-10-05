@@ -84,7 +84,9 @@ export interface WorkflowDetailViewProps {
    */
   readonly editable?: boolean;
   /**
-   * Called after a successful inline field save with the updated workflow.
+   * Called with the updated workflow after a successful inline field save
+   * or a run-visibility change, so a host that holds its own copy (the run
+   * dialog's workflow) can refresh it.
    */
   readonly onResourceUpdated?: (workflow: Workflow) => void;
   /**
@@ -229,12 +231,21 @@ export function WorkflowDetailView({
               <RunVisibilityControl
                 workflowId={workflowResourceId}
                 executionVisibility={executionVisibility}
-                onChanged={refetch}
+                onChanged={(updated) => {
+                  onResourceUpdated?.(updated);
+                  refetch();
+                }}
               />
             ),
           }
         : undefined,
-    [canManageAudience, workflowResourceId, executionVisibility, refetch],
+    [
+      canManageAudience,
+      workflowResourceId,
+      executionVisibility,
+      onResourceUpdated,
+      refetch,
+    ],
   );
 
   // Unified Manage access — visibility (General access) over explicit grants

@@ -3,7 +3,9 @@
  * rides into the Manage access dialog as the workflow's own section,
  * offered only when the viewer holds `can_manage_audience` on the workflow
  * (the server's bar on `updateExecutionVisibility`), and reads the level
- * from the workflow's spec. Also pins the page's tabs: no tab lists
+ * from the workflow's spec. A change hands the host the updated workflow
+ * (`onResourceUpdated`), so a host's own copy — the run dialog's — follows
+ * it. Also pins the page's tabs: no tab lists
  * per-workflow configuration objects any more.
  *
  * The shell, the dialog and the data hooks are stubbed; the assertions are
@@ -100,6 +102,25 @@ describe("WorkflowDetailView run visibility", () => {
     expect(control.props.executionVisibility).toBe(
       WorkflowExecutionVisibility.organization,
     );
+  });
+
+  it("hands the host the updated workflow when the run visibility changes", () => {
+    state.canManageAudience = true;
+    const onResourceUpdated = vi.fn();
+    render(
+      <WorkflowDetailView
+        org="org_acme"
+        slug="nightly-triage"
+        onResourceUpdated={onResourceUpdated}
+      />,
+    );
+
+    const control = lastSection()?.content as {
+      props: { onChanged: (workflow: unknown) => void };
+    };
+    const updated = { metadata: { id: "wf_1" } };
+    control.props.onChanged(updated);
+    expect(onResourceUpdated).toHaveBeenCalledWith(updated);
   });
 
   it("offers no run visibility section to anyone else", () => {

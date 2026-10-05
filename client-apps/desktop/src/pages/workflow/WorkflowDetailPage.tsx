@@ -37,7 +37,12 @@ export default function WorkflowDetailPage() {
     resourceName,
   );
   const { yaml: initialYaml } = useWorkflowYaml(org ?? "", slug ?? "");
-  const { workflow } = useWorkflow(org ?? "", slug ?? "");
+  // The run dialog's own copy: refreshed whenever the detail view saves a
+  // change, so the dialog never reads a stale run audience or env.
+  const { workflow, refetch: refetchWorkflow } = useWorkflow(
+    org ?? "",
+    slug ?? "",
+  );
   const [showRunDialog, setShowRunDialog] = useState(false);
 
   useEffect(() => () => setLabel(null), [setLabel]);
@@ -186,6 +191,7 @@ export default function WorkflowDetailPage() {
           org={org}
           slug={slug}
           onResourceLoad={handleResourceLoad}
+          onResourceUpdated={refetchWorkflow}
           editable
           primaryAction={primaryAction}
           actions={actions}
