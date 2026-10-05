@@ -840,7 +840,7 @@ function generateTSBuildProto(
           }
         } else if (childType === "ApiResourceReference") {
           imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
-          buf.push(`    spec.${oneofTSName} = { case: ${goQuote(fieldName)}, value: create(ApiResourceReferenceSchema, ${tsRefWithKind(`input.${fieldName}`, field)}) };\n`);
+          buf.push(`    spec.${oneofTSName} = { case: ${goQuote(fieldName)}, value: create(ApiResourceReferenceSchema, input.${fieldName}) };\n`);
         } else {
           buf.push(`    spec.${oneofTSName} = { case: ${goQuote(fieldName)}, value: input.${fieldName} };\n`);
         }

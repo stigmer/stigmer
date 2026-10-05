@@ -255,6 +255,28 @@ describe("ApprovalPrompt", () => {
     expect(output).toContain("decided by the safety plugin's hook");
   });
 
+  it.each([
+    { toolName: "write_file", mcpServerSlug: "", subject: "file writes" },
+    { toolName: "edit_file", mcpServerSlug: "", subject: "file edits" },
+    { toolName: "delete_file", mcpServerSlug: "", subject: "file deletions" },
+    { toolName: "create_issue", mcpServerSlug: "github", subject: "create_issue calls" },
+    { toolName: "web_fetch", mcpServerSlug: "", subject: "web_fetch calls" },
+  ])("names a hook lease on $toolName by that one tool's calls", ({ toolName, mcpServerSlug, subject }) => {
+    const pending = create(PendingApprovalSchema);
+    pending.toolCallId = "tc-hook";
+    pending.toolName = toolName;
+    pending.mcpServerSlug = mcpServerSlug;
+    pending.approvalPolicySource = ApprovalPolicySource.HOOK;
+    pending.approvalPolicyHook = "";
+
+    const { lastFrame } = render(
+      <ApprovalPrompt pendingApproval={pending} onSubmit={() => {}} />,
+    );
+    // The frame wraps a long label; its words are all there in order.
+    const words = (lastFrame() ?? "").replace(/[│╭╮╰╯─▸]/g, " ").replace(/\s+/g, " ");
+    expect(words).toContain(`Approve all ${subject}`);
+  });
+
   it("renders the shell intent as supplementary context, args foregrounded (stigmer#276)", () => {
     const pending = create(PendingApprovalSchema);
     pending.toolCallId = "tc-1";
