@@ -42,6 +42,10 @@
 //   carries tool_call_id, tool_name, mcp_server_slug, and the provenance
 //   ANNOTATION_DESTRUCTIVE_TIGHTEN (the default asked because the server
 //   marks the tool destructive).
+// - An agent's own hooks block decides before the default: a hook's deny
+//   fails the call's row (provenance HOOK) and the run completes; a hook's ask
+//   parks the run on a pending approval with provenance HOOK and the hook's
+//   reason as its message, and approving it completes the run.
 // - Idempotency: re-submitting the same {tool_call_id, action} before the gate
 //   resolves is a benign no-op that returns the current state.
 // - Negatives: UNSPECIFIED action / empty ids -> InvalidArgument (proto
@@ -601,6 +605,87 @@ describe("AgentExecution submitApproval — negatives", () => {
         }),
       Code.FailedPrecondition,
       "submit on terminal execution",
+    );
+  });
+});
+
+// An agent's own hooks block, in Claude Code's format, over the same
+// destructive echo: the hook decides before the default does. Shell-form
+// commands run in bash on the runner, as Claude Code's do.
+describe("AgentExecution — an agent's hooks decide at the gate", () => {
+  async function provisionHookedAgent(org: string, command: string): Promise<AgentRefInit> {
+    const server = await createConnectedMcpServer(clients, mcp, fixtures, {
+      org,
+      name: uniqueName("mcp"),
+      tools: [DESTRUCTIVE_ECHO_TOOL_NAME],
+    });
+    const agent = await clients.agentCommand.create(
+      makeAgent({
+        org,
+        name: uniqueName("agent-hooks"),
+        mcpServerRefs: [server.metadata!.slug],
+        hooks: [{
+          source: {
+            case: "inline",
+            value: { groups: [{ event: "PreToolUse", matcher: "mcp__.*__echo.*", handlers: [{ command }] }] },
+          },
+        }],
+      }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    return agentRefOf(agent);
+  }
+
+  it("a hook's deny: the call never runs, the run completes, and the row names the hook", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentRef = await provisionHookedAgent(org, "echo 'echoes are not allowed' >&2; exit 2");
+    mock.enqueue(anthropicToolUses([echoBlock("call_echo_hook_deny", "hello")]));
+    mock.enqueue(anthropicText("Done."));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-hook-deny"), agentRef }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase, "a refused call does not stop the run").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const row = allToolCalls(final).find((tc) => tc.id === "call_echo_hook_deny");
+    expect(row, `execution ${executionId}: the refused call has a row`).toBeDefined();
+    expect(ToolCallStatus[row!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
+    expect(row!.error).toContain("echoes are not allowed");
+    expect(ApprovalPolicySource[row!.approvalPolicySource]).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
+    expect(row!.approvalPolicyHook, "the agent's own block decided").toBe("");
+  });
+
+  it("a hook's ask: the run waits on a card naming the hook, and completes once approved", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentRef = await provisionHookedAgent(
+      org,
+      `printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"echoes need a person"}}'`,
+    );
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_hook_ask", "hello")]);
+
+    expect(gated.status?.pendingApprovals.length).toBe(1);
+    const pending = gated.status!.pendingApprovals[0]!;
+    expect(ApprovalPolicySource[pending.approvalPolicySource]).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
+    expect(pending.approvalPolicyHook).toBe("");
+    expect(pending.message).toBe("echoes need a person");
+
+    await submitApprovalPerContract({
+      expectedRemaining: 0,
+      label: "approving the hook's ask clears the gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId: pending.toolCallId,
+          action: ApprovalAction.APPROVE,
+        }),
+    });
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const row = allToolCalls(final).find((tc) => tc.id === pending.toolCallId);
+    expect(ApprovalPolicySource[row!.approvalPolicySource], "the row says the hook decided").toBe(
+      ApprovalPolicySource[ApprovalPolicySource.HOOK],
     );
   });
 });
