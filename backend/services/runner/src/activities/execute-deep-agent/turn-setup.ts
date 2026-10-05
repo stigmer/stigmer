@@ -44,7 +44,7 @@ import type { Command } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
 import { providerStrategy } from "langchain";
 import { transformJSONSchema } from "@anthropic-ai/sdk/lib/transform-json-schema";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
@@ -146,6 +146,8 @@ export interface DeepAgentGateState {
   readonly unattended: boolean;
   /** Tool-call ids the gate auto-skipped this turn, each with the hook whose ask it was (`null`: the default's); written by the gate, read by `reconcileUnattendedSkips`. */
   readonly unattendedSkips: Map<string, string | null>;
+  /** The calls a person skipped or rejected among the decisions this turn resumes with. */
+  readonly refusedByPerson?: ReadonlyMap<string, "skip" | "reject">;
 }
 
 /** The engine this turn runs on and everything the stream and the settle read from it. */
@@ -270,7 +272,18 @@ export function readGateState(input: TurnInput, tools: DeepAgentTools): DeepAgen
     globalBypass: input.mcp.leases.global,
     unattended: isUnattendedApprovalMode(input.execution),
     unattendedSkips: new Map<string, string | null>(),
+    refusedByPerson: refusalsOf(input.approvalDecisions),
   };
+}
+
+/** The skip and reject decisions among a turn's resumed approvals, by tool-call id. */
+export function refusalsOf(decisions: ReadonlyMap<string, ApprovalAction>): ReadonlyMap<string, "skip" | "reject"> {
+  const refused = new Map<string, "skip" | "reject">();
+  for (const [id, action] of decisions) {
+    if (action === ApprovalAction.SKIP) refused.set(id, "skip");
+    else if (action === ApprovalAction.REJECT) refused.set(id, "reject");
+  }
+  return refused;
 }
 
 /**
@@ -470,6 +483,7 @@ export async function buildEngine(
         captureDeleteBefore: (rawPath: string) => workspace.casObserver.recordBefore(rawPath),
         unattended: gate.unattended,
         unattendedSkips: gate.unattendedSkips,
+        ...(gate.refusedByPerson !== undefined ? { refusedByPerson: gate.refusedByPerson } : {}),
         hooks,
         globalBypass: gate.globalBypass,
       }

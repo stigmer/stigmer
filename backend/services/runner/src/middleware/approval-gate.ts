@@ -219,6 +219,14 @@ export interface ApprovalGateConfig {
    * the same registry.
    */
   readonly unattendedSkips?: Map<string, string | null>;
+  /**
+   * The calls a person refused on their card, from the decisions this turn
+   * resumes with (`TurnInput.approvalDecisions`): `skip` or `reject` by
+   * tool-call id. On resume the hooks run again and may now allow, or no
+   * longer ask; the person's refusal binds before any answer but a hook's
+   * deny, so a refused call never runs.
+   */
+  readonly refusedByPerson?: ReadonlyMap<string, "skip" | "reject">;
 }
 
 /**
@@ -291,6 +299,8 @@ export function createApprovalGateMiddleware(
         ? await hooks.preToolUse({ id: toolCall.id, name: toolName, args: toolCall.args, serverSlug }, scope)
         : NO_PRE_TOOL_USE;
       if (pre.decision === "deny") return refuseByHook(request, pre);
+      const refused = config.refusedByPerson?.get(toolCall.id);
+      if (refused !== undefined) return personDecisionMessage(request, refused, "");
 
       let call = request;
       if (pre.updatedArgs !== undefined) {
@@ -428,32 +438,31 @@ async function askPerson(call: ToolCallRequest, payload: ApprovalRequestPayload)
   ).toString().toLowerCase();
 
   if (action === "approve") return "approve";
-
-  if (action === "skip") {
-    const comment = response.comment ?? "";
-    const skipMessage = comment
-      ? `Tool '${toolName}' was skipped by user: ${comment}. Please proceed without this operation.`
-      : `Tool '${toolName}' was skipped by user. Please proceed without this operation.`;
-    return new ToolMessage({ content: skipMessage, tool_call_id: call.toolCall.id, name: toolName });
-  }
-
-  if (action === "reject") {
-    // REJECT denies THIS tool call and continues the run (it does not
-    // terminate the execution — see APPROVAL_ACTION_REJECT in enum.proto).
-    // Feed the user's objection back so the model adapts rather than
-    // retrying. Distinct from SKIP only by the strength of the signal.
-    const comment = response.comment ?? "";
-    const rejectMessage = comment
-      ? `Tool '${toolName}' was rejected by the user: ${comment}. Do not retry it; proceed by taking their objection into account.`
-      : `Tool '${toolName}' was rejected by the user. Do not retry it; proceed by taking their objection into account.`;
-    return new ToolMessage({ content: rejectMessage, tool_call_id: call.toolCall.id, name: toolName });
-  }
+  if (action === "skip" || action === "reject") return personDecisionMessage(call, action, response.comment ?? "");
 
   return new ToolMessage({
     content: `Tool '${toolName}' approval returned unknown action: '${action}'. Treating as skip.`,
     tool_call_id: call.toolCall.id,
     name: toolName,
   });
+}
+
+/**
+ * The message a call a person skipped or rejected ends with, unrun. REJECT
+ * denies this call and the run continues (APPROVAL_ACTION_REJECT in
+ * enum.proto): the objection is fed back so the model adapts rather than
+ * retrying; SKIP differs only in the strength of the signal.
+ */
+function personDecisionMessage(call: ToolCallRequest, action: "skip" | "reject", comment: string): ToolMessage {
+  const toolName = call.toolCall.name;
+  const content = action === "skip"
+    ? comment
+      ? `Tool '${toolName}' was skipped by user: ${comment}. Please proceed without this operation.`
+      : `Tool '${toolName}' was skipped by user. Please proceed without this operation.`
+    : comment
+      ? `Tool '${toolName}' was rejected by the user: ${comment}. Do not retry it; proceed by taking their objection into account.`
+      : `Tool '${toolName}' was rejected by the user. Do not retry it; proceed by taking their objection into account.`;
+  return new ToolMessage({ content, tool_call_id: call.toolCall.id, name: toolName });
 }
 
 /** Resolve an ask on an unattended surface as a skip; `hook` names the hook that asked, `null` the default. */

@@ -31,6 +31,10 @@
  * so the next turn derives the hook lease, a later ask of the hook runs as
  * the lease, and the shell default still asks before a call the hook passes.
  *
+ * A person's refusal binds on resume: a hook that asks the first time and
+ * allows after (it keeps state in `${CLAUDE_PLUGIN_DATA}`) runs again on
+ * resume and now allows, and the call the person rejected still never runs.
+ *
  * Two refusals settle as the tool lists' does, EXECUTION_FAILED on the
  * actionable surface with their own sentence: a referenced plugin that cannot
  * be read, and a hook that reads a variable the run does not give the agent.
@@ -40,6 +44,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create, toJson } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
@@ -268,6 +273,79 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect([...leases.categories]).toEqual([]);
     expect([...leases.servers]).toEqual([]);
     expect([...leases.hooks]).toEqual([hookLeaseKey("safety", "", "execute")]);
+  });
+
+  it("keeps a call the person rejected unrun when the hook allows it on resume", async () => {
+    clock.reset();
+    const onceArchive = buildZip([
+      { name: ".claude-plugin/plugin.json", content: '{"name":"once"}' },
+      {
+        name: "hooks/once",
+        content: `#!/usr/bin/env bash
+cat > /dev/null
+if [ -e "$CLAUDE_PLUGIN_DATA/asked" ]; then
+  printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
+else
+  mkdir -p "$CLAUDE_PLUGIN_DATA" && touch "$CLAUDE_PLUGIN_DATA/asked"
+  printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"once"}}'
+fi
+`,
+      },
+    ]);
+    const once = create(PluginSchema, {
+      metadata: { id: "plg_once", org: "hermetic-org", slug: "once", name: "once" },
+      status: {
+        digest: createHash("sha256").update(onceArchive).digest("hex"),
+        artifactStorageKey: "plugins/once.zip",
+        hooks: create(HookConfigSchema, {
+          format: HookFormat.CLAUDE_CODE,
+          groups: [create(HookGroupSchema, {
+            event: "PreToolUse",
+            matcher: "Bash",
+            handlers: [create(HookHandlerSchema, { command: '"${CLAUDE_PLUGIN_ROOT}"/hooks/once' })],
+          })],
+        }),
+      },
+    });
+    const marker = `${env.workspaceRootDir}/rejected-ran`;
+    const touch: ScriptedToolCall = { id: "call-hooks-rejected", name: "execute", args: { command: `touch ${marker}` } };
+    const record = deepAgentExecutionRecord({
+      message: "Touch the marker.",
+      hooks: [create(HookSourceSchema, {
+        source: { case: "plugin", value: create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "once" }) },
+      })],
+    });
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      checkpointer: "sqlite",
+      clientOverrides: {
+        getPluginByReference: vi.fn(async () => once),
+        getPluginArtifactDownloadUrl: vi.fn(async () => {
+          throw new ConnectError("no download lane", Code.Unimplemented);
+        }),
+        getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: onceArchive })),
+      },
+      script: () => ({
+        turns: [
+          { text: "Touching.", toolCalls: [touch], usage: { inputTokens: 1_600, outputTokens: 40 } },
+          CLOSING_TURN,
+        ],
+      }),
+    });
+    const row = (status: AgentExecutionStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+
+    await runDeepAgentTurn(scenario, { turnSeq: 0 });
+    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.decideWaitingToolCalls(ApprovalAction.REJECT, "2026-01-01T00:00:30.000Z")).toBe(1);
+
+    await runDeepAgentTurn(scenario, { turnSeq: 1 });
+    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(existsSync(marker), "the rejected command never ran").toBe(false);
+    const rejected = row(record.lastFullStatus!, touch.id);
+    expect(rejected.approvalAction).toBe(ApprovalAction.REJECT);
+    expect(rejected.status).not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
 
   it("refuses the turn, naming the plugin, when an agent's plugin cannot be read", async () => {
