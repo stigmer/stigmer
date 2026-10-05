@@ -702,7 +702,7 @@ Input for creating or updating an Agent.
     tools: { type: "string[]", description: "Tools this agent may use; empty means every tool it has." },
     disallowedTools: { type: "string[]", description: "Tools this agent may never use, in the same names as tools." },
     runConfig: { type: "RunConfigInput", description: "The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message or the surface it came through sets its own (RunConfig has the rule).", typeDescriptionLink: "#runconfiginput" },
-    harness: { type: "Harness", description: "The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person or the surface starting it names none.", typeDescriptionLink: "#harness" },
+    harness: { type: "Harness", description: "The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person or the surface starting it names neither an engine nor a model (a turn that names a model but no engine starts on native, the engine its name was checked against).", typeDescriptionLink: "#harness" },
   }}
 />
 

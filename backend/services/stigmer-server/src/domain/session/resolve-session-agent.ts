@@ -44,7 +44,10 @@
  * A new conversation that names no engine starts on the engine its agent's
  * pinned version names (AgentSpec.harness), the engine the agent's run
  * defaults were chosen for: the request's engine first, then the agent's,
- * then the platform default (native, the core's reading of unset). Only on
+ * then the platform default (native, the core's reading of unset). A turn
+ * that starts a conversation naming a model but no engine has already named
+ * native here (agentexecution's ResolveRunConfig), since its model was
+ * checked against native. Only on
  * create: a stored conversation keeps the engine it started on
  * (session/steps.ts refuses a change once a turn has run), so a re-pin to a
  * version naming another engine changes new conversations only.

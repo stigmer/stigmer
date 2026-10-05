@@ -169,7 +169,9 @@ private static final long serialVersionUID = 0L;
   private int harness_ = 0;
   /**
    * <pre>
-   * Execution engine for the run's session. Unspecified inherits the
+   * Execution engine for the run's session. Unspecified: native when
+   * run_config names a model (the engine the model was checked against at
+   * save), else the agent's own engine (AgentSpec.harness), else the
    * embedding surface's platform default.
    * </pre>
    *
@@ -181,7 +183,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution engine for the run's session. Unspecified inherits the
+   * Execution engine for the run's session. Unspecified: native when
+   * run_config names a model (the engine the model was checked against at
+   * save), else the agent's own engine (AgentSpec.harness), else the
    * embedding surface's platform default.
    * </pre>
    *
@@ -1243,7 +1247,9 @@ private static final long serialVersionUID = 0L;
     private int harness_ = 0;
     /**
      * <pre>
-     * Execution engine for the run's session. Unspecified inherits the
+     * Execution engine for the run's session. Unspecified: native when
+     * run_config names a model (the engine the model was checked against at
+     * save), else the agent's own engine (AgentSpec.harness), else the
      * embedding surface's platform default.
      * </pre>
      *
@@ -1255,7 +1261,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution engine for the run's session. Unspecified inherits the
+     * Execution engine for the run's session. Unspecified: native when
+     * run_config names a model (the engine the model was checked against at
+     * save), else the agent's own engine (AgentSpec.harness), else the
      * embedding surface's platform default.
      * </pre>
      *
@@ -1272,7 +1280,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution engine for the run's session. Unspecified inherits the
+     * Execution engine for the run's session. Unspecified: native when
+     * run_config names a model (the engine the model was checked against at
+     * save), else the agent's own engine (AgentSpec.harness), else the
      * embedding surface's platform default.
      * </pre>
      *
@@ -1286,7 +1296,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution engine for the run's session. Unspecified inherits the
+     * Execution engine for the run's session. Unspecified: native when
+     * run_config names a model (the engine the model was checked against at
+     * save), else the agent's own engine (AgentSpec.harness), else the
      * embedding surface's platform default.
      * </pre>
      *
@@ -1303,7 +1315,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution engine for the run's session. Unspecified inherits the
+     * Execution engine for the run's session. Unspecified: native when
+     * run_config names a model (the engine the model was checked against at
+     * save), else the agent's own engine (AgentSpec.harness), else the
      * embedding surface's platform default.
      * </pre>
      *

@@ -45,7 +45,7 @@
           "HARNESS_CURSOR"
         ]
       },
-      "description": "Execution engine for the run's session. Unspecified inherits the\n embedding surface's platform default.",
+      "description": "Execution engine for the run's session. Unspecified: native when\n run_config names a model (the engine the model was checked against at\n save), else the agent's own engine (AgentSpec.harness), else the\n embedding surface's platform default.",
       "required": false
     },
     {

@@ -746,8 +746,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * <pre>
    * The engine this agent's run defaults were chosen for, and the engine a
    * new conversation on this agent starts on when the person or the surface
-   * starting it names none. Unspecified: the platform's default engine
-   * (native).
+   * starting it names neither an engine nor a model (a turn that names a
+   * model but no engine starts on native, the engine its name was checked
+   * against). Unspecified: the platform's default engine (native).
    *
    * Model names belong to an engine (each lists its own), so run_config's
    * model, tier and thinking count only on this engine. A conversation keeps
@@ -765,8 +766,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * <pre>
    * The engine this agent's run defaults were chosen for, and the engine a
    * new conversation on this agent starts on when the person or the surface
-   * starting it names none. Unspecified: the platform's default engine
-   * (native).
+   * starting it names neither an engine nor a model (a turn that names a
+   * model but no engine starts on native, the engine its name was checked
+   * against). Unspecified: the platform's default engine (native).
    *
    * Model names belong to an engine (each lists its own), so run_config's
    * model, tier and thinking count only on this engine. A conversation keeps
@@ -3686,8 +3688,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * The engine this agent's run defaults were chosen for, and the engine a
      * new conversation on this agent starts on when the person or the surface
-     * starting it names none. Unspecified: the platform's default engine
-     * (native).
+     * starting it names neither an engine nor a model (a turn that names a
+     * model but no engine starts on native, the engine its name was checked
+     * against). Unspecified: the platform's default engine (native).
      *
      * Model names belong to an engine (each lists its own), so run_config's
      * model, tier and thinking count only on this engine. A conversation keeps
@@ -3705,8 +3708,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * The engine this agent's run defaults were chosen for, and the engine a
      * new conversation on this agent starts on when the person or the surface
-     * starting it names none. Unspecified: the platform's default engine
-     * (native).
+     * starting it names neither an engine nor a model (a turn that names a
+     * model but no engine starts on native, the engine its name was checked
+     * against). Unspecified: the platform's default engine (native).
      *
      * Model names belong to an engine (each lists its own), so run_config's
      * model, tier and thinking count only on this engine. A conversation keeps
@@ -3729,8 +3733,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * The engine this agent's run defaults were chosen for, and the engine a
      * new conversation on this agent starts on when the person or the surface
-     * starting it names none. Unspecified: the platform's default engine
-     * (native).
+     * starting it names neither an engine nor a model (a turn that names a
+     * model but no engine starts on native, the engine its name was checked
+     * against). Unspecified: the platform's default engine (native).
      *
      * Model names belong to an engine (each lists its own), so run_config's
      * model, tier and thinking count only on this engine. A conversation keeps
@@ -3750,8 +3755,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * The engine this agent's run defaults were chosen for, and the engine a
      * new conversation on this agent starts on when the person or the surface
-     * starting it names none. Unspecified: the platform's default engine
-     * (native).
+     * starting it names neither an engine nor a model (a turn that names a
+     * model but no engine starts on native, the engine its name was checked
+     * against). Unspecified: the platform's default engine (native).
      *
      * Model names belong to an engine (each lists its own), so run_config's
      * model, tier and thinking count only on this engine. A conversation keeps
@@ -3774,8 +3780,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * The engine this agent's run defaults were chosen for, and the engine a
      * new conversation on this agent starts on when the person or the surface
-     * starting it names none. Unspecified: the platform's default engine
-     * (native).
+     * starting it names neither an engine nor a model (a turn that names a
+     * model but no engine starts on native, the engine its name was checked
+     * against). Unspecified: the platform's default engine (native).
      *
      * Model names belong to an engine (each lists its own), so run_config's
      * model, tier and thinking count only on this engine. A conversation keeps

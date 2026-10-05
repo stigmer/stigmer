@@ -242,8 +242,9 @@ java.lang.String defaultValue);
    * the AgentExecution. The harness is a session-level concern — it determines
    * tool availability, state management, model access, and billing tier.
    *
-   * When unspecified, defaults to HARNESS_NATIVE (the workflow
-   * surface's platform default).
+   * When unspecified: native when run_config names a model (the engine the
+   * model was checked against at save), else the agent's own engine
+   * (AgentSpec.harness), else native.
    *
    * YAML Example:
    * - code_review:
@@ -270,8 +271,9 @@ java.lang.String defaultValue);
    * the AgentExecution. The harness is a session-level concern — it determines
    * tool availability, state management, model access, and billing tier.
    *
-   * When unspecified, defaults to HARNESS_NATIVE (the workflow
-   * surface's platform default).
+   * When unspecified: native when run_config names a model (the engine the
+   * model was checked against at save), else the agent's own engine
+   * (AgentSpec.harness), else native.
    *
    * YAML Example:
    * - code_review:

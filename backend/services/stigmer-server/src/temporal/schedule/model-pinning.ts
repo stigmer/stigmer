@@ -9,11 +9,18 @@
  * empty model resolves to the platform's own registry-priced default at an
  * explicitly requested tier — deterministic, nothing to pin.
  *
- * Only an EXPLICIT cursor harness trips the rule in this edition: an unset
- * harness resolves to the OSS platform default (native), so there is no
- * cursor path to guard. The cloud edition additionally judges its
- * configured default harness (cursor there) — same contract, each
- * edition's own default-harness truth.
+ * Only an EXPLICIT cursor harness trips this save-time rule. A schedule
+ * that names no harness fires on its agent's engine when it names no model
+ * either (a fire naming a model but no engine starts on native, the engine
+ * its model was checked against), so an agent whose engine is Cursor can
+ * still put an unattended fire on Cursor with no model anywhere: the
+ * server judges that case when the fire's turn is created, on what will
+ * actually run (domain/agentexecution/resolve-run-config.ts,
+ * unattendedPinRefusal). This rule deliberately judges the schedule's own
+ * pin only, never the agent's defaults: the agent can change after the
+ * schedule is saved, so a Cursor schedule names its own model. The cloud
+ * edition additionally judges its configured default harness (cursor
+ * there) — same contract, each edition's own default-harness truth.
  *
  * Evaluated at write time (the controller's model-pinning validator
  * delegates here) AND as the run starter's launch backstop, so rows

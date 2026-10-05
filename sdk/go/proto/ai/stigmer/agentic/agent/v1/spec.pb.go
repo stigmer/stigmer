@@ -80,8 +80,9 @@ type AgentSpec struct {
 	RunConfig *v12.RunConfig `protobuf:"bytes,12,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	// The engine this agent's run defaults were chosen for, and the engine a
 	// new conversation on this agent starts on when the person or the surface
-	// starting it names none. Unspecified: the platform's default engine
-	// (native).
+	// starting it names neither an engine nor a model (a turn that names a
+	// model but no engine starts on native, the engine its name was checked
+	// against). Unspecified: the platform's default engine (native).
 	//
 	// Model names belong to an engine (each lists its own), so run_config's
 	// model, tier and thinking count only on this engine. A conversation keeps

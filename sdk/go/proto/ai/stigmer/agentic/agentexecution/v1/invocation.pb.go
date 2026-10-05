@@ -46,7 +46,9 @@ type AgentInvocation struct {
 	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Prompt the run starts from.
 	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	// Execution engine for the run's session. Unspecified inherits the
+	// Execution engine for the run's session. Unspecified: native when
+	// run_config names a model (the engine the model was checked against at
+	// save), else the agent's own engine (AgentSpec.harness), else the
 	// embedding surface's platform default.
 	Harness v1.Harness `protobuf:"varint,3,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	// Workspace the run's session operates on. Empty means no workspace.

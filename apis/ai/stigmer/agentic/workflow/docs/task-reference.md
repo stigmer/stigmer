@@ -519,12 +519,12 @@ Invokes an AI agent as a task, delegating complex reasoning or tool use to a spe
 |---|---|---|
 | `agent` | Yes | Agent reference. Format: `"slug"` (an agent of the organization the workflow runs in), `"org/slug"` (that organization's agent), or a value holding a runtime expression (`${.env_vars.KEY}`, `${ expr }`), resolved when the task runs. |
 | `message` | Yes | Instructions/prompt to send to the agent. Supports expressions. |
-| `org` | No | Explicit org override for agent resolution. |
 | `env` | No | Runtime environment variables to pass to the agent. Map of name → value or expression. |
-| `config.model` | No | LLM model override (e.g., `"claude-3-5-sonnet"`). Uses agent default if not set. |
-| `config.timeout` | No | Execution timeout in seconds (1–3600). Default: 300. |
-| `config.temperature` | No | LLM sampling temperature (0.0–1.0). Default: 0.7. |
-| `config.context_management` | No | Context summarization settings. See context management docs. |
+| `run_config` | No | The step's settings (`RunConfig`): `model_name`, `service_tier`, `thinking_mode`, `max_cost_usd`, `max_tool_rounds`, `max_tool_result_chars`. Unset fields fall to the agent's run defaults; a cap here can lower the agent's but never raise it. A fast tier or thinking names its model. |
+| `output` | No | Structured-output contract: a JSON `schema` the agent's final answer is extracted against, with `on_invalid`, `max_retries` and `fallback_task`. |
+| `harness` | No | The engine the step's conversation runs on (`native` or `cursor`). Unset: native when `run_config` names a model, else the agent's engine, else native. |
+| `workspace_entries` | No | The workspace the step's conversation operates on. |
+| `environment_refs` | No | Environments whose values the step's turn receives. |
 
 ```yaml
 # Basic agent call — an agent of the organization the workflow runs in

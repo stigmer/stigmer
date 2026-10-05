@@ -58,7 +58,9 @@ export type AgentInvocation = Message<"ai.stigmer.agentic.agentexecution.v1.Agen
   message: string;
 
   /**
-   * Execution engine for the run's session. Unspecified inherits the
+   * Execution engine for the run's session. Unspecified: native when
+   * run_config names a model (the engine the model was checked against at
+   * save), else the agent's own engine (AgentSpec.harness), else the
    * embedding surface's platform default.
    *
    * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 3;

@@ -27,7 +27,9 @@
  * Refusals name the layer that chose each value, the profile and "no
  * layer" included. A surface's saved settings that set a tier or thinking
  * with no model of their own are refused; a live message may set either
- * alone.
+ * alone. A new conversation whose turn names a model but no engine starts
+ * on native (the engine the model was checked against); naming neither, it
+ * takes the agent's engine.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -504,6 +506,44 @@ describe("ResolveRunConfig over a real store", () => {
     );
     expect(ctx.newState.status?.runConfig?.modelName).toBe("claude-sonnet-5");
     expect(ctx.newState.status?.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
+  });
+
+  it("a new conversation naming a model but no engine starts on native, never the agent's engine", async () => {
+    await store.saveResource(
+      ApiResourceKind.agent,
+      "agt_cursor",
+      AgentSchema,
+      create(AgentSchema, {
+        metadata: { id: "agt_cursor", org: "acme", slug: "cursor-agent" },
+        spec: { harness: Harness.CURSOR, runConfig: { modelName: "composer-2.5", maxCostUsd: 3 } },
+        status: { versionHash: HEAD },
+      }),
+    );
+    const ctx = await resolve(
+      execution({
+        spec: {
+          message: "hi",
+          target: { case: "sessionSpec", value: {} },
+          runConfig: { modelName: "claude-haiku-4.5" },
+        },
+        status: { agentId: "agt_cursor", agentVersionHash: HEAD },
+      }),
+    );
+    const target = ctx.newState.spec?.target;
+    expect(target?.case === "sessionSpec" ? target.value.harness : undefined).toBe(Harness.NATIVE);
+    expect(runConfigPlacementOf(ctx)?.harness).toBe("native");
+    // On native the Cursor agent gives its cap alone.
+    expect(ctx.newState.status?.runConfig).toEqual(rc({ modelName: "claude-haiku-4.5", maxCostUsd: 3 }));
+
+    const neither = await resolve(
+      execution({
+        spec: { message: "hi", target: { case: "sessionSpec", value: {} } },
+        status: { agentId: "agt_cursor", agentVersionHash: HEAD },
+      }),
+    );
+    const untouched = neither.newState.spec?.target;
+    expect(untouched?.case === "sessionSpec" ? untouched.value.harness : undefined).toBe(Harness.UNSPECIFIED);
+    expect(runConfigPlacementOf(neither)?.harness).toBe("cursor");
   });
 
   it("an attended Cursor turn with no model runs Auto, as a person chose", async () => {

@@ -251,9 +251,10 @@ thinking off for it, without changing the Agent.
 - Run settings are versioned with the Agent. A conversation runs the version it
   started on, so it keeps that version's model after the author picks another.
 - A new conversation on the Agent starts on the Agent's `harness`, unless the
-  person or the surface starting it names another. On the other Harness the
-  Agent's model, tier and thinking are left out, since each Harness lists its
-  own models, and only its limits apply.
+  person or the surface starting it names another. A message or a surface that
+  names a model but no Harness starts on native, the Harness that model was
+  checked against. On the other Harness the Agent's model, tier and thinking are
+  left out, since each Harness lists its own models, and only its limits apply.
 - Stigmer checks the settings when the Agent is saved: a model needs a
   `harness`, the model must be one that Harness lists, and a fast tier or
   thinking needs a model that supports it there.

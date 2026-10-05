@@ -307,6 +307,40 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     );
   });
 
+  it("[rpc:ScheduleCommandController.trigger] a schedule naming a model but no engine fires on native, even on an agent whose engine is Cursor", async () => {
+    const { org } = await target.provisionTenancy();
+    // The schedule's model was checked against native at save; the agent's
+    // author has since moved the agent to Cursor. The fire must not carry a
+    // native model name onto Cursor, where it would run as Auto.
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("sched-native-model-target"), harness: Harness.CURSOR }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const input = create(ScheduleSchema, makeSchedule(org, uniqueName("sched-native-model"), agent.metadata!.slug));
+    if (input.spec?.target.case !== "agent") {
+      throw new Error("makeSchedule builds an agent target");
+    }
+    input.spec.target.value.runConfig = create(RunConfigSchema, { modelName: "claude-haiku-4.5" });
+    const schedule = await clients.scheduleCommand.create(input);
+    fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
+
+    target.llmProxy!().enqueue(anthropicText("Reminders sent."));
+    const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
+    expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(ScheduleRunOutcome.STARTED);
+    const execution = await clients.agentExecutionQuery.get({ value: result.executionId });
+    const session = await clients.sessionQuery.get({ value: sessionIdOf(execution) });
+    expect(session.spec?.harness).toBe(Harness.NATIVE);
+    expect(execution.status?.runConfig?.modelName).toBe("claude-haiku-4.5");
+
+    await pollUntil(
+      () => clients.agentExecutionQuery.get({ value: result.executionId }),
+      (e) => e.status?.phase === ExecutionPhase.EXECUTION_COMPLETED,
+      (last, timeoutMs) =>
+        `execution ${result.executionId} did not complete within ${timeoutMs}ms; ` +
+        `last phase: ${last?.status?.phase}`,
+    );
+  });
+
   it("[rpc:ScheduleCommandController.trigger] a schedule naming no engine, on an agent whose engine is Cursor with no model, is refused at fire with the pin-presence copy", async () => {
     const { org } = await target.provisionTenancy();
     // The agent starts its conversations on Cursor and names no model; the

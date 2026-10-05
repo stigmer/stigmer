@@ -147,7 +147,7 @@
           "HARNESS_CURSOR"
         ]
       },
-      "description": "The engine this agent's run defaults were chosen for, and the engine a\n new conversation on this agent starts on when the person or the surface\n starting it names none. Unspecified: the platform's default engine\n (native).\n\n Model names belong to an engine (each lists its own), so run_config's\n model, tier and thinking count only on this engine. A conversation keeps\n the engine it started on; a later version naming another engine changes\n only new conversations.",
+      "description": "The engine this agent's run defaults were chosen for, and the engine a\n new conversation on this agent starts on when the person or the surface\n starting it names neither an engine nor a model (a turn that names a\n model but no engine starts on native, the engine its name was checked\n against). Unspecified: the platform's default engine (native).\n\n Model names belong to an engine (each lists its own), so run_config's\n model, tier and thinking count only on this engine. A conversation keeps\n the engine it started on; a later version naming another engine changes\n only new conversations.",
       "required": false
     }
   ]
