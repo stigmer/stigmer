@@ -275,6 +275,19 @@ describe("the rule, for a caller bound to one organization", () => {
     expect(await verdictOf("key_missing")).toBe("missing");
   });
 
+  it("refuses a kind the contract never declared, never failing the check", async () => {
+    const f = fixture([]);
+    const binding = newCredentialBinding(f.deps);
+    expect(
+      await binding.verdict(boundTo(ALPHA), {
+        kind: ApiResourceKind.api_resource_kind_unknown,
+        id: "x",
+        permission: VIEW,
+      }),
+    ).toBe("outside");
+    expect(f.reads).toEqual([]);
+  });
+
   it("answers missing for an id no row has, so the inner driver keeps its not-found", async () => {
     const binding = newCredentialBinding(fixture([]).deps);
     expect(

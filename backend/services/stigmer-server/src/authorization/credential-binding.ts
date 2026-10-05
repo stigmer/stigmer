@@ -297,6 +297,11 @@ export function newCredentialBinding(
     if (target.kind === ApiResourceKind.api_key) {
       return keyVerdict(caller, target.id, bound);
     }
+    if (!declaresKind(target.kind)) {
+      // A kind the contract never declared (an unrecognised stored kind)
+      // holds nothing a check can allow.
+      return "outside";
+    }
     if (!belongsToAnOrganization(target.kind)) {
       return "inside";
     }
@@ -450,6 +455,16 @@ function targetOf(check: AuthzCheck): BindingTarget {
     id: check.resourceId,
     permission: IamPermission[check.permission] ?? "",
   };
+}
+
+/** Whether the contract declares `kind` (its `kind_meta`); an unknown kind does not. */
+function declaresKind(kind: ApiResourceKind): boolean {
+  try {
+    getKindMeta(kind);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Whether rows of `kind` belong to one organization: organization-scoped, scoped to a parent that is, or an execution context (its run's). */
