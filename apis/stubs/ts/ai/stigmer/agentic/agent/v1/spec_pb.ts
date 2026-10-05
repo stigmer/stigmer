@@ -6,6 +6,8 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { EnvVarDeclaration } from "../../environment/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_environment_v1_spec } from "../../environment/v1/spec_pb.js";
+import type { HookConfig } from "../../plugin/v1/hooks_pb.js";
+import { file_ai_stigmer_agentic_plugin_v1_hooks } from "../../plugin/v1/hooks_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -16,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIu4HCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkSgwEKBXRvb2xzGAogAygJQnS6SHGSAW4ibHJqGIACMmVeKG1jcF9fXCp8bWNwX19bYS16XVthLXowLTktXSpbYS16MC05XShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJBKOAQoQZGlzYWxsb3dlZF90b29scxgLIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4AUoECAgQCUoECAkQClIHc2hhcmluZ1IQZGF0YXN0b3JlX3VzYWdlcyLIBAoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJEoMBCgV0b29scxgHIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQSjgEKEGRpc2FsbG93ZWRfdG9vbHMYCCADKAlCdLpIcZIBbiJscmoYgAIyZV4obWNwX19cKnxtY3BfX1thLXpdW2EtejAtOS1dKlthLXowLTldKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkSgQIBBAFUgptY3BfYWNjZXNzIp4BCg5NY3BTZXJ2ZXJVc2FnZRJYCg5tY3Bfc2VydmVyX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIKukgDyAEB4IUsLEoECAIQA0oECAMQBFINZW5hYmxlZF90b29sc1IXdG9vbF9hcHByb3ZhbF9vdmVycmlkZXNiBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIqYICglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkSgwEKBXRvb2xzGAogAygJQnS6SHGSAW4ibHJqGIACMmVeKG1jcF9fXCp8bWNwX19bYS16XVthLXowLTktXSpbYS16MC05XShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJBKOAQoQZGlzYWxsb3dlZF90b29scxgLIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQSNgoFaG9va3MYDCADKAsyJy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuSG9va1NvdXJjZRpgCghFbnZFbnRyeRILCgNrZXkYASABKAkSQwoFdmFsdWUYAiABKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBSgQICBAJSgQICRAKUgdzaGFyaW5nUhBkYXRhc3RvcmVfdXNhZ2VzIosCCgpIb29rU291cmNlEq8BCgZwbHVnaW4YASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZ7pIYLoBXQoXaG9va19zb3VyY2VfcGx1Z2luLmtpbmQSMXBsdWdpbiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1wbHVnaW4aD3RoaXMua2luZCA9PSA1OOCFLDpIABI6CgZpbmxpbmUYAiABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkhvb2tDb25maWdIAEIPCgZzb3VyY2USBbpIAggBIsgECghTdWJBZ2VudBIUCgRuYW1lGAEgASgJQga6SAPIAQESEwoLZGVzY3JpcHRpb24YAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKErABCgpza2lsbF9yZWZzGAUgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQma6SF+SAVwiWroBVwoPc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSFgoObW9kZWxfb3ZlcnJpZGUYBiABKAkSgwEKBXRvb2xzGAcgAygJQnS6SHGSAW4ibHJqGIACMmVeKG1jcF9fXCp8bWNwX19bYS16XVthLXowLTktXSpbYS16MC05XShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJBKOAQoQZGlzYWxsb3dlZF90b29scxgIIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSRKBAgEEAVSCm1jcF9hY2Nlc3MingEKDk1jcFNlcnZlclVzYWdlElgKDm1jcF9zZXJ2ZXJfcmVmGAEgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgq6SAPIAQHghSwsSgQIAhADSgQIAxAEUg1lbmFibGVkX3Rvb2xzUhd0b29sX2FwcHJvdmFsX292ZXJyaWRlc2IGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentSpec defines the configurable properties of an agent.
@@ -102,6 +104,19 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * @generated from field: repeated string disallowed_tools = 11;
    */
   disallowedTools: string[];
+
+  /**
+   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   *
+   * Each entry is a plugin whose hooks apply, or a hooks block written in the
+   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * without the approval it would otherwise need. The native engine runs hooks
+   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
+   * hooks.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agent.v1.HookSource hooks = 12;
+   */
+  hooks: HookSource[];
 };
 
 /**
@@ -110,6 +125,42 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
  */
 export const AgentSpecSchema: GenMessage<AgentSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 0);
+
+/**
+ * HookSource is one source of an agent's hooks: a plugin, or a hooks block
+ * written in the agent.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.HookSource
+ */
+export type HookSource = Message<"ai.stigmer.agentic.agent.v1.HookSource"> & {
+  /**
+   * @generated from oneof ai.stigmer.agentic.agent.v1.HookSource.source
+   */
+  source: {
+    /**
+     * A plugin whose recorded hooks apply to this agent.
+     *
+     * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1;
+     */
+    value: ApiResourceReference;
+    case: "plugin";
+  } | {
+    /**
+     * A hooks block in Claude Code's hooks.json shape, written in the agent.
+     *
+     * @generated from field: ai.stigmer.agentic.plugin.v1.HookConfig inline = 2;
+     */
+    value: HookConfig;
+    case: "inline";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.HookSource.
+ * Use `create(HookSourceSchema)` to create a new message.
+ */
+export const HookSourceSchema: GenMessage<HookSource> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 1);
 
 /**
  * SubAgent defines a specialized agent that the parent can delegate to.
@@ -181,7 +232,7 @@ export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
  * Use `create(SubAgentSchema)` to create a new message.
  */
 export const SubAgentSchema: GenMessage<SubAgent> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 1);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
 
 /**
  * McpServerUsage declares that this agent uses a McpServer resource.
@@ -206,5 +257,5 @@ export type McpServerUsage = Message<"ai.stigmer.agentic.agent.v1.McpServerUsage
  * Use `create(McpServerUsageSchema)` to create a new message.
  */
 export const McpServerUsageSchema: GenMessage<McpServerUsage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 3);
 

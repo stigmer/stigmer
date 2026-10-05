@@ -123,6 +123,20 @@
       },
       "description": "Tools this agent may never use, in the same names as tools.\n Applied before tools, so a tool named in both is excluded.",
       "required": false
+    },
+    {
+      "name": "Hooks",
+      "jsonName": "hooks",
+      "protoField": "hooks",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "HookSource"
+        }
+      },
+      "description": "Hooks that run around this agent's tool calls, and its sub-agents' calls.\n\n Each entry is a plugin whose hooks apply, or a hooks block written in the\n agent itself. A hook can refuse a call, ask a person first, or let it run\n without the approval it would otherwise need. The native engine runs hooks\n in Claude Code's format; the Cursor engine refuses a turn whose agent has\n hooks.",
+      "required": false
     }
   ]
 }

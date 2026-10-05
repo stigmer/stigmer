@@ -298,8 +298,11 @@ type ToolCall struct {
 	//
 	// Field 26: appended after approval_content_digest (25), the prior maximum.
 	FileChangeSetId string `protobuf:"bytes,26,opt,name=file_change_set_id,json=fileChangeSetId,proto3" json:"file_change_set_id,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Slug of the plugin whose hook decided this call; empty when no hook
+	// decided, or when the agent's own hooks block did.
+	ApprovalPolicyHook string `protobuf:"bytes,27,opt,name=approval_policy_hook,json=approvalPolicyHook,proto3" json:"approval_policy_hook,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ToolCall) Reset() {
@@ -496,6 +499,13 @@ func (x *ToolCall) GetApprovalContentDigest() string {
 func (x *ToolCall) GetFileChangeSetId() string {
 	if x != nil {
 		return x.FileChangeSetId
+	}
+	return ""
+}
+
+func (x *ToolCall) GetApprovalPolicyHook() string {
+	if x != nil {
+		return x.ApprovalPolicyHook
 	}
 	return ""
 }
@@ -868,7 +878,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"tool_calls\x18\x04 \x03(\v2..ai.stigmer.agentic.agentexecution.v1.ToolCallR\ttoolCalls\x123\n" +
 	"\bmetadata\x18\x05 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
-	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\xed\t\n" +
+	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\x9f\n" +
+	"\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
@@ -897,7 +908,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\x16approval_policy_source\x18\x17 \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySource\x122\n" +
 	"\x15policy_engine_version\x18\x18 \x01(\tR\x13policyEngineVersion\x126\n" +
 	"\x17approval_content_digest\x18\x19 \x01(\tR\x15approvalContentDigest\x12+\n" +
-	"\x12file_change_set_id\x18\x1a \x01(\tR\x0ffileChangeSetIdJ\x04\b\x16\x10\x17\"\xdb\x01\n" +
+	"\x12file_change_set_id\x18\x1a \x01(\tR\x0ffileChangeSetId\x120\n" +
+	"\x14approval_policy_hook\x18\x1b \x01(\tR\x12approvalPolicyHookJ\x04\b\x16\x10\x17\"\xdb\x01\n" +
 	"\x11ToolCallOutputRef\x12\x1f\n" +
 	"\vstorage_key\x18\x01 \x01(\tR\n" +
 	"storageKey\x12\x1d\n" +

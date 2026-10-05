@@ -19,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/plugin/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_plugin_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxIiEKCFBsdWdpbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi9wIKEVB1c2hQbHVnaW5SZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhAKCGFydGlmYWN0GAIgASgMEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYAyABKAkSUwoKdmlzaWJpbGl0eRgEIAEoDjI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVZpc2liaWxpdHlCCLpIBYIBAhABEg8KB21lc3NhZ2UYBSABKAk6twG6SLMBGrABCiNwdXNoX3BsdWdpbl9yZXF1ZXN0LmFydGlmYWN0X3NvdXJjZRJJZXhhY3RseSBvbmUgb2YgYXJ0aWZhY3QgKGlubGluZSBieXRlcykgb3IgYXJ0aWZhY3RfdXBsb2FkX3JlZiBtdXN0IGJlIHNldBo+KHRoaXMuYXJ0aWZhY3Quc2l6ZSgpID4gMCkgIT0gKHRoaXMuYXJ0aWZhY3RfdXBsb2FkX3JlZiAhPSAnJykiWAokQ3JlYXRlUGx1Z2luQXJ0aWZhY3RVcGxvYWRVcmxSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhsKCnNpemVfYnl0ZXMYAiABKANCB7pIBCICIAAiWAoXUGx1Z2luQXJ0aWZhY3RVcGxvYWRVcmwSCwoDdXJsGAEgASgJEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYAiABKAkSEwoLdHRsX3NlY29uZHMYAyABKAUihQEKDFBsdWdpbk1lbWJlchJNCgRraW5kGAEgASgOMj8uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BcGlSZXNvdXJjZUtpbmQSCgoCaWQYAiABKAkSDAoEc2x1ZxgDIAEoCRIMCgRuYW1lGAQgASgJIlgKGUxpc3RQbHVnaW5NZW1iZXJzUmVzcG9uc2USOwoHbWVtYmVycxgBIAMoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luTWVtYmVyImsKF0xpc3RQbHVnaW5WZXJzaW9uc0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEhQKBHNsdWcYAiABKAlCBrpIA8gBARISCgpwYWdlX3Rva2VuGAMgASgJEhEKCXBhZ2Vfc2l6ZRgEIAEoBSLtAQoSUGx1Z2luVmVyc2lvbkVudHJ5Eg4KBmRpZ2VzdBgBIAEoCRItCglwdXNoZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEkgKCXB1c2hlZF9ieRgDIAEoCzI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCwoDdGFnGAQgASgJEhIKCmlzX2N1cnJlbnQYBSABKAgSDwoHbWVzc2FnZRgGIAEoCRIcChRhcnRpZmFjdF9zdG9yYWdlX2tleRgHIAEoCSKOAQoaTGlzdFBsdWdpblZlcnNpb25zUmVzcG9uc2USQgoIdmVyc2lvbnMYASADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblZlcnNpb25FbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSEwoLdG90YWxfY291bnQYAyABKAViBnByb3RvMw", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxIiEKCFBsdWdpbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi9wIKEVB1c2hQbHVnaW5SZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhAKCGFydGlmYWN0GAIgASgMEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYAyABKAkSUwoKdmlzaWJpbGl0eRgEIAEoDjI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVZpc2liaWxpdHlCCLpIBYIBAhABEg8KB21lc3NhZ2UYBSABKAk6twG6SLMBGrABCiNwdXNoX3BsdWdpbl9yZXF1ZXN0LmFydGlmYWN0X3NvdXJjZRJJZXhhY3RseSBvbmUgb2YgYXJ0aWZhY3QgKGlubGluZSBieXRlcykgb3IgYXJ0aWZhY3RfdXBsb2FkX3JlZiBtdXN0IGJlIHNldBo+KHRoaXMuYXJ0aWZhY3Quc2l6ZSgpID4gMCkgIT0gKHRoaXMuYXJ0aWZhY3RfdXBsb2FkX3JlZiAhPSAnJykiWAokQ3JlYXRlUGx1Z2luQXJ0aWZhY3RVcGxvYWRVcmxSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhsKCnNpemVfYnl0ZXMYAiABKANCB7pIBCICIAAiWAoXUGx1Z2luQXJ0aWZhY3RVcGxvYWRVcmwSCwoDdXJsGAEgASgJEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYAiABKAkSEwoLdHRsX3NlY29uZHMYAyABKAUiOgoSR2V0QXJ0aWZhY3RSZXF1ZXN0EiQKFGFydGlmYWN0X3N0b3JhZ2Vfa2V5GAEgASgJQga6SAPIAQEiJwoTR2V0QXJ0aWZhY3RSZXNwb25zZRIQCghhcnRpZmFjdBgBIAEoDCJRChlQbHVnaW5BcnRpZmFjdERvd25sb2FkVXJsEgsKA3VybBgBIAEoCRITCgt0dGxfc2Vjb25kcxgCIAEoBRISCgpzaXplX2J5dGVzGAMgASgDIoUBCgxQbHVnaW5NZW1iZXISTQoEa2luZBgBIAEoDjI/LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuQXBpUmVzb3VyY2VLaW5kEgoKAmlkGAIgASgJEgwKBHNsdWcYAyABKAkSDAoEbmFtZRgEIAEoCSJYChlMaXN0UGx1Z2luTWVtYmVyc1Jlc3BvbnNlEjsKB21lbWJlcnMYASADKAsyKi5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbk1lbWJlciJrChdMaXN0UGx1Z2luVmVyc2lvbnNJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQESEgoKcGFnZV90b2tlbhgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUi7QEKElBsdWdpblZlcnNpb25FbnRyeRIOCgZkaWdlc3QYASABKAkSLQoJcHVzaGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJICglwdXNoZWRfYnkYAyABKAsyNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdEFjdG9yEgsKA3RhZxgEIAEoCRISCgppc19jdXJyZW50GAUgASgIEg8KB21lc3NhZ2UYBiABKAkSHAoUYXJ0aWZhY3Rfc3RvcmFnZV9rZXkYByABKAkijgEKGkxpc3RQbHVnaW5WZXJzaW9uc1Jlc3BvbnNlEkIKCHZlcnNpb25zGAEgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5WZXJzaW9uRW50cnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEhMKC3RvdGFsX2NvdW50GAMgASgFYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * PluginId wraps a plugin identifier.
@@ -173,6 +173,84 @@ export const PluginArtifactUploadUrlSchema: GenMessage<PluginArtifactUploadUrl> 
   messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 3);
 
 /**
+ * GetArtifactRequest requests download of a plugin archive by storage key.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.GetArtifactRequest
+ */
+export type GetArtifactRequest = Message<"ai.stigmer.agentic.plugin.v1.GetArtifactRequest"> & {
+  /**
+   * The archive storage key from plugin.status.artifact_storage_key.
+   *
+   * @generated from field: string artifact_storage_key = 1;
+   */
+  artifactStorageKey: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.GetArtifactRequest.
+ * Use `create(GetArtifactRequestSchema)` to create a new message.
+ */
+export const GetArtifactRequestSchema: GenMessage<GetArtifactRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 4);
+
+/**
+ * GetArtifactResponse contains a plugin archive.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.GetArtifactResponse
+ */
+export type GetArtifactResponse = Message<"ai.stigmer.agentic.plugin.v1.GetArtifactResponse"> & {
+  /**
+   * The plugin archive as a ZIP file (binary content).
+   *
+   * @generated from field: bytes artifact = 1;
+   */
+  artifact: Uint8Array;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.GetArtifactResponse.
+ * Use `create(GetArtifactResponseSchema)` to create a new message.
+ */
+export const GetArtifactResponseSchema: GenMessage<GetArtifactResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 5);
+
+/**
+ * PluginArtifactDownloadUrl provides a URL for downloading a plugin archive
+ * over HTTP.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl
+ */
+export type PluginArtifactDownloadUrl = Message<"ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl"> & {
+  /**
+   * URL to download the archive ZIP via HTTP GET.
+   *
+   * @generated from field: string url = 1;
+   */
+  url: string;
+
+  /**
+   * Time-to-live for the download URL in seconds; 0 means no expiry.
+   *
+   * @generated from field: int32 ttl_seconds = 2;
+   */
+  ttlSeconds: number;
+
+  /**
+   * Size of the archive ZIP in bytes.
+   *
+   * @generated from field: int64 size_bytes = 3;
+   */
+  sizeBytes: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl.
+ * Use `create(PluginArtifactDownloadUrlSchema)` to create a new message.
+ */
+export const PluginArtifactDownloadUrlSchema: GenMessage<PluginArtifactDownloadUrl> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 6);
+
+/**
  * PluginMember is one resource an installed plugin materialised.
  *
  * @generated from message ai.stigmer.agentic.plugin.v1.PluginMember
@@ -212,7 +290,7 @@ export type PluginMember = Message<"ai.stigmer.agentic.plugin.v1.PluginMember"> 
  * Use `create(PluginMemberSchema)` to create a new message.
  */
 export const PluginMemberSchema: GenMessage<PluginMember> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 4);
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 7);
 
 /**
  * ListPluginMembersResponse lists the resources an installed plugin owns.
@@ -233,7 +311,7 @@ export type ListPluginMembersResponse = Message<"ai.stigmer.agentic.plugin.v1.Li
  * Use `create(ListPluginMembersResponseSchema)` to create a new message.
  */
 export const ListPluginMembersResponseSchema: GenMessage<ListPluginMembersResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 5);
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 8);
 
 /**
  * ListPluginVersionsInput requests the version history for a plugin.
@@ -275,7 +353,7 @@ export type ListPluginVersionsInput = Message<"ai.stigmer.agentic.plugin.v1.List
  * Use `create(ListPluginVersionsInputSchema)` to create a new message.
  */
 export const ListPluginVersionsInputSchema: GenMessage<ListPluginVersionsInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 6);
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 9);
 
 /**
  * PluginVersionEntry is one historical version of a plugin.
@@ -339,7 +417,7 @@ export type PluginVersionEntry = Message<"ai.stigmer.agentic.plugin.v1.PluginVer
  * Use `create(PluginVersionEntrySchema)` to create a new message.
  */
 export const PluginVersionEntrySchema: GenMessage<PluginVersionEntry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 7);
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 10);
 
 /**
  * ListPluginVersionsResponse is a page of plugin version history.
@@ -374,5 +452,5 @@ export type ListPluginVersionsResponse = Message<"ai.stigmer.agentic.plugin.v1.L
  * Use `create(ListPluginVersionsResponseSchema)` to create a new message.
  */
 export const ListPluginVersionsResponseSchema: GenMessage<ListPluginVersionsResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 8);
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 11);
 

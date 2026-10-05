@@ -6,8 +6,9 @@
 import { generateSlug, enumFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema, McpServerUsageSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, McpServerUsageSchema, SubAgentSchema, HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { HookHandlerSchema, HookGroupSchema, HookConfigSchema, HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -31,6 +32,7 @@ export const AgentInputShape = {
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality."),
   tools: z.array(z.string()).optional().describe("Tools this agent may use; empty means every tool it has. Entries use Claude Code's names: a built-in such as Read, Grep, Bash, Write, Edit, Glob, Agent or WebFetch; mcp__<server-slug> for every tool of one MCP server, mcp__<server-slug>__<tool> for one tool, and mcp__* for every MCP tool. A specifier in parentheses, as in Bash(git push *), is accepted and governs the whole tool. Agent(explore, shell) also limits which sub-agents this agent may start; the Cursor engine cannot hold its built-in sub-agents back, so it refuses a turn whose agent limits Agent to types. The lists hold on both engines, and under 'approve everything' too."),
   disallowed_tools: z.array(z.string()).optional().describe("Tools this agent may never use, in the same names as tools. Applied before tools, so a tool named in both is excluded."),
+  hooks: z.array(z.lazy(() => HookSourceInputSchema)).optional().describe("Hooks that run around this agent's tool calls, and its sub-agents' calls. Each entry is a plugin whose hooks apply, or a hooks block written in the agent itself. A hook can refuse a call, ask a person first, or let it run without the approval it would otherwise need. The native engine runs hooks in Claude Code's format; the Cursor engine refuses a turn whose agent has hooks."),
 } as const;
 
 export const AgentInputSchema = z.object(AgentInputShape);
@@ -72,6 +74,41 @@ const EnvVarDeclarationInputSchema = z.object({
 });
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 
+const PluginInputSchema = z.object({
+  org: z.string().optional().describe("Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is a platform that shares the resource with yours (visibility_platform)."),
+  slug: z.string().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'code-reviewer'). Length: 2-63 characters."),
+  version: z.string().optional().describe("Version of the resource (optional, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to 'latest' (most recent version) 2. Tag name → Resolves to version with this tag (e.g., 'stable', 'v1.0') 3. Exact hash → Immutable reference to specific version (e.g., 'abc123...') Default behavior: Empty means 'latest' (current version). This field is ignored for non-versioned resources. Examples: - version: '' → Use latest version - version: 'latest' → Use latest version (explicit) - version: 'stable' → Use version tagged as 'stable' - version: 'v1.0' → Use version tagged as 'v1.0' - version: 'abc123...' → Use exact version with this hash (immutable)"),
+});
+type PluginInput = z.infer<typeof PluginInputSchema>;
+
+const HookHandlerInputSchema = z.object({
+  command: z.string().optional().describe("The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT} names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace."),
+  args: z.array(z.string()).optional().describe("Arguments for the command's exec form; when set, the command runs without a shell."),
+  timeout_seconds: z.number().optional().describe("Seconds the command may run before it is stopped; zero means the default, 600 seconds. A command that is stopped makes no decision."),
+  condition: z.string().optional().describe("A permission rule that narrows when the handler runs, e.g. 'Bash(git push *)'; empty means whenever the group matches."),
+  fail_closed: z.boolean().optional().describe("Whether a crash, timeout or missing answer blocks the call instead of letting it through. Cursor's format only."),
+});
+type HookHandlerInput = z.infer<typeof HookHandlerInputSchema>;
+
+const HookGroupInputSchema = z.object({
+  event: z.string().optional().describe("The event the handlers run on: 'PreToolUse' before a call, which can refuse it, ask first or allow it, or 'PostToolUse' after a call succeeds, which can add to what the agent reads."),
+  matcher: z.string().optional().describe("Which tools the handlers run for: a name such as 'Bash', a list such as 'Write|Edit', or a regular expression such as 'mcp__github__.*'. Empty or '*' matches every tool. A plugin's own MCP server's tools are named mcp__plugin_<plugin>_<server>__<tool>, as in Claude Code."),
+  handlers: z.array(z.lazy(() => HookHandlerInputSchema)).optional().describe("The handlers to run, in order."),
+});
+type HookGroupInput = z.infer<typeof HookGroupInputSchema>;
+
+const HookConfigInputSchema = z.object({
+  format: z.string().optional().describe("The format the hooks are written in, which decides their input and answer. An agent's own block may leave it unset; Claude Code's format is assumed. Allowed values: HOOK_FORMAT_CLAUDE_CODE, HOOK_FORMAT_CURSOR."),
+  groups: z.array(z.lazy(() => HookGroupInputSchema)).optional().describe("Hook groups, in the order they are declared."),
+});
+type HookConfigInput = z.infer<typeof HookConfigInputSchema>;
+
+const HookSourceInputSchema = z.object({
+  plugin: z.lazy(() => PluginInputSchema).optional().describe("A plugin whose recorded hooks apply to this agent."),
+  inline: z.lazy(() => HookConfigInputSchema).optional().describe("A hooks block in Claude Code's hooks.json shape, written in the agent."),
+});
+type HookSourceInput = z.infer<typeof HookSourceInputSchema>;
+
 
 /** Build the fully-formed Agent proto from the flat MCP apply input. */
 export function agentInputToProto(input: AgentInput): Agent {
@@ -88,6 +125,7 @@ export function agentInputToProto(input: AgentInput): Agent {
   }
   if (input.tools !== undefined) spec.tools = input.tools;
   if (input.disallowed_tools !== undefined) spec.disallowedTools = input.disallowed_tools;
+  if (input.hooks !== undefined) spec.hooks = input.hooks.map(hookSourceInputToProto);
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -143,6 +181,47 @@ function envVarDeclarationInputToProto(input: EnvVarDeclarationInput) {
   if (input.is_secret !== undefined) result.isSecret = input.is_secret;
   if (input.description !== undefined) result.description = input.description;
   if (input.optional !== undefined) result.optional = input.optional;
+  return result;
+}
+
+function pluginInputToProto(input: PluginInput) {
+  return create(ApiResourceReferenceSchema, {
+    org: input.org,
+    slug: input.slug,
+    kind: ApiResourceKind.plugin,
+    version: input.version,
+  });
+}
+
+function hookHandlerInputToProto(input: HookHandlerInput) {
+  const result = create(HookHandlerSchema);
+  if (input.command !== undefined) result.command = input.command;
+  if (input.args !== undefined) result.args = input.args;
+  if (input.timeout_seconds !== undefined) result.timeoutSeconds = input.timeout_seconds;
+  if (input.condition !== undefined) result.condition = input.condition;
+  if (input.fail_closed !== undefined) result.failClosed = input.fail_closed;
+  return result;
+}
+
+function hookGroupInputToProto(input: HookGroupInput) {
+  const result = create(HookGroupSchema);
+  if (input.event !== undefined) result.event = input.event;
+  if (input.matcher !== undefined) result.matcher = input.matcher;
+  if (input.handlers !== undefined) result.handlers = input.handlers.map(hookHandlerInputToProto);
+  return result;
+}
+
+function hookConfigInputToProto(input: HookConfigInput) {
+  const result = create(HookConfigSchema);
+  result.format = enumFromString(HookFormat, input.format) as HookFormat;
+  if (input.groups !== undefined) result.groups = input.groups.map(hookGroupInputToProto);
+  return result;
+}
+
+function hookSourceInputToProto(input: HookSourceInput) {
+  const result = create(HookSourceSchema);
+  if (input.plugin !== undefined) result.source = { case: "plugin", value: pluginInputToProto(input.plugin) };
+  if (input.inline !== undefined) result.source = { case: "inline", value: hookConfigInputToProto(input.inline) };
   return result;
 }
 

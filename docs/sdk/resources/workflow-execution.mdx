@@ -1609,6 +1609,7 @@ A pending approval request for a tool call that requires user consent before exe
     headShaAtDeny: { type: "string", description: "Git HEAD SHA at the time the tool was denied." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
     approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this tool call, copied from ToolCall.approval_policy_source by the server-side projection (exactly as tool_kind above is).", typeDescriptionLink: "#approvalpolicysource" },
+    approvalPolicyHook: { type: "string", description: "Slug of the plugin whose hook asked for this approval; empty when no plugin's hook asked." },
   }}
 />
 
@@ -1783,6 +1784,7 @@ ApprovalPolicySource is the policy layer that decided a tool call's approval req
 | `APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY` | The default asked for a built-in tool of an approval class (write / delete / shell). |
 | `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint annotation). |
 | `APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP` | The unattended approval mode (ExecutionConfig.approval_mode = APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip: the surface that created the execution (a messaging channel, a guest share) has no approver, so the platform skipped the tool and told the model to adapt. |
+| `APPROVAL_POLICY_SOURCE_HOOK` | A hook decided this call: it refused it, asked a person first, or let it run without the approval it would otherwise need. |
 
 ### WorkflowTaskType
 

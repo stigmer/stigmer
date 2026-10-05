@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ListPluginMembersResponse, ListPluginVersionsInput, ListPluginVersionsResponse, PluginId } from "./io_pbjs";
+import { GetArtifactRequest, GetArtifactResponse, ListPluginMembersResponse, ListPluginVersionsInput, ListPluginVersionsResponse, PluginArtifactDownloadUrl, PluginId } from "./io_pbjs";
 import { Plugin } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -55,6 +55,33 @@ export const PluginQueryController = {
       name: "listMembers",
       I: PluginId,
       O: ListPluginMembersResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Download a plugin archive from storage by its storage key.
+     * Returns the ZIP file the plugin was installed from.
+     *
+     * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginQueryController.getArtifact
+     */
+    getArtifact: {
+      name: "getArtifact",
+      I: GetArtifactRequest,
+      O: GetArtifactResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Mint a URL for downloading a plugin archive over HTTP.
+     *
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP. Callers try this first and
+     * fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
+     *
+     * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginQueryController.getArtifactDownloadUrl
+     */
+    getArtifactDownloadUrl: {
+      name: "getArtifactDownloadUrl",
+      I: GetArtifactRequest,
+      O: PluginArtifactDownloadUrl,
       kind: MethodKind.Unary,
     },
     /**

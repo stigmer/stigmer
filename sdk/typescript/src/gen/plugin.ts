@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
-import { PluginIdSchema, PushPluginRequestSchema, CreatePluginArtifactUploadUrlRequestSchema, PluginArtifactUploadUrlSchema, ListPluginMembersResponseSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, type PushPluginRequest, type CreatePluginArtifactUploadUrlRequest, type PluginArtifactUploadUrl, type ListPluginMembersResponse, type ListPluginVersionsInput, type ListPluginVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginIdSchema, PushPluginRequestSchema, CreatePluginArtifactUploadUrlRequestSchema, PluginArtifactUploadUrlSchema, ListPluginMembersResponseSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, PluginArtifactDownloadUrlSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, type PushPluginRequest, type CreatePluginArtifactUploadUrlRequest, type PluginArtifactUploadUrl, type ListPluginMembersResponse, type GetArtifactRequest, type GetArtifactResponse, type PluginArtifactDownloadUrl, type ListPluginVersionsInput, type ListPluginVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { PluginSpecSchema, PluginDialect, PluginAuthorSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -69,6 +69,18 @@ export class PluginClient {
   async listMembers(id: string): Promise<ListPluginMembersResponse> {
     try {
       return await this.query.listMembers(create(PluginIdSchema, { value: id }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getArtifact(input: GetArtifactRequest): Promise<GetArtifactResponse> {
+    try {
+      return await this.query.getArtifact(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getArtifactDownloadUrl(input: GetArtifactRequest): Promise<PluginArtifactDownloadUrl> {
+    try {
+      return await this.query.getArtifactDownloadUrl(input);
     } catch (e) { throw wrapError(e); }
   }
 

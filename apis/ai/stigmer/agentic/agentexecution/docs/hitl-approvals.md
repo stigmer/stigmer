@@ -21,7 +21,7 @@ When an agent is about to invoke a tool that requires approval:
 
 ## What Asks for Approval
 
-There is nothing to configure. Stigmer asks before:
+By default there is nothing to configure. Stigmer asks before:
 
 - shell commands;
 - file writes and deletes;
@@ -31,7 +31,9 @@ Nothing else asks. An MCP tool's approval card reads `Execute <tool>`.
 
 To keep an agent away from a tool rather than asking about it, leave the tool out with the agent's `tools` and `disallowed_tools` lists (see the Agent resource's `mcp-server-integration.md`). The lists hold under every bypass below: a run that approves everything still cannot call a tool its lists exclude.
 
-`AgentExecution.auto_approve_all`, a lease, and the unattended mode decide only how a required approval is resolved, never which tools ask.
+An agent's hooks also decide which tools ask (`AgentSpec.hooks`, a plugin's hooks or a block written in the agent, in Claude Code's format). Before a call runs, a `PreToolUse` hook can refuse it, ask a person first, or let it run; whichever it answers replaces the default for that call. A hook that gives no answer leaves the call to the default. When several hooks answer, a refusal wins over an ask, and an ask over an allow. The native engine runs hooks; the Cursor engine refuses a turn whose agent has hooks.
+
+`AgentExecution.auto_approve_all`, a lease, and the unattended mode decide only how a required approval is resolved, never which tools ask. None of them opens a call a hook refuses.
 
 ---
 
@@ -98,6 +100,7 @@ Each entry in `status.pending_approvals` is a `PendingApproval` message:
 | `from_sub_agent` | `bool` | `true` if this approval originates from a sub-agent tool call. |
 | `sub_agent_name` | `string` | Name of the sub-agent when `from_sub_agent == true`. |
 | `approval_policy_source` | `ApprovalPolicySource` | **Why-gated provenance:** what is holding this call for approval. Projected from the tool call so a client can explain the gate (e.g. "required: marked destructive by the server") while the tool is still waiting. See [Why a Tool Is Gated](#why-a-tool-is-gated-authorization-provenance). |
+| `approval_policy_hook` | `string` | The plugin whose hook asked for this approval; empty when no hook asked, or when the agent's own hooks block did. |
 | `interrupt_id` | `string` | LangGraph interrupt ID for targeted resume. Used internally — do not modify. |
 | `child_agent_execution_id` | `string` | Set when this `PendingApproval` is surfaced at a `WorkflowExecution` level, enabling approval forwarding. |
 
@@ -105,14 +108,15 @@ Each entry in `status.pending_approvals` is a `PendingApproval` message:
 
 ## Why a Tool Is Gated (Authorization Provenance)
 
-Every tool call the approval gate evaluates carries its **authorization provenance** — *what decided its approval requirement* — on two flat `ToolCall` fields, runner-written and persisted through `update_status` (no preserver involvement):
+Every tool call the approval gate evaluates carries its **authorization provenance** — *what decided its approval requirement* — on flat `ToolCall` fields, runner-written and persisted through `update_status` (no preserver involvement):
 
 | Field | Type | Description |
 |---|---|---|
-| `approval_policy_source` | `ApprovalPolicySource` | What decided this call: the default for a built-in category, the server's destructive annotation, or a run-wide bypass, lease or unattended skip that resolved it. |
+| `approval_policy_source` | `ApprovalPolicySource` | What decided this call: a hook, the default for a built-in category, the server's destructive annotation, or a run-wide bypass, lease or unattended skip that resolved it. |
+| `approval_policy_hook` | `string` | The plugin whose hook decided the call, or whose ask a lease, the run-wide bypass or the unattended skip resolved; empty when no hook did, or when the agent's own hooks block did. |
 | `policy_engine_version` | `string` | The version of the policy-evaluation logic that produced the decision, for auditing changes across releases. |
 
-`approval_policy_source` is also projected onto each `PendingApproval` (exactly as `tool_kind` is), so an approval surface can answer **"why is this gated?"** before any decision is made. The `@stigmer/react` `ApprovalCard` and `@stigmer/ink` approval prompt render this as a short "why" line; the tool-call detail view shows it as post-execution provenance. The mapping from source to human phrase lives in `@stigmer/sdk`'s `describeApprovalPolicySource`, shared across web, desktop, and CLI.
+`approval_policy_source` and `approval_policy_hook` are also projected onto each `PendingApproval` (exactly as `tool_kind` is), so an approval surface can answer **"why is this gated?"** before any decision is made. The `@stigmer/react` `ApprovalCard` and `@stigmer/ink` approval prompt render this as a short "why" line; the tool-call detail view shows it as post-execution provenance. The mapping from source to human phrase lives in `@stigmer/sdk`'s `describeApprovalPolicySource`, shared across web, desktop, and CLI.
 
 `ApprovalPolicySource` values:
 
@@ -124,6 +128,7 @@ Every tool call the approval gate evaluates carries its **authorization provenan
 | `BUILTIN_CATEGORY` | The default asked for a built-in tool of the write / delete / shell categories. |
 | `ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (`destructiveHint: true`). |
 | `UNATTENDED_SKIP` | The unattended approval mode auto-skipped this gated call — no approver exists on the creating surface (a channel, a guest share). See [Unattended Surfaces](#unattended-surfaces-channels-and-guest-shares). |
+| `HOOK` | A hook decided this call: it refused it, asked a person first, or let it run without the approval the default would have asked. `approval_policy_hook` names the plugin. |
 
 Values 1 to 3 are reserved and never reused. The field is data-compatible: old executions carry `UNSPECIFIED`, and clients fall back exactly as they do for `tool_kind`.
 
@@ -157,13 +162,19 @@ stigmer agent execution reject aex_abc123 \
 | Approve | `APPROVAL_ACTION_APPROVE` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED` | Phase returns to `EXECUTION_IN_PROGRESS` |
 | Skip | `APPROVAL_ACTION_SKIP` | `TOOL_CALL_SKIPPED` (terminal) | Phase returns to `EXECUTION_IN_PROGRESS`. LLM receives: "Tool was skipped by user." |
 | Reject | `APPROVAL_ACTION_REJECT` | `TOOL_CALL_SKIPPED` (terminal, with the objection recorded) | Phase returns to `EXECUTION_IN_PROGRESS` — the run continues |
-| Approve all | `APPROVAL_ACTION_APPROVE_ALL` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED`; every co-pending tool resolves to APPROVE | Phase returns to `EXECUTION_IN_PROGRESS`; the rest of this execution runs un-gated |
+| Approve all | `APPROVAL_ACTION_APPROVE_ALL` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED`; every co-pending tool of the same lease scope resolves to APPROVE | Phase returns to `EXECUTION_IN_PROGRESS`; the rest of this execution does not ask again for that scope |
 
 **On Skip:** The LLM receives a message: `"Tool '{name}' was skipped by user. Please proceed without this operation."` This allows the agent to adapt its plan and continue execution without the skipped tool's result.
 
 **On Reject:** The tool is denied and the user's objection (the optional `comment`) is fed back to the model as the tool result, so it adapts rather than retrying. REJECT denies a SINGLE tool call — it does NOT fail the run, mirroring how interactive agent tools treat a denied tool. To stop the entire execution, use `cancel` (graceful) or `terminate` (force) — the dedicated hard-stop verbs. The distinction from SKIP is the strength of the signal, not the outcome.
 
-**On Approve all ("approve and don't ask again"):** The clicked tool is approved, and every other tool call currently in `TOOL_CALL_WAITING_APPROVAL` is resolved to APPROVE so the gate clears in one action. For the remainder of this execution, new tool calls (including sub-agent tool calls) skip the approval gate entirely — the gate-time equivalent of `auto_approve_all`. The scope is the current execution only; it is not persisted to the session or agent. Interactive clients may carry a session-scoped preference forward in-memory (reset on reload), but the server persists no such state.
+**On Approve all ("approve all of this kind"):** The clicked tool is approved, and it grants a lease for the rest of this execution scoped to ONE class of call, derived from the clicked call:
+
+- when a hook asked (`approval_policy_source = HOOK`), that hook's asks on that one tool: a later ask from the same hook on the same tool counts as the hook's allow, so the call runs without asking. Nothing else is cleared: the default keeps asking wherever the hook does not answer, another hook's ask still asks, and a hook's refusal still binds;
+- otherwise, for a built-in tool, its approval category (shell commands, file edits and writes, or deletions);
+- otherwise, for an MCP tool, every tool of its server.
+
+Every co-pending call currently in `TOOL_CALL_WAITING_APPROVAL` with the same scope is resolved to APPROVE so the gate clears in one action; calls of another scope keep waiting. A category or server lease never clears a hook's ask. The lease covers sub-agent tool calls too. The scope is the current execution only; it is not persisted to the session or agent. Interactive clients may carry a session-scoped preference forward in-memory (reset on reload), but the server persists no such state.
 
 ---
 
@@ -180,7 +191,7 @@ Every approval decision is recorded in the `ToolCall` fields:
 | `approval_policy_source` | What decided or resolved the call's approval — see [Why a Tool Is Gated](#why-a-tool-is-gated-authorization-provenance) |
 | `policy_engine_version` | Version of the policy-evaluation logic that produced the decision |
 
-When a user chooses **Approve all**, the co-pending tool calls that are auto-resolved carry `approval_action = APPROVAL_ACTION_APPROVE`, while the tool the user actually clicked carries `APPROVAL_ACTION_APPROVE_ALL`. This keeps the trail honest: every executed tool shows an explicit decision, and the single APPROVE_ALL entry marks where the user opted into trusting the rest of the run.
+When a user chooses **Approve all**, the co-pending tool calls that are auto-resolved carry `approval_action = APPROVAL_ACTION_APPROVE`, while the tool the user actually clicked carries `APPROVAL_ACTION_APPROVE_ALL`. This keeps the trail honest: every executed tool shows an explicit decision, and the single APPROVE_ALL entry marks where the user opted into trusting that class of call for the rest of the run.
 
 This provides a complete audit trail: who approved or rejected what tool call, when, and on which execution.
 
@@ -207,11 +218,11 @@ Or via CLI:
 stigmer run my-agent "Run automated deployment" --auto-approve
 ```
 
-When `auto_approve_all` is set, all tools that would normally pause for approval execute immediately without waiting. The agent's tool lists still apply: a tool they exclude stays unavailable.
+When `auto_approve_all` is set, all tools that would normally pause for approval execute immediately without waiting, a hook's ask included. The agent's tool lists still apply: a tool they exclude stays unavailable. The agent's hooks still run, and a call a hook refuses stays refused.
 
 **Security considerations:**
 - Restrict access to `auto_approve_all` with appropriate IAM policies
-- Audit executions where this flag is used — they bypass all approval safeguards
+- Audit executions where this flag is used — they bypass every approval prompt (a hook's refusal and the tool lists still hold)
 - In interactive sessions, the platform's own surfaces never pre-arm it: the
   gate defaults are fail-closed, and users opt in per session at a gate
   ("Approve & don't ask again")

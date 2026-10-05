@@ -20,10 +20,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PluginQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/get"
-	PluginQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/getByReference"
-	PluginQueryController_ListMembers_FullMethodName    = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/listMembers"
-	PluginQueryController_ListVersions_FullMethodName   = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/listVersions"
+	PluginQueryController_Get_FullMethodName                    = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/get"
+	PluginQueryController_GetByReference_FullMethodName         = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/getByReference"
+	PluginQueryController_ListMembers_FullMethodName            = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/listMembers"
+	PluginQueryController_GetArtifact_FullMethodName            = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/getArtifact"
+	PluginQueryController_GetArtifactDownloadUrl_FullMethodName = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/getArtifactDownloadUrl"
+	PluginQueryController_ListVersions_FullMethodName           = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/listVersions"
 )
 
 // PluginQueryControllerClient is the client API for PluginQueryController service.
@@ -46,6 +48,15 @@ type PluginQueryControllerClient interface {
 	// Returns every skill, MCP server, agent and workflow the plugin owns, in
 	// materialisation order.
 	ListMembers(ctx context.Context, in *PluginId, opts ...grpc.CallOption) (*ListPluginMembersResponse, error)
+	// Download a plugin archive from storage by its storage key.
+	// Returns the ZIP file the plugin was installed from.
+	GetArtifact(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*GetArtifactResponse, error)
+	// Mint a URL for downloading a plugin archive over HTTP.
+	//
+	// Preferred over getArtifact for anything that might exceed the gRPC
+	// message-size cap (10MB): the bytes ride HTTP. Callers try this first and
+	// fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
+	GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*PluginArtifactDownloadUrl, error)
 	// List version history for a plugin.
 	//
 	// Returns every installed version ordered by push time (newest first), with
@@ -91,6 +102,26 @@ func (c *pluginQueryControllerClient) ListMembers(ctx context.Context, in *Plugi
 	return out, nil
 }
 
+func (c *pluginQueryControllerClient) GetArtifact(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*GetArtifactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetArtifactResponse)
+	err := c.cc.Invoke(ctx, PluginQueryController_GetArtifact_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pluginQueryControllerClient) GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*PluginArtifactDownloadUrl, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PluginArtifactDownloadUrl)
+	err := c.cc.Invoke(ctx, PluginQueryController_GetArtifactDownloadUrl_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *pluginQueryControllerClient) ListVersions(ctx context.Context, in *ListPluginVersionsInput, opts ...grpc.CallOption) (*ListPluginVersionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListPluginVersionsResponse)
@@ -121,6 +152,15 @@ type PluginQueryControllerServer interface {
 	// Returns every skill, MCP server, agent and workflow the plugin owns, in
 	// materialisation order.
 	ListMembers(context.Context, *PluginId) (*ListPluginMembersResponse, error)
+	// Download a plugin archive from storage by its storage key.
+	// Returns the ZIP file the plugin was installed from.
+	GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error)
+	// Mint a URL for downloading a plugin archive over HTTP.
+	//
+	// Preferred over getArtifact for anything that might exceed the gRPC
+	// message-size cap (10MB): the bytes ride HTTP. Callers try this first and
+	// fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
+	GetArtifactDownloadUrl(context.Context, *GetArtifactRequest) (*PluginArtifactDownloadUrl, error)
 	// List version history for a plugin.
 	//
 	// Returns every installed version ordered by push time (newest first), with
@@ -143,6 +183,12 @@ func (UnimplementedPluginQueryControllerServer) GetByReference(context.Context, 
 }
 func (UnimplementedPluginQueryControllerServer) ListMembers(context.Context, *PluginId) (*ListPluginMembersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListMembers not implemented")
+}
+func (UnimplementedPluginQueryControllerServer) GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetArtifact not implemented")
+}
+func (UnimplementedPluginQueryControllerServer) GetArtifactDownloadUrl(context.Context, *GetArtifactRequest) (*PluginArtifactDownloadUrl, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactDownloadUrl not implemented")
 }
 func (UnimplementedPluginQueryControllerServer) ListVersions(context.Context, *ListPluginVersionsInput) (*ListPluginVersionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListVersions not implemented")
@@ -221,6 +267,42 @@ func _PluginQueryController_ListMembers_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PluginQueryController_GetArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PluginQueryControllerServer).GetArtifact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PluginQueryController_GetArtifact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PluginQueryControllerServer).GetArtifact(ctx, req.(*GetArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PluginQueryController_GetArtifactDownloadUrl_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PluginQueryControllerServer).GetArtifactDownloadUrl(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PluginQueryController_GetArtifactDownloadUrl_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PluginQueryControllerServer).GetArtifactDownloadUrl(ctx, req.(*GetArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PluginQueryController_ListVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListPluginVersionsInput)
 	if err := dec(in); err != nil {
@@ -257,6 +339,14 @@ var PluginQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "listMembers",
 			Handler:    _PluginQueryController_ListMembers_Handler,
+		},
+		{
+			MethodName: "getArtifact",
+			Handler:    _PluginQueryController_GetArtifact_Handler,
+		},
+		{
+			MethodName: "getArtifactDownloadUrl",
+			Handler:    _PluginQueryController_GetArtifactDownloadUrl_Handler,
 		},
 		{
 			MethodName: "listVersions",

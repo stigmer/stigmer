@@ -9,28 +9,24 @@ still waiting.
 
 ## Why a shared corpus
 
-The provenance is produced in one place — the runner (TS) — and consumed in two
-others — the Go (OSS) and Java (Cloud) backends, which copy the persisted enum
-through `update_status` and the `pending_approvals` projection without
-re-deriving it. The cross-edition risk is therefore not three derivations
-disagreeing (as with lease-scope) but the **runner's union->enum mapping drifting
-from the proto enum the backends consume**, or the proto enum being renumbered in
-one edition. Either would make a persisted `approval_policy_source` mean
-different things in different editions.
+The provenance is produced in one place, the runner, and consumed by the
+server, which copies the persisted enum through `update_status` and the
+`pending_approvals` projection without re-deriving it. The risk is therefore not
+two derivations disagreeing (as with lease-scope) but the **runner's union->enum
+mapping drifting from the proto enum the server consumes**. That would make a
+persisted `approval_policy_source` mean different things to its writer and its
+readers.
 
 Each vector pins one source to its proto enum `name_proto` and `number`:
 
-- **TS** (runner): `toProtoPolicySource` in
+- the runner: `toProtoPolicySource` in
   `backend/services/runner/src/shared/approval-policy.ts` maps the internal
   `PolicySource` union (or `undefined`) to the generated enum; the test asserts
-  it lands on `number`.
-- **Go** (OSS): the generated `ApprovalPolicySource_value` map must resolve
-  `name_proto` to `number`.
-- **Java** (Cloud): `ApprovalPolicySource.valueOf(name_proto).getNumber()` must
-  equal `number`.
+  it lands on `number`;
+- the server: the generated enum must resolve `name_proto` to `number`.
 
-A drift in the runner mapping, or a renumbering of the enum in any edition, fails
-one of the three suites.
+Both tests also require one vector per enum value, so a new value cannot land
+without its vector.
 
 ## Contract
 

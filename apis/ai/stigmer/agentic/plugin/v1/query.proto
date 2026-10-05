@@ -48,6 +48,31 @@ service PluginQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list plugin members";
   }
 
+  // Download a plugin archive from storage by its storage key.
+  // Returns the ZIP file the plugin was installed from.
+  //
+  // @internal
+  // Used by the runner to mount a plugin whose hooks an agent runs.
+  // Authorization is skipped because the content-hash storage key acts as a
+  // capability token, exactly as for the skill archive.
+  rpc getArtifact(GetArtifactRequest) returns (GetArtifactResponse) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Mint a URL for downloading a plugin archive over HTTP.
+  //
+  // Preferred over getArtifact for anything that might exceed the gRPC
+  // message-size cap (10MB): the bytes ride HTTP. Callers try this first and
+  // fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
+  //
+  // @internal
+  // Authorization is skipped for the same reason as getArtifact. Cloud returns
+  // a pre-signed URL; OSS returns a capability URL on its own HTTP lane, the
+  // one that serves skill archives.
+  rpc getArtifactDownloadUrl(GetArtifactRequest) returns (PluginArtifactDownloadUrl) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
   // List version history for a plugin.
   //
   // Returns every installed version ordered by push time (newest first), with

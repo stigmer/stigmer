@@ -19,6 +19,7 @@ from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
 from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
 from ai.stigmer.commons.rpc import pagination_pb2
 from ai.stigmer.agentic.environment.v1 import spec_pb2 as environment_spec_pb2
+from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as plugin_hooks_pb2
 
 from ._errors import wrap_error
 from ._types import ListParams, ListResult, ResourceRef
@@ -136,6 +137,7 @@ class AgentInput:
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
     tools: list[str] = field(default_factory=list)
     disallowed_tools: list[str] = field(default_factory=list)
+    hooks: list[HookSourceInput] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -157,6 +159,8 @@ class AgentInput:
             spec.tools.extend(self.tools)
         if self.disallowed_tools:
             spec.disallowed_tools.extend(self.disallowed_tools)
+        for item in self.hooks:
+            spec.hooks.append(item._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -240,5 +244,79 @@ class EnvVarDeclarationInput:
             description=self.description,
             optional=self.optional,
         )
+        return msg
+
+
+@dataclass
+class HookSourceInput:
+    """SDK input type for HookSource."""
+
+    plugin: ResourceRef | None = None
+    inline: HookConfigInput | None = None
+
+    def _to_proto(self) -> spec_pb2.HookSource:
+        msg = spec_pb2.HookSource()
+        if self.inline is not None:
+            msg.inline.CopyFrom(self.inline._to_proto())
+        if self.plugin is not None and (self.plugin.org or self.plugin.slug):
+            _ref = self.plugin._to_proto()
+            _ref.kind = 58
+            msg.plugin.CopyFrom(_ref)
+        return msg
+
+
+@dataclass
+class HookConfigInput:
+    """SDK input type for HookConfig."""
+
+    format: int = 0
+    groups: list[HookGroupInput] = field(default_factory=list)
+
+    def _to_proto(self) -> plugin_hooks_pb2.HookConfig:
+        msg = plugin_hooks_pb2.HookConfig(
+            format=self.format,
+        )
+        for item in self.groups:
+            msg.groups.append(item._to_proto())
+        return msg
+
+
+@dataclass
+class HookGroupInput:
+    """SDK input type for HookGroup."""
+
+    event: str = ""
+    matcher: str = ""
+    handlers: list[HookHandlerInput] = field(default_factory=list)
+
+    def _to_proto(self) -> plugin_hooks_pb2.HookGroup:
+        msg = plugin_hooks_pb2.HookGroup(
+            event=self.event,
+            matcher=self.matcher,
+        )
+        for item in self.handlers:
+            msg.handlers.append(item._to_proto())
+        return msg
+
+
+@dataclass
+class HookHandlerInput:
+    """SDK input type for HookHandler."""
+
+    command: str = ""
+    args: list[str] = field(default_factory=list)
+    timeout_seconds: int = 0
+    condition: str = ""
+    fail_closed: bool = False
+
+    def _to_proto(self) -> plugin_hooks_pb2.HookHandler:
+        msg = plugin_hooks_pb2.HookHandler(
+            command=self.command,
+            timeout_seconds=self.timeout_seconds,
+            condition=self.condition,
+            fail_closed=self.fail_closed,
+        )
+        if self.args:
+            msg.args.extend(self.args)
         return msg
 

@@ -609,10 +609,11 @@ enum ApprovalAction {
 //
 // @internal
 // Mirrors the runner's internal PolicySource union (approval-policy.ts) one for
-// one. The default decides first (BUILTIN_CATEGORY for a built-in,
-// ANNOTATION_DESTRUCTIVE_TIGHTEN for a destructive MCP tool); a lease, the
-// global bypass or the unattended skip then records how a required approval
-// was resolved. Values 1 to 3 belonged to the removed per-tool approval
+// one. A hook decides first when one answers (HOOK, with the deciding plugin on
+// ToolCall.approval_policy_hook); otherwise the default decides
+// (BUILTIN_CATEGORY for a built-in, ANNOTATION_DESTRUCTIVE_TIGHTEN for a
+// destructive MCP tool). A lease, the global bypass or the unattended skip
+// then records how a required approval was resolved. Values 1 to 3 belonged to the removed per-tool approval
 // policies; they are reserved, and no value is ever renumbered.
 enum ApprovalPolicySource {
   // Default — the execution predates this field, or no approval was required
@@ -654,6 +655,11 @@ enum ApprovalPolicySource {
   // approval_action / approved_by (those record human decisions only), and
   // no approval-request event is ever authored for it.
   APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP = 8;
+
+  // A hook decided this call: it refused it, asked a person first, or let it
+  // run without the approval it would otherwise need. The deciding plugin is
+  // named in approval_policy_hook beside this source.
+  APPROVAL_POLICY_SOURCE_HOOK = 9;
 }
 
 // ApprovalEventType is the kind of event in the append-only approval-event

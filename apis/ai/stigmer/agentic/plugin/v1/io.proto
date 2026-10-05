@@ -88,6 +88,37 @@ message PluginArtifactUploadUrl {
   int32 ttl_seconds = 3;
 }
 
+// GetArtifactRequest requests download of a plugin archive by storage key.
+message GetArtifactRequest {
+  // The archive storage key from plugin.status.artifact_storage_key.
+  string artifact_storage_key = 1 [(buf.validate.field).required = true];
+}
+
+// GetArtifactResponse contains a plugin archive.
+message GetArtifactResponse {
+  // The plugin archive as a ZIP file (binary content).
+  bytes artifact = 1;
+}
+
+// PluginArtifactDownloadUrl provides a URL for downloading a plugin archive
+// over HTTP.
+//
+// @internal
+// The download strategy differs by edition, as for SkillArtifactDownloadUrl:
+// a pre-signed URL with a short TTL in the Cloud; a capability URL on the
+// server's own HTTP lane in OSS, where the content-hash storage key in the
+// path is the capability.
+message PluginArtifactDownloadUrl {
+  // URL to download the archive ZIP via HTTP GET.
+  string url = 1;
+
+  // Time-to-live for the download URL in seconds; 0 means no expiry.
+  int32 ttl_seconds = 2;
+
+  // Size of the archive ZIP in bytes.
+  int64 size_bytes = 3;
+}
+
 // PluginMember is one resource an installed plugin materialised.
 message PluginMember {
   // The member's resource kind.

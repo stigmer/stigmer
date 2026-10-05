@@ -108,6 +108,68 @@ public final class PluginQueryControllerGrpc {
     return getListMembersMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.GetArtifactRequest,
+      ai.stigmer.agentic.plugin.v1.GetArtifactResponse> getGetArtifactMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getArtifact",
+      requestType = ai.stigmer.agentic.plugin.v1.GetArtifactRequest.class,
+      responseType = ai.stigmer.agentic.plugin.v1.GetArtifactResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.GetArtifactRequest,
+      ai.stigmer.agentic.plugin.v1.GetArtifactResponse> getGetArtifactMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.GetArtifactRequest, ai.stigmer.agentic.plugin.v1.GetArtifactResponse> getGetArtifactMethod;
+    if ((getGetArtifactMethod = PluginQueryControllerGrpc.getGetArtifactMethod) == null) {
+      synchronized (PluginQueryControllerGrpc.class) {
+        if ((getGetArtifactMethod = PluginQueryControllerGrpc.getGetArtifactMethod) == null) {
+          PluginQueryControllerGrpc.getGetArtifactMethod = getGetArtifactMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.plugin.v1.GetArtifactRequest, ai.stigmer.agentic.plugin.v1.GetArtifactResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getArtifact"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.plugin.v1.GetArtifactRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.plugin.v1.GetArtifactResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new PluginQueryControllerMethodDescriptorSupplier("getArtifact"))
+              .build();
+        }
+      }
+    }
+    return getGetArtifactMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.GetArtifactRequest,
+      ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl> getGetArtifactDownloadUrlMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getArtifactDownloadUrl",
+      requestType = ai.stigmer.agentic.plugin.v1.GetArtifactRequest.class,
+      responseType = ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.GetArtifactRequest,
+      ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl> getGetArtifactDownloadUrlMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.GetArtifactRequest, ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl> getGetArtifactDownloadUrlMethod;
+    if ((getGetArtifactDownloadUrlMethod = PluginQueryControllerGrpc.getGetArtifactDownloadUrlMethod) == null) {
+      synchronized (PluginQueryControllerGrpc.class) {
+        if ((getGetArtifactDownloadUrlMethod = PluginQueryControllerGrpc.getGetArtifactDownloadUrlMethod) == null) {
+          PluginQueryControllerGrpc.getGetArtifactDownloadUrlMethod = getGetArtifactDownloadUrlMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.plugin.v1.GetArtifactRequest, ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getArtifactDownloadUrl"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.plugin.v1.GetArtifactRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl.getDefaultInstance()))
+              .setSchemaDescriptor(new PluginQueryControllerMethodDescriptorSupplier("getArtifactDownloadUrl"))
+              .build();
+        }
+      }
+    }
+    return getGetArtifactDownloadUrlMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput,
       ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse> getListVersionsMethod;
 
@@ -243,6 +305,30 @@ public final class PluginQueryControllerGrpc {
 
     /**
      * <pre>
+     * Download a plugin archive from storage by its storage key.
+     * Returns the ZIP file the plugin was installed from.
+     * </pre>
+     */
+    default void getArtifact(ai.stigmer.agentic.plugin.v1.GetArtifactRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.GetArtifactResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetArtifactMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Mint a URL for downloading a plugin archive over HTTP.
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP. Callers try this first and
+     * fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
+     * </pre>
+     */
+    default void getArtifactDownloadUrl(ai.stigmer.agentic.plugin.v1.GetArtifactRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetArtifactDownloadUrlMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
@@ -328,6 +414,32 @@ public final class PluginQueryControllerGrpc {
 
     /**
      * <pre>
+     * Download a plugin archive from storage by its storage key.
+     * Returns the ZIP file the plugin was installed from.
+     * </pre>
+     */
+    public void getArtifact(ai.stigmer.agentic.plugin.v1.GetArtifactRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.GetArtifactResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetArtifactMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Mint a URL for downloading a plugin archive over HTTP.
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP. Callers try this first and
+     * fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
+     * </pre>
+     */
+    public void getArtifactDownloadUrl(ai.stigmer.agentic.plugin.v1.GetArtifactRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetArtifactDownloadUrlMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
@@ -397,6 +509,30 @@ public final class PluginQueryControllerGrpc {
 
     /**
      * <pre>
+     * Download a plugin archive from storage by its storage key.
+     * Returns the ZIP file the plugin was installed from.
+     * </pre>
+     */
+    public ai.stigmer.agentic.plugin.v1.GetArtifactResponse getArtifact(ai.stigmer.agentic.plugin.v1.GetArtifactRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetArtifactMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Mint a URL for downloading a plugin archive over HTTP.
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP. Callers try this first and
+     * fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
+     * </pre>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl getArtifactDownloadUrl(ai.stigmer.agentic.plugin.v1.GetArtifactRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetArtifactDownloadUrlMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
@@ -461,6 +597,30 @@ public final class PluginQueryControllerGrpc {
     public ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse listMembers(ai.stigmer.agentic.plugin.v1.PluginId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getListMembersMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Download a plugin archive from storage by its storage key.
+     * Returns the ZIP file the plugin was installed from.
+     * </pre>
+     */
+    public ai.stigmer.agentic.plugin.v1.GetArtifactResponse getArtifact(ai.stigmer.agentic.plugin.v1.GetArtifactRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetArtifactMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Mint a URL for downloading a plugin archive over HTTP.
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP. Callers try this first and
+     * fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
+     * </pre>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl getArtifactDownloadUrl(ai.stigmer.agentic.plugin.v1.GetArtifactRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetArtifactDownloadUrlMethod(), getCallOptions(), request);
     }
 
     /**
@@ -536,6 +696,32 @@ public final class PluginQueryControllerGrpc {
 
     /**
      * <pre>
+     * Download a plugin archive from storage by its storage key.
+     * Returns the ZIP file the plugin was installed from.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.GetArtifactResponse> getArtifact(
+        ai.stigmer.agentic.plugin.v1.GetArtifactRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetArtifactMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Mint a URL for downloading a plugin archive over HTTP.
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP. Callers try this first and
+     * fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl> getArtifactDownloadUrl(
+        ai.stigmer.agentic.plugin.v1.GetArtifactRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetArtifactDownloadUrlMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
@@ -551,7 +737,9 @@ public final class PluginQueryControllerGrpc {
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
   private static final int METHODID_LIST_MEMBERS = 2;
-  private static final int METHODID_LIST_VERSIONS = 3;
+  private static final int METHODID_GET_ARTIFACT = 3;
+  private static final int METHODID_GET_ARTIFACT_DOWNLOAD_URL = 4;
+  private static final int METHODID_LIST_VERSIONS = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -581,6 +769,14 @@ public final class PluginQueryControllerGrpc {
         case METHODID_LIST_MEMBERS:
           serviceImpl.listMembers((ai.stigmer.agentic.plugin.v1.PluginId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse>) responseObserver);
+          break;
+        case METHODID_GET_ARTIFACT:
+          serviceImpl.getArtifact((ai.stigmer.agentic.plugin.v1.GetArtifactRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.GetArtifactResponse>) responseObserver);
+          break;
+        case METHODID_GET_ARTIFACT_DOWNLOAD_URL:
+          serviceImpl.getArtifactDownloadUrl((ai.stigmer.agentic.plugin.v1.GetArtifactRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl>) responseObserver);
           break;
         case METHODID_LIST_VERSIONS:
           serviceImpl.listVersions((ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput) request,
@@ -625,6 +821,20 @@ public final class PluginQueryControllerGrpc {
               ai.stigmer.agentic.plugin.v1.PluginId,
               ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse>(
                 service, METHODID_LIST_MEMBERS)))
+        .addMethod(
+          getGetArtifactMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.plugin.v1.GetArtifactRequest,
+              ai.stigmer.agentic.plugin.v1.GetArtifactResponse>(
+                service, METHODID_GET_ARTIFACT)))
+        .addMethod(
+          getGetArtifactDownloadUrlMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.plugin.v1.GetArtifactRequest,
+              ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl>(
+                service, METHODID_GET_ARTIFACT_DOWNLOAD_URL)))
         .addMethod(
           getListVersionsMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -683,6 +893,8 @@ public final class PluginQueryControllerGrpc {
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
               .addMethod(getListMembersMethod())
+              .addMethod(getGetArtifactMethod())
+              .addMethod(getGetArtifactDownloadUrlMethod())
               .addMethod(getListVersionsMethod())
               .build();
         }

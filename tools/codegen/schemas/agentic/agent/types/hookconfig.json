@@ -1,0 +1,37 @@
+{
+  "name": "HookConfig",
+  "description": "HookConfig is a set of tool-call hooks: commands that run before or after an\n agent's tool calls and can refuse a call, ask a person first, or let it run.\n\n A plugin's hooks are recorded here at install; an agent can also carry a\n block of its own (AgentSpec.hooks). The native engine runs hooks in Claude\n Code's format, with PreToolUse and PostToolUse events.",
+  "protoType": "ai.stigmer.agentic.plugin.v1.HookConfig",
+  "protoFile": "apis/ai/stigmer/agentic/plugin/v1/hooks.proto",
+  "fields": [
+    {
+      "name": "Format",
+      "jsonName": "format",
+      "protoField": "format",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.plugin.v1.HookFormat",
+        "enumValues": [
+          "HOOK_FORMAT_CLAUDE_CODE",
+          "HOOK_FORMAT_CURSOR"
+        ]
+      },
+      "description": "The format the hooks are written in, which decides their input and answer.\n An agent's own block may leave it unset; Claude Code's format is assumed.",
+      "required": false
+    },
+    {
+      "name": "Groups",
+      "jsonName": "groups",
+      "protoField": "groups",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "HookGroup"
+        }
+      },
+      "description": "Hook groups, in the order they are declared.",
+      "required": false
+    }
+  ]
+}

@@ -3,10 +3,13 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest;
+import ai.stigmer.agentic.plugin.v1.GetArtifactRequest;
+import ai.stigmer.agentic.plugin.v1.GetArtifactResponse;
 import ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse;
 import ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput;
 import ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse;
 import ai.stigmer.agentic.plugin.v1.Plugin;
+import ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl;
 import ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl;
 import ai.stigmer.agentic.plugin.v1.PluginCommandControllerGrpc;
 import ai.stigmer.agentic.plugin.v1.PluginId;
@@ -72,6 +75,18 @@ public final class PluginClient {
     public ListPluginMembersResponse listMembers(String id) {
         try {
             return query.listMembers(PluginId.newBuilder().setValue(id).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public GetArtifactResponse getArtifact(GetArtifactRequest input) {
+        try {
+            return query.getArtifact(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public PluginArtifactDownloadUrl getArtifactDownloadUrl(GetArtifactRequest input) {
+        try {
+            return query.getArtifactDownloadUrl(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

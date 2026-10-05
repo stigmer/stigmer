@@ -681,6 +681,23 @@
           "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
         }
       ]
+    },
+    {
+      "name": "HookFormat",
+      "description": "HookFormat is the hook format a plugin's hooks are written in.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.HookFormat",
+      "values": [
+        {
+          "name": "HOOK_FORMAT_CLAUDE_CODE",
+          "number": 1,
+          "description": "Claude Code's hook format, also used by Codex plugins."
+        },
+        {
+          "name": "HOOK_FORMAT_CURSOR",
+          "number": 2,
+          "description": "Cursor's hook format."
+        }
+      ]
     }
   ],
   "resourceDescription": "Agent defines an AI assistant's identity, tools, skills, and delegation model.",

@@ -26,6 +26,7 @@ spec:
   mcp_server_usages: []
   skill_refs: []
   sub_agents: []
+  hooks: []
   env_spec: {}
 status: {}  # System-managed, never set by users
 ```
@@ -98,7 +99,46 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 | `spec.sub_agents` | No | Specialized sub-agents for delegation. See [sub-agents.md](sub-agents.md). |
 | `spec.tools` | No | Tools this agent may use, in Claude Code's names (`Read`, `Bash(git push *)`, `mcp__<server-slug>`). Empty means every tool it has. See [mcp-server-integration.md](mcp-server-integration.md). |
 | `spec.disallowed_tools` | No | Tools this agent may never use, in the same names. Applied before `spec.tools`. |
+| `spec.hooks` | No | Hooks that run around this agent's tool calls and its sub-agents' calls: a plugin whose hooks apply, or a hooks block written in the agent. See [Hooks](#hooks). |
 | `spec.env_spec` | No | Required environment variables (schema only). See below. |
+
+## Hooks
+
+`spec.hooks` lists where the agent's hooks come from. A hook is a command that runs before or after a tool call, in Claude Code's hooks format: before a call (`PreToolUse`) it can refuse it, ask a person first, or let it run without the approval it would otherwise need; after a call succeeds (`PostToolUse`) it can add to what the agent reads. A hook that answers nothing leaves the call to the default (see the AgentExecution resource's `hitl-approvals.md`).
+
+Each entry is one of two sources. A plugin reference applies the hooks that plugin recorded at install:
+
+```yaml
+spec:
+  hooks:
+    - plugin:
+        kind: plugin
+        slug: safety
+```
+
+A block written in the agent takes the shape of Claude Code's `hooks.json`, one group per event with an optional matcher and its handlers:
+
+```yaml
+spec:
+  hooks:
+    - inline:
+        groups:
+          - event: PreToolUse
+            matcher: Bash
+            handlers:
+              - command: "./scripts/check-push.sh"
+                condition: "Bash(git push *)"
+                timeout_seconds: 30
+```
+
+`condition` is Claude Code's `if`: a permission rule that narrows when the handler runs. A handler runs in `bash`, or without a shell when it has `args`; it reads the call as JSON on stdin and answers as a Claude Code hook does (exit code 2 refuses with stderr as the reason; JSON on stdout can allow, ask or deny).
+
+What holds:
+
+- The native engine runs Claude Code-format hooks, in the Cloud and on a laptop. The Cursor engine refuses a turn whose agent has hooks, and a plugin whose hooks are in Cursor's format is not run yet.
+- Apply checks an inline block: events must be `PreToolUse` or `PostToolUse`, and every matcher and condition must have the shape Claude Code accepts. It fills an omitted format with Claude Code's, so a block never names one. Apply also refuses two plugin references with the same slug and more than one inline block.
+- Installing a plugin whose hooks are in Claude Code's format adds the plugin's own reference to the agent the install composes, and declares in its `env` every variable those hooks read.
+- A plugin reference with no `version` follows the plugin's installed version. A hook that reads a variable the run does not have refuses the turn, naming the variable.
 
 ## Environment Specification
 

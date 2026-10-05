@@ -74,6 +74,18 @@ class PluginClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_artifact(self, input: io_pb2.GetArtifactRequest) -> io_pb2.GetArtifactResponse:
+        try:
+            return self._query.getArtifact(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_artifact_download_url(self, input: io_pb2.GetArtifactRequest) -> io_pb2.PluginArtifactDownloadUrl:
+        try:
+            return self._query.getArtifactDownloadUrl(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def list_versions(self, input: io_pb2.ListPluginVersionsInput) -> io_pb2.ListPluginVersionsResponse:
         try:
             return self._query.listVersions(input)

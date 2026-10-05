@@ -8,6 +8,10 @@ package ai.stigmer.agentic.plugin.v1;
 /**
  * <pre>
  * HookHandler is one command a hook runs.
+ *
+ * The command reads the call as JSON on stdin and answers as Claude Code's
+ * hooks do: exit code 2 refuses the call with stderr as the reason, and JSON on
+ * stdout can allow, ask or deny with a reason.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.plugin.v1.HookHandler}
@@ -61,7 +65,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object command_ = "";
   /**
    * <pre>
-   * The command to run, as written by the plugin.
+   * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
+   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
    * </pre>
    *
    * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -82,7 +87,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The command to run, as written by the plugin.
+   * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
+   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
    * </pre>
    *
    * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -164,8 +170,8 @@ private static final long serialVersionUID = 0L;
   private int timeoutSeconds_ = 0;
   /**
    * <pre>
-   * Seconds the command may run before it is stopped; zero means the format's
-   * default.
+   * Seconds the command may run before it is stopped; zero means the default,
+   * 600 seconds. A command that is stopped makes no decision.
    * </pre>
    *
    * <code>int32 timeout_seconds = 3 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -230,7 +236,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether a crash, timeout or missing answer blocks the call instead of
-   * letting it through.
+   * letting it through. Cursor's format only.
    * </pre>
    *
    * <code>bool fail_closed = 5 [json_name = "failClosed"];</code>
@@ -450,6 +456,10 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * HookHandler is one command a hook runs.
+   *
+   * The command reads the call as JSON on stdin and answers as Claude Code's
+   * hooks do: exit code 2 refuses the call with stderr as the reason, and JSON on
+   * stdout can allow, ask or deny with a reason.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.plugin.v1.HookHandler}
@@ -651,7 +661,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object command_ = "";
     /**
      * <pre>
-     * The command to run, as written by the plugin.
+     * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
+     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
      * </pre>
      *
      * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -671,7 +682,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The command to run, as written by the plugin.
+     * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
+     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
      * </pre>
      *
      * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -692,7 +704,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The command to run, as written by the plugin.
+     * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
+     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
      * </pre>
      *
      * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -709,7 +722,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The command to run, as written by the plugin.
+     * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
+     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
      * </pre>
      *
      * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -723,7 +737,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The command to run, as written by the plugin.
+     * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
+     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
      * </pre>
      *
      * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -899,8 +914,8 @@ private static final long serialVersionUID = 0L;
     private int timeoutSeconds_ ;
     /**
      * <pre>
-     * Seconds the command may run before it is stopped; zero means the format's
-     * default.
+     * Seconds the command may run before it is stopped; zero means the default,
+     * 600 seconds. A command that is stopped makes no decision.
      * </pre>
      *
      * <code>int32 timeout_seconds = 3 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -912,8 +927,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Seconds the command may run before it is stopped; zero means the format's
-     * default.
+     * Seconds the command may run before it is stopped; zero means the default,
+     * 600 seconds. A command that is stopped makes no decision.
      * </pre>
      *
      * <code>int32 timeout_seconds = 3 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -929,8 +944,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Seconds the command may run before it is stopped; zero means the format's
-     * default.
+     * Seconds the command may run before it is stopped; zero means the default,
+     * 600 seconds. A command that is stopped makes no decision.
      * </pre>
      *
      * <code>int32 timeout_seconds = 3 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -1044,7 +1059,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether a crash, timeout or missing answer blocks the call instead of
-     * letting it through.
+     * letting it through. Cursor's format only.
      * </pre>
      *
      * <code>bool fail_closed = 5 [json_name = "failClosed"];</code>
@@ -1057,7 +1072,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether a crash, timeout or missing answer blocks the call instead of
-     * letting it through.
+     * letting it through. Cursor's format only.
      * </pre>
      *
      * <code>bool fail_closed = 5 [json_name = "failClosed"];</code>
@@ -1074,7 +1089,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether a crash, timeout or missing answer blocks the call instead of
-     * letting it through.
+     * letting it through. Cursor's format only.
      * </pre>
      *
      * <code>bool fail_closed = 5 [json_name = "failClosed"];</code>
