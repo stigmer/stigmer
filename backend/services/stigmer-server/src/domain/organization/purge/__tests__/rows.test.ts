@@ -6,7 +6,8 @@
  * index (agents, read in keyset pages, past a full scan page). The
  * indexed read never touches another organization's rows: a store whose
  * keyset read throws still answers. A kind metadata.org does not place,
- * a bad limit and a foreign cursor are refused.
+ * a bad limit, and a token from another kind's or another read's page
+ * are refused on both reads.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -108,11 +109,13 @@ describe("the purge stages' row reader", () => {
     expect(read.pages).toBe(2);
   });
 
-  it("refuses a kind metadata.org does not place, a limit that is not a positive integer, and a cursor it did not answer", async () => {
+  it("refuses a kind metadata.org does not place, a limit that is not a positive integer, and a token from another kind or read", async () => {
+    await saveSessions(ORG, 3);
+    await saveAgents(ORG, 3);
     const rows = newOrganizationRows(fx.store, LIST_INDEXES, ORG);
     await expect(
       rows.ids(ApiResourceKind.api_key, ApiKeySchema, { after: "", limit: 5 }),
-    ).rejects.toThrow("does not name its organization in metadata.org");
+    ).rejects.toThrow("api_key rows do not name their organization in metadata.org");
     for (const limit of [0, -1, 1.5]) {
       for (const [kind, schema] of [
         [ApiResourceKind.session, SessionSchema],
@@ -123,10 +126,29 @@ describe("the purge stages' row reader", () => {
         );
       }
     }
-    for (const after of ["agt_x", "{}", '{"createdAt":1,"id":"x"}']) {
-      await expect(
-        rows.ids(ApiResourceKind.session, SessionSchema, { after, limit: 5 }),
-      ).rejects.toThrow("is not a page's `next`");
+    const sessionNext = (
+      await rows.ids(ApiResourceKind.session, SessionSchema, { after: "", limit: 1 })
+    ).next!;
+    const agentNext = (
+      await rows.ids(ApiResourceKind.agent, AgentSchema, { after: "", limit: 1 })
+    ).next!;
+    // A session's index token read as agents (a scan), an agent's scan token
+    // read as sessions (an index), a bare id, a shape with no kind.
+    await expect(
+      rows.ids(ApiResourceKind.agent, AgentSchema, { after: sessionNext, limit: 5 }),
+    ).rejects.toThrow("is not a page's `next` from the agent reader");
+    await expect(
+      rows.ids(ApiResourceKind.session, SessionSchema, { after: agentNext, limit: 5 }),
+    ).rejects.toThrow("is not a page's `next` from the session reader");
+    for (const after of ["agt_x", "{}", '{"createdAt":"","id":"x"}']) {
+      for (const [kind, schema] of [
+        [ApiResourceKind.session, SessionSchema],
+        [ApiResourceKind.agent, AgentSchema],
+      ] as const) {
+        await expect(rows.ids(kind, schema, { after, limit: 5 })).rejects.toThrow(
+          "is not a page's `next`",
+        );
+      }
     }
   });
 

@@ -9,19 +9,21 @@
  * otherwise in keyset pages of the kind, decoding each row's
  * `metadata.org`, which the kinds without a list index make cheap
  * (boot/list-indexes.ts says how few rows they hold). A page answers at
- * most `limit` ids and an opaque `next`, undefined on the last page; a
+ * most `limit` ids and a `next` token, undefined on the last page; a
  * stage that removes what it finds may simply read from the start again.
  *
  * It matches `metadata.org` only. The kinds whose rows name their
  * organization elsewhere or live behind a port a composition substitutes
  * (an API key's bound organization; identity accounts, platform clients
  * and policy rows, which the kind purges read through their ports) are
- * refused rather than answered wrong, as are a limit that is not a
- * positive integer and a cursor this reader did not answer.
+ * refused rather than answered wrong, as is a limit that is not a
+ * positive integer. A `next` names the kind and the read it came from, so
+ * a token from another kind's or another read's page is refused too,
+ * never taken as a position that would end the read early.
  *
  * What the tests pin (__tests__/rows.test.ts): only the organization's ids,
  * in pages that resume where the last ended, for an indexed kind and for
- * one with no list index, on a real SQLite store.
+ * one with no list index, on a real SQLite store; and each refusal.
  */
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { fromBinary } from "@bufbuild/protobuf";
@@ -32,6 +34,7 @@ import type {
   OrganizationRowPage,
   OrganizationRows,
 } from "../../../extensions/organization-purge.js";
+import { kindEnumName } from "../../../pipeline/apiresource-meta.js";
 import { metadataOf } from "../../../pipeline/steps/shapes.js";
 import type { Store } from "../../../store/interface.js";
 import type {
@@ -50,24 +53,52 @@ const REFUSED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.platform_client,
 ]);
 
-/** The index position a page's `next` carries, refused unless this reader wrote it. */
-function cursorOf(after: string): ListIndexCursor {
+/** Which read a page came from. */
+type Read = "index" | "scan";
+
+/** What a `next` token carries: the kind and the read it belongs to, and the position. */
+interface PageToken {
+  readonly kind: string;
+  readonly read: Read;
+  readonly id: string;
+  /** The index position's creation stamp; "" for a scan. */
+  readonly createdAt: string;
+}
+
+function tokenOf(
+  kind: ApiResourceKind,
+  read: Read,
+  id: string,
+  createdAt = "",
+): string {
+  const token: PageToken = { kind: kindEnumName(kind), read, id, createdAt };
+  return JSON.stringify(token);
+}
+
+/** The position `after` names, refused unless this kind's `read` wrote it. */
+function positionOf(
+  kind: ApiResourceKind,
+  read: Read,
+  after: string,
+): PageToken {
   let parsed: unknown;
   try {
     parsed = JSON.parse(after);
   } catch {
     parsed = undefined;
   }
-  const cursor = parsed as Partial<ListIndexCursor> | undefined;
+  const token = parsed as Partial<PageToken> | undefined;
   if (
-    typeof cursor?.createdAt !== "string" ||
-    typeof cursor.id !== "string"
+    token?.kind !== kindEnumName(kind) ||
+    token.read !== read ||
+    typeof token.id !== "string" ||
+    typeof token.createdAt !== "string"
   ) {
     throw new Error(
-      "organization rows: `after` is not a page's `next` from this kind's reader",
+      `organization rows: \`after\` is not a page's \`next\` from the ${kindEnumName(kind)} reader`,
     );
   }
-  return { createdAt: cursor.createdAt, id: cursor.id };
+  return { kind: token.kind, read, id: token.id, createdAt: token.createdAt };
 }
 
 export function newOrganizationRows(
@@ -85,10 +116,14 @@ export function newOrganizationRows(
     after: string,
     limit: number,
   ): Promise<OrganizationRowPage> {
+    const from: ListIndexCursor | undefined =
+      after === "" ? undefined : positionOf(index.kind, "index", after);
     const rows = await store.queryResources(index, {
       org,
       limit,
-      ...(after === "" ? {} : { after: cursorOf(after) }),
+      ...(from === undefined
+        ? {}
+        : { after: { createdAt: from.createdAt, id: from.id } }),
     });
     const last = rows[rows.length - 1];
     return {
@@ -100,7 +135,7 @@ export function newOrganizationRows(
       next:
         rows.length < limit || last === undefined
           ? undefined
-          : JSON.stringify(last.cursor),
+          : tokenOf(index.kind, "index", last.cursor.id, last.cursor.createdAt),
     };
   }
 
@@ -111,7 +146,7 @@ export function newOrganizationRows(
     limit: number,
   ): Promise<OrganizationRowPage> {
     const ids: string[] = [];
-    let from = after;
+    let from = after === "" ? "" : positionOf(kind, "scan", after).id;
     for (;;) {
       const page = await store.findResourcesRawOrderedAfter(
         kind,
@@ -122,7 +157,7 @@ export function newOrganizationRows(
         if (orgOf(schema, raw.data) === org) {
           ids.push(raw.id);
           if (ids.length >= limit) {
-            return { ids, next: raw.id };
+            return { ids, next: tokenOf(kind, "scan", raw.id) };
           }
         }
       }
@@ -137,7 +172,7 @@ export function newOrganizationRows(
     async ids(kind, schema, { after, limit }) {
       if (REFUSED_KINDS.has(kind)) {
         throw new Error(
-          `organization rows: kind ${String(kind)} does not name its organization in metadata.org`,
+          `organization rows: ${kindEnumName(kind)} rows do not name their organization in metadata.org`,
         );
       }
       if (!Number.isInteger(limit) || limit <= 0) {
