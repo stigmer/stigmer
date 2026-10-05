@@ -1,5 +1,7 @@
 "use client";
 
+/** Keep the horizontal brand visible while navigation adapts to the available width. */
+
 import * as React from "react";
 import Link from "next/link";
 import { Menu } from "@base-ui/react/menu";
@@ -57,9 +59,11 @@ function Header({ className, ...props }: HeaderProps) {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logo-white.svg"
+                src="/logo-lockup-white.svg"
                 alt="Stigmer"
-                className="w-10 h-10"
+                width={364}
+                height={96}
+                className="h-10 w-auto"
               />
             </Link>
 
