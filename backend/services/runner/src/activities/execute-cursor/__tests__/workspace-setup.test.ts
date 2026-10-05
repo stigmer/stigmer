@@ -2,10 +2,13 @@
  * Tests for the HITL gate's workspace lifecycle (issue #173).
  *
  * The gate must leave the user's real repo untouched: its runtime artifacts live
- * outside the workspace, the only in-repo file (`.cursor/hooks.json`) is merged
- * with any pre-existing user config and points at the hook by absolute path, and
- * the whole surface is restored when the turn ends. These tests pin all four of
- * those guarantees plus the self-healing strip of a crash-leftover entry.
+ * outside the workspace, the in-repo `.cursor/hooks.json` holds only the gate's
+ * entries for the turn (a repository's own are set aside, so only the agent's
+ * own hooks run) and points at the hook by absolute path, a runner-owned
+ * folder's `.claude` settings hooks are set aside too, and every file is
+ * restored when the turn ends, an agent's own edit kept. These tests pin those
+ * guarantees plus the self-healing strip of a crash-leftover entry and the
+ * restore of a crashed turn's snapshot.
  */
 
 import { describe, it, expect, afterEach } from "vitest";
@@ -26,6 +29,7 @@ import {
   removeHitlGate,
   buildMergedConfig,
 } from "../workspace-setup.js";
+import { claudeSettingsWithHooks, CursorWorkspaceHooksRefusal, refuseOwnFolderHooks, workspaceFolders } from "../workspace-hook-files.js";
 import { buildApprovalState } from "../approval-state.js";
 import { NO_MCP_DEFAULT } from "../__test-utils__/cursor-hook-harness.js";
 import { getHitlGateDir } from "../../../shared/workspace/platform-dir.js";
@@ -71,7 +75,7 @@ describe("buildMergedConfig", () => {
     expect(restoreTo).toBeNull();
   });
 
-  it("merges into both event arrays and strips stale Stigmer entries from each on restore", () => {
+  it("sets every repository entry aside for the turn and strips stale Stigmer entries from each on restore", () => {
     const root = "/abs";
     const stalePre = join(root, ".stigmer", "sessions", "ses-1", "hitl", "stigmer-approval.sh");
     const staleMcp = join(root, ".stigmer", "sessions", "ses-1", "hitl", "stigmer-mcp-capture.sh");
@@ -91,7 +95,7 @@ describe("buildMergedConfig", () => {
     ]);
 
     const m = JSON.parse(merged);
-    expect(m.hooks.preToolUse.map((e: any) => e.command)).toEqual(["./user.sh", freshPre]);
+    expect(m.hooks.preToolUse.map((e: any) => e.command)).toEqual([freshPre]);
     expect(m.hooks.beforeMCPExecution.map((e: any) => e.command)).toEqual([freshMcp]);
 
     // Restore is self-healing: every stale Stigmer entry is removed from both.
@@ -100,10 +104,11 @@ describe("buildMergedConfig", () => {
     expect(r.hooks.beforeMCPExecution).toEqual([]);
   });
 
-  it("merges with a user's hooks.json and restores the original bytes verbatim", () => {
+  it("holds only the gate's entries for the turn, keeps every other field, and restores the original bytes", () => {
     const original = JSON.stringify(
       {
         version: 1,
+        note: "the repository's own field",
         hooks: {
           preToolUse: [{ command: "./user-hook.sh", timeout: 5 }],
           postToolUse: [{ command: "./user-post.sh" }],
@@ -116,14 +121,18 @@ describe("buildMergedConfig", () => {
     const { merged, restoreTo } = buildMergedConfig(original, pre(script));
     const parsed = JSON.parse(merged);
 
-    // Our entry is appended; the user's preToolUse hook is preserved...
-    expect(parsed.hooks.preToolUse).toHaveLength(2);
-    expect(parsed.hooks.preToolUse[0].command).toBe("./user-hook.sh");
-    expect(parsed.hooks.preToolUse[1].command).toBe(script);
-    // ...as is every other hook type and field.
-    expect(parsed.hooks.postToolUse).toEqual([{ command: "./user-post.sh" }]);
+    // Only the gate's entry runs this turn, on every event: the repository's
+    // preToolUse and postToolUse hooks are set aside...
+    expect(parsed.hooks).toEqual({ preToolUse: [{ command: script, timeout: 10, failClosed: true }] });
+    // ...and every other field of the file is kept.
+    expect(parsed.note).toBe("the repository's own field");
     // Restore is byte-identical to the user's original.
     expect(restoreTo).toBe(original);
+  });
+
+  it("gives each entry the timeout it is asked for", () => {
+    const { merged } = buildMergedConfig(null, pre("/abs/hitl/stigmer-approval.sh"), 630);
+    expect(JSON.parse(merged).hooks.preToolUse[0].timeout).toBe(630);
   });
 
   it("strips a stale Stigmer entry (crash leftover) from both merged and restore", () => {
@@ -142,12 +151,8 @@ describe("buildMergedConfig", () => {
     const { merged, restoreTo } = buildMergedConfig(original, pre(fresh));
 
     const mergedParsed = JSON.parse(merged);
-    // No duplicate: user entry + exactly one fresh Stigmer entry.
-    expect(mergedParsed.hooks.preToolUse).toHaveLength(2);
-    expect(mergedParsed.hooks.preToolUse.map((e: any) => e.command)).toEqual([
-      "./user-hook.sh",
-      fresh,
-    ]);
+    // No duplicate: exactly one fresh Stigmer entry, the user's set aside.
+    expect(mergedParsed.hooks.preToolUse.map((e: any) => e.command)).toEqual([fresh]);
     // Restore is the CLEANED user config — the stale entry is gone (self-healing).
     const restoreParsed = JSON.parse(restoreTo!);
     expect(restoreParsed.hooks.preToolUse).toEqual([{ command: "./user-hook.sh" }]);
@@ -207,72 +212,10 @@ describe("buildMergedConfig", () => {
     const fresh = "/home/u/.stigmer/sessions/ses-9/hitl/stigmer-approval.sh";
     const { merged, restoreTo } = buildMergedConfig(original, pre(fresh));
 
-    // No duplicate, stale legacy entry dropped, user hook kept ahead of ours.
-    expect(JSON.parse(merged).hooks.preToolUse.map((e: any) => e.command)).toEqual([
-      "./user.sh",
-      fresh,
-    ]);
+    // No duplicate, stale legacy entry dropped, the user's hook set aside for the turn.
+    expect(JSON.parse(merged).hooks.preToolUse.map((e: any) => e.command)).toEqual([fresh]);
     // A real user hook remains → restore the cleaned form, not delete.
     expect(JSON.parse(restoreTo!).hooks.preToolUse).toEqual([{ command: "./user.sh" }]);
-  });
-});
-
-// ── Issue #205: foreign gating hook reporting ────────────────────────────────
-// The merge PRESERVES the user's own hooks (correct — never clobber their
-// config), but Cursor runs every configured hook and a deny from any of them
-// blocks the runner's tools without writing our denial ledger. buildMergedConfig
-// therefore reports the foreign commands left on the GATING events so the
-// runner can log the exposure and name the culprit when the turn boundary
-// detects an unattributed hook block.
-describe("buildMergedConfig — foreign gating hook reporting (issue #205)", () => {
-  const bothEvents = [
-    { event: "preToolUse", scriptPath: "/abs/hitl/stigmer-approval.sh" },
-    { event: "beforeMCPExecution", scriptPath: "/abs/hitl/stigmer-approval.sh" },
-  ];
-
-  it("reports no foreign hooks when no hooks.json exists", () => {
-    expect(buildMergedConfig(null, bothEvents).foreignGatingHooks).toEqual([]);
-  });
-
-  it("reports user commands on the gating events, ignoring non-gating events", () => {
-    const original = JSON.stringify({
-      version: 1,
-      hooks: {
-        preToolUse: [{ command: "./gate-writes.sh", failClosed: true }],
-        beforeMCPExecution: [{ command: "./gate-mcp.sh" }],
-        // postToolUse cannot deny a tool — it must not be reported.
-        postToolUse: [{ command: "./audit.sh" }],
-      },
-    });
-    const { foreignGatingHooks } = buildMergedConfig(original, bothEvents);
-    expect(foreignGatingHooks).toEqual(["./gate-writes.sh", "./gate-mcp.sh"]);
-  });
-
-  it("excludes Stigmer's own entries (current and legacy) from the report", () => {
-    const original = JSON.stringify({
-      version: 1,
-      hooks: {
-        preToolUse: [
-          { command: "/home/u/.stigmer/sessions/ses-1/hitl/stigmer-approval.sh" },
-          { command: ".cursor/hooks/stigmer-approval.sh" }, // pre-#173 legacy
-          { command: "./user.sh" },
-        ],
-      },
-    });
-    const { foreignGatingHooks } = buildMergedConfig(original, bothEvents);
-    expect(foreignGatingHooks).toEqual(["./user.sh"]);
-  });
-
-  it("ignores malformed entries without a string command", () => {
-    const original = JSON.stringify({
-      version: 1,
-      hooks: { preToolUse: [{ command: 42 }, { timeout: 5 }, null, "bare-string"] },
-    });
-    expect(buildMergedConfig(original, bothEvents).foreignGatingHooks).toEqual([]);
-  });
-
-  it("reports nothing for an unparseable hooks.json (replaced for the turn, so it cannot run)", () => {
-    expect(buildMergedConfig("{ not json", bothEvents).foreignGatingHooks).toEqual([]);
   });
 });
 
@@ -350,39 +293,44 @@ describe("installHitlGate / removeHitlGate", () => {
     expect(existsSync(join(workspaceRoot, ".cursor", "hooks"))).toBe(false);
   });
 
-  it("surfaces the preserved foreign gating hooks on the install handle", async () => {
-    const { workspaceRoot, hitlDir } = dirs();
+  it("sets a repository's own hooks aside for the turn, on every event, and returns them after", async () => {
+    const { workspaceRoot, hitlDir, gateDir } = dirs();
     const cursorDir = join(workspaceRoot, ".cursor");
     mkdirSync(cursorDir, { recursive: true });
-    writeFileSync(
-      join(cursorDir, "hooks.json"),
-      JSON.stringify({
-        version: 1,
-        hooks: {
-          preToolUse: [{ command: "./gate-writes.sh", failClosed: true }],
-          postToolUse: [{ command: "./audit.sh" }],
-        },
-      }),
-      "utf-8",
-    );
-
-    const handle = await installHitlGate({
-      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+    const userConfig = JSON.stringify({
+      version: 1,
+      hooks: {
+        preToolUse: [{ command: "./gate-writes.sh", failClosed: true }],
+        postToolUse: [{ command: "./audit.sh" }],
+        sessionStart: [{ command: "./hello.sh" }],
+      },
     });
-    // The user's gating hook is preserved in the merged config AND reported on
-    // the handle (both registered events read the same preToolUse array here,
-    // so the report carries the one foreign command once per gating event it
-    // could fire on — preToolUse only, since beforeMCPExecution was absent).
-    expect(handle.foreignGatingHooks).toEqual(["./gate-writes.sh"]);
+    writeFileSync(join(cursorDir, "hooks.json"), userConfig, "utf-8");
+
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid });
+    const during = JSON.parse(readFileSync(join(cursorDir, "hooks.json"), "utf-8"));
+    const script = join(gateDir, "stigmer-approval.sh");
+    expect(Object.keys(during.hooks).sort()).toEqual(["beforeMCPExecution", "preToolUse", "subagentStart"]);
+    expect(during.hooks.preToolUse.map((e: any) => e.command)).toEqual([script]);
+
     await removeHitlGate(handle);
+    expect(readFileSync(join(cursorDir, "hooks.json"), "utf-8")).toBe(userConfig);
   });
 
-  it("reports no foreign hooks for a pristine workspace", async () => {
-    const { workspaceRoot, hitlDir } = dirs();
+  it("registers postToolUse and a timeout over the longest hook, and points the script at the hook server", async () => {
+    const { workspaceRoot, hitlDir, gateDir } = dirs();
     const handle = await installHitlGate({
-      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+      workspaceRoot,
+      hitlDir,
+      approvalState,
+      runnerPid: process.pid,
+      hooks: { socketPath: join(gateDir, "hooks.sock"), token: "t0k3n", longestTimeoutSeconds: 600, afterCalls: true },
     });
-    expect(handle.foreignGatingHooks).toEqual([]);
+    const during = JSON.parse(readFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "utf-8"));
+    expect(Object.keys(during.hooks).sort()).toEqual(["beforeMCPExecution", "postToolUse", "preToolUse", "subagentStart"]);
+    expect(during.hooks.preToolUse[0].timeout).toBe(630);
+    const pointer = JSON.parse(readFileSync(join(gateDir, "active.json"), "utf-8"));
+    expect(pointer).toMatchObject({ hookSocket: join(gateDir, "hooks.sock"), hookToken: "t0k3n" });
     await removeHitlGate(handle);
   });
 
@@ -401,9 +349,9 @@ describe("installHitlGate / removeHitlGate", () => {
     const handle = await installHitlGate({
       workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
     });
-    // During the turn our entry is present alongside the user's.
+    // During the turn only our entry is present; the user's is set aside.
     const during = JSON.parse(readFileSync(hooksPath, "utf-8"));
-    expect(during.hooks.preToolUse).toHaveLength(2);
+    expect(during.hooks.preToolUse).toHaveLength(1);
 
     await removeHitlGate(handle);
 
@@ -525,5 +473,96 @@ describe("installHitlGate / removeHitlGate", () => {
     expect(existsSync(join(rulesDir, "stigmer-tool-approval.mdc"))).toBe(false);
     expect(readFileSync(userRule, "utf-8")).toBe("---\nalwaysApply: false\n---\nmine\n");
     expect(existsSync(rulesDir)).toBe(true);
+  });
+});
+
+describe("workspace hook files: .claude settings and the turn's restore", () => {
+  const approvalState = buildApprovalState(NO_MCP_DEFAULT, false, new Set());
+  const realHome = process.env.HOME;
+  afterEach(() => {
+    if (realHome === undefined) delete process.env.HOME;
+    else process.env.HOME = realHome;
+  });
+
+  function workspace() {
+    const root = freshRoot();
+    process.env.HOME = root;
+    const workspaceRoot = join(root, "repo");
+    mkdirSync(join(workspaceRoot, ".claude"), { recursive: true });
+    const settings = join(workspaceRoot, ".claude", "settings.json");
+    const original = `${JSON.stringify({ model: "x", hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "touch fired" }] }] } }, null, 4)}\n`;
+    writeFileSync(settings, original, "utf-8");
+    return { workspaceRoot, hitlDir: join(root, "hitl"), gateDir: getHitlGateDir(workspaceRoot), settings, original };
+  }
+
+  it("sets a runner-owned folder's .claude hooks aside for the turn, keeps its other keys, and restores the bytes", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    const handle = await installHitlGate({
+      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+      folders: workspaceFolders([workspaceRoot], []),
+    });
+    expect(JSON.parse(readFileSync(settings, "utf-8"))).toEqual({ model: "x" });
+    await removeHitlGate(handle);
+    expect(readFileSync(settings, "utf-8")).toBe(original);
+  });
+
+  it("never touches a person's own folder, and refuses the turn naming the file", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    const folders = workspaceFolders([workspaceRoot], [
+      { rootDir: workspaceRoot, sourceType: "local_path", consumedKeys: [], workspaceDescription: "", entryName: "mine" },
+    ]);
+    expect(folders).toEqual([{ dir: workspaceRoot, runnerOwned: false }]);
+    await expect(refuseOwnFolderHooks(folders)).rejects.toThrow(CursorWorkspaceHooksRefusal);
+    await expect(refuseOwnFolderHooks(folders)).rejects.toThrow(settings);
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    expect(readFileSync(settings, "utf-8")).toBe(original);
+    await removeHitlGate(handle);
+  });
+
+  it("refuses nothing for an empty hooks object or a file that does not parse", async () => {
+    const { workspaceRoot, settings } = workspace();
+    writeFileSync(settings, JSON.stringify({ hooks: {} }), "utf-8");
+    writeFileSync(join(workspaceRoot, ".claude", "settings.local.json"), "{ not json", "utf-8");
+    expect(await claudeSettingsWithHooks(workspaceRoot)).toEqual([]);
+  });
+
+  it("keeps an agent's edit of a set-aside file, with the gate's own change undone", async () => {
+    const { workspaceRoot, hitlDir, settings } = workspace();
+    const cursorHooks = join(workspaceRoot, ".cursor", "hooks.json");
+    mkdirSync(join(workspaceRoot, ".cursor"), { recursive: true });
+    writeFileSync(cursorHooks, JSON.stringify({ version: 1, hooks: { preToolUse: [{ command: "./mine.sh" }] } }), "utf-8");
+    const handle = await installHitlGate({
+      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+      folders: workspaceFolders([workspaceRoot], []),
+    });
+    // The agent edits both files during the turn.
+    writeFileSync(settings, JSON.stringify({ model: "y" }), "utf-8");
+    const during = JSON.parse(readFileSync(cursorHooks, "utf-8"));
+    during.hooks.preToolUse.push({ command: "./added-by-agent.sh" });
+    writeFileSync(cursorHooks, JSON.stringify(during), "utf-8");
+
+    await removeHitlGate(handle);
+    expect(JSON.parse(readFileSync(settings, "utf-8"))).toEqual({
+      model: "y",
+      hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "touch fired" }] }] },
+    });
+    expect(JSON.parse(readFileSync(cursorHooks, "utf-8")).hooks.preToolUse.map((e: any) => e.command)).toEqual([
+      "./mine.sh",
+      "./added-by-agent.sh",
+    ]);
+  });
+
+  it("restores a crashed turn's set-aside files at the next install, before anything else", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    const folders = workspaceFolders([workspaceRoot], []);
+    // A turn installs and never tears down (the runner crashed).
+    await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    expect(JSON.parse(readFileSync(settings, "utf-8"))).toEqual({ model: "x" });
+
+    // The next turn's install restores first, then sets aside again; its
+    // teardown leaves the original bytes.
+    const next = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    await removeHitlGate(next);
+    expect(readFileSync(settings, "utf-8")).toBe(original);
   });
 });

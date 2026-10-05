@@ -110,8 +110,10 @@ export interface McpDestructiveToolEntry {
  * differently (hook `Write`/`Shell`/`Delete`; stream `edit`/`shell`/`delete`),
  * so the raw tool name cannot be a cross-layer identity. Instead:
  * - `key` is the {@link approvalCategory} (`write`/`delete`/`shell`) for gated
- *   built-ins, and the tool name for MCP tools (whose name is consistent across
- *   layers). It is the part that survives the name divergence.
+ *   built-ins; the hook's name for any other built-in (a hook may ask on any
+ *   tool), the stream's name mapped to it ({@link STREAM_TO_HOOK_NAME});
+ *   and `server/tool` for an MCP tool, so a grant for one server's tool
+ *   never lets an equal tool name through on another server.
  * - `salient` is the resource the tool acts on (the absolute file path or the
  *   shell command) — identical on both sides because it is the argument VALUE,
  *   not the field name. Empty for MCP tools, matched by `key` alone.
@@ -132,13 +134,26 @@ export function toolIdentity(
   args: Record<string, unknown> | undefined,
 ): ToolIdentity {
   if (mcpServerSlug) {
-    return { key: toolName, salient: "" };
+    return { key: `${mcpServerSlug}/${toolName}`, salient: "" };
   }
   const category = approvalCategory(toolName);
-  // A gated built-in keys on its category; an unknown/non-gated tool falls back
-  // to its own name (harmless — it is not gated, so it never enters the ledger).
-  return { key: category ?? toolName, salient: extractArgKey(args) };
+  // A gated built-in keys on its category; any other built-in on the hook's
+  // name for it, the one a hook asked under.
+  return { key: category ?? STREAM_TO_HOOK_NAME.get(toolName) ?? toolName, salient: extractArgKey(args) };
 }
+
+/**
+ * The hook's name for each built-in the stream names otherwise and that has
+ * no approval category: what a hook's ask on it is keyed by on both sides
+ * (`@cursor/sdk` 1.0.31, live: a read streams as `read`, a search as `grep`,
+ * a glob as `glob`, and the hook sees `Read`, `Grep`, and `Grep` with an
+ * empty pattern).
+ */
+const STREAM_TO_HOOK_NAME: ReadonlyMap<string, string> = new Map([
+  ["read", "Read"],
+  ["grep", "Grep"],
+  ["glob", "Grep"],
+]);
 
 /**
  * The identity of an approved tool call, stable across agent resume.
@@ -384,7 +399,9 @@ export function toolCallArgs(tc: ToolCall): Record<string, unknown> {
  */
 export function grantFingerprint(key: FingerprintKey, grant: ApprovalGrant): string {
   return fingerprintCoarseIdentity(key, {
-    tool: grant.key,
+    // An MCP grant's `key` is `server/tool`; the fingerprint names the tool
+    // and the server apart, as the native engine's does.
+    tool: grant.mcpServerSlug ? grant.toolName : grant.key,
     mcpServerSlug: grant.mcpServerSlug,
     salient: grant.salient,
   });
@@ -462,6 +479,37 @@ export function buildApprovalGrants(
     });
   }
   return grants;
+}
+
+/** A call a person skipped or rejected this run: what they decided, and the tool as the row named it. */
+export interface PersonRefusal {
+  readonly action: "skip" | "reject";
+  readonly toolName: string;
+}
+
+/**
+ * The calls a person skipped or rejected (SKIP / REJECT), by identity token
+ * (the primary one, and the coarse one a content-less retry of the same
+ * resource carries), so a hook's allow or ask never runs one of them again:
+ * the person's refusal binds on the model's retry, as it does on the native
+ * engine (`middleware/approval-gate.ts`). Only a hook's deny comes before
+ * it (`hook-server.ts`).
+ */
+export function buildPersonRefusals(
+  pendingApprovals: PendingApproval[],
+  decisions: ReadonlyMap<string, ApprovalAction>,
+  contentDigests?: Map<string, string>,
+): Map<string, PersonRefusal> {
+  const refusals = new Map<string, PersonRefusal>();
+  for (const pa of pendingApprovals) {
+    const decision = decisions.get(pa.toolCallId);
+    if (decision !== ApprovalAction.REJECT && decision !== ApprovalAction.SKIP) continue;
+    const refusal: PersonRefusal = { action: decision === ApprovalAction.SKIP ? "skip" : "reject", toolName: pa.toolName };
+    const id = toolIdentity(pa.toolName, pa.mcpServerSlug, parseArgs(pa.argsPreview));
+    refusals.set(primaryToken(id.key, id.salient, contentDigests?.get(pa.toolCallId) ?? ""), refusal);
+    refusals.set(grantToken(id.key, id.salient), refusal);
+  }
+  return refusals;
 }
 
 function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
@@ -592,11 +640,21 @@ const DENIAL_LEDGER_FILE = "denials.jsonl";
  *                     model read (`message`), which the turn boundary writes
  *                     onto the refused row.
  *
+ * - `hook`          — refused before it ran by the hook layer: an agent's hook
+ *                     denied it (`hook` names which), or the call is one a
+ *                     person skipped or rejected earlier this run and a hook
+ *                     would have let it run (no `hook`). Non-pausing, like
+ *                     `disabled`: the model read the refusal (`message`),
+ *                     which the turn boundary writes onto the refused row.
+ *
+ * An `approval` entry a hook asked for carries `hook` too, and the hook's
+ * reason as its `message`, so the card names the hook and says why.
+ *
  * An unknown kind string is preserved as-is: it is treated as non-pausing (an
  * unknown deny must never manufacture an approval) but still attributes the
  * blocked call to our own hook.
  */
-export type DenialKind = "approval" | "unattended" | "secret" | "capture-error" | "fail-closed" | "disabled";
+export type DenialKind = "approval" | "unattended" | "secret" | "capture-error" | "fail-closed" | "disabled" | "hook";
 
 /** The one kind that pauses the run for user approval. */
 export const APPROVAL_DENIAL_KIND: DenialKind = "approval";
@@ -606,6 +664,9 @@ export const UNATTENDED_DENIAL_KIND: DenialKind = "unattended";
 
 /** The tool-list refusal kind (non-pausing, permanent for the run). */
 export const DISABLED_DENIAL_KIND: DenialKind = "disabled";
+
+/** The hook-layer refusal kind (non-pausing). */
+export const HOOK_DENIAL_KIND: DenialKind = "hook";
 
 /**
  * One denial recorded by the preToolUse hook. `token` is the call's identity in
@@ -639,6 +700,8 @@ export interface DeniedLedgerEntry {
   kind?: string;
   input?: Record<string, unknown>;
   message?: string;
+  /** The plugin whose hook refused or asked (`""` for the agent's own hooks block); absent when no hook did. */
+  hook?: string;
 }
 
 /** The effective kind of a ledger entry (absent → approval, the pre-kind format). */
@@ -759,6 +822,7 @@ export async function readDenialLedger(
         kind?: unknown;
         input?: unknown;
         message?: unknown;
+        hook?: unknown;
       };
       if (typeof obj.token === "string" && obj.token) {
         entries.push({
@@ -770,6 +834,10 @@ export async function readDenialLedger(
           input: decodeLedgerInput(obj.input),
           ...(typeof obj.message === "string" && obj.message
             ? { message: Buffer.from(obj.message, "base64").toString("utf-8") }
+            : {}),
+          // base64 of the plugin's slug; "" (the agent's own block) is written as a lone "=" sentinel.
+          ...(typeof obj.hook === "string" && obj.hook
+            ? { hook: obj.hook === "=" ? "" : Buffer.from(obj.hook, "base64").toString("utf-8") }
             : {}),
         });
       }
@@ -826,6 +894,12 @@ export interface ActiveTurnPointer {
   ledgerFile: string;
   /** PID of the runner that owns THIS turn (the hook's scope-guard anchor). */
   runnerPid: number;
+  /**
+   * The turn's hook server (`hook-server.ts`), present only when the agent
+   * has hooks: its socket, and the per-turn token a request must carry.
+   */
+  hookSocket?: string;
+  hookToken?: string;
 }
 
 /** Absolute path of the active-turn pointer inside a workspace's gate directory. */

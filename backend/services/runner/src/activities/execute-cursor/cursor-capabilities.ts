@@ -17,8 +17,11 @@
  *    hook's scope arm refuses every out-of-scope call, sub-agents' and MCP
  *    tools' included (`hook-scope.ts`). The SDK options cannot narrow MCP
  *    below all-or-nothing nor reach a sub-agent, which is why the hook binds.
+ *  - An agent's hooks, in either format, run inside the runner: the gate's
+ *    script asks the turn's hook server for every call (`hook-server.ts`),
+ *    and only the agent's own hooks run (`workspace-hook-files.ts`).
  *  - PNG and JPEG inline; the transport re-sniffs (`shared/attachment-vision.ts`).
- *  - File review under the `cursor` harness id, with the two files the gate
+ *  - File review under the `cursor` harness id, with the files the gate
  *    writes into the repo excluded from the mid-run progress diff
  *    ({@link CURSOR_RUNNER_OWNED_PATHS}). The capture itself is the runtime's
  *    (`harness/capture.ts`, since #1096); this adapter contributes only the hook
@@ -30,7 +33,9 @@ import { CURSOR_VISION_PROFILE } from "../../shared/attachment-vision.js";
 
 /**
  * Workspace-relative paths the Cursor gate writes into the repo for the
- * turn's duration (`workspace-setup.ts`). Excluded from the runtime's capture
+ * turn's duration (`workspace-setup.ts`; the `.claude` settings whose hooks
+ * it sets aside in a folder the runner owns, `workspace-hook-files.ts`).
+ * Excluded from the runtime's capture
  * so a turn's diff never shows the gate's own machinery: at the boundary the
  * gate is already torn down (the adapter's `finally` restores both), so the
  * exclusion is load-bearing for the MID-RUN progress slice, which reads the
@@ -38,7 +43,12 @@ import { CURSOR_VISION_PROFILE } from "../../shared/attachment-vision.js";
  * SDK state live under `~/.stigmer` / the git-excluded `.stigmer`, so they
  * need no exclusion.
  */
-const CURSOR_RUNNER_OWNED_PATHS: readonly string[] = [".cursor/hooks.json", ".cursor/rules/stigmer-tool-approval.mdc"];
+const CURSOR_RUNNER_OWNED_PATHS: readonly string[] = [
+  ".cursor/hooks.json",
+  ".cursor/rules/stigmer-tool-approval.mdc",
+  ".claude/settings.json",
+  ".claude/settings.local.json",
+];
 
 /** The two facts the runtime's capture and reconcile read from this harness (`harness/capabilities.ts` `FileReviewIdentity`). */
 export const CURSOR_FILE_REVIEW_IDENTITY: FileReviewIdentity = {
@@ -52,7 +62,7 @@ export const CURSOR_CAPABILITIES: HarnessCapabilities = {
   systemPrompt: false,
   subAgents: true,
   toolRestriction: false,
-  runsHooks: false,
+  runsHooks: true,
   visionProfile: CURSOR_VISION_PROFILE,
   fileReview: CURSOR_FILE_REVIEW_IDENTITY,
 };

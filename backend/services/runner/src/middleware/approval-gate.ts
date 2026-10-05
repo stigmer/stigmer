@@ -100,6 +100,7 @@ import {
   resolveToolApproval,
   unattendedSkipMessage,
 } from "../shared/approval-policy.js";
+import { HOOK_FEEDBACK_HEADING, hookAskMessage, hookRefusalMessage, personDecisionSentence } from "../shared/hooks/messages.js";
 import { NO_PRE_TOOL_USE, type HookCallScope, type HookEvaluator, type PreToolUseOutcome } from "../shared/hooks/evaluate.js";
 import { TOOL_REFUSED_EVENT, customStreamWriterOf, type ToolRefusedPayload } from "./tool-scope.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../shared/tool-kind.js";
@@ -244,8 +245,7 @@ export interface ToolPolicyPayload {
   readonly policy_hook: string;
 }
 
-/** The heading the hooks' feedback is appended to a tool result under. */
-export const HOOK_FEEDBACK_HEADING = "Hook feedback:";
+export { HOOK_FEEDBACK_HEADING } from "../shared/hooks/messages.js";
 
 interface ApprovalDecision {
   readonly action: string;
@@ -455,14 +455,7 @@ async function askPerson(call: ToolCallRequest, payload: ApprovalRequestPayload)
  */
 function personDecisionMessage(call: ToolCallRequest, action: "skip" | "reject", comment: string): ToolMessage {
   const toolName = call.toolCall.name;
-  const content = action === "skip"
-    ? comment
-      ? `Tool '${toolName}' was skipped by user: ${comment}. Please proceed without this operation.`
-      : `Tool '${toolName}' was skipped by user. Please proceed without this operation.`
-    : comment
-      ? `Tool '${toolName}' was rejected by the user: ${comment}. Do not retry it; proceed by taking their objection into account.`
-      : `Tool '${toolName}' was rejected by the user. Do not retry it; proceed by taking their objection into account.`;
-  return new ToolMessage({ content, tool_call_id: call.toolCall.id, name: toolName });
+  return new ToolMessage({ content: personDecisionSentence(toolName, action, comment), tool_call_id: call.toolCall.id, name: toolName });
 }
 
 /** Resolve an ask on an unattended surface as a skip; `hook` names the hook that asked, `null` the default. */
@@ -544,7 +537,7 @@ async function captureFlows(
 /** A hook's refusal: the handler never runs, the model reads why, and the row opens and fails with the hook named. */
 function refuseByHook(request: ToolCallRequest, pre: PreToolUseOutcome): ToolMessage {
   const { id, name, args } = request.toolCall;
-  const message = `${hookLabel(pre.hook)} refused this call${pre.reason ? `: ${pre.reason}` : "."}`;
+  const message = hookRefusalMessage(pre.hook, pre.reason);
   customStreamWriterOf<ToolRefusedPayload>(request.runtime)?.({
     name: TOOL_REFUSED_EVENT,
     tool_call_id: id,
@@ -565,16 +558,6 @@ function writeToolPolicy(call: ToolCallRequest, source: PolicySource, hook: stri
     policy_source: source,
     policy_hook: hook,
   });
-}
-
-/** How a card or a refusal names a hook source. */
-function hookLabel(hook: string): string {
-  return hook === "" ? "The agent's hook" : `The ${hook} plugin's hook`;
-}
-
-/** The card's message when an asking hook gave no reason. */
-function hookAskMessage(hook: string, toolName: string): string {
-  return hook === "" ? `The agent's hooks ask before ${toolName}` : `The ${hook} plugin asks before ${toolName}`;
 }
 
 /**

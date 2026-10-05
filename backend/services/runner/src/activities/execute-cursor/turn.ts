@@ -20,8 +20,9 @@
  * `adapter.ts` imports this module.
  *
  * Never throws out of `runCursorTurn` (an SDK failure is `failed` with the
- * classifier's sentence; a turn the agent's tool lists refused at setup is
- * `failed` on the `actionable` surface with the refusal's own sentence; an
+ * classifier's sentence; a turn the agent's tool lists, its hooks or the
+ * workspace's hook files refused at setup is `failed` on the `actionable`
+ * surface with the refusal's own sentence; an
  * unexpected exception is `failed` on the `internal` surface; a
  * `CancelledFailure` never exists here), never branches
  * on why `stopSignal` aborted, never writes a phase or a terminal copy, never
@@ -43,6 +44,7 @@
 
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import { describeExecutionError } from "../../shared/model-error.js";
+import { HookSetupError } from "../../shared/hooks/setup.js";
 import { ToolListResolutionError } from "../../shared/tool-lists.js";
 import { cacheSessionAgent } from "./agent-session-cache.js";
 import { formatClassifiedError, synthesizeError } from "./error-classifier.js";
@@ -50,12 +52,15 @@ import { setInterceptorExecutionId } from "./fetch-interceptor.js";
 import { closeProxySessions } from "./http2-interceptor.js";
 import { clearCapturedRejection, getCapturedRejection } from "./rejection-capture.js";
 import { newTurnStreamState } from "./turn-stream.js";
+import { CursorWorkspaceHooksRefusal } from "./workspace-hook-files.js";
 import { streamAndSettle, usageSnapshotFor } from "./turn-settle.js";
 import {
   buildTurnPrompt,
   checkToolScope,
+  checkWorkspaceHookFiles,
   CursorToolListRefusal,
   installGate,
+  prepareHooks,
   readAdjudicatedRows,
   resolveCursorMode,
   resolveEngine,
@@ -88,11 +93,13 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
     const streamState = newTurnStreamState();
     const mode = resolveCursorMode(input, config);
     checkToolScope(input, mode);
+    await checkWorkspaceHookFiles(input);
+    const hooks = await prepareHooks(input, sink, config, mode);
     const rows = readAdjudicatedRows(input, sink.status);
-    gate = await installGate(input, sink, rows, streamState);
+    gate = await installGate(input, sink, rows, streamState, hooks);
     if (sink.stopSignal.aborted) return (outcome = { kind: "interrupted" });
 
-    engine = await resolveEngine(input, sink, config, mode);
+    engine = await resolveEngine(input, sink, config, mode, hooks);
     sink.recordActivity();
     if (sink.stopSignal.aborted) return (outcome = { kind: "interrupted" });
 
@@ -221,14 +228,22 @@ function disposeEngine(engine: CursorEngine, sessionId: string, outcome: TurnOut
  * `describeExecutionError` (a model error arrives MiddlewareError-wrapped
  * with raw provider prose; non-model errors keep the root error's identity).
  * Both are the `internal` surface: the runner or its transport broke. A turn
- * the agent's tool lists refused at setup (`ToolListResolutionError`,
- * `CursorToolListRefusal`) is the exception: `failed` on the `actionable`
- * surface with the error's own sentence, since the fix is the agent's
- * author's, exactly as the native engine settles it.
+ * refused at setup is the exception: by the agent's tool lists
+ * (`ToolListResolutionError`, `CursorToolListRefusal`), by a hook that
+ * cannot run as written (`HookSetupError`), or by a person's own folder
+ * whose `.claude` settings carry hooks (`CursorWorkspaceHooksRefusal`). It
+ * is `failed` on the `actionable` surface with the error's own sentence,
+ * since the fix is the agent's author's or the folder owner's, exactly as
+ * the native engine settles its own.
  */
 async function classifyThrown(err: unknown, input: TurnInput, config: CursorAdapterConfig, engine: CursorEngine | undefined): Promise<TurnOutcome> {
   const { executionId } = input;
-  if (err instanceof ToolListResolutionError || err instanceof CursorToolListRefusal) {
+  if (
+    err instanceof ToolListResolutionError ||
+    err instanceof CursorToolListRefusal ||
+    err instanceof HookSetupError ||
+    err instanceof CursorWorkspaceHooksRefusal
+  ) {
     console.warn(`ExecuteCursor refused the turn: execution=${executionId}, ${err.message}`);
     return { kind: "failed", surface: "actionable", message: err.message, cause: err };
   }

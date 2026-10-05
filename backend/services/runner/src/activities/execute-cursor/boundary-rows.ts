@@ -50,6 +50,7 @@ import {
   denialKindOf,
   DISABLED_DENIAL_KIND,
   grantToken,
+  HOOK_DENIAL_KIND,
   toolCallArgs,
   toolCallIdentityToken,
   toolIdentity,
@@ -204,6 +205,8 @@ export async function reconcileDeniedToolCalls(
   for (const e of ledger) {
     if (e.token === anchorToken && e.input) anchorInput = e.input;
   }
+  // A hook asked for the anchor: the card names the hook and says why.
+  const anchorAsk = askedByHook(ledger[0]);
   const matchedCalls = new Set<ToolCall>();
   const result: ToolCall[] = [];
   let anchorMatched = false;
@@ -220,7 +223,7 @@ export async function reconcileDeniedToolCalls(
     for (const tc of msg.toolCalls) {
       if (isAdjudicatedRow(tc)) continue;
       if (toolCallIdentityToken(tc) !== anchorToken) continue;
-      proposeOnStreamedRow(transcript, tc, anchorInput, mcpDefault);
+      proposeOnStreamedRow(transcript, tc, anchorInput, mcpDefault, anchorAsk);
       matchedCalls.add(tc);
       result.push(tc);
       anchorMatched = true;
@@ -244,7 +247,7 @@ export async function reconcileDeniedToolCalls(
         messages, matchedCalls, wanted, workspaceRoot,
       );
       if (tc) {
-        proposeOnStreamedRow(transcript, tc, anchorInput, mcpDefault);
+        proposeOnStreamedRow(transcript, tc, anchorInput, mcpDefault, anchorAsk);
         matchedCalls.add(tc);
         result.push(tc);
         anchorMatched = true;
@@ -329,6 +332,7 @@ export async function reconcileDeniedToolCalls(
       token: anchorToken,
       input: anchorInput ?? anchorEntry.input,
       mcpDefault,
+      asked: anchorAsk,
     });
     result.push(tc);
   }
@@ -353,6 +357,7 @@ function proposeOnStreamedRow(
   tc: ToolCall,
   input: Record<string, unknown> | undefined,
   mcpDefault: McpApprovalDefault | undefined,
+  asked: HookAsk | undefined,
 ): void {
   const args = proposalArgs(input);
   transcript.apply({
@@ -360,9 +365,22 @@ function proposeOnStreamedRow(
     callId: tc.id,
     name: tc.name,
     mcpServerSlug: tc.mcpServerSlug,
-    message: tc.approvalMessage || resolveDeniedApprovalMessage(tc.name, tc.mcpServerSlug, toolCallArgs(tc), mcpDefault),
+    message: asked?.message || tc.approvalMessage || resolveDeniedApprovalMessage(tc.name, tc.mcpServerSlug, toolCallArgs(tc), mcpDefault),
+    ...(asked !== undefined ? { provenance: "hook" as const, policyHook: asked.hook } : {}),
     ...(args !== undefined ? { args, contentDigest: contentDigest(args) } : {}),
   });
+}
+
+/** A hook's ask, as the card shows it. */
+interface HookAsk {
+  readonly hook: string;
+  readonly message: string;
+}
+
+/** The hook that asked for a ledger entry's approval, when one did. */
+function askedByHook(entry: DeniedLedgerEntry | undefined): HookAsk | undefined {
+  if (entry?.hook === undefined) return undefined;
+  return { hook: entry.hook, message: entry.message ?? "" };
 }
 
 /**
@@ -389,25 +407,29 @@ function proposeSynthesizedGate(
     token: string;
     input: Record<string, unknown> | undefined;
     mcpDefault: McpApprovalDefault | undefined;
+    asked: HookAsk | undefined;
   },
 ): ToolCall {
-  const { displayName, salient, digest, token, input, mcpDefault } = gate;
+  const { displayName, salient, digest, token, input, mcpDefault, asked } = gate;
   const callId = `approval:${token}`;
   const captured = proposalArgs(input);
   const args = captured ?? (salient ? { path: salient } : undefined);
-  const provenance = mcpDefault
-    ? resolveApprovalProvenance(displayName, "", mcpDefault, NO_LEASED_CATEGORIES, false)
-    : undefined;
+  const provenance = asked !== undefined
+    ? "hook" as const
+    : mcpDefault
+      ? resolveApprovalProvenance(displayName, "", mcpDefault, NO_LEASED_CATEGORIES, false)
+      : undefined;
   transcript.apply({
     kind: "approval_proposed",
     callId,
     name: displayName,
     mcpServerSlug: "",
-    message: salient
+    message: asked?.message || (salient
       ? `Tool requires approval: ${displayName} (${salient})`
-      : resolveDeniedApprovalMessage(displayName, "", {}, mcpDefault),
+      : resolveDeniedApprovalMessage(displayName, "", {}, mcpDefault)),
     ...(args !== undefined ? { args } : {}),
     ...(provenance !== undefined ? { provenance } : {}),
+    ...(asked !== undefined ? { policyHook: asked.hook } : {}),
     contentDigest: captured ? contentDigest(captured) : digest,
   });
   const row = findToolCallById(messages, callId);
@@ -680,6 +702,9 @@ function proposalArgs(input: Record<string, unknown> | undefined): Record<string
   return input;
 }
 
+/** The identity keys whose salient is a path: the file categories, and the read and search a hook may ask on. */
+const PATH_KEYS: ReadonlySet<string> = new Set(["write", "delete", "Read", "Grep"]);
+
 /**
  * The workspace-normalized identity of a FILE approval category's salient, or
  * undefined for a non-file category (shell, whose salient is a command, not a
@@ -693,7 +718,7 @@ function normalizedFileSalient(
   salient: string,
   workspaceRoot: string,
 ): string | undefined {
-  if ((category !== "write" && category !== "delete") || !salient) return undefined;
+  if (!PATH_KEYS.has(category) || !salient) return undefined;
   const { path } = resolveWorkspacePath(salient, workspaceRoot, /* virtualRoot */ false);
   return `${category}\n${path}`;
 }
@@ -1076,6 +1101,8 @@ export function stampUnattendedSkippedToolCalls(
   if (unattendedLedger.length === 0) return 0;
 
   const ledgerTokens = new Set(unattendedLedger.map((e) => e.token));
+  // The hook that asked, by the call's token: the skipped row names it.
+  const askingHooks = new Map(unattendedLedger.flatMap((e) => (e.hook !== undefined ? [[e.token, e.hook] as const] : [])));
   const ledgerNormalizedSalients = new Set<string>();
   if (workspaceRoot) {
     for (const entry of unattendedLedger) {
@@ -1105,6 +1132,7 @@ export function stampUnattendedSkippedToolCalls(
         if (!deniedShape || !matchesLedger(tc)) continue;
         tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
         tc.approvalPolicySource = ApprovalPolicySource.UNATTENDED_SKIP;
+        tc.approvalPolicyHook = askingHooks.get(toolCallIdentityToken(tc)) ?? "";
         tc.policyEngineVersion = POLICY_ENGINE_VERSION;
         tc.error = "";
         tc.result = unattendedSkipMessage(tc.name);
@@ -1231,6 +1259,72 @@ export function stampScopeRefusedToolCalls(
   apply(turnMessages);
   for (const subAgent of subAgentExecutions) {
     if (turnCallIds.has(subAgent.id)) apply(subAgent.messages);
+  }
+  return stamped;
+}
+
+/**
+ * Settle the streamed rows of calls the hook layer refused before they ran
+ * (ledger kind `hook`) into the shape the native engine persists for the
+ * same refusal: TOOL_CALL_FAILED, the error the very text the model read,
+ * no approval, and HOOK provenance naming the hook that refused, or no
+ * provenance when it was a person's earlier refusal standing over a hook's
+ * allow. Cursor stamps such a row with its generic hook-block text.
+ *
+ * Which rows: THIS turn's (from `turnStartMessageIndex`) and those of the
+ * sub-agents this turn's `task` calls started, hook-blocked FAILED or still
+ * PENDING/RUNNING, each entry settling the first row of its call: the exact
+ * identity token, its coarse (key, salient), then the workspace-normalized
+ * path for the abs-vs-rel drift. Runs before the #205 attribution pass,
+ * which then never sees these rows as hook blocks. Returns how many rows
+ * were stamped.
+ */
+export function stampHookRefusedToolCalls(
+  messages: readonly AgentMessage[],
+  subAgentExecutions: readonly SubAgentExecution[],
+  ledger: readonly DeniedLedgerEntry[],
+  turnStartMessageIndex: number,
+  workspaceRoot?: string,
+): number {
+  const refusals = ledger.filter((e) => denialKindOf(e) === HOOK_DENIAL_KIND && e.message);
+  if (refusals.length === 0) return 0;
+
+  const turnMessages = messages.slice(Math.max(0, turnStartMessageIndex));
+  const turnCallIds = new Set(turnMessages.flatMap((m) => m.toolCalls.map((tc) => tc.id)));
+  const rows: ToolCall[] = [
+    ...turnMessages.flatMap((m) => m.toolCalls),
+    ...subAgentExecutions.filter((sa) => turnCallIds.has(sa.id)).flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls)),
+  ].filter(
+    (tc) =>
+      (tc.status === ToolCallStatus.TOOL_CALL_FAILED && isHookBlockError(tc.error)) ||
+      tc.status === ToolCallStatus.TOOL_CALL_PENDING ||
+      tc.status === ToolCallStatus.TOOL_CALL_RUNNING,
+  );
+
+  let stamped = 0;
+  const settled = new Set<ToolCall>();
+  for (const entry of refusals) {
+    const decoded = decodeIdentityToken(entry.token);
+    const coarse = decoded ? grantToken(decoded.key, decoded.salient) : undefined;
+    const normalized = decoded && workspaceRoot ? normalizedFileSalient(decoded.key, decoded.salient, workspaceRoot) : undefined;
+    const matches = (tc: ToolCall): boolean => {
+      if (toolCallIdentityToken(tc) === entry.token) return true;
+      const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
+      if (coarse !== undefined && grantToken(id.key, id.salient) === coarse) return true;
+      return normalized !== undefined && workspaceRoot !== undefined && normalizedFileSalient(id.key, id.salient, workspaceRoot) === normalized;
+    };
+    const tc = rows.find((row) => !settled.has(row) && matches(row));
+    if (tc === undefined) continue;
+    settled.add(tc);
+    tc.status = ToolCallStatus.TOOL_CALL_FAILED;
+    tc.error = entry.message ?? "";
+    tc.requiresApproval = false;
+    tc.approvalPolicySource = entry.hook !== undefined ? ApprovalPolicySource.HOOK : ApprovalPolicySource.UNSPECIFIED;
+    tc.approvalPolicyHook = entry.hook ?? "";
+    tc.policyEngineVersion = entry.hook !== undefined ? POLICY_ENGINE_VERSION : "";
+    tc.isStreaming = false;
+    if (!tc.completedAt) tc.completedAt = utcTimestamp();
+    stamped++;
   }
   return stamped;
 }

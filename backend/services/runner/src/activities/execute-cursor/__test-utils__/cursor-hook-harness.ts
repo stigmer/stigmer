@@ -78,6 +78,8 @@ export interface CursorHookHarnessOptions {
   grants?: ApprovalGrant[];
   /** Tools of the MCP server "srv" (the one {@link hookMcp} names) that its server marks destructive. */
   destructiveMcpTools?: string[];
+  /** The server {@link destructiveMcpTools} belong to; "srv" (the one {@link hookMcp} names by default) when absent. */
+  destructiveMcpServer?: string;
   /** MCP servers with a run-lifetime lease. */
   leasedMcpServers?: string[];
   /** Omit the state file to exercise the fail-closed (deny) path. */
@@ -197,7 +199,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
 
   if (!opts.noStateFile) {
     const mcpDefault: McpApprovalDefault = {
-      destructive: new Set((opts.destructiveMcpTools ?? []).map((tool) => mcpToolKey("srv", tool))),
+      destructive: new Set((opts.destructiveMcpTools ?? []).map((tool) => mcpToolKey(opts.destructiveMcpServer ?? "srv", tool))),
       leasedServers: new Set(opts.leasedMcpServers ?? []),
     };
     const toolScope = compileHookToolScope({

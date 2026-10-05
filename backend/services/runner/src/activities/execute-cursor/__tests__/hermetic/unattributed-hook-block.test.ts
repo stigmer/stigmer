@@ -3,20 +3,20 @@
  * hook Stigmer does not own fails the turn with a diagnosable reason, never a
  * silent completion.
  *
- * Invariant pinned: Cursor runs EVERY hook in the workspace's `.cursor/hooks.json`
- * and a deny from any of them blocks the tool. Stigmer's own hook records every
- * deny it issues to the denial ledger, so a FAILED tool call carrying Cursor's
- * hook-block error text with NO ledger entry was blocked by a FOREIGN hook. No
- * approval can unblock it (an approval grants a token only OUR hook reads), so
- * the turn boundary reports it and the activity RETURNS EXECUTION_FAILED with an
- * error that names the blocked tool and the foreign hook command the gate
- * install found beside ours. The golden (`goldens/unattributed-hook-block.status.json`)
- * pins that copy.
+ * Invariant pinned: Cursor runs every hook it loads, and a deny from any of
+ * them blocks the tool. Stigmer's own hook records every deny it issues to the
+ * denial ledger, so a FAILED tool call carrying Cursor's hook-block error text
+ * with NO ledger entry was blocked by a hook Stigmer does not own. No approval
+ * can unblock it (an approval grants a token only OUR hook reads), so the turn
+ * boundary reports it and the activity RETURNS EXECUTION_FAILED with an error
+ * that names the blocked tool. The golden
+ * (`goldens/unattributed-hook-block.status.json`) pins that copy.
  *
- * What the scenario ALSO pins, because it is the point of #173 and the reason
- * #205 exists at all: the gate MERGES into the user's `hooks.json` (their hook
- * survives the turn and is reported as the culprit) and the teardown restores
- * their file byte for byte.
+ * What the scenario ALSO pins, because it is the point of #173: the gate sets
+ * the repository's own `hooks.json` entries aside for the turn (only the
+ * agent's own hooks run, `workspace-hook-files.ts`), so the block here comes
+ * from a hook the gate cannot see, and the teardown restores the user's file
+ * byte for byte.
  *
  * Engine disposition on this arm, today: the handle is `close()`d, not parked
  * (index.ts `enterUnattributedHookBlockFailure`).
@@ -34,7 +34,7 @@
  * `error` alone, which is the field the #205 detector reads.
  *
  * Parent phase rows exercised beyond the earlier scenarios: the gate install's
- * foreign-hook detection (`workspace-setup.ts` `mergeHooks`); the FAILED
+ * set-aside of the repository's entries (`workspace-setup.ts`); the FAILED
  * tool-call row built from a single `status: "error"` event; the boundary's
  * `detectUnattributedHookBlocks` pass over an EMPTY ledger; the
  * `enterUnattributedHookBlockFailure` terminal; the `finally`'s hooks.json restore.
@@ -85,7 +85,7 @@ const RUN_ID = "run-hermetic-hookblock-0001";
 const CALL_ID = "call-hermetic-hookblock-0001";
 const USER_MESSAGE = "Clean the build directory.";
 const SHELL_ARGS = { command: "rm -rf build" };
-/** The user's own gating hook — a team policy script the merge must preserve. */
+/** The user's own gating hook — a team policy script the gate sets aside for the turn and hands back. */
 const FOREIGN_HOOK_COMMAND = "./scripts/team-policy-hook.sh";
 /**
  * The user's hooks.json exactly as they wrote it (formatting included): the
@@ -118,7 +118,7 @@ describe("ExecuteCursor hermetic — unattributed hook block (#205)", () => {
     env.dispose();
   });
 
-  it("fails the turn naming the blocked tool and the foreign hook, and restores the user's hooks.json", async () => {
+  it("fails the turn naming the blocked tool, and restores the user's hooks.json", async () => {
     // ── Arrange: the user's own gating hook is already in the workspace ─────
     const workspaceDir = sessionWorkspaceDir(env);
     const hooksJsonPath = join(workspaceDir, ".cursor", "hooks.json");
@@ -134,8 +134,8 @@ describe("ExecuteCursor hermetic — unattributed hook block (#205)", () => {
         [
           step.event(ev.init()),
           step.event(ev.assistant("Removing the build directory.")),
-          // The foreign hook denied the shell; Cursor reports the call as
-          // failed with its generic hook-block text. Our ledger never saw it.
+          // A hook the gate cannot see denied the shell; Cursor reports the
+          // call as failed with its generic hook-block text. Our ledger never saw it.
           step.event(ev.toolCall(CALL_ID, "shell", "error", SHELL_ARGS, HOOK_BLOCK_ERROR)),
           step.event(ev.assistant(FINAL_TEXT)),
           step.turnEnded({ inputTokens: 1_500, outputTokens: 40, cacheReadTokens: 0, cacheWriteTokens: 0 }),
@@ -161,11 +161,9 @@ describe("ExecuteCursor hermetic — unattributed hook block (#205)", () => {
     // ── Assert: the diagnosable reason ───────────────────────────────────────
     const final = record.lastFullStatus!;
     expect(final.error).toBe(
-      `A Cursor hook outside Stigmer's approval gate blocked tool(s): shell.` +
-        ` The workspace's .cursor/hooks.json registers hook(s) outside Stigmer's control ` +
-        `[${FOREIGN_HOOK_COMMAND}], which most likely denied it.` +
-        ` Stigmer cannot request approval on a foreign hook's behalf — remove or adjust ` +
-        `the hook in .cursor/hooks.json and retry.`,
+      `A Cursor hook outside Stigmer's approval gate blocked tool(s): shell. ` +
+        `Stigmer cannot request approval on another hook's behalf — find the hook ` +
+        `(a Cursor or Claude Code hooks file the engine loads) and remove or adjust it, then retry.`,
     );
     expect(final.completedAt, "a failed turn is complete").not.toBe("");
     expect(

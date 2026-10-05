@@ -132,8 +132,14 @@ describe("toolIdentity + grantToken (canonical, taxonomy-agnostic)", () => {
     );
   });
 
-  it("MCP tools key on name only (consistent across layers)", () => {
-    expect(toolIdentity("apply_x", "planton", { path: "ignored" })).toEqual({ key: "apply_x", salient: "" });
+  it("MCP tools key on server and tool (both consistent across layers)", () => {
+    expect(toolIdentity("apply_x", "planton", { path: "ignored" })).toEqual({ key: "planton/apply_x", salient: "" });
+  });
+
+  it("a built-in with no approval category keys on the hook's name for it", () => {
+    expect(toolIdentity("read", "", { path: "/w/a.md" })).toEqual({ key: "Read", salient: "/w/a.md" });
+    expect(toolIdentity("glob", "", { file_path: "/w" })).toEqual({ key: "Grep", salient: "/w" });
+    expect(toolIdentity("Read", "", { file_path: "/w/a.md" })).toEqual({ key: "Read", salient: "/w/a.md" });
   });
 });
 
@@ -156,12 +162,12 @@ describe("buildApprovalGrants", () => {
     expect(grants).toEqual([{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt", contentDigest: digest, sourceToolCallId: "c1" }]);
   });
 
-  it("creates a name-only grant for an approved MCP tool", () => {
+  it("creates a server-and-tool grant for an approved MCP tool", () => {
     const grants = buildApprovalGrants(
       [pending({ toolCallId: "c1", toolName: "apply_x", mcpServerSlug: "planton", argsPreview: JSON.stringify({ path: "ignored" }) })],
       new Map([["c1", ApprovalAction.APPROVE]]),
     );
-    expect(grants).toEqual([{ toolName: "apply_x", mcpServerSlug: "planton", key: "apply_x", salient: "", contentDigest: "", sourceToolCallId: "c1" }]);
+    expect(grants).toEqual([{ toolName: "apply_x", mcpServerSlug: "planton", key: "planton/apply_x", salient: "", contentDigest: "", sourceToolCallId: "c1" }]);
   });
 
   it("ignores skipped and rejected approvals", () => {

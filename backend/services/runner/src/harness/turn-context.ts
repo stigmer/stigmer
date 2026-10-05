@@ -872,7 +872,9 @@ function describeHookSource(source: HookSource): string {
  * Phase 2b: refuse a turn whose agent has hooks when the harness does not
  * run them, right after the blueprint and before anything else is fetched
  * or provisioned. Run without them, the hooks would be policies that
- * silently vanished; the refusal names them and says what to do.
+ * silently vanished; the refusal names them and says what to do. Both built
+ * harnesses run hooks, so this refuses nothing today; it stays for the
+ * next harness that does not.
  */
 export function refuseUnrunnableHooks(
   blueprint: ResolvedBlueprint,

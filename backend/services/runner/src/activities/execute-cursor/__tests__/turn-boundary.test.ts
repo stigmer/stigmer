@@ -147,7 +147,7 @@ describe("runTurnBoundary", () => {
   it("reports a foreign hook block on a non-pausing turn (the #205 silent-complete shape)", async () => {
     const status = newStatus();
 
-    // A foreign .cursor/hooks.json hook denied the write: Cursor stamped its
+    // A hook Stigmer does not own denied the write: Cursor stamped its
     // generic error, our ledger stayed empty, the tree is untouched. Before
     // this fix the boundary reported a clean non-waiting turn and the run
     // completed silently with the work undone.
@@ -156,9 +156,7 @@ describe("runTurnBoundary", () => {
       create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [blocked] }),
     );
 
-    const result = await runTurnBoundary(
-      boundaryOpts(status, { foreignGatingHooks: ["./team-policy.sh"] }),
-    );
+    const result = await runTurnBoundary(boundaryOpts(status));
 
     expect(result.waiting).toBe(false);
     expect(result.unattributedHookBlocks).toEqual([

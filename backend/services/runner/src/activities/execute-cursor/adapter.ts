@@ -70,6 +70,7 @@ export function resolveCursorConfig(config: Config): CursorAdapterConfig {
     workspaceRootDir: config.workspaceRootDir,
     cloudModeEnabled: config.cloudModeEnabled,
     agentResolveTimeoutMs: config.agentResolveTimeoutMs,
+    cursorStreamStallTimeoutMs: config.cursorStreamStallTimeoutMs,
   };
 }
 

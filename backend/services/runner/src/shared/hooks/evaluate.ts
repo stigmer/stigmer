@@ -135,6 +135,9 @@ export interface HookEvaluatorDeps {
 export const NO_PRE_TOOL_USE: PreToolUseOutcome = { decision: undefined, hook: "", leased: false, reason: "", additionalContext: [], errors: [] };
 const NO_POST_TOOL_USE: PostToolUseOutcome = { blockReasons: [], additionalContext: [], errors: [] };
 
+/** The events that run after a call, in both formats. */
+const POST_EVENTS: ReadonlySet<HookEvent> = new Set<HookEvent>(["PostToolUse", "postToolUse", "afterMCPExecution"]);
+
 /** Claude's precedence; the higher rank wins. */
 const RANK: Readonly<Record<HookDecision, number>> = { deny: 4, defer: 3, ask: 2, allow: 1 };
 
@@ -192,6 +195,16 @@ export class HookEvaluator {
       permissionMode: deps.permissionMode,
       baseEnv: deps.baseEnv,
     };
+  }
+
+  /** The turn's hooks. */
+  get hookSet(): HookSet {
+    return this.deps.set;
+  }
+
+  /** Whether any hook runs after a call. */
+  get runsAfterCalls(): boolean {
+    return this.deps.set.all.some((entry) => POST_EVENTS.has(entry.event));
   }
 
   /** The longest any one of the turn's handlers may run, in seconds. */

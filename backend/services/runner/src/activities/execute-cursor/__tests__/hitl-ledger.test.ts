@@ -277,9 +277,9 @@ describe("reconcileDeniedToolCalls", () => {
     const messages = [aiMessageWith([tc])];
     const policies: McpApprovalDefault = { destructive: new Set(["planton/apply_x"]), leasedServers: new Set() };
 
-    // MCP tools are keyed name-only (their name is consistent across layers).
+    // MCP tools are keyed by server and tool (both consistent across layers).
     await reconcileDeniedToolCalls(messages, builderOver(messages), [
-      { toolName: "apply_x", token: grantToken("apply_x", "") },
+      { toolName: "apply_x", token: grantToken("planton/apply_x", "") },
     ], policies);
 
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);

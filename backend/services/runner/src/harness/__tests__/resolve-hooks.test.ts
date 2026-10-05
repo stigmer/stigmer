@@ -5,9 +5,10 @@
  *    is fetched; an agent without hooks, or a harness that runs them, passes;
  *  - `resolveHooks`: each source in the agent's order, a plugin read by
  *    reference and mounted from its verified archive, the agent's own block
- *    taken as written; a plugin with no hooks contributes none; a plugin in
- *    Cursor's format, an unreadable plugin, an archive that fails to mount
- *    and a plugin server that cannot be named each refuse the turn by name;
+ *    taken as written, each with the format it is written in (both run); a
+ *    plugin with no hooks contributes none; an unreadable plugin, an archive
+ *    that fails to mount and a plugin server that cannot be named each
+ *    refuse the turn by name;
  *    a transient fault (the server unreachable, a download that failed in
  *    transit) is thrown instead, as the infrastructure's, never the owner's;
  *    every server a plugin brought is named as Claude Code names it.
@@ -158,6 +159,16 @@ describe("resolveHooks", () => {
     expect(labels).toEqual(["Resolving hooks"]);
   });
 
+  it("keeps each source's format: a plugin's recorded one, an own block's, Claude Code's when unset", async () => {
+    const { r } = await run(
+      [pluginRef("cursorish"), inline(HookFormat.CURSOR), inline(HookFormat.UNSPECIFIED), pluginRef("safety")],
+      [plugin("cursorish", { format: HookFormat.CURSOR }), plugin("safety")],
+    );
+    expect(r.kind).toBe("ready");
+    if (r.kind !== "ready") return;
+    expect(r.hooks.sources.map((s) => s.format)).toEqual(["cursor", "cursor", "claude-code", "claude-code"]);
+  });
+
   it("passes over a source that names nothing (the proto's oneof rule refuses it at apply)", async () => {
     const { r } = await run([create(HookSourceSchema, {}), inline()], []);
     expect(r).toMatchObject({ kind: "ready" });
@@ -171,8 +182,6 @@ describe("resolveHooks", () => {
   });
 
   it.each([
-    ["a plugin in Cursor's format", [pluginRef("cursorish")], [plugin("cursorish", { format: HookFormat.CURSOR })], "The plugin 'cursorish' carries hooks in Cursor's format"],
-    ["an own block in Cursor's format", [inline(HookFormat.CURSOR)], [], "The agent's own hooks block is in Cursor's format"],
     ["a plugin that cannot be read", [pluginRef("gone")], [], "The plugin 'gone' that the agent's hooks reference could not be read"],
     ["an archive that does not verify", [pluginRef("forged")], [plugin("forged", { digest: "0".repeat(64) })], "the fetched archive does not match the installed version's digest"],
   ])("refuses %s, by name", async (_what, hooks, plugins, message) => {

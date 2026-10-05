@@ -142,7 +142,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       const ledger = h.ledger();
       expect(ledger).toHaveLength(1);
       expect(ledger[0].kind).toBe("unattended");
-      expect(ledger[0].token).toBe(grantToken("drop_table", ""));
+      expect(ledger[0].token).toBe(grantToken("srv/drop_table", ""));
     });
 
     it("still allows auto-approved MCP tools and read-only built-ins (gating is unchanged)", () => {
@@ -167,8 +167,9 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
 
   // MCP gating runs ONLY on the beforeMCPExecution event (preToolUse does not
   // enforce MCP), so a denial is recorded in exactly one place. The identity is
-  // name-only (base64("<tool>\n")) because the bare tool name is identical on the
-  // hook input and the runner's stream event.
+  // server and tool (base64("<server>/<tool>\n")): both are identical on the
+  // hook input and the runner's stream event, and a grant for one server's
+  // tool never covers an equal tool name on another.
   describe("MCP tools (beforeMCPExecution event)", () => {
     it("denies a destructive MCP tool and surfaces its approval message", () => {
       const h = setup({ destructiveMcpTools: ["click"] });
@@ -176,7 +177,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(res.permission).toBe("deny");
       expect(res.raw).toContain("Execute click");
       expect(h.ledger()).toHaveLength(1);
-      expect(h.ledger()[0].token).toBe(grantToken("click", ""));
+      expect(h.ledger()[0].token).toBe(grantToken("srv/click", ""));
       expect(h.ledger()[0].kind).toBe("approval");
     });
 
@@ -200,10 +201,19 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     it("allows a require-approval MCP tool once it has been granted (reinvocation)", () => {
       const h = setup({
         destructiveMcpTools: ["click"],
-        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "", contentDigest: "", sourceToolCallId: "consent-1" }],
+        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "srv/click", salient: "", contentDigest: "", sourceToolCallId: "consent-1" }],
       });
       expect(h.decide(hookMcp("click")).permission).toBe("allow");
       expect(h.ledger()).toEqual([]);
+    });
+
+    it("a grant for one server's tool does not let an equal tool name through on another server", () => {
+      const h = setup({
+        destructiveMcpTools: ["click"],
+        grants: [{ toolName: "click", mcpServerSlug: "other", key: "other/click", salient: "", contentDigest: "", sourceToolCallId: "consent-1" }],
+      });
+      expect(h.decide(hookMcp("click")).permission).toBe("deny");
+      expect(h.ledger()[0]!.token).toBe(grantToken("srv/click", ""));
     });
 
     it("allows an MCP tool its server does not mark destructive", () => {
@@ -225,7 +235,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       const ledger = h.ledger();
       expect(ledger).toHaveLength(1);
       expect(ledger[0].kind).toBe("fail-closed");
-      expect(ledger[0].token).toBe(grantToken("click", ""));
+      expect(ledger[0].token).toBe(grantToken("srv/click", ""));
       expect(ledger[0]).not.toHaveProperty("input");
     });
 
