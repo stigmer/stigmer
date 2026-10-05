@@ -43,8 +43,9 @@ export async function brandLockupSvg({
   );
   // The 96-unit mark box retains its original clear space; this offset gives
   // the lettering a visible gap of 0.38 times its 48-unit capital height.
+  // Lower the lettering 2.4 units for optical centering: 1 px at a 40 px height.
   const lettering = wordmark
-    .replace("<svg ", '<svg x="103.62352941176471" ')
+    .replace("<svg ", '<svg x="103.62352941176471" y="2.4" ')
     .replaceAll("#0a0a0a", color);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${Math.round((width * 96) / 364)}" viewBox="0 0 364 96"><title>Stigmer</title>${mark}${lettering}</svg>\n`;
 }

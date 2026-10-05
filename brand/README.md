@@ -41,7 +41,9 @@ is generated for the inline UI marks; do not edit it directly.
 
 The horizontal exports combine this same symbol with `source/wordmark.svg`, the
 outlined lettering in a 260 × 96 frame. The lettering uses a 48-unit capital
-height and -0.35-unit tracking, paired with a 96-unit symbol frame. Regenerate
+height and -0.35-unit tracking, paired with a 96-unit symbol frame. The generator
+lowers the lettering by 2.4 units for optical centering, equivalent to 1 px at
+the website header's 40 px height. Regenerate
 the exports with the same `npm run generate:brand` command; do not edit the
 generated lockups or their website copy. Changing this pairing does not change
 the symbol or the favicons.
