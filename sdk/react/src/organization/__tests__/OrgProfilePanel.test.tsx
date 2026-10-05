@@ -332,6 +332,8 @@ describe("OrgProfilePanel rename", () => {
           update: vi.fn(async () => ORG),
           rename: vi.fn(async () => (panelOrg === ACME_ID ? RENAMED : GLOBEX_RENAMED)),
           findMyOrganizations,
+          // The section's child-organization list: an organization with none.
+          listChildOrgs: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
         },
         iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
         platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },

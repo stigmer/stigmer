@@ -35,10 +35,11 @@
  * `derived` names the relations `kind_meta.authorization` cannot derive
  * from the row alone: `default_of` on an instance (the blueprint's
  * `status.default_instance_id` must name this row; default-of.ts, shared
- * by the two instance kinds) and `execution_viewer` on a workflow
- * instance (`spec.execution_visibility`; execution-viewer.ts). The
- * binding table (bindings.ts) attaches them; the tuple source dispatches
- * to them by relation.
+ * by the two instance kinds), `execution_viewer` on a workflow
+ * instance (`spec.execution_visibility`; execution-viewer.ts), and an
+ * organization's `parent_org` and `child_org` edges
+ * (child-organizations.ts). The binding table (bindings.ts) attaches
+ * them; the tuple source dispatches to them by relation.
  *
  * Only types live here: the one producer of production declarations is
  * the reader joined with the bindings (model/index.ts). Tests build

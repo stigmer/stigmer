@@ -57,8 +57,9 @@ export interface MintUserTokenInput {
   readonly userName?: string;
 
   /**
-   * Organization to scope the token to. When empty, defaults to the
-   * PlatformClient's owning organization.
+   * Organization to scope the token to: the PlatformClient's owning
+   * organization, or one of its child organizations. When empty, defaults
+   * to the owning organization. The user's account is per organization.
    */
   readonly org?: string;
 }

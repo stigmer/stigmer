@@ -71,15 +71,15 @@ message PeriodEstimate {
   google.protobuf.Timestamp period_end = 3;
 
   // What the period's usage has cost in provider charges so far, across
-  // the organization and the managed organizations it pays for.
+  // the organization and the child organizations it pays for.
   int64 provider_cost_micros = 4;
 
   // The commission the wallet has already collected on that usage. It
   // counts toward the plan's cost instead of adding to it.
   int64 commission_collected_micros = 5;
 
-  // The managed organizations counted against the plan this period.
-  int32 managed_organization_count = 6;
+  // The child organizations counted against the plan this period.
+  int32 child_org_count = 6;
 
   // The invoice's lines in the order they print, zero lines omitted.
   repeated PeriodEstimateLine lines = 7;
@@ -110,7 +110,7 @@ enum PeriodEstimateLineKind {
   // against the plan's cost and never more than it.
   commission_credit = 2;
 
-  // The managed organizations beyond those the plan includes, at the
+  // The child organizations beyond those the plan includes, at the
   // plan's fee for each.
-  managed_organizations = 3;
+  child_orgs = 3;
 }

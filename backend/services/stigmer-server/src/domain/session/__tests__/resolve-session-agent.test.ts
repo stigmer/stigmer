@@ -104,6 +104,7 @@ function targetsOf(ids: Record<string, string>): ReferenceTargets {
   return {
     idOf: (ref) => ids[`${ref.org}/${ref.slug}`],
     visibilityOf: () => undefined,
+    writerParentOrg: "",
   };
 }
 

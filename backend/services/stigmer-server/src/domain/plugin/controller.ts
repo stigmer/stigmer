@@ -90,7 +90,10 @@ import {
 import { collectSpecReferences } from "../../pipeline/steps/references.js";
 import { newResolveArtifactSourceStep } from "../../pipeline/steps/resolve-artifact-source.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
-import { newValidateVisibilityUpdateStep } from "../../pipeline/steps/validate-visibility.js";
+import {
+  newRefuseChildOrgsVisibilityInChildUpdateStep,
+  newValidateVisibilityUpdateStep,
+} from "../../pipeline/steps/validate-visibility.js";
 import { newDeleteVersionArchivesStep } from "../../pipeline/steps/version-archive.js";
 import {
   LIST_VERSIONS_RESPONSE_KEY,
@@ -224,7 +227,7 @@ async function push(
     .addStep(newParseOverlayDocumentsStep(deps.store))
     .addStep(newSanitizePluginMetadataStep(deps.authorizer))
     .addStep(newPlanMaterializationStep(deps.store, deps.authorizer))
-    .addStep(newGuardPluginVisibilityStep())
+    .addStep(newGuardPluginVisibilityStep(deps.store))
     .addStep(newResolveConvergenceStep())
     .build()
     .execute(reqCtx);
@@ -358,6 +361,7 @@ async function updateVisibility(
     .addStep(newLoadPluginByIdStep(deps.store, UPDATE_VISIBILITY_PLUGIN_KEY))
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_PLUGIN_KEY))
     .addStep(newValidateVisibilityUpdateStep())
+    .addStep(newRefuseChildOrgsVisibilityInChildUpdateStep(deps.store, UPDATE_VISIBILITY_PLUGIN_KEY))
     .addStep(newSetPluginVisibilityStep())
     .addStep(
       newPersistPluginStep(

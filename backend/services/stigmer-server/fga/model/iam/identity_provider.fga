@@ -28,20 +28,12 @@ module iam
 #
 # Checks the handlers make: `can_create_idp` on the organization to
 # create; `can_view` to get, get by reference, and to keep a row in the
-# organization's list; `can_edit` to update and to link a managed
-# organization; `can_delete` to delete.
+# organization's list; `can_edit` to update; `can_delete` to delete.
 #
-# Platform tenancy (managed orgs):
-# Each platform_managed organization is linked back to the identity
-# provider that operates it. This makes the identity provider the FGA hub
-# for the platform's tenant family, enabling visibility_platform: a
-# blueprint in the platform's own org grants platform_viewer to
-# identity_provider:<idp>#platform_user, which fans out to the members of
-# every managed org — including orgs created later, with no per-resource
-# backfill.
-#
-# FGA tuple on platform_managed org creation:
-# - identity_provider:idp_abc#managed_org@organization:acme
+# A provider no longer links organizations: a child organization names its
+# parent organization directly (tenancy/organization.fga, parent_org), and
+# a provider's external_id_claim only routes a sign-in to one of its
+# organization's children.
 
 type identity_provider
   relations
@@ -49,19 +41,6 @@ type identity_provider
     # PARENT ORGANIZATION
     # ========================================
     define organization: [organization]
-    
-    # ========================================
-    # MANAGED ORGANIZATIONS (Platform Tenancy)
-    # ========================================
-    # Organizations operated by this identity provider on behalf of the
-    # external platform (OrganizationSpec.identity_provider_ref mirrors
-    # this edge in the data model).
-    # FGA tuple: identity_provider:<idp_id>#managed_org@organization:<org_id>
-    define managed_org: [organization]
-    
-    # All members of all managed organizations. This is the userset that
-    # visibility_platform blueprints grant platform_viewer to.
-    define platform_user: member from managed_org
     
     # ========================================
     # OWNERSHIP

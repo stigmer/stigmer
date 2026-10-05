@@ -318,6 +318,25 @@ public enum IamPermission
    * <code>can_manage_credits = 46;</code>
    */
   can_manage_credits(46),
+  /**
+   * <pre>
+   * Organization-level permission to create, find and list the
+   * organization's child organizations: OrganizationCommandController.create
+   * with spec.parent_org naming it, getByExternalId and listChildOrgs.
+   * </pre>
+   *
+   * <code>can_manage_child_orgs = 49;</code>
+   */
+  can_manage_child_orgs(49),
+  /**
+   * <pre>
+   * Organization-level permission to read the organization itself (its
+   * name, slug, description and preferences): OrganizationQueryController.get.
+   * </pre>
+   *
+   * <code>can_view_settings = 50;</code>
+   */
+  can_view_settings(50),
   UNRECOGNIZED(-1),
   ;
 
@@ -624,6 +643,25 @@ public enum IamPermission
    * <code>can_manage_credits = 46;</code>
    */
   public static final int can_manage_credits_VALUE = 46;
+  /**
+   * <pre>
+   * Organization-level permission to create, find and list the
+   * organization's child organizations: OrganizationCommandController.create
+   * with spec.parent_org naming it, getByExternalId and listChildOrgs.
+   * </pre>
+   *
+   * <code>can_manage_child_orgs = 49;</code>
+   */
+  public static final int can_manage_child_orgs_VALUE = 49;
+  /**
+   * <pre>
+   * Organization-level permission to read the organization itself (its
+   * name, slug, description and preferences): OrganizationQueryController.get.
+   * </pre>
+   *
+   * <code>can_view_settings = 50;</code>
+   */
+  public static final int can_view_settings_VALUE = 50;
 
 
   public final int getNumber() {
@@ -688,6 +726,8 @@ public enum IamPermission
       case 43: return can_create_mcp_server;
       case 45: return can_create_team;
       case 46: return can_manage_credits;
+      case 49: return can_manage_child_orgs;
+      case 50: return can_view_settings;
       default: return null;
     }
   }

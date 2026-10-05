@@ -32,13 +32,13 @@ Step 4: Stigmer verifies the token
   └─► Token is valid — extract the sub claim and proceed
 
 Step 5: Stigmer binds the token to one organization
-  ├─► tenant_org_claim set: read the claim from this token (every
-  │     token, returning users included) and find the platform-managed
-  │     organization whose identity_provider_ref is this provider and
-  │     whose external_org_id equals the value. A missing claim, a
-  │     non-string value or an unknown organization is refused with
-  │     Unauthenticated; the refusal does not name the tenant.
-  └─► tenant_org_claim empty: the provider's own organization
+  ├─► external_id_claim set: read the claim from this token (every
+  │     token, returning users included) and find the child
+  │     organization whose parent_org is this provider's organization
+  │     and whose external_id equals the value. A missing claim, a
+  │     non-string value or an unknown child is refused with
+  │     Unauthenticated; the refusal does not name the value.
+  └─► external_id_claim empty: the provider's own organization
 
 Step 6: Stigmer resolves the federated account
   ├─► Look up the IdentityAccount by (this IdentityProvider, sub)
@@ -64,7 +64,8 @@ Step 7: Stigmer processes the API request
       only: a target in another organization is refused with
       PermissionDenied, except what belongs to no organization (the
       person's own account and API keys) and reading or running
-      blueprints shared at platform visibility
+      what the bound organization's parent shares with its child
+      organizations
 ```
 
 ## OIDC Standards

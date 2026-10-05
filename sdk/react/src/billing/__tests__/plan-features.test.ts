@@ -1,6 +1,6 @@
 // What a plan shows: only the features Cloud offers today, in contract
 // order (a feature listed ahead of its gate is left out), its price and
-// usage share, and its managed organizations; every period day in UTC; and
+// usage share, and its child organizations; every period day in UTC; and
 // which plans are offered, cheapest first, with what a switch gives up.
 
 import { describe, expect, it } from "vitest";
@@ -12,7 +12,7 @@ import {
   buyablePlans,
   explainUsageShare,
   featuresLost,
-  formatManagedOrganizations,
+  formatChildOrgs,
   formatMonthlyMinimum,
   formatPeriodDay,
   formatUsageShare,
@@ -23,8 +23,8 @@ import { BUSINESS as BUSINESS_PLAN, RETIRED, TEAM } from "./fixtures";
 
 const USD = 1_000_000n;
 const BUSINESS = create(EntitlementsSchema, {
-  features: [Feature.byo_provider_keys, Feature.channels, Feature.sharing, Feature.teams, Feature.managed_organizations],
-  limits: { includedManagedOrganizations: 5 },
+  features: [Feature.byo_provider_keys, Feature.channels, Feature.sharing, Feature.teams, Feature.child_orgs],
+  limits: { includedChildOrgs: 5 },
 });
 
 describe("offeredFeatures", () => {
@@ -35,7 +35,7 @@ describe("offeredFeatures", () => {
       "Channels",
       "Sharing",
       "Teams",
-      "Managed organizations",
+      "Child organizations",
     ]);
     expect(offeredFeatures(undefined)).toEqual([]);
   });
@@ -67,12 +67,12 @@ describe("plan terms", () => {
     expect(explainUsageShare(create(PlanTermsSchema))).toBe("");
   });
 
-  it("reads the included managed organizations and the fee beyond, only when the plan admits them", () => {
-    expect(formatManagedOrganizations(BUSINESS, terms)).toBe("5 managed organizations included, then $25.00/month each");
-    expect(formatManagedOrganizations(create(EntitlementsSchema, { features: [Feature.teams] }), terms)).toBe("");
+  it("reads the included child organizations and the fee beyond, only when the plan admits them", () => {
+    expect(formatChildOrgs(BUSINESS, terms)).toBe("5 child organizations included, then $25.00/month each");
+    expect(formatChildOrgs(create(EntitlementsSchema, { features: [Feature.teams] }), terms)).toBe("");
     expect(
-      formatManagedOrganizations(create(EntitlementsSchema, { features: [Feature.managed_organizations] }), terms),
-    ).toBe("Unlimited managed organizations");
+      formatChildOrgs(create(EntitlementsSchema, { features: [Feature.child_orgs] }), terms),
+    ).toBe("Unlimited child organizations");
   });
 });
 
@@ -90,14 +90,14 @@ describe("which plans are offered", () => {
 
   it("names the cheapest buyable plan that includes a feature", () => {
     expect(lowestPlanWith([BUSINESS_PLAN, RETIRED, TEAM], Feature.teams)?.metadata?.name).toBe("Team");
-    expect(lowestPlanWith([BUSINESS_PLAN, TEAM], Feature.managed_organizations)?.metadata?.name).toBe("Business");
-    expect(lowestPlanWith([TEAM], Feature.managed_organizations)).toBeUndefined();
+    expect(lowestPlanWith([BUSINESS_PLAN, TEAM], Feature.child_orgs)?.metadata?.name).toBe("Business");
+    expect(lowestPlanWith([TEAM], Feature.child_orgs)).toBeUndefined();
   });
 
   it("says what a switch stops the organization creating, and nothing for an upgrade", () => {
     expect(featuresLost(BUSINESS_PLAN, TEAM).map((feature) => feature.label)).toEqual([
       "Bring your own provider keys",
-      "Managed organizations",
+      "Child organizations",
     ]);
     expect(featuresLost(TEAM, BUSINESS_PLAN)).toEqual([]);
   });

@@ -100,7 +100,7 @@ export interface IdentityProviderInput {
   userinfoEndpoint?: string;
   isSsoProvider?: boolean;
   oidcClientId?: string;
-  tenantOrgClaim?: string;
+  externalIdClaim?: string;
   createAccountsOnSignIn?: boolean;
   signInRole?: IamRole;
 }
@@ -125,7 +125,7 @@ export function buildIdentityProviderProto(input: IdentityProviderInput): Identi
       userinfoEndpoint: input.userinfoEndpoint,
       isSsoProvider: input.isSsoProvider,
       oidcClientId: input.oidcClientId,
-      tenantOrgClaim: input.tenantOrgClaim,
+      externalIdClaim: input.externalIdClaim,
       createAccountsOnSignIn: input.createAccountsOnSignIn,
       signInRole: input.signInRole,
     })),
@@ -164,7 +164,7 @@ export function toIdentityProviderUpdateInput(resource: IdentityProvider): Ident
     userinfoEndpoint: spec.userinfoEndpoint || undefined,
     isSsoProvider: spec.isSsoProvider || undefined,
     oidcClientId: spec.oidcClientId || undefined,
-    tenantOrgClaim: spec.tenantOrgClaim || undefined,
+    externalIdClaim: spec.externalIdClaim || undefined,
     createAccountsOnSignIn: spec.createAccountsOnSignIn || undefined,
     signInRole: spec.signInRole || undefined,
   };

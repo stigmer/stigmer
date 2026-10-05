@@ -200,10 +200,9 @@ public final class SubscriptionQueryControllerGrpc {
      * Resolve what the organization is permitted right now.
      * The answer is derived, never stored: the entitlements of the plan the
      * organization's active subscription names, else the Free plan's with an
-     * empty plan_id. A platform-managed organization has no subscription of
-     * its own; its entitlements resolve through its identity provider to the
-     * integrator organization, whose plan counts the managed organization
-     * against the managed organizations it includes.
+     * empty plan_id. A child organization has no subscription of its own; its
+     * entitlements resolve through its parent organization, whose plan counts
+     * the child against the child organizations it includes.
      * </pre>
      */
     default void getEntitlements(ai.stigmer.billing.subscription.v1.GetEntitlementsInput request,
@@ -217,13 +216,13 @@ public final class SubscriptionQueryControllerGrpc {
      * The estimate is the invoice the period would close with if no further
      * usage occurred before its end: the plan's cost over the whole period
      * (its minimum is not prorated to the time elapsed), less the commission
-     * already collected on the period's usage, plus the managed organizations
+     * already collected on the period's usage, plus the child organizations
      * beyond those the plan includes. It is rated by the same rule the
      * monthly close invoices by, over the same usage, so an estimate read at
      * a period's end equals that period's invoice. Every other read derives
      * it the same way; nothing is stored.
      * NOT_FOUND when the organization has no live subscription: it is on
-     * Free, or it is platform-managed and on its integrator's plan, and
+     * Free, or it is a child organization on its parent's plan, and
      * neither is invoiced a plan of its own.
      * </pre>
      */
@@ -293,10 +292,9 @@ public final class SubscriptionQueryControllerGrpc {
      * Resolve what the organization is permitted right now.
      * The answer is derived, never stored: the entitlements of the plan the
      * organization's active subscription names, else the Free plan's with an
-     * empty plan_id. A platform-managed organization has no subscription of
-     * its own; its entitlements resolve through its identity provider to the
-     * integrator organization, whose plan counts the managed organization
-     * against the managed organizations it includes.
+     * empty plan_id. A child organization has no subscription of its own; its
+     * entitlements resolve through its parent organization, whose plan counts
+     * the child against the child organizations it includes.
      * </pre>
      */
     public void getEntitlements(ai.stigmer.billing.subscription.v1.GetEntitlementsInput request,
@@ -311,13 +309,13 @@ public final class SubscriptionQueryControllerGrpc {
      * The estimate is the invoice the period would close with if no further
      * usage occurred before its end: the plan's cost over the whole period
      * (its minimum is not prorated to the time elapsed), less the commission
-     * already collected on the period's usage, plus the managed organizations
+     * already collected on the period's usage, plus the child organizations
      * beyond those the plan includes. It is rated by the same rule the
      * monthly close invoices by, over the same usage, so an estimate read at
      * a period's end equals that period's invoice. Every other read derives
      * it the same way; nothing is stored.
      * NOT_FOUND when the organization has no live subscription: it is on
-     * Free, or it is platform-managed and on its integrator's plan, and
+     * Free, or it is a child organization on its parent's plan, and
      * neither is invoiced a plan of its own.
      * </pre>
      */
@@ -369,10 +367,9 @@ public final class SubscriptionQueryControllerGrpc {
      * Resolve what the organization is permitted right now.
      * The answer is derived, never stored: the entitlements of the plan the
      * organization's active subscription names, else the Free plan's with an
-     * empty plan_id. A platform-managed organization has no subscription of
-     * its own; its entitlements resolve through its identity provider to the
-     * integrator organization, whose plan counts the managed organization
-     * against the managed organizations it includes.
+     * empty plan_id. A child organization has no subscription of its own; its
+     * entitlements resolve through its parent organization, whose plan counts
+     * the child against the child organizations it includes.
      * </pre>
      */
     public ai.stigmer.billing.subscription.v1.GetEntitlementsOutput getEntitlements(ai.stigmer.billing.subscription.v1.GetEntitlementsInput request) throws io.grpc.StatusException {
@@ -386,13 +383,13 @@ public final class SubscriptionQueryControllerGrpc {
      * The estimate is the invoice the period would close with if no further
      * usage occurred before its end: the plan's cost over the whole period
      * (its minimum is not prorated to the time elapsed), less the commission
-     * already collected on the period's usage, plus the managed organizations
+     * already collected on the period's usage, plus the child organizations
      * beyond those the plan includes. It is rated by the same rule the
      * monthly close invoices by, over the same usage, so an estimate read at
      * a period's end equals that period's invoice. Every other read derives
      * it the same way; nothing is stored.
      * NOT_FOUND when the organization has no live subscription: it is on
-     * Free, or it is platform-managed and on its integrator's plan, and
+     * Free, or it is a child organization on its parent's plan, and
      * neither is invoiced a plan of its own.
      * </pre>
      */
@@ -443,10 +440,9 @@ public final class SubscriptionQueryControllerGrpc {
      * Resolve what the organization is permitted right now.
      * The answer is derived, never stored: the entitlements of the plan the
      * organization's active subscription names, else the Free plan's with an
-     * empty plan_id. A platform-managed organization has no subscription of
-     * its own; its entitlements resolve through its identity provider to the
-     * integrator organization, whose plan counts the managed organization
-     * against the managed organizations it includes.
+     * empty plan_id. A child organization has no subscription of its own; its
+     * entitlements resolve through its parent organization, whose plan counts
+     * the child against the child organizations it includes.
      * </pre>
      */
     public ai.stigmer.billing.subscription.v1.GetEntitlementsOutput getEntitlements(ai.stigmer.billing.subscription.v1.GetEntitlementsInput request) {
@@ -460,13 +456,13 @@ public final class SubscriptionQueryControllerGrpc {
      * The estimate is the invoice the period would close with if no further
      * usage occurred before its end: the plan's cost over the whole period
      * (its minimum is not prorated to the time elapsed), less the commission
-     * already collected on the period's usage, plus the managed organizations
+     * already collected on the period's usage, plus the child organizations
      * beyond those the plan includes. It is rated by the same rule the
      * monthly close invoices by, over the same usage, so an estimate read at
      * a period's end equals that period's invoice. Every other read derives
      * it the same way; nothing is stored.
      * NOT_FOUND when the organization has no live subscription: it is on
-     * Free, or it is platform-managed and on its integrator's plan, and
+     * Free, or it is a child organization on its parent's plan, and
      * neither is invoiced a plan of its own.
      * </pre>
      */
@@ -518,10 +514,9 @@ public final class SubscriptionQueryControllerGrpc {
      * Resolve what the organization is permitted right now.
      * The answer is derived, never stored: the entitlements of the plan the
      * organization's active subscription names, else the Free plan's with an
-     * empty plan_id. A platform-managed organization has no subscription of
-     * its own; its entitlements resolve through its identity provider to the
-     * integrator organization, whose plan counts the managed organization
-     * against the managed organizations it includes.
+     * empty plan_id. A child organization has no subscription of its own; its
+     * entitlements resolve through its parent organization, whose plan counts
+     * the child against the child organizations it includes.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.subscription.v1.GetEntitlementsOutput> getEntitlements(
@@ -536,13 +531,13 @@ public final class SubscriptionQueryControllerGrpc {
      * The estimate is the invoice the period would close with if no further
      * usage occurred before its end: the plan's cost over the whole period
      * (its minimum is not prorated to the time elapsed), less the commission
-     * already collected on the period's usage, plus the managed organizations
+     * already collected on the period's usage, plus the child organizations
      * beyond those the plan includes. It is rated by the same rule the
      * monthly close invoices by, over the same usage, so an estimate read at
      * a period's end equals that period's invoice. Every other read derives
      * it the same way; nothing is stored.
      * NOT_FOUND when the organization has no live subscription: it is on
-     * Free, or it is platform-managed and on its integrator's plan, and
+     * Free, or it is a child organization on its parent's plan, and
      * neither is invoiced a plan of its own.
      * </pre>
      */

@@ -42,7 +42,7 @@ export interface VisibilitySelectorProps {
    *   ladder of levels. Escalations are confirmed by severity: a light
    *   inline prompt for levels carrying {@link VisibilityLevelOption.confirmPrompt}
    *   (e.g. Organization), and a blocking modal for levels carrying
-   *   {@link VisibilityLevelOption.confirmDialog} (Platform). This is
+   *   {@link VisibilityLevelOption.confirmDialog} (Child organizations). This is
    *   the live-resource case.
    * - `"create"` — an inline radio list that applies immediately, with no
    *   escalation confirmation. Used to pick an initial value while creating
@@ -74,7 +74,7 @@ export interface VisibilitySelectorProps {
  * control, and explaining every choice at a glance (Recognition over
  * Recall). Escalation is confirmed in proportion to how far access expands:
  * de-escalation applies instantly, an Organization escalation shows a light
- * inline prompt, and a Platform escalation opens a blocking
+ * inline prompt, and a Child organizations escalation opens a blocking
  * {@link ConfirmDialog} that names the exact audience. Confirmation is owned
  * here so every consumer — blueprint detail, instance detail, and any
  * standalone embed — behaves identically.
@@ -83,8 +83,8 @@ export interface VisibilitySelectorProps {
  * immediately (initial value selection has no escalation semantics).
  *
  * If the current visibility is not among the offered options (e.g. a
- * platform-shared blueprint whose org no longer operates an
- * IdentityProvider), its canonical option is rendered in place so the
+ * blueprint stored at a level its organization is no longer offered),
+ * its canonical option is rendered in place so the
  * state stays legible and the user can still move to an offered level.
  *
  * All visual properties flow through `--stgm-*` design tokens; portaled
@@ -95,7 +95,7 @@ export interface VisibilitySelectorProps {
  * ```tsx
  * <VisibilitySelector
  *   visibility={agent.metadata.visibility}
- *   options={blueprintVisibilityLevels({ hasIdentityProvider })}
+ *   options={blueprintVisibilityLevels({ offersChildOrgs })}
  *   onVisibilityChange={updateVisibility}
  *   isPending={isPending}
  * />
@@ -440,7 +440,7 @@ export interface VisibilityBadgeProps {
 
 /**
  * Visibility indicator with a matching icon, covering every level a stored
- * row can carry (Private / Organization / Platform, and the retired Public
+ * row can carry (Private / Organization / Child organizations, and the retired Public
  * for a row from before its retirement).
  *
  * Rendered wherever the interactive {@link VisibilitySelector} is not

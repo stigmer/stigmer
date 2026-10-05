@@ -89,8 +89,8 @@ const INVALID_CREDENTIALS_MESSAGE = "Invalid client_id or client_secret";
 
 function organizationMismatchMessage(owningOrg: string): string {
   return (
-    "org must be empty or the PlatformClient's owning organization " +
-    `('${owningOrg}'); cross-organization minting is not supported`
+    "org must be empty, the PlatformClient's owning organization " +
+    `('${owningOrg}'), or one of its child organizations`
   );
 }
 

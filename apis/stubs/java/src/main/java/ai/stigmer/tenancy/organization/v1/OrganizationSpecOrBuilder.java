@@ -52,69 +52,25 @@ public interface OrganizationSpecOrBuilder extends
 
   /**
    * <pre>
-   * How this organization is operated.
+   * The parent's own identifier for this organization, such as the
+   * customer id an integrator keeps for it ("cust-4411").
    * </pre>
    *
-   * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
-   * @return The enum numeric value on the wire for managementMode.
+   * <code>string external_id = 5 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+   * @return The externalId.
    */
-  int getManagementModeValue();
+  java.lang.String getExternalId();
   /**
    * <pre>
-   * How this organization is operated.
+   * The parent's own identifier for this organization, such as the
+   * customer id an integrator keeps for it ("cust-4411").
    * </pre>
    *
-   * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
-   * @return The managementMode.
-   */
-  ai.stigmer.tenancy.organization.v1.ManagementMode getManagementMode();
-
-  /**
-   * <pre>
-   * Reference to the IdentityProvider that authenticates requests for this organization.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-   * @return Whether the identityProviderRef field is set.
-   */
-  boolean hasIdentityProviderRef();
-  /**
-   * <pre>
-   * Reference to the IdentityProvider that authenticates requests for this organization.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-   * @return The identityProviderRef.
-   */
-  ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef();
-  /**
-   * <pre>
-   * Reference to the IdentityProvider that authenticates requests for this organization.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-   */
-  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder();
-
-  /**
-   * <pre>
-   * External platform's organization identifier for reverse mapping.
-   * </pre>
-   *
-   * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
-   * @return The externalOrgId.
-   */
-  java.lang.String getExternalOrgId();
-  /**
-   * <pre>
-   * External platform's organization identifier for reverse mapping.
-   * </pre>
-   *
-   * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
-   * @return The bytes for externalOrgId.
+   * <code>string external_id = 5 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for externalId.
    */
   com.google.protobuf.ByteString
-      getExternalOrgIdBytes();
+      getExternalIdBytes();
 
   /**
    * <pre>
@@ -152,4 +108,26 @@ public interface OrganizationSpecOrBuilder extends
    * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
    */
   ai.stigmer.tenancy.organization.v1.OrganizationPreferencesOrBuilder getPreferencesOrBuilder();
+
+  /**
+   * <pre>
+   * The organization this one is a child of, by id or slug; empty for an
+   * organization that has no parent.
+   * </pre>
+   *
+   * <code>string parent_org = 8 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+   * @return The parentOrg.
+   */
+  java.lang.String getParentOrg();
+  /**
+   * <pre>
+   * The organization this one is a child of, by id or slug; empty for an
+   * organization that has no parent.
+   * </pre>
+   *
+   * <code>string parent_org = 8 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for parentOrg.
+   */
+  com.google.protobuf.ByteString
+      getParentOrgBytes();
 }

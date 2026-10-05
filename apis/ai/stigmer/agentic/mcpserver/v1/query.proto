@@ -12,8 +12,8 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 //
 // @internal
 // Authorization model:
-// - visibility_platform: members of the organizations the owning org's
-//   identity provider links can view
+// - visibility_child_orgs: everyone in the owning org's child
+//   organizations can view
 // - visibility_org: org members can view
 // - visibility_private: the owner and explicit grants can view
 service McpServerQueryController {

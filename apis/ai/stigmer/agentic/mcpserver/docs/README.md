@@ -29,7 +29,7 @@ McpServers take one of three visibility levels:
 
 - `visibility_org` (default) — every member of the owning organization can read and use the server.
 - `visibility_private` — the creator and anyone granted access directly.
-- `visibility_platform` — every organization the owning organization manages through its identity provider. Offered only to an organization that operates one.
+- `visibility_child_orgs` — everyone in the owning organization's child organizations. Offered only to an organization that is not itself a child.
 
 Nothing is readable outside the organization otherwise. A server another organization built (e.g. the `github` server from Stigmer's catalogue) reaches yours as a plugin you install; the installed copy is your organization's own.
 

@@ -9,13 +9,13 @@ description: "SDK reference for Provider Key resources."
 
 | Method | Description |
 |--------|-------------|
-| [`list`](#list) | List the keys that serve the organization, its own and any it inherits from its integrator, without their secrets. |
+| [`list`](#list) | List the keys that serve the organization, its own and any it inherits from its parent organization, without their secrets. |
 | [`delete`](#delete) | Remove the organization's key for a provider. |
 | [`set`](#set) | Save the organization's key for a provider. |
 
 ### list
 
-List the keys that serve the organization, its own and any it inherits from its integrator, without their secrets.
+List the keys that serve the organization, its own and any it inherits from its parent organization, without their secrets.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -185,7 +185,7 @@ List the organization's provider keys.
 
 <TypeTable
   type={{
-    keys: { type: "ProviderKeyInput[]", description: "One row per provider the organization is served on its own or its integrator's key, in provider order." },
+    keys: { type: "ProviderKeyInput[]", description: "One row per provider the organization is served on its own or its parent organization's key, in provider order." },
   }}
 />
 

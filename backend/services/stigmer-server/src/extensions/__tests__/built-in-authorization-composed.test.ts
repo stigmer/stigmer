@@ -149,7 +149,7 @@ function organizationInput(slug: string) {
  */
 const PUBLIC_LEVEL_REFUSED_FOR_AGENT =
   "agent resources cannot be set to visibility_public. " +
-  "Supported visibility levels: visibility_private, visibility_org, visibility_platform.";
+  "Supported visibility levels: visibility_private, visibility_org, visibility_child_orgs.";
 
 function agentInput(
   name: string,

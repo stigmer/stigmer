@@ -109,6 +109,14 @@
  *   yet, the marker is written, and every later person gets their role at
  *   their first sign-in.
  *
+ * Child organizations are outside every moment. A child (one that names
+ * a parent, domain/organization/children.ts) gets its people from its
+ * parent's admins, its invitations and its sign-in roles, never from
+ * these rules: arm 5 would otherwise make every person provisioned after
+ * the child a member of it, and arms 1 and 4 would hand it to the
+ * integrator identity that created it. `scanOrganizations` drops children
+ * before any arm runs, so all four moments skip them by construction.
+ *
  * What a creator stamp is. The rules read `status.audit.spec_audit
  * .created_by.id` off organizations and blueprints. That stamp is the
  * caller's identityId at the time: a provisioned caller's ACCOUNT id, an
@@ -375,6 +383,29 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
     });
   }
 
+  /**
+   * Every organization the rules may grant on: the organization scan
+   * without the child organizations (the header says why).
+   */
+  async function scanOrganizations(): Promise<ScannedResource[]> {
+    const rows = await store.listResources(ApiResourceKind.organization);
+    const scanned: ScannedResource[] = [];
+    for (const bytes of rows) {
+      const organization = fromBinary(OrganizationSchema, bytes);
+      if ((organization.spec?.parentOrg ?? "") !== "") {
+        continue;
+      }
+      scanned.push({
+        id: organization.metadata?.id ?? "",
+        org: organization.metadata?.org ?? "",
+        createdBy:
+          auditOf(OrganizationSchema, organization)?.specAudit?.createdBy?.id ??
+          "",
+      });
+    }
+    return scanned;
+  }
+
   async function scanBlueprints(): Promise<ScannedResource[]> {
     const scanned: ScannedResource[] = [];
     for (const kind of BLUEPRINT_KINDS) {
@@ -422,7 +453,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
   /** The whole world one pass reads, scanned once: every organization and every blueprint. */
   async function scanWorld(): Promise<ScannedWorld> {
     return {
-      organizations: await scan(ApiResourceKind.organization),
+      organizations: await scanOrganizations(),
       blueprints: await scanBlueprints(),
       serverOrganization: await store.bootstrapState.get(SINGLE_ORG_KEY),
       laptopOperators: await scanLaptopOperators(),
@@ -514,7 +545,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
           "membership rules: the provisioned account carries no id",
         );
       }
-      const organizations = await scan(ApiResourceKind.organization);
+      const organizations = await scanOrganizations();
       if (organizations.length === 0) {
         return;
       }
@@ -570,7 +601,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       if (serverOrganization === "") {
         return;
       }
-      const organizations = (await scan(ApiResourceKind.organization)).filter(
+      const organizations = (await scanOrganizations()).filter(
         (organization) => organization.id === serverOrganization,
       );
       const accounts =
@@ -609,7 +640,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       // the one construction): the row's audit actor is the account,
       // named the way every other trusted-local write names it.
       const actor = accountAsCaller(operator);
-      for (const organization of await scan(ApiResourceKind.organization)) {
+      for (const organization of await scanOrganizations()) {
         const owners = await policies.findByResourceWithRelations(
           ORGANIZATION,
           organization.id,

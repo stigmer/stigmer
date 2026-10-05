@@ -37,7 +37,7 @@ version: "1.0.0"
 
 The `name` field has strict format requirements enforced by the backend. It is
 kebab-case, optionally scoped with dot-separated namespaces — dots let you
-organize skills by scope (e.g. platform-managed vs org-specific) without name
+organize skills by scope (e.g. shared vs org-specific) without name
 collisions. The derived slug renders dots as hyphens.
 
 ```yaml

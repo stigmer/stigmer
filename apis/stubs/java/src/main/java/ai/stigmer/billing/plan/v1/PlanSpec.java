@@ -18,7 +18,7 @@ package ai.stigmer.billing.plan.v1;
  * below refuse the cross: a license plan is invoiced for a term, so monthly
  * terms have no meaning on it; a subscription plan bills monthly, so an
  * annual price has none. per_extra_org_micros is bound to the
- * entitlements' managed organizations, not to the instrument, and stays free.
+ * entitlements' child organizations, not to the instrument, and stays free.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanSpec}
@@ -432,7 +432,7 @@ private static final long serialVersionUID = 0L;
    * below refuse the cross: a license plan is invoiced for a term, so monthly
    * terms have no meaning on it; a subscription plan bills monthly, so an
    * annual price has none. per_extra_org_micros is bound to the
-   * entitlements' managed organizations, not to the instrument, and stays free.
+   * entitlements' child organizations, not to the instrument, and stays free.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanSpec}

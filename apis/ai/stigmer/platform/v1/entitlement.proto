@@ -41,7 +41,7 @@ message Entitlements {
 message EntitlementLimits {
   // The most organizations the customer may hold at once. Read by a license
   // (an Enterprise deployment counts its organizations against it) and by
-  // a subscription (a Business plan counts the managed organizations it
+  // a subscription (a Business plan counts the child organizations it
   // includes).
   optional int32 max_orgs = 1 [(buf.validate.field).int32.gt = 0];
 
@@ -49,14 +49,13 @@ message EntitlementLimits {
   // instruments.
   optional int32 max_users = 2 [(buf.validate.field).int32.gt = 0];
 
-  // The platform-managed organizations a subscription includes before the
-  // per-organization fee applies. Read by a subscription only: an
-  // integrator's plan includes this many managed organizations, and the
-  // organizations resolve their own entitlements through the integrator's.
-  // Whether managed organizations are admitted at all is the
-  // managed_organizations feature, since absent here means "no limit" and
-  // zero is refused. A license ignores it.
-  optional int32 included_managed_organizations = 3 [(buf.validate.field).int32.gt = 0];
+  // The child organizations a subscription includes before the
+  // per-organization fee applies. Read by a subscription only: a parent's
+  // plan includes this many child organizations, and the children resolve
+  // their own entitlements through the parent's. Whether child
+  // organizations are admitted at all is the child_orgs feature, since
+  // absent here means "no limit" and zero is refused. A license ignores it.
+  optional int32 included_child_orgs = 3 [(buf.validate.field).int32.gt = 0];
 
   // The most session sandboxes an organization may hold provisioning or
   // running at once. A session launch that would need a new sandbox past it
@@ -127,12 +126,12 @@ enum Feature {
   // includes teams by the kind's tier, and a license never lists it.
   teams = 6;
 
-  // Creating platform-managed organizations under the tenant's identity
-  // provider, the organizations an integrator runs for its own customers.
-  // A plan lists it together with included_managed_organizations: the
-  // feature admits new managed organizations, and the limit is how many
-  // the plan includes before the per-organization fee. Without it, existing
-  // managed organizations keep working and no new one is admitted. It tiers
-  // the Cloud runtime and is not an edition gate; a license never lists it.
-  managed_organizations = 7;
+  // Creating child organizations (spec.parent_org), the organizations an
+  // integrator runs for its own customers. A plan lists it together with
+  // included_child_orgs: the feature admits new child organizations, and
+  // the limit is how many the plan includes before the per-organization
+  // fee. Without it, existing children keep working and no new one is
+  // admitted. It tiers the Cloud runtime and is not an edition gate; a
+  // license never lists it.
+  child_orgs = 7;
 }

@@ -10,15 +10,23 @@
  * step to preserve cross-edition error precedence: unknown id + bad level
  * = NOT_FOUND on both editions).
  *
- * Deliberate divergences from Cloud, ported as-is: no platform-anchor
- * check (OSS has no IdentityProvider domain) and skill push is not wired
- * (Cloud's push handler does not validate either) — do not "fix" these.
+ * RefuseChildOrgsVisibilityInChild(+Update) sits beside them on the
+ * blueprint chains: visibility_child_orgs shares a blueprint with the
+ * owning organization's children, and a child organization has none, so
+ * the level is refused there with a sentence instead of stored as a grant
+ * that reaches nobody. One read of the owning organization's row, only
+ * when the requested level is that one. Plugin push asks the same check
+ * for its requested level.
+ *
+ * Deliberate divergence, kept: skill push validates no level (the cloud's
+ * push handler never did either) — do not "fix" it here.
  */
-import type { DescMessage } from "@bufbuild/protobuf";
+import type { DescMessage, Message } from "@bufbuild/protobuf";
 
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import {
   supportedVisibilityLevels,
@@ -29,6 +37,8 @@ import {
   internalError,
   invalidArgumentError,
 } from "../errors.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
+import type { Store } from "../../store/interface.js";
 import { apiResourceKindName } from "../../store/proto-fields.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
@@ -97,4 +107,97 @@ export function rejectUnsupportedVisibility(
   throw invalidArgumentError(
     `${apiResourceKindName(kind)} resources cannot be set to ${ApiResourceVisibility[visibility]}. Supported visibility levels: ${levels}.`,
   );
+}
+
+/** The refusal of visibility_child_orgs in an organization that is itself a child. */
+export const CHILD_ORGS_VISIBILITY_IN_CHILD_MESSAGE =
+  "a child organization has no child organizations to share with: visibility_child_orgs is offered only to an organization that is not a child";
+
+/**
+ * RefuseChildOrgsVisibilityInChild — on a blueprint create chain, beside
+ * ValidateVisibility: the requested level, from the request's metadata,
+ * against the organization the row is filed in (the edge resolver has
+ * turned a slug into its id).
+ */
+export function newRefuseChildOrgsVisibilityInChildStep<
+  Desc extends DescMessage,
+>(store: Store): PipelineStep<Desc> {
+  return {
+    name: "RefuseChildOrgsVisibilityInChild",
+    async execute(ctx: RequestContext<Desc>): Promise<void> {
+      const metadata = metadataOf(ctx.input);
+      if (metadata === undefined) {
+        return;
+      }
+      await refuseChildOrgsVisibilityInChild(
+        store,
+        metadata.org,
+        metadata.visibility,
+      );
+    },
+  };
+}
+
+/**
+ * RefuseChildOrgsVisibilityInChildUpdate — on a blueprint updateVisibility
+ * chain, after the load step: the requested level against the loaded
+ * row's organization (`loadedKey` names where the load step left it).
+ */
+export function newRefuseChildOrgsVisibilityInChildUpdateStep(
+  store: Store,
+  loadedKey: string,
+): PipelineStep<typeof UpdateVisibilityInputSchema> {
+  return {
+    name: "RefuseChildOrgsVisibilityInChildUpdate",
+    async execute(
+      ctx: RequestContext<typeof UpdateVisibilityInputSchema>,
+    ): Promise<void> {
+      if (ctx.input.visibility !== ApiResourceVisibility.visibility_child_orgs) {
+        return;
+      }
+      const loaded = ctx.get(loadedKey) as Message | undefined;
+      const org = loaded === undefined ? "" : (metadataOf(loaded)?.org ?? "");
+      if (org === "") {
+        throw internalError(
+          new Error(
+            "RefuseChildOrgsVisibilityInChildUpdate ran without a loaded row that names its organization",
+          ),
+          "failed to validate visibility",
+        );
+      }
+      await refuseChildOrgsVisibilityInChild(store, org, ctx.input.visibility);
+    },
+  };
+}
+
+/**
+ * The shared check, for the push-shaped chains whose requested level rides
+ * the request (plugin push) as well as the two steps above.
+ */
+export async function refuseChildOrgsVisibilityInChild(
+  store: Store,
+  org: string,
+  visibility: ApiResourceVisibility,
+): Promise<void> {
+  if (visibility !== ApiResourceVisibility.visibility_child_orgs || org === "") {
+    return;
+  }
+  let parentOrg: string;
+  try {
+    const organization = await store.getResource(
+      ApiResourceKind.organization,
+      org,
+      OrganizationSchema,
+    );
+    parentOrg = organization.spec?.parentOrg ?? "";
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      // The organization's own absence is the lane's to answer.
+      return;
+    }
+    throw internalError(error, "failed to read the owning organization");
+  }
+  if (parentOrg !== "") {
+    throw failedPreconditionError(CHILD_ORGS_VISIBILITY_IN_CHILD_MESSAGE);
+  }
 }

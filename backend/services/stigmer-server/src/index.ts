@@ -128,6 +128,7 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 // organization query directory, plus the shape-policy helpers a driver's
 // tests pin against.
 export type {
+  ChildOrganizationLinkedEvent,
   DefaultInstanceLinkedEvent,
   ExecutionAudienceShape,
   ExecutionVisibilityChangedEvent,
@@ -141,11 +142,10 @@ export type {
   VisibilityTupleShape,
   ResolvedParentLink,
 } from "./extensions/resource-authorization.js";
-export type {
-  ExternalOrganizationLookup,
-  IdentityProviderRef,
-  OrganizationDirectory,
-} from "./extensions/organization-directory.js";
+export type { OrganizationDirectory } from "./extensions/organization-directory.js";
+// The child-organization lookups (ComposedServices.childOrganizations): a
+// composition's sign-in routing by external id and its billing roll-up.
+export type { ChildOrganizations } from "./extensions/child-organizations.js";
 export { ALL_ORGANIZATIONS } from "./extensions/organization-directory.js";
 // The license-status seam (drivers.licenseStatus): the provider an
 // Enterprise composition registers so getLicenseStatus answers from its

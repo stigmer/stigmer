@@ -1128,7 +1128,7 @@ export type {
   AccessExtraSection,
 } from "./access/index.js";
 
-// Organization — context provider, hooks, data hooks, behavior hooks, styled form, profile panel, and org switcher
+// Organization — context provider, hooks, data hooks, behavior hooks, styled form, profile panel, org switcher, and child organizations
 export {
   OrgProvider,
   useOrg,
@@ -1148,6 +1148,8 @@ export {
   OrgProfilePanel,
   OrgPreferencesPanel,
   OrgSwitcher,
+  useChildOrganizations,
+  ChildOrganizationsList,
 } from "./organization/index.js";
 export type {
   OrgContextValue,
@@ -1163,6 +1165,9 @@ export type {
   OrgProfilePanelProps,
   OrgPreferencesPanelProps,
   OrgSwitcherProps,
+  UseChildOrganizationsOptions,
+  UseChildOrganizationsReturn,
+  ChildOrganizationsListProps,
 } from "./organization/index.js";
 
 // Billing — customer-facing data hooks, behavior hooks, styled components,

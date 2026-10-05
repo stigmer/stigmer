@@ -40,8 +40,8 @@ export interface ProviderKeysSectionProps {
  * agents and workflows then run on it: the provider bills the organization
  * directly, and those tokens carry no Stigmer commission and do not count
  * toward the plan's usage share. A saved key is never shown again, only its
- * last four characters. A managed organization is served by its
- * integrator's key for a provider it holds none of, shown read-only.
+ * last four characters. A child organization is served by its parent's
+ * key for a provider it holds none of, shown read-only.
  *
  * A key the plan no longer allows is kept and listed as not in use, and
  * can be removed; the organization's calls run on Stigmer's keys again,

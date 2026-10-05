@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package ai.stigmer.tenancy.organization.v1;
 
-import "ai/stigmer/commons/apiresource/io.proto";
-import "ai/stigmer/tenancy/organization/v1/enum.proto";
 import "buf/validate/validate.proto";
 
 // OrganizationSpec defines the configurable properties of an organization.
@@ -13,35 +11,35 @@ import "buf/validate/validate.proto";
 // Similar to GitHub organizations, all agents, workflows, and other resources
 // are scoped under an organization.
 message OrganizationSpec {
+  option (buf.validate.message).cel = {
+    id: "organization.external_id_requires_parent_org"
+    message: "external_id is set only on a child organization: name its parent_org"
+    expression: "this.external_id == '' || this.parent_org != ''"
+  };
+
   // Human-readable description of the organization.
   string description = 1 [(buf.validate.field).string.max_len = 500];
 
   // Public URL for the organization logo.
   string logo_url = 2 [(buf.validate.field).string.max_len = 2048];
 
-  // How this organization is operated.
-  //
-  // @internal
-  // Immutable after creation.
-  // - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
-  // - platform_managed: Created programmatically by an external platform via an IdentityProvider.
-  ManagementMode management_mode = 3;
+  // 3 was management_mode and 4 identity_provider_ref: a child organization
+  // once hung off the identity provider that managed it. It now names its
+  // parent organization directly (parent_org), and the ManagementMode enum
+  // is gone.
+  reserved 3, 4;
+  reserved "management_mode", "identity_provider_ref";
 
-  // Reference to the IdentityProvider that authenticates requests for this organization.
+  // The parent's own identifier for this organization, such as the
+  // customer id an integrator keeps for it ("cust-4411").
   //
   // @internal
-  // Required when management_mode is platform_managed; must be empty for self_managed.
-  // The referenced IdentityProvider must exist and be active at creation time.
-  // Immutable after creation.
-  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4;
-
-  // External platform's organization identifier for reverse mapping.
-  //
-  // @internal
-  // Set only for platform_managed organizations. Stores the integrating platform's
-  // own org ID so the platform can look up the corresponding Stigmer org even if
-  // the Stigmer slug differs from the platform's original slug due to availability.
-  string external_org_id = 5;
+  // Set only on a child organization (requires parent_org), unique among
+  // the parent's children, and fixed at create: update and apply keep the
+  // stored value. The parent finds the child with getByExternalId, and a
+  // sign-in through the parent's identity provider whose external_id_claim
+  // carries this value is bound to the child.
+  string external_id = 5 [(buf.validate.field).string.max_len = 256];
 
   // Whether this is a personal organization, auto-created during identity provisioning.
   //
@@ -52,6 +50,20 @@ message OrganizationSpec {
 
   // Standing preferences declared by the organization.
   OrganizationPreferences preferences = 7;
+
+  // The organization this one is a child of, by id or slug; empty for an
+  // organization that has no parent.
+  //
+  // @internal
+  // Fixed at create: update and apply keep the stored value. Creating a
+  // child needs can_manage_child_orgs on the parent, and the parent may not
+  // itself be a child (one level). The parent's admins manage the child
+  // (settings, members, access) and see its billing, but read none of its
+  // resources;
+  // to look inside, one grants themselves a role in the child, which the
+  // child's members and access history show. The edge resolver turns a
+  // slug into the parent's id, so the stored value is always an id.
+  string parent_org = 8 [(buf.validate.field).string.max_len = 64];
 }
 
 // OrganizationPreferences holds organization-declared defaults that apply to

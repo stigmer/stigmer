@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/token.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_token: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS90b2tlbi5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEitwEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEhsKB3VzZXJfaWQYAyABKAlCCrpIB3IFEAEYgAISHAoKdXNlcl9lbWFpbBgEIAEoCUIIukgFcgMYwAISGwoJdXNlcl9uYW1lGAUgASgJQgi6SAVyAxiAAhILCgNvcmcYBiABKAkiVQoVTWludFVzZXJUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhIKCmV4cGlyZXNfaW4YAyABKAUi0QMKFU1pbnRHdWVzdFRva2VuUmVxdWVzdBIcCghzaGFyZV9pZBgGIAEoCUIKukgHcgUQARiAARIXCg9ndWVzdF9jb29raWVfaWQYAyABKAkSywIKDGVtYmVkX29yaWdpbhgEIAEoCUK0ArpIsAK6AawCChNlbWJlZF9vcmlnaW4uZm9ybWF0EndlbWJlZF9vcmlnaW4gbXVzdCBiZSBlbXB0eSwgIm51bGwiLCBvciBhbiBleGFjdCB3ZWIgb3JpZ2luIGxpa2UgaHR0cHM6Ly9leGFtcGxlLmNvbSAobm8gcGF0aCwgcXVlcnksIG9yIHRyYWlsaW5nIHNsYXNoKRqbAXRoaXMgPT0gJycgfHwgdGhpcyA9PSAnbnVsbCcgfHwgdGhpcy5tYXRjaGVzKCdeaHR0cHM/Oi8vW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8oXFwuW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8pKig6WzAtOV17MSw1fSk/JCcpEhwKCmxpbmtfdG9rZW4YBSABKAlCCLpIBXIDGIABSgQIARACSgQIAhADUgNvcmdSBHNsdWcibwoWTWludEd1ZXN0VG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFEhcKD2d1ZXN0X2Nvb2tpZV9pZBgEIAEoCTK0AgodUGxhdGZvcm1DbGllbnRUb2tlbkNvbnRyb2xsZXIShgEKDW1pbnRVc2VyVG9rZW4SNi5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50VXNlclRva2VuUmVxdWVzdBo3LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRVc2VyVG9rZW5SZXNwb25zZSIEyLgYARKJAQoObWludEd1ZXN0VG9rZW4SNy5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50R3Vlc3RUb2tlblJlcXVlc3QaOC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50R3Vlc3RUb2tlblJlc3BvbnNlIgTIuBgBYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS90b2tlbi5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiwAEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEhsKB3VzZXJfaWQYAyABKAlCCrpIB3IFEAEYgAISHAoKdXNlcl9lbWFpbBgEIAEoCUIIukgFcgMYwAISGwoJdXNlcl9uYW1lGAUgASgJQgi6SAVyAxiAAhIUCgNvcmcYBiABKAlCB7pIBHICGEAiVQoVTWludFVzZXJUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhIKCmV4cGlyZXNfaW4YAyABKAUi0QMKFU1pbnRHdWVzdFRva2VuUmVxdWVzdBIcCghzaGFyZV9pZBgGIAEoCUIKukgHcgUQARiAARIXCg9ndWVzdF9jb29raWVfaWQYAyABKAkSywIKDGVtYmVkX29yaWdpbhgEIAEoCUK0ArpIsAK6AawCChNlbWJlZF9vcmlnaW4uZm9ybWF0EndlbWJlZF9vcmlnaW4gbXVzdCBiZSBlbXB0eSwgIm51bGwiLCBvciBhbiBleGFjdCB3ZWIgb3JpZ2luIGxpa2UgaHR0cHM6Ly9leGFtcGxlLmNvbSAobm8gcGF0aCwgcXVlcnksIG9yIHRyYWlsaW5nIHNsYXNoKRqbAXRoaXMgPT0gJycgfHwgdGhpcyA9PSAnbnVsbCcgfHwgdGhpcy5tYXRjaGVzKCdeaHR0cHM/Oi8vW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8oXFwuW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8pKig6WzAtOV17MSw1fSk/JCcpEhwKCmxpbmtfdG9rZW4YBSABKAlCCLpIBXIDGIABSgQIARACSgQIAhADUgNvcmdSBHNsdWcibwoWTWludEd1ZXN0VG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFEhcKD2d1ZXN0X2Nvb2tpZV9pZBgEIAEoCTK0AgodUGxhdGZvcm1DbGllbnRUb2tlbkNvbnRyb2xsZXIShgEKDW1pbnRVc2VyVG9rZW4SNi5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50VXNlclRva2VuUmVxdWVzdBo3LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRVc2VyVG9rZW5SZXNwb25zZSIEyLgYARKJAQoObWludEd1ZXN0VG9rZW4SNy5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50R3Vlc3RUb2tlblJlcXVlc3QaOC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50R3Vlc3RUb2tlblJlc3BvbnNlIgTIuBgBYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * MintUserTokenRequest contains the credentials and user identity needed
@@ -43,11 +43,12 @@ export type MintUserTokenRequest = Message<"ai.stigmer.iam.platformclient.v1.Min
 
   /**
    * Platform's stable user identifier for the end user. Used together with
-   * the PlatformClient's owning org to resolve or create an IdentityAccount
-   * (keyed as "stgm_pc|{org}|{user_id}").
+   * the organization the token is for (org) to resolve or create an
+   * IdentityAccount (keyed as "stgm_pc|{org}|{user_id}"), so the same
+   * user_id in two child organizations is two accounts.
    *
    * Must be unique and stable within the org — the same user_id presented
-   * via any PlatformClient in the same org resolves to the same identity.
+   * via any PlatformClient for the same org resolves to the same identity.
    * Changing this value for the same user creates a new identity account.
    * It must not contain the separator character '|'.
    *
@@ -74,13 +75,13 @@ export type MintUserTokenRequest = Message<"ai.stigmer.iam.platformclient.v1.Min
   userName: string;
 
   /**
-   * Optional confirmation of the organization the token is scoped to.
-   * The minted token is ALWAYS scoped to the PlatformClient's owning
-   * organization (metadata.org) — identity resolution and the optional
-   * auto-grant are keyed on it, so cross-organization minting is not
-   * supported. When set, this value must equal that owning organization;
-   * any other value is rejected INVALID_ARGUMENT before the user is
-   * resolved or provisioned. When empty, the owning organization applies.
+   * The organization the token is for, by id or slug: the PlatformClient's
+   * owning organization (metadata.org), or one of that organization's child
+   * organizations. When empty, the owning organization applies. Identity
+   * resolution, the account's first sign-in and sign_in_role are keyed on
+   * it, and the token works in that organization only. Any other value is
+   * rejected INVALID_ARGUMENT before the user is resolved or provisioned,
+   * with the same message whether the organization exists or not.
    *
    * @generated from field: string org = 6;
    */
@@ -271,8 +272,9 @@ export const PlatformClientTokenController: GenService<{
    * 2. Resolve the identity account for user_id; on first use, create it when
    *    create_accounts_on_sign_in is set (and grant sign_in_role when one is set)
    * 3. Sign a JWT with the server's platform-token key containing the user's
-   *    identity and the client's owning organization, which binds the token:
-   *    it works in that organization only
+   *    identity and the organization the token is for (org: the client's
+   *    owning organization, or one of its child organizations), which binds
+   *    the token: it works in that organization only
    *
    * Error scenarios:
    * - UNAUTHENTICATED: Invalid client_id or client_secret

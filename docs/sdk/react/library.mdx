@@ -247,11 +247,11 @@ const { copyYaml, downloadYaml } = useExportResource({
 Behavior hook that updates the visibility of a resource.
 
 Supports blueprints (Agent, Workflow, Skill, MCP Server, Plugin) with
-the full private/org/platform spectrum (a plugin's change reaches
+the full private/org/child-organizations spectrum (a plugin's change reaches
 every resource it installed, by the server's contract), workflow
 instances with private/org, and environments
 with private/org (secret values never leave the org boundary, so the
-platform level is rejected by the backend).
+child-organizations level is rejected by the backend).
 
 Wraps the generated `stigmer.{kind}.updateVisibility()` SDK method
 with loading and error state management. The hook is stateless with
@@ -371,7 +371,7 @@ const { count, isLoading } = useAgentCount("acme");
 ### VisibilityBadge
 
 Visibility indicator with a matching icon, covering every level a stored
-row can carry (Private / Organization / Platform, and the retired Public
+row can carry (Private / Organization / Child organizations, and the retired Public
 for a row from before its retirement).
 
 Rendered wherever the interactive [`VisibilitySelector`](#visibilityselector) is not
@@ -408,7 +408,7 @@ scaling cleanly to three levels without the layout shift of a segmented
 control, and explaining every choice at a glance (Recognition over
 Recall). Escalation is confirmed in proportion to how far access expands:
 de-escalation applies instantly, an Organization escalation shows a light
-inline prompt, and a Platform escalation opens a blocking
+inline prompt, and a Child organizations escalation opens a blocking
 [`ConfirmDialog`](/docs/sdk/react/resource-detail#confirmdialog) that names the exact audience. Confirmation is owned
 here so every consumer — blueprint detail, instance detail, and any
 standalone embed — behaves identically.
@@ -417,8 +417,8 @@ In `"create"` mode it renders an inline radio list that applies
 immediately (initial value selection has no escalation semantics).
 
 If the current visibility is not among the offered options (e.g. a
-platform-shared blueprint whose org no longer operates an
-IdentityProvider), its canonical option is rendered in place so the
+blueprint stored at a level its organization is no longer offered),
+its canonical option is rendered in place so the
 state stays legible and the user can still move to an offered level.
 
 All visual properties flow through `--stgm-*` design tokens; portaled
@@ -433,7 +433,7 @@ active theme.
     className: { type: "string", description: "Additional CSS classes applied to the root element." },
     disabled: { type: "boolean", description: "Disables all interaction (e.g., when the user lacks can_manage_audience)." },
     isPending: { type: "boolean", description: "Shows a spinner/disabled state while the RPC is in flight." },
-    mode: { type: "VisibilitySelectorMode", description: "Presentation + confirmation mode.  - `\"manage\"` (default) — a compact current-state chip opens a popover   ladder of levels. Escalations are confirmed by severity: a light   inline prompt for levels carrying VisibilityLevelOption.confirmPrompt   (e.g. Organization), and a blocking modal for levels carrying   VisibilityLevelOption.confirmDialog (Platform). This is   the live-resource case. - `\"create\"` — an inline radio list that applies immediately, with no   escalation confirmation. Used to pick an initial value while creating   a resource (typically inside a native `<dialog>`, where a portaled   popover would render beneath the modal's top layer)." },
+    mode: { type: "VisibilitySelectorMode", description: "Presentation + confirmation mode.  - `\"manage\"` (default) — a compact current-state chip opens a popover   ladder of levels. Escalations are confirmed by severity: a light   inline prompt for levels carrying VisibilityLevelOption.confirmPrompt   (e.g. Organization), and a blocking modal for levels carrying   VisibilityLevelOption.confirmDialog (Child organizations). This is   the live-resource case. - `\"create\"` — an inline radio list that applies immediately, with no   escalation confirmation. Used to pick an initial value while creating   a resource (typically inside a native `<dialog>`, where a portaled   popover would render beneath the modal's top layer)." },
     onVisibilityChange: { type: "(v: ApiResourceVisibility) => void", description: "Called when the user selects (and, for escalations, confirms) a level.", required: true },
     options: { type: "readonly VisibilityLevelOption[]", description: "Levels to offer, in escalation order (least to most exposed). Selecting a level later in the list than the current one is an escalation and is confirmed by severity (see mode); de-escalation applies immediately (revoking access is always safe).", required: true },
     visibility: { type: "ApiResourceVisibility", description: "Current visibility of the resource.", required: true },
@@ -443,7 +443,7 @@ active theme.
 ```tsx
 <VisibilitySelector
   visibility={agent.metadata.visibility}
-  options={blueprintVisibilityLevels({ hasIdentityProvider })}
+  options={blueprintVisibilityLevels({ offersChildOrgs })}
   onVisibilityChange={updateVisibility}
   isPending={isPending}
 />
@@ -473,8 +473,8 @@ link to the resource in the Library (e.g., `/library/agents`).
 
 The levels a blueprint (agent, skill, workflow, mcp_server, plugin)
 selector offers, in escalation order: Private / Organization
-[/ Platform]. Organization is the creation default (blueprints are
-shared org assets; Private is an explicit opt-in).
+[/ Child organizations]. Organization is the creation default
+(blueprints are shared org assets; Private is an explicit opt-in).
 
 ```tsx
 function blueprintVisibilityLevels(context: BlueprintVisibilityLevelsContext): readonly VisibilityLevelOption[]
@@ -485,17 +485,16 @@ function blueprintVisibilityLevels(context: BlueprintVisibilityLevelsContext): r
 
 Inputs that gate which levels a blueprint selector offers.
 
-Mirrors the backend's per-kind `VisibilityConfig` plus the one runtime
-fact the proto cannot know: `visibility_platform` requires the owning
-org to operate an IdentityProvider — the backend rejects it otherwise
-(`ValidateVisibilityStep`), so the option only renders when the signal
-is present (use `useSsoProvider`, the permission-free lookup; the
-open-source edition serves no IdentityProvider kind, so the signal is
-never present there).
+Mirrors the backend's per-kind `VisibilityConfig` plus the runtime facts
+the proto cannot know: `visibility_child_orgs` shares a blueprint with
+the owning organization's child organizations, so it is offered only
+where the owning organization is not itself a child (the backend refuses
+it in a child) and the server holds more than one organization (a
+single-organization server has no children).
 
 <TypeTable
   type={{
-    hasIdentityProvider: { type: "boolean", description: "", required: true },
+    offersChildOrgs: { type: "boolean", description: "", required: true },
   }}
 />
 
@@ -616,9 +615,9 @@ function findStreamingPlan(execution: AgentExecution | null | undefined): Stream
 The levels an instance (workflow_instance) selector
 offers, in escalation order: Private / Organization.
 
-Platform is deliberately absent — instances are tenant-isolated by
-design (each managed org instantiates shared blueprints inside its own
-boundary). Descriptions are execution-oriented because org visibility on
+Child organizations are deliberately absent — instances are
+tenant-isolated by design (each child organization instantiates shared
+blueprints inside its own boundary). Descriptions are execution-oriented because org visibility on
 an instance is about who can run it and see its executions.
 
 ```tsx
@@ -823,7 +822,7 @@ Shared return value for resource search hooks (`useAgentSearch`, `useMcpServerSe
 
 Human label for a visibility value — the one place list rows, badges, and
 detail panels resolve enum-to-text, so no surface ever falls through to
-"Private" (or "unknown") for org/platform.
+"Private" (or "unknown") for org/child organizations.
 
 ```tsx
 function visibilityLabel(visibility: ApiResourceVisibility): string
@@ -835,18 +834,18 @@ function visibilityLabel(visibility: ApiResourceVisibility): string
 A selectable visibility level: label, explanation, and escalation copy.
 
 Options are always declared in escalation order (least to most exposed:
-private < org < platform); [`VisibilitySelector`](#visibilityselector) derives
+private < org < child organizations); [`VisibilitySelector`](#visibilityselector) derives
 "is this an escalation?" from array position, and shows
 `confirmPrompt` before applying one.
 
 <TypeTable
   type={{
-    confirmDialog: { type: "{ description: string; title: string }", description: "Heavy confirmation shown as a modal ConfirmDialog when the user escalates TO this level. Reserved for levels that expose the resource beyond the owning organization (platform), where a blocking, audience-naming confirmation is warranted.  The selector derives escalation severity purely from this data: `confirmDialog` present → modal; else `confirmPrompt` present → inline; else apply immediately. There is no per-level branching in the component." },
+    confirmDialog: { type: "{ description: string; title: string }", description: "Heavy confirmation shown as a modal ConfirmDialog when the user escalates TO this level. Reserved for levels that expose the resource beyond the owning organization (child organizations), where a blocking, audience-naming confirmation is warranted.  The selector derives escalation severity purely from this data: `confirmDialog` present → modal; else `confirmPrompt` present → inline; else apply immediately. There is no per-level branching in the component." },
     confirmPrompt: { type: "string", description: "Light inline confirmation question shown inside the selector when the user escalates TO this level (e.g. private → org). Omitted for the least-exposed level (de-escalation never confirms — revoking access is always safe).  Levels that expand access beyond the owning org carry a confirmDialog instead; see the severity ladder on VisibilityLevelOption." },
     description: { type: "string", description: "One-line explanation shown under the selector for the current level.", required: true },
     label: { type: "string", description: "", required: true },
     lockedReason: { type: "string", description: "When present, the level cannot be selected by the current caller and the row renders locked (disabled, lock affordance) with this copy explaining why and what to do instead. The component stays free of per-level branching, exactly like the confirmation ladder: a consumer that builds its own option list decides which levels its caller may enter." },
-    tone: { type: "\"org\" | \"platform\" | \"private\" | \"public\"", description: "Color treatment for the selected segment and the confirmation prompt. `\"public\"` is the tone of the retired level: never offered, rendered only for a stored value from before the retirement (see visibilityOption).", required: true },
+    tone: { type: "\"org\" | \"private\" | \"public\" | \"childOrgs\"", description: "Color treatment for the selected segment and the confirmation prompt. `\"public\"` is the tone of the retired level: never offered, rendered only for a stored value from before the retirement (see visibilityOption).", required: true },
     value: { type: "ApiResourceVisibility", description: "", required: true },
   }}
 />

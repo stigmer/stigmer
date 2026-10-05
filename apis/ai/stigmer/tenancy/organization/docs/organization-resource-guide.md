@@ -17,7 +17,8 @@ metadata:
 spec:
   description: "Human-readable description of the organization"
   logo_url: "https://example.com/logo.svg"
-  management_mode: self_managed
+  parent_org: ""     # set only on a child organization
+  external_id: ""    # the parent's identifier for a child
 status: {}  # System-managed, never set by users
 ```
 
@@ -74,40 +75,24 @@ All spec fields are defined by `OrganizationSpec` in `ai/stigmer/tenancy/organiz
 |---|---|---|
 | `spec.description` | Recommended | Short description of the organization's purpose. Maximum 500 characters. |
 | `spec.logo_url` | No | Publicly accessible image URL for UI display. Maximum 2048 characters. |
-| `spec.management_mode` | No | How the organization is operated. `self_managed` (default) or `platform_managed`. **Immutable after creation.** |
-| `spec.identity_provider_ref` | Conditional | Reference to the IdentityProvider that authenticates requests. **Required when `management_mode` is `platform_managed`; must be empty for `self_managed`.** Immutable after creation. |
-| `spec.external_org_id` | No | External platform's organization identifier for reverse mapping. Set only for `platform_managed` organizations. Allows the integrating platform to look up the corresponding Stigmer org by its own org ID. |
+| `spec.parent_org` | No | The parent organization, by slug or id (stored as the id), for a child organization; empty for one with no parent. The parent may not itself be a child. Creating a child needs `can_manage_child_orgs` on the parent. **Immutable after creation.** Maximum 64 characters. |
+| `spec.external_id` | No | The parent's own identifier for this child (a customer id, for example), unique among the parent's children. Requires `parent_org`. **Immutable after creation.** Maximum 256 characters. |
 
-## Management Mode
+## Parent and Child Organizations
 
-`management_mode` is the most consequential spec field. It determines who controls the organization and cannot be changed after creation.
-
-### `self_managed` (Default)
-
-The user creates and operates the organization directly via the Stigmer UI, CLI, or API. Members are invited manually.
+A child organization names its parent in `spec.parent_org`. The parent's admins manage the child: its settings, its members and access, its bill, its deletion. They hold no role in it, so they read none of its agents, sessions or files; to look inside, a parent admin grants themselves a role in the child, which its member list and access history show.
 
 ```yaml
 spec:
-  description: "Acme engineering organization"
-  management_mode: self_managed
+  description: "Acme's workspace, run by Planton"
+  parent_org: planton
+  external_id: "cust-4411"
 ```
 
-### `platform_managed`
-
-The organization is created programmatically by an external platform via an IdentityProvider. The platform authenticates and manages users on behalf of the organization. When `platform_managed`, `identity_provider_ref` is required.
-
-```yaml
-spec:
-  description: "Acme org managed by Planton"
-  management_mode: platform_managed
-  identity_provider_ref:
-    org: stigmer
-    kind: identity_provider
-    slug: planton-idp
-  external_org_id: "planton-org-12345"
-```
-
-The `external_org_id` enables the integrating platform to reverse-lookup the Stigmer organization by its own identifier, even if the Stigmer slug differs due to name availability constraints.
+- Nobody owns a new child: the parent's admins grant its first members and its owner.
+- Blueprints the parent shares at `visibility_child_orgs` appear in every child's catalog, children created later included.
+- A sign-in through the parent's identity provider whose `external_id_claim` carries `cust-4411` is bound to this child, as is a PlatformClient token the parent mints with `org` naming it.
+- One level deep: a child cannot have children, and a parent that still has children cannot be deleted.
 
 ## Status Fields
 
@@ -150,18 +135,19 @@ stigmer org delete my-org
 
 | Operation | Authorization | Description |
 |---|---|---|
-| `create` | Any authenticated user | Creates a new organization. Creator automatically becomes owner. |
+| `create` | Any authenticated user; `can_manage_child_orgs` on the parent for a child | Creates a new organization. Its creator becomes its owner, except for a child organization, which nobody owns. |
 | `apply` | Caller determined at runtime | Create or update, authorization resolved per operation. |
-| `update` | Organization admin (`can_edit`) | Updates an existing organization. |
-| `rename` | Organization owner (`can_delete`) | Changes the slug. The id, and everything filed under it, stays; the old slug leads to the organization for 30 days. |
-| `delete` | Organization owner (`can_delete`) | Deletes the organization and every access grant on it. Its slug is released. |
-| `get` | Organization member (`can_view`) | Gets a single organization by ID. |
+| `update` | Organization admin, or the parent's admin (`can_edit`) | Updates an existing organization. |
+| `rename` | Organization owner, or the parent's admin (`can_delete`) | Changes the slug. The id, and everything filed under it, stays; the old slug leads to the organization for 30 days. |
+| `delete` | Organization owner, or the parent's admin (`can_delete`) | Deletes the organization and every access grant on it. Its slug is released. Refused while it has child organizations. |
+| `get` | Organization member, or the parent's admin (`can_view_settings`) | Gets a single organization by ID. |
 | `list` | Platform admin | Paginated list of all organizations (admin only). |
 | `findMyOrganizations` | Any authenticated user | Returns organizations the caller is a member of. |
-| `getByExternalOrgId` | IdentityProvider `can_view` | Looks up a `platform_managed` org by external platform coordinates. |
+| `getByExternalId` | The parent's admin (`can_manage_child_orgs` on `parent_org`) | Finds a child organization by its parent and external id. |
+| `listChildOrgs` | The parent's admin (`can_manage_child_orgs` on `org`) | Lists an organization's child organizations, newest first, paged. |
 
 ## Related Documentation
 
-- [README.md](README.md) — Overview, management modes, and CLI quick reference
-- [examples.md](examples.md) — Complete YAML examples from minimal to platform-managed
+- [README.md](README.md) — Overview, parent and child organizations, and CLI quick reference
+- [examples.md](examples.md) — Complete YAML examples, from minimal to a child organization
 - [validation-checklist.md](validation-checklist.md) — Pre-apply checklist and common pitfalls

@@ -4,8 +4,6 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
-import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import type { Organization } from "./api_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_api } from "./api_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
@@ -15,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/tenancy/organization/v1/io.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxIlIKDU9yZ2FuaXphdGlvbnMSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uImoKEE9yZ2FuaXphdGlvbkxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSQQoHZW50cmllcxgCIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIioKDk9yZ2FuaXphdGlvbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAimwEKGk9yZ2FuaXphdGlvbkV4dGVybmFsTG9va3VwElsKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIGukgDyAEBEiAKD2V4dGVybmFsX29yZ19pZBgCIAEoCUIHukgEcgIQAWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_tenancy_organization_v1_api, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxIlIKDU9yZ2FuaXphdGlvbnMSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uImoKEE9yZ2FuaXphdGlvbkxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSQQoHZW50cmllcxgCIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIioKDk9yZ2FuaXphdGlvbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAieQoaT3JnYW5pemF0aW9uRXh0ZXJuYWxMb29rdXASHwoLZXh0ZXJuYWxfaWQYAiABKAlCCrpIB3IFEAEYgAISHQoKcGFyZW50X29yZxgDIAEoCUIJukgGcgQQARhASgQIARACUhVpZGVudGl0eV9wcm92aWRlcl9yZWYiZgoSTGlzdENoaWxkT3Jnc0lucHV0EhYKA29yZxgBIAEoCUIJukgGcgQQARhAEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCJqCgxDaGlsZE9yZ0xpc3QSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_tenancy_organization_v1_api, file_buf_validate_validate]);
 
 /**
  * List of organizations.
@@ -88,25 +86,25 @@ export const OrganizationIdSchema: GenMessage<OrganizationId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 2);
 
 /**
- * Input for looking up a platform-managed organization by its external platform coordinates.
- * Used by integrating platforms to find the Stigmer organization mapped to their own org.
+ * Input for finding a child organization by the identifier its parent keeps
+ * for it.
  *
  * @generated from message ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup
  */
 export type OrganizationExternalLookup = Message<"ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup"> & {
   /**
-   * Reference to the IdentityProvider (org + slug) that manages this organization.
+   * The child's external_id: the parent's own identifier for it.
    *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1;
+   * @generated from field: string external_id = 2;
    */
-  identityProviderRef?: ApiResourceReference;
+  externalId: string;
 
   /**
-   * The external platform's organization identifier.
+   * The parent organization, by id or slug.
    *
-   * @generated from field: string external_org_id = 2;
+   * @generated from field: string parent_org = 3;
    */
-  externalOrgId: string;
+  parentOrg: string;
 };
 
 /**
@@ -115,4 +113,68 @@ export type OrganizationExternalLookup = Message<"ai.stigmer.tenancy.organizatio
  */
 export const OrganizationExternalLookupSchema: GenMessage<OrganizationExternalLookup> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 3);
+
+/**
+ * Input for listing an organization's child organizations, newest first.
+ *
+ * @generated from message ai.stigmer.tenancy.organization.v1.ListChildOrgsInput
+ */
+export type ListChildOrgsInput = Message<"ai.stigmer.tenancy.organization.v1.ListChildOrgsInput"> & {
+  /**
+   * The parent organization, by id or slug.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * The most children to return; 0 returns every child and no token. A
+   * positive size is capped at 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.tenancy.organization.v1.ListChildOrgsInput.
+ * Use `create(ListChildOrgsInputSchema)` to create a new message.
+ */
+export const ListChildOrgsInputSchema: GenMessage<ListChildOrgsInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 4);
+
+/**
+ * One page of an organization's child organizations.
+ *
+ * @generated from message ai.stigmer.tenancy.organization.v1.ChildOrgList
+ */
+export type ChildOrgList = Message<"ai.stigmer.tenancy.organization.v1.ChildOrgList"> & {
+  /**
+   * The children in this page, newest first.
+   *
+   * @generated from field: repeated ai.stigmer.tenancy.organization.v1.Organization entries = 1;
+   */
+  entries: Organization[];
+
+  /**
+   * Set when more children may follow: pass it as page_token to continue.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.tenancy.organization.v1.ChildOrgList.
+ * Use `create(ChildOrgListSchema)` to create a new message.
+ */
+export const ChildOrgListSchema: GenMessage<ChildOrgList> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 5);
 

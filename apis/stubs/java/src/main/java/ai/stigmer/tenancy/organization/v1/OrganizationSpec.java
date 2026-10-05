@@ -34,8 +34,8 @@ private static final long serialVersionUID = 0L;
   private OrganizationSpec() {
     description_ = "";
     logoUrl_ = "";
-    managementMode_ = 0;
-    externalOrgId_ = "";
+    externalId_ = "";
+    parentOrg_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -151,111 +151,49 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int MANAGEMENT_MODE_FIELD_NUMBER = 3;
-  private int managementMode_ = 0;
-  /**
-   * <pre>
-   * How this organization is operated.
-   * </pre>
-   *
-   * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
-   * @return The enum numeric value on the wire for managementMode.
-   */
-  @java.lang.Override public int getManagementModeValue() {
-    return managementMode_;
-  }
-  /**
-   * <pre>
-   * How this organization is operated.
-   * </pre>
-   *
-   * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
-   * @return The managementMode.
-   */
-  @java.lang.Override public ai.stigmer.tenancy.organization.v1.ManagementMode getManagementMode() {
-    ai.stigmer.tenancy.organization.v1.ManagementMode result = ai.stigmer.tenancy.organization.v1.ManagementMode.forNumber(managementMode_);
-    return result == null ? ai.stigmer.tenancy.organization.v1.ManagementMode.UNRECOGNIZED : result;
-  }
-
-  public static final int IDENTITY_PROVIDER_REF_FIELD_NUMBER = 4;
-  private ai.stigmer.commons.apiresource.ApiResourceReference identityProviderRef_;
-  /**
-   * <pre>
-   * Reference to the IdentityProvider that authenticates requests for this organization.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-   * @return Whether the identityProviderRef field is set.
-   */
-  @java.lang.Override
-  public boolean hasIdentityProviderRef() {
-    return ((bitField0_ & 0x00000001) != 0);
-  }
-  /**
-   * <pre>
-   * Reference to the IdentityProvider that authenticates requests for this organization.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-   * @return The identityProviderRef.
-   */
-  @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef() {
-    return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
-  }
-  /**
-   * <pre>
-   * Reference to the IdentityProvider that authenticates requests for this organization.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder() {
-    return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
-  }
-
-  public static final int EXTERNAL_ORG_ID_FIELD_NUMBER = 5;
+  public static final int EXTERNAL_ID_FIELD_NUMBER = 5;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object externalOrgId_ = "";
+  private volatile java.lang.Object externalId_ = "";
   /**
    * <pre>
-   * External platform's organization identifier for reverse mapping.
+   * The parent's own identifier for this organization, such as the
+   * customer id an integrator keeps for it ("cust-4411").
    * </pre>
    *
-   * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
-   * @return The externalOrgId.
+   * <code>string external_id = 5 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+   * @return The externalId.
    */
   @java.lang.Override
-  public java.lang.String getExternalOrgId() {
-    java.lang.Object ref = externalOrgId_;
+  public java.lang.String getExternalId() {
+    java.lang.Object ref = externalId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      externalOrgId_ = s;
+      externalId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * External platform's organization identifier for reverse mapping.
+   * The parent's own identifier for this organization, such as the
+   * customer id an integrator keeps for it ("cust-4411").
    * </pre>
    *
-   * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
-   * @return The bytes for externalOrgId.
+   * <code>string external_id = 5 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for externalId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getExternalOrgIdBytes() {
-    java.lang.Object ref = externalOrgId_;
+      getExternalIdBytes() {
+    java.lang.Object ref = externalId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      externalOrgId_ = b;
+      externalId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -289,7 +227,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasPreferences() {
-    return ((bitField0_ & 0x00000002) != 0);
+    return ((bitField0_ & 0x00000001) != 0);
   }
   /**
    * <pre>
@@ -315,6 +253,55 @@ private static final long serialVersionUID = 0L;
     return preferences_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationPreferences.getDefaultInstance() : preferences_;
   }
 
+  public static final int PARENT_ORG_FIELD_NUMBER = 8;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object parentOrg_ = "";
+  /**
+   * <pre>
+   * The organization this one is a child of, by id or slug; empty for an
+   * organization that has no parent.
+   * </pre>
+   *
+   * <code>string parent_org = 8 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+   * @return The parentOrg.
+   */
+  @java.lang.Override
+  public java.lang.String getParentOrg() {
+    java.lang.Object ref = parentOrg_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      parentOrg_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The organization this one is a child of, by id or slug; empty for an
+   * organization that has no parent.
+   * </pre>
+   *
+   * <code>string parent_org = 8 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for parentOrg.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getParentOrgBytes() {
+    java.lang.Object ref = parentOrg_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      parentOrg_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -335,20 +322,17 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(logoUrl_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, logoUrl_);
     }
-    if (managementMode_ != ai.stigmer.tenancy.organization.v1.ManagementMode.management_mode_unspecified.getNumber()) {
-      output.writeEnum(3, managementMode_);
-    }
-    if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeMessage(4, getIdentityProviderRef());
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalOrgId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 5, externalOrgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, externalId_);
     }
     if (isPersonal_ != false) {
       output.writeBool(6, isPersonal_);
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
+    if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(7, getPreferences());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(parentOrg_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 8, parentOrg_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -365,24 +349,19 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(logoUrl_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, logoUrl_);
     }
-    if (managementMode_ != ai.stigmer.tenancy.organization.v1.ManagementMode.management_mode_unspecified.getNumber()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeEnumSize(3, managementMode_);
-    }
-    if (((bitField0_ & 0x00000001) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(4, getIdentityProviderRef());
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalOrgId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, externalOrgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, externalId_);
     }
     if (isPersonal_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(6, isPersonal_);
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
+    if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(7, getPreferences());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(parentOrg_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, parentOrg_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -403,14 +382,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDescription())) return false;
     if (!getLogoUrl()
         .equals(other.getLogoUrl())) return false;
-    if (managementMode_ != other.managementMode_) return false;
-    if (hasIdentityProviderRef() != other.hasIdentityProviderRef()) return false;
-    if (hasIdentityProviderRef()) {
-      if (!getIdentityProviderRef()
-          .equals(other.getIdentityProviderRef())) return false;
-    }
-    if (!getExternalOrgId()
-        .equals(other.getExternalOrgId())) return false;
+    if (!getExternalId()
+        .equals(other.getExternalId())) return false;
     if (getIsPersonal()
         != other.getIsPersonal()) return false;
     if (hasPreferences() != other.hasPreferences()) return false;
@@ -418,6 +391,8 @@ private static final long serialVersionUID = 0L;
       if (!getPreferences()
           .equals(other.getPreferences())) return false;
     }
+    if (!getParentOrg()
+        .equals(other.getParentOrg())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -433,14 +408,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getDescription().hashCode();
     hash = (37 * hash) + LOGO_URL_FIELD_NUMBER;
     hash = (53 * hash) + getLogoUrl().hashCode();
-    hash = (37 * hash) + MANAGEMENT_MODE_FIELD_NUMBER;
-    hash = (53 * hash) + managementMode_;
-    if (hasIdentityProviderRef()) {
-      hash = (37 * hash) + IDENTITY_PROVIDER_REF_FIELD_NUMBER;
-      hash = (53 * hash) + getIdentityProviderRef().hashCode();
-    }
-    hash = (37 * hash) + EXTERNAL_ORG_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getExternalOrgId().hashCode();
+    hash = (37 * hash) + EXTERNAL_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getExternalId().hashCode();
     hash = (37 * hash) + IS_PERSONAL_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getIsPersonal());
@@ -448,6 +417,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + PREFERENCES_FIELD_NUMBER;
       hash = (53 * hash) + getPreferences().hashCode();
     }
+    hash = (37 * hash) + PARENT_ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getParentOrg().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -582,7 +553,6 @@ private static final long serialVersionUID = 0L;
     private void maybeForceBuilderInitialization() {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
-        internalGetIdentityProviderRefFieldBuilder();
         internalGetPreferencesFieldBuilder();
       }
     }
@@ -592,19 +562,14 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       description_ = "";
       logoUrl_ = "";
-      managementMode_ = 0;
-      identityProviderRef_ = null;
-      if (identityProviderRefBuilder_ != null) {
-        identityProviderRefBuilder_.dispose();
-        identityProviderRefBuilder_ = null;
-      }
-      externalOrgId_ = "";
+      externalId_ = "";
       isPersonal_ = false;
       preferences_ = null;
       if (preferencesBuilder_ != null) {
         preferencesBuilder_.dispose();
         preferencesBuilder_ = null;
       }
+      parentOrg_ = "";
       return this;
     }
 
@@ -645,26 +610,20 @@ private static final long serialVersionUID = 0L;
         result.logoUrl_ = logoUrl_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.managementMode_ = managementMode_;
+        result.externalId_ = externalId_;
       }
-      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.identityProviderRef_ = identityProviderRefBuilder_ == null
-            ? identityProviderRef_
-            : identityProviderRefBuilder_.build();
-        to_bitField0_ |= 0x00000001;
-      }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.externalOrgId_ = externalOrgId_;
-      }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.isPersonal_ = isPersonal_;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.preferences_ = preferencesBuilder_ == null
             ? preferences_
             : preferencesBuilder_.build();
-        to_bitField0_ |= 0x00000002;
+        to_bitField0_ |= 0x00000001;
+      }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.parentOrg_ = parentOrg_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -691,15 +650,9 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (other.managementMode_ != 0) {
-        setManagementModeValue(other.getManagementModeValue());
-      }
-      if (other.hasIdentityProviderRef()) {
-        mergeIdentityProviderRef(other.getIdentityProviderRef());
-      }
-      if (!other.getExternalOrgId().isEmpty()) {
-        externalOrgId_ = other.externalOrgId_;
-        bitField0_ |= 0x00000010;
+      if (!other.getExternalId().isEmpty()) {
+        externalId_ = other.externalId_;
+        bitField0_ |= 0x00000004;
         onChanged();
       }
       if (other.getIsPersonal() != false) {
@@ -707,6 +660,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasPreferences()) {
         mergePreferences(other.getPreferences());
+      }
+      if (!other.getParentOrg().isEmpty()) {
+        parentOrg_ = other.parentOrg_;
+        bitField0_ |= 0x00000020;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -744,35 +702,28 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
-            case 24: {
-              managementMode_ = input.readEnum();
-              bitField0_ |= 0x00000004;
-              break;
-            } // case 24
-            case 34: {
-              input.readMessage(
-                  internalGetIdentityProviderRefFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 34
             case 42: {
-              externalOrgId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000010;
+              externalId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
               break;
             } // case 42
             case 48: {
               isPersonal_ = input.readBool();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000008;
               break;
             } // case 48
             case 58: {
               input.readMessage(
                   internalGetPreferencesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000010;
               break;
             } // case 58
+            case 66: {
+              parentOrg_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -974,251 +925,23 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int managementMode_ = 0;
+    private java.lang.Object externalId_ = "";
     /**
      * <pre>
-     * How this organization is operated.
+     * The parent's own identifier for this organization, such as the
+     * customer id an integrator keeps for it ("cust-4411").
      * </pre>
      *
-     * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
-     * @return The enum numeric value on the wire for managementMode.
+     * <code>string external_id = 5 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+     * @return The externalId.
      */
-    @java.lang.Override public int getManagementModeValue() {
-      return managementMode_;
-    }
-    /**
-     * <pre>
-     * How this organization is operated.
-     * </pre>
-     *
-     * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
-     * @param value The enum numeric value on the wire for managementMode to set.
-     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
-     * @return This builder for chaining.
-     */
-    public Builder setManagementModeValue(int value) {
-      managementMode_ = value;
-      bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * How this organization is operated.
-     * </pre>
-     *
-     * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
-     * @return The managementMode.
-     */
-    @java.lang.Override
-    public ai.stigmer.tenancy.organization.v1.ManagementMode getManagementMode() {
-      ai.stigmer.tenancy.organization.v1.ManagementMode result = ai.stigmer.tenancy.organization.v1.ManagementMode.forNumber(managementMode_);
-      return result == null ? ai.stigmer.tenancy.organization.v1.ManagementMode.UNRECOGNIZED : result;
-    }
-    /**
-     * <pre>
-     * How this organization is operated.
-     * </pre>
-     *
-     * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
-     * @param value The managementMode to set.
-     * @return This builder for chaining.
-     */
-    public Builder setManagementMode(ai.stigmer.tenancy.organization.v1.ManagementMode value) {
-      if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000004;
-      managementMode_ = value.getNumber();
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * How this organization is operated.
-     * </pre>
-     *
-     * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearManagementMode() {
-      bitField0_ = (bitField0_ & ~0x00000004);
-      managementMode_ = 0;
-      onChanged();
-      return this;
-    }
-
-    private ai.stigmer.commons.apiresource.ApiResourceReference identityProviderRef_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> identityProviderRefBuilder_;
-    /**
-     * <pre>
-     * Reference to the IdentityProvider that authenticates requests for this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-     * @return Whether the identityProviderRef field is set.
-     */
-    public boolean hasIdentityProviderRef() {
-      return ((bitField0_ & 0x00000008) != 0);
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider that authenticates requests for this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-     * @return The identityProviderRef.
-     */
-    public ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef() {
-      if (identityProviderRefBuilder_ == null) {
-        return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
-      } else {
-        return identityProviderRefBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider that authenticates requests for this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-     */
-    public Builder setIdentityProviderRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (identityProviderRefBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        identityProviderRef_ = value;
-      } else {
-        identityProviderRefBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider that authenticates requests for this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-     */
-    public Builder setIdentityProviderRef(
-        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (identityProviderRefBuilder_ == null) {
-        identityProviderRef_ = builderForValue.build();
-      } else {
-        identityProviderRefBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider that authenticates requests for this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-     */
-    public Builder mergeIdentityProviderRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (identityProviderRefBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0) &&
-          identityProviderRef_ != null &&
-          identityProviderRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
-          getIdentityProviderRefBuilder().mergeFrom(value);
-        } else {
-          identityProviderRef_ = value;
-        }
-      } else {
-        identityProviderRefBuilder_.mergeFrom(value);
-      }
-      if (identityProviderRef_ != null) {
-        bitField0_ |= 0x00000008;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider that authenticates requests for this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-     */
-    public Builder clearIdentityProviderRef() {
-      bitField0_ = (bitField0_ & ~0x00000008);
-      identityProviderRef_ = null;
-      if (identityProviderRefBuilder_ != null) {
-        identityProviderRefBuilder_.dispose();
-        identityProviderRefBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider that authenticates requests for this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-     */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getIdentityProviderRefBuilder() {
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return internalGetIdentityProviderRefFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider that authenticates requests for this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-     */
-    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder() {
-      if (identityProviderRefBuilder_ != null) {
-        return identityProviderRefBuilder_.getMessageOrBuilder();
-      } else {
-        return identityProviderRef_ == null ?
-            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
-      }
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider that authenticates requests for this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-        internalGetIdentityProviderRefFieldBuilder() {
-      if (identityProviderRefBuilder_ == null) {
-        identityProviderRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
-                getIdentityProviderRef(),
-                getParentForChildren(),
-                isClean());
-        identityProviderRef_ = null;
-      }
-      return identityProviderRefBuilder_;
-    }
-
-    private java.lang.Object externalOrgId_ = "";
-    /**
-     * <pre>
-     * External platform's organization identifier for reverse mapping.
-     * </pre>
-     *
-     * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
-     * @return The externalOrgId.
-     */
-    public java.lang.String getExternalOrgId() {
-      java.lang.Object ref = externalOrgId_;
+    public java.lang.String getExternalId() {
+      java.lang.Object ref = externalId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        externalOrgId_ = s;
+        externalId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1226,20 +949,21 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * External platform's organization identifier for reverse mapping.
+     * The parent's own identifier for this organization, such as the
+     * customer id an integrator keeps for it ("cust-4411").
      * </pre>
      *
-     * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
-     * @return The bytes for externalOrgId.
+     * <code>string external_id = 5 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for externalId.
      */
     public com.google.protobuf.ByteString
-        getExternalOrgIdBytes() {
-      java.lang.Object ref = externalOrgId_;
+        getExternalIdBytes() {
+      java.lang.Object ref = externalId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        externalOrgId_ = b;
+        externalId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1247,50 +971,53 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * External platform's organization identifier for reverse mapping.
+     * The parent's own identifier for this organization, such as the
+     * customer id an integrator keeps for it ("cust-4411").
      * </pre>
      *
-     * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
-     * @param value The externalOrgId to set.
+     * <code>string external_id = 5 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+     * @param value The externalId to set.
      * @return This builder for chaining.
      */
-    public Builder setExternalOrgId(
+    public Builder setExternalId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      externalOrgId_ = value;
-      bitField0_ |= 0x00000010;
+      externalId_ = value;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * External platform's organization identifier for reverse mapping.
+     * The parent's own identifier for this organization, such as the
+     * customer id an integrator keeps for it ("cust-4411").
      * </pre>
      *
-     * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
+     * <code>string external_id = 5 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearExternalOrgId() {
-      externalOrgId_ = getDefaultInstance().getExternalOrgId();
-      bitField0_ = (bitField0_ & ~0x00000010);
+    public Builder clearExternalId() {
+      externalId_ = getDefaultInstance().getExternalId();
+      bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * External platform's organization identifier for reverse mapping.
+     * The parent's own identifier for this organization, such as the
+     * customer id an integrator keeps for it ("cust-4411").
      * </pre>
      *
-     * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
-     * @param value The bytes for externalOrgId to set.
+     * <code>string external_id = 5 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for externalId to set.
      * @return This builder for chaining.
      */
-    public Builder setExternalOrgIdBytes(
+    public Builder setExternalIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      externalOrgId_ = value;
-      bitField0_ |= 0x00000010;
+      externalId_ = value;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -1320,7 +1047,7 @@ private static final long serialVersionUID = 0L;
     public Builder setIsPersonal(boolean value) {
 
       isPersonal_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1333,7 +1060,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearIsPersonal() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000008);
       isPersonal_ = false;
       onChanged();
       return this;
@@ -1351,7 +1078,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the preferences field is set.
      */
     public boolean hasPreferences() {
-      return ((bitField0_ & 0x00000040) != 0);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <pre>
@@ -1384,7 +1111,7 @@ private static final long serialVersionUID = 0L;
       } else {
         preferencesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1402,7 +1129,7 @@ private static final long serialVersionUID = 0L;
       } else {
         preferencesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1415,7 +1142,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergePreferences(ai.stigmer.tenancy.organization.v1.OrganizationPreferences value) {
       if (preferencesBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0) &&
+        if (((bitField0_ & 0x00000010) != 0) &&
           preferences_ != null &&
           preferences_ != ai.stigmer.tenancy.organization.v1.OrganizationPreferences.getDefaultInstance()) {
           getPreferencesBuilder().mergeFrom(value);
@@ -1426,7 +1153,7 @@ private static final long serialVersionUID = 0L;
         preferencesBuilder_.mergeFrom(value);
       }
       if (preferences_ != null) {
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       return this;
@@ -1439,7 +1166,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
      */
     public Builder clearPreferences() {
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000010);
       preferences_ = null;
       if (preferencesBuilder_ != null) {
         preferencesBuilder_.dispose();
@@ -1456,7 +1183,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
      */
     public ai.stigmer.tenancy.organization.v1.OrganizationPreferences.Builder getPreferencesBuilder() {
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000010;
       onChanged();
       return internalGetPreferencesFieldBuilder().getBuilder();
     }
@@ -1494,6 +1221,103 @@ private static final long serialVersionUID = 0L;
         preferences_ = null;
       }
       return preferencesBuilder_;
+    }
+
+    private java.lang.Object parentOrg_ = "";
+    /**
+     * <pre>
+     * The organization this one is a child of, by id or slug; empty for an
+     * organization that has no parent.
+     * </pre>
+     *
+     * <code>string parent_org = 8 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+     * @return The parentOrg.
+     */
+    public java.lang.String getParentOrg() {
+      java.lang.Object ref = parentOrg_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        parentOrg_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The organization this one is a child of, by id or slug; empty for an
+     * organization that has no parent.
+     * </pre>
+     *
+     * <code>string parent_org = 8 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for parentOrg.
+     */
+    public com.google.protobuf.ByteString
+        getParentOrgBytes() {
+      java.lang.Object ref = parentOrg_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        parentOrg_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The organization this one is a child of, by id or slug; empty for an
+     * organization that has no parent.
+     * </pre>
+     *
+     * <code>string parent_org = 8 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+     * @param value The parentOrg to set.
+     * @return This builder for chaining.
+     */
+    public Builder setParentOrg(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      parentOrg_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The organization this one is a child of, by id or slug; empty for an
+     * organization that has no parent.
+     * </pre>
+     *
+     * <code>string parent_org = 8 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearParentOrg() {
+      parentOrg_ = getDefaultInstance().getParentOrg();
+      bitField0_ = (bitField0_ & ~0x00000020);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The organization this one is a child of, by id or slug; empty for an
+     * organization that has no parent.
+     * </pre>
+     *
+     * <code>string parent_org = 8 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for parentOrg to set.
+     * @return This builder for chaining.
+     */
+    public Builder setParentOrgBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      parentOrg_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.tenancy.organization.v1.OrganizationSpec)

@@ -4,10 +4,11 @@
  * The sign-in settings every identity-provider form asks for the same way:
  * whether a person's first sign-in creates their account, the role an
  * account receives the first time it signs in to an organization, and the
- * token claim that names the organization a token works in.
+ * customer id claim: the token claim that names one of this organization's
+ * child organizations by its external id.
  *
- * Every token a provider vouches for is bound to one organization: the one
- * the tenant claim names, otherwise the provider's own. The sign-in role is
+ * Every token a provider vouches for is bound to one organization: the
+ * child the customer id claim names, otherwise the provider's own. The sign-in role is
  * granted once per account and organization, so a role an admin removes
  * later stays removed; "None" grants nothing, and the owner role is never
  * offered because ownership is assigned explicitly.
@@ -18,9 +19,9 @@
  * again puts back each field the switch filled and the admin has not
  * changed since (`useSignInSettings`), so a provider never keeps a setting
  * only the switch chose. An SSO provider
- * has no tenant claim: the claim names platform-managed organizations,
- * which only a delegation provider manages, so the field is hidden and
- * cleared for SSO.
+ * has no customer id claim: the claim routes a sign-in to a child
+ * organization, and SSO signs people in to the provider's own, so the
+ * field is hidden and cleared for SSO.
  */
 
 import { useCallback, useId, useRef, useState } from "react";
@@ -34,14 +35,14 @@ import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 export interface SignInSettings {
   readonly createAccounts: boolean;
   readonly signInRole: IamRole;
-  readonly tenantOrgClaim: string;
+  readonly externalIdClaim: string;
 }
 
 /** A new provider's settings: no accounts created, no role granted, no claim. */
 export const EMPTY_SIGN_IN_SETTINGS: SignInSettings = {
   createAccounts: false,
   signInRole: IamRole.iam_role_unspecified,
-  tenantOrgClaim: "",
+  externalIdClaim: "",
 };
 
 /** The edit state for a stored provider's spec. */
@@ -51,13 +52,13 @@ export function signInSettingsFromSpec(
   return {
     createAccounts: spec?.createAccountsOnSignIn ?? false,
     signInRole: spec?.signInRole ?? IamRole.iam_role_unspecified,
-    tenantOrgClaim: spec?.tenantOrgClaim ?? "",
+    externalIdClaim: spec?.externalIdClaim ?? "",
   };
 }
 
 /**
  * The settings an SSO provider starts from: account creation on, viewer
- * when no role is chosen yet, and no tenant claim. A non-SSO provider's
+ * when no role is chosen yet, and no customer id claim. A non-SSO provider's
  * settings are returned unchanged.
  */
 export function withSsoDefaults(
@@ -68,7 +69,7 @@ export function withSsoDefaults(
   return {
     ...settings,
     createAccounts: true,
-    tenantOrgClaim: "",
+    externalIdClaim: "",
     signInRole:
       settings.signInRole === IamRole.iam_role_unspecified
         ? IamRole.viewer
@@ -95,10 +96,10 @@ export function withoutSsoDefaults(
       settings.signInRole === filled.signInRole
         ? before.signInRole
         : settings.signInRole,
-    tenantOrgClaim:
-      settings.tenantOrgClaim === filled.tenantOrgClaim
-        ? before.tenantOrgClaim
-        : settings.tenantOrgClaim,
+    externalIdClaim:
+      settings.externalIdClaim === filled.externalIdClaim
+        ? before.externalIdClaim
+        : settings.externalIdClaim,
   };
 }
 
@@ -147,23 +148,23 @@ export function signInSettingsComplete(
 /**
  * The input fields for the settings. Unset values are `undefined`, so an
  * update that spreads a mapped input clears what the form cleared; an SSO
- * provider never sends a tenant claim.
+ * provider never sends a customer id claim.
  */
 export function toSignInInput(
   settings: SignInSettings,
   isSso: boolean,
 ): Pick<
   IdentityProviderInput,
-  "createAccountsOnSignIn" | "signInRole" | "tenantOrgClaim"
+  "createAccountsOnSignIn" | "signInRole" | "externalIdClaim"
 > {
-  const claim = settings.tenantOrgClaim.trim();
+  const claim = settings.externalIdClaim.trim();
   return {
     createAccountsOnSignIn: isSso || settings.createAccounts ? true : undefined,
     signInRole:
       settings.signInRole !== IamRole.iam_role_unspecified
         ? settings.signInRole
         : undefined,
-    tenantOrgClaim: !isSso && claim ? claim : undefined,
+    externalIdClaim: !isSso && claim ? claim : undefined,
   };
 }
 
@@ -309,17 +310,17 @@ export function SignInSettingsSection({
       {!isSso && (
         <div className="stg:space-y-1">
           <label
-            htmlFor={`${baseId}-tenant-claim`}
+            htmlFor={`${baseId}-external-id-claim`}
             className="stg:text-xs stg:font-medium stg:text-foreground"
           >
-            Tenant org claim
+            Customer id claim
           </label>
           <input
-            id={`${baseId}-tenant-claim`}
+            id={`${baseId}-external-id-claim`}
             type="text"
-            value={value.tenantOrgClaim}
+            value={value.externalIdClaim}
             onChange={(e) =>
-              onChange({ ...value, tenantOrgClaim: e.target.value })
+              onChange({ ...value, externalIdClaim: e.target.value })
             }
             placeholder="e.g., org_id"
             disabled={disabled}
@@ -336,10 +337,11 @@ export function SignInSettingsSection({
             id={claimHintId}
             className="stg:text-[0.65rem] stg:text-muted-foreground"
           >
-            Optional. The token claim that names a platform-managed
-            organization: each token is bound to the claimed organization and
-            works there only. When empty, tokens are bound to this
-            provider&apos;s organization.
+            Optional. The token claim that names one of this
+            organization&apos;s child organizations by its external id: each
+            token is bound to that child organization and works there only.
+            When empty, tokens are bound to this provider&apos;s
+            organization.
           </p>
         </div>
       )}

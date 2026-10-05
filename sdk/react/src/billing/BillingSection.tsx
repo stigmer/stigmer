@@ -4,7 +4,6 @@ import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
-import { ManagementMode } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/enum_pb";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useOrg } from "../organization/OrgProvider.js";
@@ -78,10 +77,17 @@ export function BillingSection({
   className,
 }: BillingSectionProps) {
   const headingId = useId();
-  const { activeOrg } = useOrg();
+  const { activeOrg, orgs } = useOrg();
   const mode = useDeploymentMode();
   const orgId = activeOrg?.metadata?.id ?? "";
-  const managed = activeOrg?.spec?.managementMode === ManagementMode.platform_managed;
+  // A child organization runs on its parent's plan. The parent is named
+  // when the person belongs to it too; otherwise the card says "its parent
+  // organization" rather than show a raw id.
+  const parentOrg = activeOrg?.spec?.parentOrg ?? "";
+  const billedToParent =
+    parentOrg === ""
+      ? undefined
+      : ((orgs ?? []).find((o) => o.metadata?.id === parentOrg)?.metadata?.name ?? "");
 
   return (
     <section aria-labelledby={headingId} className={className}>
@@ -108,7 +114,7 @@ export function BillingSection({
       ) : (
         <BillingContent
           org={orgId}
-          managed={managed}
+          billedToParent={billedToParent}
           checkoutSuccess={checkoutSuccess}
           onDismissCheckoutSuccess={onDismissCheckoutSuccess}
           resumePlanId={resumePlanId}
@@ -126,7 +132,7 @@ export function BillingSection({
 
 function BillingContent({
   org: orgId,
-  managed,
+  billedToParent,
   checkoutSuccess,
   onDismissCheckoutSuccess,
   resumePlanId,
@@ -134,7 +140,7 @@ function BillingContent({
   redirect,
 }: {
   org: string;
-  managed: boolean;
+  billedToParent: string | undefined;
   checkoutSuccess?: boolean;
   onDismissCheckoutSuccess?: () => void;
   resumePlanId?: string;
@@ -217,7 +223,7 @@ function BillingContent({
 
       <PlanSection
         org={orgId}
-        managed={managed}
+        billedToParent={billedToParent}
         hasPaymentMethod={hasPaymentMethod}
         onRefreshAccount={refetch}
         redirect={redirect}

@@ -55,7 +55,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * One row per provider the organization is served on its own or its
-   * integrator's key, in provider order.
+   * parent organization's key, in provider order.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -67,7 +67,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * One row per provider the organization is served on its own or its
-   * integrator's key, in provider order.
+   * parent organization's key, in provider order.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -80,7 +80,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * One row per provider the organization is served on its own or its
-   * integrator's key, in provider order.
+   * parent organization's key, in provider order.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -92,7 +92,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * One row per provider the organization is served on its own or its
-   * integrator's key, in provider order.
+   * parent organization's key, in provider order.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -104,7 +104,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * One row per provider the organization is served on its own or its
-   * integrator's key, in provider order.
+   * parent organization's key, in provider order.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -477,7 +477,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -492,7 +492,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -507,7 +507,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -522,7 +522,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -544,7 +544,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -563,7 +563,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -584,7 +584,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -606,7 +606,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -625,7 +625,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -644,7 +644,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -664,7 +664,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -682,7 +682,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -700,7 +700,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -712,7 +712,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -727,7 +727,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -743,7 +743,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -755,7 +755,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
@@ -768,7 +768,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * One row per provider the organization is served on its own or its
-     * integrator's key, in provider order.
+     * parent organization's key, in provider order.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>

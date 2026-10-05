@@ -33,7 +33,7 @@ const (
 // the organization's billing reads use.
 type ProviderKeyQueryControllerClient interface {
 	// List the keys that serve the organization, its own and any it inherits
-	// from its integrator, without their secrets.
+	// from its parent organization, without their secrets.
 	List(ctx context.Context, in *ListProviderKeysInput, opts ...grpc.CallOption) (*ListProviderKeysOutput, error)
 }
 
@@ -66,7 +66,7 @@ func (c *providerKeyQueryControllerClient) List(ctx context.Context, in *ListPro
 // the organization's billing reads use.
 type ProviderKeyQueryControllerServer interface {
 	// List the keys that serve the organization, its own and any it inherits
-	// from its integrator, without their secrets.
+	// from its parent organization, without their secrets.
 	List(context.Context, *ListProviderKeysInput) (*ListProviderKeysOutput, error)
 }
 

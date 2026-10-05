@@ -42,7 +42,7 @@ A federated account belongs to one IdentityProvider. Who creates it depends on h
 - **Manual** (`create_accounts_on_sign_in` false): the platform creates each account with the `createFederatedAccount` RPC, giving the user's external subject, email, and name, before the user calls Stigmer.
 - **Just-in-time** (`create_accounts_on_sign_in`, which every SSO provider sets): Stigmer creates the account on the user's first sign-in, from the token's `email`, `given_name` and `family_name` (or `name`) and `picture` claims, or from the provider's `userinfo_endpoint` when the token carries no email. The profile is not refreshed on later sign-ins; the platform updates it with `updateFederatedAccount`.
 
-Whoever creates the account, the provider's `sign_in_role`, when set, is granted the first time the account signs in to an organization through the provider: the organization its token is bound to (`tenant_org_claim`'s, or the provider's own). It is granted once per account and organization; a role an admin later removes stays removed. Every token the provider vouches for works in its bound organization only.
+Whoever creates the account, the provider's `sign_in_role`, when set, is granted the first time the account signs in to an organization through the provider: the organization its token is bound to (the child organization `external_id_claim` names, or the provider's own). It is granted once per account and organization; a role an admin later removes stays removed. Every token the provider vouches for works in its bound organization only.
 
 The [sign-in flow](../../identityprovider/docs/sign-in-flow.md) shows how each request is verified and its account resolved.
 

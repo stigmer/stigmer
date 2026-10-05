@@ -1154,11 +1154,11 @@ export function describeStoreContract(
       );
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-platform",
+        "agt-shared",
         entry({
           name: "searchable beta",
           org: "globex",
-          visibility: "visibility_platform",
+          visibility: "visibility_child_orgs",
         }),
       );
       await fx.store.upsertSearchIndex(
@@ -1184,7 +1184,7 @@ export function describeStoreContract(
         offset: 0,
       });
       expect(new Set(unscoped.hits.map((hit) => hit.resourceId))).toEqual(
-        new Set(["agt-mine", "agt-platform", "agt-foreign"]),
+        new Set(["agt-mine", "agt-shared", "agt-foreign"]),
       );
     });
 

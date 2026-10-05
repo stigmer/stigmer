@@ -21,9 +21,10 @@
 //     stored reference exactly (no version, or the same tag even after the tag
 //     moved) keeps the pin;
 //   - a status a client sends never survives: the server's pin wins;
-//   - another organization's agent is accepted only at platform visibility,
-//     and an update is held to the same reference rule as a create (another
-//     organization's skill that is not platform-visible is refused);
+//   - another organization's agent is accepted only when that organization
+//     is the session organization's parent and shares it with its child
+//     organizations, and an update is held to the same reference rule as a
+//     create (another organization's skill that is not shared is refused);
 //   - listByAgent answers the sessions pinned to an agent, whichever version.
 // Who may name or change an agent (the run gate) is the run-gate suite's.
 //
@@ -47,6 +48,7 @@ import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
+import { createChildOrganization } from "../support/organizations";
 import { AGENT_API_VERSION, AGENT_KIND, type AgentRefInit, agentRefOf, makeAgent, makeAgentSpec } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { uniqueName } from "../support/naming";
@@ -792,13 +794,14 @@ describe("Session conformance — the agent pin", () => {
 describe("Session conformance — references across organizations and on update", () => {
   const notAvailable = (kind: string, slug: string) =>
     `referenced ${kind} '${slug}' of another organization is not available to this organization; ` +
-    "another organization's resource can be referenced only when that organization shares it at platform visibility.";
+    "another organization's resource can be referenced only when it is this organization's parent and shares it with its child organizations.";
 
-  it("[rpc:SessionCommandController.create] a session naming another organization's org-visible agent is refused; its platform-visible agent is accepted", async () => {
-    const { org } = await target.provisionTenancy();
+  it("[rpc:SessionCommandController.create] a session naming the parent organization's org-visible agent is refused; the agent it shares with its children is accepted", async () => {
     const { org: otherOrg } = await target.provisionTenancy();
+    const { id: org } = await createChildOrganization(clients.organizationCommand, otherOrg, "the session's organization");
+    fixtures.defer(() => clients.organizationCommand.delete({ value: org }));
     const orgVisible = await createAgent(otherOrg, { visibility: ApiResourceVisibility.visibility_org });
-    const platformVisible = await createAgent(otherOrg, { visibility: ApiResourceVisibility.visibility_platform });
+    const platformVisible = await createAgent(otherOrg, { visibility: ApiResourceVisibility.visibility_child_orgs });
 
     const refused = await expectGrpcCode(
       () => clients.sessionCommand.create(makeSession({ org, name: uniqueName("session"), agentRef: agentRefOf(orgVisible) })),
@@ -812,7 +815,7 @@ describe("Session conformance — references across organizations and on update"
     expect(admitted.status?.agentId).toBe(platformVisible.metadata?.id);
   });
 
-  it("[rpc:SessionCommandController.update] an update introducing another organization's skill that is not platform-visible is refused", async () => {
+  it("[rpc:SessionCommandController.update] an update introducing another organization's skill that is not shared with child organizations is refused", async () => {
     const { org } = await target.provisionTenancy();
     const { org: otherOrg } = await target.provisionTenancy();
     const skill = await clients.skillCommand.push({

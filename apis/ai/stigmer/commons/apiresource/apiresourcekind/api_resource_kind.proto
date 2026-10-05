@@ -383,7 +383,7 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {
         supports_org: true
-        supports_platform: true
+        supports_child_orgs: true
         defaults_to_org_visibility: true
       }
       grantable_roles: [
@@ -454,7 +454,7 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {
         supports_org: true
-        supports_platform: true
+        supports_child_orgs: true
         defaults_to_org_visibility: true
       }
       grantable_roles: [
@@ -480,7 +480,7 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {
         supports_org: true
-        supports_platform: true
+        supports_child_orgs: true
         defaults_to_org_visibility: true
       }
       grantable_roles: [
@@ -606,7 +606,7 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {
         supports_org: true
-        supports_platform: true
+        supports_child_orgs: true
         defaults_to_org_visibility: true
       }
       grantable_roles: [
@@ -848,7 +848,7 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {
         supports_org: true
-        supports_platform: true
+        supports_child_orgs: true
         defaults_to_org_visibility: true
       }
       grantable_roles: [

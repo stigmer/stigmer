@@ -1,33 +1,34 @@
 {
+  "fingerprint": "edge-tts/en-US-AndrewMultilingualNeural",
   "voice": "",
   "steps": [
     {
-      "hash": "36933f04db9dd7a8672b924a35d896823f883cb41e1976ac9f4257066c98c35f",
-      "durationMs": 9088
+      "hash": "688ee159e11673f2d264ccbcfb7e031eba16e5c7b20a07412918fc655ffa3fe7",
+      "durationMs": 10938
     },
     {
-      "hash": "4d79fadd385080def787087126ce96e77fe922b518148ea6acc59647f4459a66",
-      "durationMs": 12700
+      "hash": "f6b5076644eeb44e6a66fca44eed6e219847a3aa6b5da59b21d69627191013d2",
+      "durationMs": 9175
     },
     {
-      "hash": "983e2640700d0ffe252d8ad2656092609ad1b18a0dea407b8f316115e0f1f50d",
-      "durationMs": 9725
+      "hash": "25d2c0a9e8d17bc10603e97a388bfc70e12094a016b994f5dfa0787e6f939b82",
+      "durationMs": 8500
     },
     {
-      "hash": "e64a59672c44dbff5f1913df03a5085607850844dfe9076e698bd69390120323",
-      "durationMs": 8375
+      "hash": "78dd7140273624df92fd9d39745b0141ef43b814c16a75af656886b871e01fb9",
+      "durationMs": 7125
     },
     {
-      "hash": "7278c566df032914b42b8b308ebbbbee30013832a5188dba51063d82b4632f26",
-      "durationMs": 9188
+      "hash": "2175ac555e11021fbe4265faba39e4c494a2877a57e728133fbf306ea86040af",
+      "durationMs": 7213
     },
     {
-      "hash": "f7a1827381a29d6bc3c3d6a82b66183b6309c4cfd7a55a64359c34c4ec3643d1",
-      "durationMs": 12050
+      "hash": "68c9c9a5e6a9812b65dc661412fb0171695baf155262f40e6ed260a49904b1b3",
+      "durationMs": 10725
     },
     {
-      "hash": "089b619ba0a7e167c7c7d4d2b40c8bf12645c6f7f7d29c83b7e15090815e4103",
-      "durationMs": 11613
+      "hash": "43e8a89f2e0087e77d902ce529ae870543d3655be7232db2f886805909a7db17",
+      "durationMs": 11925
     }
   ]
 }

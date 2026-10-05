@@ -37,7 +37,7 @@
           "inputFullType": "ai.stigmer.billing.providerkey.v1.ListProviderKeysInput",
           "outputType": "ListProviderKeysOutput",
           "outputFullType": "ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput",
-          "description": "List the keys that serve the organization, its own and any it inherits\n from its integrator, without their secrets."
+          "description": "List the keys that serve the organization, its own and any it inherits\n from its parent organization, without their secrets."
         }
       ]
     }
@@ -169,7 +169,7 @@
               "messageType": "ProviderKey"
             }
           },
-          "description": "One row per provider the organization is served on its own or its\n integrator's key, in provider order.",
+          "description": "One row per provider the organization is served on its own or its\n parent organization's key, in provider order.",
           "required": false
         }
       ]

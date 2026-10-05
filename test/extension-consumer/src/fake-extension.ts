@@ -135,10 +135,11 @@ import type {
   CallerGuard,
   CallerIdentity,
   ChannelRuntime,
+  ChildOrganizationLinkedEvent,
+  ChildOrganizations,
   ComposedServer,
   ExecutionAudienceShape,
   ExecutionVisibilityChangedEvent,
-  ExternalOrganizationLookup,
   GateSlotName,
   GuestTokenMinting,
   IamPolicyStore,
@@ -148,7 +149,6 @@ import type {
   IdentityAccountStoreContractCase,
   IdentityAccountStoreContractFixture,
   IdentityFederation,
-  IdentityProviderRef,
   IdentityVerifier,
   ListEntryMeta,
   ListReadScope,
@@ -1337,6 +1337,11 @@ const authorizationLifecycle: ResourceAuthorizationLifecycle = {
     void audience;
     return Promise.resolve();
   },
+  onChildOrganizationLinked: (event: ChildOrganizationLinkedEvent) => {
+    void event.childId;
+    void event.parentId;
+    return Promise.resolve();
+  },
 };
 
 /**
@@ -1378,16 +1383,6 @@ const organizationDirectory: OrganizationDirectory = {
     void caller.identityId;
     return Promise.resolve<ReadonlyArray<string>>([]);
   },
-  lookupExternalOrganization: (
-    identityProviderRef: IdentityProviderRef,
-    externalOrgId: string,
-  ) => {
-    void identityProviderRef.slug;
-    void externalOrgId;
-    return Promise.resolve<ExternalOrganizationLookup>({
-      kind: "no-identity-provider",
-    });
-  },
 };
 
 /**
@@ -1404,6 +1399,23 @@ export function consumerMayActIn(caller: CallerIdentity, org: string): boolean {
   return consumerCredentialBinding?.admitsOrganization(caller, org) ?? false;
 }
 export const consumerOutsideVerdict: BindingVerdict = "outside";
+
+/**
+ * The child-organization lookups as a unit's sign-in routing meets them:
+ * kept from `onComposed` and asked for the child a token's external id
+ * names under its provider's organization.
+ */
+let consumerChildOrganizations: ChildOrganizations | undefined;
+export async function consumerChildIdFor(
+  parentId: string,
+  externalId: string,
+): Promise<string | undefined> {
+  const child = await consumerChildOrganizations?.findByExternalId(
+    parentId,
+    externalId,
+  );
+  return child?.metadata?.id;
+}
 export const consumerBoundDenial: string = BOUND_ELSEWHERE_DENY_REASON;
 
 /** The whole unit — every point a consumer can populate today. */
@@ -1422,6 +1434,7 @@ export const fakeExtension: ServerExtension = {
   // credential binding among them.
   onComposed: (composed) => {
     consumerCredentialBinding = composed.credentialBinding;
+    consumerChildOrganizations = composed.childOrganizations;
   },
   identityVerifiers: [verifier, consumerGuestTokenVerifier],
   // Post-authentication caller guards, serving

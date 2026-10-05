@@ -18,9 +18,9 @@ import "google/protobuf/timestamp.proto";
 //
 // @internal
 // Served by the cloud composition only; the open-source server serves no
-// billing service. A managed organization with no key of its own for a
-// provider is served by its integrator organization's key, which list
-// returns as an inherited row.
+// billing service. A child organization with no key of its own for a
+// provider is served by its parent organization's key, which list returns
+// as an inherited row.
 message ProviderKey {
   // The organization the key serves.
   string org = 1;
@@ -49,8 +49,8 @@ message ProviderKey {
   // the organization on the platform's key, metered, until the plan does.
   bool in_use = 8;
 
-  // Set when the row is the integrator organization's key, serving this
-  // managed organization because it holds none of its own for the provider.
-  // Such a row is read-only here; it is managed on the integrator.
+  // Set when the row is the parent organization's key, serving this child
+  // organization because it holds none of its own for the provider. Such a
+  // row is read-only here; it is managed on the parent.
   string inherited_from_org = 9;
 }

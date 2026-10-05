@@ -96,7 +96,7 @@ export const ListProviderKeysInputSchema: GenMessage<ListProviderKeysInput> = /*
 export type ListProviderKeysOutput = Message<"ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput"> & {
   /**
    * One row per provider the organization is served on its own or its
-   * integrator's key, in provider order.
+   * parent organization's key, in provider order.
    *
    * @generated from field: repeated ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1;
    */

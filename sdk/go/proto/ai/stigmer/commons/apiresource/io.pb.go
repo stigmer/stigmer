@@ -282,14 +282,14 @@ func (x *FindApiResourcesRequest) GetPageSize() int32 {
 // old level is removed and the tuple for the new level is created:
 // - PRIVATE:  no visibility tuple (owner + explicit grants only)
 // - ORG:      resource#viewer@organization:<org>#viewer
-// - PLATFORM: resource#platform_viewer@identity_provider:<idp>#platform_user
+// - CHILD_ORGS: resource#child_org_viewer@organization:<org>#child_org_viewer
 //
 // Not all resources support all visibility levels — the supported set is
 // declared per kind via VisibilityConfig in kind_meta:
 //   - Blueprints (agent, workflow, skill, mcp_server, plugin):
-//     PRIVATE, ORG, or PLATFORM
+//     PRIVATE, ORG, or CHILD_ORGS
 //   - Instances (workflow_instance):
-//     PRIVATE or ORG (never PLATFORM — tenant isolation)
+//     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
 //
 // visibility_public is refused for every kind (INVALID_ARGUMENT naming the
 // supported levels); the level is retired.
@@ -420,7 +420,8 @@ func (x *RenameInput) GetSlug() string {
 //
 // Every reference in a resource's spec is checked when the resource is
 // written: the target must exist, and a target in another organization
-// must be platform-visible to be referenced at all. A blueprint may not be
+// must be one the writing organization's parent shares with its child
+// organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be
 // more visible than the skills, MCP servers and agents it references, so
 // what a person can run they can also read. A reference that fails the
 // check is refused at write, never at run.
@@ -438,8 +439,9 @@ type ApiResourceReference struct {
 	// always have org populated (absolute form, the id).
 	//
 	// Use empty org for same-org references (the common case).
-	// An explicit other org is accepted only when that organization is a
-	// platform that shares the resource with yours (visibility_platform).
+	// An explicit other org is accepted only when that organization is your
+	// organization's parent and shares the resource with its children
+	// (visibility_child_orgs).
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
 	Kind apiresourcekind.ApiResourceKind `protobuf:"varint,2,opt,name=kind,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kind,omitempty"`

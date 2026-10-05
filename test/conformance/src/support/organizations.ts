@@ -54,3 +54,31 @@ export async function organizationSlug(
 ): Promise<string> {
   return (await organizationQuery.get({ value: org })).metadata?.slug ?? org;
 }
+
+/**
+ * Creates a child Organization of `parentOrg` (by id) through
+ * `organizationCommand`: the caller must manage the parent (its admins).
+ * The caller deletes it before the parent, which refuses a delete while it
+ * has children.
+ */
+export async function createChildOrganization(
+  organizationCommand: ConformanceClients["organizationCommand"],
+  parentOrg: string,
+  scope: string,
+  externalId = "",
+): Promise<CreatedOrganization> {
+  const created = await organizationCommand.create({
+    apiVersion: ORG_API_VERSION,
+    kind: ORG_KIND,
+    metadata: { name: uniqueOrg() },
+    spec: { parentOrg, externalId },
+  });
+  const slug = created.metadata?.slug;
+  const id = created.metadata?.id;
+  if (slug === undefined || slug === "" || id === undefined || id === "") {
+    throw new Error(
+      `child organization create returned no slug/id; cannot provision ${scope}`,
+    );
+  }
+  return { slug, id };
+}

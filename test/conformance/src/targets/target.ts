@@ -50,12 +50,9 @@ export interface CapabilityFlags {
   // ask the target for one through `enforcingLane()` below, and run
   // against the primary where this flag is true and against an OIDC
   // sibling where the target can spawn one. Deliberately NOT folded into
-  // multiTenant: tenancy (many organizations, external org ids, no
-  // enumeration) and enforcement are different facts — an enforcing
+  // multiTenant: tenancy (many organizations, no enumeration) and enforcement are different facts — an enforcing
   // self-host is single-tenant.
   enforcingAuthorizer: boolean;
-  // OrganizationQuery.getByExternalOrgId is implemented. False for local OSS.
-  externalOrgLookup: boolean;
   // OrganizationQuery.find enumerates every organization. True for local OSS,
   // which is single-tenant and returns them all. False for cloud, where
   // enumerating every tenant's org is not a tenant capability — cloud leaves

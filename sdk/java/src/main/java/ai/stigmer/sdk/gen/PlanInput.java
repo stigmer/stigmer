@@ -152,7 +152,7 @@ public final class PlanInput {
     public static final class EntitlementLimitsInput {
         private final Integer maxOrgs;
         private final Integer maxUsers;
-        private final Integer includedManagedOrganizations;
+        private final Integer includedChildOrgs;
         private final Integer maxActiveSessionSandboxes;
         private final Integer maxActiveWorkflowSandboxes;
         private final Integer archivedWorkspaceRetentionDays;
@@ -160,7 +160,7 @@ public final class PlanInput {
         private EntitlementLimitsInput(Builder builder) {
             this.maxOrgs = builder.maxOrgs;
             this.maxUsers = builder.maxUsers;
-            this.includedManagedOrganizations = builder.includedManagedOrganizations;
+            this.includedChildOrgs = builder.includedChildOrgs;
             this.maxActiveSessionSandboxes = builder.maxActiveSessionSandboxes;
             this.maxActiveWorkflowSandboxes = builder.maxActiveWorkflowSandboxes;
             this.archivedWorkspaceRetentionDays = builder.archivedWorkspaceRetentionDays;
@@ -174,8 +174,8 @@ public final class PlanInput {
             if (this.maxUsers != null) {
                 builder.setMaxUsers(this.maxUsers);
             }
-            if (this.includedManagedOrganizations != null) {
-                builder.setIncludedManagedOrganizations(this.includedManagedOrganizations);
+            if (this.includedChildOrgs != null) {
+                builder.setIncludedChildOrgs(this.includedChildOrgs);
             }
             if (this.maxActiveSessionSandboxes != null) {
                 builder.setMaxActiveSessionSandboxes(this.maxActiveSessionSandboxes);
@@ -194,7 +194,7 @@ public final class PlanInput {
         public static final class Builder {
             private Integer maxOrgs;
             private Integer maxUsers;
-            private Integer includedManagedOrganizations;
+            private Integer includedChildOrgs;
             private Integer maxActiveSessionSandboxes;
             private Integer maxActiveWorkflowSandboxes;
             private Integer archivedWorkspaceRetentionDays;
@@ -203,7 +203,7 @@ public final class PlanInput {
 
             public Builder maxOrgs(int maxOrgs) { this.maxOrgs = maxOrgs; return this; }
             public Builder maxUsers(int maxUsers) { this.maxUsers = maxUsers; return this; }
-            public Builder includedManagedOrganizations(int includedManagedOrganizations) { this.includedManagedOrganizations = includedManagedOrganizations; return this; }
+            public Builder includedChildOrgs(int includedChildOrgs) { this.includedChildOrgs = includedChildOrgs; return this; }
             public Builder maxActiveSessionSandboxes(int maxActiveSessionSandboxes) { this.maxActiveSessionSandboxes = maxActiveSessionSandboxes; return this; }
             public Builder maxActiveWorkflowSandboxes(int maxActiveWorkflowSandboxes) { this.maxActiveWorkflowSandboxes = maxActiveWorkflowSandboxes; return this; }
             public Builder archivedWorkspaceRetentionDays(int archivedWorkspaceRetentionDays) { this.archivedWorkspaceRetentionDays = archivedWorkspaceRetentionDays; return this; }

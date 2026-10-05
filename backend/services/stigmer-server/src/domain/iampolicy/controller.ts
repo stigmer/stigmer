@@ -617,7 +617,7 @@ async function checkAuthorization(
  * that hands the engine a caller's question asks this first: the engine
  * takes no caller and cannot be bound where it is composed. The relation
  * is passed as asked, so the one cross-organization path (a blueprint
- * shared at platform visibility) answers only to the permission names that
+ * the bound organization's parent shares with its children) answers only to the permission names that
  * read or run it; a role relation such as `viewer` on such a blueprint
  * answers false for a bound caller, the narrower answer.
  */

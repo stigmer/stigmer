@@ -578,8 +578,8 @@ together; nothing outside it sees them.
   `rename`. A request may name an Organization by either; responses carry the
   id, and clients show the slug.
 - **Key fields**: `description`, `logo_url`, `preferences`, `is_personal`, and
-  the child-organization fields `management_mode`, `identity_provider_ref` and
-  `external_org_id`.
+  the child-organization fields `parent_org` and `external_id` (see
+  [Parent organization, child organization](#parent-organization-child-organization)).
 - **Note**: Every edition has Organizations. Open source holds one: its server
   makes it the first time it starts, `stigmer`, fills it into every request that
   names none, refuses a second one and refuses to delete it, so a user never
@@ -623,9 +623,65 @@ Stigmer has no concept called a tenant.
 - **Keep it** only where an outside system names it: an Auth0 tenant, a
   Microsoft Entra tenant id, and the established terms single-tenant and
   multi-tenant for how a server is deployed.
-- **Note**: The child-organization words "platform-managed", "managed
-  organization", "tenant organization" and "external org" are on their way out;
-  see the Inconsistency register.
+- **Note**: One customer's Organization under an integrator's is a **child
+  organization**, never a tenant organization; see
+  [Parent organization, child organization](#parent-organization-child-organization).
+
+---
+
+#### Parent organization, child organization
+
+An Organization that manages others is a **parent organization**; each of the
+Organizations it manages is a **child organization**: for example, the
+Organization an integrator runs for one of its customers.
+
+- **Capitalize**: No; "Organization" keeps its capital when it stands alone.
+  Write "child organization", "parent organization".
+- **API surface**: `OrganizationSpec.parent_org` (the parent, on the child) and
+  `OrganizationSpec.external_id`; `OrganizationQueryController.getByExternalId`
+  and `listChildOrgs`; the permission `can_manage_child_orgs`; the share level
+  `visibility_child_orgs` (the CLI and frontmatter spelling `child-orgs`); the
+  Identity Provider's `external_id_claim`; the plan feature `child_orgs` and its
+  limit `included_child_orgs`.
+- **Note**: One level deep: a child has no children, and is never moved to
+  another parent. `parent_org` and `external_id` are fixed at create. An
+  Organization that still has children cannot be deleted. Nobody owns a child
+  when it is created; its parent's admins manage it.
+- **Context rule**: Use in concepts, how-to and reference. On the sales site,
+  say "an organization for each of your customers". Never "platform-managed",
+  "managed organization", "tenant organization" or "sub-organization".
+
+---
+
+#### External id
+
+The identifier a parent organization keeps for one of its child organizations:
+an integrator's own customer id (`cust-4411`).
+
+- **Capitalize**: No.
+- **API surface**: `OrganizationSpec.external_id`, unique among one parent's
+  children; `getByExternalId(parent_org, external_id)`; an Identity Provider's
+  `external_id_claim` names the JWT claim that carries it.
+- **Context rule**: "external id" in prose, `external_id` in identifiers. Not
+  "external org id" and not "tenant id".
+
+---
+
+#### Parent admin
+
+An admin of a parent organization, as seen from one of its child organizations.
+
+- **Capitalize**: No.
+- **API surface**: the model relation `parent_admin` on the child
+  (`fga/model/tenancy/organization.fga`), which feeds `can_view_settings`,
+  `can_edit`, `can_delete`, `can_grant_access`, `can_view_access`,
+  `can_assign_roles` and `can_view_billing`, and no role.
+- **Note**: A parent admin manages a child (settings, members, access), sees its
+  billing, and reads nothing it holds. To look inside, they join the child as a
+  member, which its member list and access history show; nothing impersonates a
+  child's user.
+- **Context rule**: Use in concepts and reference. In how-to, say "your
+  Organization's admins" when the reader is the parent.
 
 ---
 
@@ -712,16 +768,16 @@ your authentication system.
   `iam/identityprovider/v1/spec.proto`.
 - **Key fields**: `jwks_uri`, `allowed_issuers`, `expected_audience`,
   `is_sso_provider`, `oidc_client_id`, `create_accounts_on_sign_in`,
-  `sign_in_role`, `tenant_org_claim`.
+  `sign_in_role`, `external_id_claim`.
 - **Context rule**: Do not use on the sales site. In quickstart, say "identity
   provider" in lowercase on first use with a brief gloss. In concepts and
   how-to, capitalize as "Identity Provider." In reference, use
   `IdentityProvider`.
 - **Note**: An Identity Provider is not a user database---it defines how Stigmer
-  validates externally issued JWTs. It is owned by an Organization and can
-  authenticate users across multiple platform-managed Organizations. Each token
-  it vouches for is a **bound credential**: it works in the Organization
-  `tenant_org_claim` names, or in the provider's own.
+  validates externally issued JWTs. It is owned by an Organization and can route
+  its users to that Organization's child organizations. Each token it vouches
+  for is a **bound credential**: it works in the child organization
+  `external_id_claim` names, or in the provider's own Organization.
 
 ---
 
@@ -771,24 +827,28 @@ whatever roles its person holds elsewhere.
 - **Capitalize**: No. "Bound credential" is a property of a credential, not a
   Stigmer resource type.
 - **Examples**: a PlatformClient user token (bound to the PlatformClient's
-  Organization), a federated token through an Identity Provider (bound to the
-  Organization `tenant_org_claim` names, or the provider's own), an API key
-  limited to an Organization (`ApiKeySpec.bound_org`), and the credential a
-  runner holds for one run (bound to the run's Organization). A person signed in
-  at the Stigmer Console with their own Stigmer sign-in is not bound and moves
-  between all their Organizations.
+  Organization, or the child organization it was minted for), a federated token
+  through an Identity Provider (bound to the child organization
+  `external_id_claim` names, or the provider's own), an API key limited to an
+  Organization (`ApiKeySpec.bound_org`), and the credential a runner holds for
+  one run (bound to the run's Organization). A person signed in at the Stigmer
+  Console with their own Stigmer sign-in is not bound and moves between all
+  their Organizations.
 - **Reach**: its Organization's resources; the person's own account, and their
-  API keys limited to the same Organization; and reading and running Agents,
-  Skills, Workflows, MCP Servers and Plugins shared at Platform visibility. It
-  cannot create an Organization or accept an invitation to another one. One
-  exception: a platform operator's acts (credits, plans, pricing, licenses)
-  follow the person's platform role, so their limited key still performs them.
+  API keys limited to the same Organization; in a child organization, reading
+  and running the Agents, Skills, Workflows, MCP Servers and Plugins its parent
+  shares at `visibility_child_orgs`; and, for a credential bound to a parent,
+  managing that parent's child organizations (never reading what they hold). It
+  cannot create an Organization, except a child of its own, or accept an
+  invitation to another one. One exception: a platform operator's acts (credits,
+  plans, pricing, licenses) follow the person's platform role, so their limited
+  key still performs them.
 - **Context rule**: Use in authentication guides and reference. On the sales
   site, say "a key that works in one Organization." In quickstart, avoid unless
   the tutorial covers API keys, federation or PlatformClient.
 - **Note**: a bound credential used in another Organization gets
-  `PERMISSION_DENIED`. A federated token whose tenant claim is missing or names
-  no known Organization gets `UNAUTHENTICATED`, on every sign-in.
+  `PERMISSION_DENIED`. A federated token whose external id claim is missing or
+  names no child organization gets `UNAUTHENTICATED`, on every sign-in.
 
 ---
 
@@ -1356,19 +1416,14 @@ distinction doesn't matter at that level.
 
 ---
 
-### 7. Child-organization words
+### 7. Child-organization words---RESOLVED
 
 **What**: An Organization that belongs to another Organization, one per customer
-of an integrator, is called platform-managed, managed, tenant and external in
-different places. Its fields carry the same mix: `management_mode`,
-`identity_provider_ref`, `external_org_id`, `tenant_org_claim` and the
-`visibility_platform` share level.
+of an integrator, was called platform-managed, managed, tenant and external in
+different places, and its fields carried the same mix.
 
-**Where**: `tenancy/organization/v1/spec.proto`,
-`iam/identityprovider/v1/spec.proto`, `commons/apiresource/enum.proto`, and the
-federation guides under `docs/guides/authentication/federation/`.
-
-**Recommendation**: These are being replaced together with the mechanism they
-describe: a child Organization names its parent Organization, and its customer's
-key is its external id. Until then, describe the mechanism as it works today,
-and do not introduce new uses of these words.
+**Resolution**: The mechanism and its words were replaced together. A child
+organization names its parent in `parent_org`, carries the parent's customer id
+in `external_id`, and is reached through `external_id_claim` and shared with at
+`visibility_child_orgs`. See
+[Parent organization, child organization](#parent-organization-child-organization).

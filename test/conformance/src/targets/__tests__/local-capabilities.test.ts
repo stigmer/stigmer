@@ -18,7 +18,6 @@ import { LocalPostgresExecutionTarget, LocalPostgresTarget } from "../local-post
 // open-source target, by the edition boundary, not as a gap.
 const HOSTED_ONLY: ReadonlyArray<keyof CapabilityFlags> = [
   "multiTenant",
-  "externalOrgLookup",
   "channelMessaging",
   "orgOAuthAppConfiguration",
   "billingGates",

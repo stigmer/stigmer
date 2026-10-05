@@ -3,31 +3,30 @@
 # A workflow's system-managed default instance carries a single
 #   workflow_instance#default_of@workflow:<id>
 # tuple and inherits the workflow's ENTIRE viewer set through
-# `viewer from default_of` — org members and platform users
-# (identity_provider#platform_user). No enum-derived
+# `viewer from default_of` — org members and the people of the owning
+# organization's children (organization#child_org_viewer). No enum-derived
 # visibility tuples are ever written on default instances, so their access
 # can never drift from the template's.
 #
 # Run with:
 #   fga model test --tests default-instance-inheritance.fga.yaml
 #
-# Scenario: "planton" is a platform org owning identity_provider:idp1 which
-# manages customer org "acme". Planton authors workflows at every
-# visibility level; each has a default instance linked via default_of.
-# Alice (acme member) reaches default instances of platform-shared
-# workflows; planton members reach default instances of org-visible ones;
+# Scenario: "planton" is a parent organization with one child, "acme".
+# Planton authors workflows at every visibility level; each has a default
+# instance linked via default_of. Alice (acme member) reaches default
+# instances of workflows shared with child organizations; planton members reach default instances of org-visible ones;
 # personal instances never leak.
 name: default-instance-inheritance
 model_file: ../../src/authorization/model/data/authorization-model.json
 
 tuples:
-  # --- Platform tenancy: idp1 is owned by planton and manages acme ---
+  # --- acme is a child of planton: both edges ---
   - user: organization:planton
-    relation: organization
-    object: identity_provider:idp1
+    relation: parent_org
+    object: organization:acme
   - user: organization:acme
-    relation: managed_org
-    object: identity_provider:idp1
+    relation: child_org
+    object: organization:planton
 
   # --- Org memberships ---
   - user: identity_account:swarup
@@ -61,15 +60,15 @@ tuples:
     relation: affiliated
     object: organization:outsider
 
-  # --- Platform-shared workflow + its default instance ---
+  # --- Workflow shared with child organizations + its default instance ---
   - user: organization:planton
     relation: organization
     object: workflow:onboarding
   - user: identity_account:swarup
     relation: owner
     object: workflow:onboarding
-  - user: identity_provider:idp1#platform_user
-    relation: platform_viewer
+  - user: organization:planton#child_org_viewer
+    relation: child_org_viewer
     object: workflow:onboarding
   - user: organization:planton#viewer
     relation: viewer
@@ -124,7 +123,7 @@ tuples:
     object: workflow_instance:internal-default
 
 tests:
-  - name: managed-org member reaches the default instance of a platform-shared workflow
+  - name: a child's member reaches the default instance of a workflow shared with children
     check:
       - user: identity_account:alice
         object: workflow_instance:onboarding-default
@@ -172,13 +171,13 @@ tests:
         assertions:
           can_view: true
           can_edit: false
-      # Managed-org membership grants nothing on non-platform-shared workflows.
+      # A child's membership grants nothing on a workflow not shared with children.
       - user: identity_account:alice
         object: workflow_instance:internal-default
         assertions:
           can_view: false
 
-  - name: list managed-org member's viewable workflow instances resolves the default_of chain
+  - name: list a child member's viewable workflow instances resolves the default_of chain
     list_objects:
       - user: identity_account:alice
         type: workflow_instance

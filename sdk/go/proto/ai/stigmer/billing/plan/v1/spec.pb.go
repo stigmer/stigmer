@@ -92,7 +92,7 @@ func (PlanInstrument) EnumDescriptor() ([]byte, []int) {
 // below refuse the cross: a license plan is invoiced for a term, so monthly
 // terms have no meaning on it; a subscription plan bills monthly, so an
 // annual price has none. per_extra_org_micros is bound to the
-// entitlements' managed organizations, not to the instrument, and stays free.
+// entitlements' child organizations, not to the instrument, and stays free.
 type PlanSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The instrument this plan is bought through.
@@ -183,9 +183,9 @@ type PlanTerms struct {
 	// The share of monthly usage a subscription plan bills when it exceeds the
 	// minimum, in basis points. Absent on a license plan.
 	UsageShareBasisPoints *int32 `protobuf:"varint,2,opt,name=usage_share_basis_points,json=usageShareBasisPoints,proto3,oneof" json:"usage_share_basis_points,omitempty"`
-	// What a subscription plan bills per month for each platform-managed
-	// organization beyond the ones its entitlements include, in micro-USD.
-	// Absent when the plan includes no managed organizations.
+	// What a subscription plan bills per month for each child organization
+	// beyond the ones its entitlements include, in micro-USD. Absent when the
+	// plan includes no child organizations.
 	PerExtraOrgMicros *int64 `protobuf:"varint,3,opt,name=per_extra_org_micros,json=perExtraOrgMicros,proto3,oneof" json:"per_extra_org_micros,omitempty"`
 	// What a license plan invoices for a one-year term, in micro-USD. Absent on
 	// a subscription plan.

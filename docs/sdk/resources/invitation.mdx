@@ -172,7 +172,7 @@ Create an invitation link for an organization.
 
 Generates a cryptographically random token and returns the full invitation resource including the token. The invite URL is constructed as: https://&lt;host&gt;/invite/&lt;token&gt;
 
-The specified role must be in the organization's grantable_roles, and only an owner of the organization may create an invitation for owner. Platform-managed organizations cannot create invitations.
+The specified role must be in the organization's grantable_roles, and only an owner of the organization may create an invitation for owner. A parent organization's admins may invite people into its child organizations.
 
 <SDKTabs>
 <Tab value="TypeScript">

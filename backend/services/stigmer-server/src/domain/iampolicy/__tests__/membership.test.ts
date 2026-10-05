@@ -169,13 +169,20 @@ describe("membership rules", () => {
     await temp.cleanup();
   });
 
-  /** Seeds an organization row whose creator stamp is `createdBy` (a subject or an account id). */
-  async function seedOrg(slug: string, createdBy: string): Promise<void> {
+  /**
+   * Seeds an organization row whose creator stamp is `createdBy` (a subject
+   * or an account id), a child of `parentOrg` when one is named.
+   */
+  async function seedOrg(
+    slug: string,
+    createdBy: string,
+    parentOrg = "",
+  ): Promise<void> {
     const org = create(OrganizationSchema, {
       apiVersion: "tenancy.stigmer.ai/v1",
       kind: "Organization",
       metadata: { id: slug, slug, name: slug },
-      spec: { description: slug },
+      spec: { description: slug, parentOrg },
       status: {
         audit: {
           specAudit: {
@@ -457,6 +464,30 @@ describe("membership rules", () => {
       ]);
     });
 
+    it("skips every child organization: its creator, an operator and everyone else get no role there", async () => {
+      await seedOrg("acme", "auth0|alice");
+      // The integrator identity that created the child is no owner of it.
+      await seedOrg("acme-cust", "auth0|alice", "acme");
+      const alice = account("auth0|alice", "alice@example.com");
+      await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
+      const operator = account("auth0|op", OPERATOR_EMAIL);
+      await rules.onAccountCreated(operator, userCaller(operator.metadata!.id));
+      const dave = account("auth0|dave", "dave@example.com");
+      await rules.onAccountCreated(dave, userCaller(dave.metadata!.id));
+
+      expect(rolesOf(alice.metadata!.id)).toEqual(["owner@acme"]);
+      expect(rolesOf(operator.metadata!.id)).toEqual(["admin@acme"]);
+      expect(rolesOf(dave.metadata!.id)).toEqual(["member@acme"]);
+    });
+
+    it("an unclaimed child with zero rows is never handed to its first caller (arm 4 skips children)", async () => {
+      await seedOrg("acme", "auth0|founder");
+      await seedOrg("acme-cust", "system", "acme");
+      const dave = account("auth0|dave", "dave@example.com");
+      await rules.onAccountCreated(dave, userCaller(dave.metadata!.id));
+      expect(rolesOf(dave.metadata!.id)).toEqual(["member@acme"]);
+    });
+
     it("with no organization yet, writes nothing — the creator rule runs when the organization is created", async () => {
       const alice = account("auth0|alice", "alice@example.com");
       await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
@@ -500,6 +531,14 @@ describe("membership rules", () => {
 
       expect(rolesOf(operatorId)).toEqual(["owner@acme", "owner@globex"]);
       expect([...policies.rows.keys()].sort()).toEqual(after);
+    });
+
+    it("makes the operator owner of no child organization", async () => {
+      await seedOrg("acme", "system");
+      await seedOrg("acme-cust", "system", "acme");
+      const operator = account(`local|${OPERATOR_EMAIL}`, OPERATOR_EMAIL);
+      await rules.ensureOperatorOwnership(operator);
+      expect(rolesOf(operator.metadata!.id)).toEqual(["owner@acme"]);
     });
 
     it("leaves an organization that already has an owner alone", async () => {
@@ -915,6 +954,16 @@ describe("membership rules", () => {
       await rules.ensureRolesForExistingAccounts();
 
       expect(rolesOf(federated.metadata!.id)).toEqual([]);
+    });
+
+    it("reconciles no one into a child organization", async () => {
+      await seedOrg("acme", "auth0|alice");
+      await seedOrg("acme-cust", "auth0|alice", "acme");
+      const alice = await seedAccount("auth0|alice", "alice@example.com", 10);
+      const dave = await seedAccount("auth0|dave", "dave@example.com", 20);
+      await rules.ensureRolesForExistingAccounts();
+      expect(rolesOf(alice.metadata!.id)).toEqual(["owner@acme"]);
+      expect(rolesOf(dave.metadata!.id)).toEqual(["member@acme"]);
     });
 
     it("a second call is a no-op — the marker short-circuits before any read", async () => {

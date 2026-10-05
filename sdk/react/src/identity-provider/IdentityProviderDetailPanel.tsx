@@ -50,7 +50,7 @@ export interface IdentityProviderDetailPanelProps {
  *
  * In **edit mode**, fields become editable inputs. The SSO toggle,
  * OIDC client ID and sign-in settings (account creation, sign-in role,
- * tenant org claim) are editable. "Save" submits the update via
+ * customer id claim) are editable. "Save" submits the update via
  * {@link useUpdateIdentityProvider}; "Cancel" discards changes and
  * returns to view mode.
  *
@@ -413,10 +413,10 @@ function ViewMode({
             label="Sign-in role"
             value={formatSignInRole(spec.signInRole)}
           />
-          {spec.tenantOrgClaim && (
+          {spec.externalIdClaim && (
             <Field
-              label="Tenant org claim"
-              value={spec.tenantOrgClaim}
+              label="Customer id claim"
+              value={spec.externalIdClaim}
               mono
             />
           )}

@@ -19,8 +19,8 @@ export interface PlanDraft {
   readonly monthlyMinimumUsd: string;
   readonly usageSharePercent: string;
   readonly features: readonly Feature[];
-  /** Empty: the plan includes every managed organization. */
-  readonly includedManagedOrganizations: string;
+  /** Empty: the plan includes every child organization. */
+  readonly includedChildOrgs: string;
   readonly perExtraOrganizationUsd: string;
 }
 
@@ -30,7 +30,7 @@ export const EMPTY_PLAN_DRAFT: PlanDraft = {
   monthlyMinimumUsd: "",
   usageSharePercent: "10",
   features: [Feature.channels, Feature.sharing],
-  includedManagedOrganizations: "",
+  includedChildOrgs: "",
   perExtraOrganizationUsd: "",
 };
 
@@ -79,15 +79,15 @@ export function planInputFromDraft(draft: PlanDraft): PlanDraftResult {
   if (share === null) {
     return { ok: false, field: "usageSharePercent", message: "A percent from 0 to 100, e.g. 10." };
   }
-  const managed = draft.features.includes(Feature.managed_organizations);
-  let includedManagedOrganizations: number | undefined;
+  const childOrgs = draft.features.includes(Feature.child_orgs);
+  let includedChildOrgs: number | undefined;
   let perExtraOrgMicros: bigint | undefined;
-  if (managed && draft.includedManagedOrganizations.trim() !== "") {
-    const included = Number(draft.includedManagedOrganizations.trim());
+  if (childOrgs && draft.includedChildOrgs.trim() !== "") {
+    const included = Number(draft.includedChildOrgs.trim());
     if (!Number.isInteger(included) || included < 0) {
-      return { ok: false, field: "includedManagedOrganizations", message: "A whole number, or empty for unlimited." };
+      return { ok: false, field: "includedChildOrgs", message: "A whole number, or empty for unlimited." };
     }
-    includedManagedOrganizations = included;
+    includedChildOrgs = included;
     const fee = parseUsd(draft.perExtraOrganizationUsd === "" ? "0" : draft.perExtraOrganizationUsd);
     if (fee === null) {
       return { ok: false, field: "perExtraOrganizationUsd", message: "A dollar amount per organization, e.g. 25." };
@@ -103,7 +103,7 @@ export function planInputFromDraft(draft: PlanDraft): PlanDraftResult {
       instrument: PlanInstrument.subscription,
       entitlements: {
         features: [...new Set(draft.features)].sort((a, b) => a - b),
-        ...(includedManagedOrganizations === undefined ? {} : { limits: { includedManagedOrganizations } }),
+        ...(includedChildOrgs === undefined ? {} : { limits: { includedChildOrgs } }),
       },
       terms: {
         monthlyMinimumMicros: minimum,

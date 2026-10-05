@@ -98,10 +98,11 @@ The difference is where the JWT comes from:
 A federated token, a PlatformClient user token and a limited API key each name
 one Organization and work in that Organization only. A bound credential still
 reaches the person's own account, and their API keys limited to the same
-Organization, and can read and run Agents, Skills, Workflows, MCP Servers and
-Plugins shared at Platform visibility. It cannot create an Organization or
-accept an invitation to another one. A call it makes into another Organization
-fails with `PERMISSION_DENIED`.
+Organization, and, in a child organization, can read and run the Agents, Skills,
+Workflows, MCP Servers and Plugins its parent shares with its child
+organizations. It cannot create an Organization, except a child of its own
+Organization, or accept an invitation to another one. A call it makes into
+another Organization fails with `PERMISSION_DENIED`.
 
 A person who signs in at the Stigmer Console with their own Stigmer sign-in, not
 through an Identity Provider or a PlatformClient, is not bound: they move

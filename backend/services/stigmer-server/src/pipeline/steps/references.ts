@@ -22,7 +22,7 @@
  *   (ii) Same organization as the resource: the target must exist, and,
  *        when the target's kind is one the RUN reads as the person
  *        (`readByRun` in the table below), its visibility must be at least
- *        the resource's on the order private < org < platform — the FLOOR.
+ *        the resource's on the order private < org < child_orgs — the FLOOR.
  *        What a person can run they must also be able to read: an
  *        org-visible agent over a private MCP server would run for every
  *        member and be readable by one. Environments, OAuth apps and
@@ -56,17 +56,17 @@
  *        the row is that kind's own permission. Grant view on an
  *        environment, and edit on a row that carries one, as you would its
  *        values.
- *   (iii) Another organization: the target must exist AND be
- *        platform-visible, answered with ONE sentence that does not say
- *        which failed. The caller has no standing to learn what another
- *        organization holds (the anti-probe posture the AgentShare lane set
- *        first). The rule reads the target's LEVEL, not tenancy: whether
- *        the writer's organization is one the target's identity provider
- *        links is the run-time authorizer's question, asked when the run
- *        reads the target, and the copy here claims no more than the rule
- *        checks. No Environment, OAuth app or channel app is ever
- *        platform-visible, so every cross-organization reference to one is
- *        refused here.
+ *   (iii) Another organization: the target must exist, be shared with
+ *        child organizations (visibility_child_orgs), AND belong to the
+ *        writing organization's own parent, answered with ONE sentence
+ *        that does not say which failed. The caller has no standing to
+ *        learn what another organization holds (the anti-probe posture the
+ *        AgentShare lane set first). The writer's parent is read once, from
+ *        its organization's row, only when a reference crosses
+ *        organizations, so a reference no run of the writer's could use is
+ *        refused at write instead of stored. No Environment, OAuth app or
+ *        channel app is ever shared with child organizations, so every
+ *        cross-organization reference to one is refused here.
  *
  * The kind a reference names is the kind its FIELD declares
  * (`reference_kind`, the contract's word for what the field points to),
@@ -85,8 +85,8 @@
  * the target must exist there — and caps its floor at org: only the
  * running organization's own people ever read a target through it, and
  * they can read an org-visible one. The cap changes nothing for a
- * private or org resource and lets a platform-visible workflow call its
- * organization's org-visible agent. A value fixed only at run (an
+ * private or org resource and lets a workflow shared with child
+ * organizations call its organization's org-visible agent. A value fixed only at run (an
  * `agent_call` agent holding a runtime expression) is not a reference at
  * all: the collector yields nothing for it, and the run reads the
  * resolved target as the person the run acts as, as it reads every
@@ -157,11 +157,13 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
 import type { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { Store } from "../../store/interface.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import {
   failedPreconditionError,
   internalError,
@@ -294,7 +296,7 @@ export type ReferenceVerdict =
       readonly kind: "below-floor";
       readonly targetVisibility: ApiResourceVisibility;
     }
-  /** Clause (iii): the other-organization target is missing or not platform-visible — one answer. */
+  /** Clause (iii): the other-organization target is missing, not shared with child organizations, or not the writer's parent's — one answer. */
   | { readonly kind: "not-available" }
   /** The writer clause: the writer does not hold the kind's `writerMust` on the target. */
   | { readonly kind: "not-viewable" };
@@ -303,6 +305,11 @@ export type ReferenceVerdict =
 export interface ReferenceTargets {
   visibilityOf(ref: SpecReference): ApiResourceVisibility | undefined;
   idOf(ref: SpecReference): string | undefined;
+  /**
+   * The writing organization's parent, read only when a reference names
+   * another organization; "" when it has none or none was needed.
+   */
+  readonly writerParentOrg: string;
 }
 
 /** One indexed target: what the floor reads and what the writer clause asks about. */
@@ -321,6 +328,7 @@ interface IndexedTarget {
 export async function loadReferenceTargets(
   store: Store,
   refs: ReadonlyArray<SpecReference>,
+  writerOrg: string,
 ): Promise<ReferenceTargets> {
   const byKind = new Map<ApiResourceKind, Map<string, IndexedTarget>>();
   for (const kind of new Set(refs.map((ref) => ref.kind))) {
@@ -351,7 +359,13 @@ export async function loadReferenceTargets(
     }
     byKind.set(kind, index);
   }
+  const crosses = refs.some((ref) => ref.org !== "" && ref.org !== writerOrg);
+  const writerParentOrg =
+    crosses && writerOrg !== ""
+      ? await parentOrgOfOrganization(store, writerOrg)
+      : "";
   return {
+    writerParentOrg,
     visibilityOf(ref) {
       return byKind.get(ref.kind)?.get(targetKey(ref.org, ref.slug))
         ?.visibility;
@@ -366,6 +380,26 @@ function targetKey(org: string, slug: string): string {
   return `${org}/${slug}`;
 }
 
+/** An organization's `spec.parent_org`; "" when it has none or its row is gone. */
+async function parentOrgOfOrganization(
+  store: Store,
+  org: string,
+): Promise<string> {
+  try {
+    const organization = await store.getResource(
+      ApiResourceKind.organization,
+      org,
+      OrganizationSchema,
+    );
+    return organization.spec?.parentOrg ?? "";
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      return "";
+    }
+    throw internalError(error, "failed to read the writing organization");
+  }
+}
+
 /** The three clauses of the module header, for one reference. */
 export function checkReference(
   targets: ReferenceTargets,
@@ -377,7 +411,9 @@ export function checkReference(
   }
   const target = targets.visibilityOf(ref);
   if (ref.org !== parent.org) {
-    return target === ApiResourceVisibility.visibility_platform
+    return target === ApiResourceVisibility.visibility_child_orgs &&
+      targets.writerParentOrg !== "" &&
+      ref.org === targets.writerParentOrg
       ? { kind: "ok" }
       : { kind: "not-available" };
   }
@@ -473,7 +509,7 @@ function floorOf(
 }
 
 /**
- * The order the floor compares on: private < org < platform, an unset
+ * The order the floor compares on: private < org < child_orgs, an unset
  * level reading as private (the level a row with no config holds). The
  * retired public level is unreachable here — refused at every door and
  * moved off every stored row by the store migration — so meeting it is a
@@ -486,7 +522,7 @@ function visibilityRank(level: ApiResourceVisibility): number {
       return 0;
     case ApiResourceVisibility.visibility_org:
       return 1;
-    case ApiResourceVisibility.visibility_platform:
+    case ApiResourceVisibility.visibility_child_orgs:
       return 2;
     case ApiResourceVisibility.visibility_public:
       throw new Error("the retired public level has no rank");
@@ -544,8 +580,9 @@ function levelWord(level: ApiResourceVisibility): string {
 }
 
 /**
- * Clause (iii)'s one sentence — the same whether the target is missing or
- * not platform-visible, and whether the organization it names exists: the
+ * Clause (iii)'s one sentence — the same whether the target is missing,
+ * not shared with child organizations, or another parent's, and whether
+ * the organization it names exists: the
  * other organization is not named at all, because a name the edge resolved
  * would come back as that organization's id and a name nobody holds as
  * written, which would tell the writer which names exist.
@@ -554,7 +591,7 @@ export function notAvailableReferenceMessage(
   entry: ReferenceTargetKind,
   ref: SpecReference,
 ): string {
-  return `referenced ${singular(entry)} '${ref.slug}' of another organization is not available to this organization; another organization's resource can be referenced only when that organization shares it at platform visibility.`;
+  return `referenced ${singular(entry)} '${ref.slug}' of another organization is not available to this organization; another organization's resource can be referenced only when it is this organization's parent and shares it with its child organizations.`;
 }
 
 /** The writer clause's sentence: the target, and what the writer may attach instead. */
@@ -778,7 +815,7 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
         // the later step's to read by the id the row already holds.
         return;
       }
-      const targets = await loadReferenceTargets(store, refs);
+      const targets = await loadReferenceTargets(store, refs, parent.org);
       const refusal = await judgeReferences(targets, store, parent, judged, {
         authorizer,
         caller: ctx.callerIdentity,
@@ -804,7 +841,7 @@ export async function checkReferences(
   writer: ReferenceWriter,
 ): Promise<ReturnType<typeof referenceRefusal>> {
   return judgeReferences(
-    await loadReferenceTargets(store, refs),
+    await loadReferenceTargets(store, refs, parent.org),
     store,
     parent,
     refs,
@@ -916,7 +953,7 @@ export function newGuardReferenceFloorOnEscalationStep(
         org: metadata.org,
         visibility: requested,
       };
-      const targets = await loadReferenceTargets(store, refs);
+      const targets = await loadReferenceTargets(store, refs, parent.org);
       const refusal = referenceRefusal(
         parent,
         await namedForPeople(

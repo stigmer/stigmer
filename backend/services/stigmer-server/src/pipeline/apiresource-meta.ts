@@ -291,7 +291,7 @@ function tierRank(tier: ResourceTier): number {
  * ValidateVisibility doors on every create and updateVisibility chain.
  *
  * PRIVATE and UNSPECIFIED are always supported (no visibility grant is
- * written for them); ORG and PLATFORM require the matching supports_* flag
+ * written for them); ORG and CHILD_ORGS require the matching supports_* flag
  * on the kind's VisibilityConfig, so kinds with no config are private-only.
  * PUBLIC is refused for every kind: the level is retired (it made a row
  * readable to every account on the server), no config may declare it, and
@@ -311,8 +311,8 @@ export function supportsVisibility(
       return true;
     case ApiResourceVisibility.visibility_org:
       return config?.supportsOrg === true;
-    case ApiResourceVisibility.visibility_platform:
-      return config?.supportsPlatform === true;
+    case ApiResourceVisibility.visibility_child_orgs:
+      return config?.supportsChildOrgs === true;
     case ApiResourceVisibility.visibility_public:
       return false;
     default: {
@@ -333,8 +333,8 @@ export function supportedVisibilityLevels(kind: ApiResourceKind): string {
   if (config?.supportsOrg === true) {
     levels += ", visibility_org";
   }
-  if (config?.supportsPlatform === true) {
-    levels += ", visibility_platform";
+  if (config?.supportsChildOrgs === true) {
+    levels += ", visibility_child_orgs";
   }
   return levels;
 }

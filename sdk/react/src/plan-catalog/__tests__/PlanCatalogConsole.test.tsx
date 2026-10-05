@@ -1,7 +1,8 @@
 // The operator's plan catalog over a mock client: the access notice for
 // anyone without can_manage_plans (the catalog itself is never read for
 // them), the list with retired rows and features not yet offered marked,
-// retiring through the confirm, and creating through the review step.
+// retiring through the confirm, and creating through the review step,
+// a plan that admits child organizations with its included number and fee.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
@@ -80,5 +81,25 @@ describe("PlanCatalogConsole", () => {
     await userEvent.click(within(form).getByRole("button", { name: "Create plan" }));
     await waitFor(() => expect(client.plan.create).toHaveBeenCalledTimes(1));
     expect(client.plan.create.mock.calls[0]?.[0]).toMatchObject({ name: "Team 2027", slug: "team-2027", org: "" });
+  });
+  it("creates a plan that admits child organizations, with the number included and the fee for each beyond", async () => {
+    const client = mockClient(true);
+    renderConsole(client);
+    await userEvent.click(await screen.findByRole("button", { name: "New plan" }));
+    const form = screen.getByRole("form", { name: "New plan" });
+    await userEvent.type(within(form).getByLabelText(/^Name/), "Business 2027");
+    await userEvent.type(within(form).getByLabelText(/^Handle/), "business-2027");
+    await userEvent.type(within(form).getByLabelText(/^Monthly minimum/), "499");
+    expect(within(form).queryByLabelText(/^Child organizations included/)).toBeNull();
+    await userEvent.click(within(form).getByRole("checkbox", { name: /^Child organizations/ }));
+    await userEvent.type(within(form).getByLabelText(/^Child organizations included/), "3");
+    await userEvent.type(within(form).getByLabelText(/^Each one beyond/), "20");
+    await userEvent.click(within(form).getByRole("button", { name: "Review" }));
+    await userEvent.click(within(form).getByRole("button", { name: "Create plan" }));
+    await waitFor(() => expect(client.plan.create).toHaveBeenCalledTimes(1));
+    expect(client.plan.create.mock.calls[0]?.[0]).toMatchObject({
+      entitlements: { limits: { includedChildOrgs: 3 } },
+      terms: { perExtraOrgMicros: 20_000_000n },
+    });
   });
 });

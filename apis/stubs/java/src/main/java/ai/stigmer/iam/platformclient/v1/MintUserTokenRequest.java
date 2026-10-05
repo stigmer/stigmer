@@ -167,11 +167,12 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Platform's stable user identifier for the end user. Used together with
-   * the PlatformClient's owning org to resolve or create an IdentityAccount
-   * (keyed as "stgm_pc|{org}|{user_id}").
+   * the organization the token is for (org) to resolve or create an
+   * IdentityAccount (keyed as "stgm_pc|{org}|{user_id}"), so the same
+   * user_id in two child organizations is two accounts.
    *
    * Must be unique and stable within the org — the same user_id presented
-   * via any PlatformClient in the same org resolves to the same identity.
+   * via any PlatformClient for the same org resolves to the same identity.
    * Changing this value for the same user creates a new identity account.
    * It must not contain the separator character '|'.
    * </pre>
@@ -195,11 +196,12 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Platform's stable user identifier for the end user. Used together with
-   * the PlatformClient's owning org to resolve or create an IdentityAccount
-   * (keyed as "stgm_pc|{org}|{user_id}").
+   * the organization the token is for (org) to resolve or create an
+   * IdentityAccount (keyed as "stgm_pc|{org}|{user_id}"), so the same
+   * user_id in two child organizations is two accounts.
    *
    * Must be unique and stable within the org — the same user_id presented
-   * via any PlatformClient in the same org resolves to the same identity.
+   * via any PlatformClient for the same org resolves to the same identity.
    * Changing this value for the same user creates a new identity account.
    * It must not contain the separator character '|'.
    * </pre>
@@ -329,16 +331,16 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object org_ = "";
   /**
    * <pre>
-   * Optional confirmation of the organization the token is scoped to.
-   * The minted token is ALWAYS scoped to the PlatformClient's owning
-   * organization (metadata.org) — identity resolution and the optional
-   * auto-grant are keyed on it, so cross-organization minting is not
-   * supported. When set, this value must equal that owning organization;
-   * any other value is rejected INVALID_ARGUMENT before the user is
-   * resolved or provisioned. When empty, the owning organization applies.
+   * The organization the token is for, by id or slug: the PlatformClient's
+   * owning organization (metadata.org), or one of that organization's child
+   * organizations. When empty, the owning organization applies. Identity
+   * resolution, the account's first sign-in and sign_in_role are keyed on
+   * it, and the token works in that organization only. Any other value is
+   * rejected INVALID_ARGUMENT before the user is resolved or provisioned,
+   * with the same message whether the organization exists or not.
    * </pre>
    *
-   * <code>string org = 6 [json_name = "org"];</code>
+   * <code>string org = 6 [json_name = "org", (.buf.validate.field) = { ... }</code>
    * @return The org.
    */
   @java.lang.Override
@@ -356,16 +358,16 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional confirmation of the organization the token is scoped to.
-   * The minted token is ALWAYS scoped to the PlatformClient's owning
-   * organization (metadata.org) — identity resolution and the optional
-   * auto-grant are keyed on it, so cross-organization minting is not
-   * supported. When set, this value must equal that owning organization;
-   * any other value is rejected INVALID_ARGUMENT before the user is
-   * resolved or provisioned. When empty, the owning organization applies.
+   * The organization the token is for, by id or slug: the PlatformClient's
+   * owning organization (metadata.org), or one of that organization's child
+   * organizations. When empty, the owning organization applies. Identity
+   * resolution, the account's first sign-in and sign_in_role are keyed on
+   * it, and the token works in that organization only. Any other value is
+   * rejected INVALID_ARGUMENT before the user is resolved or provisioned,
+   * with the same message whether the organization exists or not.
    * </pre>
    *
-   * <code>string org = 6 [json_name = "org"];</code>
+   * <code>string org = 6 [json_name = "org", (.buf.validate.field) = { ... }</code>
    * @return The bytes for org.
    */
   @java.lang.Override
@@ -1004,11 +1006,12 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Platform's stable user identifier for the end user. Used together with
-     * the PlatformClient's owning org to resolve or create an IdentityAccount
-     * (keyed as "stgm_pc|{org}|{user_id}").
+     * the organization the token is for (org) to resolve or create an
+     * IdentityAccount (keyed as "stgm_pc|{org}|{user_id}"), so the same
+     * user_id in two child organizations is two accounts.
      *
      * Must be unique and stable within the org — the same user_id presented
-     * via any PlatformClient in the same org resolves to the same identity.
+     * via any PlatformClient for the same org resolves to the same identity.
      * Changing this value for the same user creates a new identity account.
      * It must not contain the separator character '|'.
      * </pre>
@@ -1031,11 +1034,12 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Platform's stable user identifier for the end user. Used together with
-     * the PlatformClient's owning org to resolve or create an IdentityAccount
-     * (keyed as "stgm_pc|{org}|{user_id}").
+     * the organization the token is for (org) to resolve or create an
+     * IdentityAccount (keyed as "stgm_pc|{org}|{user_id}"), so the same
+     * user_id in two child organizations is two accounts.
      *
      * Must be unique and stable within the org — the same user_id presented
-     * via any PlatformClient in the same org resolves to the same identity.
+     * via any PlatformClient for the same org resolves to the same identity.
      * Changing this value for the same user creates a new identity account.
      * It must not contain the separator character '|'.
      * </pre>
@@ -1059,11 +1063,12 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Platform's stable user identifier for the end user. Used together with
-     * the PlatformClient's owning org to resolve or create an IdentityAccount
-     * (keyed as "stgm_pc|{org}|{user_id}").
+     * the organization the token is for (org) to resolve or create an
+     * IdentityAccount (keyed as "stgm_pc|{org}|{user_id}"), so the same
+     * user_id in two child organizations is two accounts.
      *
      * Must be unique and stable within the org — the same user_id presented
-     * via any PlatformClient in the same org resolves to the same identity.
+     * via any PlatformClient for the same org resolves to the same identity.
      * Changing this value for the same user creates a new identity account.
      * It must not contain the separator character '|'.
      * </pre>
@@ -1083,11 +1088,12 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Platform's stable user identifier for the end user. Used together with
-     * the PlatformClient's owning org to resolve or create an IdentityAccount
-     * (keyed as "stgm_pc|{org}|{user_id}").
+     * the organization the token is for (org) to resolve or create an
+     * IdentityAccount (keyed as "stgm_pc|{org}|{user_id}"), so the same
+     * user_id in two child organizations is two accounts.
      *
      * Must be unique and stable within the org — the same user_id presented
-     * via any PlatformClient in the same org resolves to the same identity.
+     * via any PlatformClient for the same org resolves to the same identity.
      * Changing this value for the same user creates a new identity account.
      * It must not contain the separator character '|'.
      * </pre>
@@ -1104,11 +1110,12 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Platform's stable user identifier for the end user. Used together with
-     * the PlatformClient's owning org to resolve or create an IdentityAccount
-     * (keyed as "stgm_pc|{org}|{user_id}").
+     * the organization the token is for (org) to resolve or create an
+     * IdentityAccount (keyed as "stgm_pc|{org}|{user_id}"), so the same
+     * user_id in two child organizations is two accounts.
      *
      * Must be unique and stable within the org — the same user_id presented
-     * via any PlatformClient in the same org resolves to the same identity.
+     * via any PlatformClient for the same org resolves to the same identity.
      * Changing this value for the same user creates a new identity account.
      * It must not contain the separator character '|'.
      * </pre>
@@ -1334,16 +1341,16 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object org_ = "";
     /**
      * <pre>
-     * Optional confirmation of the organization the token is scoped to.
-     * The minted token is ALWAYS scoped to the PlatformClient's owning
-     * organization (metadata.org) — identity resolution and the optional
-     * auto-grant are keyed on it, so cross-organization minting is not
-     * supported. When set, this value must equal that owning organization;
-     * any other value is rejected INVALID_ARGUMENT before the user is
-     * resolved or provisioned. When empty, the owning organization applies.
+     * The organization the token is for, by id or slug: the PlatformClient's
+     * owning organization (metadata.org), or one of that organization's child
+     * organizations. When empty, the owning organization applies. Identity
+     * resolution, the account's first sign-in and sign_in_role are keyed on
+     * it, and the token works in that organization only. Any other value is
+     * rejected INVALID_ARGUMENT before the user is resolved or provisioned,
+     * with the same message whether the organization exists or not.
      * </pre>
      *
-     * <code>string org = 6 [json_name = "org"];</code>
+     * <code>string org = 6 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @return The org.
      */
     public java.lang.String getOrg() {
@@ -1360,16 +1367,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional confirmation of the organization the token is scoped to.
-     * The minted token is ALWAYS scoped to the PlatformClient's owning
-     * organization (metadata.org) — identity resolution and the optional
-     * auto-grant are keyed on it, so cross-organization minting is not
-     * supported. When set, this value must equal that owning organization;
-     * any other value is rejected INVALID_ARGUMENT before the user is
-     * resolved or provisioned. When empty, the owning organization applies.
+     * The organization the token is for, by id or slug: the PlatformClient's
+     * owning organization (metadata.org), or one of that organization's child
+     * organizations. When empty, the owning organization applies. Identity
+     * resolution, the account's first sign-in and sign_in_role are keyed on
+     * it, and the token works in that organization only. Any other value is
+     * rejected INVALID_ARGUMENT before the user is resolved or provisioned,
+     * with the same message whether the organization exists or not.
      * </pre>
      *
-     * <code>string org = 6 [json_name = "org"];</code>
+     * <code>string org = 6 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @return The bytes for org.
      */
     public com.google.protobuf.ByteString
@@ -1387,16 +1394,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional confirmation of the organization the token is scoped to.
-     * The minted token is ALWAYS scoped to the PlatformClient's owning
-     * organization (metadata.org) — identity resolution and the optional
-     * auto-grant are keyed on it, so cross-organization minting is not
-     * supported. When set, this value must equal that owning organization;
-     * any other value is rejected INVALID_ARGUMENT before the user is
-     * resolved or provisioned. When empty, the owning organization applies.
+     * The organization the token is for, by id or slug: the PlatformClient's
+     * owning organization (metadata.org), or one of that organization's child
+     * organizations. When empty, the owning organization applies. Identity
+     * resolution, the account's first sign-in and sign_in_role are keyed on
+     * it, and the token works in that organization only. Any other value is
+     * rejected INVALID_ARGUMENT before the user is resolved or provisioned,
+     * with the same message whether the organization exists or not.
      * </pre>
      *
-     * <code>string org = 6 [json_name = "org"];</code>
+     * <code>string org = 6 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @param value The org to set.
      * @return This builder for chaining.
      */
@@ -1410,16 +1417,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional confirmation of the organization the token is scoped to.
-     * The minted token is ALWAYS scoped to the PlatformClient's owning
-     * organization (metadata.org) — identity resolution and the optional
-     * auto-grant are keyed on it, so cross-organization minting is not
-     * supported. When set, this value must equal that owning organization;
-     * any other value is rejected INVALID_ARGUMENT before the user is
-     * resolved or provisioned. When empty, the owning organization applies.
+     * The organization the token is for, by id or slug: the PlatformClient's
+     * owning organization (metadata.org), or one of that organization's child
+     * organizations. When empty, the owning organization applies. Identity
+     * resolution, the account's first sign-in and sign_in_role are keyed on
+     * it, and the token works in that organization only. Any other value is
+     * rejected INVALID_ARGUMENT before the user is resolved or provisioned,
+     * with the same message whether the organization exists or not.
      * </pre>
      *
-     * <code>string org = 6 [json_name = "org"];</code>
+     * <code>string org = 6 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearOrg() {
@@ -1430,16 +1437,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional confirmation of the organization the token is scoped to.
-     * The minted token is ALWAYS scoped to the PlatformClient's owning
-     * organization (metadata.org) — identity resolution and the optional
-     * auto-grant are keyed on it, so cross-organization minting is not
-     * supported. When set, this value must equal that owning organization;
-     * any other value is rejected INVALID_ARGUMENT before the user is
-     * resolved or provisioned. When empty, the owning organization applies.
+     * The organization the token is for, by id or slug: the PlatformClient's
+     * owning organization (metadata.org), or one of that organization's child
+     * organizations. When empty, the owning organization applies. Identity
+     * resolution, the account's first sign-in and sign_in_role are keyed on
+     * it, and the token works in that organization only. Any other value is
+     * rejected INVALID_ARGUMENT before the user is resolved or provisioned,
+     * with the same message whether the organization exists or not.
      * </pre>
      *
-     * <code>string org = 6 [json_name = "org"];</code>
+     * <code>string org = 6 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for org to set.
      * @return This builder for chaining.
      */

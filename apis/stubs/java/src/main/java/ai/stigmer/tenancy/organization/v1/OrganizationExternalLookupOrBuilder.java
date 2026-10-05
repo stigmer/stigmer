@@ -12,48 +12,41 @@ public interface OrganizationExternalLookupOrBuilder extends
 
   /**
    * <pre>
-   * Reference to the IdentityProvider (org + slug) that manages this organization.
+   * The child's external_id: the parent's own identifier for it.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-   * @return Whether the identityProviderRef field is set.
+   * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+   * @return The externalId.
    */
-  boolean hasIdentityProviderRef();
+  java.lang.String getExternalId();
   /**
    * <pre>
-   * Reference to the IdentityProvider (org + slug) that manages this organization.
+   * The child's external_id: the parent's own identifier for it.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-   * @return The identityProviderRef.
+   * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for externalId.
    */
-  ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef();
-  /**
-   * <pre>
-   * Reference to the IdentityProvider (org + slug) that manages this organization.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-   */
-  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder();
+  com.google.protobuf.ByteString
+      getExternalIdBytes();
 
   /**
    * <pre>
-   * The external platform's organization identifier.
+   * The parent organization, by id or slug.
    * </pre>
    *
-   * <code>string external_org_id = 2 [json_name = "externalOrgId", (.buf.validate.field) = { ... }</code>
-   * @return The externalOrgId.
+   * <code>string parent_org = 3 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+   * @return The parentOrg.
    */
-  java.lang.String getExternalOrgId();
+  java.lang.String getParentOrg();
   /**
    * <pre>
-   * The external platform's organization identifier.
+   * The parent organization, by id or slug.
    * </pre>
    *
-   * <code>string external_org_id = 2 [json_name = "externalOrgId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for externalOrgId.
+   * <code>string parent_org = 3 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for parentOrg.
    */
   com.google.protobuf.ByteString
-      getExternalOrgIdBytes();
+      getParentOrgBytes();
 }

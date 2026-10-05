@@ -91,6 +91,19 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ]);
   });
 
+  it("a blueprint shared with child organizations adds the organization's CHILD_ORG_VIEWER userset beside the org floor", () => {
+    expect(
+      derivedFor("agent", {
+        visibility: ApiResourceVisibility.visibility_child_orgs,
+      }),
+    ).toEqual([
+      "agent:agent-1#organization@organization:acme",
+      "agent:agent-1#owner@identity_account:ida_carol",
+      "agent:agent-1#child_org_viewer@organization:acme#child_org_viewer",
+      "agent:agent-1#viewer@organization:acme#viewer",
+    ]);
+  });
+
   it("a row that still carries the retired public level derives no viewer tuple at all — no shape reaches every account, and the level's own org floor left with it", () => {
     expect(
       derivedFor("skill", {
@@ -172,7 +185,7 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ]);
     expect(
       derivedFor("environment", {
-        visibility: ApiResourceVisibility.visibility_platform,
+        visibility: ApiResourceVisibility.visibility_child_orgs,
       }),
     ).toEqual([
       "environment:environment-1#organization@organization:acme",
@@ -247,6 +260,8 @@ afterAll(dropPostgresFixture);
 
 const ROOT: Person = { accountId: "ida_root", aliases: new Set(["ida_root"]) };
 const DAVE: Person = { accountId: "ida_dave", aliases: new Set(["ida_dave"]) };
+/** A read-only viewer of acme's child organization, and nobody in acme. */
+const VIC: Person = { accountId: "ida_vic", aliases: new Set(["ida_vic"]) };
 
 async function grant(
   policies: IamPolicyStore,
@@ -343,6 +358,98 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           person,
         );
       }
+
+      it("derives a parent's child_org edges from the organization list index and a child's parent_org from its row: the child's viewer reads what the parent shares, and the parent's owner manages the child without reading it", async () => {
+        const organization = storedDeclaration("organization");
+        await opened.store.saveResource(
+          ApiResourceKind.organization,
+          "acme-cust",
+          organization.schema,
+          fixtureRow(organization, {
+            id: "acme-cust",
+            org: "",
+            visibility: ApiResourceVisibility.visibility_private,
+            createdBy: "system",
+            spec: { parentOrg: "acme" },
+          }),
+        );
+        const agent = storedDeclaration("agent");
+        await opened.store.saveResource(
+          ApiResourceKind.agent,
+          "agt_catalog",
+          agent.schema,
+          fixtureRow(agent, {
+            id: "agt_catalog",
+            org: "acme",
+            visibility: ApiResourceVisibility.visibility_child_orgs,
+            createdBy: ROOT.accountId,
+          }),
+        );
+        await opened.store.saveResource(
+          ApiResourceKind.agent,
+          "agt_customer",
+          agent.schema,
+          fixtureRow(agent, {
+            id: "agt_customer",
+            org: "acme-cust",
+            visibility: ApiResourceVisibility.visibility_org,
+            createdBy: VIC.accountId,
+          }),
+        );
+        await grant(
+          counted.policies,
+          orgRole(VIC.accountId, "viewer", "acme-cust"),
+        );
+
+        const vic = sourceFor(VIC);
+        expect(
+          (
+            await vic.tuplesOf(parseObjectRef("organization:acme"), "child_org")
+          ).map(formatTuple),
+        ).toEqual(["organization:acme#child_org@organization:acme-cust"]);
+        expect(
+          (
+            await vic.tuplesOf(
+              parseObjectRef("organization:acme-cust"),
+              "parent_org",
+            )
+          ).map(formatTuple),
+        ).toEqual(["organization:acme-cust#parent_org@organization:acme"]);
+        const check = (
+          person: Person,
+          object: string,
+          relation: string,
+        ): Promise<boolean> =>
+          checkRelation(
+            { model: builtInModel, source: sourceFor(person) },
+            parseObjectRef(object),
+            relation,
+            person,
+          );
+        expect(await check(VIC, "agent:agt_catalog", "can_execute")).toBe(true);
+        expect(await check(VIC, "organization:acme", "can_view")).toBe(false);
+        expect(await check(ROOT, "organization:acme-cust", "can_edit")).toBe(
+          true,
+        );
+        expect(
+          await check(ROOT, "organization:acme-cust", "can_grant_access"),
+        ).toBe(true);
+        expect(await check(ROOT, "organization:acme-cust", "can_view")).toBe(
+          false,
+        );
+        expect(await check(ROOT, "agent:agt_customer", "can_view")).toBe(false);
+        // acme's member is no admin of acme, so manages nothing in its child.
+        expect(await check(DAVE, "organization:acme-cust", "can_edit")).toBe(
+          false,
+        );
+        // An organization with no children derives no child_org edge.
+        expect(
+          await sourceFor(ROOT).tuplesOf(
+            parseObjectRef("organization:acme-cust"),
+            "child_org",
+          ),
+        ).toEqual([]);
+      });
 
       it("an identity_account object is read through the account PORT, so a person owns their own row wherever accounts live", async () => {
         // A port that is NOT the generic store: the row lives in memory

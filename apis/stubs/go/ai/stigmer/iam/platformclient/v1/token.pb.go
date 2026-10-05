@@ -38,11 +38,12 @@ type MintUserTokenRequest struct {
 	// Validated against the stored client_secret_hash.
 	ClientSecret string `protobuf:"bytes,2,opt,name=client_secret,json=clientSecret,proto3" json:"client_secret,omitempty"`
 	// Platform's stable user identifier for the end user. Used together with
-	// the PlatformClient's owning org to resolve or create an IdentityAccount
-	// (keyed as "stgm_pc|{org}|{user_id}").
+	// the organization the token is for (org) to resolve or create an
+	// IdentityAccount (keyed as "stgm_pc|{org}|{user_id}"), so the same
+	// user_id in two child organizations is two accounts.
 	//
 	// Must be unique and stable within the org — the same user_id presented
-	// via any PlatformClient in the same org resolves to the same identity.
+	// via any PlatformClient for the same org resolves to the same identity.
 	// Changing this value for the same user creates a new identity account.
 	// It must not contain the separator character '|'.
 	UserId string `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -54,13 +55,13 @@ type MintUserTokenRequest struct {
 	// enrichment when JIT-provisioning an identity account; later mints do not
 	// change the stored profile.
 	UserName string `protobuf:"bytes,5,opt,name=user_name,json=userName,proto3" json:"user_name,omitempty"`
-	// Optional confirmation of the organization the token is scoped to.
-	// The minted token is ALWAYS scoped to the PlatformClient's owning
-	// organization (metadata.org) — identity resolution and the optional
-	// auto-grant are keyed on it, so cross-organization minting is not
-	// supported. When set, this value must equal that owning organization;
-	// any other value is rejected INVALID_ARGUMENT before the user is
-	// resolved or provisioned. When empty, the owning organization applies.
+	// The organization the token is for, by id or slug: the PlatformClient's
+	// owning organization (metadata.org), or one of that organization's child
+	// organizations. When empty, the owning organization applies. Identity
+	// resolution, the account's first sign-in and sign_in_role are keyed on
+	// it, and the token works in that organization only. Any other value is
+	// rejected INVALID_ARGUMENT before the user is resolved or provisioned,
+	// with the same message whether the organization exists or not.
 	Org           string `protobuf:"bytes,6,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -369,7 +370,7 @@ var File_ai_stigmer_iam_platformclient_v1_token_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/iam/platformclient/v1/token.proto\x12 ai.stigmer.iam.platformclient.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1bbuf/validate/validate.proto\"\xf1\x01\n" +
+	",ai/stigmer/iam/platformclient/v1/token.proto\x12 ai.stigmer.iam.platformclient.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1bbuf/validate/validate.proto\"\xfa\x01\n" +
 	"\x14MintUserTokenRequest\x12$\n" +
 	"\tclient_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bclientId\x12,\n" +
 	"\rclient_secret\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\fclientSecret\x12#\n" +
@@ -377,8 +378,8 @@ const file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc = "" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x06userId\x12'\n" +
 	"\n" +
 	"user_email\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\xc0\x02R\tuserEmail\x12%\n" +
-	"\tuser_name\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\buserName\x12\x10\n" +
-	"\x03org\x18\x06 \x01(\tR\x03org\"x\n" +
+	"\tuser_name\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\buserName\x12\x19\n" +
+	"\x03org\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x18@R\x03org\"x\n" +
 	"\x15MintUserTokenResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x1d\n" +
 	"\n" +

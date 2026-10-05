@@ -390,12 +390,14 @@ describe("the built-in model", () => {
     }
   });
 
-  it("admits an organization only as its whole read audience, organization#viewer, never a narrower role's userset", () => {
+  it("admits an organization only as a whole read audience: its viewers, or, on a blueprint's child_org_viewer, every child's viewers — never a narrower role's userset", () => {
     const narrower: string[] = [];
     for (const declaration of builtInModel.declarations) {
       for (const [relation, rewrite] of declaration.relations) {
         for (const subject of directSubjects(rewrite).filter(isOrganizationUserset)) {
-          if (subject.relation !== "viewer") {
+          const childAudience =
+            relation === "child_org_viewer" && subject.relation === "child_org_viewer";
+          if (subject.relation !== "viewer" && !childAudience) {
             narrower.push(`${declaration.type}#${relation} admits organization#${subject.relation}`);
           }
         }
@@ -429,11 +431,13 @@ describe("the built-in model", () => {
     }
   });
 
-  it("carries a derived rule only where kind_meta cannot derive the relation: default_of and execution_viewer, both on the workflow instance", () => {
+  it("carries a derived rule only where kind_meta cannot derive the relation: an organization's two edges, and default_of and execution_viewer on the workflow instance", () => {
     const derived = builtInModel.declarations
       .flatMap((d) => [...d.derived.keys()].map((r) => `${d.type}#${r}`))
       .sort();
     expect(derived).toEqual([
+      "organization#child_org",
+      "organization#parent_org",
       "workflow_instance#default_of",
       "workflow_instance#execution_viewer",
     ]);

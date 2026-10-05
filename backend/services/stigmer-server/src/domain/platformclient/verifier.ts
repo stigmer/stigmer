@@ -37,13 +37,15 @@
  * through (stigmer/stigmer#1256).
  *
  * Every user token is bound to the organization its `org` claim names
- * (`boundOrg`; authorization/credential-binding.ts): the mint always writes
- * the client's owning organization there, so a minted user works in that
- * organization only, whatever roles the account holds elsewhere. A token
- * with no `org` claim, or one that names an organization other than its
- * client's, is refused: the mint never signs either, so either is a token
- * this server did not mean, and a token that names no organization must
- * never fall back to speaking for the person everywhere.
+ * (`boundOrg`; authorization/credential-binding.ts): the mint writes the
+ * client's owning organization there, or one of its child organizations,
+ * so a minted user works in that organization only, whatever roles the
+ * account holds elsewhere. A token with no `org` claim, or one that names
+ * an organization that is neither its client's nor a child of it (one
+ * read of the named row), is refused: the mint never signs either, so
+ * either is a token this server did not mean, and a token that names no
+ * organization must never fall back to speaking for the person
+ * everywhere.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -64,11 +66,15 @@ import {
   TOKEN_ORGANIZATION_MISMATCH_MESSAGE,
   USER_TOKEN_CLAIMS,
 } from "./constants.js";
+import type { Store } from "../../store/interface.js";
+import { isChildOf } from "../organization/children.js";
 import type { PlatformClientStore } from "./store.js";
 
 export interface PlatformClientTokenVerifierDeps {
   readonly keys: PlatformTokenKeyRing;
   readonly clients: Pick<PlatformClientStore, "findById">;
+  /** Where a child organization a token names is read. */
+  readonly store: Pick<Store, "getResource">;
   readonly now?: () => Date;
 }
 
@@ -110,10 +116,12 @@ export function newPlatformClientTokenVerifier(
         throw new ConnectError(DELETED_CLIENT_MESSAGE, Code.Unauthenticated);
       }
       const boundOrg = stringClaim(verified.payload, USER_TOKEN_CLAIMS.org);
+      const clientOrg = client.metadata?.org ?? "";
       if (
         boundOrg === undefined ||
         boundOrg === "" ||
-        boundOrg !== (client.metadata?.org ?? "")
+        (boundOrg !== clientOrg &&
+          !(await isChildOf(deps.store, boundOrg, clientOrg)))
       ) {
         throw new ConnectError(
           TOKEN_ORGANIZATION_MISMATCH_MESSAGE,

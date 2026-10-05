@@ -5,7 +5,7 @@ import type { DeploymentMode } from "@stigmer/sdk";
  * A selectable visibility level: label, explanation, and escalation copy.
  *
  * Options are always declared in escalation order (least to most exposed:
- * private < org < platform); {@link VisibilitySelector} derives
+ * private < org < child organizations); {@link VisibilitySelector} derives
  * "is this an escalation?" from array position, and shows
  * {@link confirmPrompt} before applying one.
  */
@@ -28,7 +28,7 @@ export interface VisibilityLevelOption {
   /**
    * Heavy confirmation shown as a modal {@link ConfirmDialog} when the user
    * escalates TO this level. Reserved for levels that expose the resource
-   * beyond the owning organization (platform), where a blocking,
+   * beyond the owning organization (child organizations), where a blocking,
    * audience-naming confirmation is warranted.
    *
    * The selector derives escalation severity purely from this data:
@@ -37,7 +37,7 @@ export interface VisibilityLevelOption {
    * component.
    */
   readonly confirmDialog?: {
-    /** Modal title, phrased as a question (e.g. "Share with your whole platform?"). */
+    /** Modal title, phrased as a question (e.g. "Share with every child organization?"). */
     readonly title: string;
     /** Body copy that names the exact audience and the consequence. */
     readonly description: string;
@@ -48,7 +48,7 @@ export interface VisibilityLevelOption {
    * only for a stored value from before the retirement (see
    * {@link visibilityOption}).
    */
-  readonly tone: "private" | "org" | "platform" | "public";
+  readonly tone: "private" | "org" | "childOrgs" | "public";
   /**
    * When present, the level cannot be selected by the current caller and the
    * row renders locked (disabled, lock affordance) with this copy explaining
@@ -74,16 +74,16 @@ const ORG_OPTION: VisibilityLevelOption = {
   tone: "org",
 };
 
-const PLATFORM_OPTION: VisibilityLevelOption = {
-  value: ApiResourceVisibility.visibility_platform,
-  label: "Platform",
-  description: "All organizations managed by your platform",
+const CHILD_ORGS_OPTION: VisibilityLevelOption = {
+  value: ApiResourceVisibility.visibility_child_orgs,
+  label: "Child organizations",
+  description: "Every organization under this one",
   confirmDialog: {
-    title: "Share with your whole platform?",
+    title: "Share with every child organization?",
     description:
-      "Every organization managed by your platform will be able to view and use this resource. You can return it to a narrower visibility at any time.",
+      "Everyone in every child organization of this organization, including child organizations created later, will be able to view and use this resource. You can return it to a narrower visibility at any time.",
   },
-  tone: "platform",
+  tone: "childOrgs",
 };
 
 /**
@@ -106,29 +106,28 @@ const RETIRED_PUBLIC_OPTION: VisibilityLevelOption = {
 /**
  * Inputs that gate which levels a blueprint selector offers.
  *
- * Mirrors the backend's per-kind `VisibilityConfig` plus the one runtime
- * fact the proto cannot know: `visibility_platform` requires the owning
- * org to operate an IdentityProvider — the backend rejects it otherwise
- * (`ValidateVisibilityStep`), so the option only renders when the signal
- * is present (use `useSsoProvider`, the permission-free lookup; the
- * open-source edition serves no IdentityProvider kind, so the signal is
- * never present there).
+ * Mirrors the backend's per-kind `VisibilityConfig` plus the runtime facts
+ * the proto cannot know: `visibility_child_orgs` shares a blueprint with
+ * the owning organization's child organizations, so it is offered only
+ * where the owning organization is not itself a child (the backend refuses
+ * it in a child) and the server holds more than one organization (a
+ * single-organization server has no children).
  */
 export interface BlueprintVisibilityLevelsContext {
-  readonly hasIdentityProvider: boolean;
+  readonly offersChildOrgs: boolean;
 }
 
 /**
  * The levels a blueprint (agent, skill, workflow, mcp_server, plugin)
  * selector offers, in escalation order: Private / Organization
- * [/ Platform]. Organization is the creation default (blueprints are
- * shared org assets; Private is an explicit opt-in).
+ * [/ Child organizations]. Organization is the creation default
+ * (blueprints are shared org assets; Private is an explicit opt-in).
  */
 export function blueprintVisibilityLevels(
   context: BlueprintVisibilityLevelsContext,
 ): readonly VisibilityLevelOption[] {
-  return context.hasIdentityProvider
-    ? [PRIVATE_OPTION, ORG_OPTION, PLATFORM_OPTION]
+  return context.offersChildOrgs
+    ? [PRIVATE_OPTION, ORG_OPTION, CHILD_ORGS_OPTION]
     : [PRIVATE_OPTION, ORG_OPTION];
 }
 
@@ -136,9 +135,9 @@ export function blueprintVisibilityLevels(
  * The levels an instance (workflow_instance) selector
  * offers, in escalation order: Private / Organization.
  *
- * Platform is deliberately absent — instances are tenant-isolated by
- * design (each managed org instantiates shared blueprints inside its own
- * boundary). Descriptions are execution-oriented because org visibility on
+ * Child organizations are deliberately absent — instances are
+ * tenant-isolated by design (each child organization instantiates shared
+ * blueprints inside its own boundary). Descriptions are execution-oriented because org visibility on
  * an instance is about who can run it and see its executions.
  */
 export function instanceVisibilityLevels(): readonly VisibilityLevelOption[] {
@@ -153,7 +152,7 @@ export function instanceVisibilityLevels(): readonly VisibilityLevelOption[] {
 
 /**
  * The levels an environment selector offers, in escalation order:
- * Private / Organization. The platform level is structurally absent —
+ * Private / Organization. The child-organizations level is structurally absent —
  * secret values never leave the org boundary (the backend rejects it via
  * the kind's VisibilityConfig).
  *
@@ -191,9 +190,9 @@ export function environmentVisibilityLevels(
 /**
  * Canonical option for a visibility value, independent of any kind's offered
  * list. Used to render the current level even when it is not offerable in
- * the current context (e.g. a platform-shared blueprint whose org no longer
- * operates an IdentityProvider, or a row still carrying the retired public
- * level) — the state must stay legible.
+ * the current context (e.g. a blueprint shared with child organizations,
+ * shown to a viewer who cannot change it, or a row still carrying the
+ * retired public level) — the state must stay legible.
  */
 export function visibilityOption(
   visibility: ApiResourceVisibility,
@@ -201,8 +200,8 @@ export function visibilityOption(
   switch (visibility) {
     case ApiResourceVisibility.visibility_org:
       return ORG_OPTION;
-    case ApiResourceVisibility.visibility_platform:
-      return PLATFORM_OPTION;
+    case ApiResourceVisibility.visibility_child_orgs:
+      return CHILD_ORGS_OPTION;
     case ApiResourceVisibility.visibility_public:
       return RETIRED_PUBLIC_OPTION;
     default:
@@ -213,7 +212,7 @@ export function visibilityOption(
 /**
  * Human label for a visibility value — the one place list rows, badges, and
  * detail panels resolve enum-to-text, so no surface ever falls through to
- * "Private" (or "unknown") for org/platform.
+ * "Private" (or "unknown") for org/child organizations.
  */
 export function visibilityLabel(visibility: ApiResourceVisibility): string {
   return visibilityOption(visibility).label;

@@ -248,3 +248,4 @@ One of these still needs its organization named. An execution context belongs to
 | OrganizationCommandController.create | not filled: organization service |
 | OrganizationCommandController.update | not filled: organization service |
 | OrganizationQueryController.find | not filled: organization service |
+| OrganizationQueryController.listChildOrgs | not filled: organization service |

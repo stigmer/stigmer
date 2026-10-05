@@ -14,16 +14,16 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  *
  * - visibility_private: no visibility tuple (owner + explicit grants only)
  * - visibility_org:     resource#viewer&#64;organization:&lt;org&gt;#viewer
- * - visibility_platform: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
- * (the "private catalog" primitive: grants access to
- * all members of all platform_managed orgs linked to
- * the owning org's IdentityProvider)
+ * - visibility_child_orgs: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
+ * (the shared catalog: grants read and run to
+ * everyone in every child organization of the owning
+ * organization)
  *
- * Every level but private is bounded by an organization or by the identity
- * provider that links a set of organizations. There is no level a resource
- * can hold that makes it readable to every account on the server; sharing
- * across organizations that share no identity provider is done by
- * packaging the resource as a plugin and installing a copy.
+ * Every level but private is bounded by an organization or by its child
+ * organizations. There is no level a resource can hold that makes it
+ * readable to every account on the server; sharing across organizations
+ * that are not parent and child is done by packaging the resource as a
+ * plugin and installing a copy.
  *
  * Kinds WITHOUT a visibility config accept only visibility_private (or
  * unspecified) — they are personal or org-structural resources whose access
@@ -32,10 +32,10 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  *
  * Current classification:
  * - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
- * private, org, platform
+ * private, org, child_orgs
  * - Instance kinds (workflow_instance):
- * private, org — platform is deliberately excluded to preserve
- * tenant isolation: each managed org instantiates shared blueprints
+ * private, org — child_orgs is deliberately excluded to preserve
+ * tenant isolation: each child organization instantiates shared blueprints
  * inside its own boundary. (System-managed DEFAULT instances opt out of
  * visibility entirely: their access tracks the parent blueprint
  * structurally via the default_of FGA relation.)
@@ -88,23 +88,24 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig.class, ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig.Builder.class);
   }
 
-  public static final int SUPPORTS_PLATFORM_FIELD_NUMBER = 2;
-  private boolean supportsPlatform_ = false;
+  public static final int SUPPORTS_CHILD_ORGS_FIELD_NUMBER = 2;
+  private boolean supportsChildOrgs_ = false;
   /**
    * <pre>
-   * Whether resources of this kind can be set to visibility_platform.
-   * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+   * Whether resources of this kind can be set to visibility_child_orgs.
+   * FGA tuple: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
    *
-   * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-   * Instance kinds are deliberately excluded to preserve tenant isolation.
+   * Reserved for blueprint kinds (agent, skill, workflow, mcp_server,
+   * plugin). Instance kinds are deliberately excluded to preserve tenant
+   * isolation.
    * </pre>
    *
-   * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
-   * @return The supportsPlatform.
+   * <code>bool supports_child_orgs = 2 [json_name = "supportsChildOrgs"];</code>
+   * @return The supportsChildOrgs.
    */
   @java.lang.Override
-  public boolean getSupportsPlatform() {
-    return supportsPlatform_;
+  public boolean getSupportsChildOrgs() {
+    return supportsChildOrgs_;
   }
 
   public static final int SUPPORTS_ORG_FIELD_NUMBER = 3;
@@ -182,8 +183,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (supportsPlatform_ != false) {
-      output.writeBool(2, supportsPlatform_);
+    if (supportsChildOrgs_ != false) {
+      output.writeBool(2, supportsChildOrgs_);
     }
     if (supportsOrg_ != false) {
       output.writeBool(3, supportsOrg_);
@@ -200,9 +201,9 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (supportsPlatform_ != false) {
+    if (supportsChildOrgs_ != false) {
       size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(2, supportsPlatform_);
+        .computeBoolSize(2, supportsChildOrgs_);
     }
     if (supportsOrg_ != false) {
       size += com.google.protobuf.CodedOutputStream
@@ -227,8 +228,8 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig other = (ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig) obj;
 
-    if (getSupportsPlatform()
-        != other.getSupportsPlatform()) return false;
+    if (getSupportsChildOrgs()
+        != other.getSupportsChildOrgs()) return false;
     if (getSupportsOrg()
         != other.getSupportsOrg()) return false;
     if (getDefaultsToOrgVisibility()
@@ -244,9 +245,9 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + SUPPORTS_PLATFORM_FIELD_NUMBER;
+    hash = (37 * hash) + SUPPORTS_CHILD_ORGS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getSupportsPlatform());
+        getSupportsChildOrgs());
     hash = (37 * hash) + SUPPORTS_ORG_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getSupportsOrg());
@@ -359,16 +360,16 @@ private static final long serialVersionUID = 0L;
    *
    * - visibility_private: no visibility tuple (owner + explicit grants only)
    * - visibility_org:     resource#viewer&#64;organization:&lt;org&gt;#viewer
-   * - visibility_platform: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
-   * (the "private catalog" primitive: grants access to
-   * all members of all platform_managed orgs linked to
-   * the owning org's IdentityProvider)
+   * - visibility_child_orgs: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
+   * (the shared catalog: grants read and run to
+   * everyone in every child organization of the owning
+   * organization)
    *
-   * Every level but private is bounded by an organization or by the identity
-   * provider that links a set of organizations. There is no level a resource
-   * can hold that makes it readable to every account on the server; sharing
-   * across organizations that share no identity provider is done by
-   * packaging the resource as a plugin and installing a copy.
+   * Every level but private is bounded by an organization or by its child
+   * organizations. There is no level a resource can hold that makes it
+   * readable to every account on the server; sharing across organizations
+   * that are not parent and child is done by packaging the resource as a
+   * plugin and installing a copy.
    *
    * Kinds WITHOUT a visibility config accept only visibility_private (or
    * unspecified) — they are personal or org-structural resources whose access
@@ -377,10 +378,10 @@ private static final long serialVersionUID = 0L;
    *
    * Current classification:
    * - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
-   * private, org, platform
+   * private, org, child_orgs
    * - Instance kinds (workflow_instance):
-   * private, org — platform is deliberately excluded to preserve
-   * tenant isolation: each managed org instantiates shared blueprints
+   * private, org — child_orgs is deliberately excluded to preserve
+   * tenant isolation: each child organization instantiates shared blueprints
    * inside its own boundary. (System-managed DEFAULT instances opt out of
    * visibility entirely: their access tracks the parent blueprint
    * structurally via the default_of FGA relation.)
@@ -424,7 +425,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      supportsPlatform_ = false;
+      supportsChildOrgs_ = false;
       supportsOrg_ = false;
       defaultsToOrgVisibility_ = false;
       return this;
@@ -461,7 +462,7 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.supportsPlatform_ = supportsPlatform_;
+        result.supportsChildOrgs_ = supportsChildOrgs_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.supportsOrg_ = supportsOrg_;
@@ -483,8 +484,8 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig other) {
       if (other == ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig.getDefaultInstance()) return this;
-      if (other.getSupportsPlatform() != false) {
-        setSupportsPlatform(other.getSupportsPlatform());
+      if (other.getSupportsChildOrgs() != false) {
+        setSupportsChildOrgs(other.getSupportsChildOrgs());
       }
       if (other.getSupportsOrg() != false) {
         setSupportsOrg(other.getSupportsOrg());
@@ -519,7 +520,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 16: {
-              supportsPlatform_ = input.readBool();
+              supportsChildOrgs_ = input.readBool();
               bitField0_ |= 0x00000001;
               break;
             } // case 16
@@ -550,58 +551,61 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private boolean supportsPlatform_ ;
+    private boolean supportsChildOrgs_ ;
     /**
      * <pre>
-     * Whether resources of this kind can be set to visibility_platform.
-     * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+     * Whether resources of this kind can be set to visibility_child_orgs.
+     * FGA tuple: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
      *
-     * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-     * Instance kinds are deliberately excluded to preserve tenant isolation.
+     * Reserved for blueprint kinds (agent, skill, workflow, mcp_server,
+     * plugin). Instance kinds are deliberately excluded to preserve tenant
+     * isolation.
      * </pre>
      *
-     * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
-     * @return The supportsPlatform.
+     * <code>bool supports_child_orgs = 2 [json_name = "supportsChildOrgs"];</code>
+     * @return The supportsChildOrgs.
      */
     @java.lang.Override
-    public boolean getSupportsPlatform() {
-      return supportsPlatform_;
+    public boolean getSupportsChildOrgs() {
+      return supportsChildOrgs_;
     }
     /**
      * <pre>
-     * Whether resources of this kind can be set to visibility_platform.
-     * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+     * Whether resources of this kind can be set to visibility_child_orgs.
+     * FGA tuple: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
      *
-     * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-     * Instance kinds are deliberately excluded to preserve tenant isolation.
+     * Reserved for blueprint kinds (agent, skill, workflow, mcp_server,
+     * plugin). Instance kinds are deliberately excluded to preserve tenant
+     * isolation.
      * </pre>
      *
-     * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
-     * @param value The supportsPlatform to set.
+     * <code>bool supports_child_orgs = 2 [json_name = "supportsChildOrgs"];</code>
+     * @param value The supportsChildOrgs to set.
      * @return This builder for chaining.
      */
-    public Builder setSupportsPlatform(boolean value) {
+    public Builder setSupportsChildOrgs(boolean value) {
 
-      supportsPlatform_ = value;
+      supportsChildOrgs_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Whether resources of this kind can be set to visibility_platform.
-     * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+     * Whether resources of this kind can be set to visibility_child_orgs.
+     * FGA tuple: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
      *
-     * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-     * Instance kinds are deliberately excluded to preserve tenant isolation.
+     * Reserved for blueprint kinds (agent, skill, workflow, mcp_server,
+     * plugin). Instance kinds are deliberately excluded to preserve tenant
+     * isolation.
      * </pre>
      *
-     * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
+     * <code>bool supports_child_orgs = 2 [json_name = "supportsChildOrgs"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearSupportsPlatform() {
+    public Builder clearSupportsChildOrgs() {
       bitField0_ = (bitField0_ & ~0x00000001);
-      supportsPlatform_ = false;
+      supportsChildOrgs_ = false;
       onChanged();
       return this;
     }
