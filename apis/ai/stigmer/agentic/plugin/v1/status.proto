@@ -59,8 +59,7 @@ message PluginStatus {
   // it is versioned with the archive like the rest of this status. The hooks
   // the plugin carries but Stigmer does not read are named in warnings. An
   // agent runs them when its AgentSpec.hooks references the plugin; install
-  // adds that reference to the agent it composes. Cursor-format hooks are not
-  // run yet, and the "hooks-not-run-yet" warning says so.
+  // adds that reference to the agent it composes, in either format.
   HookConfig hooks = 7;
 }
 
@@ -101,8 +100,8 @@ message PluginMaterialization {
 
 // PluginWarning is one thing a push noticed but did not refuse.
 message PluginWarning {
-  // Stable warning kind, e.g. "component-ignored", "hooks-not-run-yet",
-  // "member-adopted", "model-hint-unresolved", "settings-agent-not-applied",
+  // Stable warning kind, e.g. "component-ignored", "member-adopted",
+  // "model-hint-unresolved", "settings-agent-not-applied",
   // "sub-agent-name-builtin", "sub-agent-not-installed",
   // "tool-list-entry-dropped", "version-not-taggable".
   //

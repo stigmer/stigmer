@@ -733,7 +733,7 @@ HookGroup is one event, an optional matcher, and the handlers that run when both
 
 <TypeTable
   type={{
-    event: { type: "string", description: "The event the handlers run on: \"PreToolUse\" before a call, which can refuse it, ask first or allow it, or \"PostToolUse\" after a call succeeds, which can add to what the agent reads." },
+    event: { type: "string", description: "The event the handlers run on, spelled as the format spells it." },
     matcher: { type: "string", description: "Which tools the handlers run for: a name such as \"Bash\", a list such as \"Write|Edit\", or a regular expression such as \"mcp__github__.*\"." },
     handlers: { type: "HookHandler[]", description: "The handlers to run, in order.", typeDescriptionLink: "#hookhandler" },
   }}
@@ -747,7 +747,7 @@ HookHandler is one command a hook runs.
   type={{
     command: { type: "string", description: "The command to run." },
     args: { type: "string[]", description: "Arguments for the command's exec form; when set, the command runs without a shell." },
-    timeoutSeconds: { type: "number", description: "Seconds the command may run before it is stopped; zero means the default, 600 seconds." },
+    timeoutSeconds: { type: "number", description: "Seconds the command may run before it is stopped; zero means the format's default, 600 seconds for Claude Code and 60 for Cursor." },
     condition: { type: "string", description: "A permission rule that narrows when the handler runs, e.g. \"Bash(git push *)\"; empty means whenever the group matches." },
     failClosed: { type: "boolean", description: "Whether a crash, timeout or missing answer blocks the call instead of letting it through." },
   }}
@@ -772,7 +772,7 @@ PluginWarning is one thing a push noticed but did not refuse.
 
 <TypeTable
   type={{
-    kind: { type: "string", description: "Stable warning kind, e.g. \"component-ignored\", \"hooks-not-run-yet\", \"member-adopted\", \"model-hint-unresolved\", \"settings-agent-not-applied\", \"sub-agent-name-builtin\", \"sub-agent-not-installed\", \"tool-list-entry-dropped\", \"version-not-taggable\"." },
+    kind: { type: "string", description: "Stable warning kind, e.g. \"component-ignored\", \"member-adopted\", \"model-hint-unresolved\", \"settings-agent-not-applied\", \"sub-agent-name-builtin\", \"sub-agent-not-installed\", \"tool-list-entry-dropped\", \"version-not-taggable\"." },
     message: { type: "string", description: "The warning as one user-facing sentence." },
     path: { type: "string", description: "The plugin-relative path the warning points at, when it has one." },
   }}

@@ -61,9 +61,12 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object event_ = "";
   /**
    * <pre>
-   * The event the handlers run on: "PreToolUse" before a call, which can
-   * refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
-   * which can add to what the agent reads.
+   * The event the handlers run on, spelled as the format spells it. In Claude
+   * Code's format: "PreToolUse" before a call, which can refuse it, ask first
+   * or allow it, or "PostToolUse" after a call succeeds, which can add to what
+   * the agent reads. In Cursor's: "preToolUse", "beforeShellExecution" (shell
+   * commands) and "beforeMCPExecution" (MCP tools) before a call, and
+   * "postToolUse" and "afterMCPExecution" (MCP tools) after one.
    * </pre>
    *
    * <code>string event = 1 [json_name = "event", (.buf.validate.field) = { ... }</code>
@@ -84,9 +87,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The event the handlers run on: "PreToolUse" before a call, which can
-   * refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
-   * which can add to what the agent reads.
+   * The event the handlers run on, spelled as the format spells it. In Claude
+   * Code's format: "PreToolUse" before a call, which can refuse it, ask first
+   * or allow it, or "PostToolUse" after a call succeeds, which can add to what
+   * the agent reads. In Cursor's: "preToolUse", "beforeShellExecution" (shell
+   * commands) and "beforeMCPExecution" (MCP tools) before a call, and
+   * "postToolUse" and "afterMCPExecution" (MCP tools) after one.
    * </pre>
    *
    * <code>string event = 1 [json_name = "event", (.buf.validate.field) = { ... }</code>
@@ -624,9 +630,12 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object event_ = "";
     /**
      * <pre>
-     * The event the handlers run on: "PreToolUse" before a call, which can
-     * refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
-     * which can add to what the agent reads.
+     * The event the handlers run on, spelled as the format spells it. In Claude
+     * Code's format: "PreToolUse" before a call, which can refuse it, ask first
+     * or allow it, or "PostToolUse" after a call succeeds, which can add to what
+     * the agent reads. In Cursor's: "preToolUse", "beforeShellExecution" (shell
+     * commands) and "beforeMCPExecution" (MCP tools) before a call, and
+     * "postToolUse" and "afterMCPExecution" (MCP tools) after one.
      * </pre>
      *
      * <code>string event = 1 [json_name = "event", (.buf.validate.field) = { ... }</code>
@@ -646,9 +655,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The event the handlers run on: "PreToolUse" before a call, which can
-     * refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
-     * which can add to what the agent reads.
+     * The event the handlers run on, spelled as the format spells it. In Claude
+     * Code's format: "PreToolUse" before a call, which can refuse it, ask first
+     * or allow it, or "PostToolUse" after a call succeeds, which can add to what
+     * the agent reads. In Cursor's: "preToolUse", "beforeShellExecution" (shell
+     * commands) and "beforeMCPExecution" (MCP tools) before a call, and
+     * "postToolUse" and "afterMCPExecution" (MCP tools) after one.
      * </pre>
      *
      * <code>string event = 1 [json_name = "event", (.buf.validate.field) = { ... }</code>
@@ -669,9 +681,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The event the handlers run on: "PreToolUse" before a call, which can
-     * refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
-     * which can add to what the agent reads.
+     * The event the handlers run on, spelled as the format spells it. In Claude
+     * Code's format: "PreToolUse" before a call, which can refuse it, ask first
+     * or allow it, or "PostToolUse" after a call succeeds, which can add to what
+     * the agent reads. In Cursor's: "preToolUse", "beforeShellExecution" (shell
+     * commands) and "beforeMCPExecution" (MCP tools) before a call, and
+     * "postToolUse" and "afterMCPExecution" (MCP tools) after one.
      * </pre>
      *
      * <code>string event = 1 [json_name = "event", (.buf.validate.field) = { ... }</code>
@@ -688,9 +703,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The event the handlers run on: "PreToolUse" before a call, which can
-     * refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
-     * which can add to what the agent reads.
+     * The event the handlers run on, spelled as the format spells it. In Claude
+     * Code's format: "PreToolUse" before a call, which can refuse it, ask first
+     * or allow it, or "PostToolUse" after a call succeeds, which can add to what
+     * the agent reads. In Cursor's: "preToolUse", "beforeShellExecution" (shell
+     * commands) and "beforeMCPExecution" (MCP tools) before a call, and
+     * "postToolUse" and "afterMCPExecution" (MCP tools) after one.
      * </pre>
      *
      * <code>string event = 1 [json_name = "event", (.buf.validate.field) = { ... }</code>
@@ -704,9 +722,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The event the handlers run on: "PreToolUse" before a call, which can
-     * refuse it, ask first or allow it, or "PostToolUse" after a call succeeds,
-     * which can add to what the agent reads.
+     * The event the handlers run on, spelled as the format spells it. In Claude
+     * Code's format: "PreToolUse" before a call, which can refuse it, ask first
+     * or allow it, or "PostToolUse" after a call succeeds, which can add to what
+     * the agent reads. In Cursor's: "preToolUse", "beforeShellExecution" (shell
+     * commands) and "beforeMCPExecution" (MCP tools) before a call, and
+     * "postToolUse" and "afterMCPExecution" (MCP tools) after one.
      * </pre>
      *
      * <code>string event = 1 [json_name = "event", (.buf.validate.field) = { ... }</code>

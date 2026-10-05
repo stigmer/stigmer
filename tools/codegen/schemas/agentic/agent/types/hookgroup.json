@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "The event the handlers run on: \"PreToolUse\" before a call, which can\n refuse it, ask first or allow it, or \"PostToolUse\" after a call succeeds,\n which can add to what the agent reads.",
+      "description": "The event the handlers run on, spelled as the format spells it. In Claude\n Code's format: \"PreToolUse\" before a call, which can refuse it, ask first\n or allow it, or \"PostToolUse\" after a call succeeds, which can add to what\n the agent reads. In Cursor's: \"preToolUse\", \"beforeShellExecution\" (shell\n commands) and \"beforeMCPExecution\" (MCP tools) before a call, and\n \"postToolUse\" and \"afterMCPExecution\" (MCP tools) after one.",
       "required": false,
       "validation": {
         "minLength": 1

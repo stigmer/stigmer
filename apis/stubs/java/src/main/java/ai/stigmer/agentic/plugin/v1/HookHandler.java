@@ -9,9 +9,10 @@ package ai.stigmer.agentic.plugin.v1;
  * <pre>
  * HookHandler is one command a hook runs.
  *
- * The command reads the call as JSON on stdin and answers as Claude Code's
- * hooks do: exit code 2 refuses the call with stderr as the reason, and JSON on
- * stdout can allow, ask or deny with a reason.
+ * The command reads the call as JSON on stdin and answers as its format's
+ * hooks do: exit code 2 refuses the call, and JSON on stdout can allow, ask or
+ * deny with a reason. A Cursor-format "ask" waits for a person on both
+ * engines, where Cursor itself lets the call run.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.plugin.v1.HookHandler}
@@ -66,7 +67,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
-   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
+   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in
+   * Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too.
    * </pre>
    *
    * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -88,7 +90,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
-   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
+   * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in
+   * Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too.
    * </pre>
    *
    * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -116,7 +119,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Arguments for the command's exec form; when set, the command runs without
-   * a shell.
+   * a shell. Claude Code's format only.
    * </pre>
    *
    * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -129,7 +132,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Arguments for the command's exec form; when set, the command runs without
-   * a shell.
+   * a shell. Claude Code's format only.
    * </pre>
    *
    * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -141,7 +144,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Arguments for the command's exec form; when set, the command runs without
-   * a shell.
+   * a shell. Claude Code's format only.
    * </pre>
    *
    * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -154,7 +157,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Arguments for the command's exec form; when set, the command runs without
-   * a shell.
+   * a shell. Claude Code's format only.
    * </pre>
    *
    * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -170,8 +173,9 @@ private static final long serialVersionUID = 0L;
   private int timeoutSeconds_ = 0;
   /**
    * <pre>
-   * Seconds the command may run before it is stopped; zero means the default,
-   * 600 seconds. A command that is stopped makes no decision.
+   * Seconds the command may run before it is stopped; zero means the format's
+   * default, 600 seconds for Claude Code and 60 for Cursor. A command that is
+   * stopped makes no decision, unless fail_closed is set.
    * </pre>
    *
    * <code>int32 timeout_seconds = 3 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -188,7 +192,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * A permission rule that narrows when the handler runs, e.g.
-   * "Bash(git push *)"; empty means whenever the group matches.
+   * "Bash(git push *)"; empty means whenever the group matches. Claude Code's
+   * format only.
    * </pre>
    *
    * <code>string condition = 4 [json_name = "condition"];</code>
@@ -210,7 +215,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * A permission rule that narrows when the handler runs, e.g.
-   * "Bash(git push *)"; empty means whenever the group matches.
+   * "Bash(git push *)"; empty means whenever the group matches. Claude Code's
+   * format only.
    * </pre>
    *
    * <code>string condition = 4 [json_name = "condition"];</code>
@@ -457,9 +463,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * HookHandler is one command a hook runs.
    *
-   * The command reads the call as JSON on stdin and answers as Claude Code's
-   * hooks do: exit code 2 refuses the call with stderr as the reason, and JSON on
-   * stdout can allow, ask or deny with a reason.
+   * The command reads the call as JSON on stdin and answers as its format's
+   * hooks do: exit code 2 refuses the call, and JSON on stdout can allow, ask or
+   * deny with a reason. A Cursor-format "ask" waits for a person on both
+   * engines, where Cursor itself lets the call run.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.plugin.v1.HookHandler}
@@ -662,7 +669,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
-     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
+     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in
+     * Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too.
      * </pre>
      *
      * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -683,7 +691,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
-     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
+     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in
+     * Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too.
      * </pre>
      *
      * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -705,7 +714,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
-     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
+     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in
+     * Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too.
      * </pre>
      *
      * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -723,7 +733,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
-     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
+     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in
+     * Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too.
      * </pre>
      *
      * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -738,7 +749,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
-     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace.
+     * names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in
+     * Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too.
      * </pre>
      *
      * <code>string command = 1 [json_name = "command", (.buf.validate.field) = { ... }</code>
@@ -766,7 +778,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Arguments for the command's exec form; when set, the command runs without
-     * a shell.
+     * a shell. Claude Code's format only.
      * </pre>
      *
      * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -780,7 +792,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Arguments for the command's exec form; when set, the command runs without
-     * a shell.
+     * a shell. Claude Code's format only.
      * </pre>
      *
      * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -792,7 +804,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Arguments for the command's exec form; when set, the command runs without
-     * a shell.
+     * a shell. Claude Code's format only.
      * </pre>
      *
      * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -805,7 +817,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Arguments for the command's exec form; when set, the command runs without
-     * a shell.
+     * a shell. Claude Code's format only.
      * </pre>
      *
      * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -819,7 +831,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Arguments for the command's exec form; when set, the command runs without
-     * a shell.
+     * a shell. Claude Code's format only.
      * </pre>
      *
      * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -839,7 +851,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Arguments for the command's exec form; when set, the command runs without
-     * a shell.
+     * a shell. Claude Code's format only.
      * </pre>
      *
      * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -858,7 +870,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Arguments for the command's exec form; when set, the command runs without
-     * a shell.
+     * a shell. Claude Code's format only.
      * </pre>
      *
      * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -877,7 +889,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Arguments for the command's exec form; when set, the command runs without
-     * a shell.
+     * a shell. Claude Code's format only.
      * </pre>
      *
      * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -893,7 +905,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Arguments for the command's exec form; when set, the command runs without
-     * a shell.
+     * a shell. Claude Code's format only.
      * </pre>
      *
      * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -914,8 +926,9 @@ private static final long serialVersionUID = 0L;
     private int timeoutSeconds_ ;
     /**
      * <pre>
-     * Seconds the command may run before it is stopped; zero means the default,
-     * 600 seconds. A command that is stopped makes no decision.
+     * Seconds the command may run before it is stopped; zero means the format's
+     * default, 600 seconds for Claude Code and 60 for Cursor. A command that is
+     * stopped makes no decision, unless fail_closed is set.
      * </pre>
      *
      * <code>int32 timeout_seconds = 3 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -927,8 +940,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Seconds the command may run before it is stopped; zero means the default,
-     * 600 seconds. A command that is stopped makes no decision.
+     * Seconds the command may run before it is stopped; zero means the format's
+     * default, 600 seconds for Claude Code and 60 for Cursor. A command that is
+     * stopped makes no decision, unless fail_closed is set.
      * </pre>
      *
      * <code>int32 timeout_seconds = 3 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -944,8 +958,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Seconds the command may run before it is stopped; zero means the default,
-     * 600 seconds. A command that is stopped makes no decision.
+     * Seconds the command may run before it is stopped; zero means the format's
+     * default, 600 seconds for Claude Code and 60 for Cursor. A command that is
+     * stopped makes no decision, unless fail_closed is set.
      * </pre>
      *
      * <code>int32 timeout_seconds = 3 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -962,7 +977,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * A permission rule that narrows when the handler runs, e.g.
-     * "Bash(git push *)"; empty means whenever the group matches.
+     * "Bash(git push *)"; empty means whenever the group matches. Claude Code's
+     * format only.
      * </pre>
      *
      * <code>string condition = 4 [json_name = "condition"];</code>
@@ -983,7 +999,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * A permission rule that narrows when the handler runs, e.g.
-     * "Bash(git push *)"; empty means whenever the group matches.
+     * "Bash(git push *)"; empty means whenever the group matches. Claude Code's
+     * format only.
      * </pre>
      *
      * <code>string condition = 4 [json_name = "condition"];</code>
@@ -1005,7 +1022,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * A permission rule that narrows when the handler runs, e.g.
-     * "Bash(git push *)"; empty means whenever the group matches.
+     * "Bash(git push *)"; empty means whenever the group matches. Claude Code's
+     * format only.
      * </pre>
      *
      * <code>string condition = 4 [json_name = "condition"];</code>
@@ -1023,7 +1041,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * A permission rule that narrows when the handler runs, e.g.
-     * "Bash(git push *)"; empty means whenever the group matches.
+     * "Bash(git push *)"; empty means whenever the group matches. Claude Code's
+     * format only.
      * </pre>
      *
      * <code>string condition = 4 [json_name = "condition"];</code>
@@ -1038,7 +1057,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * A permission rule that narrows when the handler runs, e.g.
-     * "Bash(git push *)"; empty means whenever the group matches.
+     * "Bash(git push *)"; empty means whenever the group matches. Claude Code's
+     * format only.
      * </pre>
      *
      * <code>string condition = 4 [json_name = "condition"];</code>

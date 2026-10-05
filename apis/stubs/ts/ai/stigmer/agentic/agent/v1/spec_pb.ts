@@ -110,9 +110,10 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    *
    * Each entry is a plugin whose hooks apply, or a hooks block written in the
    * agent itself. A hook can refuse a call, ask a person first, or let it run
-   * without the approval it would otherwise need. The native engine runs hooks
-   * in Claude Code's format; the Cursor engine refuses a turn whose agent has
-   * hooks.
+   * without the approval it would otherwise need. Both engines run hooks in
+   * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
+   * web search reach no hook, so an agent whose hooks would match them runs
+   * there without those tools.
    *
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.HookSource hooks = 12;
    */

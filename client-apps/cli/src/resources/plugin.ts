@@ -325,9 +325,8 @@ const HOOK_FORMAT_LABELS = {
 
 /**
  * `Claude Code format: PreToolUse 2, PostToolUse 1`: handlers per event, in
- * first-seen order. Claude Code-format hooks run on the native engine when
- * an agent references the plugin; Cursor-format hooks are recorded and no
- * engine runs them yet, so their line says so wherever it is printed.
+ * first-seen order. Hooks in either format run on both engines when an
+ * agent references the plugin.
  */
 export function hooksSummary(
   format: keyof typeof HOOK_FORMAT_LABELS,
@@ -340,8 +339,7 @@ export function hooksSummary(
   for (const group of groups)
     perEvent.set(group.event, (perEvent.get(group.event) ?? 0) + group.handlers.length);
   const counts = [...perEvent].map(([event, n]) => `${event} ${n}`).join(", ");
-  const notRun = format === "cursor" ? " (not run yet)" : "";
-  return `${HOOK_FORMAT_LABELS[format]} format: ${counts}${notRun}`;
+  return `${HOOK_FORMAT_LABELS[format]} format: ${counts}`;
 }
 
 function installedHooksSummary(hooks: HookConfig): string {

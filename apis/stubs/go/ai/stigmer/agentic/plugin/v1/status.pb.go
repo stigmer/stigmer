@@ -269,8 +269,8 @@ func (x *PluginMaterialization) GetWorkflows() int32 {
 // PluginWarning is one thing a push noticed but did not refuse.
 type PluginWarning struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Stable warning kind, e.g. "component-ignored", "hooks-not-run-yet",
-	// "member-adopted", "model-hint-unresolved", "settings-agent-not-applied",
+	// Stable warning kind, e.g. "component-ignored", "member-adopted",
+	// "model-hint-unresolved", "settings-agent-not-applied",
 	// "sub-agent-name-builtin", "sub-agent-not-installed",
 	// "tool-list-entry-dropped", "version-not-taggable".
 	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`

@@ -32,7 +32,7 @@ export const AgentInputShape = {
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality."),
   tools: z.array(z.string()).optional().describe("Tools this agent may use; empty means every tool it has. Entries use Claude Code's names: a built-in such as Read, Grep, Bash, Write, Edit, Glob, Agent or WebFetch; mcp__<server-slug> for every tool of one MCP server, mcp__<server-slug>__<tool> for one tool, and mcp__* for every MCP tool. A specifier in parentheses, as in Bash(git push *), is accepted and governs the whole tool. Agent(explore, shell) also limits which sub-agents this agent may start; the Cursor engine cannot hold its built-in sub-agents back, so it refuses a turn whose agent limits Agent to types. The lists hold on both engines, and under 'approve everything' too."),
   disallowed_tools: z.array(z.string()).optional().describe("Tools this agent may never use, in the same names as tools. Applied before tools, so a tool named in both is excluded."),
-  hooks: z.array(z.lazy(() => HookSourceInputSchema)).optional().describe("Hooks that run around this agent's tool calls, and its sub-agents' calls. Each entry is a plugin whose hooks apply, or a hooks block written in the agent itself. A hook can refuse a call, ask a person first, or let it run without the approval it would otherwise need. The native engine runs hooks in Claude Code's format; the Cursor engine refuses a turn whose agent has hooks."),
+  hooks: z.array(z.lazy(() => HookSourceInputSchema)).optional().describe("Hooks that run around this agent's tool calls, and its sub-agents' calls. Each entry is a plugin whose hooks apply, or a hooks block written in the agent itself. A hook can refuse a call, ask a person first, or let it run without the approval it would otherwise need. Both engines run hooks in Claude Code's format and in Cursor's. On the Cursor engine, web fetch and web search reach no hook, so an agent whose hooks would match them runs there without those tools."),
 } as const;
 
 export const AgentInputSchema = z.object(AgentInputShape);
@@ -82,23 +82,23 @@ const PluginInputSchema = z.object({
 type PluginInput = z.infer<typeof PluginInputSchema>;
 
 const HookHandlerInputSchema = z.object({
-  command: z.string().optional().describe("The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT} names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace."),
-  args: z.array(z.string()).optional().describe("Arguments for the command's exec form; when set, the command runs without a shell."),
-  timeout_seconds: z.number().optional().describe("Seconds the command may run before it is stopped; zero means the default, 600 seconds. A command that is stopped makes no decision."),
-  condition: z.string().optional().describe("A permission rule that narrows when the handler runs, e.g. 'Bash(git push *)'; empty means whenever the group matches."),
+  command: z.string().optional().describe("The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT} names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too."),
+  args: z.array(z.string()).optional().describe("Arguments for the command's exec form; when set, the command runs without a shell. Claude Code's format only."),
+  timeout_seconds: z.number().optional().describe("Seconds the command may run before it is stopped; zero means the format's default, 600 seconds for Claude Code and 60 for Cursor. A command that is stopped makes no decision, unless fail_closed is set."),
+  condition: z.string().optional().describe("A permission rule that narrows when the handler runs, e.g. 'Bash(git push *)'; empty means whenever the group matches. Claude Code's format only."),
   fail_closed: z.boolean().optional().describe("Whether a crash, timeout or missing answer blocks the call instead of letting it through. Cursor's format only."),
 });
 type HookHandlerInput = z.infer<typeof HookHandlerInputSchema>;
 
 const HookGroupInputSchema = z.object({
-  event: z.string().optional().describe("The event the handlers run on: 'PreToolUse' before a call, which can refuse it, ask first or allow it, or 'PostToolUse' after a call succeeds, which can add to what the agent reads."),
+  event: z.string().optional().describe("The event the handlers run on, spelled as the format spells it. In Claude Code's format: 'PreToolUse' before a call, which can refuse it, ask first or allow it, or 'PostToolUse' after a call succeeds, which can add to what the agent reads. In Cursor's: 'preToolUse', 'beforeShellExecution' (shell commands) and 'beforeMCPExecution' (MCP tools) before a call, and 'postToolUse' and 'afterMCPExecution' (MCP tools) after one."),
   matcher: z.string().optional().describe("Which tools the handlers run for: a name such as 'Bash', a list such as 'Write|Edit', or a regular expression such as 'mcp__github__.*'. Empty or '*' matches every tool. A plugin's own MCP server's tools are named mcp__plugin_<plugin>_<server>__<tool>, as in Claude Code."),
   handlers: z.array(z.lazy(() => HookHandlerInputSchema)).optional().describe("The handlers to run, in order."),
 });
 type HookGroupInput = z.infer<typeof HookGroupInputSchema>;
 
 const HookConfigInputSchema = z.object({
-  format: z.string().optional().describe("The format the hooks are written in, which decides their input and answer. An agent's own block may leave it unset; Claude Code's format is assumed. Allowed values: HOOK_FORMAT_CLAUDE_CODE, HOOK_FORMAT_CURSOR."),
+  format: z.string().optional().describe("The format the hooks are written in, which decides their input and answer. An agent's own block may leave it unset; Claude Code's format is assumed. A block in Cursor's format names it. Allowed values: HOOK_FORMAT_CLAUDE_CODE, HOOK_FORMAT_CURSOR."),
   groups: z.array(z.lazy(() => HookGroupInputSchema)).optional().describe("Hook groups, in the order they are declared."),
 });
 type HookConfigInput = z.infer<typeof HookConfigInputSchema>;
