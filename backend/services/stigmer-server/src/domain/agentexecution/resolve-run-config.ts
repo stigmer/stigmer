@@ -435,7 +435,12 @@ async function placeLane(
       turn: edition.settings,
       turnName: edition.settingsName,
       profile: edition.profile,
-      approvalMode: edition.approvalMode,
+      // The status field is never UNSPECIFIED: a driver that answers it
+      // gets the enum's own default.
+      approvalMode:
+        edition.approvalMode === ApprovalMode.UNATTENDED
+          ? ApprovalMode.UNATTENDED
+          : ApprovalMode.INTERACTIVE,
       replacesRequest: true,
       saved: true,
     };

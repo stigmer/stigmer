@@ -438,6 +438,15 @@ describe("ResolveRunConfig over a real store", () => {
     expect(runConfigPlacementOf(ctx)?.lane.turnName).toBe("the share's run_config");
   });
 
+  it("an edition lane that answers no approval mode is stamped INTERACTIVE, never UNSPECIFIED", async () => {
+    const lanes: RunLanes = {
+      laneOf: () =>
+        Promise.resolve({ settingsName: "the share's run_config", approvalMode: ApprovalMode.UNSPECIFIED }),
+    };
+    const ctx = await resolve(execution({ spec: { message: "hi" } }), { runLanes: lanes });
+    expect(ctx.newState.status?.approvalMode).toBe(ApprovalMode.INTERACTIVE);
+  });
+
   it("an edition lane with no saved settings clears the request's", async () => {
     const lanes: RunLanes = {
       laneOf: () =>

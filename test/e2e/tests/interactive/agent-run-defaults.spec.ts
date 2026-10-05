@@ -51,20 +51,16 @@ function sessionIdFromUrl(url: string): string {
   return match[1];
 }
 
-/** The session's turns, oldest first. */
-async function turnsOf(
+/** The session's turn that carried `message`. */
+async function turnWith(
   client: Stigmer,
   sessionId: string,
-): Promise<AgentExecution[]> {
+  message: string,
+): Promise<AgentExecution | undefined> {
   const listed = await client.agentExecution.listBySession(
     create(ListAgentExecutionsBySessionRequestSchema, { sessionId }),
   );
-  return [...listed.entries].sort((a, b) =>
-    (a.status?.audit?.specAudit?.createdAt?.seconds ?? 0n) <
-    (b.status?.audit?.specAudit?.createdAt?.seconds ?? 0n)
-      ? -1
-      : 1,
-  );
+  return listed.entries.find((turn) => turn.spec?.message === message);
 }
 
 test.describe("An agent's run defaults in the console", () => {
@@ -119,7 +115,7 @@ test.describe("An agent's run defaults in the console", () => {
 
     const sessionId = sessionIdFromUrl(page.url());
     try {
-      const [first] = await turnsOf(stigmerClient, sessionId);
+      const first = await turnWith(stigmerClient, sessionId, "Say exactly: Defaults in use.");
       expect(first?.spec?.runConfig?.modelName ?? "", "the message named no model").toBe("");
       expect(first?.status?.runConfig?.modelName).toBe(AGENT_MODEL);
       expect(first?.status?.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
@@ -132,12 +128,14 @@ test.describe("An agent's run defaults in the console", () => {
       await followUp.fill("Say exactly: Thinking is off.");
       await page.getByRole("button", { name: "Send message" }).click();
       await expect
-        .poll(async () => (await turnsOf(stigmerClient, sessionId)).length, {
-          timeout: 30_000,
-        })
-        .toBe(2);
+        .poll(
+          async () =>
+            (await turnWith(stigmerClient, sessionId, "Say exactly: Thinking is off.")) !== undefined,
+          { timeout: 30_000 },
+        )
+        .toBe(true);
       await waitForAIResponse(page, { timeout: 90_000 });
-      const second = (await turnsOf(stigmerClient, sessionId))[1];
+      const second = await turnWith(stigmerClient, sessionId, "Say exactly: Thinking is off.");
       expect(second?.spec?.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
       expect(second?.spec?.runConfig?.modelName ?? "").toBe("");
       expect(second?.status?.runConfig?.modelName).toBe(AGENT_MODEL);
