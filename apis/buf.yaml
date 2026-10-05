@@ -35,7 +35,7 @@ breaking:
   # release notes name the change under Upgrading. This block exists for that
   # one pull request. While it stays, buf breaking does not report this rule
   # on the listed file, so the pull request that removes it lands straight
-  # after the merge.
+  # after the merge (https://github.com/stigmer/stigmer/issues/1946).
   ignore_only:
     FIELD_NO_DELETE:
       - ai/stigmer/tenancy/organization/v1/spec.proto
