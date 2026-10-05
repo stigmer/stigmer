@@ -59,7 +59,7 @@ export async function downloadArchive(
 
   const resp = await fetch(minted.url);
   if (!resp.ok) {
-    throw new Error(`artifact fetch failed: HTTP ${resp.status} from ${minted.url}`);
+    throw new Error(`artifact fetch failed: HTTP ${resp.status} from ${withoutQuery(minted.url)}`);
   }
   const bytes = new Uint8Array(await resp.arrayBuffer());
   if (minted.sizeBytes > 0n && BigInt(bytes.length) !== minted.sizeBytes) {
@@ -68,6 +68,19 @@ export async function downloadArchive(
     );
   }
   return bytes.length > 0 ? bytes : undefined;
+}
+
+/**
+ * A download URL without its query: a minted URL is a capability, signed in
+ * its query string, and an error that carries it may reach a run's status.
+ */
+function withoutQuery(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return "the minted download URL";
+  }
 }
 
 /** Extensions written executable whatever their first bytes say. */

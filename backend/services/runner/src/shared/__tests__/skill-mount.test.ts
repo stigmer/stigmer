@@ -246,4 +246,19 @@ describe("downloadArtifact — transfer lane routing", () => {
 
     await expect(downloadArtifact(client, "skills/gone.zip")).rejects.toThrow(/HTTP 404/);
   });
+
+  it("keeps a signed URL's query out of a failed fetch's message", async () => {
+    const client = makeClient({
+      getSkillArtifactDownloadUrl: vi.fn().mockResolvedValue({
+        url: "https://storage.example.com/bucket/skills/a.zip?X-Goog-Signature=secret-signature&X-Goog-Expires=300",
+        sizeBytes: 0n,
+        ttlSeconds: 300,
+      }),
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+
+    const error = await downloadArtifact(client, "skills/a.zip").catch((err: unknown) => err as Error);
+    expect(error.message).toBe("artifact fetch failed: HTTP 403 from https://storage.example.com/bucket/skills/a.zip");
+    expect(error.message).not.toContain("secret-signature");
+  });
 });

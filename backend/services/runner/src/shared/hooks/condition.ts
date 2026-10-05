@@ -43,9 +43,12 @@
  * rule never names skip its approval. Claude's own page says Bash rules are
  * not a security boundary; the hook's script is.
  *
- * Every `*` is matched by {@link wildcardMatch}, a linear scan, never a
- * regular expression built from the rule: the text it reads is the model's,
- * and a rule with many stars would otherwise backtrack over it.
+ * Every `*` of a Bash or argument rule is matched by {@link wildcardMatch},
+ * a linear scan, never a regular expression built from the rule: the text it
+ * reads is the model's, and a rule with many stars would otherwise backtrack
+ * over it. Path rules are gitignore globs, matched by picomatch, which does
+ * backtrack; a rule with more than two `*` in one segment, or a path past
+ * 4096 characters, is unsure instead of tried.
  */
 
 import { join } from "node:path";
@@ -271,12 +274,21 @@ export function wildcardMatch(pattern: string, text: string): boolean {
 
 const FILE_PATH_TOOLS = new Set(["Read", "Edit", "Write", "NotebookEdit"]);
 
+/** The longest path, and the most single `*` in one segment of a rule, a glob is matched for. */
+const MAX_GLOB_PATH = 4096;
+const MAX_SEGMENT_STARS = 2;
+
 function pathVerdict(spec: string, view: ToolView, ctx: ConditionContext): ConditionVerdict {
   // A search reads under a directory whose contents the rule cannot be
   // checked against without walking it: unsure, so the handler runs.
   if (!FILE_PATH_TOOLS.has(view.toolName)) return "unsure";
   const target = view.toolInput["file_path"] ?? view.toolInput["notebook_path"];
   if (typeof target !== "string") return "unsure";
+  // picomatch backtracks, polynomially in the stars of one segment, over a
+  // path the model chose: past these bounds the rule is not tried.
+  if (target.length > MAX_GLOB_PATH || spec.split("/").some((segment) => segment !== "**" && segment.split("*").length - 1 > MAX_SEGMENT_STARS)) {
+    return "unsure";
+  }
   const pattern = absolutePattern(spec, ctx);
   const patterns = [pattern, `${pattern.replace(/\/+$/, "")}/**`];
   if (picomatch(patterns, { dot: true })(target)) return "match";

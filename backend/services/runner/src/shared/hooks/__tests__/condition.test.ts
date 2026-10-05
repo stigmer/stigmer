@@ -282,6 +282,7 @@ describe("conditionVerdict: sure, unsure, or no", () => {
     expect(conditionVerdict("Read(/src/**)", file("Read", "/ws/src/a.ts"), CTX)).toBe("match");
     expect(conditionVerdict("Edit(.env)", file("Write", "/ws/.ENV"), CTX), "the same file on a case-insensitive disk").toBe("unsure");
     expect(conditionVerdict("Edit(.env)", file("Write", "/ws/.envrc"), CTX)).toBe("no");
+    expect(conditionVerdict("Edit(**/*.key)", file("Write", "/ws/a/b.key"), CTX), "two stars in a segment are tried").toBe("match");
     expect(conditionVerdict("WebFetch(domain:evil.com)", { toolName: "WebFetch", toolInput: { url: "https://evil.com./x" } }, CTX)).toBe("match");
     expect(conditionVerdict("WebFetch(domain:example.com)", { toolName: "WebFetch", toolInput: { url: "::" } }, CTX)).toBe("unsure");
     expect(conditionVerdict("Agent(explore)", { toolName: "Agent", toolInput: {} }, CTX)).toBe("unsure");
@@ -302,6 +303,13 @@ describe("wildcardMatch", () => {
     ["(x)", "(x)", true],
   ])("%j on %j is %s", (pattern, text, expected) => {
     expect(wildcardMatch(pattern, text)).toBe(expected);
+  });
+
+  it("does not hand picomatch a rule or a path it would backtrack over", () => {
+    const started = performance.now();
+    expect(conditionVerdict("Edit(**/*a*a*a*b)", file("Write", `/ws/${"a".repeat(400)}`), CTX)).toBe("unsure");
+    expect(conditionVerdict("Edit(**/*.env)", file("Write", `/ws/${"a/".repeat(2_100)}x.env`), CTX)).toBe("unsure");
+    expect(performance.now() - started).toBeLessThan(500);
   });
 
   it("reads a long option word after a shell quickly", () => {
