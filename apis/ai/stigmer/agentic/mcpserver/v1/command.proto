@@ -41,7 +41,7 @@ service McpServerCommandController {
   //
   // @internal
   // Authorization: can_create_mcp_server on the organization named by
-  // metadata.org — the blueprint bar, as for agents, workflows and skills.
+  // metadata.org — the blueprint bar, as for agents and skills.
   rpc create(McpServer) returns (McpServer) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_create_mcp_server;

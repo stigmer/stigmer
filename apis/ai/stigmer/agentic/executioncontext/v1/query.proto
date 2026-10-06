@@ -53,14 +53,14 @@ service ExecutionContextQueryController {
   //
   // @internal
   // Primary lookup method used by runners to retrieve the merged environment
-  // variables during workflow/agent run and MCP discovery.
+  // variables during an agent run and MCP discovery.
   // Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
   //
   // Secret handling (both editions): the decrypt path is gated by caller
   // credential class AND scope, not by permissions — runners authenticate as
   // the user who owns the run, so permissions cannot tell them apart.
-  // Callers presenting a platform-minted runner token (token_type of sandbox,
-  // workflow_sandbox, or connect_sandbox) whose scope claim binds it to this
+  // Callers presenting a platform-minted runner token (token_type of sandbox
+  // or connect_sandbox) whose scope claim binds it to this
   // very run receive decrypted secret values. The unscoped
   // embedded_runner bootstrap credential is refused; desktop runners exchange
   // it for a scoped token via getRunnerScopedToken before reading. Every

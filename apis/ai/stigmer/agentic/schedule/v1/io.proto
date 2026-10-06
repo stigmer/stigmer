@@ -29,8 +29,8 @@ message GetSchedulesByAgentRequest {
   // several organizations spans all of them.
   //
   // @internal
-  // Mirrors the org scoping on the sibling getByAgent/getByWorkflow
-  // requests (agent channels, agent shares). Handlers
+  // Mirrors the org scoping on the sibling getByAgent requests (agent
+  // channels, agent shares). Handlers
   // implementing this RPC must apply the filter in their query/list step.
   string org = 3;
 }

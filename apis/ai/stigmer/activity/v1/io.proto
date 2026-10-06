@@ -4,61 +4,56 @@ package ai.stigmer.activity.v1;
 
 import "google/protobuf/timestamp.proto";
 
-// RecentActivityEntry is a lightweight summary of either an agent session
-// or a workflow run, used for the sidebar "recents" list.
+// RecentActivityEntry is a lightweight summary of one agent session, used
+// for the sidebar "recents" list.
 //
 // This is a projection — not the full resource. Clients that need the
-// complete resource should call the specific get() RPC for the resource kind.
+// complete session should call the session's get() RPC.
 message RecentActivityEntry {
-  // Resource ID (session ID or workflow run ID).
+  // Session ID.
   string id = 1;
 
-  // Discriminator: "session" or "workflow_run".
-  string type = 2;
+  // Field 2 held a discriminator between a session and a workflow run, and
+  // field 5 a workflow run's phase label, until the workflow product was
+  // removed platform-wide and recents became sessions only. Reserved so the
+  // numbers and names are never reused for different fields.
+  reserved 2, 5;
+  reserved "type", "status";
 
-  // Human-readable label for display.
-  // For sessions: the conversation subject.
-  // For workflow runs: the run name.
+  // Human-readable label for display: the conversation subject.
   string subject = 3;
 
-  // When this entry was last meaningfully updated.
-  // Used for interleaved sort (newest first).
+  // When this session last saw meaningful activity.
+  // Used for the sort (newest first).
   google.protobuf.Timestamp updated_at = 4;
-
-  // Run phase label for workflow runs (e.g., "completed", "failed").
-  // Empty for sessions.
-  string status = 5;
 }
 
-// ListRecentActivityRequest specifies parameters for the unified recents query.
+// ListRecentActivityRequest specifies parameters for the recents query.
 message ListRecentActivityRequest {
   // Maximum entries to return. Defaults to 30.
   int32 page_size = 1;
 
   // Organization slug to scope the query.
   //
-  // When provided, results are narrowed to resources in this organization.
+  // When provided, results are narrowed to sessions in this organization.
   // The org NEVER widens visibility: per-resource read authority is always
-  // enforced (on the hosted edition, FGA `can_view` enumeration per kind),
-  // and the org filter only intersects that authorized set. Both recents
-  // kinds are private by default — sessions are personal resources and
-  // workflow runs opt in to org observability per workflow — so org
-  // membership alone must never substitute for the per-resource check. An
-  // earlier "org member = query by org directly" fast path leaked session
-  // titles to every org member.
+  // enforced (on the hosted edition, FGA `can_view` enumeration), and the
+  // org filter only intersects that authorized set. Sessions are personal
+  // resources, so org membership alone must never substitute for the
+  // per-resource check. An earlier "org member = query by org directly" fast
+  // path leaked session titles to every org member.
   //
   // When empty, results span every organization the caller has resource
   // access in.
   //
   // On the OSS edition the filter is a no-op: the server is single-tenant,
-  // so org scoping has nothing to narrow — matching the per-kind OSS list
-  // RPCs this feed summarizes.
+  // so org scoping has nothing to narrow — matching the session list RPC
+  // this feed summarizes.
   string org = 2;
 }
 
-// ListRecentActivityResponse contains merged, sorted recent activity.
+// ListRecentActivityResponse contains the caller's recent sessions.
 message ListRecentActivityResponse {
-  // Entries sorted by updated_at descending, interleaving sessions
-  // and workflow runs.
+  // Entries sorted by updated_at descending.
   repeated RecentActivityEntry entries = 1;
 }

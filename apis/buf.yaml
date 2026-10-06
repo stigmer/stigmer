@@ -29,3 +29,32 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request removes the workflow product: the Workflow and
+  # WorkflowRun kinds and the Artifact kind a workflow step promoted. It
+  # deletes the workflow/v1, workflowrun/v1 and artifact/v1 packages, the
+  # fields and enum values that named a workflow, a workflow run or the
+  # Artifact kind, and the agent run's workflow-parent link and the retired
+  # child approval signal shape (each number and name reserved). It is made
+  # before launch: the release notes name every change under Upgrading. This
+  # block exists for that one pull request. While it stays, buf breaking does
+  # not report these rules on the listed files, so the pull request that
+  # removes it lands straight after the merge
+  # (https://github.com/stigmer/stigmer/issues/1986).
+  ignore_only:
+    FILE_NO_DELETE:
+      - ai/stigmer/agentic/artifact
+      - ai/stigmer/agentic/workflow
+      - ai/stigmer/agentic/workflowrun
+    FIELD_NO_DELETE:
+      - ai/stigmer/activity/v1/io.proto
+      - ai/stigmer/agentic/agentrun/v1/api.proto
+      - ai/stigmer/agentic/agentrun/v1/spec.proto
+      - ai/stigmer/agentic/plugin/v1/status.proto
+      - ai/stigmer/platform/v1/entitlement.proto
+      - ai/stigmer/platform/v1/server_info.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/agentrun/v1/approval.proto
+      - ai/stigmer/agentic/agentrun/v1/spec.proto
+    ENUM_VALUE_NO_DELETE:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+      - ai/stigmer/iam/v1/enum.proto

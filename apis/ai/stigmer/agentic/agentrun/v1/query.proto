@@ -208,9 +208,10 @@ service AgentRunQueryController {
   // ─────────────────────────────────────────────────────────────────────────────
   // Run Summary (Dashboard Aggregation)
   //
-  // Operational summary for the unified platform dashboard. Returns phase
-  // counts and active run count — cost is sourced separately from
-  // getOrgUsageReport to prevent double-counting (AD-DASH-005).
+  // Operational summary for the platform dashboard. Returns phase counts
+  // and active run count — cost is sourced separately from
+  // getOrgUsageReport, the billing source of truth, so it is never counted
+  // from two sources.
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Get aggregated run statistics for an organization's agent runs.
@@ -225,9 +226,8 @@ service AgentRunQueryController {
   //
   // Use Cases:
   //
-  // 1. Unified Dashboard Overview:
-  //    - Display combined agent + workflow KPI cards
-  //    - Agent phase counts are merged client-side with workflow phase counts
+  // 1. Dashboard Overview:
+  //    - Display the agent run KPI cards
   //
   // 2. Reliability Monitoring:
   //    - Surface top failing agents for investigation

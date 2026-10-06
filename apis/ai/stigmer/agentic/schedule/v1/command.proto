@@ -56,9 +56,8 @@ service ScheduleCommandController {
   // create's bar is can_edit on the REFERENCED agent, and
   // a repointing update would let a schedule owner drive an agent they
   // may not edit — the AgentChannel rule for the AgentChannel reason.
-  // Target-arm immutability (an agent schedule cannot become a workflow
-  // schedule once that arm exists) is enforced in-handler: the two
-  // targets enter different execution pipelines. Update deliberately
+  // Target-arm immutability is enforced in-handler: each target kind
+  // enters its own execution pipeline. Update deliberately
   // does NOT clear a platform auto-pause: apply routes through this same
   // handler, so any update-clears-pause behavior would let a routine
   // GitOps re-apply silently un-pause a failing schedule. resume is the

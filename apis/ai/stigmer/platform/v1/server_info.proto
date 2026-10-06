@@ -141,8 +141,7 @@ service PlatformQueryController {
   // @internal
   // Cloud mints via SandboxTokenService: an agent_run_id yields a
   // token_type=sandbox token carrying the run's parent session_id (one
-  // session sandbox serves multi-turn runs); a workflow_run_id
-  // yields token_type=workflow_sandbox carrying that id. Both are then bound by
+  // session sandbox serves multi-turn runs). It is then bound by
   // RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
   // cloud-sandbox-injected tokens.
   //
@@ -156,9 +155,9 @@ service PlatformQueryController {
   // Two arms are exceptions to the embedded_runner rule, each gated on its
   // own credential class and authorized against a control-plane record
   // instead of a run: pool_claim (token_type=pool_sandbox, authorized
-  // against the pool claim record) and renewal (token_type=sandbox /
-  // workflow_sandbox, authorized against the live sandbox record). See each
-  // arm's own doc.
+  // against the pool claim record) and renewal (token_type=sandbox,
+  // authorized against the live session sandbox record). See each arm's own
+  // doc.
   rpc getRunnerScopedToken(GetRunnerScopedTokenInput) returns (GetRunnerScopedTokenOutput) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
@@ -309,6 +308,13 @@ message GetRunnerScopedTokenInput {
   // The dispatched work the token will serve. The runner names only the id it
   // was dispatched; the server derives the token's scope from the resource
   // itself (an agent run scopes to its parent session).
+  //
+  // Arm 2 held workflow_run_id, which scoped a token to one workflow run's
+  // ExecutionContext, until the workflow product was removed platform-wide.
+  // Reserved so the number and name are never reused for a different arm.
+  reserved 2;
+  reserved "workflow_run_id";
+
   oneof scope {
     option (buf.validate.oneof).required = true;
 
@@ -316,18 +322,14 @@ message GetRunnerScopedTokenInput {
     // session, valid for every ExecutionContext in that session (multi-turn).
     string agent_run_id = 1;
 
-    // WorkflowRun id — yields a token scoped to exactly that workflow
-    // run's ExecutionContext.
-    string workflow_run_id = 2;
-
     // Warm-pool claim — a pool sandbox exchanging its pool credential for the
     // session token of the session it has just been claimed for. Presented
     // with a token_type=pool_sandbox credential (not embedded_runner).
     PoolClaim pool_claim = 3;
 
     // Credential renewal — a live sandbox extending its own lifetime.
-    // Presented with the still-valid token_type=sandbox or workflow_sandbox
-    // credential being renewed (not embedded_runner).
+    // Presented with the still-valid token_type=sandbox credential being
+    // renewed (not embedded_runner).
     TokenRenewal renewal = 4;
   }
 }
@@ -357,29 +359,27 @@ message PoolClaim {
 //
 // A sandbox token is minted with a fixed TTL, but the sandbox it serves has
 // no fixed lifetime: an active conversation extends a session sandbox
-// indefinitely, and a long workflow run can outlast any TTL chosen at
-// provisioning (the 2026-08-05 incident: a WhatsApp conversation outlived
-// its 25h token and a user turn died UNAUTHENTICATED). Renewal decouples
-// the two — the runner re-mints on a timer before expiry and applies the
-// fresh token in-process, so credential freshness never requires a pod
-// restart (which would wipe an ephemeral sandbox's workspace).
+// indefinitely, so it can outlast any TTL chosen at provisioning (the
+// 2026-08-05 incident: a WhatsApp conversation outlived its 25h token and a
+// user turn died UNAUTHENTICATED). Renewal decouples the two — the runner
+// re-mints on a timer before expiry and applies the fresh token in-process,
+// so credential freshness never requires a pod restart (which would wipe an
+// ephemeral sandbox's workspace).
 //
-// Deliberately empty: every mint parameter (identity, org, session /
-// workflow-run scope) comes from the presented credential's VERIFIED
-// claims, never from the client, so a renewed token is claim-identical to
-// the one it replaces.
+// Deliberately empty: every mint parameter (identity, org, session scope)
+// comes from the presented credential's VERIFIED claims, never from the
+// client, so a renewed token is claim-identical to the one it replaces.
 //
 // @internal
 // Cloud authorizes against the live sandbox record, not FGA (a sandbox
 // token is structurally not an FGA principal — the pool_claim posture): a
 // token_type=sandbox caller requires its session_sandboxes row to exist and
-// not be archived/deleting; a token_type=workflow_sandbox caller requires
-// the same of its workflow_sandboxes row. The record IS the revocation
-// lever: when the lifecycle reconciler reaps the sandbox, renewal dies with
-// it, so a credential's renewable lifetime is exactly its sandbox's
-// lifetime. Minted TTL is the standard sandbox TTL — every mint path uses it,
-// and renewal is what makes short TTLs sufficient. OSS
-// has no signing key and mints nothing (empty output, presence-based
+// not be archived/deleting; every other credential class is refused. The
+// record IS the revocation lever: when the lifecycle reconciler reaps the
+// sandbox, renewal dies with it, so a credential's renewable lifetime is
+// exactly its sandbox's lifetime. Minted TTL is the standard sandbox TTL —
+// every mint path uses it, and renewal is what makes short TTLs sufficient.
+// OSS has no signing key and mints nothing (empty output, presence-based
 // contract).
 message TokenRenewal {}
 
@@ -395,8 +395,8 @@ message GetRunnerScopedTokenOutput {
   //
   // @internal
   // iss=stigmer, sub=caller identity account, token_type=sandbox (with
-  // session_id claim) or workflow_sandbox (with workflow_run_id claim),
-  // minted by the same SandboxTokenService that provisions cloud sandboxes.
+  // session_id claim), minted by the same SandboxTokenService that
+  // provisions cloud sandboxes.
   string runner_scoped_token = 1;
 
   // Token type for runner_scoped_token. "Bearer" when a token is present,

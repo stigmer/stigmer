@@ -1151,10 +1151,10 @@ message HarnessCostSummary {
 // RUN SUMMARY (Dashboard Aggregation)
 //
 // Operational summary of agent runs scoped to an organization and time
-// window. Used by the platform dashboard to show run health alongside
-// workflow run metrics. Cost is intentionally excluded — the dashboard
-// sources cost from getOrgUsageReport to avoid double-counting when workflows
-// delegate to agents (see AD-DASH-005).
+// window. Used by the platform dashboard to show run health. Cost is
+// intentionally excluded — the dashboard sources cost from
+// getOrgUsageReport (billing source of truth), so it shows what billing
+// recorded and cost is never counted from two sources.
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1183,8 +1183,8 @@ message GetAgentRunSummaryRequest {
 // runs. Designed for the platform dashboard's unified health view.
 //
 // Cost is intentionally omitted. The dashboard sources cost from
-// getOrgUsageReport (billing source of truth) to prevent double-counting
-// when workflows delegate to agents. See AD-DASH-005.
+// getOrgUsageReport (billing source of truth), so it shows what billing
+// recorded and cost is never counted from two sources.
 message AgentRunSummary {
   // Number of runs currently in a non-terminal phase
   // (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
