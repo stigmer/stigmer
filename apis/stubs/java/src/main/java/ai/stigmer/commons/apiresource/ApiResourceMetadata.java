@@ -80,7 +80,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object name_ = "";
   /**
    * <pre>
-   * Human-readable name of the resource.
+   * Human-readable name of the resource, at most 200 characters.
    * Validation is skipped when the field is empty (e.g., server-generated
    * responses or partial messages).
    * </pre>
@@ -103,7 +103,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Human-readable name of the resource.
+   * Human-readable name of the resource, at most 200 characters.
    * Validation is skipped when the field is empty (e.g., server-generated
    * responses or partial messages).
    * </pre>
@@ -136,9 +136,11 @@ private static final long serialVersionUID = 0L;
    * Combined with org, forms the canonical reference: "org/slug".
    * Fixed once created: update and apply ignore a changed slug. A kind
    * whose slug may change has a rename RPC (Organization does).
-   * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
-   * must start with a letter and end with a letter or digit. When empty,
-   * the server derives the slug from the name.
+   * Format: lowercase alphanumeric characters and hyphens, 2 to 63
+   * characters, the length every reference to a resource holds; must start
+   * with a letter and end with a letter or digit. When empty, the server
+   * derives the slug from the name, and refuses a name whose derived slug
+   * breaks these rules, never shortening it.
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -164,9 +166,11 @@ private static final long serialVersionUID = 0L;
    * Combined with org, forms the canonical reference: "org/slug".
    * Fixed once created: update and apply ignore a changed slug. A kind
    * whose slug may change has a rename RPC (Organization does).
-   * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
-   * must start with a letter and end with a letter or digit. When empty,
-   * the server derives the slug from the name.
+   * Format: lowercase alphanumeric characters and hyphens, 2 to 63
+   * characters, the length every reference to a resource holds; must start
+   * with a letter and end with a letter or digit. When empty, the server
+   * derives the slug from the name, and refuses a name whose derived slug
+   * breaks these rules, never shortening it.
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -1245,7 +1249,7 @@ java.lang.String defaultValue) {
     private java.lang.Object name_ = "";
     /**
      * <pre>
-     * Human-readable name of the resource.
+     * Human-readable name of the resource, at most 200 characters.
      * Validation is skipped when the field is empty (e.g., server-generated
      * responses or partial messages).
      * </pre>
@@ -1267,7 +1271,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Human-readable name of the resource.
+     * Human-readable name of the resource, at most 200 characters.
      * Validation is skipped when the field is empty (e.g., server-generated
      * responses or partial messages).
      * </pre>
@@ -1290,7 +1294,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Human-readable name of the resource.
+     * Human-readable name of the resource, at most 200 characters.
      * Validation is skipped when the field is empty (e.g., server-generated
      * responses or partial messages).
      * </pre>
@@ -1309,7 +1313,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Human-readable name of the resource.
+     * Human-readable name of the resource, at most 200 characters.
      * Validation is skipped when the field is empty (e.g., server-generated
      * responses or partial messages).
      * </pre>
@@ -1325,7 +1329,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Human-readable name of the resource.
+     * Human-readable name of the resource, at most 200 characters.
      * Validation is skipped when the field is empty (e.g., server-generated
      * responses or partial messages).
      * </pre>
@@ -1352,9 +1356,11 @@ java.lang.String defaultValue) {
      * Combined with org, forms the canonical reference: "org/slug".
      * Fixed once created: update and apply ignore a changed slug. A kind
      * whose slug may change has a rename RPC (Organization does).
-     * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
-     * must start with a letter and end with a letter or digit. When empty,
-     * the server derives the slug from the name.
+     * Format: lowercase alphanumeric characters and hyphens, 2 to 63
+     * characters, the length every reference to a resource holds; must start
+     * with a letter and end with a letter or digit. When empty, the server
+     * derives the slug from the name, and refuses a name whose derived slug
+     * breaks these rules, never shortening it.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -1379,9 +1385,11 @@ java.lang.String defaultValue) {
      * Combined with org, forms the canonical reference: "org/slug".
      * Fixed once created: update and apply ignore a changed slug. A kind
      * whose slug may change has a rename RPC (Organization does).
-     * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
-     * must start with a letter and end with a letter or digit. When empty,
-     * the server derives the slug from the name.
+     * Format: lowercase alphanumeric characters and hyphens, 2 to 63
+     * characters, the length every reference to a resource holds; must start
+     * with a letter and end with a letter or digit. When empty, the server
+     * derives the slug from the name, and refuses a name whose derived slug
+     * breaks these rules, never shortening it.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -1407,9 +1415,11 @@ java.lang.String defaultValue) {
      * Combined with org, forms the canonical reference: "org/slug".
      * Fixed once created: update and apply ignore a changed slug. A kind
      * whose slug may change has a rename RPC (Organization does).
-     * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
-     * must start with a letter and end with a letter or digit. When empty,
-     * the server derives the slug from the name.
+     * Format: lowercase alphanumeric characters and hyphens, 2 to 63
+     * characters, the length every reference to a resource holds; must start
+     * with a letter and end with a letter or digit. When empty, the server
+     * derives the slug from the name, and refuses a name whose derived slug
+     * breaks these rules, never shortening it.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -1431,9 +1441,11 @@ java.lang.String defaultValue) {
      * Combined with org, forms the canonical reference: "org/slug".
      * Fixed once created: update and apply ignore a changed slug. A kind
      * whose slug may change has a rename RPC (Organization does).
-     * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
-     * must start with a letter and end with a letter or digit. When empty,
-     * the server derives the slug from the name.
+     * Format: lowercase alphanumeric characters and hyphens, 2 to 63
+     * characters, the length every reference to a resource holds; must start
+     * with a letter and end with a letter or digit. When empty, the server
+     * derives the slug from the name, and refuses a name whose derived slug
+     * breaks these rules, never shortening it.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -1452,9 +1464,11 @@ java.lang.String defaultValue) {
      * Combined with org, forms the canonical reference: "org/slug".
      * Fixed once created: update and apply ignore a changed slug. A kind
      * whose slug may change has a rename RPC (Organization does).
-     * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
-     * must start with a letter and end with a letter or digit. When empty,
-     * the server derives the slug from the name.
+     * Format: lowercase alphanumeric characters and hyphens, 2 to 63
+     * characters, the length every reference to a resource holds; must start
+     * with a letter and end with a letter or digit. When empty, the server
+     * derives the slug from the name, and refuses a name whose derived slug
+     * breaks these rules, never shortening it.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>

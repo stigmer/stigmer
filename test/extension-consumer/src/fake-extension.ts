@@ -112,6 +112,7 @@ import {
   verifyPlatformToken,
   RequestContext,
   ResourceNotFoundError,
+  rethrownStatusError,
   newSubstrateSandboxDriver,
   newSubstrateSettingsFromEnv,
   ROUTING_SESSION,
@@ -744,6 +745,24 @@ export function consumerGateStep(): PipelineStep<DescMessage> {
       }
     },
   };
+}
+
+/**
+ * An in-process client's refusal re-thrown unwrapped: the exported helper
+ * builds a fresh ConnectError (same code, same text) so the inner
+ * response's metadata never reaches the outer trailers (stigmer#1284).
+ */
+export async function consumerForwardInProcessRefusal(
+  call: () => Promise<unknown>,
+): Promise<void> {
+  try {
+    await call();
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      throw rethrownStatusError(error);
+    }
+    throw error;
+  }
 }
 
 /** The typed store not-found classes are importable for the instanceof idiom. */

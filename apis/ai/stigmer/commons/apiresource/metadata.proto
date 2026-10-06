@@ -8,22 +8,28 @@ import "buf/validate/validate.proto";
 // ApiResourceMetadata contains standard metadata for all API resources.
 // Every resource belongs to an organization and has a visibility setting.
 message ApiResourceMetadata {
-  // Human-readable name of the resource.
+  // Human-readable name of the resource, at most 200 characters.
   // Validation is skipped when the field is empty (e.g., server-generated
   // responses or partial messages).
-  string name = 1 [(buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string name = 1 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string.max_len = 200
+  ];
 
   // URL-friendly identifier, unique within the organization (an
   // Organization's own slug is unique across the server).
   // Combined with org, forms the canonical reference: "org/slug".
   // Fixed once created: update and apply ignore a changed slug. A kind
   // whose slug may change has a rename RPC (Organization does).
-  // Format: lowercase alphanumeric characters and hyphens (min 2 chars);
-  // must start with a letter and end with a letter or digit. When empty,
-  // the server derives the slug from the name.
+  // Format: lowercase alphanumeric characters and hyphens, 2 to 63
+  // characters, the length every reference to a resource holds; must start
+  // with a letter and end with a letter or digit. When empty, the server
+  // derives the slug from the name, and refuses a name whose derived slug
+  // breaks these rules, never shortening it.
   string slug = 2 [
     (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
     (buf.validate.field).string.min_len = 2,
+    (buf.validate.field).string.max_len = 63,
     (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*[a-z0-9]$"
   ];
 

@@ -69,7 +69,7 @@ import {
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
-import { generateSlug } from "../../pipeline/steps/slug.js";
+import { checkDerivedSlug, generateSlug } from "../../pipeline/steps/slug.js";
 import {
   ARTIFACT_BYTES_KEY,
   newResolveArtifactSourceStep as newSharedResolveArtifactSourceStep,
@@ -164,7 +164,9 @@ export function newExtractAndHashArtifactStep(): PipelineStep<PushDesc> {
 /**
  * ResolveSlugForPush — the frontmatter name becomes metadata.name and,
  * slugified, metadata.slug. The frontmatter pattern already constrains the
- * name, so an empty slug is a defensive arm, not a reachable one.
+ * name, so an empty slug is a defensive arm, not a reachable one; it bounds
+ * neither the length nor the first character, so the slug is then held to
+ * metadata.slug's rules (`checkDerivedSlug`).
  */
 export function newResolveSlugForPushStep(): PipelineStep<PushDesc> {
   return {
@@ -177,6 +179,10 @@ export function newResolveSlugForPushStep(): PipelineStep<PushDesc> {
       if (slug === "") {
         throw invalidArgumentError(`invalid skill name: ${extractResult.name}`);
       }
+      checkDerivedSlug(slug, {
+        from: `the skill name '${extractResult.name}'`,
+        fix: "rename the skill in its SKILL.md frontmatter",
+      });
       skill.metadata!.slug = slug;
     },
   };

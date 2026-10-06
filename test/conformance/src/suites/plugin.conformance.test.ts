@@ -22,8 +22,9 @@
 //   - delete removes every member and the head, is refused while a user's own
 //     agent references a member, and a fresh install works afterwards;
 //   - the version ladder (latest, digest, manifest-version tag) and the
-//     history read like a skill's; a bad archive, package or overlay refuses
-//     before any write;
+//     history read like a skill's; a bad archive, package or overlay, or a
+//     name whose derived slug no reference could hold, refuses before any
+//     write;
 //   - visibility flows to every member at install and on updateVisibility.
 //
 // Out of scope here: the reserved-label refusal under an enforcing authorizer
@@ -710,6 +711,32 @@ describe("[rpc:PluginCommandController.push] Plugin conformance — refusals bef
     await expectGrpcCode(
       () =>
         clients.pluginQuery.getByReference(ref(ApiResourceKind.plugin, name)),
+      Code.NotFound,
+      "nothing was written",
+    );
+  });
+
+  it("refuses a plugin whose 64-character name derives a slug no reference could hold, naming the name", async () => {
+    // The open format admits names up to 64 characters; a slug holds 63.
+    const base = uniqueName("plg-long");
+    const name = base + "a".repeat(64 - base.length);
+    const error = await expectGrpcCode(
+      () =>
+        clients.pluginCommand.push({
+          org: org(),
+          artifact: pluginArchive(thermosLike(name, { skill: `${base}-review` })),
+        }),
+      Code.InvalidArgument,
+      "64-character plugin name",
+    );
+    expect(error.rawMessage).toContain(`the plugin name '${name}' derives the slug`);
+    expect(error.rawMessage).toContain("(64 characters)");
+    expect(error.rawMessage).toContain("rename the plugin");
+    await expectGrpcCode(
+      () =>
+        clients.skillQuery.getByReference(
+          ref(ApiResourceKind.skill, `${base}-review`),
+        ),
       Code.NotFound,
       "nothing was written",
     );

@@ -19,7 +19,8 @@
  * the plugin in its hooks, a plugin that is only hooks included; a slug an
  * unmanaged resource holds refuses the install, and a user's row is never
  * adopted whichever side declares system content; a bad overlay refuses
- * before any write. A second composition, under an authorizer that decides
+ * before any write, and so does a plugin or member name whose derived slug
+ * breaks the slug rules, named in the refusal. A second composition, under an authorizer that decides
  * `can_write_reserved_labels` per test, pins the reserved-label refusal the
  * open-source posture allows by design, and the one adoption the platform
  * makes: an operator's plugin taking over the system-content row it
@@ -1134,6 +1135,51 @@ describe("Plugin push — refusals before any write", () => {
       plugins.push({ org: ORG, artifact: encoder.encode("not a zip") }),
       Code.InvalidArgument,
       "failed to read plugin archive",
+    );
+  });
+
+  it("refuses a plugin whose name derives a slug too long for a reference, naming the name", async () => {
+    // The open format admits 64 characters; a slug holds at most 63.
+    const prefix = uniqueName("long");
+    const name = prefix + "a".repeat(64 - prefix.length);
+    await expectCode(
+      plugins.push({ org: ORG, artifact: archiveOf(thermosLike(name)) }),
+      Code.InvalidArgument,
+      `the plugin name '${name}' derives the slug '${name}' (64 characters), which is not a valid slug`,
+    );
+  });
+
+  it("refuses a member whose name derives an invalid slug before any member is written, naming the member", async () => {
+    const name = uniqueName("longmember");
+    const server = `${name}-${"s".repeat(64)}`;
+    const fixture = cursorPlugin({
+      name,
+      skills: [
+        {
+          name: `${name}-review`,
+          description: "Review code thoroughly",
+          body: "# Review\nRead everything.",
+        },
+      ],
+      mcpServers: {
+        [server]: { type: "http", url: "https://api.githubcopilot.com/mcp/" },
+      },
+    });
+    await expectCode(
+      plugins.push({ org: ORG, artifact: archiveOf(fixture) }),
+      Code.InvalidArgument,
+      `the plugin's MCP server '${server}' derives the slug '${server}' (${server.length} characters), which is not a valid slug`,
+    );
+    // The skill planned before the server was never pushed.
+    await expectCode(
+      skillQuery.getByReference(
+        createMessage(ApiResourceReferenceSchema, {
+          org: ORG,
+          kind: ApiResourceKind.skill,
+          slug: `${name}-review`,
+        }),
+      ),
+      Code.NotFound,
     );
   });
 

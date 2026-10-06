@@ -239,6 +239,44 @@ describe("Agent conformance — negative paths", () => {
     );
   });
 
+  it("[rpc:AgentCommandController.create] accepts a slug of 63 characters, the most a reference holds, and rejects one of 64 (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    const base = uniqueName("bound");
+    const atBound = base + "a".repeat(63 - base.length);
+    const created = await clients.agentCommand.create({
+      ...makeAgent({ org, name: uniqueName("at-bound") }),
+      metadata: { name: uniqueName("at-bound"), slug: atBound, org },
+    });
+    fixtures.defer(() => clients.agentCommand.delete({ value: created.metadata!.id }));
+    expect(created.metadata?.slug).toBe(atBound);
+
+    await expectGrpcCode(
+      () =>
+        clients.agentCommand.create({
+          ...makeAgent({ org, name: uniqueName("past-bound") }),
+          metadata: { name: uniqueName("past-bound"), slug: `${atBound}b`, org },
+        }),
+      Code.InvalidArgument,
+      "create with a 64-character slug",
+    );
+  });
+
+  it("[rpc:AgentCommandController.create] rejects a name whose derived slug no reference could hold, naming the name and the fix (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    // Agent validates before it derives, so the derived slug meets the
+    // bound only through the derivation's own check.
+    const base = uniqueName("Long Name");
+    const name = base + "x".repeat(70 - base.length);
+    const error = await expectGrpcCode(
+      () => clients.agentCommand.create(makeAgent({ org, name })),
+      Code.InvalidArgument,
+      "create with a long name and no slug",
+    );
+    expect(error.rawMessage).toContain(`the name '${name}' derives the slug`);
+    expect(error.rawMessage).toContain("(70 characters)");
+    expect(error.rawMessage).toContain("set metadata.slug");
+  });
+
   it("[rpc:AgentCommandController.create] [rpc:AgentCommandController.apply] rejects a create and an apply into an Organization that does not exist (contract: NotFound, the load-first copy)", async () => {
     // A slug no Organization holds. Every edition answers this before any
     // permission question and with the same sentence, whether the server

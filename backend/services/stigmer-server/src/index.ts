@@ -386,6 +386,7 @@ export {
   internalError,
   invalidArgumentError,
   notFoundError,
+  rethrownStatusError,
   unauthenticatedWithReasonError,
   unavailableError,
 } from "./pipeline/errors.js";

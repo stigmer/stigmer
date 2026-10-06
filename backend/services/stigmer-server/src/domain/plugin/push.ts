@@ -98,7 +98,7 @@ import {
 } from "../../pipeline/steps/defaults.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { ARTIFACT_BYTES_KEY } from "../../pipeline/steps/resolve-artifact-source.js";
-import { generateSlug } from "../../pipeline/steps/slug.js";
+import { checkDerivedSlug, generateSlug } from "../../pipeline/steps/slug.js";
 import {
   refuseChildOrgsVisibilityInChild,
   rejectUnsupportedVisibility,
@@ -204,7 +204,11 @@ export function newReadPluginPackageStep(): PipelineStep<PushDesc> {
 
 /**
  * BuildInitialPlugin — the scaffold: org from the request, name and slug
- * from the manifest. The id and every status field come later.
+ * from the manifest. The id and every status field come later. The open
+ * format admits a name (up to 64 characters, or starting with a digit)
+ * whose slug no reference could hold, so the slug is held to
+ * metadata.slug's rules (`checkDerivedSlug`) and such a name is refused in
+ * words.
  */
 export function newBuildInitialPluginStep(): PipelineStep<PushDesc> {
   return {
@@ -215,6 +219,10 @@ export function newBuildInitialPluginStep(): PipelineStep<PushDesc> {
       if (slug === "") {
         throw invalidArgumentError(`invalid plugin name: ${pkg.name}`);
       }
+      checkDerivedSlug(slug, {
+        from: `the plugin name '${pkg.name}'`,
+        fix: "rename the plugin",
+      });
       const plugin = create(PluginSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Plugin",
@@ -363,7 +371,8 @@ export function requestedVisibility(
 
 /**
  * PlanMaterialization — everything the push will write, checked whole:
- * every child slug against the organization (free, ours, adopted system
+ * every child slug against metadata.slug's rules (`checkDerivedSlug`) and
+ * against the organization (free, ours, adopted system
  * content, or refused naming the holder), the caller's permission for
  * every member kind, and the plugin's current members for the convergence
  * and drop decisions. An adopted slug is recorded as a warning on the plan,
@@ -403,6 +412,18 @@ export function newPlanMaterializationStep(
           throw invalidArgumentError(error.message);
         }
         throw error;
+      }
+
+      // Every member's slug is derived from a name in the package (a
+      // skill's frontmatter, an mcp.json key, a workflow file's stem), so
+      // each is held to the slug rules here, before the first write: a
+      // member refused later, by its own chain, would leave the members
+      // before it installed.
+      for (const member of plan.members) {
+        checkDerivedSlug(member.slug, {
+          from: `the plugin's ${memberNoun(member.kind)} '${member.name}'`,
+          fix: "rename it in the plugin",
+        });
       }
 
       const adopted: PluginWarning[] = [];
