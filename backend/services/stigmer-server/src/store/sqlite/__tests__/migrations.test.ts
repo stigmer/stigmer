@@ -475,12 +475,14 @@ describe("v7 column reconciliation", () => {
     // A v6 database whose pending_oauth_state was created by an OLD Go
     // build — before pending_state_store.go gained the idempotent ALTERs
     // for `org` and `token_auth_method`. v7 must reconcile the columns
-    // without touching the row.
+    // without touching the row. The event log is v5's, as every v6
+    // database has it.
     setup.exec(`
       CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT (datetime('now')));
       INSERT INTO schema_version (version) VALUES (1),(2),(3),(4),(5),(6);
       CREATE TABLE resources (kind TEXT NOT NULL, id TEXT NOT NULL, data BLOB NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (kind, id)) WITHOUT ROWID;
       CREATE TABLE resource_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, resource_id TEXT NOT NULL, data BLOB NOT NULL, archived_at TEXT NOT NULL DEFAULT (datetime('now')), version_hash TEXT, tag TEXT);
+      CREATE TABLE workflow_execution_events (execution_id TEXT NOT NULL, sequence_number INTEGER NOT NULL, event_type TEXT NOT NULL, task_name TEXT NOT NULL DEFAULT '', data BLOB NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')), PRIMARY KEY (execution_id, sequence_number));
       CREATE TABLE pending_oauth_state (
         state               TEXT PRIMARY KEY,
         code_verifier       TEXT NOT NULL,
@@ -2057,6 +2059,49 @@ describe("v18: agent and workflow executions are runs", () => {
     expect(await ids(workflowExecutionListIndex, "workflow", "wfl_1")).toEqual(["wex_1"]);
     expect(await ids(iamPolicyListIndex, "principal", "ida_2")).toEqual([rekeyedId]);
     expect(await ids(iamPolicyListIndex, "principal", "ida_3")).toEqual([keptGrant.id]);
+  });
+
+  it("names every run lifecycle event in the event log the new way, the task events and the bytes untouched", () => {
+    const { dbPath, db: setup } = v17Database();
+    const seeded: Array<[sequence: number, eventType: string, taskName: string]> = [
+      [1, "execution_started", ""],
+      [2, "task_started", "triage"],
+      [3, "execution_paused", ""],
+      [4, "execution_resumed", ""],
+      [5, "execution_completed", ""],
+    ];
+    const insert = setup.prepare(
+      `INSERT INTO workflow_execution_events (execution_id, sequence_number, event_type, task_name, data) VALUES (?, ?, ?, ?, ?)`,
+    );
+    for (const [sequence, eventType, taskName] of seeded) {
+      insert.run("wex_1", sequence, eventType, taskName, new Uint8Array([sequence]));
+    }
+    for (const [index, eventType] of ["execution_failed", "execution_cancelled", "execution_terminated"].entries()) {
+      insert.run(`wex_${index + 2}`, 1, eventType, "", new Uint8Array([9]));
+    }
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_18);
+
+    expect(
+      db
+        .prepare(
+          `SELECT execution_id, sequence_number, event_type, task_name, data FROM workflow_execution_events ORDER BY execution_id, sequence_number`,
+        )
+        .all()
+        .map((event) => ({ ...event })),
+    ).toEqual([
+      { execution_id: "wex_1", sequence_number: 1, event_type: "run_started", task_name: "", data: new Uint8Array([1]) },
+      { execution_id: "wex_1", sequence_number: 2, event_type: "task_started", task_name: "triage", data: new Uint8Array([2]) },
+      { execution_id: "wex_1", sequence_number: 3, event_type: "run_paused", task_name: "", data: new Uint8Array([3]) },
+      { execution_id: "wex_1", sequence_number: 4, event_type: "run_resumed", task_name: "", data: new Uint8Array([4]) },
+      { execution_id: "wex_1", sequence_number: 5, event_type: "run_completed", task_name: "", data: new Uint8Array([5]) },
+      { execution_id: "wex_2", sequence_number: 1, event_type: "run_failed", task_name: "", data: new Uint8Array([9]) },
+      { execution_id: "wex_3", sequence_number: 1, event_type: "run_cancelled", task_name: "", data: new Uint8Array([9]) },
+      { execution_id: "wex_4", sequence_number: 1, event_type: "run_terminated", task_name: "", data: new Uint8Array([9]) },
+    ]);
   });
 
   it("reads runs across keyset pages, missing none past the first page", () => {

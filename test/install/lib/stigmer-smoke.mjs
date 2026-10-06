@@ -364,7 +364,53 @@ export async function smokeOrganization(baseUrl, name, { org } = {}) {
   return id;
 }
 
-const TERMINAL_FAILURES = new Set(["RUN_FAILED", "RUN_CANCELLED", "RUN_TERMINATED"]);
+/**
+ * The run API a server speaks. The rename of agent and workflow executions
+ * to runs moved their services, kind strings and phase names; an upgrade
+ * rehearsal records its state on a release from before it and reads it back
+ * on the build after, so every run line takes the API of the server it
+ * talks to ({@link runApiOf}).
+ */
+export const RUN_APIS = Object.freeze({
+  current: Object.freeze({
+    agentService: "ai.stigmer.agentic.agentrun.v1.AgentRun",
+    workflowService: "ai.stigmer.agentic.workflowrun.v1.WorkflowRun",
+    agentKind: "AgentRun",
+    workflowKind: "WorkflowRun",
+    phasePrefix: "RUN_",
+  }),
+  beforeRunRename: Object.freeze({
+    agentService: "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+    workflowService: "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
+    agentKind: "AgentExecution",
+    workflowKind: "WorkflowExecution",
+    phasePrefix: "EXECUTION_",
+  }),
+});
+
+/**
+ * The run API `baseUrl` serves: the current one, unless the server answers
+ * the current agent-run query as a procedure it does not route, which only a
+ * release from before the rename does. The Connect adapter answers an
+ * unrouted procedure with a bare 404 and no body; a routed one that refuses
+ * (an unknown id, a malformed one) answers a Connect error naming its code.
+ */
+export async function runApiOf(baseUrl) {
+  const response = await fetch(`${baseUrl}/${RUN_APIS.current.agentService}QueryController/get`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ value: "aex_run_api_probe" }),
+  });
+  const text = await response.text();
+  return response.status === 404 && text.trim() === "" ? RUN_APIS.beforeRunRename : RUN_APIS.current;
+}
+
+/** A run phase without its API's prefix (`COMPLETED`), so phases compare across the rename. */
+export function runPhaseWord(phase, api) {
+  return phase.startsWith(api.phasePrefix) ? phase.slice(api.phasePrefix.length) : phase;
+}
+
+const TERMINAL_FAILURES = new Set(["FAILED", "CANCELLED", "TERMINATED"]);
 
 /**
  * The end-to-end line every self-host smoke draws: in the smoke's organization
@@ -375,7 +421,7 @@ const TERMINAL_FAILURES = new Set(["RUN_FAILED", "RUN_CANCELLED", "RUN_TERMINATE
  * so an upgrade rehearsal can read them back. A terminal failure surfaces
  * immediately with the server's own error.
  */
-export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { org } = {}) {
+export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { org, api = RUN_APIS.current } = {}) {
   const suffix = uniqueSuffix();
   const orgId = await smokeOrganization(baseUrl, `smoke-org-${suffix}`, { org });
 
@@ -402,10 +448,10 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { o
 
   const execution = await connectJson(
     baseUrl,
-    "ai.stigmer.agentic.workflowrun.v1.WorkflowRunCommandController/create",
+    `${api.workflowService}CommandController/create`,
     {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "WorkflowRun",
+      kind: api.workflowKind,
       metadata: { name: `smoke-wfx-${suffix}`, org: orgId },
       spec: { workflowId },
     },
@@ -417,14 +463,14 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { o
   await pollUntil("execution RUN_COMPLETED", timeoutMs, async () => {
     const current = await connectJson(
       baseUrl,
-      "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get",
+      `${api.workflowService}QueryController/get`,
       { value: executionId },
     );
-    const phase = current.status?.phase ?? "RUN_PHASE_UNSPECIFIED";
-    if (TERMINAL_FAILURES.has(phase)) {
+    const phase = current.status?.phase ?? "";
+    if (TERMINAL_FAILURES.has(runPhaseWord(phase, api))) {
       throw new PollStop(`execution reached ${phase}: ${JSON.stringify(current.status?.error ?? {})}`);
     }
-    return phase === "RUN_COMPLETED";
+    return runPhaseWord(phase, api) === "COMPLETED";
   });
   return { orgId, workflowId, executionId };
 }
@@ -440,10 +486,10 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { o
  * the ids and the reply, so an upgrade rehearsal can read them back. A
  * terminal failure surfaces immediately with the execution's own error.
  */
-export async function runAgentToReply(baseUrl, timeoutMs, { expectText, log = () => {}, org }) {
+export async function runAgentToReply(baseUrl, timeoutMs, { expectText, log = () => {}, org, api = RUN_APIS.current }) {
   requireExpectText(expectText);
   const agent = await createSmokeAgent(baseUrl, { log, org });
-  const run = await runAgentExecution(baseUrl, agent, timeoutMs, { expectText, log });
+  const run = await runAgentExecution(baseUrl, agent, timeoutMs, { expectText, log, api });
   return { ...agent, ...run };
 }
 
@@ -475,11 +521,11 @@ export async function createSmokeAgent(baseUrl, { log = () => {}, org } = {}) {
  * instead, so the line answers either: the upgrade rehearsal records its
  * state on the release it upgrades from with this same line.
  */
-async function startAgentConversation(baseUrl, { orgId, agentId, agentSlug }) {
+async function startAgentConversation(baseUrl, { orgId, agentId, agentSlug }, api) {
   const create = (target) =>
-    connectJson(baseUrl, "ai.stigmer.agentic.agentrun.v1.AgentRunCommandController/create", {
+    connectJson(baseUrl, `${api.agentService}CommandController/create`, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentRun",
+      kind: api.agentKind,
       metadata: { name: `smoke-aex-${uniqueSuffix()}`, org: orgId },
       spec: { ...target, message: "Say hello." },
     });
@@ -498,20 +544,20 @@ async function startAgentConversation(baseUrl, { orgId, agentId, agentSlug }) {
  * stored this way, which is what shows the stored agent still works. Resolves
  * `{ executionId, reply }`.
  */
-export async function runAgentExecution(baseUrl, agent, timeoutMs, { expectText, log = () => {} }) {
+export async function runAgentExecution(baseUrl, agent, timeoutMs, { expectText, log = () => {}, api = RUN_APIS.current }) {
   requireExpectText(expectText);
-  const execution = await startAgentConversation(baseUrl, agent);
+  const execution = await startAgentConversation(baseUrl, agent, api);
   const executionId = execution.metadata?.id;
   if (!executionId) throw new Error(`agent execution create returned no id: ${JSON.stringify(execution)}`);
   log(`agent execution ${executionId} created — awaiting the model's reply...`);
 
   const completed = await pollUntil("agent execution RUN_COMPLETED", timeoutMs, async () => {
-    const current = await readAgentExecution(baseUrl, executionId);
-    const phase = current.status?.phase ?? "RUN_PHASE_UNSPECIFIED";
-    if (TERMINAL_FAILURES.has(phase)) {
+    const current = await readAgentExecution(baseUrl, executionId, api);
+    const phase = current.status?.phase ?? "";
+    if (TERMINAL_FAILURES.has(runPhaseWord(phase, api))) {
       throw new PollStop(`agent execution reached ${phase}: ${current.status?.error || "(no error recorded)"}`);
     }
-    return phase === "RUN_COMPLETED" ? current : false;
+    return runPhaseWord(phase, api) === "COMPLETED" ? current : false;
   });
   const reply = lastAiReply(completed);
   if (!reply.includes(expectText)) {
@@ -535,8 +581,8 @@ function uniqueSuffix() {
 }
 
 /** One agent execution, as the query lane returns it. */
-export async function readAgentExecution(baseUrl, executionId) {
-  return connectJson(baseUrl, "ai.stigmer.agentic.agentrun.v1.AgentRunQueryController/get", {
+export async function readAgentExecution(baseUrl, executionId, api = RUN_APIS.current) {
+  return connectJson(baseUrl, `${api.agentService}QueryController/get`, {
     value: executionId,
   });
 }
@@ -588,8 +634,6 @@ const READS = Object.freeze({
   organization: "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get",
   agent: "ai.stigmer.agentic.agent.v1.AgentQueryController/get",
   agentByReference: "ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference",
-  workflowExecution: "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get",
-  agentExecution: "ai.stigmer.agentic.agentrun.v1.AgentRunQueryController/get",
 });
 
 /**
@@ -602,8 +646,9 @@ const READS = Object.freeze({
  * read to.
  */
 export async function recordState(baseUrl, timeoutMs, { expectText, log = () => {} }) {
-  const workflow = await runSetVarsWorkflow(baseUrl, timeoutMs, log);
-  const agent = await runAgentToReply(baseUrl, timeoutMs, { expectText, log });
+  const api = await runApiOf(baseUrl);
+  const workflow = await runSetVarsWorkflow(baseUrl, timeoutMs, log, { api });
+  const agent = await runAgentToReply(baseUrl, timeoutMs, { expectText, log, api });
   const ids = {
     workflowOrgId: workflow.orgId,
     workflowExecutionId: workflow.executionId,
@@ -627,6 +672,7 @@ export async function recordState(baseUrl, timeoutMs, { expectText, log = () => 
  * everything that was lost.
  */
 export async function readState(baseUrl, ids) {
+  const api = await runApiOf(baseUrl);
   const read = async (procedure, body, pick) => {
     try {
       return pick(await connectJson(baseUrl, procedure, body));
@@ -639,7 +685,9 @@ export async function readState(baseUrl, ids) {
     name: resource.metadata?.name ?? "",
     slug: resource.metadata?.slug ?? "",
   });
-  const execution = (resource) => ({ ...identity(resource), phase: resource.status?.phase ?? "" });
+  // The phase without its API's prefix: a run recorded as EXECUTION_COMPLETED
+  // reads back as RUN_COMPLETED after the rename, the same phase.
+  const execution = (resource) => ({ ...identity(resource), phase: runPhaseWord(resource.status?.phase ?? "", api) });
   const workflowOrg = await read(READS.organization, { value: ids.workflowOrgId }, identity);
   const agentOrg = await read(READS.organization, { value: ids.agentOrgId }, identity);
   const agent = await read(READS.agent, { value: ids.agentId }, identity);
@@ -652,8 +700,8 @@ export async function readState(baseUrl, ids) {
     agentOrg,
     agent,
     agentByReference,
-    workflowExecution: await read(READS.workflowExecution, { value: ids.workflowExecutionId }, execution),
-    agentExecution: await read(READS.agentExecution, { value: ids.agentExecutionId }, (resource) => ({
+    workflowExecution: await read(`${api.workflowService}QueryController/get`, { value: ids.workflowExecutionId }, execution),
+    agentExecution: await read(`${api.agentService}QueryController/get`, { value: ids.agentExecutionId }, (resource) => ({
       ...execution(resource),
       reply: lastAiReply(resource),
     })),
@@ -734,7 +782,7 @@ export async function approvalResolutions(baseUrl, executionId) {
   let afterSequence = 0;
   for (;;) {
     const page = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/getEventLog`, {
-      executionId,
+      runId: executionId,
       afterSequence,
       eventTypes: ["approval_resolved"],
     });

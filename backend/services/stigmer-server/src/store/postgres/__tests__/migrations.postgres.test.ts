@@ -2084,6 +2084,60 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         }
       });
 
+      it("names every run lifecycle event in the event log the new way, the task events and the bytes untouched", async () => {
+        const client = await v12Client();
+        try {
+          const seeded: Array<[executionId: string, sequence: number, eventType: string, taskName: string]> = [
+            ["wex_1", 1, "execution_started", ""],
+            ["wex_1", 2, "task_started", "triage"],
+            ["wex_1", 3, "execution_paused", ""],
+            ["wex_1", 4, "execution_resumed", ""],
+            ["wex_1", 5, "execution_completed", ""],
+            ["wex_2", 1, "execution_failed", ""],
+            ["wex_3", 1, "execution_cancelled", ""],
+            ["wex_4", 1, "execution_terminated", ""],
+          ];
+          for (const [executionId, sequence, eventType, taskName] of seeded) {
+            await client.query(
+              `INSERT INTO workflow_execution_events (execution_id, sequence_number, event_type, task_name, data) VALUES ($1, $2, $3, $4, $5)`,
+              [executionId, sequence, eventType, taskName, Buffer.from([sequence])],
+            );
+          }
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_13);
+
+          const events = await client.query<{
+            execution_id: string;
+            sequence_number: string;
+            event_type: string;
+            task_name: string;
+            data: Buffer;
+          }>(
+            `SELECT execution_id, sequence_number, event_type, task_name, data FROM workflow_execution_events ORDER BY execution_id, sequence_number`,
+          );
+          expect(
+            events.rows.map((event) => [
+              event.execution_id,
+              Number(event.sequence_number),
+              event.event_type,
+              event.task_name,
+              [...event.data],
+            ]),
+          ).toEqual([
+            ["wex_1", 1, "run_started", "", [1]],
+            ["wex_1", 2, "task_started", "triage", [2]],
+            ["wex_1", 3, "run_paused", "", [3]],
+            ["wex_1", 4, "run_resumed", "", [4]],
+            ["wex_1", 5, "run_completed", "", [5]],
+            ["wex_2", 1, "run_failed", "", [1]],
+            ["wex_3", 1, "run_cancelled", "", [1]],
+            ["wex_4", 1, "run_terminated", "", [1]],
+          ]);
+        } finally {
+          await client.end();
+        }
+      });
+
       it("reads runs across keyset pages, missing none past the first page", async () => {
         const client = await v12Client();
         try {

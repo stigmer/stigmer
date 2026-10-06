@@ -78,6 +78,7 @@ import type { MigratedRun } from "../workflow-instance-retired.js";
 import {
   RETIRED_AGENT_RUN_KIND,
   RETIRED_WORKFLOW_RUN_KIND,
+  RUN_EVENT_TYPE_RENAMES,
   RUN_KIND_RENAMES,
   RUN_KIND_TABLES,
   RUN_RENAME_PAGE_SIZE,
@@ -934,8 +935,8 @@ function migrateToV17(db: DatabaseSync): void {
  * in this engine's terms (run-rename.ts says what each row becomes and why
  * an unreadable row fails the step). Every run row is read in keyset pages
  * under its old kind and rewritten when its bytes spell the kind the old
- * way; then every table keyed by kind renames the run kinds. Every
- * IamPolicy row is read in keyset pages, and the ones naming a run kind are
+ * way; then every table keyed by kind renames the run kinds, and every
+ * workflow run event names its type the new way. Every IamPolicy row is read in keyset pages, and the ones naming a run kind are
  * re-keyed: the old row leaves with its list keys, its history kept, and
  * the new row is written unproven with `updated_at` stamped, so the list
  * index derives its keys at open. Every workflow head and every archived
@@ -991,6 +992,12 @@ function migrateToV18(db: DatabaseSync): void {
     for (const table of RUN_KIND_TABLES) {
       db.prepare(`UPDATE ${table} SET kind = ? WHERE kind = ?`).run(to, from);
     }
+  }
+  const renameEventType = db.prepare(
+    `UPDATE workflow_execution_events SET event_type = ? WHERE event_type = ?`,
+  );
+  for (const [from, to] of RUN_EVENT_TYPE_RENAMES) {
+    renameEventType.run(to, from);
   }
 
   const rekeyed: Array<{ from: string; policy: RekeyedPolicy }> = [];

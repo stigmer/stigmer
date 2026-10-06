@@ -25,6 +25,12 @@
  *     renames need nothing: the rows are binary, by number. A run's audit
  *     rows keep their bytes: only version history decodes audit rows, and
  *     runs are not versioned.
+ *   - A workflow run's event log. The side table `workflow_execution_events`
+ *     keys each event by its `WorkflowEventType` value name, which
+ *     getEventLog filters on (`event_type = ?`); the run lifecycle values
+ *     were renamed (`execution_started` became `run_started`), so every
+ *     event row names its type the new way (`RUN_EVENT_TYPE_RENAMES`). The
+ *     event's bytes need nothing: they hold the type by number.
  *   - Grants on a run. An IamPolicy names its subject and object by kind as
  *     a string (`ApiResourceRef.kind`), and its id is derived from that
  *     triple's text (domain/iampolicy/constants.ts `policyIdFor`), so a
@@ -70,6 +76,21 @@ export const RETIRED_WORKFLOW_RUN_KIND = "workflow_execution";
 export const RUN_KIND_RENAMES: ReadonlyArray<readonly [from: string, to: string]> = [
   [RETIRED_AGENT_RUN_KIND, "agent_run"],
   [RETIRED_WORKFLOW_RUN_KIND, "workflow_run"],
+];
+
+/**
+ * Each run lifecycle event type's stored name before and after the rename
+ * (`workflow_execution_events.event_type`, the `WorkflowEventType` value
+ * name). The task and approval event types kept their names.
+ */
+export const RUN_EVENT_TYPE_RENAMES: ReadonlyArray<readonly [from: string, to: string]> = [
+  ["execution_started", "run_started"],
+  ["execution_completed", "run_completed"],
+  ["execution_failed", "run_failed"],
+  ["execution_paused", "run_paused"],
+  ["execution_resumed", "run_resumed"],
+  ["execution_cancelled", "run_cancelled"],
+  ["execution_terminated", "run_terminated"],
 ];
 
 /** The tables whose `kind` column names a run kind. */

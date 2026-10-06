@@ -13,6 +13,8 @@
  *     by the new keys, nested steps included, its YAML regenerated from the
  *     rewritten spec and its version hash untouched; a free-form string is
  *     never rewritten; a workflow already current is left alone;
+ *   - the event-type renames cover exactly the event log's run lifecycle
+ *     types, each the old name of a current WorkflowEventType value;
  *   - bytes that do not decode throw (the step must not pass over them).
  */
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
@@ -22,11 +24,13 @@ import { describe, expect, it } from "vitest";
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
 import { policyIdFor } from "../../domain/iampolicy/constants.js";
 import { protoToYaml } from "../../domain/workflow/converter/converter.js";
 import {
+  RUN_EVENT_TYPE_RENAMES,
   rekeyedRunPolicy,
   renamedAgentRunRow,
   renamedWorkflowRow,
@@ -41,6 +45,16 @@ import {
   workflowRunBytes,
   workflowWithSteps,
 } from "./run-rename-rows.js";
+
+describe("RUN_EVENT_TYPE_RENAMES", () => {
+  it("renames exactly the run lifecycle event types, each from its old name to a current value", () => {
+    const runLifecycle = Object.keys(WorkflowEventType).filter((name) => name.startsWith("run_"));
+    expect(RUN_EVENT_TYPE_RENAMES.map(([, to]) => to).sort()).toEqual(runLifecycle.sort());
+    for (const [from, to] of RUN_EVENT_TYPE_RENAMES) {
+      expect(from).toBe(to.replace(/^run_/, "execution_"));
+    }
+  });
+});
 
 describe("renamedAgentRunRow", () => {
   it("rewrites the kind string, and the fetched run then passes its own validation", () => {

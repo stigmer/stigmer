@@ -15,7 +15,10 @@
 // runs created is recorded, read back after an upgrade, and every loss or
 // change named at once (compareState is pure; recordState and
 // assertStateSurvived run against a scripted lane whose rows can be made to
-// vanish, the way a data-losing migration would). The version probe: the
+// vanish, the way a data-losing migration would, and which can serve a
+// release from before runs were named runs and then upgrade, so state
+// recorded through the old run API reads back through the new one). The
+// version probe: the
 // server's own getServerInfo answer, refused when empty. The refusal probe:
 // a request the server must refuse passes only on a non-2xx naming the
 // expected text, and an admission or another refusal fails, naming the
@@ -46,9 +49,11 @@ import {
   expectRefusal,
   gateLogProblem,
   pollUntil,
+  RUN_APIS,
   readState,
   recordState,
   runAgentToReply,
+  runApiOf,
   runSetVarsWorkflow,
   serverLogEntries,
   serverVersion,
@@ -532,9 +537,12 @@ test("compareState names an execution that is no longer COMPLETED", () => {
 /**
  * A lane that serves every call the state probes make, from rows it keeps:
  * creates add a row, gets read it, and `lane.lose(id)` deletes one, as a
- * migration that dropped rows would.
+ * migration that dropped rows would. It speaks `api` (RUN_APIS) until
+ * `lane.upgrade()`, which serves the current run API over the same rows with
+ * their phases renamed, as the store's enum numbers read after the rename.
+ * An unrouted procedure answers as the Connect adapter does: a bare 404.
  */
-async function stateLane() {
+async function stateLane(api = RUN_APIS.current) {
   const rows = new Map();
   let n = 0;
   const create = (prefix, extra = {}) => (body) => {
@@ -548,30 +556,41 @@ async function stateLane() {
   // A Map, and a function check at the call: the path is the caller's, so it
   // must never reach an inherited property (a path of "constructor") or call
   // something that is not a route.
-  const routes = new Map(Object.entries({
-    [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
-    [ORG_CREATE]: create("org"),
-    "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": create("wfl"),
-    "ai.stigmer.agentic.workflowrun.v1.WorkflowRunCommandController/create": create("wex", {
-      status: { phase: "RUN_COMPLETED" },
-    }),
-    [AGENT_CREATE]: create("agt"),
-    [AEX_CREATE]: create("aex", {
-      status: { phase: "RUN_COMPLETED", messages: [{ type: "MESSAGE_AI", content: REPLY }] },
-    }),
-    "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get": get,
-    "ai.stigmer.agentic.agent.v1.AgentQueryController/get": get,
-    "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get": get,
-    [AEX_GET]: get,
-    "ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference": (body) =>
-      [...rows.values()].find((row) => row.metadata.slug === body.slug && body.kind === "agent"),
-  }));
+  const routesFor = (speaks) =>
+    new Map(Object.entries({
+      [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
+      [ORG_CREATE]: create("org"),
+      "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": create("wfl"),
+      [`${speaks.workflowService}CommandController/create`]: (body) => {
+        assert.equal(body.kind, speaks.workflowKind);
+        return create("wex", { status: { phase: `${speaks.phasePrefix}COMPLETED` } })(body);
+      },
+      [AGENT_CREATE]: create("agt"),
+      [`${speaks.agentService}CommandController/create`]: (body) => {
+        assert.equal(body.kind, speaks.agentKind);
+        return create("aex", {
+          status: { phase: `${speaks.phasePrefix}COMPLETED`, messages: [{ type: "MESSAGE_AI", content: REPLY }] },
+        })(body);
+      },
+      "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get": get,
+      "ai.stigmer.agentic.agent.v1.AgentQueryController/get": get,
+      [`${speaks.workflowService}QueryController/get`]: get,
+      [`${speaks.agentService}QueryController/get`]: get,
+      "ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference": (body) =>
+        [...rows.values()].find((row) => row.metadata.slug === body.slug && body.kind === "agent"),
+    }));
+  let routes = routesFor(api);
   const server = createServer((request, response) => {
     let raw = "";
     request.on("data", (chunk) => (raw += chunk));
     request.on("end", () => {
       const route = routes.get((request.url ?? "").replace(/^\//, ""));
-      const answer = typeof route === "function" ? route(JSON.parse(raw || "{}")) : undefined;
+      if (typeof route !== "function") {
+        response.writeHead(404);
+        response.end();
+        return;
+      }
+      const answer = route(JSON.parse(raw || "{}"));
       response.writeHead(answer === undefined ? 404 : 200, { "content-type": "application/json" });
       response.end(JSON.stringify(answer ?? { code: "not_found" }));
     });
@@ -582,6 +601,18 @@ async function stateLane() {
     lose: (id) => rows.delete(id),
     rename: (id, name) => {
       rows.get(id).metadata.name = name;
+    },
+    setPhase: (id, phase) => {
+      rows.get(id).status.phase = phase;
+    },
+    upgrade: () => {
+      routes = routesFor(RUN_APIS.current);
+      for (const row of rows.values()) {
+        const phase = row.status?.phase;
+        if (phase?.startsWith(api.phasePrefix)) {
+          row.status.phase = `${RUN_APIS.current.phasePrefix}${phase.slice(api.phasePrefix.length)}`;
+        }
+      }
     },
     close: () => new Promise((resolve) => server.close(resolve)),
   };
@@ -613,6 +644,50 @@ test("a lost agent execution and a renamed agent both fail the survival check, n
     );
   } finally {
     await lane.close();
+  }
+});
+
+test("state recorded through the run API before the rename reads back whole through the current one", async () => {
+  const lane = await stateLane(RUN_APIS.beforeRunRename);
+  try {
+    assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.beforeRunRename);
+    const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
+    assert.equal(recorded.snapshot.workflowExecution.phase, "COMPLETED");
+    assert.equal(recorded.snapshot.agentExecution.reply, REPLY);
+    lane.upgrade();
+    assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.current);
+    await assertStateSurvived(lane.baseUrl, recorded);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("a run that lost its phase across the rename is named", async () => {
+  const lane = await stateLane(RUN_APIS.beforeRunRename);
+  try {
+    const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
+    lane.upgrade();
+    lane.setPhase(recorded.ids.workflowExecutionId, "RUN_PHASE_UNSPECIFIED");
+    await assert.rejects(
+      assertStateSurvived(lane.baseUrl, recorded),
+      /workflowExecution\.phase: was "COMPLETED", now "PHASE_UNSPECIFIED"/,
+    );
+  } finally {
+    await lane.close();
+  }
+});
+
+test("runApiOf takes any answer but an unrouted procedure's bare 404 as the current run API", async () => {
+  for (const [status, body] of [
+    [404, { code: "not_found", message: "agent run aex_run_api_probe not found" }],
+    [400, { code: "invalid_argument", message: "value: not an id" }],
+  ]) {
+    const lane = await serveAnswer(status, body);
+    try {
+      assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.current);
+    } finally {
+      await lane.close();
+    }
   }
 });
 
@@ -856,6 +931,7 @@ test("approval resolutions are read from every page of the event log, each page 
       [0, 4],
     );
     assert.deepEqual(lane.sent[0].body.eventTypes, ["approval_resolved"]);
+    assert.equal(lane.sent[0].body.runId, "wex_gate");
   } finally {
     await lane.close();
   }

@@ -25,7 +25,7 @@ test.describe("Workflow execution history", () => {
     try {
       await awaitWorkflowRunCompleted(stigmerClient, execution.id);
       await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
-      await page.getByRole("tab", { name: "Executions" }).click();
+      await page.getByRole("tab", { name: "Runs" }).click();
 
       const table = page.getByRole("table", { name: "Run history" });
       await expect(table).toBeVisible({ timeout: 15_000 });
@@ -51,7 +51,7 @@ test.describe("Workflow execution history", () => {
     try {
       await awaitWorkflowRunCompleted(stigmerClient, execution.id);
       await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
-      await page.getByRole("tab", { name: "Executions" }).click();
+      await page.getByRole("tab", { name: "Runs" }).click();
 
       await expect(page.getByLabel("Run health metrics")).toBeVisible({ timeout: 15_000 });
     } finally {
@@ -70,7 +70,7 @@ test.describe("Workflow execution history", () => {
     try {
       await awaitWorkflowRunCompleted(stigmerClient, execution.id);
       await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
-      await page.getByRole("tab", { name: "Executions" }).click();
+      await page.getByRole("tab", { name: "Runs" }).click();
 
       const filters = page.getByLabel("Run filters");
       await expect(filters.getByRole("button", { name: /Completed/ })).toBeVisible({
@@ -103,7 +103,7 @@ test.describe("Workflow execution history", () => {
     try {
       await awaitWorkflowRunCompleted(stigmerClient, execution.id);
       await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
-      await page.getByRole("tab", { name: "Executions" }).click();
+      await page.getByRole("tab", { name: "Runs" }).click();
 
       await page
         .getByRole("table", { name: "Run history" })

@@ -82,6 +82,7 @@ import type { MigratedRun } from "../workflow-instance-retired.js";
 import {
   RETIRED_AGENT_RUN_KIND,
   RETIRED_WORKFLOW_RUN_KIND,
+  RUN_EVENT_TYPE_RENAMES,
   RUN_KIND_RENAMES,
   RUN_KIND_TABLES,
   RUN_RENAME_PAGE_SIZE,
@@ -944,7 +945,8 @@ async function migrateToV12(client: PoolClient): Promise<void> {
  *
  * - Every run row is read in keyset pages under its old kind and rewritten
  *   when its bytes spell the kind the old way; then every table keyed by
- *   kind renames the run kinds.
+ *   kind renames the run kinds, and every workflow run event names its
+ *   type the new way.
  * - Every IamPolicy row is read in keyset pages, and the ones naming a run
  *   kind are re-keyed: the old row leaves with its list keys, its history
  *   kept, and the new row is written unproven with `updated_at` stamped,
@@ -1012,6 +1014,12 @@ async function migrateToV13(client: PoolClient): Promise<void> {
         from,
       ]);
     }
+  }
+  for (const [from, to] of RUN_EVENT_TYPE_RENAMES) {
+    await client.query(
+      `UPDATE workflow_execution_events SET event_type = $1 WHERE event_type = $2`,
+      [to, from],
+    );
   }
 
   const rekeyed: Array<{ from: string; policy: RekeyedPolicy }> = [];
