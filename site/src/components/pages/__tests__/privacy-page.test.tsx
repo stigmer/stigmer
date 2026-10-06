@@ -22,6 +22,8 @@ describe("PrivacyPage", () => {
     expect(use.textContent?.replace(/\s+/g, " ")).toContain(
       "provide and operate the service, execute the agents you configure, bill for usage,",
     );
-    expect(use.textContent).toContain("We do not sell your personal information");
+    const text = use.textContent?.replace(/\s+/g, " ") ?? "";
+    expect(text).toContain("We do not sell your personal information");
+    expect(text).toContain("not use your content to train our own or third-party");
   });
 });
