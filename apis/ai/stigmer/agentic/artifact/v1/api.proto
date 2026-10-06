@@ -2,12 +2,12 @@ syntax = "proto3";
 
 // Package ai.stigmer.agentic.artifact.v1 contains the API definition for Artifact.
 //
-// An Artifact is a persisted blob produced during workflow or agent execution.
+// An Artifact is a persisted blob produced during workflow or agent run.
 // It externalizes large task outputs that would otherwise bloat the execution
 // status snapshot and Temporal workflow history.
 //
 // Artifacts are a shared, first-class resource reusable by both workflow
-// executions and agent executions. They have their own identity, lifecycle,
+// executions and agent runs. They have their own identity, lifecycle,
 // and access control — independent of the execution that produced them.
 //
 // This package belongs to the "agentic" bounded context, which encompasses
@@ -27,7 +27,7 @@ import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 
-// Artifact represents a persisted blob produced during execution.
+// Artifact represents a persisted blob produced during run.
 //
 // @internal
 // Follows the standard Stigmer resource pattern:
@@ -63,7 +63,7 @@ message Artifact {
   // - Org: inherited from the producing execution's organization
   //
   // Labels:
-  // - source_type: "workflow_execution" or "agent_execution"
+  // - source_type: "workflow_run" or "agent_run"
   // - source_id: the execution ID that produced this artifact
   // - task_name: the task that produced this artifact (if applicable)
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];

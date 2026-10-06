@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Workspace Write-Back (Platform-Owned Git Workflow)
@@ -35,7 +35,7 @@ message WorkspaceWriteBack {
   string workspace_entry_name = 1;
 
   // Branch created for the agent's changes.
-  // Format: "stigmer/{short_execution_id}"
+  // Format: "stigmer/{short_run_id}"
   // Example: "stigmer/a1b2c3d4"
   string branch_name = 2;
 

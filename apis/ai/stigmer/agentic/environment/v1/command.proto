@@ -17,7 +17,7 @@ service EnvironmentCommandController {
   // @internal
   // The authorization and state-operation are determined depending on whether the
   // environment is going to be created or updated, which is resolved as part of
-  // the request execution.
+  // the request run.
   rpc apply(Environment) returns (Environment);
 
   // Create an environment.

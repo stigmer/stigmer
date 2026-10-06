@@ -281,7 +281,7 @@ message ConversationTimelineItem {
 // size) and decide whether to fetch the bytes.
 //
 // @internal
-// Deliberately NOT the agentexecution
+// Deliberately NOT the agentrun
 // Attachment shape: that message carries transport facts (storage_key,
 // mount_path) for the sandbox, while this one is a display reference —
 // sharing a message would couple the console's read surface to the

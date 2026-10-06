@@ -15,7 +15,7 @@ enum LedgerEntryType {
   // Promotional credits granted (e.g., free trial, referral bonus).
   promotional_credit = 2;
 
-  // Debit for a single LLM call during agent execution.
+  // Debit for a single LLM call during agent run.
   usage_debit = 3;
 
   // Hold placed at execution start to reserve credits.
@@ -114,19 +114,19 @@ enum ReservationStatus {
   reservation_cancelled = 4;
 }
 
-// ExecutionBillingSignal is returned after each usage debit to direct
+// RunBillingSignal is returned after each usage debit to direct
 // the agent runner's behavior.
-enum ExecutionBillingSignal {
-  execution_billing_signal_unspecified = 0;
+enum RunBillingSignal {
+  run_billing_signal_unspecified = 0;
 
   // Balance is healthy; execution may continue.
-  continue_execution = 1;
+  continue_run = 1;
 
   // Balance is low; execution may continue but a warning should be shown.
   low_balance_warning = 2;
 
   // Balance is exhausted; execution must stop gracefully.
-  stop_execution = 3;
+  stop_run = 3;
 }
 
 // CreditPurchaseStatus tracks the lifecycle of a credit pack purchase.

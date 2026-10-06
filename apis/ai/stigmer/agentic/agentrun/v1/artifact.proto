@@ -1,17 +1,17 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "ai/stigmer/agentic/agentrun/v1/enum.proto";
 import "buf/validate/validate.proto";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Execution Artifacts (Artifact Lifecycle)
 //
-// These types support file artifacts from agent executions.
+// These types support file artifacts from agent runs.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ExecutionArtifact represents a file or directory published by an agent.
+// RunArtifact represents a file or directory published by an agent.
 //
 // When an agent creates artifacts that users should download, it calls
 // the publish_artifact tool. This generates a downloadable artifact stored
@@ -19,14 +19,14 @@ import "buf/validate/validate.proto";
 //
 // ## Storage
 //
-// Artifacts are stored in R2 under: artifacts/{execution_id}/{filename}
+// Artifacts are stored in R2 under: artifacts/{run_id}/{filename}
 // Download URLs are pre-signed and expire after a configured period.
 //
 // ## Directory Handling
 //
 // Directories are automatically archived as ZIP files before storage.
 // The kind field indicates DIRECTORY so clients know to extract after download.
-message ExecutionArtifact {
+message RunArtifact {
   // Display name for this artifact.
   // Example: "generated-skill", "analysis-report"
   string name = 1;
@@ -36,14 +36,14 @@ message ExecutionArtifact {
   string sandbox_path = 2;
 
   // Type of artifact: file or directory.
-  ExecutionArtifactKind kind = 3 [(buf.validate.field).enum.defined_only = true];
+  RunArtifactKind kind = 3 [(buf.validate.field).enum.defined_only = true];
 
   // Total size in bytes.
   // For directories, this is the ZIP file size.
   int64 size_bytes = 4;
 
   // Storage location in R2.
-  // Format: "artifacts/{execution_id}/{filename}"
+  // Format: "artifacts/{run_id}/{filename}"
   //
   // Clients resolve a download URL on demand from this stable key (via
   // getArtifactDownloadUrl) — there is deliberately no persisted URL, since a

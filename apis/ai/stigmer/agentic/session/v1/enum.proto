@@ -20,10 +20,10 @@ enum GitWriteBackMode {
   //
   // @internal
   // The platform automatically detects uncommitted changes via git diff,
-  // creates a branch (stigmer/{execution_id_short}), commits all changes,
+  // creates a branch (stigmer/{run_id_short}), commits all changes,
   // pushes the branch to the remote, and creates a pull request targeting
   // the original branch. The write-back outcome is recorded in
-  // AgentExecutionStatus.workspace_write_backs.
+  // AgentRunStatus.workspace_write_backs.
   GIT_WRITE_BACK_BRANCH_AND_PR = 1;
 }
 
@@ -81,7 +81,7 @@ enum ExecutionTarget {
   // session's task queue. No server-side provisioning needed.
   EXECUTION_TARGET_LOCAL = 1;
 
-  // Server provisions a cloud sandbox for execution.
+  // Server provisions a cloud sandbox for run.
   //
   // The control plane triggers EnsureSessionSandbox to create an isolated
   // environment with a runner polling the session's task queue.

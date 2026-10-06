@@ -16,7 +16,7 @@ service ScheduleCommandController {
   // @internal
   // The authorization and state-operation are determined depending on
   // whether the schedule is going to be created or updated, resolved as
-  // part of request execution. Status is preserved verbatim across
+  // part of request run. Status is preserved verbatim across
   // apply-as-update (the AgentChannel posture): status is
   // written only by the scheduling runtime and by the explicit resume
   // command, and a routine manifest apply must never reset the failure
@@ -122,7 +122,7 @@ service ScheduleCommandController {
   // The manual fire runs synchronously through the standard execution
   // create pipeline — every launch gate runs — and the result names what
   // happened: the created execution's id, or the refusing gate's own
-  // copy verbatim. status.last_fire_at and status.last_execution_id
+  // copy verbatim. status.last_fire_at and status.last_run_id
   // record a started run. Manual fires do NOT feed the failure streak —
   // the streak is the unattended (cron) health signal, and a test fire
   // of a broken schedule must not race its owner to the pause threshold.
@@ -149,7 +149,7 @@ service ScheduleCommandController {
   // before authorize, #224); a gRPC success means the fire happened and
   // ScheduleTriggerResult names the run's outcome — a deterministically
   // refused run is a successful trigger honestly reported, never an
-  // exception. The handler stamps last_fire_at/last_execution_id and
+  // exception. The handler stamps last_fire_at/last_run_id and
   // writes the fire-ledger row (origin=manual) because the tick is not
   // in the path to do it; status writes ride updateFields, never save().
   // OSS mirrors the semantics; it excludes the

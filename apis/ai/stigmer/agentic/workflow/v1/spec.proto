@@ -31,10 +31,10 @@ message WorkflowSpec {
   // Keys are variable names; values describe their metadata and optionality.
   map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 4;
 
-  // Budget limits for this workflow execution.
+  // Budget limits for this workflow run.
   // When set, the runtime enforces cost, token, and duration limits
   // across all tasks. The existing org-level billing reservation system
-  // (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+  // (AuthorizeRun / RunBillingSignal) remains the safety net
   // for overall credit exhaustion; workflow budgets prevent individual
   // workflows from consuming more than intended.
   // Optional — when not set, no workflow-level budget is enforced.
@@ -48,24 +48,24 @@ message WorkflowSpec {
   //
   // Defaults to PRIVATE (unspecified is treated as private): each run is
   // visible only to the person who started it. Set at create; afterwards it
-  // changes only through WorkflowCommandController.updateExecutionVisibility,
+  // changes only through WorkflowCommandController.updateRunVisibility,
   // and update and apply keep the stored level.
   //
   // @internal
   // Not part of the workflow's version: the version hash is taken over the
   // spec with this field cleared, so changing who sees the runs mints no
   // version.
-  WorkflowExecutionVisibility execution_visibility = 6 [(buf.validate.field).enum.defined_only = true];
+  WorkflowRunVisibility run_visibility = 6 [(buf.validate.field).enum.defined_only = true];
 }
 
-// WorkflowBudget declares cost, token, and duration limits for a workflow execution.
+// WorkflowBudget declares cost, token, and duration limits for a workflow run.
 //
 // All cost fields use micro-USD (int64): 1 USD = 1,000,000 micros.
 // This matches the billing domain convention (CostStamp.provider_cost_micros,
-// CreditLedgerEntry.amount_micros, ExecutionReservation.reserved_micros).
+// CreditLedgerEntry.amount_micros, RunReservation.reserved_micros).
 //
 // The runtime checks accumulated costs between task boundaries. Per-task
-// limits (on LlmCallTaskConfig and AgentExecutionConfig) are checked first;
+// limits (on LlmCallTaskConfig and RunConfig) are checked first;
 // then the remaining workflow budget is verified before the next task starts.
 //
 // Example YAML:
@@ -75,7 +75,7 @@ message WorkflowSpec {
 //     max_duration_seconds: 3600   # 1 hour
 //     on_exceeded: budget_exceeded_terminate
 message WorkflowBudget {
-  // Maximum total cost for this workflow execution in micro-USD.
+  // Maximum total cost for this workflow run in micro-USD.
   // 1 USD = 1,000,000 micros. Example: 2000000 = $2.00.
   // When exceeded, the on_exceeded policy is applied.
   // Optional — when 0, no cost limit is enforced.
@@ -85,9 +85,9 @@ message WorkflowBudget {
   // Optional — when 0, no token limit is enforced.
   int64 max_total_tokens = 2;
 
-  // Maximum wall-clock duration for the entire workflow execution in seconds.
+  // Maximum wall-clock duration for the entire workflow run in seconds.
   // Optional — when 0, no duration limit is enforced (Temporal's own
-  // workflow execution timeout still applies).
+  // workflow run timeout still applies).
   int32 max_duration_seconds = 3;
 
   // Policy when any budget limit is exceeded.

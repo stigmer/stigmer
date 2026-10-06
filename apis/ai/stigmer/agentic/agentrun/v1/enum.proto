@@ -1,53 +1,53 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
-// ExecutionPhase defines the lifecycle phase of an agent execution.
+// RunPhase defines the lifecycle phase of an agent run.
 //
 // Phase Transitions:
 //
 // Normal flow:
-// EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED
+// RUN_PENDING → RUN_IN_PROGRESS → RUN_COMPLETED
 //
 // Failure flow:
-// EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED
+// RUN_PENDING → RUN_IN_PROGRESS → RUN_FAILED
 //
 // Termination flow (platform-initiated stop):
-// EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED
+// RUN_IN_PROGRESS → RUN_TERMINATED
 //
 // Approval flow (HITL):
-// EXECUTION_IN_PROGRESS → EXECUTION_WAITING_FOR_APPROVAL → EXECUTION_IN_PROGRESS
+// RUN_IN_PROGRESS → RUN_WAITING_FOR_APPROVAL → RUN_IN_PROGRESS
 //
 // Pause/Resume flow:
-// EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+// RUN_IN_PROGRESS → RUN_PAUSED → RUN_IN_PROGRESS
 //
 // Terminal States:
-// - EXECUTION_COMPLETED: Agent finished successfully
-// - EXECUTION_FAILED: Agent encountered an unexpected error
-// - EXECUTION_TERMINATED: Platform stopped the agent (stall, budget, or force-kill)
-// - EXECUTION_CANCELLED: User gracefully stopped the agent
+// - RUN_COMPLETED: Agent finished successfully
+// - RUN_FAILED: Agent encountered an unexpected error
+// - RUN_TERMINATED: Platform stopped the agent (stall, budget, or force-kill)
+// - RUN_CANCELLED: User gracefully stopped the agent
 //
 // Non-Terminal States:
-// - EXECUTION_WAITING_FOR_APPROVAL: Awaiting user approval for tool
-// - EXECUTION_PAUSED: Temporarily paused, can be resumed
-enum ExecutionPhase {
+// - RUN_WAITING_FOR_APPROVAL: Awaiting user approval for tool
+// - RUN_PAUSED: Temporarily paused, can be resumed
+enum RunPhase {
   // Default value, not a valid execution phase.
-  EXECUTION_PHASE_UNSPECIFIED = 0;
+  RUN_PHASE_UNSPECIFIED = 0;
 
   // Execution is queued and waiting for a worker to start processing.
-  EXECUTION_PENDING = 1;
+  RUN_PENDING = 1;
 
   // Execution is actively running — the agent is processing and producing output.
-  EXECUTION_IN_PROGRESS = 2;
+  RUN_IN_PROGRESS = 2;
 
   // Execution finished successfully and the agent produced a final response.
-  EXECUTION_COMPLETED = 3;
+  RUN_COMPLETED = 3;
 
   // Execution encountered an unexpected error and could not finish.
-  EXECUTION_FAILED = 4;
+  RUN_FAILED = 4;
 
   // Execution was gracefully stopped by the user before it finished.
-  EXECUTION_CANCELLED = 5;
+  RUN_CANCELLED = 5;
 
   // Execution was stopped by the platform.
   //
@@ -79,26 +79,26 @@ enum ExecutionPhase {
   // - Terminated: Platform stopped it (automated or force-kill)
   // - Cancelled: User gracefully stopped it (checkpoint saved)
   // - Failed: Something broke unexpectedly (exception, crash)
-  EXECUTION_TERMINATED = 8;
+  RUN_TERMINATED = 8;
 
   // Blocked on tool approval.
   //
-  // The agent has encountered a tool that requires user approval before execution.
+  // The agent has encountered a tool that requires user approval before run.
   // When in this phase:
   // - status.pending_approval contains details about the tool awaiting approval
   // - User must call SubmitApproval RPC to continue
   //
   // This is NOT a terminal state - execution resumes after approval decision:
-  // - APPROVE: Tool executes, phase returns to EXECUTION_IN_PROGRESS
-  // - SKIP: Tool returns a neutral "skipped" message, phase returns to EXECUTION_IN_PROGRESS
+  // - APPROVE: Tool executes, phase returns to RUN_IN_PROGRESS
+  // - SKIP: Tool returns a neutral "skipped" message, phase returns to RUN_IN_PROGRESS
   // - REJECT: Tool is denied and the user's objection is fed back to the model;
-  //   the tool does NOT execute and phase returns to EXECUTION_IN_PROGRESS. REJECT
+  //   the tool does NOT execute and phase returns to RUN_IN_PROGRESS. REJECT
   //   denies a single tool call, it does NOT fail the run — the model adapts and
-  //   the execution continues to EXECUTION_COMPLETED. To stop the whole execution,
-  //   use Cancel (EXECUTION_CANCELLED) or Terminate (EXECUTION_TERMINATED).
+  //   the execution continues to RUN_COMPLETED. To stop the whole execution,
+  //   use Cancel (RUN_CANCELLED) or Terminate (RUN_TERMINATED).
   //
   // UI should show distinct treatment for this phase (e.g., approval dialog).
-  EXECUTION_WAITING_FOR_APPROVAL = 6;
+  RUN_WAITING_FOR_APPROVAL = 6;
 
   // Execution was paused by user and can be resumed.
   //
@@ -106,10 +106,10 @@ enum ExecutionPhase {
   // from where it left off. Unlike CANCELLED, the execution is not terminal.
   //
   // Pause flow:
-  // EXECUTION_IN_PROGRESS → EXECUTION_PAUSED
+  // RUN_IN_PROGRESS → RUN_PAUSED
   //
   // Resume flow:
-  // EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+  // RUN_PAUSED → RUN_IN_PROGRESS
   //
   // NOT a terminal state - execution can be resumed.
   //
@@ -122,7 +122,7 @@ enum ExecutionPhase {
   // - Activity is re-invoked with same thread_id
   // - LangGraph loads from checkpoint automatically
   // - Execution continues from where it was paused
-  EXECUTION_PAUSED = 7;
+  RUN_PAUSED = 7;
 }
 
 // MessageType defines the type of message in the conversation.
@@ -136,7 +136,7 @@ enum MessageType {
   // A response generated by the AI agent.
   MESSAGE_AI = 2;
 
-  // The result returned by a tool after execution.
+  // The result returned by a tool after run.
   MESSAGE_TOOL = 3;
 
   // A system-generated message injected by the platform (e.g., budget warnings, summarization notices).
@@ -194,14 +194,14 @@ enum ToolCallStatus {
 
   // Blocked on user approval.
   //
-  // The tool requires user consent before execution. This status is set when:
+  // The tool requires user consent before run. This status is set when:
   // - Tool has requires_approval=true (from approval policy chain)
-  // - AgentExecutionSpec.auto_approve_all is false
+  // - AgentRunSpec.auto_approve_all is false
   //
   // While in this status:
   // - ToolCall.approval_message contains the approval prompt
   // - ToolCall.approval_requested_at is set
-  // - ExecutionPhase is EXECUTION_WAITING_FOR_APPROVAL
+  // - RunPhase is RUN_WAITING_FOR_APPROVAL
   //
   // Transitions:
   // - APPROVE → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED/FAILED
@@ -210,7 +210,7 @@ enum ToolCallStatus {
   //   continues). REJECT and SKIP share this terminal tool status — the two are
   //   distinguished by ToolCall.approval_action (REJECT vs SKIP) and by the
   //   append-only approval-event stream (REJECTED vs SKIPPED). REJECT does NOT
-  //   fail the execution.
+  //   fail the run.
   TOOL_CALL_WAITING_APPROVAL = 5;
 
   // User skipped this tool.
@@ -352,7 +352,7 @@ enum TodoStatus {
   TODO_CANCELLED = 4;
 }
 
-// SubAgentStatus defines the status of a sub-agent execution.
+// SubAgentStatus defines the status of a sub-agent run.
 //
 // Status Transitions:
 //
@@ -397,19 +397,19 @@ enum SubAgentStatus {
   SUB_AGENT_CANCELLED = 5;
 }
 
-// ExecutionArtifactKind defines the type of artifact published by an agent.
+// RunArtifactKind defines the type of artifact published by an agent.
 //
 // When an agent publishes a file, it's stored as-is.
 // When an agent publishes a directory, it's archived as a ZIP file.
-enum ExecutionArtifactKind {
+enum RunArtifactKind {
   // Default value, not a valid artifact kind.
-  EXECUTION_ARTIFACT_KIND_UNSPECIFIED = 0;
+  RUN_ARTIFACT_KIND_UNSPECIFIED = 0;
 
   // A single file published by the agent.
-  EXECUTION_ARTIFACT_KIND_FILE = 1;
+  RUN_ARTIFACT_KIND_FILE = 1;
 
   // A directory published by the agent, archived as a ZIP file for download.
-  EXECUTION_ARTIFACT_KIND_DIRECTORY = 2;
+  RUN_ARTIFACT_KIND_DIRECTORY = 2;
 }
 
 // SummarizationSource identifies what triggered a context summarization event.
@@ -428,7 +428,7 @@ enum SummarizationSource {
   graph_start = 1;
 
   // Summarization triggered mid-execution, when accumulated tool responses push context past the token threshold.
-  mid_execution = 2;
+  mid_run = 2;
 }
 
 // ToolCallStreamingSource identifies what is currently being streamed on a
@@ -468,7 +468,7 @@ enum ToolCallStreamingSource {
   TOOL_CALL_STREAMING_SOURCE_OUTPUT = 2;
 }
 
-// ExecutionControlSignal is a platform-to-runner directive returned by the
+// RunControlSignal is a platform-to-runner directive returned by the
 // updateStatus RPC. The runner inspects this signal after every status
 // update and acts accordingly.
 //
@@ -476,17 +476,17 @@ enum ToolCallStreamingSource {
 // to credit exhaustion, an admin kill, a user-configured budget cap, or any
 // future enforcement mechanism. The runner does not know or care about the
 // source; it only reacts to the signal value.
-enum ExecutionControlSignal {
+enum RunControlSignal {
   // No action required — continue execution normally.
-  EXECUTION_CONTROL_SIGNAL_UNSPECIFIED = 0;
+  RUN_CONTROL_SIGNAL_UNSPECIFIED = 0;
 
   // Execution must stop gracefully. The runner should block further tool
   // calls and give the model one final turn to produce a summary.
-  EXECUTION_CONTROL_SIGNAL_STOP = 1;
+  RUN_CONTROL_SIGNAL_STOP = 1;
 
   // Informational warning (e.g. low credit balance). The runner logs the
-  // warning and continues execution.
-  EXECUTION_CONTROL_SIGNAL_WARNING = 2;
+  // warning and continues run.
+  RUN_CONTROL_SIGNAL_WARNING = 2;
 }
 
 // ApprovalAction represents the user's decision on an approval request.
@@ -496,7 +496,7 @@ enum ExecutionControlSignal {
 // - APPROVE: Execute the tool normally, continue execution
 // - SKIP: Return a neutral "skipped by user" message to the LLM, continue execution
 // - REJECT: Deny the tool and feed the user's reasoned objection back to the LLM,
-//   continue execution. REJECT denies a single tool call — it does NOT fail the
+//   continue run. REJECT denies a single tool call — it does NOT fail the
 //   run. To stop the whole execution, use Cancel or Terminate.
 //
 // ## SKIP vs REJECT
@@ -534,20 +534,20 @@ enum ApprovalAction {
   // Execution continues - this is NOT a failure.
   APPROVAL_ACTION_SKIP = 2;
 
-  // Deny this tool call and continue the execution.
+  // Deny this tool call and continue the run.
   //
   // The tool is NOT executed. The user's objection (the submitted comment) is
   // fed back to the model as the tool result, so the model adapts its plan with
   // that reasoning in mind. The tool call transitions to TOOL_CALL_SKIPPED with
   // approval_action=REJECT recorded (and a REJECTED approval-event authored), and
-  // the execution phase returns to EXECUTION_IN_PROGRESS and continues to
-  // EXECUTION_COMPLETED.
+  // the execution phase returns to RUN_IN_PROGRESS and continues to
+  // RUN_COMPLETED.
   //
   // REJECT denies a SINGLE tool call — it does NOT fail the run. This mirrors how
   // interactive agent tools (Cursor, Cline, Claude Code) treat a denied tool: the
   // agent is told and continues, rather than the whole session dying. To stop the
-  // entire execution, use Cancel (EXECUTION_CANCELLED, graceful user stop) or
-  // Terminate (EXECUTION_TERMINATED, platform stop) — the dedicated hard-stop
+  // entire execution, use Cancel (RUN_CANCELLED, graceful user stop) or
+  // Terminate (RUN_TERMINATED, platform stop) — the dedicated hard-stop
   // verbs. The distinction from SKIP is the strength of the signal, not the
   // outcome: SKIP is a neutral skip, REJECT carries the user's reasoned denial.
   APPROVAL_ACTION_REJECT = 3;
@@ -556,7 +556,7 @@ enum ApprovalAction {
   // every subsequent tool call of the SAME class for the rest of this execution
   // ("approve all of this kind, don't ask again").
   //
-  // This is the gate-time, scoped analog of AgentExecutionSpec.auto_approve_all:
+  // This is the gate-time, scoped analog of AgentRunSpec.auto_approve_all:
   // it lets a human escalate from per-call approval to "trust this whole class"
   // at the moment of friction, without pre-arming a global bypass. The lease is
   // scoped to one class — a built-in approval category (write / delete / shell,
@@ -585,7 +585,7 @@ enum ApprovalAction {
   // is NOT persisted to the session or the agent; a subsequent execution starts
   // gated again unless the caller sets it anew (interactive clients may carry a
   // session-scoped preference forward in-memory, but that is a client concern,
-  // not server-persisted state). AgentExecutionSpec.auto_approve_all remains the
+  // not server-persisted state). AgentRunSpec.auto_approve_all remains the
   // single, explicit whole-run global bypass.
   //
   // ## Audit
@@ -627,7 +627,7 @@ enum ApprovalPolicySource {
   reserved 1, 2, 3;
   reserved "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT", "APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE", "APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE";
 
-  // Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global
+  // Layer 4: the pre-armed AgentRunSpec.auto_approve_all whole-run global
   // bypass cleared this call.
   APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL = 4;
 
@@ -645,7 +645,7 @@ enum ApprovalPolicySource {
   // annotation).
   APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;
 
-  // The unattended approval mode (AgentExecutionStatus.approval_mode =
+  // The unattended approval mode (AgentRunStatus.approval_mode =
   // APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
   // the lane the execution came through (a schedule's fire, a messaging
   // channel, a guest share) has no approver, so the platform skipped the
@@ -731,12 +731,12 @@ enum ApprovalRetractionReason {
   APPROVAL_RETRACTION_REASON_SUPERSEDED = 2;
 }
 
-// InteractionMode controls the agent's behavioral posture for an execution.
+// InteractionMode controls the agent's behavioral posture for an run.
 //
 // Determines what the agent is allowed to do — analysis only, or full
 // read-write access. Mode is set per message
-// (AgentExecutionSpec.interaction_mode) and does not carry over between
-// executions.
+// (AgentRunSpec.interaction_mode) and does not carry over between
+// runs.
 //
 // Enforcement:
 // - Native harness (LangGraph): tool-level enforcement — write tools are
@@ -776,10 +776,10 @@ enum InteractionMode {
 // decides WHAT HAPPENS when a gate fires. It exists for lanes where no
 // approver is present at the conversation — a schedule's fire, messaging
 // channels (Slack/WhatsApp) and guest shares — where an interactive pause
-// would park the execution in EXECUTION_WAITING_FOR_APPROVAL forever.
+// would park the execution in RUN_WAITING_FOR_APPROVAL forever.
 //
 // The mode is a fact of the lane the execution came through, recorded by
-// the server on AgentExecutionStatus.approval_mode, never chosen by the
+// the server on AgentRunStatus.approval_mode, never chosen by the
 // request or the external user: it is runtime policy owned by the lane,
 // exactly like the bounded execution profile. Every other turn (console,
 // CLI, a workflow step) is INTERACTIVE.
@@ -795,7 +795,7 @@ enum ApprovalMode {
   APPROVAL_MODE_UNSPECIFIED = 0;
 
   // Interactive approval (today's behavior): a gated tool pauses the
-  // execution (EXECUTION_WAITING_FOR_APPROVAL) until a human submits a
+  // execution (RUN_WAITING_FOR_APPROVAL) until a human submits a
   // decision via the submitApproval RPC. No timeout — the execution waits
   // indefinitely.
   APPROVAL_MODE_INTERACTIVE = 1;

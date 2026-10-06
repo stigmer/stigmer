@@ -107,7 +107,7 @@ message PlatformClientSpec {
   // that bears one of its tokens.
   repeated string allowed_origins = 9;
 
-  // Environments whose values are delivered to every agent execution a
+  // Environments whose values are delivered to every agent run a
   // user signed in through this PlatformClient creates. This is how an
   // embedded assistant reaches secret-gated MCP servers: the client — the
   // connection resource — carries the credentials (for example a shared
@@ -119,7 +119,7 @@ message PlatformClientSpec {
   // The fifth application of the connection-resource credential mechanism
   // (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381),
   // restored by stigmer/stigmer#1256: the execution-context builder
-  // (domain/agentexecution/create-execution-context-step.ts) prepends it
+  // (domain/agentrun/create-execution-context-step.ts) prepends it
   // below every other layer for an execution whose audit created_by names
   // this client (ApiResourceAuditActor.platform_client_id), on create and
   // on recover alike. The references follow the one write-time reference

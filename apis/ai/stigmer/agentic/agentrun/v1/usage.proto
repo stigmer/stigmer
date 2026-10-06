@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "ai/stigmer/agentic/agentrun/v1/enum.proto";
 import "google/protobuf/timestamp.proto";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -305,7 +305,7 @@ message BillingLink {
   // Current debit status.
   BillingDebitStatus debit_status = 1;
 
-  // Execution reservation ID (from authorizeExecution).
+  // Execution reservation ID (from authorizeRun).
   string reservation_id = 2;
 
   // Billing ledger debit ID (from reportLlmCallUsage).
@@ -340,7 +340,7 @@ message BillingLink {
 // 4. billing_link.debit_status transitions to DEBITED
 //
 // ## Idempotency
-// Unique on idempotency_key: execution_id + the call's identity + metering_source,
+// Unique on idempotency_key: run_id + the call's identity + metering_source,
 // where the identity is call_id when the reporter supplied one, else sequence.
 // Insert-only; never mutated except for billing_link status transitions and
 // repricing.
@@ -350,10 +350,10 @@ message LlmCallUsageRecord {
   string usage_record_id = 1;
 
   // Execution this call belongs to.
-  string execution_id = 2;
+  string run_id = 2;
 
   // For sub-agent rollups: root execution of the tree.
-  string root_execution_id = 3;
+  string root_run_id = 3;
 
   // 1-based call ordering within the execution, as the reporting proxy
   // counted it. An ordering hint, not an identity: a proxy that restarts
@@ -361,7 +361,7 @@ message LlmCallUsageRecord {
   // share a sequence. Order by observed_at, then sequence.
   int32 sequence = 4;
 
-  // Deduplication key: execution_id + (call_id, else sequence) + metering_source.
+  // Deduplication key: run_id + (call_id, else sequence) + metering_source.
   string idempotency_key = 5;
 
   // Hash of normalized payload for conflict detection on retries.
@@ -456,7 +456,7 @@ message LlmCallUsageRecord {
   // Denormalized from the execution for direct queries by org and session.
   // Populated at write time by the billing handler.
 
-  // Organization that owns this execution.
+  // Organization that owns this run.
   string org = 7;
 
   // Session this execution belongs to.
@@ -551,7 +551,7 @@ message ModelUsage {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Accumulated token usage from execution worker turn-ended events.
-// Carried on AgentExecutionStatus.streaming_usage for real-time streaming UX.
+// Carried on AgentRunStatus.streaming_usage for real-time streaming UX.
 message StreamingUsageSummary {
   // Accumulated input tokens across all turns.
   int64 input_tokens = 1;
@@ -593,7 +593,7 @@ message StreamingUsageSummary {
   // Service tier the runner requested for this execution's model calls.
   //
   // Always explicit once the runner has translated the turn's settings
-  // (STANDARD when AgentExecutionStatus.run_config.service_tier was unset) — the audit
+  // (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
   // record that the account default was never left in control.
   ServiceTier requested_service_tier = 10;
 
@@ -611,7 +611,7 @@ message StreamingUsageSummary {
   // Thinking mode the runner requested for this execution's model calls.
   //
   // Always explicit once the runner has translated the turn's settings
-  // (DISABLED when AgentExecutionStatus.run_config.thinking_mode was unset) — the audit
+  // (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit
   // record that the account default was never left in control
   // (stigmer/stigmer#772; several catalog defaults are thinking=true).
   ThinkingMode requested_thinking_mode = 12;

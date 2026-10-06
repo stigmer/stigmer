@@ -7,7 +7,7 @@ import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
 // ForEachErrorPolicy defines what happens when an individual iteration fails
-// during parallel or sequential for_each execution.
+// during parallel or sequential for_each run.
 //
 // @internal
 // When max_parallelism > 0 (parallel mode), error handling becomes critical

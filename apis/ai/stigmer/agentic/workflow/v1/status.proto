@@ -29,7 +29,7 @@ message WorkflowStatus {
   //
   // @internal
   // The canonical hash of the whole spec (the function agents use), taken
-  // with spec.execution_visibility cleared, so a version covers everything a
+  // with spec.run_visibility cleared, so a version covers everything a
   // run reads from its workflow: the task list, each step's environments, the
   // declared env and the budget. Changing who sees the runs mints no version.
   // Updated only when validation produces state=VALID. Empty for workflows

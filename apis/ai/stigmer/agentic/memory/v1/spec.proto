@@ -84,8 +84,8 @@ message MemoryProvenance {
   // ID of the session in which this memory was proposed.
   string session_id = 2;
 
-  // ID of the agent execution in which this memory was proposed.
-  string agent_execution_id = 3;
+  // ID of the agent run in which this memory was proposed.
+  string agent_run_id = 3;
 
   // ID of the remember tool call that proposed this memory.
   string tool_call_id = 4;

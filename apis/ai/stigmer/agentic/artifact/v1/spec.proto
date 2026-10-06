@@ -43,7 +43,7 @@ message ArtifactSpec {
   // workflow author, this is user-provided.
   //
   // Does not need to be unique — multiple tasks can produce artifacts
-  // with the same display name across different executions.
+  // with the same display name across different runs.
   string display_name = 2 [
     (buf.validate.field).required = true,
     (buf.validate.field).string.min_len = 1,
@@ -54,7 +54,7 @@ message ArtifactSpec {
   //
   // @internal
   // Used for:
-  // - Listing artifacts by execution (listByExecution RPC)
+  // - Listing artifacts by execution (listByRun RPC)
   // - Linking artifacts back to their source in the execution viewer
   // - Access control inheritance (artifact access follows execution access)
   ArtifactSource source = 3 [(buf.validate.field).required = true];
@@ -71,20 +71,20 @@ message ArtifactSpec {
 // ArtifactSource identifies the execution context that produced an artifact.
 //
 // @internal
-// Exactly one of workflow_execution_id or agent_execution_id should be set,
+// Exactly one of workflow_run_id or agent_run_id should be set,
 // identifying the producer. task_name is set when the artifact was produced
-// by a specific task within a workflow execution.
+// by a specific task within a workflow run.
 message ArtifactSource {
-  // WorkflowExecution that produced this artifact.
+  // WorkflowRun that produced this artifact.
   // Format: "wex_{unique-suffix}"
-  // Set when the artifact is produced during workflow execution.
-  string workflow_execution_id = 1;
+  // Set when the artifact is produced during workflow run.
+  string workflow_run_id = 1;
 
-  // AgentExecution that produced this artifact.
+  // AgentRun that produced this artifact.
   // Format: "aex_{unique-suffix}"
-  // Set when the artifact is produced during agent execution
+  // Set when the artifact is produced during agent run
   // (either standalone or as a child of a workflow).
-  string agent_execution_id = 2;
+  string agent_run_id = 2;
 
   // Name of the task that produced this artifact.
   // Matches WorkflowTask.task_name in the execution status.

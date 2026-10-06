@@ -1,35 +1,35 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/api.proto";
-import "ai/stigmer/agentic/agentexecution/v1/io.proto";
+import "ai/stigmer/agentic/agentrun/v1/api.proto";
+import "ai/stigmer/agentic/agentrun/v1/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
-// AgentExecutionQueryController handles read operations for agent executions.
-service AgentExecutionQueryController {
-  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_execution;
+// AgentRunQueryController handles read operations for agent runs.
+service AgentRunQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_run;
 
-  // Get a single agent execution by ID.
-  rpc get(AgentExecutionId) returns (AgentExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  // Get a single agent run by ID.
+  rpc get(AgentRunId) returns (AgentRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "value";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get agent execution";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get agent run";
   }
 
-  // List all agent executions with pagination and optional filtering.
-  rpc list(ListAgentExecutionsRequest) returns (AgentExecutionList) {
+  // List all agent runs with pagination and optional filtering.
+  rpc list(ListAgentRunsRequest) returns (AgentRunList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // List all executions in a specific session.
   //
   // @internal
-  // Authorization is handled in handler via FGA query for authorized agent_execution_ids,
+  // Authorization is handled in handler via FGA query for authorized agent_run_ids,
   // then filtered by session_id. This ensures consistent authorization pattern across all list operations.
-  rpc listBySession(ListAgentExecutionsBySessionRequest) returns (AgentExecutionList) {
+  rpc listBySession(ListAgentRunsBySessionRequest) returns (AgentRunList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
@@ -37,39 +37,39 @@ service AgentExecutionQueryController {
   //
   // @internal
   // Authorization is handled by the FJ model via proto configuration.
-  rpc subscribe(AgentExecutionId) returns (stream AgentExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  rpc subscribe(AgentRunId) returns (stream AgentRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "value";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to subscribe to agent execution";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to subscribe to agent run";
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Artifact Lifecycle Operations
   //
-  // These RPCs support downloading artifacts created by agent executions.
+  // These RPCs support downloading artifacts created by agent runs.
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Get a presigned download URL for an execution artifact or attachment.
   //
   // Returns a time-limited URL for downloading an artifact published by
   // an agent during execution, or an attachment submitted with the
-  // execution. The URL can be used with a simple HTTP GET request without
+  // run. The URL can be used with a simple HTTP GET request without
   // authentication.
   //
   // @internal
   //
   // ## Authorization
   //
-  // Requires can_view permission on the execution. This ensures users can
+  // Requires can_view permission on the run. This ensures users can
   // only download files from executions they have access to.
   //
   // ## Security
   //
   // The storage_key is validated to ensure it belongs to the specified
-  // execution. Two key forms are accepted:
+  // run. Two key forms are accepted:
   //
-  // - "artifacts/{execution_id}/..." — outputs published by the execution;
+  // - "artifacts/{run_id}/..." — outputs published by the execution;
   //   the embedded execution id is the ownership proof
   // - a key listed verbatim in the execution's spec.attachments — inputs
   //   submitted with the turn ("attachments/{ulid}/{filename}", ULID-unique
@@ -92,15 +92,15 @@ service AgentExecutionQueryController {
   //
   // ## Example Flow
   //
-  // 1. Get execution via AgentExecutionQueryController.get
+  // 1. Get execution via AgentRunQueryController.get
   // 2. Find artifact in status.artifacts[] (or attachment in spec.attachments[])
-  // 3. Call getArtifactDownloadUrl with execution_id and storage_key
+  // 3. Call getArtifactDownloadUrl with run_id and storage_key
   // 4. Use returned download_url for HTTP GET
   rpc getArtifactDownloadUrl(GetArtifactDownloadUrlRequest) returns (GetArtifactDownloadUrlResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to download artifact from agent execution";
+    option (ai.stigmer.commons.rpc.config).field_path = "run_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to download artifact from agent run";
   }
 
   // Read the raw content of an execution artifact.
@@ -116,13 +116,13 @@ service AgentExecutionQueryController {
   //
   // ## Authorization
   //
-  // Requires can_view permission on the execution. This ensures users can
+  // Requires can_view permission on the run. This ensures users can
   // only read artifacts from executions they have access to.
   //
   // ## Security
   //
   // The storage_key is validated to ensure it belongs to the specified
-  // execution. Keys must start with "artifacts/{execution_id}/" to prevent
+  // run. Keys must start with "artifacts/{run_id}/" to prevent
   // path traversal attacks.
   //
   // ## Size Limit
@@ -133,16 +133,16 @@ service AgentExecutionQueryController {
   //
   // ## Example Flow
   //
-  // 1. Get execution via AgentExecutionQueryController.get
+  // 1. Get execution via AgentRunQueryController.get
   // 2. Find artifact in status.artifacts[]
-  // 3. Call getArtifactContent with execution_id and storage_key
+  // 3. Call getArtifactContent with run_id and storage_key
   // 4. Decode content bytes as UTF-8 for text artifacts
   // 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
   rpc getArtifactContent(GetArtifactContentRequest) returns (GetArtifactContentResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read artifact content from agent execution";
+    option (ai.stigmer.commons.rpc.config).field_path = "run_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read artifact content from agent run";
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -153,14 +153,14 @@ service AgentExecutionQueryController {
   // llm_call_usage_record collection (billing domain).
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Get a usage report for a single execution.
+  // Get a usage report for a single run.
   //
-  // Returns aggregated tokens, cost, and per-model breakdown for one execution.
-  rpc getExecutionUsageReport(GetExecutionUsageReportInput) returns (GetExecutionUsageReportOutput) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  // Returns aggregated tokens, cost, and per-model breakdown for one run.
+  rpc getRunUsageReport(GetRunUsageReportInput) returns (GetRunUsageReportOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view execution usage report";
+    option (ai.stigmer.commons.rpc.config).field_path = "run_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view run usage report";
   }
 
   // Get a usage report for a session.
@@ -213,7 +213,7 @@ service AgentExecutionQueryController {
   // getOrgUsageReport to prevent double-counting (AD-DASH-005).
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Get aggregated execution statistics for an organization's agent executions.
+  // Get aggregated execution statistics for an organization's agent runs.
   //
   // Returns counts by phase, active count, average duration, and top failing
   // agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
@@ -232,7 +232,7 @@ service AgentExecutionQueryController {
   // 2. Reliability Monitoring:
   //    - Surface top failing agents for investigation
   //    - Track failure rates across the organization
-  rpc getExecutionSummary(GetAgentExecutionSummaryRequest) returns (AgentExecutionSummary) {
+  rpc getRunSummary(GetAgentRunSummaryRequest) returns (AgentRunSummary) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

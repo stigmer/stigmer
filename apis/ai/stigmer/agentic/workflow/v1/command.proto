@@ -18,7 +18,7 @@ service WorkflowCommandController {
   //
   // @internal
   // The authorization and state-operation are determined depending on whether the workflow
-  // is going to be created or updated which is determined as part of the request execution.
+  // is going to be created or updated which is determined as part of the request run.
   rpc apply(Workflow) returns (Workflow);
 
   // Create a workflow.
@@ -85,18 +85,18 @@ service WorkflowCommandController {
   // Authorization: requires can_manage_audience on the workflow — who
   // observes its runs is part of who reaches it, the owner's decision, like
   // the workflow's own visibility. An editor may change the definition but
-  // not this. The level is spec.execution_visibility; update and apply keep
+  // not this. The level is spec.run_visibility; update and apply keep
   // the stored level, so this RPC is its one door after create. In an edition
   // that stores authorization tuples the transition reconciles the workflow's
-  // `execution_viewer` relation:
+  // `run_viewer` relation:
   // - PRIVATE -> ORGANIZATION: creates
-  //   workflow#execution_viewer@organization:<org>#viewer
+  //   workflow#run_viewer@organization:<org>#viewer
   // - ORGANIZATION -> PRIVATE: deletes that tuple
-  rpc updateExecutionVisibility(UpdateWorkflowExecutionVisibilityInput) returns (Workflow) {
+  rpc updateRunVisibility(UpdateWorkflowRunVisibilityInput) returns (Workflow) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_audience;
     option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow execution visibility";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow run visibility";
   }
 
   // Delete a workflow.

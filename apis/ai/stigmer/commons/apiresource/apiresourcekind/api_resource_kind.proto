@@ -399,11 +399,11 @@ enum ApiResourceKind {
   }];
 
   // Single run of an agent within a session, tracking tool calls and responses.
-  agent_execution = 41 [(kind_meta) = {
+  agent_run = 41 [(kind_meta) = {
     group: agentic
     version: v1
-    name: "AgentExecution"
-    display_name: "Agent Execution"
+    name: "AgentRun"
+    display_name: "Agent Run"
     id_prefix: "aex"
     is_versioned: false
     not_search_indexed: false
@@ -629,11 +629,11 @@ enum ApiResourceKind {
   reserved "workflow_instance";
 
   // Single run of a workflow, tracking step progress and outcomes.
-  workflow_execution = 52 [(kind_meta) = {
+  workflow_run = 52 [(kind_meta) = {
     group: agentic
     version: v1
-    name: "WorkflowExecution"
-    display_name: "Workflow Execution"
+    name: "WorkflowRun"
+    display_name: "Workflow Run"
     id_prefix: "wex"
     is_versioned: false
     not_search_indexed: false
@@ -642,11 +642,11 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       // The workflow link is REQUIRED, not cosmetic: a run inherits opt-in
-      // org run observability via `execution_viewer from workflow` (see
-      // workflow_execution.fga). Without this parent tuple the inheritance
+      // org run observability via `run_viewer from workflow` (see
+      // workflow_run.fga). Without this parent tuple the inheritance
       // has nothing to traverse, so enabling a workflow's execution
       // visibility would silently fail to expose its runs. Mirrors
-      // agent_execution's session parent (there via PARENT scope).
+      // agent_run's session parent (there via PARENT scope).
       additional_parents: [
         {
           kind: "workflow"
@@ -662,7 +662,7 @@ enum ApiResourceKind {
     }
   }];
 
-  // Named set of variables and secrets for agent and workflow execution.
+  // Named set of variables and secrets for agent and workflow run.
   environment = 53 [(kind_meta) = {
     group: agentic
     version: v1
@@ -691,7 +691,7 @@ enum ApiResourceKind {
     }
   }];
 
-  // Persisted blob produced during workflow or agent execution.
+  // Persisted blob produced during workflow or agent run.
   artifact = 55 [(kind_meta) = {
     group: agentic
     version: v1

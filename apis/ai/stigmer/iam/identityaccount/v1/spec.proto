@@ -89,7 +89,7 @@ message IdentityAccountSpec {
 }
 
 // IdentityAccountPreferences holds user-declared defaults that apply to the
-// user's own agent executions.
+// user's own agent runs.
 //
 // @internal
 // Self-service: mutable through the existing update RPC under FGA can_edit
@@ -106,11 +106,11 @@ message IdentityAccountSpec {
 // device-local pick > these account defaults > platform default.
 message IdentityAccountPreferences {
   // Free-text standing context injected into this user's eligible agent
-  // executions. Example: "Keep answers terse."
+  // runs. Example: "Keep answers terse."
   //
   // @internal
   // Snapshotted verbatim into
-  // AgentExecutionStatus.declared_preferences.user_context at execution create
+  // AgentRunStatus.declared_preferences.user_context at execution create
   // (first-party human operators only). The runner
   // frames it as context, not instructions that override the task.
   string standing_context = 1 [(buf.validate.field).string.max_len = 2000];

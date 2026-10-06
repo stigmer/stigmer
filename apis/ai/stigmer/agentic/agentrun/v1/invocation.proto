@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "ai/stigmer/agentic/agentrun/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/workspace.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
@@ -28,7 +28,7 @@ import "buf/validate/validate.proto";
 // execution_target, the workflow parent link, harness_state_id,
 // auto_approve_all, org/labels/subject) cannot
 // appear here, so embedding surfaces never need a blocklist validator
-// — the rejected alternative was embedding AgentExecutionSpec /
+// — the rejected alternative was embedding AgentRunSpec /
 // SessionSpec and validating the illegal fields away. Exclusions,
 // each with its reason: runtime_env (plaintext secrets
 // in manifests leak; environments are the vehicle), attachments
@@ -139,11 +139,11 @@ message AgentInvocation {
 // RunConfig is the settings message for every run: a model, a speed tier,
 // thinking, and run bounds.
 //
-// The same message is a message's request (AgentExecutionSpec.run_config),
+// The same message is a message's request (AgentRunSpec.run_config),
 // a surface's saved settings (a schedule's invocation, a channel, a share, a
 // workflow agent_call step), an agent author's defaults (AgentSpec.run_config,
 // versioned with the agent), and the settings a turn ran with
-// (AgentExecutionStatus.run_config). Zero or empty means "not set at this
+// (AgentRunStatus.run_config). Zero or empty means "not set at this
 // layer".
 //
 // The server resolves a turn's settings once, at create, from three layers,
@@ -170,7 +170,7 @@ message AgentInvocation {
 // message may set them alone, to adjust the model it is given.
 //
 // @internal
-// The one resolution is resolveRunConfig in the server's agentexecution
+// The one resolution is resolveRunConfig in the server's agentrun
 // domain (resolve-run-config.ts); every lane goes through it. An allowlist
 // by construction: per-message intents (interaction_mode, build_from_plan,
 // structured_output_schema) and the lane-owned approval mode are not
@@ -192,7 +192,7 @@ message RunConfig {
   // 0 = not set at this layer. The budget is per message: a follow-up
   // message, or a run resuming after an approval, starts a fresh count. The
   // spend is the runner's estimate, reported on
-  // AgentExecutionStatus.streaming_usage.estimated_cost_usd, not the billed
+  // AgentRunStatus.streaming_usage.estimated_cost_usd, not the billed
   // amount.
   //
   // @internal

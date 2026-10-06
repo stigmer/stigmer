@@ -4,18 +4,18 @@ package ai.stigmer.agentic.executioncontext.v1;
 
 import "buf/validate/validate.proto";
 
-// Runtime configuration and secrets for a single execution.
+// Runtime configuration and secrets for a single run.
 //
 // @internal
 // Created by the execution engine, deleted when execution completes.
 message ExecutionContextSpec {
-  // ID of the parent AgentExecution or WorkflowExecution.
+  // ID of the parent AgentRun or WorkflowRun.
   string execution_id = 1 [(buf.validate.field).string.min_len = 1];
 
   // Runtime key-value pairs, each marked as secret or plaintext.
   //
   // @internal
-  // Provided at runtime and only exist for the duration of the execution.
+  // Provided at runtime and only exist for the duration of the run.
   // Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
   map<string, ExecutionValue> data = 2;
 }

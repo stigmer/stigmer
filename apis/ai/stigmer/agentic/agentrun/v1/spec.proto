@@ -1,21 +1,21 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
-import "ai/stigmer/agentic/agentexecution/v1/invocation.proto";
+import "ai/stigmer/agentic/agentrun/v1/enum.proto";
+import "ai/stigmer/agentic/agentrun/v1/invocation.proto";
 import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
 import "ai/stigmer/agentic/session/v1/spec.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
-// AgentExecutionSpec contains only user-provided inputs for triggering an execution.
-// All execution results and state live in AgentExecutionStatus (in api.proto).
-message AgentExecutionSpec {
+// AgentRunSpec contains only user-provided inputs for triggering an run.
+// All execution results and state live in AgentRunStatus (in api.proto).
+message AgentRunSpec {
   option (buf.validate.message).cel = {
-    id: "agent_execution.session_spec_harness_state"
-    message: "session_spec.harness_state_id must be empty — harness state is created by the runner after the first execution"
+    id: "agent_run.session_spec_harness_state"
+    message: "session_spec.harness_state_id must be empty — harness state is created by the runner after the first run"
     expression: "!has(this.session_spec) || this.session_spec.harness_state_id == ''"
   };
 
@@ -33,15 +33,15 @@ message AgentExecutionSpec {
   reserved "callback_token", "parent_workflow_id", "activity_task_queue";
 
   // Fields 15 and 16 held the preference and memory snapshots the server
-  // composes for each turn; they are AgentExecutionStatus fields 29 and 30.
+  // composes for each turn; they are AgentRunStatus fields 29 and 30.
   reserved 15, 16;
   reserved "declared_preferences", "recalled_memories";
 
-  // Field 4 held an ExecutionConfig that mixed this message's settings with
+  // Field 4 held a retired config message that mixed this message's settings with
   // its per-message intents and the lane's approval mode. The settings are
   // run_config (a RunConfig, the message every surface saves), the intents
   // are interaction_mode, build_from_plan and structured_output_schema, and
-  // the approval mode is the server's (AgentExecutionStatus.approval_mode).
+  // the approval mode is the server's (AgentRunStatus.approval_mode).
   reserved 4;
   reserved "execution_config";
 
@@ -51,7 +51,7 @@ message AgentExecutionSpec {
   //
   // A turn runs the agent its session names, at the version the session
   // records (SessionStatus), and is refused unless the caller may add a
-  // turn to the session (can_create_execution_in) and may still run that
+  // turn to the session (can_create_run_in) and may still run that
   // agent (can_execute). The agent and version the turn runs are recorded on
   // its status (agent_id, agent_version_hash).
   oneof target {
@@ -71,7 +71,7 @@ message AgentExecutionSpec {
     // full session shape (the agent, workspace_entries, harness,
     // execution_target, MCP servers, skills) together with the first
     // message, so embedders do not need to orchestrate session.create
-    // followed by agentExecution.create. The created session's ID is
+    // followed by agentRun.create. The created session's ID is
     // returned on the persisted execution's session_id.
     //
     // session_spec.agent_ref names the agent the conversation runs (empty:
@@ -80,7 +80,7 @@ message AgentExecutionSpec {
     // execution_target — can only reach an auto-created session through
     // this field. session_spec.harness_state_id must be empty — it is
     // server-owned harness continuity state, created by the runner after
-    // the first execution.
+    // the first run.
     //
     // @internal
     // The Session resource created from this spec is the single source of
@@ -93,7 +93,7 @@ message AgentExecutionSpec {
     ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13;
   }
 
-  // User input message that triggers this execution.
+  // User input message that triggers this run.
   // Each execution represents one user message and the agent's response.
   string message = 3 [(buf.validate.field).string.min_len = 1];
 
@@ -101,7 +101,7 @@ message AgentExecutionSpec {
   // thinking, and run bounds. Zero or empty fields are not set here.
   //
   // The server resolves the settings the turn runs with once, at create,
-  // and records them on AgentExecutionStatus.run_config. A choice (model,
+  // and records them on AgentRunStatus.run_config. A choice (model,
   // tier, thinking) comes from the most specific layer that makes one: this
   // field, then the defaults of the agent the turn runs, then the lane's
   // operator profile. A bound (cost, tool rounds, result size) is the
@@ -169,7 +169,7 @@ message AgentExecutionSpec {
   // optional), never a value source — undeclared keys are dropped.
   // Use case: B2B integrations where secrets are injected at runtime per call.
   // These values are consumed into the ExecutionContext (deleted when the
-  // execution completes) and cleared from the persisted execution.
+  // execution completes) and cleared from the persisted run.
   //
   // @internal
   // Merge priority (lowest to highest): resolved Environment values — from the
@@ -177,7 +177,7 @@ message AgentExecutionSpec {
   // a later ref wins — then runtime_env (this field). The merged map is filtered to the keys declared in
   // Agent.spec.env (no filtering when the agent declares none); a missing
   // required key only logs a warning — the run is not failed. The merge is
-  // owned by backend/libs/go/envmerge and the agentexecution controller's
+  // owned by backend/libs/go/envmerge and the agentrun controller's
   // executionContextBuilder, and asserted by
   // test/conformance/src/suites-execution/envmerge.conformance.test.ts.
   map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 5;
@@ -185,10 +185,10 @@ message AgentExecutionSpec {
   // ─────────────────────────────────────────────────────────────────────────────
   // Approval Configuration
   //
-  // Runtime control over approval behavior for this specific execution.
+  // Runtime control over approval behavior for this specific run.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Auto-approve all tool executions for this execution.
+  // Auto-approve all tool executions for this run.
   //
   // When true, tools that would normally require approval are automatically
   // approved without user intervention. It clears approvals only: a tool the
@@ -213,7 +213,7 @@ message AgentExecutionSpec {
   // Files to inject into the sandbox before execution begins.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Files attached to this execution.
+  // Files attached to this run.
   //
   // Attachments are injected into the sandbox before execution begins.
   // The agent can read these files from the specified mount paths.
@@ -284,7 +284,7 @@ message AgentExecutionSpec {
   // checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
   // superseded turn's partial messages remain visible to the model. Do not
   // build features that assume the runner skips superseded turns.
-  string supersedes_execution_id = 12;
+  string supersedes_run_id = 12;
 
   // Conversation events the agent has not yet seen, composed by the platform
   // for this turn (optional).
@@ -321,7 +321,7 @@ message AgentExecutionSpec {
   // The reserved-label guard's trust rule (guard-reserved-labels.ts),
   // applied by VouchWorkflowParent; when the run also carries the
   // stigmer.ai/workflow-execution-id lineage label the two must name the
-  // same run. The dispatch queue is derived from workflow_execution_id by the
+  // same run. The dispatch queue is derived from workflow_run_id by the
   // workflow run's own routing ("wfexec:" + id under execution routing; under
   // global routing the run has no queue of its own and the turn dispatches
   // as any turn does), so no caller names a queue. The edition's billing and
@@ -333,9 +333,9 @@ message AgentExecutionSpec {
 // WorkflowParent links a turn to the workflow run whose agent_call step
 // started it.
 message WorkflowParent {
-  // ID of the workflow execution whose step started this turn. The turn's
+  // ID of the workflow run whose step started this turn. The turn's
   // activities run where that workflow run's own activities run.
-  string workflow_execution_id = 1 [(buf.validate.field).string.min_len = 1];
+  string workflow_run_id = 1 [(buf.validate.field).string.min_len = 1];
 
   // Temporal workflow ID the agent-execution workflow signals about
   // approval requests ("child_approval_required", carrying only this
@@ -363,10 +363,10 @@ message WorkflowParent {
 // ─────────────────────────────────────────────────────────────────────────────
 // File Attachments (Artifact Lifecycle)
 //
-// These types support file input to agent executions.
+// These types support file input to agent runs.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Attachment represents a file attached to an agent execution.
+// Attachment represents a file attached to an agent run.
 //
 // All files must be pre-uploaded via the uploadAttachment RPC and referenced
 // by storage_key. This ensures consistent behavior regardless of file size.
@@ -404,7 +404,7 @@ message Attachment {
   ];
 
   // Reference to pre-uploaded file in artifact store (required).
-  // Obtained by calling uploadAttachment RPC before creating the execution.
+  // Obtained by calling uploadAttachment RPC before creating the run.
   // Format: "attachments/{ulid}/{filename}"
   string storage_key = 2 [(buf.validate.field).string.min_len = 1];
 
@@ -427,7 +427,7 @@ message Attachment {
   // When set and the runner is in local mode, the file is read directly
   // from this path instead of downloading from artifact storage via
   // storage_key.  This eliminates the storage round-trip for local
-  // executions.
+  // runs.
   //
   // Ignored when the runner is not in local mode (cloud runners use
   // storage_key exclusively).
@@ -439,7 +439,7 @@ message Attachment {
 }
 
 // ConversationCatchup carries the channel-conversation events an agent
-// missed, composed fresh for one execution.
+// missed, composed fresh for one run.
 //
 // @internal
 // Present on EVERY channel turn — even with an empty digest — so window_end
@@ -504,7 +504,7 @@ message DeclaredPreferences {
 // injection.
 //
 // @internal
-// See the AgentExecutionStatus.recalled_memories field comment for the full
+// See the AgentRunStatus.recalled_memories field comment for the full
 // ownership and composition contract, and status.recalled_memories_report
 // for which candidates the runner actually injected. enabled=true with
 // zero facts is a meaningful state: memory is on for this caller, nothing
@@ -531,7 +531,7 @@ message RecalledMemories {
 }
 
 // RecalledMemoryFact is one confirmed memory as injected into an
-// execution.
+// run.
 message RecalledMemoryFact {
   // ID of the memory record this fact came from.
   //

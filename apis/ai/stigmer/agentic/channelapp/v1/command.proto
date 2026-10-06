@@ -26,7 +26,7 @@ service ChannelAppCommandController {
   // @internal
   // The authorization and state-operation are determined depending on
   // whether the channel app is going to be created or updated, resolved
-  // as part of request execution.
+  // as part of request run.
   rpc apply(ChannelApp) returns (ChannelApp);
 
   // Create a channel app.

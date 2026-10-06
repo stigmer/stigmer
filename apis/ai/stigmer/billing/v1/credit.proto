@@ -45,15 +45,15 @@ message CreditLedgerEntry {
 // and drill-down purposes.
 //
 // Fields are populated based on the entry type:
-// - usage_debit: execution_id, session_id, agent_id, llm_call_sequence, llm_call_id
+// - usage_debit: run_id, session_id, agent_id, llm_call_sequence, llm_call_id
 // - purchase_credit / auto_recharge_credit: purchase_id
 // - adjustment_credit / adjustment_debit: adjusted_by, description
-// - reservation_hold / reservation_release: execution_id, reservation_id
+// - reservation_hold / reservation_release: run_id, reservation_id
 message CreditLedgerSource {
-  // Agent execution that generated this debit.
-  string execution_id = 1;
+  // Agent run that generated this debit.
+  string run_id = 1;
 
-  // Session containing the execution.
+  // Session containing the run.
   string session_id = 2;
 
   // Agent that was executing.
@@ -68,7 +68,7 @@ message CreditLedgerSource {
   // The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
   // drill-down from this debit to the exact record it paid for. Empty for
   // debits of records whose reporter sent no call id (they are located by
-  // execution_id + llm_call_sequence, as before).
+  // run_id + llm_call_sequence, as before).
   string llm_call_id = 10;
 
   // Credit purchase that funded this credit.
@@ -141,20 +141,20 @@ message CreditPack {
   bool active = 5;
 }
 
-// ExecutionReservation tracks credits held for an active agent execution.
+// RunReservation tracks credits held for an active agent run.
 //
-// Created at execution start (AuthorizeExecution), consumed incrementally
+// Created at execution start (AuthorizeRun), consumed incrementally
 // by per-LLM-call debits (via proxy-observed usage metering), and settled
-// at execution end (FinalizeExecution) to release any unused hold.
-message ExecutionReservation {
+// at execution end (FinalizeRun) to release any unused hold.
+message RunReservation {
   // Unique identifier for this reservation.
   string reservation_id = 1;
 
   // Organization that owns this reservation.
   string org = 2;
 
-  // Agent execution this reservation is for.
-  string execution_id = 3;
+  // Agent run this reservation is for.
+  string run_id = 3;
 
   // Total micro-USD reserved at execution start.
   int64 reserved_micros = 4;

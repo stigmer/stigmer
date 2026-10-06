@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "ai/stigmer/agentic/agentrun/v1/enum.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
@@ -31,7 +31,7 @@ message AgentMessage {
   bool is_streaming = 6;
 }
 
-// Represents a tool call made by the agent during execution.
+// Represents a tool call made by the agent during run.
 message ToolCall {
   // Unique identifier for this tool call.
   string id = 1;
@@ -55,7 +55,7 @@ message ToolCall {
   // Result returned by the tool (optional, populated after execution).
   string result = 4;
 
-  // Status of the tool call execution.
+  // Status of the tool call run.
   ToolCallStatus status = 5 [(buf.validate.field).enum.defined_only = true];
 
   // ISO 8601 timestamp when the tool call started.
@@ -71,7 +71,7 @@ message ToolCall {
   // Approval Fields
   //
   // These fields track the approval state for tools that require user consent
-  // before execution. Populated only for tools where approval is configured.
+  // before run. Populated only for tools where approval is configured.
   // ─────────────────────────────────────────────────────────────────────────────
 
   // True when this tool call was held for a person's decision instead of
@@ -213,8 +213,8 @@ message ToolCall {
   // bytes to artifact storage and records a reference here instead of inlining
   // megabytes into `result` on every status update. Without this, a single
   // large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
-  // pushes AgentExecutionStatus past the gRPC message-size limit, so status
-  // persistence fails silently and the live UI freezes mid-execution.
+  // pushes AgentRunStatus past the gRPC message-size limit, so status
+  // persistence fails silently and the live UI freezes mid-run.
   //
   // When set, `result` holds only a short human-readable head/preview (so
   // consumers that read `result` still render something sensible) and
@@ -226,7 +226,7 @@ message ToolCall {
   ToolCallOutputRef output_ref = 21;
 
   // Field 22 (file_changes) was removed: file review moved to
-  // the apply-then-review FileChangeSet ledger (AgentExecutionStatus.
+  // the apply-then-review FileChangeSet ledger (AgentRunStatus.
   // file_change_sets + file_review_event_stream), so the tool-call-coupled
   // FileChange copy is obsolete.
   reserved 22;
@@ -302,7 +302,7 @@ message ToolCall {
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Id of the FileChangeSet this flowed file-edit contributed to
-  // (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+  // (`{run_id}:{turn_seq}`), stamped by the runner at the turn-boundary
   // capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
   // set's review state and to position the set's decision surface after the
   // turn's last edit row. It is NEVER a correlation or enforcement key —
@@ -331,17 +331,17 @@ message ToolCall {
 }
 
 // ToolCallOutputRef points to a tool call's full output after the runner
-// offloaded it to artifact storage to keep AgentExecutionStatus under the gRPC
+// offloaded it to artifact storage to keep AgentRunStatus under the gRPC
 // message-size limit.
 //
-// This is deliberately distinct from ExecutionArtifact (a file the agent
+// This is deliberately distinct from RunArtifact (a file the agent
 // publishes for the user to download via publish_artifact): an output ref is
 // internal spillover of a tool's result, not a user-facing deliverable. The
 // bytes live in artifact storage (R2 in the cloud, locally served in dev);
 // only this reference is persisted in the execution status.
 message ToolCallOutputRef {
   // Storage location of the full output bytes.
-  // Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+  // Format: "artifacts/{run_id}/toolcalls/{tool_call_id}.{ext}"
   //
   // Clients resolve the bytes/URL on demand from this stable key (via
   // getArtifactContent or getArtifactDownloadUrl) — there is deliberately no

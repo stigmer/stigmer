@@ -53,27 +53,27 @@ service ArtifactQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get artifact";
   }
 
-  // List all artifacts produced by a specific execution.
+  // List all artifacts produced by a specific run.
   //
   // Returns a paginated list of artifacts filtered by either
-  // workflow_execution_id or agent_execution_id.
+  // workflow_run_id or agent_run_id.
   //
   // Use Cases:
   //
   // 1. Execution Viewer Artifact Panel:
-  //    - User views a workflow execution in the execution viewer
-  //    - UI calls listByExecution() to populate the artifact sidebar
+  //    - User views a workflow run in the execution viewer
+  //    - UI calls listByRun() to populate the artifact sidebar
   //    - Each artifact shows display name, content type, size, source task
   //
   // 2. CLI Artifact Listing:
   //    - `stigmer workflow artifacts wex_abc123`
-  //    - CLI calls listByExecution() and formats as a table
+  //    - CLI calls listByRun() and formats as a table
   //
   // Error Cases:
   //
-  // - INVALID_ARGUMENT: Neither workflow_execution_id nor agent_execution_id provided
+  // - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
   // - PERMISSION_DENIED: User doesn't have view access to the parent execution
-  rpc listByExecution(ListArtifactsByExecutionRequest) returns (ArtifactList) {
+  rpc listByRun(ListArtifactsByRunRequest) returns (ArtifactList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
@@ -125,7 +125,7 @@ service ArtifactQueryController {
   // presigned URL that avoids proxying bytes through the server.
   //
   // @internal
-  // Mirrors AgentExecutionQueryController.getArtifactContent (same
+  // Mirrors AgentRunQueryController.getArtifactContent (same
   // truncation contract). Content is truncated to max_bytes (default:
   // 512 KB); the response includes total_size_bytes and a truncated flag
   // so callers can decide whether to offer a full download.

@@ -53,7 +53,7 @@ service ExecutionContextQueryController {
   //
   // @internal
   // Primary lookup method used by runners to retrieve the merged environment
-  // variables during workflow/agent execution and MCP discovery.
+  // variables during workflow/agent run and MCP discovery.
   // Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
   //
   // Secret handling (both editions): the decrypt path is gated by caller

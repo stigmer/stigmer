@@ -23,13 +23,13 @@ message ScheduleStatus {
   // When the schedule last fired, in UTC.
   google.protobuf.Timestamp last_fire_at = 2;
 
-  // ID of the agent execution created by the most recent fire.
+  // ID of the agent run created by the most recent fire.
   //
   // @internal
   // The reverse pointer of the stigmer.ai/schedule-id label stamped on
   // every schedule-created execution — the audit link is
   // queryable from either end.
-  string last_execution_id = 3;
+  string last_run_id = 3;
 
   // Number of consecutive failed runs. A successful run resets it.
   //

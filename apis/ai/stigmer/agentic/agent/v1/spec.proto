@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agent.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/invocation.proto";
+import "ai/stigmer/agentic/agentrun/v1/invocation.proto";
 import "ai/stigmer/agentic/environment/v1/spec.proto";
 import "ai/stigmer/agentic/mcpserver/v1/usage.proto";
 import "ai/stigmer/agentic/plugin/v1/hooks.proto";
@@ -132,7 +132,7 @@ message AgentSpec {
   // and must be one that engine lists; service_tier FAST and thinking_mode
   // ENABLED need a model that engine prices or marks capable. Checked when
   // the agent is saved.
-  ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13;
+  ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 13;
 
   // The engine this agent's run defaults were chosen for, and the engine a
   // new conversation on this agent starts on when the person or the surface

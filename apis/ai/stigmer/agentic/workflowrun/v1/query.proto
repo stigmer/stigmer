@@ -1,43 +1,43 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.workflowexecution.v1;
+package ai.stigmer.agentic.workflowrun.v1;
 
-import "ai/stigmer/agentic/workflowexecution/v1/api.proto";
-import "ai/stigmer/agentic/workflowexecution/v1/event.proto";
-import "ai/stigmer/agentic/workflowexecution/v1/io.proto";
+import "ai/stigmer/agentic/workflowrun/v1/api.proto";
+import "ai/stigmer/agentic/workflowrun/v1/event.proto";
+import "ai/stigmer/agentic/workflowrun/v1/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
-// WorkflowExecutionQueryController handles read operations (Get, List, Subscribe) for WorkflowExecution resources.
+// WorkflowRunQueryController handles read operations (Get, List, Subscribe) for WorkflowRun resources.
 //
 // This service follows the Command-Query Separation (CQS) pattern:
 // - CommandController: Write operations (create, update, delete)
 // - QueryController: Read operations (get, list, search, subscribe)
 //
 // Authorization:
-// - get: Standard authorization - user must have "get" permission on the specific WorkflowExecution
+// - get: Standard authorization - user must have "get" permission on the specific WorkflowRun
 // - list: Custom authorization - filters results based on user's owner scope and permissions
 // - list_by_workflow: Custom authorization - verifies user has access to the Workflow
 // - subscribe: Standard authorization - user must have "get" permission to subscribe to updates
 //
 // Service Options:
-// - api_resource_kind: workflow_execution - Links this service to the WorkflowExecution resource
-service WorkflowExecutionQueryController {
-  option (ai.stigmer.commons.apiresource.api_resource_kind) = workflow_execution;
+// - api_resource_kind: workflow_run - Links this service to the WorkflowRun resource
+service WorkflowRunQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = workflow_run;
 
-  // Get a single workflow execution by ID.
+  // Get a single workflow run by ID.
   //
-  // Retrieves the complete WorkflowExecution resource including:
+  // Retrieves the complete WorkflowRun resource including:
   // - spec: User inputs (workflow_id, trigger_message, etc.)
   // - status: Current execution state (phase, tasks, progress_events, output/error)
   // - metadata: Resource identification (id, name, labels, tags)
   //
   // @internal
   // Authorization:
-  // Standard authorization checks that user has "get" permission on the WorkflowExecution.
+  // Standard authorization checks that user has "get" permission on the WorkflowRun.
   // Permission is granted if:
   // - User created the execution (metadata.audit.created_by matches user)
-  // - User has organization-level "workflow_execution:get" permission
+  // - User has organization-level "workflow_run:get" permission
   // - User has explicit permission via IamPolicy
   //
   // Use Cases:
@@ -50,7 +50,7 @@ service WorkflowExecutionQueryController {
   // 2. Poll for Completion:
   // - Client triggers execution via create()
   // - Client periodically calls get() to check if phase is terminal
-  // - Client retrieves output when phase == EXECUTION_COMPLETED
+  // - Client retrieves output when phase == RUN_COMPLETED
   //
   // 3. Debug Failed Execution:
   // - User sees execution failed
@@ -65,11 +65,11 @@ service WorkflowExecutionQueryController {
   // Error Cases:
   //
   // - NOT_FOUND:
-  //   - No WorkflowExecution exists with the given ID
+  //   - No WorkflowRun exists with the given ID
   //
   // - PERMISSION_DENIED:
-  //   - User doesn't have "get" permission on this WorkflowExecution
-  //   - WorkflowExecution belongs to different organization
+  //   - User doesn't have "get" permission on this WorkflowRun
+  //   - WorkflowRun belongs to different organization
   //
   // Example Request:
   // {
@@ -79,7 +79,7 @@ service WorkflowExecutionQueryController {
   // Example Response:
   // {
   //   "api_version": "agentic.stigmer.ai/v1",
-  //   "kind": "WorkflowExecution",
+  //   "kind": "WorkflowRun",
   //   "metadata": {
   //     "id": "wfx_abc123xyz456",
   //     "name": "customer-onboarding-20250111-143022",
@@ -90,23 +90,23 @@ service WorkflowExecutionQueryController {
   //     "trigger_message": "New signup: john.doe@example.com"
   //   },
   //   "status": {
-  //     "phase": 2,  // EXECUTION_IN_PROGRESS
+  //     "phase": 2,  // RUN_IN_PROGRESS
   //     "total_tasks": 3,
   //     "completed_tasks": 1,
   //     "tasks": [ ... ],
   //     "started_at": "2025-01-11T14:30:22Z"
   //   }
   // }
-  rpc get(WorkflowExecutionId) returns (WorkflowExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+  rpc get(WorkflowRunId) returns (WorkflowRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "value";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get workflow execution";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get workflow run";
   }
 
-  // List workflow executions with pagination and optional filtering.
+  // List workflow runs with pagination and optional filtering.
   //
-  // Returns a paginated list of WorkflowExecution resources that the user has access to.
+  // Returns a paginated list of WorkflowRun resources that the user has access to.
   // Results are automatically filtered based on user's permissions and owner scope.
   //
   // @internal
@@ -138,7 +138,7 @@ service WorkflowExecutionQueryController {
   // - User can page through historical executions
   //
   // 2. Monitor Active Executions:
-  // - UI calls list(phase=EXECUTION_IN_PROGRESS) to show running executions
+  // - UI calls list(phase=RUN_IN_PROGRESS) to show running executions
   // - UI displays progress for each execution (completed_tasks / total_tasks)
   // - UI refreshes list periodically to show updates
   //
@@ -148,7 +148,7 @@ service WorkflowExecutionQueryController {
   // - Admin exports execution history for audit logs
   //
   // 4. Debug and Troubleshooting:
-  // - Developer lists failed executions (phase=EXECUTION_FAILED)
+  // - Developer lists failed executions (phase=RUN_FAILED)
   // - Developer inspects error messages and retry patterns
   // - Developer identifies systematic failures
   //
@@ -161,7 +161,7 @@ service WorkflowExecutionQueryController {
   // Example Request (Filter for failed executions):
   // {
   //   "page_size": 20,
-  //   "phase": 4,  // EXECUTION_FAILED
+  //   "phase": 4,  // RUN_FAILED
   //   "tags": ["environment:production"]
   // }
   //
@@ -179,7 +179,7 @@ service WorkflowExecutionQueryController {
   //     }
   //   ]
   // }
-  rpc list(ListWorkflowExecutionsRequest) returns (WorkflowExecutionList) {
+  rpc list(ListWorkflowRunsRequest) returns (WorkflowRunList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
@@ -206,7 +206,7 @@ service WorkflowExecutionQueryController {
   //
   // Use Cases:
   //
-  // 1. Workflow Execution History:
+  // 1. Workflow Run History:
   // - User views a Workflow in the UI
   // - UI calls listByWorkflow(workflow_id) to show all executions
   // - UI displays timeline of executions with success/failure indicators
@@ -259,13 +259,13 @@ service WorkflowExecutionQueryController {
   //     }
   //   ]
   // }
-  rpc listByWorkflow(ListWorkflowExecutionsByWorkflowRequest) returns (WorkflowExecutionList) {
+  rpc listByWorkflow(ListWorkflowRunsByWorkflowRequest) returns (WorkflowRunList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // Subscribe to real-time updates for a specific workflow execution (server streaming).
+  // Subscribe to real-time updates for a specific workflow run (server streaming).
   //
-  // Opens a bidirectional stream that pushes WorkflowExecution updates as they occur.
+  // Opens a bidirectional stream that pushes WorkflowRun updates as they occur.
   // Client receives updates when:
   // - Execution phase changes (PENDING → IN_PROGRESS → COMPLETED)
   // - Tasks start or complete
@@ -274,13 +274,13 @@ service WorkflowExecutionQueryController {
   //
   // @internal
   // Authorization:
-  // Standard authorization checks that user has "get" permission on the WorkflowExecution.
+  // Standard authorization checks that user has "get" permission on the WorkflowRun.
   // This is the same permission check as get() RPC.
   //
   // Stream Lifecycle:
-  // 1. Client sends SubscribeWorkflowExecutionRequest with execution_id
+  // 1. Client sends SubscribeWorkflowRunRequest with run_id
   // 2. Server validates authorization
-  // 3. Server sends initial WorkflowExecution (current state)
+  // 3. Server sends initial WorkflowRun (current state)
   // 4. Server streams updates as execution progresses
   // 5. Server closes stream when execution reaches terminal state (COMPLETED/FAILED/CANCELLED)
   // 6. Client can close stream early (e.g., user navigates away from page)
@@ -314,15 +314,15 @@ service WorkflowExecutionQueryController {
   // - All users see consistent view of execution state
   //
   // Stream Message Format:
-  // Each message is a complete WorkflowExecution resource with updated status.
+  // Each message is a complete WorkflowRun resource with updated status.
   //
   // Error Cases:
   //
   // - NOT_FOUND:
-  //   - No WorkflowExecution exists with the given ID
+  //   - No WorkflowRun exists with the given ID
   //
   // - PERMISSION_DENIED:
-  //   - User doesn't have "get" permission on this WorkflowExecution
+  //   - User doesn't have "get" permission on this WorkflowRun
   //
   // - DEADLINE_EXCEEDED:
   //   - Client timeout (client should reconnect)
@@ -332,7 +332,7 @@ service WorkflowExecutionQueryController {
   //
   // Example Request:
   // {
-  //   "execution_id": "wfx_abc123xyz456"
+  //   "run_id": "wfx_abc123xyz456"
   // }
   //
   // Example Stream (sequence of messages):
@@ -341,7 +341,7 @@ service WorkflowExecutionQueryController {
   // {
   //   "metadata": { "id": "wfx_abc123xyz456" },
   //   "status": {
-  //     "phase": 1,  // EXECUTION_PENDING
+  //     "phase": 1,  // RUN_PENDING
   //     "total_tasks": 3,
   //     "completed_tasks": 0
   //   }
@@ -351,7 +351,7 @@ service WorkflowExecutionQueryController {
   // {
   //   "metadata": { "id": "wfx_abc123xyz456" },
   //   "status": {
-  //     "phase": 2,  // EXECUTION_IN_PROGRESS
+  //     "phase": 2,  // RUN_IN_PROGRESS
   //     "started_at": "2025-01-11T14:30:22Z"
   //   }
   // }
@@ -360,7 +360,7 @@ service WorkflowExecutionQueryController {
   // {
   //   "metadata": { "id": "wfx_abc123xyz456" },
   //   "status": {
-  //     "phase": 2,  // EXECUTION_IN_PROGRESS
+  //     "phase": 2,  // RUN_IN_PROGRESS
   //     "completed_tasks": 1,
   //     "tasks": [
   //       { "task_id": "task-1", "status": 3, "output": { ... } }
@@ -372,21 +372,21 @@ service WorkflowExecutionQueryController {
   // {
   //   "metadata": { "id": "wfx_abc123xyz456" },
   //   "status": {
-  //     "phase": 3,  // EXECUTION_COMPLETED
+  //     "phase": 3,  // RUN_COMPLETED
   //     "completed_tasks": 3,
   //     "output": { ... },
   //     "completed_at": "2025-01-11T14:35:47Z"
   //   }
   // }
   // [Stream closes]
-  rpc subscribe(SubscribeWorkflowExecutionRequest) returns (stream WorkflowExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+  rpc subscribe(SubscribeWorkflowRunRequest) returns (stream WorkflowRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get workflow execution stream";
+    option (ai.stigmer.commons.rpc.config).field_path = "run_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get workflow run stream";
   }
 
-  // Fetch the paginated event log for a workflow execution.
+  // Fetch the paginated event log for a workflow run.
   //
   // Returns execution events ordered by sequence_number ascending, with
   // cursor-based pagination and optional filtering by event type or task name.
@@ -394,7 +394,7 @@ service WorkflowExecutionQueryController {
   // @internal
   // Authorization:
   // Standard authorization checks that user has "get" permission on the
-  // WorkflowExecution. Same permission as get() and subscribe().
+  // WorkflowRun. Same permission as get() and subscribe().
   //
   // The event log complements the status snapshot: the snapshot tells you
   // current state, the event log tells you what happened and when.
@@ -419,30 +419,30 @@ service WorkflowExecutionQueryController {
   //
   // Error Cases:
   //
-  // - NOT_FOUND: No WorkflowExecution exists with the given ID
+  // - NOT_FOUND: No WorkflowRun exists with the given ID
   // - PERMISSION_DENIED: User doesn't have "get" permission
   // - INVALID_ARGUMENT: page_size exceeds maximum (500)
   rpc getEventLog(GetEventLogRequest) returns (GetEventLogResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get workflow execution event log";
+    option (ai.stigmer.commons.rpc.config).field_path = "run_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get workflow run event log";
   }
 
   // Subscribe to real-time execution events (incremental event stream).
   //
   // Opens a server-side streaming RPC that pushes individual
-  // WorkflowExecutionEvent messages as they occur during execution.
-  // Unlike subscribe() which streams full WorkflowExecution snapshots,
+  // WorkflowRunEvent messages as they occur during run.
+  // Unlike subscribe() which streams full WorkflowRun snapshots,
   // this streams lightweight incremental events for the timeline view.
   //
   // @internal
   // Authorization:
   // Standard authorization checks that user has "get" permission on the
-  // WorkflowExecution. Same permission as get() and subscribe().
+  // WorkflowRun. Same permission as get() and subscribe().
   //
   // Stream Lifecycle:
-  // 1. Client sends SubscribeEventsRequest with execution_id
+  // 1. Client sends SubscribeEventsRequest with run_id
   // 2. Server validates authorization
   // 3. If after_sequence > 0: Server replays missed events from persistence
   // 4. Server streams new events in real-time as the runner emits them
@@ -478,15 +478,15 @@ service WorkflowExecutionQueryController {
   //
   // Error Cases:
   //
-  // - NOT_FOUND: No WorkflowExecution exists with the given ID
+  // - NOT_FOUND: No WorkflowRun exists with the given ID
   // - PERMISSION_DENIED: User doesn't have "get" permission
   // - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)
   // - UNAVAILABLE: Server unavailable (retry with backoff)
-  rpc subscribeEvents(SubscribeEventsRequest) returns (stream WorkflowExecutionEvent) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+  rpc subscribeEvents(SubscribeEventsRequest) returns (stream WorkflowRunEvent) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to subscribe to workflow execution events";
+    option (ai.stigmer.commons.rpc.config).field_path = "run_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to subscribe to workflow run events";
   }
 
   // Get aggregated execution statistics for an organization's workflows.
@@ -513,11 +513,11 @@ service WorkflowExecutionQueryController {
   // 3. Reliability Monitoring:
   //    - Surface top failing workflows for investigation
   //    - Track failure rates across the organization
-  rpc getExecutionSummary(GetExecutionSummaryRequest) returns (ExecutionSummary) {
+  rpc getRunSummary(GetRunSummaryRequest) returns (RunSummary) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // List workflow executions with pending human_input tasks awaiting reviewer decisions.
+  // List workflow runs with pending human_input tasks awaiting reviewer decisions.
   //
   // Returns a paginated list of executions where at least one human_input
   // task is actively waiting for a response. Each entry includes the

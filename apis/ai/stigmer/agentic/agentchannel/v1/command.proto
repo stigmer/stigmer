@@ -16,7 +16,7 @@ service AgentChannelCommandController {
   // @internal
   // The authorization and state-operation are determined depending on
   // whether the channel is going to be created or updated, resolved as
-  // part of request execution. status is preserved verbatim (the install
+  // part of request run. status is preserved verbatim (the install
   // flow is its sole writer).
   rpc apply(AgentChannel) returns (AgentChannel);
 

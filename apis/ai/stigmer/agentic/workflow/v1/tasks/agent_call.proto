@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.workflow.v1.tasks;
 
-import "ai/stigmer/agentic/agentexecution/v1/invocation.proto";
+import "ai/stigmer/agentic/agentrun/v1/invocation.proto";
 import "ai/stigmer/agentic/session/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/workspace.proto";
 import "ai/stigmer/agentic/workflow/v1/tasks/common.proto";
@@ -15,7 +15,7 @@ import "google/protobuf/struct.proto";
 //
 // @internal
 // This message is the workflow DSL's adoption of the shared
-// AgentInvocation vocabulary (agentexecution/v1/invocation.proto) at
+// AgentInvocation vocabulary (agentrun/v1/invocation.proto) at
 // the TYPE level (stigmer/stigmer#358). Because
 // WorkflowTask.task_config is a "kind + Struct" envelope, this message
 // IS the authoring schema: its field names are the YAML keys workflow
@@ -52,7 +52,7 @@ import "google/protobuf/struct.proto";
 // are stored as JSON Structs, so field numbers never hit a wire):
 // - org: redundant with the "org/slug" form of `agent`, and the
 //   proto→YAML converter never emitted it.
-// - AgentExecutionConfig (timeout, temperature, context_management,
+// - RunConfig (timeout, temperature, context_management,
 //   max_cost_micros): declared knobs the runtime silently ignored.
 //   The cost cap lives on run_config.max_cost_usd and is now actually
 //   enforced; timeout/temperature had no runtime counterpart at all.
@@ -165,7 +165,7 @@ message AgentCallTaskConfig {
   // never raise it. max_tool_rounds is enforced by the native harness only
   // (inert on cursor, whose sole bound is cost). The workflow lane has no
   // operator profile.
-  ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4;
+  ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4;
 
   // Structured output contract for this agent call.
   //
@@ -184,7 +184,7 @@ message AgentCallTaskConfig {
   // - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
   //
   // The runner creates a Session with this harness before creating
-  // the AgentExecution. The harness is a session-level concern — it determines
+  // the AgentRun. The harness is a session-level concern — it determines
   // tool availability, state management, model access, and billing tier.
   //
   // When unspecified: native when run_config names a model (the engine the
@@ -259,7 +259,7 @@ message AgentCallTaskConfig {
 //   {
 //     "structured": { <validated JSON matching the schema> },
 //     "final_text": "<the agent's human-readable response>",
-//     "agent_execution_id": "<execution ID for drill-down>",
+//     "agent_run_id": "<execution ID for drill-down>",
 //     "usage_summary": {
 //       "total_tokens": 4523,
 //       "estimated_cost_usd": 0.045,

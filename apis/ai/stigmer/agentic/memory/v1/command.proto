@@ -13,7 +13,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // No apply RPC by design: a memory is system-generated — an
 // agent proposes it, a person decides on it — so there is no manifest
 // lane, no SDK apply registry entry, and no CLI apply verb. The kind
-// belongs to the Session/AgentExecution/Artifact family: records the
+// belongs to the Session/AgentRun/Artifact family: records the
 // platform creates that users inspect and manage.
 service MemoryCommandController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = memory;

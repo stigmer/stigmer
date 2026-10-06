@@ -62,13 +62,13 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators and credit issuers can grant credits";
   }
 
-  // Reserve credits before starting an agent execution.
+  // Reserve credits before starting an agent run.
   // Returns authorization status and reservation details.
   //
   // @internal
   // Called by the Temporal workflow before dispatching to the agent runner.
   // The runner must not start if authorized is false.
-  rpc authorizeExecution(AuthorizeExecutionInput) returns (AuthorizeExecutionResponse) {
+  rpc authorizeRun(AuthorizeRunInput) returns (AuthorizeRunResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = platform;
     option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
     option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
@@ -81,7 +81,7 @@ service BillingCommandController {
   //
   // @internal
   // Called by the proxy after each LLM SSE stream completes.
-  // Deduplicated by (execution_id, sequence, metering_source).
+  // Deduplicated by (run_id, sequence, metering_source).
   rpc recordLlmCallUsage(RecordLlmCallUsageInput) returns (RecordLlmCallUsageResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = platform;
     option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
@@ -89,12 +89,12 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
   }
 
-  // Settle billing for a completed execution.
+  // Settle billing for a completed run.
   // Releases unused reservation credits and produces the final billing record.
   //
   // @internal
   // Called by the Temporal workflow after the agent runner completes.
-  rpc finalizeExecution(FinalizeExecutionInput) returns (FinalizeExecutionResponse) {
+  rpc finalizeRun(FinalizeRunInput) returns (FinalizeRunResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = platform;
     option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
     option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
@@ -105,13 +105,13 @@ service BillingCommandController {
   // The one sanctioned path past the settled-reservation latch: re-runs
   // the affordability check, transfers a fresh hold, and rotates the
   // reservation id as the fence against settles still in flight from the
-  // terminated run. Returns the same shape as authorizeExecution, with
+  // terminated run. Returns the same shape as authorizeRun, with
   // the rotated reservation id.
   //
   // @internal
   // Called by the recover pipeline after workflow termination, before
   // re-launch side effects.
-  rpc rearmForRecovery(RearmForRecoveryInput) returns (AuthorizeExecutionResponse) {
+  rpc rearmForRecovery(RearmForRecoveryInput) returns (AuthorizeRunResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = platform;
     option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
     option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";

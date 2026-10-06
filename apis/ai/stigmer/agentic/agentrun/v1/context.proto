@@ -1,13 +1,13 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "ai/stigmer/agentic/agentrun/v1/enum.proto";
 
 // NOTE: This file previously also defined `ResolvedExecutionContext` and
 // `McpServerResolutionStatus`. That contract was retired
 // (2026-08, issue #600): nothing ever produced it after the Python runner
-// was deleted, so `AgentExecutionStatus.resolved_context` (field 12, now
+// was deleted, so `AgentRunStatus.resolved_context` (field 12, now
 // reserved in api.proto) never carried data in any deployment.
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,7 +17,7 @@ import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 // automatic summarization for long-running agent conversations.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// SummarizationEvent records a single summarization occurrence during execution.
+// SummarizationEvent records a single summarization occurrence during run.
 //
 // Each time the context window approaches the model's limit and summarization
 // is triggered, an event is recorded with before/after metrics.
@@ -88,7 +88,7 @@ message SummarizationEvent {
   //
   // Enables the CLI to distinguish between:
   // - graph_start: compaction at the beginning of a new invocation
-  // - mid_execution: compaction triggered by accumulated tool responses
+  // - mid_run: compaction triggered by accumulated tool responses
   SummarizationSource source = 9;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ message SummarizationEvent {
 // ContextInfo provides visibility into context window utilization.
 //
 // This message enables monitoring, debugging, and optimization of context
-// usage during agent executions. It tracks both the current state and
+// usage during agent runs. It tracks both the current state and
 // historical summarization events.
 //
 // ## Real-Time Updates
@@ -174,16 +174,16 @@ message ContextInfo {
   // Typically set to ~80% of context_window_limit.
   int32 summarization_target_tokens = 4;
 
-  // Whether summarization is enabled for this execution.
+  // Whether summarization is enabled for this run.
   //
   // When false, no summarization events will occur regardless of
   // token count. The execution may fail if context exceeds limits.
   bool summarization_enabled = 5;
 
-  // Summarization events that occurred during this execution.
+  // Summarization events that occurred during this run.
   //
   // Ordered chronologically (oldest first).
-  // Empty if no summarization was triggered during execution.
+  // Empty if no summarization was triggered during run.
   //
   // Multiple events indicate a very long-running conversation that
   // required multiple rounds of summarization.

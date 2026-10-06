@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentshare.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/invocation.proto";
+import "ai/stigmer/agentic/agentrun/v1/invocation.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
@@ -179,7 +179,7 @@ message AgentShareSpec {
   // member sessions carry no share linkage, so it would be stored but
   // silently never applied. Enforcement is cloud-only — guest runtime
   // is a cloud concept; OSS stores and echoes the field.
-  ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7;
+  ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7;
 }
 
 // AgentShareAudience selects who can chat over a share's hosted link.

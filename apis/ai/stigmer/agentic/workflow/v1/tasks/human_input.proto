@@ -18,7 +18,7 @@ enum HumanInputTimeoutPolicy {
   HUMAN_INPUT_TIMEOUT_POLICY_UNSPECIFIED = 0;
 
   // Task fails with a timeout error.
-  // The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+  // The workflow transitions to error handling (try_catch or RUN_FAILED).
   HUMAN_INPUT_TIMEOUT_FAIL = 1;
 
   // Auto-approve: the task completes as if the reviewer selected the first
@@ -79,7 +79,7 @@ message HumanInputOutcome {
 }
 
 // HumanInputTaskConfig defines the configuration for human_input tasks that
-// pause workflow execution to collect typed input or approval from a human
+// pause workflow run to collect typed input or approval from a human
 // reviewer, then resume based on the reviewer's response.
 //
 // @internal
@@ -194,7 +194,7 @@ message HumanInputTaskConfig {
   //
   // When empty, the task defaults to binary behavior:
   //   - "approve": task completes, workflow continues to next task
-  //   - "deny": task fails (enters try_catch or EXECUTION_FAILED)
+  //   - "deny": task fails (enters try_catch or RUN_FAILED)
   //
   // When custom outcomes are defined, the first outcome is used as the
   // default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used
@@ -260,7 +260,7 @@ message HumanInputTaskConfig {
   // Resolved payloads at or above the artifact promotion threshold (256KB)
   // are stored in the artifact store; the approval_requested event then
   // carries payload_artifact_id instead of the inline value. See
-  // ApprovalRequestedPayload in workflowexecution/v1/event.proto.
+  // ApprovalRequestedPayload in workflowrun/v1/event.proto.
   //
   // Expression support is documented here rather than via the
   // is_expression option, which annotates string fields only — matching

@@ -1,53 +1,53 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/approval.proto";
-import "ai/stigmer/agentic/agentexecution/v1/artifact.proto";
-import "ai/stigmer/agentic/agentexecution/v1/context.proto";
-import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
-import "ai/stigmer/agentic/agentexecution/v1/filereview.proto";
-import "ai/stigmer/agentic/agentexecution/v1/invocation.proto";
-import "ai/stigmer/agentic/agentexecution/v1/message.proto";
-import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
-import "ai/stigmer/agentic/agentexecution/v1/subagent.proto";
-import "ai/stigmer/agentic/agentexecution/v1/todo.proto";
-import "ai/stigmer/agentic/agentexecution/v1/usage.proto";
-import "ai/stigmer/agentic/agentexecution/v1/writeback.proto";
+import "ai/stigmer/agentic/agentrun/v1/approval.proto";
+import "ai/stigmer/agentic/agentrun/v1/artifact.proto";
+import "ai/stigmer/agentic/agentrun/v1/context.proto";
+import "ai/stigmer/agentic/agentrun/v1/enum.proto";
+import "ai/stigmer/agentic/agentrun/v1/filereview.proto";
+import "ai/stigmer/agentic/agentrun/v1/invocation.proto";
+import "ai/stigmer/agentic/agentrun/v1/message.proto";
+import "ai/stigmer/agentic/agentrun/v1/spec.proto";
+import "ai/stigmer/agentic/agentrun/v1/subagent.proto";
+import "ai/stigmer/agentic/agentrun/v1/todo.proto";
+import "ai/stigmer/agentic/agentrun/v1/usage.proto";
+import "ai/stigmer/agentic/agentrun/v1/writeback.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
-// AgentExecution represents a single agent execution instance (conversational).
+// AgentRun represents a single agent run instance (conversational).
 // Follows the standard pattern: spec contains user inputs, status contains execution results.
-message AgentExecution {
+message AgentRun {
   // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
 
   // Resource kind identifier.
-  string kind = 2 [(buf.validate.field).string.const = 'AgentExecution'];
+  string kind = 2 [(buf.validate.field).string.const = 'AgentRun'];
 
   // Standard resource metadata including name, id, labels, and tags.
-  // Agent executions belong to an organization and inherit permissions from the session.
+  // Agent runs belong to an organization and inherit permissions from the session.
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
-  // User-provided inputs for this execution.
+  // User-provided inputs for this run.
   // Contains: the conversation (session_id or a new session_spec), message,
   // run_config, the per-message intents, and runtime_env. Environment values reach a turn from
   // the environments the server resolves for its run and from the
   // per-execution runtime_env; see the runtime_env field docs in
   // spec.proto.
-  AgentExecutionSpec spec = 4;
+  AgentRunSpec spec = 4;
 
   // System-managed execution state and results.
   // Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
-  AgentExecutionStatus status = 5;
+  AgentRunStatus status = 5;
 }
 
-// AgentExecutionStatus contains all execution results and state.
+// AgentRunStatus contains all execution results and state.
 // Everything populated during or after execution goes here, not in spec.
-message AgentExecutionStatus {
+message AgentRunStatus {
   // Standard audit information (created_at, updated_at, created_by, etc.)
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 
@@ -59,15 +59,15 @@ message AgentExecutionStatus {
   // Current execution lifecycle phase.
   // Tracks the execution state from creation (PENDING) through active processing (IN_PROGRESS)
   // to terminal states (COMPLETED/FAILED/CANCELLED).
-  ExecutionPhase phase = 2 [(buf.validate.field).enum.defined_only = true];
+  RunPhase phase = 2 [(buf.validate.field).enum.defined_only = true];
 
-  // Sub-agent executions invoked during this execution.
+  // Sub-agent runs invoked during this run.
   // Tracks when the main agent delegates work to specialized sub-agents.
   // Ordered chronologically by invocation time.
-  repeated SubAgentExecution sub_agent_executions = 4;
+  repeated SubAgentRun sub_agent_runs = 4;
 
   // Error message if execution failed.
-  // Only populated when phase == EXECUTION_FAILED.
+  // Only populated when phase == RUN_FAILED.
   string error = 6;
 
   // ISO 8601 timestamp when execution started.
@@ -78,7 +78,7 @@ message AgentExecutionStatus {
   // Only populated for terminal states.
   string completed_at = 8;
 
-  // Todo list tracking multi-step tasks and progress for this execution.
+  // Todo list tracking multi-step tasks and progress for this run.
   // Updated via write_todos tool (if TodoListMiddleware is enabled).
   // Each execution maintains its own snapshot of todos at execution time.
   // Key: todo item ID, Value: todo item details
@@ -91,12 +91,12 @@ message AgentExecutionStatus {
   //
   // @internal
   //
-  // When this AgentExecution is triggered from a Temporal activity, the
+  // When this AgentRun is triggered from a Temporal activity, the
   // calling activity passes its task token here. The runner completes
   // the external activity when the execution finishes.
   //
   // Token Handshake Pattern:
-  // 1. External activity extracts token and stores in AgentExecution.status
+  // 1. External activity extracts token and stores in AgentRun.status
   // 2. Activity returns activity.ErrResultPending (paused, thread freed)
   // 3. Agent executes (seconds to minutes)
   // 4. On completion: the runner completes the external activity via token
@@ -123,7 +123,7 @@ message AgentExecutionStatus {
   // Recomputed on every UpdateStatus write — never stale, never merged.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Active pending approval requests for this execution.
+  // Active pending approval requests for this run.
   //
   // Contains one entry per tool call that requires user approval before
   // it can proceed. Sub-agent approvals are included with from_sub_agent
@@ -133,7 +133,7 @@ message AgentExecutionStatus {
   //
   // Computed server-side by the Go/Java UpdateStatus handlers on every write.
   // The handler scans messages[].tool_calls and
-  // sub_agent_executions[].messages[].tool_calls, collecting entries where
+  // sub_agent_runs[].messages[].tool_calls, collecting entries where
   // status == WAITING_APPROVAL && requires_approval == true, and projects
   // them into PendingApproval entries.
   //
@@ -144,7 +144,7 @@ message AgentExecutionStatus {
   // Lifecycle:
   // 1. The runner sets ToolCall.status = WAITING_APPROVAL on the message
   // 2. UpdateStatus handler recomputes this field, entry appears
-  // 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+  // 3. Phase changes to RUN_WAITING_FOR_APPROVAL
   // 4. User submits decisions via SubmitApproval RPC (one per tool call)
   // 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
   repeated PendingApproval pending_approvals = 16;
@@ -152,7 +152,7 @@ message AgentExecutionStatus {
   // ─────────────────────────────────────────────────────────────────────────────
   // Approval Event Stream (HITL re-architecture — persisted transition state)
   //
-  // Append-only ledger of approval requests and decisions for this execution.
+  // Append-only ledger of approval requests and decisions for this run.
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Server-authored, append-only record of every approval request and decision.
@@ -196,7 +196,7 @@ message AgentExecutionStatus {
   // Context window utilization and summarization tracking.
   //
   // Provides visibility into how the agent is using its context window and
-  // any summarization events that occurred during execution.
+  // any summarization events that occurred during run.
   //
   // Populated when context management is active (not disabled via config).
   // Updated progressively during streaming as token counts change.
@@ -224,7 +224,7 @@ message AgentExecutionStatus {
   // Use the execution download endpoint to refresh expired URLs.
   //
   // Ordered by creation time (oldest first).
-  repeated ExecutionArtifact artifacts = 15;
+  repeated RunArtifact artifacts = 15;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Workspace Write-Backs (Platform-Owned Git Workflow)
@@ -252,10 +252,10 @@ message AgentExecutionStatus {
   // setup phases so subscribers see what the worker is actually doing.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Real-time setup progress reported by the runner during EXECUTION_PENDING.
+  // Real-time setup progress reported by the runner during RUN_PENDING.
   // Populated progressively as the worker completes setup steps (sandbox init,
   // workspace provisioning, skill loading, MCP server connection, etc.).
-  // Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+  // Only meaningful while phase == RUN_PENDING. Cleared by the server
   // when phase transitions away from PENDING.
   SetupProgress setup_progress = 18;
 
@@ -271,7 +271,7 @@ message AgentExecutionStatus {
   // future Cursor Admin API reconciliation.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Streaming usage summary, updated progressively during execution.
+  // Streaming usage summary, updated progressively during run.
   StreamingUsageSummary streaming_usage = 20;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -285,7 +285,7 @@ message AgentExecutionStatus {
   //
   // Populated when spec.structured_output_schema was set and the
   // runner successfully extracted schema-conforming data. Only meaningful
-  // when phase is EXECUTION_COMPLETED.
+  // when phase is RUN_COMPLETED.
   //
   // For native harness: populated from LangGraph graphState.structuredResponse
   // (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
@@ -306,7 +306,7 @@ message AgentExecutionStatus {
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Server-computed projection of file change sets awaiting or completing
-  // review for this execution.
+  // review for this run.
   //
   // @internal
   //
@@ -492,7 +492,7 @@ message AgentExecutionStatus {
   ApprovalMode approval_mode = 32;
 }
 
-// Setup progress reported during the EXECUTION_PENDING phase.
+// Setup progress reported during the RUN_PENDING phase.
 //
 // @internal
 // Designed as a sub-message (rather than a bare string) so future fields
@@ -506,7 +506,7 @@ message SetupProgress {
 }
 
 // RecalledMemoriesReport records the semantic retriever's injection outcome
-// for one execution.
+// for one run.
 //
 // @internal
 // Runner-owned, written at most once per execution at prompt build.

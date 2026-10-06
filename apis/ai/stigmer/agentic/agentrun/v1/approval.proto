@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "ai/stigmer/agentic/agentrun/v1/enum.proto";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Human-in-the-Loop (HITL) Approval Types
@@ -10,7 +10,7 @@ import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 // These types support the approval flow for tool execution requiring user consent.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// A pending approval request for a tool call that requires user consent before execution.
+// A pending approval request for a tool call that requires user consent before run.
 //
 // Each entry represents one tool call waiting for a user decision (approve, skip,
 // or reject). Sub-agent approvals are included with from_sub_agent set to true
@@ -19,7 +19,7 @@ import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 // @internal
 //
 // Computed server-side by the UpdateStatus handlers on every write. The handler
-// scans messages[].tool_calls and sub_agent_executions[].messages[].tool_calls,
+// scans messages[].tool_calls and sub_agent_runs[].messages[].tool_calls,
 // collecting entries where status == WAITING_APPROVAL && requires_approval == true.
 // Because the list is recomputed rather than merged, it is always consistent
 // with the authoritative tool call state embedded in messages.
@@ -86,7 +86,7 @@ message PendingApproval {
   string mcp_server_slug = 8;
 
   // Concise subject/description of the sub-agent's task (3-10 words).
-  // Copied from SubAgentExecution.subject when from_sub_agent is true.
+  // Copied from SubAgentRun.subject when from_sub_agent is true.
   // Enables UI to show a meaningful label like "Explore CLI rendering code"
   // instead of the generic agent type name.
   // Empty when from_sub_agent is false or subject is not available.
@@ -186,21 +186,21 @@ message PendingApproval {
 // Graceful Degradation (unchanged):
 // If the signal fails to send (parent workflow completed, network error),
 // the system continues to function. Users can still submit approvals directly
-// via the AgentExecution.SubmitApproval RPC.
+// via the AgentRun.SubmitApproval RPC.
 message ChildApprovalNotification {
-  // Child agent execution ID that requires approval.
-  // Format: AgentExecution.metadata.id (e.g., "agx-abc123xyz456")
+  // Child agent run ID that requires approval.
+  // Format: AgentRun.metadata.id (e.g., "agx-abc123xyz456")
   // Used by parent to track which child needs approval.
-  string execution_id = 1;
+  string run_id = 1;
 
-  // All pending approvals from this child agent execution.
+  // All pending approvals from this child agent run.
   //
   // Contains one entry per tool call requiring approval. Each entry carries
   // the full PendingApproval details (tool_call_id, tool_name, message,
   // args_preview, requested_at).
   //
   // The parent workflow wraps each entry in a WorkflowPendingApproval with
-  // execution_id above as the child_agent_execution_id for routing.
+  // run_id above as the child_agent_run_id for routing.
   //
   // One signal, complete picture, no partial states.
   repeated PendingApproval pending_approvals = 2;
@@ -268,7 +268,7 @@ message ApprovalRequest {
   string sub_agent_name = 8;
 
   // Concise subject of the sub-agent's task when from_sub_agent is true; empty
-  // otherwise. Copied from SubAgentExecution.subject.
+  // otherwise. Copied from SubAgentRun.subject.
   string sub_agent_subject = 9;
 
   // Slug of the MCP server providing this tool; empty for built-in tools.
@@ -370,9 +370,9 @@ message ApprovalEvent {
   }
 }
 
-// The ordered sequence of approval events for a single agent execution.
+// The ordered sequence of approval events for a single agent run.
 //
-// Persisted on AgentExecutionStatus.approval_event_stream as a server-authored,
+// Persisted on AgentRunStatus.approval_event_stream as a server-authored,
 // append-only record that coexists with the authoritative message scan. The
 // scan still feeds pending_approvals and the UI; this stream is the parallel,
 // independently-written ledger that (1) turns the projection parity check into a
@@ -397,8 +397,8 @@ message ApprovalEvent {
 // scan guarantees it can never be duplicated or clobbered by a coarse
 // re-derivation.
 message ApprovalEventStream {
-  // AgentExecution.metadata.id this stream belongs to.
-  string execution_id = 1;
+  // AgentRun.metadata.id this stream belongs to.
+  string run_id = 1;
 
   // Events in lifecycle order.
   repeated ApprovalEvent events = 2;

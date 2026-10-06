@@ -15,7 +15,7 @@ service SessionCommandController {
   //
   // @internal
   // The authorization and state-operation are determined depending on whether the session
-  // is going to be created or updated which is determined as part of the request execution.
+  // is going to be created or updated which is determined as part of the request run.
   rpc apply(Session) returns (Session);
 
   // Create a session.
@@ -55,11 +55,11 @@ service SessionCommandController {
 
   // Delete a session.
   //
-  // Deletion cascades to the session's agent executions. Billing usage
+  // Deletion cascades to the session's agent runs. Billing usage
   // records are immutable and unaffected — they carry their own copies of
   // the session and execution identifiers.
   //
-  // Fails with FAILED_PRECONDITION while any agent execution in the
+  // Fails with FAILED_PRECONDITION while any agent run in the
   // session is still active (pending, in progress, waiting for approval,
   // or paused); cancel it or wait for it to finish first.
   //

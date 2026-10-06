@@ -1,48 +1,48 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/api.proto";
-import "ai/stigmer/agentic/agentexecution/v1/io.proto";
+import "ai/stigmer/agentic/agentrun/v1/api.proto";
+import "ai/stigmer/agentic/agentrun/v1/io.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
-// AgentExecutionCommandController handles write operations for agent executions.
+// AgentRunCommandController handles write operations for agent runs.
 // Follows the standard pattern: create, update, delete (no granular field updates).
-service AgentExecutionCommandController {
-  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_execution;
+service AgentRunCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_run;
 
-  // Create and trigger a new agent execution: a turn in an existing session,
+  // Create and trigger a new agent run: a turn in an existing session,
   // or the first turn of a new one created from session_spec.
   //
   // @internal
   // Authorization is handled in the handler, in two run-gate checks
   // (AuthorizeRunTarget, then AuthorizeRunAgent):
-  //   - session_id provided: can_create_execution_in on the session, before
+  //   - session_id provided: can_create_run_in on the session, before
   //     anything about it is read; the execution then belongs to the
   //     session's organization (ValidateSessionOrganization)
   //   - then can_execute on the agent the turn runs (the session's pinned
   //     agent, or the new session's agent_ref), or no check for the built-in
   //     assistant; a new session's own create authorizes can_create_session
   //     on metadata.org
-  rpc create(AgentExecution) returns (AgentExecution) {
+  rpc create(AgentRun) returns (AgentRun) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // Update an agent execution.
+  // Update an agent run.
   //
   // @internal
   // Used by users to update execution configuration (spec fields).
   // No individual field updates - always provide complete state.
-  rpc update(AgentExecution) returns (AgentExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  rpc update(AgentRun) returns (AgentRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent execution";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent run";
   }
 
-  // Update an agent execution's status.
+  // Update an agent run's status.
   //
   // @internal
   // Used by the runner to send progressive status updates (messages,
@@ -50,26 +50,26 @@ service AgentExecutionCommandController {
   // who owns the execution through the session ownership chain.
   // Optimized for frequent status updates and merges status fields with
   // existing state.
-  rpc updateStatus(AgentExecutionUpdateStatusInput) returns (UpdateStatusResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  rpc updateStatus(AgentRunUpdateStatusInput) returns (UpdateStatusResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
-    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent execution status";
+    option (ai.stigmer.commons.rpc.config).field_path = "run_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent run status";
   }
 
-  // Delete an agent execution by ID.
-  rpc delete(ai.stigmer.commons.apiresource.ApiResourceId) returns (AgentExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  // Delete an agent run by ID.
+  rpc delete(ai.stigmer.commons.apiresource.ApiResourceId) returns (AgentRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "value";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete agent execution";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete agent run";
   }
 
   // Submit an approval decision for a pending tool call.
   //
   // ## Preconditions
   //
-  // - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
+  // - Execution must be in RUN_WAITING_FOR_APPROVAL phase
   // - tool_call_id must match status.pending_approval.tool_call_id
   // - User must have can_edit permission on the execution
   //
@@ -89,8 +89,8 @@ service AgentExecutionCommandController {
   // - ToolCall.approval_action = submitted action
   // - ToolCall.approval_decided_at = current timestamp
   // - ToolCall.approved_by = authenticated user ID
-  // - AgentExecutionStatus.pending_approval = cleared
-  // - ExecutionPhase = EXECUTION_IN_PROGRESS (for every action, REJECT included)
+  // - AgentRunStatus.pending_approval = cleared
+  // - RunPhase = RUN_IN_PROGRESS (for every action, REJECT included)
   //
   // ## Error Conditions
   //
@@ -103,11 +103,11 @@ service AgentExecutionCommandController {
   //
   // If the same approval is submitted twice (same execution, tool_call, action),
   // the second call is a no-op and returns the current state.
-  rpc submitApproval(SubmitApprovalInput) returns (AgentExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  rpc submitApproval(SubmitApprovalInput) returns (AgentRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
-    option (ai.stigmer.commons.rpc.config).field_path = "agent_execution_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to submit approval for agent execution";
+    option (ai.stigmer.commons.rpc.config).field_path = "agent_run_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to submit approval for agent run";
   }
 
   // Submit a keep/discard decision on a file change set (or a single file).
@@ -139,24 +139,24 @@ service AgentExecutionCommandController {
   //
   // Re-submitting the same decision (same change set, scope, target) is a no-op
   // and returns the current state — appends are keyed by FileReviewEvent.event_id.
-  rpc submitFileDecision(SubmitFileDecisionInput) returns (AgentExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  rpc submitFileDecision(SubmitFileDecisionInput) returns (AgentRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
-    option (ai.stigmer.commons.rpc.config).field_path = "agent_execution_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to submit file decision for agent execution";
+    option (ai.stigmer.commons.rpc.config).field_path = "agent_run_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to submit file decision for agent run";
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Lifecycle Control Operations
   //
-  // These RPCs control the agent execution lifecycle, mapping to Temporal
+  // These RPCs control the agent run lifecycle, mapping to Temporal
   // workflow operations. They enable users to gracefully stop, force-stop,
-  // pause, resume, or recover agent executions.
+  // pause, resume, or recover agent runs.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Cancel a running agent execution gracefully.
+  // Cancel a running agent run gracefully.
   //
-  // Sends a cancellation signal to the agent execution. The agent can handle
+  // Sends a cancellation signal to the agent run. The agent can handle
   // the cancellation signal to save checkpoint and clean up before
   // transitioning to the CANCELLED phase.
   //
@@ -168,12 +168,12 @@ service AgentExecutionCommandController {
   // 1. Validates execution exists and is in a cancellable phase
   // 2. Sends cancellation signal to Temporal workflow
   // 3. Python activity receives cancellation and saves LangGraph checkpoint
-  // 4. Execution transitions to EXECUTION_CANCELLED phase
-  // 5. Returns updated AgentExecution with new phase
+  // 4. Execution transitions to RUN_CANCELLED phase
+  // 5. Returns updated AgentRun with new phase
   //
   // ## Preconditions
   //
-  // - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+  // - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
   // - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
   //
   // ## State Transitions
@@ -193,16 +193,16 @@ service AgentExecutionCommandController {
   // - PERMISSION_DENIED: User lacks can_edit permission on the execution
   // - FAILED_PRECONDITION: Execution is in a terminal phase
   // - INVALID_ARGUMENT: ID is empty or malformed
-  rpc cancel(CancelAgentExecutionInput) returns (AgentExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  rpc cancel(CancelAgentRunInput) returns (AgentRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to cancel agent execution";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to cancel agent run";
   }
 
-  // Terminate an agent execution immediately.
+  // Terminate an agent run immediately.
   //
-  // Force-stops the agent execution without allowing cleanup. Unlike cancel,
+  // Force-stops the agent run without allowing cleanup. Unlike cancel,
   // the agent cannot respond to termination - it is stopped immediately.
   // Use this for stuck or unresponsive agents.
   //
@@ -213,13 +213,13 @@ service AgentExecutionCommandController {
   //
   // 1. Validates execution exists and is in a terminable phase
   // 2. Force-kills workflow via Temporal (no signal sent to agent)
-  // 3. Execution transitions to EXECUTION_TERMINATED phase immediately
+  // 3. Execution transitions to RUN_TERMINATED phase immediately
   // 4. No cleanup callbacks or checkpoint saves occur
-  // 5. Returns updated AgentExecution with TERMINATED phase
+  // 5. Returns updated AgentRun with TERMINATED phase
   //
   // ## Preconditions
   //
-  // - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+  // - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
   // - Cannot terminate already-terminal executions
   //
   // ## State Transitions
@@ -247,14 +247,14 @@ service AgentExecutionCommandController {
   // - PERMISSION_DENIED: User lacks can_edit permission on the execution
   // - FAILED_PRECONDITION: Execution is in a terminal phase
   // - INVALID_ARGUMENT: ID is empty or malformed
-  rpc terminate(TerminateAgentExecutionInput) returns (AgentExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  rpc terminate(TerminateAgentRunInput) returns (AgentRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to terminate agent execution";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to terminate agent run";
   }
 
-  // Recover a failed agent execution.
+  // Recover a failed agent run.
   //
   // Retries the failed run. Completed work is preserved - successful tool
   // calls are NOT re-executed.
@@ -277,7 +277,7 @@ service AgentExecutionCommandController {
   //
   // ## Preconditions
   //
-  // - Execution must be in EXECUTION_FAILED phase
+  // - Execution must be in RUN_FAILED phase
   // - TERMINATED executions cannot be recovered (incomplete checkpoint)
   // - CANCELLED executions cannot be recovered (intentional user action)
   //
@@ -299,14 +299,14 @@ service AgentExecutionCommandController {
   // - PERMISSION_DENIED: User lacks can_edit permission
   // - FAILED_PRECONDITION: Execution is not in FAILED phase
   // - INVALID_ARGUMENT: ID is empty or malformed
-  rpc recover(RecoverAgentExecutionInput) returns (AgentExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  rpc recover(RecoverAgentRunInput) returns (AgentRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to recover agent execution";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to recover agent run";
   }
 
-  // Pause a running agent execution.
+  // Pause a running agent run.
   //
   // Temporarily stops the agent at its current checkpoint. Unlike cancel,
   // the execution is NOT terminal and can be resumed later from where it left off.
@@ -319,12 +319,12 @@ service AgentExecutionCommandController {
   // 2. Sends "pause" signal to Temporal workflow
   // 3. Workflow cancels running activity gracefully
   // 4. Python activity saves LangGraph checkpoint on cancellation
-  // 5. Execution transitions to EXECUTION_PAUSED phase
+  // 5. Execution transitions to RUN_PAUSED phase
   // 6. Workflow waits for resume signal (no resources consumed)
   //
   // ## Preconditions
   //
-  // - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+  // - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
   // - Cannot pause already-terminal or already-paused executions
   //
   // ## State Transitions
@@ -352,14 +352,14 @@ service AgentExecutionCommandController {
   // - PERMISSION_DENIED: User lacks can_edit permission
   // - FAILED_PRECONDITION: Execution is in a terminal phase
   // - INVALID_ARGUMENT: ID is empty or malformed
-  rpc pause(PauseAgentExecutionInput) returns (AgentExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  rpc pause(PauseAgentRunInput) returns (AgentRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to pause agent execution";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to pause agent run";
   }
 
-  // Resume a paused agent execution.
+  // Resume a paused agent run.
   //
   // Continues execution from the checkpoint where it was paused. The agent
   // re-invokes with the same thread_id, loading from LangGraph checkpoint
@@ -369,16 +369,16 @@ service AgentExecutionCommandController {
   //
   // ## Behavior
   //
-  // 1. Validates execution is in EXECUTION_PAUSED phase
+  // 1. Validates execution is in RUN_PAUSED phase
   // 2. Sends "resume" signal to Temporal workflow
   // 3. Workflow unblocks and re-invokes activity
   // 4. Activity loads from LangGraph checkpoint using thread_id
-  // 5. Execution transitions back to EXECUTION_IN_PROGRESS phase
+  // 5. Execution transitions back to RUN_IN_PROGRESS phase
   // 6. Agent continues from exact pause point
   //
   // ## Preconditions
   //
-  // - Execution must be in EXECUTION_PAUSED phase
+  // - Execution must be in RUN_PAUSED phase
   // - Cannot resume non-paused executions
   //
   // ## State Transitions
@@ -397,26 +397,26 @@ service AgentExecutionCommandController {
   // - PERMISSION_DENIED: User lacks can_edit permission
   // - FAILED_PRECONDITION: Execution is not in PAUSED phase
   // - INVALID_ARGUMENT: ID is empty or malformed
-  rpc resume(ResumeAgentExecutionInput) returns (AgentExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+  rpc resume(ResumeAgentRunInput) returns (AgentRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to resume agent execution";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to resume agent run";
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Artifact Lifecycle Operations
   //
-  // These RPCs support file attachments and artifacts for agent executions.
+  // These RPCs support file attachments and artifacts for agent runs.
   // Attachments are input files provided before execution; artifacts are
-  // output files created during execution.
+  // output files created during run.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Upload a file attachment for use in an agent execution.
+  // Upload a file attachment for use in an agent run.
   //
-  // Pre-uploads files to artifact storage before creating an execution.
+  // Pre-uploads files to artifact storage before creating an run.
   // The returned storage_key can be used in Attachment.storage_key when
-  // creating the execution.
+  // creating the run.
   //
   // @internal
   //
@@ -433,7 +433,7 @@ service AgentExecutionCommandController {
   //
   // ## Use Cases
   //
-  // - CLI uploading files (>4MB) before agent execution
+  // - CLI uploading files (>4MB) before agent run
   // - Pre-uploading datasets for agent processing
   // - Uploading binary files that cannot be embedded inline in Attachment
   //
@@ -441,7 +441,7 @@ service AgentExecutionCommandController {
   //
   // 1. Client calls uploadAttachment with file content
   // 2. Server uploads to storage, returns storage_key
-  // 3. Client creates AgentExecution with Attachment using storage_key
+  // 3. Client creates AgentRun with Attachment using storage_key
   // 4. The runner downloads attachment content when execution starts
   rpc uploadAttachment(UploadAttachmentRequest) returns (UploadAttachmentResponse) {
     // No authorization - storage_key acts as capability token

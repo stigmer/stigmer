@@ -1,9 +1,9 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentexecution.v1;
+package ai.stigmer.agentic.agentrun.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
-import "ai/stigmer/agentic/agentexecution/v1/message.proto";
+import "ai/stigmer/agentic/agentrun/v1/enum.proto";
+import "ai/stigmer/agentic/agentrun/v1/message.proto";
 import "buf/validate/validate.proto";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ import "buf/validate/validate.proto";
 // A FileChangeSet has no identity or lifecycle independent of the turn that
 // produced it: it is born when the turn captures its baseline and dies when its
 // decisions are reconciled into the workspace. It is therefore a computed
-// projection on AgentExecutionStatus (field file_change_sets), mirroring
+// projection on AgentRunStatus (field file_change_sets), mirroring
 // pending_approvals — recomputed on every status write from the file_review
 // event ledger, never merged, so it is always consistent with the authoritative
 // stream.
@@ -444,9 +444,9 @@ message FileReviewEvent {
   }
 }
 
-// The ordered sequence of file-review events for a single agent execution.
+// The ordered sequence of file-review events for a single agent run.
 //
-// Persisted on AgentExecutionStatus.file_review_event_stream as a
+// Persisted on AgentRunStatus.file_review_event_stream as a
 // server-authored, append-only record. FileChangeSet is the projection of this
 // stream; the stream is the source of truth.
 //
@@ -466,8 +466,8 @@ message FileReviewEvent {
 // The stored stream is server-owned: preserved in place across UpdateStatus
 // writes and only ever extended by the fold above and by SubmitFileDecision.
 message FileReviewEventStream {
-  // AgentExecution.metadata.id this stream belongs to.
-  string execution_id = 1;
+  // AgentRun.metadata.id this stream belongs to.
+  string run_id = 1;
 
   // Events in lifecycle order.
   repeated FileReviewEvent events = 2;

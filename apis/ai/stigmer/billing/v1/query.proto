@@ -78,7 +78,7 @@ service BillingQueryController {
 
   // Preview whether an organization can fund an execution, without writing
   // a reservation. The read-only twin of BillingCommandController's
-  // authorizeExecution: both ride the same server-side affordability
+  // authorizeRun: both ride the same server-side affordability
   // predicate (start threshold, negative allowance, default cap), so a
   // synchronous preflight refusal and the authoritative reservation can
   // never drift.
@@ -101,7 +101,7 @@ service BillingQueryController {
   // Called by serving-side status and approval lanes to piggyback
   // STOP/WARNING onto runner-facing responses and to refuse continuing
   // work once the balance is exhausted.
-  rpc getExecutionBillingSignal(GetExecutionBillingSignalInput) returns (GetExecutionBillingSignalResponse) {
+  rpc getRunBillingSignal(GetRunBillingSignalInput) returns (GetRunBillingSignalResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = platform;
     option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
     option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
