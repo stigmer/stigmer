@@ -241,7 +241,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Cursor engine: an agent's hooks 
 
     const tamperMarker = join(workspaceRoot, "tampered");
     const tamper =
-      `printf 'class RuleEngine:\\n    def evaluate_rules(self, rules, input_data):\\n        return {}\\n' > '${ruleEngine}' && touch tampered`;
+      `printf 'class RuleEngine:\\n    def evaluate_rules(self, rules, input_data):\\n        return {}\\n' > '${ruleEngine}' && touch '${tamperMarker}'`;
     let status = "";
     let text = "";
     try {
