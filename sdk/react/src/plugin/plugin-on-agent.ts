@@ -5,12 +5,16 @@
  * (`useAddPluginToAgent`) and the agent page's Hooks section. The agent's
  * `hooks` gains the plugin as a source unless it already lists it, and every
  * `${user_config.KEY}` the plugin's hooks read is declared in the agent's
- * `env`, as a required secret, unless the agent declares it already. That
- * is what install does for the agent it composes (a variable the plugin did
- * not declare becomes a required secret), and without it the runner refuses
- * the agent's next turn for an undeclared variable. A declared variable is
- * asked for when a session starts. The names come from the plugin library's
- * `hookVariableReferences`, the rule install reads.
+ * `env`, as a required secret, unless the agent declares it already.
+ * Install declares the same names on the agent it composes, from the
+ * plugin's own declaration where it has one; the client holds only the hooks
+ * the plugin recorded, not its declarations, so it declares each as install
+ * declares a variable the plugin did not (a required secret). Without the
+ * declaration the runner refuses the agent's next turn for an undeclared
+ * variable; a declared one is asked for when a session starts. The names
+ * come from the plugin library's `hookVariableReferences`, the rule install
+ * reads. Switching the hooks off leaves the declarations in place: another
+ * source may read the same names.
  */
 
 import type { HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
@@ -45,7 +49,8 @@ export function withPluginHooks(input: AgentInput, ref: ResourceRef, config: Hoo
   const missing = hookVariablesToDeclare(input, config);
   if (missing.length === 0) return { ...input, hooks };
   const env = { ...(input.env ?? {}) };
-  for (const name of missing) env[name] = { isSecret: true };
+  // Defined, not assigned: a name read from a plugin may be `__proto__`.
+  for (const name of missing) Object.defineProperty(env, name, { value: { isSecret: true }, enumerable: true, writable: true, configurable: true });
   return { ...input, hooks, env };
 }
 

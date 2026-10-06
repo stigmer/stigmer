@@ -439,7 +439,6 @@ describe("HOOK_WARNING_KINDS", () => {
   it("holds exactly the warnings that name hooks Stigmer does not run", () => {
     expect([...HOOK_WARNING_KINDS].sort()).toEqual([
       "hook-event-not-run",
-      "hook-field-ignored",
       "hook-handler-not-run",
       "hooks-format-not-run",
       "hooks-not-read",
@@ -448,6 +447,8 @@ describe("HOOK_WARNING_KINDS", () => {
     for (const kind of HOOK_WARNING_KINDS) {
       expect(warningMessage(kind, { path: "hooks/hooks.json", subject: "Stop" }), kind).toMatch(/hook/);
     }
+    // Its hook runs, with one field unread, so it stays among the other warnings.
+    expect(HOOK_WARNING_KINDS.has("hook-field-ignored")).toBe(false);
   });
 
   it("classes a plugin's every hook finding as one, so a surface lists none of them twice", () => {

@@ -509,7 +509,7 @@ async function deletePlugin(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, PluginSchema))
-    .addStep(newGuardPluginUnreferencedStep(deps.store))
+    .addStep(newGuardMembersUnreferencedStep(deps.store))
     .addStep(
       newCascadeDeleteMembersStep(deps.materializerProvider, deps.logger),
     )
@@ -537,7 +537,7 @@ async function deletePlugin(
 }
 
 /**
- * GuardPluginUnreferenced — a user's own agent or workflow that references
+ * GuardMembersUnreferenced — a user's own agent or workflow that references
  * a member, or an agent whose hooks name the plugin itself, blocks the
  * uninstall, naming the referrers and what to undo: a dangling `skill_ref`
  * found at the next session, or an agent whose next turn is refused for a
@@ -546,11 +546,11 @@ async function deletePlugin(
  * the plugin's business and pass. The scan covers the plugin's own
  * organization (stigmer#1956).
  */
-function newGuardPluginUnreferencedStep(
+function newGuardMembersUnreferencedStep(
   store: Store,
 ): PipelineStep<DeleteDesc> {
   return {
-    name: "GuardPluginUnreferenced",
+    name: "GuardMembersUnreferenced",
     async execute(ctx: RequestContext<DeleteDesc>): Promise<void> {
       const plugin = ctx.get(EXISTING_RESOURCE_KEY) as Plugin;
       const members = await membersOf(store, plugin);

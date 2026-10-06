@@ -50,6 +50,15 @@ describe("withPluginHooks", () => {
     expect(twice.env).toEqual(once.env);
   });
 
+  it("declares a variable named __proto__ as a variable, not a prototype", () => {
+    const proto = create(HookConfigSchema, {
+      groups: [{ event: "PreToolUse", handlers: [{ command: "node", args: ["${user_config.__proto__}"] }] }],
+    });
+    const next = withPluginHooks({ org: "org_1", name: "a", instructions: "i" }, GUARD, proto);
+    expect(Object.keys(next.env ?? {})).toEqual(["__proto__"]);
+    expect(Object.getPrototypeOf(next.env)).toBe(Object.prototype);
+  });
+
   it("adds only the reference for hooks it has not read", () => {
     const next = withPluginHooks({ org: "org_1", name: "a", instructions: "i" }, GUARD, undefined);
     expect(next.hooks).toEqual([{ plugin: GUARD }]);

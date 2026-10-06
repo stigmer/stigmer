@@ -120,11 +120,11 @@ export type PluginWarningKind =
 /**
  * The warnings that name hooks Stigmer does not run, so a surface can list
  * them beside the hooks that do run rather than among every other finding.
+ * `hook-field-ignored` is not one: its hook runs, with one field unread.
  */
 export const HOOK_WARNING_KINDS: ReadonlySet<PluginWarningKind> = new Set<PluginWarningKind>([
   "hook-event-not-run",
   "hook-handler-not-run",
-  "hook-field-ignored",
   "hooks-format-not-run",
   "skill-hooks-not-run",
   "hooks-not-read",
