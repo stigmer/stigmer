@@ -366,7 +366,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     const turn = await runCursorTurn(scenario, { threadId: "", turnSeq: 0 });
     expect(turn.outcome.kind).toBe("returned");
     expect(answers).toEqual(["deny", "allow", "deny"]);
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const final = record.lastFullStatus!;
     // Two refusals of one command are two acts: the terminal twin collapse
     // keeps the rows the boundary settled from the refusals (#1967).
