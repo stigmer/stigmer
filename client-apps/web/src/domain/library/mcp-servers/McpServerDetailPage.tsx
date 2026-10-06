@@ -44,10 +44,7 @@ export function McpServerDetailPageInner({
   // spares the view its own duplicate getByReference on every page load.
   const mcpServerState = useMcpServer(org, slug);
   const { mcpServer, refetch: refetchMcpServer } = mcpServerState;
-  const { copyYaml, copyJson, downloadYaml } = useExportResource({
-    kind: "McpServer",
-    resource: mcpServer,
-  });
+  const { copyYaml, copyJson, downloadYaml } = useExportResource({ resource: mcpServer });
   const [editYamlOpen, setEditYamlOpen] = useState(false);
 
   useEffect(() => () => setLabel(null), [setLabel]);

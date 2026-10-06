@@ -5,7 +5,6 @@ const SEGMENT_LABELS: Record<string, string> = {
   agents: "Agents",
   skills: "Skills",
   "mcp-servers": "MCP Servers",
-  workflows: "Workflows",
   schedules: "Schedules",
 };
 

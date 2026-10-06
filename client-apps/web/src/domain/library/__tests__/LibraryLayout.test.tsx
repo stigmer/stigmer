@@ -29,9 +29,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 // The real detail pages drag the full SDK; markers are enough to count
-// mounted instances. The workflow marker additionally requests
-// full-viewport through the REAL hook to pin the layout's behavior when
-// the overlay drives that shared flag.
+// mounted instances.
 // How many times the agent detail view mounted: a remount refetches and
 // drops any edit in progress.
 let agentDetailMounts = 0;
@@ -52,17 +50,6 @@ vi.mock("@/domain/library/skills/SkillDetailPage", () => ({
 vi.mock("@/domain/library/mcp-servers/McpServerDetailPage", () => ({
   McpServerDetailPageInner: () => <div data-testid="mcp-server-detail" />,
 }));
-vi.mock("@/domain/workflow/WorkflowDetailPage", async () => {
-  const { useRequestFullViewport } = await import(
-    "@/domain/library/full-viewport-layout"
-  );
-  return {
-    WorkflowDetailPageInner: () => {
-      useRequestFullViewport(true);
-      return <div data-testid="workflow-detail" />;
-    },
-  };
-});
 vi.mock("@/domain/library/schedules/ScheduleDetailPage", () => ({
   ScheduleDetailPageInner: () => <div data-testid="schedule-detail" />,
 }));
@@ -184,22 +171,6 @@ describe("LibraryLayout route-children mounting", () => {
     // same page — must render nothing (oss#621's double-mount).
     expect(screen.getAllByTestId("agent-detail")).toHaveLength(1);
     expect(screen.queryByTestId("route-detail-copy")).toBeNull();
-  });
-
-  it("holds a full-viewport request from the overlay while the route copy yields", () => {
-    setRoute("/library/workflows/acme/deploy-flow");
-
-    render(
-      <LibraryLayout>
-        <YieldingDetailRouteChild />
-      </LibraryLayout>,
-    );
-
-    expect(screen.getAllByTestId("workflow-detail")).toHaveLength(1);
-    expect(screen.queryByTestId("route-detail-copy")).toBeNull();
-    // isFullViewport drives the breadcrumb away; the (yielding) route
-    // copy must not disturb the overlay's request on the shared flag.
-    expect(screen.queryByTestId("breadcrumb")).toBeNull();
   });
 });
 

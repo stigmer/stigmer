@@ -41,10 +41,8 @@ interface ExecutionNavigationValue {
  * a plain hook (no dedicated provider), usable anywhere beneath
  * `<AppNavigationProvider>`.
  *
- * It deliberately does not interpret the `wex_*` (workflow run) vs.
- * `aex_*` (agent run) distinction — that routing decision belongs to the
- * rendering layer (the run zone in the app shell), which resolves
- * `aex_*` ids to their parent session.
+ * It does not resolve the run to its session: the run zone in the app
+ * shell does that and hands off to the session zone.
  */
 export function useRunNavigation(): ExecutionNavigationValue {
   const { currentPath, navigate } = useAppNavigation();

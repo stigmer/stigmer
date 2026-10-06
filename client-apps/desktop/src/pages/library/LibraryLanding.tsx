@@ -1,6 +1,6 @@
 import { useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Blocks, Bot, CalendarClock, FileCode2, Sparkles, Server, Workflow } from "lucide-react";
+import { Blocks, Bot, CalendarClock, FileCode2, Sparkles, Server } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import {
   ApplyManifestDialog,
@@ -9,7 +9,6 @@ import {
   useSkillCount,
   useMcpServerCount,
   usePluginCount,
-  useWorkflowCount,
   ResourceCountCard,
   useActiveOrgId,
 } from "@stigmer/react";
@@ -20,7 +19,6 @@ export default function LibraryLanding() {
   // Apply YAML here can create any kind, so a bump recounts every card.
   const [refetchToken, refreshCounts] = useReducer((n: number) => n + 1, 0);
   const agents = useAgentCount(org, { refetchToken });
-  const workflows = useWorkflowCount(org, { refetchToken });
   const skills = useSkillCount(org, { refetchToken });
   const mcpServers = useMcpServerCount(org, { refetchToken });
   const schedules = useScheduleCount(org, { refetchToken });
@@ -37,13 +35,6 @@ export default function LibraryLanding() {
           count={agents.count}
           isLoading={agents.isLoading}
           onClick={() => navigate("/library/agents")}
-        />
-        <ResourceCountCard
-          icon={<Workflow className="size-5" aria-hidden="true" />}
-          label="Workflows"
-          count={workflows.count}
-          isLoading={workflows.isLoading}
-          onClick={() => navigate("/library/workflows")}
         />
         <ResourceCountCard
           icon={<Sparkles className="size-5" aria-hidden="true" />}

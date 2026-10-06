@@ -1,12 +1,12 @@
 /**
- * Pins how the desktop library list pages (agents, skills, plugins,
- * workflows, MCP servers) name organizations. A listed resource names its
+ * Pins how the desktop library list pages (agents, skills, plugins, MCP
+ * servers) name organizations. A listed resource names its
  * organization by id: the list is scoped to the active organization's id,
  * the Organization column renders that id through `OrgSlugText` (which shows
  * the slug), and every way out of a row (opening it, View details, Copy ID,
  * an MCP server's Connect dialog) carries the slug of the resource's own
  * organization, never the id and never the active organization's slug. A
- * row's Delete on the agents and workflows lists confirms in the words of
+ * row's Delete on the agents list confirms in the words of
  * that resource's detail page, the same confirmation for the same act. The
  * workbench, the action menu and the dialogs are pinned in @stigmer/react.
  */
@@ -114,7 +114,6 @@ vi.mock("@stigmer/react", () => {
       agent: resourceClient,
       skill: resourceClient,
       plugin: resourceClient,
-      workflow: resourceClient,
       mcpServer: resourceClient,
     }),
     toast,
@@ -129,9 +128,7 @@ import AgentListPage from "../library/AgentListPage";
 import SkillListPage from "../library/SkillListPage";
 import PluginListPage from "../library/PluginListPage";
 import McpServerListPage from "../library/McpServerListPage";
-import WorkflowListPage from "../workflow/WorkflowListPage";
 import { AGENT_DELETE_DESCRIPTION } from "../library/agent-delete-confirmation";
-import { WORKFLOW_DELETE_DESCRIPTION } from "../workflow/workflow-delete-confirmation";
 
 function LocationProbe() {
   return <span data-testid="location">{useLocation().pathname}</span>;
@@ -163,7 +160,6 @@ const MENU_PAGES: ReadonlyArray<{ name: string; Page: ComponentType; segment: st
   { name: "AgentListPage", Page: AgentListPage, segment: "agents", copied: "Copied agent ID" },
   { name: "SkillListPage", Page: SkillListPage, segment: "skills", copied: "Copied skill ID" },
   { name: "PluginListPage", Page: PluginListPage, segment: "plugins", copied: "Copied plugin ID" },
-  { name: "WorkflowListPage", Page: WorkflowListPage, segment: "workflows", copied: "Copied workflow reference" },
 ];
 
 describe.each(MENU_PAGES)("desktop $name — organizations", ({ Page, segment, copied }) => {
@@ -206,7 +202,6 @@ describe.each(MENU_PAGES)("desktop $name — organizations", ({ Page, segment, c
 
 describe.each([
   { name: "AgentListPage", Page: AgentListPage, description: AGENT_DELETE_DESCRIPTION },
-  { name: "WorkflowListPage", Page: WorkflowListPage, description: WORKFLOW_DELETE_DESCRIPTION },
 ])("desktop $name — delete", ({ Page, description }) => {
   it("confirms a row's delete in the detail page's words, naming the resource alone", () => {
     renderPage(Page);

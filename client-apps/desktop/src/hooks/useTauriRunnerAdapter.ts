@@ -11,14 +11,13 @@ import { useRunner } from "./EmbeddedRunnerContext";
  * automatically manage the runner lifecycle without page-level wiring.
  */
 export function useTauriRunnerAdapter(): RunnerAdapter {
-  const { addSession, removeSession, addWorkflowExecution, removeWorkflowExecution } = useRunner();
+  const { addSession, removeSession } = useRunner();
 
-  // Memoize on the four context callbacks (each useCallback-stable) so the
+  // Memoize on the two context callbacks (each useCallback-stable) so the
   // adapter reference stays stable across renders — StigmerProvider treats it
   // as a dependency.
   return useMemo(
-    () =>
-      createRunnerAdapter({ addSession, removeSession, addWorkflowExecution, removeWorkflowExecution }),
-    [addSession, removeSession, addWorkflowExecution, removeWorkflowExecution],
+    () => createRunnerAdapter({ addSession, removeSession }),
+    [addSession, removeSession],
   );
 }

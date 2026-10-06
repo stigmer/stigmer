@@ -39,7 +39,6 @@ const BUNDLED_NODE = "/abs/resource/resources/runtime/node";
 interface HostState {
   running: boolean;
   activeSessions: string[];
-  activeWorkflowExecutions: string[];
 }
 
 /** A host that answers like src-tauri's runner commands, with a live state. */
@@ -50,7 +49,6 @@ function runnerHost(overrides: CommandHandlers = {}): {
   const state: HostState = {
     running: false,
     activeSessions: [],
-    activeWorkflowExecutions: [],
   };
   const tauri = mockTauri({
     runner_status: () => ({ ...state }),
@@ -68,13 +66,6 @@ function runnerHost(overrides: CommandHandlers = {}): {
       return `session:${id}`;
     },
     remove_session: () => null,
-    add_workflow_execution: (args: CommandArgs) => {
-      const id = String(args.executionId);
-      if (!state.activeWorkflowExecutions.includes(id))
-        state.activeWorkflowExecutions.push(id);
-      return `execution:${id}`;
-    },
-    remove_workflow_execution: () => null,
     update_runner_token: () => null,
     ...overrides,
   });
@@ -311,7 +302,7 @@ describe("the runner lifecycle", () => {
     await act(async () => {
       both = Promise.all([
         result.current.addSession("s1"),
-        result.current.addWorkflowExecution("e1"),
+        result.current.addSession("s2"),
       ]);
       await vi.waitFor(() =>
         expect(tauri.callsTo("start_runner")).toHaveLength(1),
@@ -323,8 +314,7 @@ describe("the runner lifecycle", () => {
     });
 
     expect(tauri.callsTo("start_runner")).toHaveLength(1);
-    expect(result.current.activeSessions).toEqual(["s1"]);
-    expect(result.current.activeWorkflowExecutions).toEqual(["e1"]);
+    expect(result.current.activeSessions).toEqual(["s1", "s2"]);
   });
 
   it("starts the runner again once it has exited since it was started", async () => {
@@ -432,7 +422,6 @@ describe("the runner lifecycle", () => {
     const { tauri, state } = runnerHost();
     state.running = true;
     state.activeSessions = ["earlier"];
-    state.activeWorkflowExecutions = ["exec-0"];
     const { result } = renderHook(() => useEmbeddedRunner());
 
     await act(async () => {
@@ -441,7 +430,6 @@ describe("the runner lifecycle", () => {
 
     expect(tauri.callsTo("start_runner")).toEqual([]);
     expect(result.current.activeSessions).toEqual(["earlier", "s1"]);
-    expect(result.current.activeWorkflowExecutions).toEqual(["exec-0"]);
   });
 
   it("lists a session once, however many times it is added", async () => {
@@ -471,17 +459,6 @@ describe("the runner lifecycle", () => {
 
     expect(tauri.callsTo("remove_session")).toEqual([{ sessionId: "s2" }]);
     expect(result.current.activeSessions).toEqual(["s1"]);
-  });
-
-  it("drops a removed workflow execution", async () => {
-    runnerHost();
-    const { result } = renderHook(() => useEmbeddedRunner());
-    await act(async () => {
-      await result.current.addWorkflowExecution("e1");
-      await result.current.addWorkflowExecution("e2");
-      await result.current.removeWorkflowExecution("e1");
-    });
-    expect(result.current.activeWorkflowExecutions).toEqual(["e2"]);
   });
 
   it("keeps the last known state when a status poll fails", async () => {

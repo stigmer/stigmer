@@ -1,11 +1,11 @@
 /**
- * Pins the desktop router's run addresses: /library/workflows/runs renders the
- * workflow run list, and /runs/<id> (where the dashboard, the sidebar and the
- * run list send a person) renders the run's page. Each page loads lazily, so
- * the test renders the matched route's element and waits for the page; the
- * pages themselves are stubbed and pinned by their own suites. The route
- * saved at the last launch is reopened only while the app still routes it,
- * so a run's address from before runs lived at /runs opens the home screen.
+ * Pins the desktop router's run address: /runs/<id> (where the dashboard
+ * and a schedule's runs send a person) renders the run page. The page loads
+ * lazily, so the test renders the matched route's element and waits for
+ * the page; the page itself is stubbed and pinned by its own suite. The
+ * route saved at the last launch is reopened only while the app still
+ * routes it, so a saved address the app no longer routes opens the home
+ * screen.
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -24,11 +24,8 @@ vi.mock("@tauri-apps/api/window", () => ({
 }));
 vi.mock("@tauri-apps/plugin-updater", () => ({ check: vi.fn().mockResolvedValue(null) }));
 
-vi.mock("../pages/workflow/WorkflowRunListPage", () => ({
-  default: () => <p>workflow run list</p>,
-}));
-vi.mock("../pages/workflow/WorkflowRunDetailPage", () => ({
-  default: () => <p>workflow run page</p>,
+vi.mock("../pages/runs/RunPage", () => ({
+  default: () => <p>run page</p>,
 }));
 
 import { restorableRoute, router } from "../routes";
@@ -39,29 +36,23 @@ function renderRoute(path: string): void {
   render(<MemoryRouter initialEntries={[path]}>{leaf?.element}</MemoryRouter>);
 }
 
-describe("desktop routes — run addresses", () => {
-  it("renders the workflow run list at /library/workflows/runs", async () => {
-    renderRoute("/library/workflows/runs");
+describe("desktop routes — the run address", () => {
+  it("renders the run page at /runs/<id>", async () => {
+    renderRoute("/runs/aex_1");
 
-    expect(await screen.findByText("workflow run list")).toBeTruthy();
-  });
-
-  it("renders a run's page at /runs/<id>", async () => {
-    renderRoute("/runs/wfr_1");
-
-    expect(await screen.findByText("workflow run page")).toBeTruthy();
+    expect(await screen.findByText("run page")).toBeTruthy();
   });
 });
 
 describe("desktop routes — the route reopened at launch", () => {
   it("reopens a saved route the app still routes", () => {
-    expect(restorableRoute("/runs/wfr_1")).toBe("/runs/wfr_1");
-    expect(restorableRoute("/library/workflows/runs")).toBe("/library/workflows/runs");
+    expect(restorableRoute("/runs/aex_1")).toBe("/runs/aex_1");
+    expect(restorableRoute("/sessions/ses_1")).toBe("/sessions/ses_1");
   });
 
   it("opens the home screen for a saved route the app no longer routes", () => {
-    expect(restorableRoute("/executions/wex_1")).toBeUndefined();
-    expect(restorableRoute("/library/workflows/executions")).toBeUndefined();
+    expect(restorableRoute("/executions/aex_1")).toBeUndefined();
+    expect(restorableRoute("/no-such-screen")).toBeUndefined();
   });
 
   it("opens the home screen when nothing, or home, was saved", () => {

@@ -10,7 +10,6 @@ import type { ComponentType } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { FullViewportLayoutProvider } from "../library/full-viewport-layout";
 
 const page = vi.hoisted(() => ({
   props: {} as Record<string, Record<string, unknown>[]>,
@@ -30,18 +29,11 @@ vi.mock("@stigmer/react", () => {
     SkillUploader: capture("SkillUploader"),
     PluginUploader: capture("PluginUploader"),
     MarketplaceCatalog: capture("MarketplaceCatalog"),
-    WorkflowArchitectDialog: capture("WorkflowArchitectDialog"),
-    WorkflowEditorView: capture("WorkflowEditorView"),
-    WorkflowTemplateGallery: capture("WorkflowTemplateGallery"),
     ApplyManifestDialog: () => null,
     AGENT_TEMPLATES: [],
     MCP_SERVER_TEMPLATES: [],
-    WORKFLOW_TEMPLATES: [],
-    STARTER_WORKFLOW_YAML: "",
     toast: { success: noop, error: noop },
     useBreadcrumbOverride: () => ({ setLabel: noop }),
-    useElkLayoutEngine: () => ({}),
-    useWorkflowArchitect: () => ({ availability: "available" }),
     useActiveOrgId: () => "org_acme",
     useActiveOrgSlug: () => "acme",
     // The person's organizations: the active one and a second one, so a
@@ -57,7 +49,6 @@ import ScheduleNewPage from "../library/ScheduleNewPage";
 import SkillNewPage from "../library/SkillNewPage";
 import PluginUploadPage from "../library/PluginUploadPage";
 import MarketplacePage from "../marketplace/MarketplacePage";
-import WorkflowNewPage from "../workflow/WorkflowNewPage";
 
 function LocationProbe() {
   return <span data-testid="location">{useLocation().pathname}</span>;
@@ -65,14 +56,12 @@ function LocationProbe() {
 
 function renderPage(Page: ComponentType, entry = "/create") {
   return render(
-    <FullViewportLayoutProvider>
-      <MemoryRouter initialEntries={[entry]}>
-        <Routes>
-          <Route path="*" element={<Page />} />
-        </Routes>
-        <LocationProbe />
-      </MemoryRouter>
-    </FullViewportLayoutProvider>,
+    <MemoryRouter initialEntries={[entry]}>
+      <Routes>
+        <Route path="*" element={<Page />} />
+      </Routes>
+      <LocationProbe />
+    </MemoryRouter>,
   );
 }
 
@@ -184,18 +173,5 @@ describe("desktop MarketplacePage — organizations", () => {
     act(() => catalog.onInstalled({ plugin: { metadata: SHARED } }));
 
     expect(location()).toBe("/library/plugins/shared-team/made");
-  });
-});
-
-describe("desktop WorkflowNewPage — organizations", () => {
-  it("generates in the active org by id and opens the workflow at its org's slug", () => {
-    renderPage(WorkflowNewPage);
-
-    const dialog = last<{ org: string; onSuccess: (org: string, slug: string) => void }>("WorkflowArchitectDialog");
-    expect(dialog.org).toBe("org_acme");
-
-    act(() => dialog.onSuccess("org_shared", "made"));
-
-    expect(location()).toBe("/library/workflows/shared-team/made");
   });
 });

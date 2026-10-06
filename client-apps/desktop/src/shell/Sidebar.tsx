@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { NavLink, useNavigate, useParams, useLocation } from "react-router-dom";
 import { cn } from "@stigmer/theme";
 import {
@@ -32,15 +32,11 @@ export function Sidebar() {
     ? params.id ?? null
     : null;
 
-  const activeRunId = location.pathname.startsWith("/runs/")
-    ? params.id ?? null
-    : null;
-
   const isSessionZone =
     location.pathname === "/" || location.pathname.startsWith("/sessions/");
 
   const recentActivity = useRecentActivity();
-  const { refetch, prependOptimistic } = recentActivity;
+  const { refetch } = recentActivity;
   const org = useActiveOrgId();
   // The Conversations badge: conversations wanting a human right now. Data as
   // props — the SDK sidebar never fetches for itself. Mirrors web.
@@ -56,21 +52,9 @@ export function Sidebar() {
     [activeSessions, activeSessionId],
   );
 
-  const entriesRef = useRef(recentActivity.entries);
-  entriesRef.current = recentActivity.entries;
-
   useEffect(() => {
-    if (activeRunId && !entriesRef.current.some((e) => e.id === activeRunId)) {
-      prependOptimistic({
-        id: activeRunId,
-        type: "workflow_run",
-        subject: "Loading\u2026",
-      });
-    }
-
     refetch();
-    const activeId = activeSessionId ?? activeRunId;
-    if (!activeId) return;
+    if (!activeSessionId) return;
 
     const t1 = setTimeout(refetch, 8_000);
     const t2 = setTimeout(refetch, 18_000);
@@ -78,7 +62,7 @@ export function Sidebar() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [activeSessionId, activeRunId, refetch, prependOptimistic]);
+  }, [activeSessionId, refetch]);
 
   const isDashboardActive =
     !isSessionZone && location.pathname.startsWith("/dashboard");
@@ -137,7 +121,7 @@ export function Sidebar() {
   // when the background set actually changes.
   const renderEntryAccessory = useCallback(
     (entry: RecentActivityEntry) =>
-      entry.type === "session" && backgroundSessionIds.has(entry.id) ? (
+      backgroundSessionIds.has(entry.id) ? (
         <BackgroundRunDot />
       ) : null,
     [backgroundSessionIds],
@@ -155,7 +139,6 @@ export function Sidebar() {
       renderLink={renderLink}
       recentActivity={recentActivity}
       activeSessionId={activeSessionId}
-      activeRunId={activeRunId}
       renderEntryAccessory={renderEntryAccessory}
       conversationsBadgeCount={wantsHumanCount}
       footer={<UserMenu />}

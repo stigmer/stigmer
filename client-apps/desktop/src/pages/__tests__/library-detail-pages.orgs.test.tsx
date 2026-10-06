@@ -104,7 +104,7 @@ describe("desktop McpServerDetailPage — organizations", () => {
 
 describe("desktop PluginDetailPage — organizations", () => {
   type PluginView = Record<
-    "onSkillClick" | "onMcpServerClick" | "onAgentClick" | "onWorkflowClick",
+    "onSkillClick" | "onMcpServerClick" | "onAgentClick",
     (ref: Ref) => void
   >;
 
@@ -112,7 +112,6 @@ describe("desktop PluginDetailPage — organizations", () => {
     ["onSkillClick", "/library/skills/shared-team/linked"],
     ["onMcpServerClick", "/library/mcp-servers/shared-team/linked"],
     ["onAgentClick", "/library/agents/shared-team/linked"],
-    ["onWorkflowClick", "/library/workflows/shared-team/linked"],
   ] as const)("%s opens the member at its org's slug", (handler, expected) => {
     renderDetail(PluginDetailPage);
 

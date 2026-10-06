@@ -54,15 +54,11 @@ export default function AgentDetailPage() {
     resourceName,
   );
   const { agent, refetch: refetchAgent } = useAgent(org ?? "", slug ?? "");
-  const { copyYaml, copyJson, downloadYaml } = useExportResource({
-    kind: "Agent",
-    resource: agent,
-  });
+  const { copyYaml, copyJson, downloadYaml } = useExportResource({ resource: agent });
 
   const [editYamlOpen, setEditYamlOpen] = useState(false);
 
-  // Controlled tab state — the WorkflowDetailPage Editor-tab precedent,
-  // wired identically to the web app.
+  // Controlled tab state, wired identically to the web app.
   const [activeTab, setActiveTab] = useState<string>("overview");
 
   // Tauri's Wry webview blocks window.open(), so the OAuth popup flow

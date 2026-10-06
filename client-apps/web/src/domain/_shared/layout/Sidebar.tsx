@@ -1,6 +1,6 @@
 "use client";
 
-import { type MouseEvent, useCallback, useEffect, useRef } from "react";
+import { type MouseEvent, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -11,7 +11,7 @@ import {
 } from "@stigmer/react";
 import type { SidebarLinkRenderProps, WorkspaceNavId } from "@stigmer/react";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
-import { useRunNavigation } from "@/domain/workflow/run-navigation";
+import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 
@@ -26,7 +26,7 @@ function isPlainClick(e: MouseEvent): boolean {
  * routing and the app's navigation providers into the shared chrome.
  *
  * Rows keep real hrefs so modifier-clicks open new tabs, while plain
- * clicks route through the session/execution navigation providers
+ * clicks route through the session navigation provider
  * (static export cannot soft-navigate to un-prerendered dynamic routes).
  */
 export function Sidebar() {
@@ -34,15 +34,14 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const recentActivity = useRecentActivity();
-  const { refetch, prependOptimistic } = recentActivity;
+  const { refetch } = recentActivity;
   const org = useActiveOrgId();
   // The Conversations badge: conversations wanting a human right now.
   // Data as props — the SDK sidebar never fetches for itself.
   const { count: wantsHumanCount } = useConversationsWantsHumanCount(org || null);
   const { activeSessionId, isSessionZone, navigateToSession, navigateToHome } =
     useSessionNavigation();
-  const { activeRunId, isExecutionZone, navigateToRun } =
-    useRunNavigation();
+  const { isExecutionZone } = useRunNavigation();
 
   const isDashboardActive =
     !isSessionZone && !isExecutionZone && pathname.startsWith("/dashboard");
@@ -71,24 +70,10 @@ export function Sidebar() {
     router.push("/dashboard");
   }, [router]);
 
-  const entriesRef = useRef(recentActivity.entries);
   useEffect(() => {
-    entriesRef.current = recentActivity.entries;
-  });
-
-  useEffect(() => {
-    if (activeRunId && !entriesRef.current.some((e) => e.id === activeRunId)) {
-      prependOptimistic({
-        id: activeRunId,
-        type: "workflow_run",
-        subject: "Loading\u2026",
-      });
-    }
-
     refetch();
 
-    const activeId = activeSessionId ?? activeRunId;
-    if (!activeId) return;
+    if (!activeSessionId) return;
 
     // LLM subject generation runs async after session creation and
     // typically completes within 5-15 seconds. Two staggered refetches
@@ -99,7 +84,7 @@ export function Sidebar() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [activeSessionId, activeRunId, refetch, prependOptimistic]);
+  }, [activeSessionId, refetch]);
 
   const renderLink = useCallback(
     ({
@@ -119,11 +104,7 @@ export function Sidebar() {
             onClick={(e: MouseEvent) => {
               if (isPlainClick(e)) {
                 e.preventDefault();
-                if (entry.type === "session") {
-                  navigateToSession(entry.id);
-                } else {
-                  navigateToRun(entry.id);
-                }
+                navigateToSession(entry.id);
               }
             }}
             aria-current={ariaCurrent}
@@ -157,7 +138,7 @@ export function Sidebar() {
         </Link>
       );
     },
-    [navigateToSession, navigateToRun, navigateToHome],
+    [navigateToSession, navigateToHome],
   );
 
   return (
@@ -166,7 +147,6 @@ export function Sidebar() {
       renderLink={renderLink}
       recentActivity={recentActivity}
       activeSessionId={activeSessionId}
-      activeRunId={activeRunId}
       conversationsBadgeCount={wantsHumanCount}
       footer={<UserMenu />}
       isOpen={sidebar.isOpen}

@@ -2,7 +2,6 @@ import { lazy, Suspense } from "react";
 import {
   createHashRouter,
   matchRoutes,
-  Navigate,
   type RouteObject,
 } from "react-router-dom";
 import {
@@ -46,11 +45,7 @@ const PluginUploadPage = lazy(() => import("./pages/library/PluginUploadPage"));
 const MarketplacePage = lazy(() => import("./pages/marketplace/MarketplacePage"));
 const DashboardPage = lazy(() => import("./pages/dashboard/DashboardPage"));
 const ConversationsPage = lazy(() => import("./pages/conversations/ConversationsPage"));
-const WorkflowListPage = lazy(() => import("./pages/workflow/WorkflowListPage"));
-const WorkflowNewPage = lazy(() => import("./pages/workflow/WorkflowNewPage"));
-const WorkflowDetailPage = lazy(() => import("./pages/workflow/WorkflowDetailPage"));
-const WorkflowRunListPage = lazy(() => import("./pages/workflow/WorkflowRunListPage"));
-const WorkflowRunDetailPage = lazy(() => import("./pages/workflow/WorkflowRunDetailPage"));
+const RunPage = lazy(() => import("./pages/runs/RunPage"));
 const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
 const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
@@ -258,51 +253,15 @@ const routes: RouteObject[] = [
               </LazyPage>
             ),
           },
-          {
-            path: "workflows",
-            element: (
-              <LazyPage>
-                <WorkflowListPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "workflows/new",
-            element: (
-              <LazyPage>
-                <WorkflowNewPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "workflows/:org/:slug",
-            element: (
-              <LazyPage>
-                <WorkflowDetailPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "workflows/runs",
-            element: (
-              <LazyPage>
-                <WorkflowRunListPage />
-              </LazyPage>
-            ),
-          },
         ],
       },
       {
         path: "runs/:id",
         element: (
           <LazyPage>
-            <WorkflowRunDetailPage />
+            <RunPage />
           </LazyPage>
         ),
-      },
-      {
-        path: "workflows",
-        element: <Navigate to="/library/workflows" replace />,
       },
       {
         path: "settings",

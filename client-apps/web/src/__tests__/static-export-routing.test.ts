@@ -28,8 +28,7 @@ describe("library deep-link pages", () => {
   // /library/<type>/<org>/<slug> for every resource type it knows. A cold
   // load of that URL — reload, bookmark, shared link — is served from the
   // static export, which only contains routes with a page file. A type
-  // navigable in-app but missing its page file ships a 404 (workflows was
-  // navigable for months with no deep-link page).
+  // navigable in-app but missing its page file ships a 404.
   for (const resourceType of LIBRARY_RESOURCE_TYPES) {
     it(`${resourceType} has a deep-link detail page`, () => {
       const pageFile = join(
@@ -75,10 +74,10 @@ describe("settings nav pages", () => {
 describe("no server redirect() under dynamic segments", () => {
   // In static export, a page renders exactly once at build time, so a
   // server-component redirect() whose target is built from dynamic params
-  // bakes a fixed, wrong target into the exported document (observed as
-  // /library/workflows/undefined/undefined). Redirects on dynamic routes
-  // must recover params from the browser URL instead — see
-  // useLegacyPathRedirect and the LegacyWorkflowRedirects components.
+  // bakes a fixed, wrong target into the exported document (its params are
+  // the build-time placeholders, so the target reads `.../undefined`).
+  // Redirects on dynamic routes must recover params from the browser URL
+  // instead.
   const NAVIGATION_IMPORT_RE =
     /import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*["']next\/navigation["']/g;
 
@@ -110,7 +109,7 @@ describe("no server redirect() under dynamic segments", () => {
       `Server redirect() on a dynamic route bakes its params at build time ` +
         `in static export (the params are placeholders, so the target is ` +
         `garbage). Use a client-side redirect that reads the real URL ` +
-        `instead — useLegacyPathRedirect has the pattern. Offenders: ` +
+        `from window.location instead. Offenders: ` +
         offenders.join(", "),
     ).toEqual([]);
   });

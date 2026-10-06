@@ -44,7 +44,6 @@ vi.mock("@stigmer/react", () => ({
     return null;
   },
   useAgentCount: counter(3),
-  useWorkflowCount: counter(2),
   useSkillCount: counter(5),
   useMcpServerCount: counter(1),
   useScheduleCount: counter(4),
@@ -81,7 +80,6 @@ describe("desktop LibraryLanding", () => {
 
     expect([...page.cards].map(([label, card]) => [label, card.count])).toEqual([
       ["Agents", 3],
-      ["Workflows", 2],
       ["Skills", 5],
       ["MCP Servers", 1],
       ["Schedules", 4],
@@ -107,6 +105,6 @@ describe("desktop LibraryLanding", () => {
 
     page.tokens.length = 0;
     act(() => page.dialog.at(-1)?.onApplied());
-    expect(page.tokens).toEqual([1, 1, 1, 1, 1, 1]);
+    expect(page.tokens).toEqual([1, 1, 1, 1, 1]);
   });
 });

@@ -1,26 +1,19 @@
 import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { cn } from "@stigmer/theme";
 import { LibraryBreadcrumbProvider, useCanonicalOrgSlug } from "@stigmer/react";
 import { LibraryBreadcrumb } from "./LibraryBreadcrumb";
-import {
-  FullViewportLayoutProvider,
-  useFullViewportLayout,
-} from "./full-viewport-layout";
 
 export default function LibraryLayout() {
   return (
     <LibraryBreadcrumbProvider>
-      <FullViewportLayoutProvider>
-        <LibraryLayoutContent />
-      </FullViewportLayoutProvider>
+      <LibraryLayoutContent />
     </LibraryBreadcrumbProvider>
   );
 }
 
 /** `/library/<kind>/<org>/<slug>`: a detail route, whose org segment is a slug. */
 const LIBRARY_DETAIL_RE =
-  /^\/library\/(agents|skills|mcp-servers|workflows|schedules|plugins)\/([^/]+)\/([^/]+)\/?$/;
+  /^\/library\/(agents|skills|mcp-servers|schedules|plugins)\/([^/]+)\/([^/]+)\/?$/;
 
 /**
  * Keeps a detail route's org segment on the org's current slug. A link
@@ -47,21 +40,12 @@ function useCanonicalLibraryUrl(): void {
 }
 
 function LibraryLayoutContent() {
-  const { isFullViewport } = useFullViewportLayout();
   useCanonicalLibraryUrl();
 
   return (
-    <div
-      className={cn(
-        isFullViewport
-          ? "flex h-full flex-col"
-          : "mx-auto max-w-4xl px-6 py-8",
-      )}
-    >
-      {!isFullViewport && <LibraryBreadcrumb />}
-      <div className={cn(isFullViewport && "flex min-h-0 flex-1 flex-col")}>
-        <Outlet />
-      </div>
+    <div className="mx-auto max-w-4xl px-6 py-8">
+      <LibraryBreadcrumb />
+      <Outlet />
     </div>
   );
 }
