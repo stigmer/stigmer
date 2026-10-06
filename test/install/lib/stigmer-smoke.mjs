@@ -3,18 +3,18 @@
  * the compose gate (test/install/smoke-compose.mjs) and the all-in-one image smoke
  * (test/install/smoke-all-in-one.mjs) prove the same facts the same way: a server
  * that answers SERVING, a console lane that serves its contract, an artifact
- * file server on its published port, and the end-to-end runs through the
- * runner (a workflow, then an agent answered by the install's model). A smoke
- * that needs a new probe adds it here, never inline. The upgrade rehearsal
+ * file server on its published port, and the end-to-end run through the
+ * runner (an agent answered by the install's model). A smoke that needs a new
+ * probe adds it here, never inline. The upgrade rehearsal
  * (test/install/rehearse-upgrade.mjs) adds the state probes: what the runs created
  * is recorded before an upgrade and read back after it, field by field, and
- * the server says which release answers (getServerInfo). The refusal and log
- * probes read what an install must not admit and what its server says at
- * boot: a request for an organization nobody created is refused by name,
- * and the OAuth callback is derived from the public address the install was
- * given. The approval probes read a workflow's human_input gate as a
- * reviewer meets it: waiting in the organization's queue, resolved on the
- * execution's event log, and printed by `stigmer runs logs`.
+ * the server says which release answers (getServerInfo). On a base release
+ * that still serves workflows, the rehearsal also records one workflow run
+ * through the legacy arm below and requires the workflow API gone after the
+ * upgrade. The refusal and log probes read what an install must not admit
+ * and what its server says at boot: a request for an organization nobody
+ * created is refused by name, and the OAuth callback is derived from the
+ * public address the install was given.
  *
  * Plain node + fetch, no dependencies — runnable everywhere CI is. Every
  * probe takes the server's base URL so the same code serves a stack on
@@ -365,44 +365,49 @@ export async function smokeOrganization(baseUrl, name, { org } = {}) {
 }
 
 /**
- * The run API a server speaks. The rename of agent and workflow executions
- * to runs moved their services, kind strings and phase names; an upgrade
- * rehearsal records its state on a release from before it and reads it back
- * on the build after, so every run line takes the API of the server it
- * talks to ({@link runApiOf}).
+ * The run API a server speaks. The rename of agent executions to runs moved
+ * their service, kind string and phase names; an upgrade rehearsal records
+ * its state on a release from before it and reads it back on the build
+ * after, so every run line takes the API of the server it talks to
+ * ({@link runApiOf}).
  */
 export const RUN_APIS = Object.freeze({
   current: Object.freeze({
     agentService: "ai.stigmer.agentic.agentrun.v1.AgentRun",
-    workflowService: "ai.stigmer.agentic.workflowrun.v1.WorkflowRun",
     agentKind: "AgentRun",
-    workflowKind: "WorkflowRun",
     phasePrefix: "RUN_",
   }),
   beforeRunRename: Object.freeze({
     agentService: "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-    workflowService: "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
     agentKind: "AgentExecution",
-    workflowKind: "WorkflowExecution",
     phasePrefix: "EXECUTION_",
   }),
 });
 
 /**
- * The run API `baseUrl` serves: the current one, unless the server answers
- * the current agent-run query as a procedure it does not route, which only a
- * release from before the rename does. The Connect adapter answers an
+ * Whether `baseUrl` routes `procedure`. The Connect adapter answers an
  * unrouted procedure with a bare 404 and no body; a routed one that refuses
  * (an unknown id, a malformed one) answers a Connect error naming its code.
  */
-export async function runApiOf(baseUrl) {
-  const response = await fetch(`${baseUrl}/${RUN_APIS.current.agentService}QueryController/get`, {
+async function routes(baseUrl, procedure, body) {
+  const response = await fetch(`${baseUrl}/${procedure}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ value: "aex_run_api_probe" }),
+    body: JSON.stringify(body),
   });
   const text = await response.text();
-  return response.status === 404 && text.trim() === "" ? RUN_APIS.beforeRunRename : RUN_APIS.current;
+  return !(response.status === 404 && text.trim() === "");
+}
+
+/**
+ * The run API `baseUrl` serves: the current one, unless the server does not
+ * route the current agent-run query, which only a release from before the
+ * rename does.
+ */
+export async function runApiOf(baseUrl) {
+  return (await routes(baseUrl, `${RUN_APIS.current.agentService}QueryController/get`, { value: "aex_run_api_probe" }))
+    ? RUN_APIS.current
+    : RUN_APIS.beforeRunRename;
 }
 
 /** A run phase without its API's prefix (`COMPLETED`), so phases compare across the rename. */
@@ -412,16 +417,47 @@ export function runPhaseWord(phase, api) {
 
 const TERMINAL_FAILURES = new Set(["FAILED", "CANCELLED", "TERMINATED"]);
 
+// The legacy workflow arm, for a base release that still serves workflows; removed once the newest release has none (stigmer#1989).
 /**
- * The end-to-end line every self-host smoke draws: in the smoke's organization
- * ({@link smokeOrganization}; `org` names one), a single `set_vars` workflow (sub-second, hermetic, no LLM, no MCP, no keys —
- * the conformance suite's canonical execution fixture), run it, and wait for
- * RUN_COMPLETED. It completes only if the runner connected to Temporal
- * and polled the queue. Returns the organization, workflow and execution ids,
- * so an upgrade rehearsal can read them back. A terminal failure surfaces
- * immediately with the server's own error.
+ * The workflow run APIs of the releases that still serve workflows: the one
+ * after runs were named runs, and the one before. The upgrade rehearsal
+ * records a workflow run on such a base ({@link runSetVarsWorkflow}) and
+ * requires the API gone after the upgrade ({@link assertWorkflowApiGone}).
  */
-export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { org, api = RUN_APIS.current } = {}) {
+export const LEGACY_WORKFLOW_APIS = Object.freeze([
+  Object.freeze({ service: "ai.stigmer.agentic.workflowrun.v1.WorkflowRun", kind: "WorkflowRun", phasePrefix: "RUN_" }),
+  Object.freeze({
+    service: "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
+    kind: "WorkflowExecution",
+    phasePrefix: "EXECUTION_",
+  }),
+]);
+
+/** The workflow run API `baseUrl` routes ({@link LEGACY_WORKFLOW_APIS}), or undefined for a server that serves no workflows. */
+export async function legacyWorkflowApiOf(baseUrl) {
+  for (const api of LEGACY_WORKFLOW_APIS) {
+    if (await routes(baseUrl, `${api.service}QueryController/get`, { value: "wex_workflow_api_probe" })) return api;
+  }
+  return undefined;
+}
+
+/** Throws unless `baseUrl` routes no workflow run API: what the build requires after an upgrade from a release that served one. */
+export async function assertWorkflowApiGone(baseUrl) {
+  const api = await legacyWorkflowApiOf(baseUrl);
+  if (api !== undefined) {
+    throw new Error(`the upgraded server still routes ${api.service}QueryController/get; it must serve no workflow API`);
+  }
+}
+
+/**
+ * On a base release that still serves workflows (`api`, from
+ * {@link legacyWorkflowApiOf}), in the smoke's organization
+ * ({@link smokeOrganization}; `org` names one), a single `set_vars` workflow
+ * (sub-second, hermetic, no LLM, no MCP, no keys), run it, and wait for its
+ * COMPLETED phase. Returns the organization, workflow and execution ids. A
+ * terminal failure surfaces immediately with the server's own error.
+ */
+export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { org, api }) {
   const suffix = uniqueSuffix();
   const orgId = await smokeOrganization(baseUrl, `smoke-org-${suffix}`, { org });
 
@@ -448,10 +484,10 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { o
 
   const execution = await connectJson(
     baseUrl,
-    `${api.workflowService}CommandController/create`,
+    `${api.service}CommandController/create`,
     {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: api.workflowKind,
+      kind: api.kind,
       metadata: { name: `smoke-wfx-${suffix}`, org: orgId },
       spec: { workflowId },
     },
@@ -460,10 +496,10 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { o
   if (!executionId) throw new Error(`execution create returned no id: ${JSON.stringify(execution)}`);
   log(`execution ${executionId} created — awaiting COMPLETED...`);
 
-  await pollUntil("execution RUN_COMPLETED", timeoutMs, async () => {
+  await pollUntil("execution COMPLETED", timeoutMs, async () => {
     const current = await connectJson(
       baseUrl,
-      `${api.workflowService}QueryController/get`,
+      `${api.service}QueryController/get`,
       { value: executionId },
     );
     const phase = current.status?.phase ?? "";
@@ -476,12 +512,12 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { o
 }
 
 /**
- * The agent line every self-host smoke draws after the workflow: in the smoke's
+ * The end-to-end line every self-host smoke draws: in the smoke's
  * organization ({@link smokeOrganization}; `org` names one), an agent with no tools, send it one message, and wait for
  * RUN_COMPLETED with the model's reply as the last message. It completes
- * only if the install wired a model the runner can reach, the runner called
- * it, and the answer travelled back to the record a user reads — which the
- * workflow line cannot show, since no workflow step calls a model. The smokes
+ * only if the runner connected to Temporal and polled the queue, the install
+ * wired a model the runner can reach, the runner called it, and the answer
+ * travelled back to the record a user reads. The smokes
  * point the install at fake-model.mjs, so `expectText` is its reply. Returns
  * the ids and the reply, so an upgrade rehearsal can read them back. A
  * terminal failure surfaces immediately with the execution's own error.
@@ -637,21 +673,22 @@ const READS = Object.freeze({
 });
 
 /**
- * The state an upgrade must carry: a workflow run and an agent run with the
- * model's reply, each in the smoke's organization ({@link smokeOrganization}:
- * one of its own on a server that holds several, the server's one where it
- * holds one), and every resource as
- * the server reads it back right after. Resolves `{ ids, snapshot }`: the ids
- * to read again later, and the snapshot {@link compareState} holds the later
- * read to.
+ * The state an upgrade must carry: an agent run with the model's reply, in
+ * the smoke's organization ({@link smokeOrganization}: one of its own on a
+ * server that holds several, the server's one where it holds one), and every
+ * resource as the server reads it back right after. Resolves
+ * `{ ids, snapshot, workflowRun? }`: the ids to read again later, the
+ * snapshot {@link compareState} holds the later read to, and, on a base that
+ * still serves workflows, the completed workflow run recorded beside them
+ * (`{ orgId, workflowId, executionId }`).
  */
 export async function recordState(baseUrl, timeoutMs, { expectText, log = () => {} }) {
   const api = await runApiOf(baseUrl);
-  const workflow = await runSetVarsWorkflow(baseUrl, timeoutMs, log, { api });
+  // The legacy workflow arm (stigmer#1989).
+  const workflowApi = await legacyWorkflowApiOf(baseUrl);
+  const workflowRun = workflowApi === undefined ? undefined : await runSetVarsWorkflow(baseUrl, timeoutMs, log, { api: workflowApi });
   const agent = await runAgentToReply(baseUrl, timeoutMs, { expectText, log, api });
   const ids = {
-    workflowOrgId: workflow.orgId,
-    workflowExecutionId: workflow.executionId,
     agentOrgId: agent.orgId,
     agentId: agent.agentId,
     agentSlug: agent.agentSlug,
@@ -662,7 +699,7 @@ export async function recordState(baseUrl, timeoutMs, { expectText, log = () => 
     .filter(([, value]) => value.error !== undefined)
     .map(([key, value]) => `${key}: ${value.error}`);
   if (problems.length > 0) throw new Error(`the state just created does not read back: ${problems.join("; ")}`);
-  return { ids, snapshot };
+  return { ids, snapshot, ...(workflowRun !== undefined ? { workflowRun } : {}) };
 }
 
 /**
@@ -688,7 +725,6 @@ export async function readState(baseUrl, ids) {
   // The phase without its API's prefix: a run recorded as EXECUTION_COMPLETED
   // reads back as RUN_COMPLETED after the rename, the same phase.
   const execution = (resource) => ({ ...identity(resource), phase: runPhaseWord(resource.status?.phase ?? "", api) });
-  const workflowOrg = await read(READS.organization, { value: ids.workflowOrgId }, identity);
   const agentOrg = await read(READS.organization, { value: ids.agentOrgId }, identity);
   const agent = await read(READS.agent, { value: ids.agentId }, identity);
   const agentByReference =
@@ -696,11 +732,9 @@ export async function readState(baseUrl, ids) {
       ? await read(READS.agentByReference, { org: agentOrg.slug, kind: "agent", slug: agent.slug }, identity)
       : { error: "not read: the agent or its organization did not read back by id" };
   return {
-    workflowOrg,
     agentOrg,
     agent,
     agentByReference,
-    workflowExecution: await read(`${api.workflowService}QueryController/get`, { value: ids.workflowExecutionId }, execution),
     agentExecution: await read(`${api.agentService}QueryController/get`, { value: ids.agentExecutionId }, (resource) => ({
       ...execution(resource),
       reply: lastAiReply(resource),
@@ -736,96 +770,6 @@ export async function assertStateSurvived(baseUrl, recorded) {
   if (problems.length > 0) {
     throw new Error(`the state did not survive the upgrade:\n  ${problems.join("\n  ")}`);
   }
-}
-
-const WORKFLOW_EXECUTION_QUERY = "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController";
-
-/** A workflow's id, by its `org/slug` reference: what `stigmer run workflow <slug>` resolves. */
-export async function workflowIdByReference(baseUrl, { org, slug }) {
-  const workflow = await connectJson(baseUrl, "ai.stigmer.agentic.workflow.v1.WorkflowQueryController/getByReference", {
-    org,
-    kind: "workflow",
-    slug,
-  });
-  const id = workflow.metadata?.id;
-  if (!id) throw new Error(`workflow ${org}/${slug} has no id: ${JSON.stringify(workflow)}`);
-  return id;
-}
-
-/**
- * Waits until a run of workflow `workflowId` has a human_input gate in the
- * organization `orgId`'s approval queue (listPendingApprovals), and resolves
- * that entry's `{ executionId, taskName }`: the gate a reviewer is asked to
- * decide. An entry names its execution, not its workflow (its workflowName
- * is the execution's own name), so each candidate's execution is read for
- * the workflow it runs.
- */
-export async function waitForPendingApproval(baseUrl, { orgId, workflowId, timeoutMs }) {
-  return pollUntil(
-    `a pending approval of ${workflowId} in ${orgId}`,
-    timeoutMs,
-    async () => {
-      const list = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/listPendingApprovals`, { org: orgId, pageSize: 100 });
-      for (const entry of list.entries ?? []) {
-        const execution = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/get`, { value: entry.runId });
-        if (execution.spec?.workflowId === workflowId) return { executionId: entry.runId, taskName: entry.taskName };
-      }
-      return false;
-    },
-    { intervalMs: 500 },
-  );
-}
-
-/** Every approval_resolved payload on an execution's event log, oldest first (getEventLog, paged to its end). */
-export async function approvalResolutions(baseUrl, executionId) {
-  const resolutions = [];
-  let afterSequence = 0;
-  for (;;) {
-    const page = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/getEventLog`, {
-      runId: executionId,
-      afterSequence,
-      eventTypes: ["approval_resolved"],
-    });
-    const events = page.events ?? [];
-    for (const event of events) {
-      if (event.approvalResolved !== undefined) resolutions.push({ taskName: event.taskName ?? "", ...event.approvalResolved });
-    }
-    if (!page.hasMore || events.length === 0) return resolutions;
-    afterSequence = Number(events.at(-1).sequenceNumber);
-  }
-}
-
-/** The identity a workflow execution records as its creator (status.audit.specAudit.createdBy), the person a local gate's decision is attributed to. */
-export async function workflowExecutionCreator(baseUrl, executionId) {
-  const execution = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/get`, { value: executionId });
-  const creator = execution.status?.audit?.specAudit?.createdBy?.id ?? "";
-  if (creator === "") throw new Error(`workflow execution ${executionId} records no creator`);
-  return creator;
-}
-
-/**
- * Why `stigmer runs logs` output does not show a gate's resolution, or
- * undefined when it does. `resolution` is `"timed out"` for a gate that
- * timed out under the fail policy, whose line must say it decided nothing
- * and come before the task's failure; otherwise `{ outcome, by }`, whose
- * line must name both and end there. Pure, over the command's text.
- */
-export function gateLogProblem(text, task, resolution) {
-  const lines = text.split("\n");
-  const wanted =
-    resolution === "timed out"
-      ? `approval resolved: ${task} — timed out, no decision`
-      : `approval resolved: ${task} — ${resolution.outcome} by ${resolution.by}`;
-  // The resolution ends its line (after the time and the icon), so a longer
-  // line, such as an auto-resolved "… by <reviewer> (timeout)", is not it.
-  const at = lines.findIndex((line) => line.trimEnd().endsWith(wanted));
-  if (at === -1) return `no line reads ${JSON.stringify(wanted)} in:\n${text}`;
-  if (resolution === "timed out") {
-    const failedAt = lines.findIndex((line) => line.includes(`task failed: ${task}`));
-    if (failedAt === -1) return `no line reads "task failed: ${task}" after the timeout in:\n${text}`;
-    if (failedAt < at) return `the task's failure is printed before its gate resolved in:\n${text}`;
-  }
-  return undefined;
 }
 
 /** Fails when the port is already taken — a stigmer stack is running. */

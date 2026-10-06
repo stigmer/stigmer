@@ -1,26 +1,24 @@
-// Registry proxy conformance — the OSS server's plain-HTTP registry lanes
+// Registry proxy conformance — the OSS server's plain-HTTP registry lane
 // (Class A; the suite's first non-gRPC tests).
 // Domain: conformance suites.
 //
-// The unified port serves two unauthenticated, cacheable JSON proxies that
-// route AROUND the gRPC stack: /v1/proxy/task-kind-registry (the workflow
-// task palette) and /v1/proxy/model-registry (canonical model ids for
-// tokenless local runners and the web console). They are what lets the OSS
-// console work without an authenticated fetch from the hosted API, and the
-// future TS server must serve them byte-compatibly — this suite is the gate
-// the transport scaffold's proxy lanes are built against.
+// The unified port serves an unauthenticated, cacheable JSON proxy that
+// routes AROUND the gRPC stack: /v1/proxy/model-registry (canonical model ids
+// for tokenless local runners and the web console). It is what lets the OSS
+// console work without an authenticated fetch from the hosted API — this
+// suite is the gate the transport scaffold's proxy lane is built against.
 //
 // The asserted contract, sourced from the Go server's routing block and
 // registryCORS wrapper (oss#571):
 //   - GET answers 200, Content-Type application/json, Cache-Control
 //     public/max-age, and a parseable document of the expected shape.
-//   - Every response carries Access-Control-Allow-Origin: * (the proxies
-//     bypass the gRPC-Web wrapper's CORS, so they own their own headers —
-//     without them the console's task palette and model pickers never load).
+//   - Every response carries Access-Control-Allow-Origin: * (the proxy
+//     bypasses the gRPC-Web wrapper's CORS, so it owns its own headers —
+//     without them the console's model pickers never load).
 //   - OPTIONS preflight answers 204 with the GET/OPTIONS allow-list — even
 //     for unregistered endpoints the browser probes.
 //   - Non-GET methods answer 405.
-//   - Unknown paths fall through the proxy lanes to the router's 404.
+//   - Unknown paths fall through the proxy lane to the router's 404.
 //   - EMBEDDED FALLBACK: the model registry serves its bundled build-time
 //     snapshot without any network — the harness pins the background
 //     upstream refresh off (STIGMER_MODEL_REGISTRY_REFRESH=off, see
@@ -53,7 +51,6 @@ describe.skipIf(!hasHttpLane)("Registry proxy conformance — HTTP lanes", () =>
   });
 
   const routes = [
-    { path: "/v1/proxy/task-kind-registry", topLevelKey: "descriptors" },
     { path: "/v1/proxy/model-registry", topLevelKey: "models" },
   ] as const;
 
@@ -66,7 +63,7 @@ describe.skipIf(!hasHttpLane)("Registry proxy conformance — HTTP lanes", () =>
         expect(response.headers.get("content-type")).toBe("application/json");
         expect(
           response.headers.get("cache-control"),
-          "the registries are static and cacheable",
+          "the registry is static and cacheable",
         ).toContain("max-age");
         expect(
           response.headers.get("access-control-allow-origin"),

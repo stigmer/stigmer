@@ -1308,17 +1308,6 @@ rows:
     observability: launcher
     caller: outsider
     needs: [fake-llm-upstream, agent-execution]
-  - id: proxy.llm.scope.workflow-execution-can-edit
-    surface: proxy
-    lane: >-
-      llm
-    behavior: >-
-      A call scoped by X-Stigmer-Workflow-Execution-Id on a workflow execution the caller can_edit is relayed and metered against that workflow execution.
-    class: behavior
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [fake-llm-upstream, workflow-execution]
   - id: proxy.llm.scope.missing-scope-header-403-when-required
     surface: proxy
     lane: >-

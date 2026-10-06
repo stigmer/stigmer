@@ -1,21 +1,16 @@
-// Conformance suite for environment-merge precedence — the AGENT half
-// (Class B). The workflow half lives in
-// envmerge-workflow.conformance.test.ts: rosters are file-granular and the
-// local-execution target rostered agent-execution suites before the
-// workflow-execution engine existed, so the two aggregates' assertions ship
-// as two files.
+// Conformance suite for environment-merge precedence (Class B).
 //
 // Domain: agentic — the env layering that populates an ExecutionContext at
-// run start, exercised through AgentRun. A turn's value layers are the
-// lane's (a PlatformClient's, a schedule's or a workflow task's
-// environment_refs) and its own runtime_env; the agent's declarations are
-// the key whitelist; and a declared key no layer carries is filled from the
-// run's person's personal environment, by declared key, after every layer
-// (the personal-key bridge; the two-person form, where a member's turn reads
-// the member's value and never the agent author's, is pinned on the enforcing
-// lane in runner-as-subject.conformance.test.ts). The merge contract itself (value
-// layers + blueprint key whitelist, stigmer#222) is documented in the
-// workflow half's header.
+// run start, exercised through AgentRun. The merge contract (value layers +
+// blueprint key whitelist, stigmer#222): a turn's value layers are the
+// lane's (a PlatformClient's or a schedule's environment_refs) and its own
+// runtime_env; the agent's spec.env is a KEY WHITELIST (+ required/optional
+// schema), never a value source, so a key the agent does not declare is
+// dropped wherever it came from; and a declared key no layer carries is
+// filled from the run's person's personal environment, by declared key,
+// after every layer (the personal-key bridge; the two-person form, where a
+// member's turn reads the member's value and never the agent author's, is
+// pinned on the enforcing lane in runner-as-subject.conformance.test.ts).
 //
 // Observation strategy: the ExecutionContext is created SYNCHRONOUSLY
 // inside the create pipeline, so it exists the instant create() returns; a

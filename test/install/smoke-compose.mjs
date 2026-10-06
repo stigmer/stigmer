@@ -26,17 +26,14 @@
  *      and says it fills it; and an organization nobody made is refused by
  *      name: an agent create naming one answers "Organization not found"
  *      instead of storing it (#1484);
- *   6. one END-TO-END RUN: a deterministic `set_vars` workflow execution
- *      travels server → Temporal → runner → COMPLETED, with zero LLM
- *      keys (the ci.conformance-execution precedent). This is the line
- *      that matters: the runner container polled the queue and executed
- *      real work;
- *   7. one AGENT RUN answered by a model: the stack is configured the way
- *      the guide tells a user to (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL
- *      in the env file), pointed at a fake Anthropic API on this host
- *      (test/install/lib/fake-model.mjs), and the run must complete with the
- *      fake's reply as its last message;
- *   8. clean teardown (`docker compose down --volumes`).
+ *   6. one END-TO-END AGENT RUN answered by a model: it travels server →
+ *      Temporal → runner → COMPLETED, so it is the line that matters — the
+ *      runner container polled the queue and executed real work. The stack
+ *      is configured the way the guide tells a user to (ANTHROPIC_API_KEY
+ *      and ANTHROPIC_BASE_URL in the env file), pointed at a fake Anthropic
+ *      API on this host (test/install/lib/fake-model.mjs), and the run must
+ *      complete with the fake's reply as its last message;
+ *   7. clean teardown (`docker compose down --volumes`).
  *
  * Usage:
  *   node test/install/smoke-compose.mjs --build
@@ -74,7 +71,6 @@ import {
   assertOAuthCallbackFromPublicOrigin,
   assertPortFree,
   runAgentToReply,
-  runSetVarsWorkflow,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
 import { fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
@@ -166,12 +162,9 @@ async function main() {
     const refusal = await assertMissingOrganizationRefused(baseUrl);
     log(`missing organization: refused (HTTP ${refusal.status} ${refusal.code}: ${refusal.message})`);
 
-    // 6. The end-to-end run — the line that matters: it only completes if the
-    // runner container connected to Temporal and polled the queue.
-    const { executionId } = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);
-    log(`end-to-end run: execution ${executionId} COMPLETED through the runner`);
-
-    // 7. The agent run — the model path a user configures, end to end.
+    // 6. The end-to-end agent run — the line that matters: it only completes
+    // if the runner container connected to Temporal and polled the queue, and
+    // the model path a user configures answered.
     const agentRun = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
     log(`agent run: execution ${agentRun.executionId} COMPLETED with the model's reply (${fake.requests()} model calls)`);
 

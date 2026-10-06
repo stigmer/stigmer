@@ -229,7 +229,7 @@ describe("ExecutionContext conformance — secrets", () => {
   it("[rpc:ExecutionContextQueryController.getByExecutionId] getByExecutionId under a user token follows the same secret contract as get", async () => {
     // getByExecutionId is the runner's secret-delivery path, but it decrypts
     // only for scope-bound runner credentials (cloud: token_type of sandbox /
-    // workflow_sandbox / connect_sandbox, each bound to the EC it reads, with
+    // connect_sandbox, each bound to the EC it reads, with
     // the unscoped embedded_runner bootstrap credential refused; OSS: the
     // execution-scoped token minted by getRunnerScopedToken — stigmer#535).
     // The conformance harness authenticates as a user, so it must see the

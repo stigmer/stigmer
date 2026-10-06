@@ -21,7 +21,7 @@
 // (reference-read-authorization), and the writer clause on an environment
 // reference (a write attaches only an environment its writer can view):
 // on the open-source enforcing lane every write that carries one (a
-// workflow's agent_call step, a schedule) is an admin's, and an admin can
+// schedule) is an admin's, and an admin can
 // view every environment of the organization, so the refusal cannot be
 // staged here; the server's reference unit pins it
 // (pipeline/steps/__tests__/references.test.ts).

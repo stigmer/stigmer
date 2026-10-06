@@ -15,9 +15,7 @@
 // Also pinned here, because each refusal comes before the engine gate: a
 // turn reaches its conversation's agent through the session's pin, so a
 // deleted agent, or another agent later created under its slug, answers
-// FAILED_PRECONDITION naming the pinned agent; and a turn's workflow parent
-// link must agree with its lineage label, and is admitted from a
-// trusted-local caller.
+// FAILED_PRECONDITION naming the pinned agent.
 //
 // Positive bootstrap behavior (spec forwarding, resolution precedence,
 // single-source-of-truth clearing) needs a live engine and stays in the
@@ -344,54 +342,6 @@ describe("AgentRun conformance — a turn runs the agent its session pinned", ()
   });
 });
 
-describe("AgentRun conformance — the workflow parent link", () => {
-  // spec.parent links a turn to the workflow run that started it. It is
-  // honoured only from that run's runner, the server, or a holder of the
-  // platform's can_write_reserved_labels (open source's trusted-local
-  // posture grants it; an enforcing Authorizer does not — the run-gate
-  // suite pins that refusal on the enforcing lane). The queue the turn
-  // dispatches to is derived from the link; no request field names one.
-  it("[rpc:AgentRunCommandController.create] a parent link naming another workflow run than the stigmer.ai/workflow-execution-id label is refused (InvalidArgument)", async () => {
-    const { org } = await target.provisionTenancy();
-    const refused = await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.create(
-          makeAgentExecution({
-            org,
-            name: uniqueName("aex-parent-mismatch"),
-            parent: { workflowRunId: "wfx_linked" },
-            labels: { "stigmer.ai/workflow-execution-id": "wfx_labelled" },
-          }),
-        ),
-      Code.InvalidArgument,
-      "a parent link whose workflow run differs from the lineage label",
-    );
-    expect(refused.rawMessage).toBe(
-      "parent.workflow_run_id 'wfx_linked' differs from the stigmer.ai/workflow-execution-id label 'wfx_labelled'; a turn belongs to one workflow run",
-    );
-  });
-
-  it("[rpc:AgentRunCommandController.create] a parent link is admitted under the trusted-local posture: the turn passes every check up to the engine gate", async (ctx) => {
-    // Only an engineless target whose primary is trusted-local observes this
-    // boundary: an enforcing primary refuses the link (the run-gate suite),
-    // and a target with an engine runs the turn (the execution suite).
-    if (target.capabilities.enforcingAuthorizer || target.capabilities.scheduleFiring) return ctx.skip();
-    const { org } = await target.provisionTenancy();
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.create(
-          makeAgentExecution({
-            org,
-            name: uniqueName("aex-parent-local"),
-            parent: { workflowRunId: "wfx_trustedlocal" },
-          }),
-        ),
-      Code.Unavailable,
-      "a parent link under the trusted-local posture reaches the engine gate",
-    );
-  });
-});
-
 describe("AgentRun conformance — the engine gate", () => {
   it("[rpc:AgentRunCommandController.create] create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
     // Only the engineless local CRUD targets observe this boundary —
@@ -424,8 +374,8 @@ describe("AgentRun conformance — zero-record read surfaces", () => {
 
     expect(summary.activeCount).toBe(0);
     expect(summary.phaseCounts).toEqual({});
-    // An average over nothing is absence, not 0; and unlike the workflow
-    // summary there are deliberately NO cost fields on this shape at all.
+    // An average over nothing is absence, not 0; and there are deliberately
+    // NO cost fields on this shape at all.
     expect(summary.avgDuration).toBeUndefined();
     expect(summary.topFailingAgents).toHaveLength(0);
   });

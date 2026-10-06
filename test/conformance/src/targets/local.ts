@@ -56,7 +56,6 @@ export class LocalTarget implements TargetProfile {
     organizationEnumeration: true,
     versionTagging: true,
     skillArtifactTransferLane: true,
-    workflowChildApprovalForwarding: false,
     // No Temporal behind this target at all — schedules cannot fire.
     scheduleFiring: false,
     // No runner behind this target either; the open-source runner's shape
@@ -222,16 +221,6 @@ export class LocalTarget implements TargetProfile {
       throw new Error("LocalTarget.setup() must be called before httpBaseUrl()");
     }
     return this.server.baseUrl;
-  }
-
-  // The artifact file server's own port (local artifact storage only) — the
-  // harness already pins it for the runner's serve URL; the artifact suite
-  // drives its download-disposition contract through the same address.
-  artifactHttpBaseUrl(): string {
-    if (this.server === undefined) {
-      throw new Error("LocalTarget.setup() must be called before artifactHttpBaseUrl()");
-    }
-    return this.server.artifactServeUrl;
   }
 
   async provisionTenancy(): Promise<TenancyContext> {

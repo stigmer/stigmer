@@ -1,9 +1,8 @@
 // A long-lived, programmable mock LLM proxy for the execution suites.
 // Domain: test support (model fakes).
 //
-// An AgentRun runs a real LLM loop in the runner, so unlike the data-only
-// WorkflowRun fixtures it cannot be driven offline by jq alone. This mock
-// stands in for the upstream provider: the runner is pointed at it via
+// An AgentRun runs a real LLM loop in the runner, so it cannot be driven
+// offline without a model. This mock stands in for the upstream provider: the runner is pointed at it via
 // STIGMER_PROXY_ENDPOINT (a base-URL override, NOT a "mock" model name), and it
 // replays canned Anthropic responses as Server-Sent Events that the runner's
 // @langchain/anthropic streaming parser accepts. No API keys, no network.
@@ -41,9 +40,8 @@
 // signature this mock owns.
 //
 // The `delayMs` knob holds a response open, keeping an execution IN_PROGRESS for
-// a controllable window — the AgentRun analogue of the WorkflowRun
-// `wait` timer, and the lever for cancel/terminate/pause/resume on a genuinely
-// running execution. A held response must tolerate the client aborting the call
+// a controllable window — the lever for cancel/terminate/pause/resume on a
+// genuinely running execution. A held response must tolerate the client aborting the call
 // (cancel/terminate close the socket mid-delay), so the handler no-ops cleanly
 // once the connection is gone rather than throwing.
 //

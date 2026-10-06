@@ -1,8 +1,8 @@
 // Conformance suite for AgentRun structured output: with a
 // spec.structured_output_schema, what the agent's final text
 // becomes on status.structured_output.
-// Domain: agentic / agentexecution — the typed result a workflow's agent_call
-// or an SDK consumer reads instead of prose.
+// Domain: agentic / agentexecution — the typed result an SDK consumer reads
+// instead of prose.
 //
 // The runner has three sources for the value: the engine's own structured
 // response (the primary path a live model populates), and, when that is

@@ -40,7 +40,7 @@ export interface ThermosOptions {
 /**
  * The thermos shape: a Cursor plugin with a skill, a sub-agent naming a
  * model, an HTTP MCP server referencing one declared variable. Exercises
- * every materialiser but workflows.
+ * every materialiser.
  */
 export function thermosLike(
   name: string,

@@ -14,14 +14,14 @@
 // model; a red on any lane is a divergence between editions, never a cell
 // to re-stage.
 //
-//   - Blueprints (agent, workflow, skill, mcp_server — the visibility-axis
+//   - Blueprints (agent, skill, mcp_server — the visibility-axis
 //     kinds): owner and admin edit and delete both a private and an
 //     org-visible row (`can_edit`/`can_delete` are the creator OR
 //     `admin from organization`); a member reads org-visible and is refused
 //     private (`can_view: viewer`, where org-visible derives
 //     `organization#viewer` and private derives nobody but the creator); a
 //     viewer reads org-visible only; neither edits; a member may not create
-//     (`can_create_agent/workflow/skill: admin`); an outsider — a person
+//     (`can_create_agent/skill: admin`); an outsider — a person
 //     with no role on the organization — is PERMISSION_DENIED on an
 //     existing row and NOT_FOUND on a missing id (the Authorizer's
 //     existence probe: a missing target is never dressed as a denial).
@@ -105,7 +105,6 @@ import { makeOAuthApp } from "../support/oauthapps";
 import { createPlatformClient } from "../support/platformclients";
 import { makeSession } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
-import { makeWorkflow } from "../support/workflows";
 import {
   createTarget,
   enforcingLaneOf,
@@ -200,24 +199,6 @@ const BLUEPRINT_KINDS: ReadonlyArray<BlueprintKind> = [
         spec: makeAgentSpec({ description: "edited by a role" }),
       }),
     delete: (using, id) => using.agentCommand.delete({ value: id }),
-  },
-  {
-    name: "workflow",
-    async create(using, org, visibility) {
-      const input = makeWorkflow({ org, name: uniqueName("role-wf") });
-      input.metadata = { ...input.metadata, visibility };
-      const created = await using.workflowCommand.create(input);
-      return created.metadata!.id;
-    },
-    get: (using, id) => using.workflowQuery.get({ value: id }),
-    // A workflow's `update` is a full-envelope replace; the visibility flip
-    // is the one mutation every workflow admits without a new document.
-    edit: (using, id) =>
-      using.workflowCommand.updateVisibility({
-        resourceId: id,
-        visibility: ORG_VISIBLE,
-      }),
-    delete: (using, id) => using.workflowCommand.delete({ value: id }),
   },
   {
     name: "skill",

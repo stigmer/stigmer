@@ -9,10 +9,9 @@
 //   tool names (the two harnesses name their built-in tools differently, so a
 //   tool list would say which harness ran). The judge grades outcomes: what
 //   the agent said, what the tree holds, what the checks found.
-// - LITERAL. It opens with a fixed Markdown heading, so it is never a
-//   `${ … }` expression. The workflow engine evaluates a string only when the
-//   whole of it is one (runner workflow-engine/resolve.ts), so the text
-//   reaches the judge byte for byte.
+// - FRAMED. It opens with a fixed Markdown heading, so every subject the
+//   judge reads starts the same way; it is the judge run's message, so the
+//   text reaches the judge byte for byte.
 // - BOUNDED. A named file is cut at FILE_CONTENT_LIMIT_BYTES with the cut
 //   stated, so one runaway write cannot crowd out the rest.
 //
@@ -20,7 +19,7 @@
 // (session.ts) and hands the facts in.
 import type { FileChangeFact, QualityCheck, SampleOutcome } from "./report";
 
-/** The subject's first line; fixed, and never an expression. */
+/** The subject's first line; fixed. */
 export const SUBJECT_HEADING = "# The task, the agent's replies, and the repository afterwards";
 
 /** A named file's content beyond this is cut, the cut stated. */

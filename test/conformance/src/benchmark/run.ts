@@ -20,8 +20,7 @@
 //
 // A quality task runs as a real session on the working agent. After the last
 // turn, its end state is read (workspace-facts.ts), the judge's subject is
-// composed (subject.ts), and the platform's `eval` task grades it
-// (quality.ts). A session with a failed turn is recorded, not graded: the
+// composed (subject.ts), and a judge agent run grades it (quality.ts). A session with a failed turn is recorded, not graded: the
 // medians are over completed sessions, as the timing medians are.
 //
 // Nothing aborts the run but the stack itself. A provisioning or create error
@@ -369,7 +368,7 @@ async function gradeQualityCell(
     files_changed: [],
     checks: [],
     turns: [],
-    workflow_execution_id: "",
+    judge_run_id: "",
   } satisfies Omit<QualityCell, "outcome" | "failure">;
   try {
     let agent: ProvisionedAgent;
@@ -431,7 +430,7 @@ async function gradeQualityCell(
       files_changed: filesChanged,
       checks,
       turns: samples,
-      workflow_execution_id: verdict.workflow_execution_id,
+      judge_run_id: verdict.judge_run_id,
       outcome: verdict.outcome,
       ...(verdict.failure !== undefined ? { failure: verdict.failure } : {}),
     };

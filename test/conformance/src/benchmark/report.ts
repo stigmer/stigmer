@@ -58,8 +58,11 @@
 //   turn's final to-do list by state (`todos`), because the counts alone say
 //   how many rounds a turn took and never why (schema v4; the derivation is
 //   `tool-call-facts.ts`'s). Targets are kept, results and file contents never.
+// - A quality grade names the judge's agent run it was read from
+//   (`judge_run_id`, schema v5). A v5 grade and an earlier one come from
+//   different judging paths and are not compared.
 
-export const BENCHMARK_REPORT_SCHEMA_VERSION = 4;
+export const BENCHMARK_REPORT_SCHEMA_VERSION = 5;
 
 /** The runtime's harness vocabulary, as the runner's `turn_phases` line labels it. */
 export type BenchmarkHarness = "deep-agent" | "cursor";
@@ -339,9 +342,9 @@ export interface QualityCell {
   /** 1-based, of `methodology.quality_reps`. */
   rep: number;
   model_requested: string;
-  /** The judge model the eval task reports it used. */
+  /** The judge model the judge run reports it served. */
   judge_model: string;
-  /** The eval's weighted score, 0..1. */
+  /** The criteria's scores weighted by the task's weights, 0..1. */
   score: number | null;
   criteria: CriterionGrade[];
   reasoning: string;
@@ -349,7 +352,8 @@ export interface QualityCell {
   files_changed: FileChangeFact[];
   checks: QualityCheck[];
   turns: BenchmarkSample[];
-  workflow_execution_id: string;
+  /** The judge's AgentRun, the run the grade was read from. */
+  judge_run_id: string;
   outcome: SampleOutcome;
   failure?: SampleFailure;
 }

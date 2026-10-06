@@ -9,10 +9,9 @@
 // starts a conversation with the built-in assistant. The builder takes the
 // agent as a reference (`agentRef`, merged into the new session's spec), so
 // a turn on an agent never names an agent id: the server pins the agent and
-// version on the session and stamps them on the turn's status. Like
-// WorkflowRun this is a *running thing*, so this module also exposes
-// phase-await helpers, delegating the timing loop to the shared poll core
-// so both execution domains share one definition — and the submit-approval
+// version on the session and stamps them on the turn's status. An AgentRun
+// is a *running thing*, so this module also exposes phase-await helpers,
+// delegating the timing loop to the shared poll core — and the submit-approval
 // seam: the one place the approval read-model contract is
 // asserted (see the seam's own header below).
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
@@ -23,10 +22,7 @@ import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import type { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
-import type {
-  AttachmentSchema,
-  WorkflowParentSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import type { AttachmentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -57,9 +53,6 @@ export interface AgentExecutionOptions {
   agentRef?: AgentRefInit;
   sessionId?: string;
   sessionSpec?: MessageInitShape<typeof SessionSpecSchema>;
-  // The workflow run that started the turn (spec.parent): honoured only from
-  // that run's runner, the server, or a holder of can_write_reserved_labels.
-  parent?: MessageInitShape<typeof WorkflowParentSchema>;
   // Metadata labels, passed through verbatim (the lineage-label arms).
   labels?: Record<string, string>;
   // The user message that triggers the run; must be non-empty (proto min_len=1).
@@ -103,7 +96,6 @@ export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeo
     },
     spec: {
       ...executionTarget(opts),
-      ...(opts.parent !== undefined ? { parent: opts.parent } : {}),
       message: opts.message ?? "Say hello.",
       ...(opts.autoApproveAll !== undefined ? { autoApproveAll: opts.autoApproveAll } : {}),
       ...(opts.runtimeEnv !== undefined ? { runtimeEnv: makeExecutionValues(opts.runtimeEnv) } : {}),
@@ -152,8 +144,6 @@ export function sessionIdOf(execution: AgentRun | undefined): string {
 
 // Terminal = the engine will never move the phase again. PAUSED is NOT terminal
 // (resume revives it) and WAITING_FOR_APPROVAL is a wait, not an end state.
-// Note the AgentRun enum numbering diverges from WorkflowRun:
-// WAITING_FOR_APPROVAL=6, PAUSED=7, TERMINATED=8.
 const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
   RunPhase.RUN_COMPLETED,
   RunPhase.RUN_FAILED,
@@ -256,9 +246,7 @@ export function awaitTerminal(
 
 export interface SubmitApprovalPerContractOptions {
   // Issues the decision. Resolves to the AgentRun whose read model the
-  // contract is asserted on: the submit response for a direct submit; for the
-  // workflow forwarder — whose own response is the PARENT, loaded before the
-  // forward — a fresh get of the child.
+  // contract is asserted on: the submit response.
   submit: () => Promise<AgentRun>;
   // pending_approvals the response must carry after this decision: 0 for a
   // single gate, 1 for the first approve of two co-pending calls.

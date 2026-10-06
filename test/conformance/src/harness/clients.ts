@@ -24,8 +24,6 @@ import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
-import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
-import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
 import { PlanCommandController } from "@stigmer/protos/ai/stigmer/billing/plan/v1/command_pb";
@@ -50,10 +48,6 @@ import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plug
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
-import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
-import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
-import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
-import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
@@ -94,8 +88,6 @@ export interface ConformanceClients {
   agentChannelQuery: Client<typeof AgentChannelQueryController>;
   agentShareCommand: Client<typeof AgentShareCommandController>;
   agentShareQuery: Client<typeof AgentShareQueryController>;
-  artifactCommand: Client<typeof ArtifactCommandController>;
-  artifactQuery: Client<typeof ArtifactQueryController>;
   channelAppCommand: Client<typeof ChannelAppCommandController>;
   channelAppQuery: Client<typeof ChannelAppQueryController>;
   channelConversationCommand: Client<
@@ -111,10 +103,6 @@ export interface ConformanceClients {
   iamPolicyQuery: Client<typeof IamPolicyQueryController>;
   organizationCommand: Client<typeof OrganizationCommandController>;
   organizationQuery: Client<typeof OrganizationQueryController>;
-  workflowCommand: Client<typeof WorkflowCommandController>;
-  workflowQuery: Client<typeof WorkflowQueryController>;
-  workflowExecutionCommand: Client<typeof WorkflowRunCommandController>;
-  workflowExecutionQuery: Client<typeof WorkflowRunQueryController>;
   agentExecutionCommand: Client<typeof AgentRunCommandController>;
   agentExecutionQuery: Client<typeof AgentRunQueryController>;
   agentCommand: Client<typeof AgentCommandController>;
@@ -203,8 +191,6 @@ export function makeClients(transport: Transport): ConformanceClients {
     agentChannelQuery: createClient(AgentChannelQueryController, transport),
     agentShareCommand: createClient(AgentShareCommandController, transport),
     agentShareQuery: createClient(AgentShareQueryController, transport),
-    artifactCommand: createClient(ArtifactCommandController, transport),
-    artifactQuery: createClient(ArtifactQueryController, transport),
     channelAppCommand: createClient(ChannelAppCommandController, transport),
     channelAppQuery: createClient(ChannelAppQueryController, transport),
     channelConversationCommand: createClient(
@@ -241,16 +227,6 @@ export function makeClients(transport: Transport): ConformanceClients {
     iamPolicyQuery: createClient(IamPolicyQueryController, transport),
     organizationCommand: createClient(OrganizationCommandController, transport),
     organizationQuery: createClient(OrganizationQueryController, transport),
-    workflowCommand: createClient(WorkflowCommandController, transport),
-    workflowQuery: createClient(WorkflowQueryController, transport),
-    workflowExecutionCommand: createClient(
-      WorkflowRunCommandController,
-      transport,
-    ),
-    workflowExecutionQuery: createClient(
-      WorkflowRunQueryController,
-      transport,
-    ),
     agentExecutionCommand: createClient(
       AgentRunCommandController,
       transport,

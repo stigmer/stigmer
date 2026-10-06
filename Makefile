@@ -567,7 +567,7 @@ stage-server-library: node_modules ## Stage @stigmer/server and its @stigmer/* l
 
 # The compose gate: build both images from source and
 # prove the full self-host stack — server + Postgres + Temporal + runner —
-# up to one end-to-end workflow run. The same script the PR gate
+# up to one end-to-end agent run. The same script the PR gate
 # (ci.compose-stack.yaml) and the release lane run. Fixed ports 7234/7235:
 # stop any running `stigmer up` first.
 .PHONY: smoke-compose
@@ -685,10 +685,6 @@ test-conformance-all: ## Run both conformance slices (CRUD + execution)
 	$(MAKE) test-conformance
 	$(MAKE) test-conformance-execution
 	@echo "Conformance suite complete (local + local-execution)."
-
-.PHONY: test-replay
-test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)
-	@echo "test-replay: workflow-runner has been removed (unified into runner)"
 
 # ─── Plugin Catalogue Testing ────────────────
 

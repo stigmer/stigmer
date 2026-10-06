@@ -14,7 +14,7 @@
 //     same about the rows an outsider cannot see;
 //   - an org-less reference is INVALID_ARGUMENT for every kind.
 //
-// Out of scope: the version ladder (skill and workflow suites own it), the
+// Out of scope: the version ladder (the agent and skill suites own it), the
 // redactions (each kind's own suite), and the create-side bars
 // (parent-gated-create-authorization). Kinds whose rows are personal
 // (environment, execution context) have no org-visible arm; kinds that carry
@@ -38,7 +38,6 @@ import { uniqueName } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
 import { makeSchedule } from "../support/schedules";
 import { makeSkillArtifact } from "../support/skills";
-import { makeWorkflow } from "../support/workflows";
 import {
   createTarget,
   enforcingLaneOf,
@@ -132,22 +131,6 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
       using.agentQuery.getByReference({ org, slug }),
     cleanup: (using, id) => using.agentCommand.delete({ value: id }),
     deniedCopy: "unauthorized to get agent",
-  },
-  {
-    name: "workflow",
-    visible: true,
-    memberReads: true,
-    async seed(using, org, visibility) {
-      const input = makeWorkflow({ org, name: uniqueName("ref-wf") });
-      input.metadata = { ...input.metadata, visibility };
-      const created = await using.workflowCommand.create(input);
-      return { id: created.metadata!.id, slug: created.metadata!.slug };
-    },
-    getById: (using, id) => using.workflowQuery.get({ value: id }),
-    getByReference: (using, org, slug) =>
-      using.workflowQuery.getByReference({ org, slug }),
-    cleanup: (using, id) => using.workflowCommand.delete({ value: id }),
-    deniedCopy: "unauthorized to get workflow",
   },
   {
     name: "skill",

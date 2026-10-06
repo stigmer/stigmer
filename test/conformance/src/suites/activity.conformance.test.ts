@@ -9,10 +9,7 @@
 // page_size, and runtime-originated sessions (channel / share / guest /
 // schedule labels) are excluded for every caller.
 //
-// Scope: sessions only. This suite's targets run with no Temporal, so
-// workflow executions cannot be seeded here; the cross-kind merge and phase
-// projection are pinned by the Go handler's store-level tests (OSS) and the
-// cloud handler's step tests. Ordering is asserted on CREATION timestamps
+// Recents are sessions only. Ordering is asserted on CREATION timestamps
 // only: both editions stamp statusAudit.updatedAt at create, but which later
 // mutations bump it differs by design (the cloud bumps on session memory
 // persist — a runtime path this suite cannot drive; updateSubject bumps only
@@ -97,9 +94,7 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
     expect(secondPos).toBeLessThan(firstPos);
 
     const entry = response.entries.find((candidate) => candidate.id === third)!;
-    expect(entry.type).toBe("session");
     expect(entry.subject).toBe("Ship the release");
-    expect(entry.status, "sessions carry no status token").toBe("");
     expect(entry.updatedAt, "entries must carry the sort timestamp").toBeDefined();
   });
 

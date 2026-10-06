@@ -1,8 +1,8 @@
 // Conformance suite for the Plugin domain.
 // Domain: agentic / plugin — the unit of install. A plugin is pushed as the
 // archive of a plugin folder (Agent Plugins, Cursor, Claude Code or Codex
-// layout); the server materialises its skills, MCP servers, agent and
-// workflows in the organization as the installing caller, each labelled
+// layout); the server materialises its skills, MCP servers and agent
+// in the organization as the installing caller, each labelled
 // with the plugin's id and the archive digest, and derives membership from
 // those labels on read. The contract pinned here, on every edition:
 //   - install materialises exactly the members the package describes, and an
@@ -136,8 +136,6 @@ async function memberLabels(
       return (await clients.mcpServerQuery.get({ value: id })).metadata!.labels;
     case ApiResourceKind.agent:
       return (await clients.agentQuery.get({ value: id })).metadata!.labels;
-    case ApiResourceKind.workflow:
-      return (await clients.workflowQuery.get({ value: id })).metadata!.labels;
     default:
       throw new Error(`not a member kind: ${ApiResourceKind[kind]}`);
   }
@@ -165,7 +163,6 @@ describe("Plugin conformance — install", () => {
       skills: 1,
       mcpServers: 1,
       agents: 1,
-      workflows: 0,
     });
     expect(plugin.status?.warnings.map((w) => w.kind)).toContain(
       "model-hint-unresolved",
@@ -227,7 +224,6 @@ describe("Plugin conformance — install", () => {
       skills: 0,
       mcpServers: 1,
       agents: 0,
-      workflows: 0,
     });
     const { members } = await clients.pluginQuery.listMembers({
       value: plugin.metadata!.id,
@@ -814,30 +810,8 @@ describe("[rpc:PluginCommandController.push] Plugin conformance — the other di
     expect(agent.spec?.skillRefs.map((r) => r.slug)).toEqual([`${name}-notes`]);
   });
 
-  it("applies a workflow overlay as a member and a server overlay's Stigmer-only fields onto the declared server", async () => {
+  it("applies a server overlay's Stigmer-only fields onto the declared server", async () => {
     const name = uniqueName("plg-overlay");
-    const workflow = [
-      "apiVersion: agentic.stigmer.ai/v1",
-      "kind: Workflow",
-      "metadata:",
-      `  name: ${name}-digest`,
-      "spec:",
-      "  description: A digest over the plugin's tools",
-      "  document:",
-      '    dsl: "1.0.0"',
-      "    namespace: plugin",
-      `    name: ${name}-digest`,
-      '    version: "1.0.0"',
-      "  tasks:",
-      "    - name: setVars",
-      "      kind: set_vars",
-      "      task_config:",
-      "        variables:",
-      "          greeting: hello",
-      "      export:",
-      '        as: "${ . }"',
-      "",
-    ].join("\n");
     const serverOverlay = [
       "apiVersion: agentic.stigmer.ai/v1",
       "kind: McpServer",
@@ -851,11 +825,7 @@ describe("[rpc:PluginCommandController.push] Plugin conformance — the other di
       "",
     ].join("\n");
     const fixture = withFile(
-      withFile(
-        thermosLike(name),
-        `ai.stigmer/workflows/${name}-digest.yaml`,
-        workflow,
-      ),
+      thermosLike(name),
       `ai.stigmer/mcp-servers/${name}-github.yaml`,
       serverOverlay,
     );
@@ -865,22 +835,8 @@ describe("[rpc:PluginCommandController.push] Plugin conformance — the other di
       skills: 1,
       mcpServers: 1,
       agents: 1,
-      workflows: 1,
     });
 
-    const { members } = await clients.pluginQuery.listMembers({
-      value: plugin.metadata!.id,
-    });
-    expect(members.map((m) => ApiResourceKind[m.kind])).toEqual([
-      "skill",
-      "mcp_server",
-      "agent",
-      "workflow",
-    ]);
-    const flow = await clients.workflowQuery.getByReference(
-      ref(ApiResourceKind.workflow, `${name}-digest`),
-    );
-    expect(flow.metadata?.labels[PLUGIN_LABEL]).toBe(plugin.metadata?.id);
     const server = await clients.mcpServerQuery.getByReference(
       ref(ApiResourceKind.mcp_server, `${name}-github`),
     );
@@ -1076,8 +1032,7 @@ describe("Plugin conformance — the vendored Cursor plugins", () => {
         expect(members.length, `${name} counts match`).toBe(
           (plugin.status?.materialized?.skills ?? 0) +
             (plugin.status?.materialized?.mcpServers ?? 0) +
-            (plugin.status?.materialized?.agents ?? 0) +
-            (plugin.status?.materialized?.workflows ?? 0),
+            (plugin.status?.materialized?.agents ?? 0),
         );
       }
     } finally {

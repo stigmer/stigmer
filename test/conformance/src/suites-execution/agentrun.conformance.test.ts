@@ -1,17 +1,17 @@
 // Conformance suite for the AgentRun domain (Class B).
 // Domain: agentic / agentexecution — a single user message run through the agent
 // engine (Temporal orchestrator + TS runner + mock LLM), driven via the raw proto
-// stubs. The second execution domain after WorkflowRun.
+// stubs.
 //
 // Runs against the local-execution target, so Temporal is always present and
-// the workflowCreator is injected: create starts a real workflow that the runner
-// picks up and drives through an LLM loop served by the in-process mock proxy.
+// the workflowCreator is injected: create starts a real Temporal workflow that
+// the runner picks up and drives through an LLM loop served by the in-process mock proxy.
 // Every run is scripted by enqueuing turns on that mock — a single text turn
 // reaches COMPLETED; a `delayMs`-held turn keeps an execution genuinely
 // IN_PROGRESS so lifecycle RPCs (cancel/terminate/pause/resume) act on a running
-// thing (the AgentRun analogue of WorkflowRun's `wait` timer).
+// thing.
 //
-// Contract divergences from WorkflowRun, encoded as assertions below:
+// Contract points encoded as assertions below:
 // - No AlreadyExists on create: repeated identical creates yield distinct aex_
 //   ids (there is no CheckDuplicateStep in the agent-execution pipeline).
 // - An empty target (neither session_id nor a session_spec naming an agent)
@@ -19,7 +19,7 @@
 //   agent and the runner answers on its one built-in prompt with the tools the
 //   session itself carries, so the run reaches COMPLETED like any other — the
 //   arm pinned below and in the CRUD suite's session create.
-// - The query analogue of listByWorkflow is listBySession (filter by spec.session_id).
+// - Runs are listed by conversation through listBySession (filter by spec.session_id).
 //
 // A run's ExecutionContext lives as long as the run: the run-end activity
 // deletes it through the context's own delete chain (stigmer#1647), so once
@@ -34,13 +34,8 @@
 // suite (suites/agentrun.conformance.test.ts) so it also gates the cloud
 // edition.
 //
-// A turn's link to the workflow run that started it (spec.parent) is a fact
-// the server vouches for, and the turn's dispatch queue follows from it,
-// never from a caller: the workflow run's own queue under execution routing,
-// the shared runner pool under global routing (the local-execution target's).
-// The refusal of an unvouched link under an enforcing posture, and of a link
-// that disagrees with the workflow-execution lineage label, need no engine
-// and live in the CRUD-level suite; here the admitted link runs.
+// A turn's dispatch queue is the server's to derive, never a caller's: the
+// retired request field that once named one is read as an unknown field.
 //
 // Covered in a sibling file (kept separate because it needs the MCP tool
 // fixture and approval choreography, and this file is already large):
@@ -250,7 +245,7 @@ describe("AgentRun conformance — distinctness (no duplicate check)", () => {
 
     const first = await createExecution(org, agent, name);
 
-    // Same name again: unlike WorkflowRun there is no duplicate check, so
+    // Same name again: there is no duplicate check, so
     // this succeeds with a fresh id rather than rejecting with AlreadyExists.
     mock.enqueue(anthropicText("Done."));
     const second = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name, agentRef: agentRefOf(agent) }));
@@ -861,34 +856,6 @@ describe("AgentRun conformance — one-call session bootstrap (session_spec)", (
 const RETIRED_ACTIVITY_TASK_QUEUE_FIELD = 11;
 
 describe("AgentRun conformance — a turn's dispatch queue is the server's to derive", () => {
-  it("[rpc:AgentRunCommandController.create] a turn linked to a workflow run is admitted under trusted-local and, under global routing, runs on the shared runner pool", async () => {
-    const { org } = await target.provisionTenancy();
-    const agent = await provisionAgent(org);
-    const workflowExecutionId = foreignId("wex");
-
-    mock.enqueue(anthropicText("Done."));
-    const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({
-        org,
-        name: uniqueName("aex-parent"),
-        agentRef: agentRefOf(agent),
-        parent: { workflowRunId: workflowExecutionId },
-      }),
-    );
-    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
-    expect(created.spec?.parent?.workflowRunId, "the trusted-local caller's link is kept").toBe(
-      workflowExecutionId,
-    );
-
-    // A queue derived from the link (wfexec:<id>) has no poller here; only the
-    // shared pool's runner can complete the turn.
-    const final = await awaitTerminal(clients, created.metadata!.id);
-    expect(
-      final.status?.phase,
-      `the linked turn should complete on the shared pool; error: ${final.status?.error || "(none)"}`,
-    ).toBe(RunPhase.RUN_COMPLETED);
-  });
-
   it("[rpc:AgentRunCommandController.create] a request naming a dispatch queue in the retired field still runs on the shared runner pool", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);

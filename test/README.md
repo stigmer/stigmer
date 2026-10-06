@@ -4,7 +4,7 @@ The test surfaces of the Stigmer platform that live outside a package's own unit
 
 | Suite | Directory | What it tests | Runs |
 |-------|-----------|---------------|------|
-| **Conformance** | `conformance/` | The gRPC API contract, implementation-agnostic: the same suites run against the OSS `stigmer-server` (`local*` targets, booted from source) and against the cloud composition (`cloud*` targets, pre-provisioned by stigmer-cloud's readout recipe). Class A (CRUD) and the execution class (runner-backed), which since stigmer#1022 also carries the runner-behavior facets the Go offline suite used to hold — HITL and file review, structured output, sub-agents, memory retrieval, provider-error attribution, the LLM-backed workflow tasks — as scripted-turn arms on the same harness. The cross-edition instrument. | `make test-conformance`, `make test-conformance-execution`; the `cloud*` targets from stigmer-cloud |
+| **Conformance** | `conformance/` | The gRPC API contract, implementation-agnostic: the same suites run against the OSS `stigmer-server` (`local*` targets, booted from source) and against the cloud composition (`cloud*` targets, pre-provisioned by stigmer-cloud's readout recipe). Class A (CRUD) and the execution class (runner-backed), which since stigmer#1022 also carries the runner-behavior facets the Go offline suite used to hold — HITL and file review, structured output, sub-agents, memory retrieval, provider-error attribution — as scripted-turn arms on the same harness. The cross-edition instrument. | `make test-conformance`, `make test-conformance-execution`; the `cloud*` targets from stigmer-cloud |
 | **E2E (Playwright)** | `e2e/` | Browser UI tests — smoke, functional, and interactive tiers | see `e2e/` |
 | **Extension consumer** | `extension-consumer/` | A clean-room consumer of the `@stigmer/server` extension registry | `make test-extension-consumer` |
 
@@ -32,7 +32,7 @@ Coverage is measured from three layers: unit, integration and composed, which is
 
 ### Names
 
-The name of a test file is read at its last dotted segments before `.test` or `.spec`. A segment there is either a reserved word, which must be true, or a topic, which is free (`workflow.undo.test.tsx`, `list-read-scope.load-tenancy.test.ts`).
+The name of a test file is read at its last dotted segments before `.test` or `.spec`. A segment there is either a reserved word, which must be true, or a topic, which is free (`session.undo.test.tsx`, `list-read-scope.load-tenancy.test.ts`).
 
 - **Services**, the ones a gate provides: `postgres`, `openfga`, `vault` (OpenBAO), `temporal`. A file that reaches one carries its word, and a file that carries one reaches it. Reaching is a value use of the service's entry point, in the file or in a test helper it imports: a call of `testDatabaseAdminUrl` or `createTestDatabase`, a `gateDependency` call for the service's variable, or a `TestWorkflowEnvironment.createLocal()` or `createTimeSkipping()` that starts a Temporal test server (`MockActivityEnvironment` starts none). A type-only import or a mention in a string reaches nothing. Reaching is judged per module, not per imported name: importing anything from a helper that reaches a service reaches it, so a helper that mixes the two is split rather than named around.
 - **Layers**: `composed`, `conformance`, `browser`, `load`, `live`. A layer word goes only where its layer lives. A `composed`, `conformance`, `load` or `live` file may use any service without naming it, but may not name one it never reaches.

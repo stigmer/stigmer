@@ -12,8 +12,9 @@
  *      model a user configures pointed at the fake on this host
  *      (test/install/lib/fake-model.mjs), and checks that the
  *      server reports that release (getServerInfo);
- *   2. records state: a workflow run, and an agent run answered by the
- *      model, each in an organization of its own, every resource read back;
+ *   2. records state: an agent run answered by the model, in an
+ *      organization of its own, every resource read back; on a base that
+ *      still serves workflows, also one completed workflow run;
  *   3. upgrades to --to exactly as the guide says:
  *        compose     the release's docker-compose.yml, STIGMER_VERSION moved,
  *                    `docker compose pull`, `up -d` (operations.mdx)
@@ -26,8 +27,11 @@
  *      and checks that the server now reports --to, and that the new images
  *      (or the CLI's runtime) are the ones running;
  *   4. reads every recorded resource back and compares it field by field:
- *      nothing lost, nothing renamed, both runs still COMPLETED, the agent's
- *      reply intact, the agent still found by its org/slug reference;
+ *      nothing lost, nothing renamed, the run still COMPLETED, the agent's
+ *      reply intact, the agent still found by its org/slug reference; after
+ *      a base that recorded a workflow run, requires the workflow API gone
+ *      (an unrouted procedure) from a server that booted over the store
+ *      holding that run;
  *   5. runs the agent the old release stored, then a fresh agent in the
  *      organization the old release made, each to the model's reply;
  *   6. tears the install down, also on failure, with its diagnostics printed.
@@ -89,6 +93,7 @@ import { sourceBuildVersion } from "../../scripts/lib/source-version.mjs";
 import {
   assertPortFree,
   assertStateSurvived,
+  assertWorkflowApiGone,
   recordState,
   runAgentExecution,
   runAgentToReply,
@@ -436,6 +441,11 @@ async function main() {
     const api = await runApiOf(baseUrl);
     await assertStateSurvived(baseUrl, recorded);
     log(`read back unchanged: ${Object.keys(recorded.snapshot).join(", ")}; the old reply: ${recorded.snapshot.agentExecution.reply}`);
+    // The legacy workflow arm (stigmer#1989).
+    if (recorded.workflowRun !== undefined) {
+      await assertWorkflowApiGone(baseUrl);
+      log(`the workflow API is gone; the server booted over the store that held workflow run ${recorded.workflowRun.executionId}`);
+    }
     const oldAgent = await runAgentExecution(
       baseUrl,
       { orgId: recorded.ids.agentOrgId, agentId: recorded.ids.agentId, agentSlug: recorded.ids.agentSlug },

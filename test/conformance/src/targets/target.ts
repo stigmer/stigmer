@@ -59,10 +59,10 @@ export interface CapabilityFlags {
   // find unrouted and answers Unimplemented; tenants use findMyOrganizations
   // (proto documents find as platform-admin/administrative use only).
   organizationEnumeration: boolean;
-  // The dedicated WorkflowCommandController.tagVersion mutation RPC is
-  // implemented. False for local OSS, which has no handler (it answers
-  // Unimplemented) — version tags are instead set at apply time via
-  // metadata.version.tag and resolved through getByReference.
+  // The dedicated AgentCommandController.tagVersion mutation RPC is
+  // implemented. Where false, the suite pins that it answers Unimplemented
+  // and version tags are instead set at apply time via metadata.version.tag
+  // and resolved through getByReference.
   versionTagging: boolean;
   // The skill artifact transfer lane (stigmer#675): createArtifactUploadUrl /
   // push-by-reference / getArtifactDownloadUrl move artifact bytes over HTTP
@@ -82,20 +82,6 @@ export interface CapabilityFlags {
   // environment suite — the flag that used to gate this
   // (executionContextSecretRedaction) was retired at convergence, the same
   // retirement the environment surface got in stigmer#405.
-  // A child agent's tool-approval gate surfaces at the parent WorkflowRun
-  // (status.pending_approvals carries the child_agent_execution_id) so that
-  // WorkflowRun.submitApproval can forward the decision to the child.
-  //
-  // True for cloud and local-execution: the server's HITL loop emits the
-  // upstream half — the `child_approval_required` signal the agent-execution
-  // workflow sends when a child gates — and the parent surfaces the gate.
-  // False for the plain local target, which runs no engine. The reachable
-  // *negatives* (no pending approval, proto validation, missing execution)
-  // are sender-independent and are asserted unconditionally; the forwarder's
-  // happy-path assertions are gated on this flag so they run only where the
-  // full round-trip exists. (History: the retired Go server never sent the
-  // signal, which is why the flag exists.)
-  workflowChildApprovalForwarding: boolean;
   // Schedules actually FIRE here: a trigger records status.last_fire_at,
   // repeated failed fires accumulate status.consecutive_failures into the
   // platform auto-pause, and resume + re-trigger fires again. Requires a
@@ -288,7 +274,7 @@ export interface CapabilityFlags {
   // observable contract, never an absence to skip past.
   federatedIdentityAccounts: boolean;
   // IamPolicy `create` admits a grant on kinds BEYOND the organization: an
-  // agent, a workflow, a skill, an MCP server — the per-resource sharing the
+  // agent, a skill, an MCP server — the per-resource sharing the
   // console's "Manage access" dialog drives. The IamPolicy domain is core
   // in every edition (the row half: one grant path, the Members page, the
   // organization roles), but WHICH kinds a user may grant on is the composed
@@ -724,7 +710,7 @@ export interface TargetProfile {
   // Clients authenticated as a fresh identity holding exactly ONE grant: the
   // `member` role on the given tenancy — the "colleague" for
   // within-organization authorization assertions (the run gate: a member may
-  // start runs only on the agents and workflows they can see). Distinct
+  // start runs only on the agents they can see). Distinct
   // from provisionIdentity's outsider, whom the organization-level checks
   // already refuse before any resource-level rule is reached. Present only
   // on multi-tenant targets, where roles exist; local targets have a single
@@ -739,18 +725,6 @@ export interface TargetProfile {
   // there and the registry-proxy suite reports SKIPPED — the "genuinely
   // skipped, not false green" posture. Valid only after setup().
   httpBaseUrl?(): string;
-
-  // Base URL of the server's artifact HTTP file server — the ONE lane that
-  // deliberately lives on its own port beside the unified one (a plain
-  // FileServer over the artifact base path, served only when artifact
-  // storage is local). Present only on the local managed targets, whose
-  // spawned server binds it ephemeral (ARTIFACT_HTTP_PORT=0) and reports the
-  // port on its ready line (server-process.ts); absent on cloud,
-  // where artifact bytes travel through the service's own authenticated,
-  // presigned routes (a different contract) — the artifact suite's
-  // file-server block then reports SKIPPED at collection time, the
-  // registry-proxy posture. Valid only after setup().
-  artifactHttpBaseUrl?(): string;
 
   // The cloud-capability HTTP lanes, one accessor per lane because the
   // composition serves its extension-owned lanes on separate listeners.

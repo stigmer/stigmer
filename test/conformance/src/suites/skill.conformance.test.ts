@@ -3,7 +3,7 @@
 // first whose versioning is artifact-based rather than spec-based.
 //
 // Drives SkillCommandController + SkillQueryController through the raw proto
-// stubs. Skill diverges sharply from Workflow/Agent:
+// stubs. Skill diverges sharply from Agent:
 //   - There is no create/apply/update/validateSpec. A skill is *pushed* as a ZIP
 //     whose root SKILL.md carries YAML frontmatter; push is an upsert-by-slug.
 //   - Identity is server-derived: metadata.name and metadata.slug both come from
@@ -17,7 +17,7 @@
 //
 // No known deviations are expected: every user-reachable Skill path runs through
 // ValidateProtoStep (or, for pushFromRunArtifact, equivalent manual checks)
-// and returns correct gRPC codes — unlike Workflow's create pipeline.
+// and returns correct gRPC codes.
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -758,8 +758,8 @@ describe("[rpc:SkillQueryController.listVersions] Skill conformance — listVers
   });
 });
 
-// The content-addressed versioning contract (stigmer/stigmer#475 — the model
-// workflows pinned in #341): one content is one history row, re-pushing
+// The content-addressed versioning contract (stigmer/stigmer#475, the model
+// first pinned in #341): one content is one history row, re-pushing
 // archived content repoints the head instead of duplicating it, a tag names
 // exactly one version (single-holder, moving on every assignment), and
 // is_current follows the live head rather than row recency.
@@ -1042,8 +1042,7 @@ describe("[rpc:SkillCommandController.delete] Skill conformance — delete", () 
 describe("[rpc:SkillCommandController.pushFromRunArtifact] Skill conformance — pushFromRunArtifact (input validation)", () => {
   // pushFromRunArtifact is a DIRECT handler: it does not run through the
   // request pipeline, so protovalidate never executes. It instead performs its
-  // own ordered manual checks and — unlike Workflow's getVersion — returns the
-  // correct gRPC codes, so there is no deviation to register here.
+  // own ordered manual checks and returns the correct gRPC codes, so there is no deviation to register here.
   //
   // The happy path requires a real execution artifact already present in the
   // server's execution-artifact storage (produced by an agent execution). The
