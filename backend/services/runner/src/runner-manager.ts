@@ -768,15 +768,11 @@ export interface InterceptorConfig {
 export async function buildInterceptorConfig(
   workflowSourceKind: WorkflowSource["kind"] = resolveWorkflowSource().kind,
 ): Promise<InterceptorConfig> {
-  const { createWorkflowMetricsSinks } = await import(
-    "./interceptors/workflow-metrics-sink.js"
-  );
-
   // The run credential (shared/run-credential.ts), always on and inert
   // without a credential — the same interceptor the static root registers
   // (worker.ts).
   const activityInterceptors: ActivityInterceptorsFactory[] = [runCredentialActivityInterceptor];
-  let sinks: InjectedSinks<any> = { ...createWorkflowMetricsSinks() };
+  let sinks: InjectedSinks<any> = {};
   const workflowInterceptorModules: string[] = [];
 
   // In-flight activity counter: keeps a session worker alive while one of

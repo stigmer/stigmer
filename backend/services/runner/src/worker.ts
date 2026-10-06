@@ -48,15 +48,13 @@ export async function startWorker(opts: StartWorkerOptions): Promise<StartedWork
     ...config.temporalConnection,
   });
 
-  const { createWorkflowMetricsSinks } = await import("./interceptors/workflow-metrics-sink.js");
-
   const workflowSource = resolveWorkflowSource();
 
   // The run credential (shared/run-credential.ts): the activity interceptor
   // enters the credential a dispatch carries for the client to present.
   // Always on; inert without a credential.
   const activityInterceptors: ActivityInterceptorsFactory[] = [runCredentialActivityInterceptor];
-  let sinks: InjectedSinks<any> = { ...createWorkflowMetricsSinks() };
+  let sinks: InjectedSinks<any> = {};
   const workflowInterceptorModules: string[] = [];
 
   if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
