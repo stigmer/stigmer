@@ -9,9 +9,8 @@
  * try_files chain must map a real-value request back onto that file. When
  * the mapping misses, the request falls through to /index.html — a page
  * that deliberately renders nothing — and the user sees the app shell with
- * a blank main area. That exact failure shipped twice before this gate
- * existed (/conversations/[channelId]/[key] and /workflows/[org]/[slug]):
- * nothing in the repo exercised the production serving path, so nginx and
+ * a blank main area. That exact failure shipped before this gate existed
+ * (/conversations/[channelId]/[key] among others): nothing in the repo exercised the production serving path, so nginx and
  * the route tree drifted apart silently.
  *
  * This gate re-derives both sides from their sources of truth on every run:
