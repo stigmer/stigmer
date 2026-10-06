@@ -33,8 +33,6 @@
  *        @cursor/sdk (+platform, +deps)   ← Cursor's own JS + native helper
  *                                           binaries; theirs to distribute,
  *                                           never repackaged
- *        jq-wasm                          ← Emscripten loader needs its
- *                                           co-located wasm
  *        @temporalio/common, @grpc/...    ← runtime deps of the native bridge
  *
  * 2. npm packages (`--emit-packages`) — `dist-slim-pkgs/` with publishable
@@ -86,16 +84,15 @@ const pkgsDir = join(runnerRoot, "dist-slim-pkgs");
  * - @cursor/sdk: resolves its per-platform helper binaries (cursorsandbox,
  *   rg) from sibling packages at runtime. (Its SQLite is `node:sqlite` since
  *   1.0.31; the native `sqlite3` module it once pulled in is gone.)
- * - jq-wasm: Emscripten loader reads its .wasm relative to its own module.
  *
- * @temporalio/core-bridge (the third native piece) is NOT listed here: it is
+ * @temporalio/core-bridge (the other native piece) is NOT listed here: it is
  * aliased to core-bridge-shim.cjs, which dispatches to the per-platform
  * @stigmer/runner-slim-<platform> package. Duplicated @temporalio/common
  * copies (bundled + the staged one core-bridge links against) are safe:
  * Temporal's error classes use Symbol.for-based instanceof precisely so
  * multiple copies interoperate.
  */
-const RUNTIME_EXTERNALS = ["@cursor/sdk", "jq-wasm"];
+const RUNTIME_EXTERNALS = ["@cursor/sdk"];
 
 /**
  * Assets that bundled modules read from disk relative to their __dirname.
@@ -482,7 +479,6 @@ function metaPackageJson() {
       // Exact: must not skew from the platform packages' native bridge.
       "@temporalio/common": installedVersion("@temporalio/common"),
       "@grpc/grpc-js": `^${installedVersion("@grpc/grpc-js")}`,
-      "jq-wasm": `^${installedVersion("jq-wasm")}`,
     },
     optionalDependencies,
     keywords: [...(runnerPkg.keywords ?? []), "embedding", "desktop"],
@@ -606,7 +602,7 @@ function emitNpmPackages() {
     `# @stigmer/runner-slim\n\n` +
       `The bundle-friendly build of [@stigmer/runner](https://www.npmjs.com/package/@stigmer/runner) ` +
       `for embedding in desktop apps: a self-contained \`main.js\` plus only the dependencies that ` +
-      `genuinely cannot be bundled (native Temporal bridge, Cursor SDK binaries, jq wasm). ` +
+      `genuinely cannot be bundled (native Temporal bridge, Cursor SDK binaries). ` +
       `~85 MB installed per platform instead of ~508 MB.\n\n` +
       `Spawn \`node node_modules/@stigmer/runner-slim/main.js\` (or the \`stigmer-runner\` bin) ` +
       `exactly as you would the full package's \`dist/main.js\` — same modes, same IPC protocol, ` +

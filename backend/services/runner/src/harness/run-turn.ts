@@ -283,7 +283,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         // The execution completes here, so its answer rides the slim as it
         // does from `completeTurn`: the seed carried the transcript and any
         // structured output the paused turn resolved.
-        return { kind: "return", value: completionSlim(lastAssistantText()) };
+        return { kind: "return", value: slimStatus(status) };
       }
       case "hooks-refused": {
         // The agent's hooks cannot run as written: refused with a sentence
@@ -534,8 +534,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
    * the execution asked for, extracted from that text unless the adapter
    * already folded it onto the status; the plan artifact in plan mode; the
    * write-back safety net; the one persist that makes COMPLETED and the
-   * structured output visible atomically; the slim return with `final_text`
-   * and `structured` beside it.
+   * structured output visible atomically; the slim return.
    */
   async function completeTurn(turn: TurnInput, phase: RunPhase): Promise<Settled> {
     status.completedAt = utcTimestamp();
@@ -576,10 +575,10 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         `hasStructuredOutput=${status.structuredOutput !== undefined}` +
         (status.error ? `, error=${status.error}` : ""),
     );
-    return { kind: "return", value: completionSlim(finalText) };
+    return { kind: "return", value: slimStatus(status) };
   }
 
-  /** The last assistant text on the transcript: the turn's `final_text`. */
+  /** The last assistant text on the transcript: the turn's answer. */
   function lastAssistantText(): string | undefined {
     return [...status.messages].reverse().find((m) => m.type === MessageType.MESSAGE_AI)?.content;
   }
@@ -596,20 +595,6 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     if (status.structuredOutput !== undefined || !turn.structuredOutputSchema || !finalText) return;
     const extracted = await extractStructuredOutputFromText(turn, finalText);
     if (extracted !== undefined) status.structuredOutput = extracted as JsonObject;
-  }
-
-  /**
-   * The slim return of a COMPLETED execution: the status the workflow reads,
-   * with `final_text` and `structured` beside it for the callers that consume
-   * an agent's answer as a value (`call-agent-orchestrator.ts`). One shape for
-   * the two ways an execution completes — the engine's own finish and the
-   * pure file-review resume.
-   */
-  function completionSlim(finalText: string | undefined): Record<string, unknown> {
-    const slim = slimStatus(status) as Record<string, unknown>;
-    if (finalText !== undefined) slim.final_text = finalText;
-    if (status.structuredOutput !== undefined) slim.structured = status.structuredOutput;
-    return slim;
   }
 
   /**

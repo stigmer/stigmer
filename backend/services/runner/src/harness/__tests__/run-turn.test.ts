@@ -180,8 +180,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const second = await driver.turn([]);
       const slim = slimOf(subject, second);
       expect(slim.phase).toBe("RUN_COMPLETED");
-      expect(slim.structured, "the pure-reconcile completion carries the answer as a value").toEqual({ answer: 42 });
-      expect(slim.final_text).toBe('{"answer": 42}');
+      expect(driver.record.lastFullStatus?.structuredOutput, "the pure-reconcile completion keeps the answer").toEqual({ answer: 42 });
     });
   });
 

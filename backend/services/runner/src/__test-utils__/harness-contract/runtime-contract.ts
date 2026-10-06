@@ -272,8 +272,8 @@ export interface RuntimeArmResult {
 /**
  * A completed turn: the runtime's own six resolution labels lead the setup
  * progress (a harness's follow), an engine-minted adapter binds exactly once
- * and its id is on the session, the slim return carries `final_text` and no
- * transcript, `completedAt` is stamped, no error, the whole-activity
+ * and its id is on the session, the persisted transcript ends with the answer
+ * and the slim return carries none of it, `completedAt` is stamped, no error, the whole-activity
  * heartbeat pulsed, and the usage the adapter priced is summed on the status.
  */
 export async function assertCompletedTurn(harness: RuntimeContractHarness, label = "rt-completed"): Promise<RuntimeArmResult> {
@@ -284,7 +284,6 @@ export async function assertCompletedTurn(harness: RuntimeContractHarness, label
 
   const slim = slimOf(subject, invocation);
   expect(slim.phase, `${subject.name}: a completed turn returns COMPLETED`).toBe("RUN_COMPLETED");
-  expect(slim.final_text, `${subject.name}: the slim return carries the last assistant text`).toBe(text);
   expect(slim, `${subject.name}: the slim return carries no transcript`).not.toHaveProperty("messages");
   expect(driver.record.persistedPhases.at(-1), `${subject.name}: the last persist is COMPLETED`).toBe(RunPhase.RUN_COMPLETED);
   expect(driver.record.setupProgress.slice(0, RUNTIME_SETUP_LABELS.length), `${subject.name}: the runtime's resolution labels lead the setup progress`).toEqual([...RUNTIME_SETUP_LABELS]);
@@ -295,6 +294,7 @@ export async function assertCompletedTurn(harness: RuntimeContractHarness, label
     expect(driver.record.sessionUpdates, `${subject.name}: a deterministic adapter binds nothing`).toHaveLength(0);
   }
   const final = finalStatusOf(harness, driver);
+  expect(aiMessages(final).at(-1), `${subject.name}: the transcript ends with the last assistant text`).toBe(text);
   expect(final.completedAt, `${subject.name}: a completed turn is stamped`).not.toBe("");
   expect(final.error, `${subject.name}: a completed turn carries no error`).toBe("");
   expect(final.streamingUsage?.inputTokens, `${subject.name}: the usage the adapter reported is summed on the status`).toBe(1_200n);
@@ -330,7 +330,7 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, l
 
   const second = await driver.turn([propose, scenario.say("Done.")]);
   expect(slimOf(subject, second).phase, `${subject.name}: after APPROVE the turn completes`).toBe("RUN_COMPLETED");
-  expect(slimOf(subject, second).final_text).toBe("Done.");
+  expect(aiMessages(finalStatusOf(harness, driver)).at(-1)).toBe("Done.");
   expect(subject.executionCount(id), `${subject.name}: APPROVE executes exactly once`).toBe(1);
   expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits after the approval`).toHaveLength(0);
   expect(driver.record.sessionUpdates, `${subject.name}: a resumed engine binds nothing new`).toHaveLength(bindsAfterFirst);
@@ -455,7 +455,7 @@ export async function assertNonExecutingDecisionSettlesSkipped(
 
   const second = await driver.turn([propose, scenario.say("Moving on.")]);
   expect(slimOf(subject, second).phase, `${subject.name}: after ${verdict} the run continues to COMPLETED — it does not fail`).toBe("RUN_COMPLETED");
-  expect(slimOf(subject, second).final_text, `${subject.name}: the step after the ${verdict}ed action ran`).toBe("Moving on.");
+  expect(aiMessages(finalStatusOf(harness, driver)).at(-1), `${subject.name}: the step after the ${verdict}ed action ran`).toBe("Moving on.");
   expect(subject.executionCount(id), `${subject.name}: a ${verdict}ed action never executes`).toBe(0);
 
   const final = finalStatusOf(harness, driver);
@@ -803,7 +803,7 @@ export async function assertPlatformStopCompletesEarly(harness: RuntimeContractH
 
 // ── Arms: the engine ends its own run ───────────────────────────────────────
 
-/** An engine-cancelled run ends CANCELLED: no error, no copy, no `final_text`, stamped. */
+/** An engine-cancelled run ends CANCELLED: no error, no copy, stamped. */
 export async function assertEngineCancelledEndsCancelled(harness: RuntimeContractHarness, label = "rt-cancelled"): Promise<RuntimeArmResult> {
   const { subject } = harness;
   const driver = new RuntimeExecutionDriver(harness, label);
@@ -812,7 +812,6 @@ export async function assertEngineCancelledEndsCancelled(harness: RuntimeContrac
 
   const slim = slimOf(subject, invocation);
   expect(slim.phase, `${subject.name}: an engine cancel ends CANCELLED`).toBe("RUN_CANCELLED");
-  expect(slim).not.toHaveProperty("final_text");
   expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_CANCELLED);
   const final = finalStatusOf(harness, driver);
   expect(final.error).toBe("");
@@ -995,7 +994,7 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       await subject.adapter.shutdown();
     });
 
-    it("a completed turn: the runtime's labels, one bind, final_text, the summed usage, the heartbeat", async () => {
+    it("a completed turn: the runtime's labels, one bind, the answer on the transcript, the summed usage, the heartbeat", async () => {
       clock.reset();
       await assertCompletedTurn(harness);
     });

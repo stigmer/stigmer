@@ -2,11 +2,12 @@
 # Upgrade Rehearsal — every install moved from the last release to this change
 # =============================================================================
 # For each packaged install, test/install/rehearse-upgrade.mjs installs the newest
-# stable release the way its guide says, records state (a workflow run and an
-# agent run answered by the fake model), upgrades to this change built from
-# source by the guide's own procedure, then proves every recorded resource
-# reads back unchanged and that the old agent and a fresh one still reach
-# the model's reply. A change that loses what the last release stored, or
+# stable release the way its guide says, records state (an agent run answered
+# by the fake model, and a workflow run where that release still serves
+# workflows), upgrades to this change built from source by the guide's own
+# procedure, then proves every recorded agent resource reads back unchanged,
+# the workflow API is gone from a server that booted over the stored run, and
+# the old agent and a fresh one still reach the model's reply. A change that loses what the last release stored, or
 # breaks the documented upgrade, turns this lane red before it merges.
 #
 # One job per install, each on its own machine: compose, Helm and the CLI
