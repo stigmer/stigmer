@@ -93,13 +93,14 @@ answered normally.
 ## Tool approvals never reach your customers
 
 Some tools require human approval before they run — shell commands, file writes
-and deletes, and MCP tools their server marks destructive. A WhatsApp user is
-your customer, not an approver: they never see approval prompts, tool names, or
-platform mechanics. When a gated tool comes up in a channel conversation, the
-platform skips it automatically and the Agent explains in plain language what it
-could not do — the conversation always gets a reply. In the console's
-conversation view, the skipped call shows as "skipped: approval not available on
-this surface".
+and deletes, MCP tools their server marks destructive, and any call the Agent's
+hooks ask about. A WhatsApp user is your customer, not an approver: they never
+see approval prompts, tool names, or platform mechanics. When a gated tool comes
+up in a channel conversation, the platform skips it automatically and the Agent
+explains in plain language what it could not do — the conversation always gets a
+reply. In the console's conversation view, the skipped call shows as "skipped:
+approval not available on this surface". A call the Agent's hooks refuse is
+refused here as anywhere.
 
 **Design the Agent so this rarely happens.** For actions the customer's own
 intent authorizes — booking their appointment, creating their ticket — use the

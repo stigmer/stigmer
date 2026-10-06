@@ -27,7 +27,7 @@ By default there is nothing to configure. Stigmer asks before:
 - file writes and deletes;
 - any MCP tool whose server marks it destructive (`destructiveHint: true` in the tool's MCP annotations, recorded at connect on `DiscoveredTool.destructive_hint`).
 
-Nothing else asks. An MCP tool's approval card reads `Execute <tool>`.
+Nothing else asks by default; an agent's hooks can change that (below). An MCP tool's approval card reads `Execute <tool>`.
 
 To keep an agent away from a tool rather than asking about it, leave the tool out with the agent's `tools` and `disallowed_tools` lists (see the Agent resource's `mcp-server-integration.md`). The lists hold under every bypass below: a run that approves everything still cannot call a tool its lists exclude.
 
@@ -280,6 +280,6 @@ The server records `status.approval_mode = APPROVAL_MODE_UNATTENDED` on these tu
 The principle behind the design is that there are **two different consents**:
 
 1. **Operator consent** — the HITL gate. It protects the org's tools and data, and is never delegated to an external user: a channel customer cannot authorize the org's destructive operations.
-2. **End-user intent confirmation** — "book Monday 10 AM — shall I?". This is conversational, owned by the agent's instructions. A tool a channel customer should be able to trigger after confirming in-conversation must be one that runs without approval: an MCP tool its server does not mark destructive.
+2. **End-user intent confirmation** — "book Monday 10 AM — shall I?". This is conversational, owned by the agent's instructions. A tool a channel customer should be able to trigger after confirming in-conversation must be one that runs without approval: an MCP tool its server does not mark destructive and the agent's hooks do not ask about.
 
 A future "park the turn and notify an org approver asynchronously" behavior would be a new `ApprovalMode` value, not a reinterpretation of unattended.

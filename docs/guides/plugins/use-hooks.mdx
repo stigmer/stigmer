@@ -1,0 +1,195 @@
+---
+title: Guard an agent's tools with hooks
+description:
+  Install a plugin whose hooks guard tool calls, read what each hook runs,
+  switch the hooks on for an Agent, write your own, and know what differs from
+  Claude Code.
+---
+
+A hook is a command that runs around an Agent's tool calls. Before a call it can
+refuse it, ask you first, or let it run without the approval it would otherwise
+need; after a call it can tell the Agent something about the result. Hooks are
+how a plugin sets tool policy on Stigmer, in Claude Code's hooks format or
+Cursor's, and they run on both engines, in the Cloud and on your laptop.
+[Approval flows](/docs/concepts/approval-flows) explains where hooks sit beside
+the default approvals and the Agent's tool lists; this page puts one to work.
+
+The example is Anthropic's hookify, a Claude Code plugin whose hooks check every
+tool call against rules you write in plain Markdown.
+
+## Install a plugin with hooks
+
+Add Claude Code's official marketplace once, then install hookify from it:
+
+```bash
+stigmer marketplace add anthropics/claude-plugins-official
+stigmer install claude-plugins-official/hookify
+```
+
+The install output, and `stigmer validate -f` on a plugin folder, has a `Hooks`
+line that counts the plugin's hooks per event:
+
+```text
+Installs
+  Skills       1: writing-hookify-rules
+  MCP servers  none
+  Sub-agents   1: conversation-analyzer
+  Hooks        Claude Code format: PreToolUse 1, PostToolUse 1
+  Variables    none
+```
+
+The console's install preview shows the same line, whether you install from the
+Marketplace or upload a folder
+([Install from the console](/docs/guides/plugins/install-from-the-console)).
+
+## Read what the hooks run
+
+Open the plugin's page in the console. Its **Hooks** section lists every hook
+the plugin brings: the event in plain words beside its own name (**Before a tool
+call** for `PreToolUse`), which tools it matches (**every tool** when it names
+none), and the exact command it runs, with its timeout and condition when it has
+them. For hookify that is two commands:
+
+```text
+Before a tool call  PreToolUse  on every tool
+  python3 "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.py"
+After a tool call  PostToolUse  on every tool
+  python3 "${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse.py"
+```
+
+A hook runs as code on every call it matches, in the workspace of whoever runs
+the Agent, so read the commands before you switch a plugin on.
+
+Below them, **Not run on Stigmer** lists each hook the plugin carries that
+Stigmer leaves out, with the reason. hookify's hooks for when the agent stops
+(`Stop`) and when you send a prompt (`UserPromptSubmit`) are there: Stigmer runs
+hooks on tool calls only. So is any hook that is not a command (an HTTP or
+prompt hook), and a `hooks/` folder in a plugin that has only the open Agent
+Plugins manifest, which defines no hooks.
+
+## Switch the hooks on for an Agent
+
+A plugin's hooks guard no Agent until an Agent names the plugin. The Agent a
+plugin installs names it already; any other Agent of yours can too.
+
+In the console, choose **Add to an agent** on the plugin's page, pick the Agent
+and choose **Add**. The dialog lists what the Agent gets (the plugin's hooks,
+and its MCP Servers when the plugin installed tools and no Agent) and the
+variables the hooks read. Each such variable is declared on the Agent as a
+secret, and the Agent asks for it when a Session starts. An Agent a plugin
+installed cannot be changed here; the dialog says so.
+
+The Agent's page then shows a **Hooks** section that names the plugin and lists
+every command it runs. To switch a plugin's hooks on from there, edit the
+section and type the plugin's name; to switch them off, remove it.
+
+In YAML, list the plugin under the Agent's `hooks`:
+
+```yaml validate-as="Agent"
+spec:
+  hooks:
+    - plugin:
+        kind: plugin
+        slug: hookify
+```
+
+A plugin reference with no version follows the plugin's installed version.
+
+## See a hook decide
+
+hookify reads its rules from `.claude/hookify.<name>.local.md` files in the
+folder the Agent works in. This rule, one of hookify's own examples, refuses a
+recursive delete:
+
+```markdown
+---
+name: block-dangerous-rm
+enabled: true
+event: bash
+pattern: rm\s+-rf
+action: block
+---
+
+Dangerous rm command detected. Verify the path first.
+```
+
+Ask the Agent to run `rm -rf` on something. The call is refused before it runs,
+and the Agent reads the rule's message as the reason. A hook that asks instead
+pauses the call for your decision, and the approval says the hook decided it:
+"decided by the hookify plugin's hook". **Approve all** at that approval
+approves the rest of what that hook asks about on that tool, for the rest of the
+run.
+
+A hook's refusal holds when you trust the whole run (a Session's automatic
+approval, or `auto_approve_all` on an execution): the call still does not run.
+On a channel or a guest share, where nobody can approve, a call a hook asks
+about is skipped, as any call that asks is.
+
+## Write your own hooks
+
+An Agent can carry one block of hooks written in it, in Claude Code's
+`hooks.json` shape: one group per event, an optional matcher, and its handlers.
+
+```yaml validate-as="Agent"
+spec:
+  hooks:
+    - inline:
+        groups:
+          - event: PreToolUse
+            matcher: Bash
+            handlers:
+              - command: "./scripts/check-push.sh"
+                condition: "Bash(git push *)"
+                timeout_seconds: 30
+```
+
+The handler reads the call as JSON on its standard input and answers the way a
+Claude Code hook does: exit code 2 refuses the call with its standard error as
+the reason, and JSON on its standard output can allow, ask or refuse. A handler
+that fails, times out or prints nothing makes no decision, and the call keeps
+the default. `condition` is Claude Code's `if`.
+
+A script in the workspace is a convenience, not a boundary: the Agent can edit
+its workspace, the script included. A plugin's own hooks run from its installed
+files, which Stigmer restores before every hook run, so a policy that must hold
+against the Agent belongs in a plugin. The console shows written hooks on the
+Agent's page under **Written in this agent**; you change them in the Agent's
+YAML. The [Agent resource reference](/docs/sdk/resources/agent) has every field.
+
+## Remove a plugin an Agent uses
+
+Removing a plugin is refused while one of your Agents names it in its hooks, and
+the refusal names each Agent: switch the hooks off on those Agents first, from
+their pages or their YAML. Without that, the Agent's next run would be refused
+for a plugin that is gone.
+
+## What differs from Claude Code
+
+The same plugin, unchanged, behaves as it does in Claude Code, with these
+differences:
+
+- Stigmer runs command hooks on tool calls only: `PreToolUse` and `PostToolUse`
+  in Claude Code's format, and `preToolUse`, `beforeShellExecution`,
+  `beforeMCPExecution`, `postToolUse` and `afterMCPExecution` in Cursor's. The
+  plugin's page lists the rest as not run.
+- A hook sees Stigmer's tools under Claude Code's names: the shell is `Bash`,
+  the file tools are `Read`, `Write` and `Edit`, a directory listing is `Glob`,
+  delegation is `Agent`, and an MCP tool is `mcp__<server>__<tool>`
+  (`mcp__plugin_<plugin>_<server>__<tool>` for a server the plugin brought).
+  Stigmer's own channel, conversation and memory tools reach no hook.
+- After a shell command, a hook's `tool_response` carries the whole output as
+  `stdout` and an empty `stderr`: the shell merges the two streams.
+- A hook cannot replace a tool's result (`updatedToolOutput`) or stop the turn
+  (`continue: false`); both are ignored. A warning a hook gives without a
+  decision (`systemMessage`) is not shown yet.
+- A hook reads a plugin setting by passing `${user_config.KEY}` in its `args`;
+  only a setting passed that way is also set as `CLAUDE_PLUGIN_OPTION_<KEY>`.
+- A Cursor-format hook that asks gets an approval on both engines, where Cursor
+  itself lets the call run.
+- Hook files in a repository (`.claude/settings.json`, `.cursor/hooks.json`)
+  never run for the Agent; only the Agent's own hooks do.
+
+The engines differ too: on the Cursor engine a hook is not told which sub-agent
+made a call, web fetch and web search reach no hook, and a rewrite applies only
+where Cursor applies one. [Approval flows](/docs/concepts/approval-flows) has
+the full list.

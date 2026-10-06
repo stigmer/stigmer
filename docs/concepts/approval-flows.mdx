@@ -35,9 +35,10 @@ By default there is nothing to configure. Stigmer asks before:
 - any MCP tool whose server marks it destructive, with the MCP annotation
   `destructiveHint: true`
 
-Nothing else asks. Stigmer reads the annotation when you connect the
-[MCP Server](/docs/concepts/tools), so the server's author decides which of its
-tools are destructive. A server that annotates nothing never asks.
+Nothing else asks unless the Agent's hooks do (below). Stigmer reads the
+annotation when you connect the [MCP Server](/docs/concepts/tools), so the
+server's author decides which of its tools are destructive. A server that
+annotates nothing never asks.
 
 Stigmer records the annotations each time a server connects, and reads them from
 that record. Connect a server again after its author changes them. A server
@@ -48,8 +49,12 @@ An Agent's hooks can change that, call by call. A hook is a command in Claude
 Code's or Cursor's hooks format, from a plugin or written in the Agent itself,
 that runs before a tool call. It can refuse the call, ask you first, or let it
 run without the approval it would otherwise need; a call it says nothing about
-keeps the default. A hook's refusal holds even when you trust the whole run. To
-apply a plugin's hooks, reference the plugin in the Agent's `hooks`:
+keeps the default. A hook's refusal holds even when you trust the whole run. A
+hook can also run after a call succeeds (`PostToolUse`, or Cursor's
+`postToolUse` and `afterMCPExecution`) to tell the Agent something about the
+result. Stigmer runs command hooks on tool calls only; a plugin's page lists
+every other hook it carries as not run. To apply a plugin's hooks, reference the
+plugin in the Agent's `hooks`:
 
 ```yaml validate-as="Agent"
 spec:
@@ -58,6 +63,10 @@ spec:
         kind: plugin
         slug: safety
 ```
+
+[Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks) walks
+through switching a plugin's hooks on, writing your own, and what differs from
+Claude Code.
 
 Both engines run hooks in both formats, in the Cloud and on your laptop: a
 Claude Code plugin's hooks work on the Cursor engine, and a Cursor plugin's on
@@ -132,8 +141,9 @@ conversation and memory tools, and `think`, are outside the lists.
 `auto_approve_all` on an execution skips every approval, which suits automated
 processes where a human has already authorized the operation. At an approval,
 **Approve all** for one kind of tool (every shell command, or every tool of one
-server) stops asking about that kind for the rest of the run. Neither widens the
-Agent's tool lists.
+server) stops asking about that kind for the rest of the run; at an approval a
+hook asked for, it approves the rest of what that hook asks about on that tool.
+Neither widens the Agent's tool lists, and a hook's refusal still holds.
 
 Embedding products can also set the _default_ for their interactive Sessions:
 `StigmerProvider`'s `approvalDefaults` prop pre-arms the session-scoped
@@ -175,9 +185,10 @@ A few principles:
   things up needs `tools: [Read, Grep, mcp__<server-slug>]`, not an approval on
   every write.
 - **Approval is for the person at the conversation.** On a channel or a guest
-  share there is no approver, so a tool that asks is skipped there. Keep the
-  tools such an Agent needs free of `destructiveHint`, and confirm intent in the
-  conversation instead.
+  share there is no approver, so a tool that asks, by default or because a hook
+  asks, is skipped there; a hook's refusal still holds. Keep the tools such an
+  Agent needs free of `destructiveHint` and of hooks that ask, and confirm
+  intent in the conversation instead.
 
 The goal is to make the approval decision quick. The human should see the
 request and immediately understand what's happening and whether to allow it.

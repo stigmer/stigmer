@@ -79,12 +79,14 @@ tool to call. In the demo above, Neon exposes five tools: `list_projects`,
 
 ### Which tools ask for approval
 
-A tool asks for human approval before it runs when the server marks it
-destructive, with the MCP annotation `destructiveHint: true`. The server's
+By default, a tool asks for human approval before it runs when the server marks
+it destructive, with the MCP annotation `destructiveHint: true`. The server's
 author makes that call, and every Agent that uses the server follows it. Every
-other tool runs without asking. There is no per-server or per-Agent approval
-setting: to keep an Agent away from a tool such as `run_sql`, leave it out with
-the Agent's tool lists, below.
+other tool runs without asking. There is no approval setting on the server
+itself: an Agent's hooks can refuse, ask about or allow any of its tools
+([Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks)), and to
+keep an Agent away from a tool such as `run_sql`, leave it out with the Agent's
+tool lists, below.
 
 ## Authentication patterns at a glance
 

@@ -92,11 +92,13 @@ are read-only data endpoints, and a tool list never names them.
 Stigmer asks before shell commands, file writes and deletes, and any MCP tool
 whose server marks it destructive (`destructiveHint: true` in the tool's MCP
 annotations, recorded at connect as
-`discovered_capabilities.tools[].destructive_hint`). Nothing else asks. The
-approval card reads `Execute <tool>`.
+`discovered_capabilities.tools[].destructive_hint`). By default nothing else
+asks. The approval card reads `Execute <tool>`.
 
-There is no per-agent or per-server approval setting. To keep an agent away from
-a tool, leave it out with the tool lists.
+The server carries no approval setting of its own. An agent's `hooks` decide
+call by call: a hook can refuse any tool, ask about it, or let it run without
+the approval it would otherwise need (see [Hooks](agent-resource-guide.md#hooks)).
+To keep an agent away from a tool, leave it out with the tool lists.
 
 `AgentExecution.auto_approve_all` bypasses approval for one execution. It is set
 at execution time (not in the Agent YAML) and is typically used for trusted

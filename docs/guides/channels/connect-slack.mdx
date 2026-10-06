@@ -82,20 +82,22 @@ shows a thinking indicator; longer questions can take a while.
 ## Tool approvals never reach workspace members
 
 Some tools require human approval before they run — shell commands, file writes
-and deletes, and MCP tools their server marks destructive. A Slack workspace
-member is not an approver: they never see approval prompts, tool names, or
-platform mechanics. When a gated tool comes up in a channel conversation, the
-platform skips it automatically and the Agent explains in plain language what it
-could not do — the conversation always gets a reply. In the console's
-conversation view, the skipped call shows as "skipped: approval not available on
-this surface".
+and deletes, MCP tools their server marks destructive, and any call the Agent's
+hooks ask about. A Slack workspace member is not an approver: they never see
+approval prompts, tool names, or platform mechanics. When a gated tool comes up
+in a channel conversation, the platform skips it automatically and the Agent
+explains in plain language what it could not do — the conversation always gets a
+reply. In the console's conversation view, the skipped call shows as "skipped:
+approval not available on this surface". A call the Agent's hooks refuse is
+refused here as anywhere.
 
 For actions a member's own request authorizes — filing their ticket, booking
 their slot — design the Agent to confirm the specifics in conversation first,
 and use a tool that runs without approval: an MCP tool its server does not mark
-destructive. Keep truly destructive operations marked: on a channel they are
-skipped, which is exactly right. To keep the Agent away from a tool entirely,
-leave it out of the Agent's `tools` list.
+destructive and the Agent's hooks do not ask about. Keep truly destructive
+operations marked: on a channel they are skipped, which is exactly right. To
+keep the Agent away from a tool entirely, leave it out of the Agent's `tools`
+list.
 
 ## Give the Agent its tool credentials
 
