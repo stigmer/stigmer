@@ -50,7 +50,7 @@
 // signal then rides a DIFFERENT key, proving distinct keys pass.
 //
 // Already covered in the main WorkflowRun suite (not re-asserted here):
-// - sendSignal with empty execution_id -> InvalidArgument; missing execution ->
+// - sendSignal with empty run_id -> InvalidArgument; missing execution ->
 //   NotFound. The terminal-phase FailedPrecondition is covered by the lifecycle
 //   negatives (only PENDING/IN_PROGRESS are signalable).
 import { Code } from "@connectrpc/connect";

@@ -688,6 +688,10 @@ function fenced(content: string, language = ""): string {
  * strings, `fromJson` round-trippable). Never `JSON.stringify` a raw proto
  * object here: int64 fields are `bigint` and would throw.
  *
+ * The format is `stigmer.ai/session-transcript/v2`: each turn's `run` is an
+ * AgentRun. v1 named it `execution` and held the AgentExecution shape that
+ * executions had before they were named runs.
+ *
  * One deliberate omission: `status.callback_token` is stripped. It is an
  * internal Temporal task token (runtime plumbing for workflow-triggered
  * runs), not conversation material, and has no place in a document
@@ -695,15 +699,11 @@ function fenced(content: string, language = ""): string {
  */
 export function transcriptToJson(transcript: SessionTranscript): JsonValue {
   const turns: JsonValue[] = transcript.turns.map((turn) => {
-    const execution = toJson(AgentRunSchema, turn.run, {
+    const run = toJson(AgentRunSchema, turn.run, {
       useProtoFieldName: true,
     });
-    if (
-      execution !== null &&
-      typeof execution === "object" &&
-      !Array.isArray(execution)
-    ) {
-      const status = execution["status"];
+    if (run !== null && typeof run === "object" && !Array.isArray(run)) {
+      const status = run["status"];
       if (status !== null && typeof status === "object" && !Array.isArray(status)) {
         delete (status as Record<string, unknown>)["callback_token"];
       }
@@ -713,7 +713,7 @@ export function transcriptToJson(transcript: SessionTranscript): JsonValue {
       build_from_plan: turn.isBuildFromPlan || undefined,
       superseded: turn.superseded || undefined,
       in_progress: turn.inProgress || undefined,
-      execution,
+      run,
     } as unknown as JsonValue;
   });
 
@@ -731,7 +731,7 @@ export function transcriptToJson(transcript: SessionTranscript): JsonValue {
   }
 
   return {
-    format: "stigmer.ai/session-transcript/v1",
+    format: "stigmer.ai/session-transcript/v2",
     session: toJson(SessionSchema, transcript.session, {
       useProtoFieldName: true,
     }),

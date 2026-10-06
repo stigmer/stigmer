@@ -119,7 +119,10 @@ function retiredMessage(value: JsonValue, desc: DescMessage): JsonValue {
     spelledBy.set(name, key);
     out[name] = field === undefined || raw === undefined ? raw : retiredField(raw, field);
   }
-  if (typeof out.kind === "string") {
+  // Only a message whose contract declares a string `kind` carries a kind
+  // string (a run's own `kind`); a `kind` elsewhere is not one.
+  const kindField = desc.fields.find((f) => f.name === "kind");
+  if (kindField?.fieldKind === "scalar" && typeof out.kind === "string") {
     out.kind = RETIRED_KIND_NAMES.get(out.kind) ?? out.kind;
   }
   return out;

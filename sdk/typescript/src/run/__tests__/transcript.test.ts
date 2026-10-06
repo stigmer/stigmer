@@ -673,12 +673,12 @@ describe("transcriptToJson", () => {
     // transcript would throw. The projection must not.
     const text = JSON.stringify(transcriptToJson(t), null, 2);
     const parsed = JSON.parse(text);
-    expect(parsed.format).toBe("stigmer.ai/session-transcript/v1");
+    expect(parsed.format).toBe("stigmer.ai/session-transcript/v2");
     expect(parsed.session.metadata.id).toBe("ses_01");
     expect(parsed.turns).toHaveLength(3);
     // protojson: snake_case field names, int64 as string.
     expect(
-      parsed.turns[0].execution.status.messages[3].tool_calls[0].output_ref
+      parsed.turns[0].run.status.messages[3].tool_calls[0].output_ref
         .size_bytes,
     ).toBe("2048");
   });
@@ -700,9 +700,9 @@ describe("transcriptToJson", () => {
     exec.status!.callbackToken = new TextEncoder().encode("task-token");
     const t = assembleSessionTranscript(session(), [exec]);
     const parsed = JSON.parse(JSON.stringify(transcriptToJson(t)));
-    expect(parsed.turns[0].execution.status.callback_token).toBeUndefined();
+    expect(parsed.turns[0].run.status.callback_token).toBeUndefined();
     // The strip is surgical — the rest of status is intact.
-    expect(parsed.turns[0].execution.status.messages).toHaveLength(5);
+    expect(parsed.turns[0].run.status.messages).toHaveLength(5);
   });
 
   it("keys resolved outputs by storage key with plain-JSON fields", () => {

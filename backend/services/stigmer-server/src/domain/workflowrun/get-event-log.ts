@@ -2,7 +2,7 @@
  * GetEventLog — ports get_event_log.go: cursor-paginated reads over the
  * workflow_execution_events side table (sequence_number ascending,
  * strictly after the cursor). The asymmetry the Class A suite pins: an
- * empty execution_id refuses InvalidArgument, but an UNKNOWN id answers
+ * empty run_id refuses InvalidArgument, but an UNKNOWN id answers
  * an empty page — there is deliberately no existence check (the opposite
  * of the subscribe lanes).
  *

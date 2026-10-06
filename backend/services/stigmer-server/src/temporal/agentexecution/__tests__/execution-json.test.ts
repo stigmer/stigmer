@@ -120,6 +120,15 @@ describe("decodeLoadedExecution", () => {
     });
   });
 
+  it("rewrites a kind string only where the contract declares one: a run's own kind, not an enum named kind", () => {
+    expect(
+      renameRetiredRunJson(AgentRunSchema, {
+        kind: "AgentExecution",
+        status: { artifacts: [{ kind: "AgentExecution" }] },
+      }),
+    ).toEqual({ kind: "AgentRun", status: { artifacts: [{ kind: "AgentExecution" }] } });
+  });
+
   it("refuses a field set under its retired and its current name, whichever comes first", () => {
     for (const spec of [
       { supersedesExecutionId: "aex_a", supersedesRunId: "aex_b" },

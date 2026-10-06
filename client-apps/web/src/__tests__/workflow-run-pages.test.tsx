@@ -1,9 +1,10 @@
 /**
  * Pins the web console's workflow run list addresses: the library's
- * /library/workflows/runs page renders the run list, and the old
- * /workflows/executions address redirects there, so a bookmark from before
- * the rename still lands on the list. The list itself is pinned in
- * domain/workflow.
+ * /library/workflows/runs page renders the run list, and the older
+ * /workflows/executions address redirects there. The addresses runs had
+ * just before the rename, /executions/<id> and /library/workflows/executions,
+ * do not redirect: before launch no published link carries them. The list
+ * itself is pinned in domain/workflow.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
