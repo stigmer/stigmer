@@ -65,6 +65,9 @@ import { contentDigest, extractFilePath } from "../../shared/file-tools.js";
 import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 
+/** No row settled from a refusal: the twin collapse's default keep-set. */
+const NO_REFUSED_ROWS: ReadonlySet<string> = new Set();
+
 /** Shared empty set so a synthesized gate's provenance read allocates nothing. */
 const NO_LEASED_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
 
@@ -511,16 +514,6 @@ function isAlreadyCollapsed(tc: ToolCall): boolean {
 }
 
 /**
- * Whether a hook refused this call: the row `stampHookRefusedToolCalls`
- * settles from a refusal ledger entry that names its hook. Such a row is the
- * record of a decision, not a denial or cancel artifact, so the twin collapse
- * never hides it.
- */
-function isHookRefusedRow(tc: ToolCall): boolean {
-  return tc.status === ToolCallStatus.TOOL_CALL_FAILED && tc.approvalPolicySource === ApprovalPolicySource.HOOK;
-}
-
-/**
  * Whether a tool call carries a change/output of its own — the signal that it is
  * authoritative for its resource rather than a redundant denial/cancel twin.
  *
@@ -571,9 +564,10 @@ function carriesOwnChange(tc: ToolCall): boolean {
  * 2. Group those calls by `toolCallIdentityToken` — the SAME `toolIdentity` used
  *    for denial correlation and resume grants, so scope and grouping cannot drift.
  * 3. In each group the keepers carry authoritative state — a change/output of
- *    their own (see {@link carriesOwnChange}), a hook's refusal (see
- *    {@link isHookRefusedRow}) or the approval gate itself
- *    (`WAITING_APPROVAL`). For a file mutation the gate is the sole authoritative
+ *    their own (see {@link carriesOwnChange}), a row named in `refusedRowIds`
+ *    (the ids {@link stampHookRefusedToolCalls} settled: each the record of a
+ *    refusal, carried by id because its shape matches a hook-block twin's) or
+ *    the approval gate itself (`WAITING_APPROVAL`). For a file mutation the gate is the sole authoritative
  *    row: the row carries no diff (review lives in the `FileChangeSet` ledger, or
  *    is the no-storage deny-gate itself), so a denied write's same-identity
  *    siblings — a denied/zombie row or a stale snapshot from a second attempt —
@@ -590,7 +584,10 @@ function carriesOwnChange(tc: ToolCall): boolean {
  * append-only-at-identity guard accepts it. Returns the number collapsed, for
  * observability.
  */
-export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number {
+export function collapseRedundantToolCallTwins(
+  messages: AgentMessage[],
+  refusedRowIds: ReadonlySet<string> = NO_REFUSED_ROWS,
+): number {
   const groups = new Map<string, ToolCall[]>();
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
@@ -614,10 +611,10 @@ export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number
     // (carriesOwnChange), the approval gate itself, or a gate an earlier
     // invocation already settled (isAdjudicatedRow — the transcript's record of
     // what the user decided and what ran; a same-identity act in a later turn
-    // is a new act, never this row's twin), or a hook's refusal (a decision
-    // stamped from the refusal ledger, one row per refusal: two refusals of
-    // one command in a turn are two acts, #1967). For a file mutation the gate
-    // is the sole authoritative row (the row carries no diff — review lives in
+    // is a new act, never this row's twin), or a row the boundary settled from
+    // a refusal in the ledger (`refusedRowIds`: one row per refusal, so two
+    // refusals of one command in a turn are two acts, #1967). For a file
+    // mutation the gate is the sole authoritative row (the row carries no diff — review lives in
     // the ledger, or the row IS the no-storage deny-gate), so a denied write's
     // same-identity siblings collapse onto it; a shell/MCP twin keeps every
     // distinct run with output.
@@ -626,7 +623,7 @@ export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number
         (tc) =>
           carriesOwnChange(tc) ||
           isAdjudicatedRow(tc) ||
-          isHookRefusedRow(tc) ||
+          refusedRowIds.has(tc.id) ||
           tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
       ),
     );
@@ -1310,8 +1307,8 @@ export function stampScopeRefusedToolCalls(
  * PENDING/RUNNING, each entry settling the first row of its call: the exact
  * identity token, its coarse (key, salient), then the workspace-normalized
  * path for the abs-vs-rel drift. Runs before the #205 attribution pass,
- * which then never sees these rows as hook blocks. Returns how many rows
- * were stamped.
+ * which then never sees these rows as hook blocks. Returns the ids of the
+ * rows it stamped, which the terminal twin collapse keeps (#1967).
  */
 export function stampHookRefusedToolCalls(
   messages: readonly AgentMessage[],
@@ -1319,9 +1316,9 @@ export function stampHookRefusedToolCalls(
   ledger: readonly DeniedLedgerEntry[],
   turnStartMessageIndex: number,
   workspaceRoot?: string,
-): number {
+): string[] {
   const refusals = ledger.filter((e) => denialKindOf(e) === HOOK_DENIAL_KIND && e.message);
-  if (refusals.length === 0) return 0;
+  if (refusals.length === 0) return [];
 
   const turnMessages = messages.slice(Math.max(0, turnStartMessageIndex));
   const turnCallIds = new Set(turnMessages.flatMap((m) => m.toolCalls.map((tc) => tc.id)));
@@ -1335,7 +1332,7 @@ export function stampHookRefusedToolCalls(
       tc.status === ToolCallStatus.TOOL_CALL_RUNNING,
   );
 
-  let stamped = 0;
+  const stamped: string[] = [];
   const settled = new Set<ToolCall>();
   for (const entry of refusals) {
     const decoded = decodeIdentityToken(entry.token);
@@ -1358,7 +1355,7 @@ export function stampHookRefusedToolCalls(
     tc.policyEngineVersion = entry.hook !== undefined ? POLICY_ENGINE_VERSION : "";
     tc.isStreaming = false;
     if (!tc.completedAt) tc.completedAt = utcTimestamp();
-    stamped++;
+    stamped.push(tc.id);
   }
   return stamped;
 }

@@ -51,7 +51,7 @@ describe("stampHookRefusedToolCalls", () => {
     const messages = [message(earlier), message(shell, edit, read, ran, listing), message(row("c-task", "task", {}, ToolCallStatus.TOOL_CALL_COMPLETED))];
     const subAgents = [create(SubAgentExecutionSchema, { id: "c-task", messages: [message(inSubAgent)] })];
 
-    expect(stampHookRefusedToolCalls(messages, subAgents, ledger, 1, "/w")).toBe(5);
+    expect(stampHookRefusedToolCalls(messages, subAgents, ledger, 1, "/w")).toEqual(["c-shell", "c-edit", "c-read", "c-sub", "c-ls"]);
     expect([listing.error, listing.approvalPolicyHook]).toEqual(["no listing src", "safety"]);
     expect([shell.status, shell.error, shell.approvalPolicySource, shell.approvalPolicyHook]).toEqual([
       ToolCallStatus.TOOL_CALL_FAILED, "no deletes", ApprovalPolicySource.HOOK, "safety",
@@ -73,9 +73,11 @@ describe("stampHookRefusedToolCalls", () => {
     const refusal = { toolName: "Shell", token: grantToken("shell", "rm -rf build"), kind: "hook", message: "[block-dangerous-rm]", hook: "hookify" } as const;
     const messages = [message(first), message(tamper), message(second)];
 
-    expect(stampHookRefusedToolCalls(messages, [], [refusal, refusal], 0)).toBe(2);
-    // Terminal finalize (turn-settle.ts) collapses twins after the boundary stamped them.
-    expect(collapseRedundantToolCallTwins(messages)).toBe(0);
+    const stamped = stampHookRefusedToolCalls(messages, [], [refusal, refusal], 0);
+    expect(stamped).toEqual(["c-rm-1", "c-rm-2"]);
+    // Terminal finalize (turn-settle.ts) collapses twins after the boundary
+    // stamped them, keeping the ids the boundary returned.
+    expect(collapseRedundantToolCallTwins(messages, new Set(stamped))).toBe(0);
     for (const refused of [first, second]) {
       expect([refused.status, refused.error, refused.approvalPolicyHook]).toEqual([ToolCallStatus.TOOL_CALL_FAILED, "[block-dangerous-rm]", "hookify"]);
     }
@@ -83,7 +85,7 @@ describe("stampHookRefusedToolCalls", () => {
 
   it("settles nothing without a refusal that carries its text", () => {
     const shell = row("c-shell", "shell", { command: "rm -rf x" });
-    expect(stampHookRefusedToolCalls([message(shell)], [], [{ toolName: "Shell", token: grantToken("shell", "rm -rf x"), kind: "hook" }], 0)).toBe(0);
+    expect(stampHookRefusedToolCalls([message(shell)], [], [{ toolName: "Shell", token: grantToken("shell", "rm -rf x"), kind: "hook" }], 0)).toEqual([]);
     expect(shell.error).toBe(BLOCKED);
   });
 });

@@ -208,8 +208,11 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // ordering rationale live in turn-boundary.ts; this closure binds the
   // turn's state so the recovery retries (which re-run the agent AFTER this
   // primary call) re-enter the IDENTICAL pipeline for their denials.
-  const runBoundary = (denialSettled?: Promise<void>): Promise<TurnBoundaryResult> =>
-    runTurnBoundary({
+  // Every boundary pass (the primary and each recovery retry) adds the rows
+  // it settled from a refusal; the terminal twin collapse keeps them.
+  const hookRefusedToolCallIds = new Set<string>();
+  const runBoundary = async (denialSettled?: Promise<void>): Promise<TurnBoundaryResult> => {
+    const result = await runTurnBoundary({
       status,
       transcript,
       executionId,
@@ -219,6 +222,9 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
       mcpDefault: mcp.mcpDefault,
       denialCancelSettled: denialSettled,
     });
+    for (const id of result.hookRefusedToolCallIds) hookRefusedToolCallIds.add(id);
+    return result;
+  };
 
   // The boundary mutated the transcript in place and a denial pauses the
   // turn: the runtime flips the phase, persists, and returns to the
@@ -510,7 +516,8 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // would otherwise persist as a second "No preview available" card. The shared
   // routine keeps the diff/output carrier and blanks the rest to hidden SKIPPED
   // rows in place, preserving each committed id so the finalize stays append-only.
-  const collapsedTwins = collapseRedundantToolCallTwins(status.messages);
+  // A row the boundary settled from a refusal is a decision, never a twin (#1967).
+  const collapsedTwins = collapseRedundantToolCallTwins(status.messages, hookRefusedToolCallIds);
   if (collapsedTwins > 0) {
     console.log(
       `ExecuteCursor collapsed ${collapsedTwins} redundant tool-call twin(s) at ` +

@@ -1041,7 +1041,9 @@ describe("collapseRedundantToolCallTwins — terminal-path twin collapse", () =>
 
   // A hook's refusal is a decision with no output; two of the same command in
   // one turn (a tamper between them, say) are two acts, and each stays on the
-  // record (#1967). A FAILED twin with no hook provenance still collapses.
+  // record (#1967). The boundary names the rows it settled from a refusal by
+  // id; a FAILED row it did not settle still collapses, whatever its
+  // provenance (a hook's ask stamps HOOK on Cursor's blocked twin too).
   function hookRefusedShell(id: string, command: string): ToolCall {
     return toolCall({
       id,
@@ -1060,7 +1062,7 @@ describe("collapseRedundantToolCallTwins — terminal-path twin collapse", () =>
     const second = hookRefusedShell("rm-2", "rm -rf build");
     const messages = [aiMessageWith([first]), aiMessageWith([second])];
 
-    const collapsed = collapseRedundantToolCallTwins(messages);
+    const collapsed = collapseRedundantToolCallTwins(messages, new Set(["rm-1", "rm-2"]));
 
     expect(collapsed).toBe(0);
     for (const refusal of [first, second]) {
@@ -1081,11 +1083,41 @@ describe("collapseRedundantToolCallTwins — terminal-path twin collapse", () =>
     });
     const messages = [aiMessageWith([refusal, twin])];
 
-    const collapsed = collapseRedundantToolCallTwins(messages);
+    const collapsed = collapseRedundantToolCallTwins(messages, new Set(["rm-hook"]));
 
     expect(collapsed).toBe(1);
     expect(refusal.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(twin.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+  });
+
+  it("still collapses the HOOK-provenance blocked twin of a hook's ask beside its gate", () => {
+    const gate = toolCall({
+      id: "ask-gate",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      requiresApproval: true,
+      args: { command: "git push" },
+      argsPreview: JSON.stringify({ command: "git push" }),
+      approvalPolicySource: ApprovalPolicySource.HOOK,
+      approvalPolicyHook: "guard",
+    });
+    const blockedTwin = toolCall({
+      id: "ask-twin",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { command: "git push" },
+      argsPreview: JSON.stringify({ command: "git push" }),
+      error: "Blocked by a hook",
+      approvalPolicySource: ApprovalPolicySource.HOOK,
+      approvalPolicyHook: "guard",
+    });
+    const messages = [aiMessageWith([gate, blockedTwin])];
+
+    const collapsed = collapseRedundantToolCallTwins(messages);
+
+    expect(collapsed).toBe(1);
+    expect(gate.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(blockedTwin.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
   });
 
   it("leaves an ungated read-only duplicate untouched (out of scope)", () => {
