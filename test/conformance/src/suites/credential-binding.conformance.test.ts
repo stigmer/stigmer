@@ -38,11 +38,11 @@ import {
   plaintextKeyOf,
 } from "../support/apikeys";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { makeAgentExecution } from "../support/agentexecutions";
+import { makeAgentExecution } from "../support/agentruns";
 import { makeEnvironment } from "../support/environments";
 import { makeMcpServer } from "../support/mcpservers";
 import { makeWorkflow } from "../support/workflows";
-import { makeWorkflowExecution } from "../support/workflowexecutions";
+import { makeWorkflowExecution } from "../support/workflowruns";
 import { organizationRole, policyTriple, ref } from "../support/iampolicies";
 import { uniqueName } from "../support/naming";
 import {

@@ -8,7 +8,7 @@ import {
   openRunDialog,
   submitRunAndWaitForExecution,
 } from "../../helpers/workflow-detail";
-import { waitForPhaseBadge } from "../../helpers/workflow-execution";
+import { waitForPhaseBadge } from "../../helpers/workflow-run";
 
 /**
  * Running a workflow, and who sees its runs, from the workflow's own page.

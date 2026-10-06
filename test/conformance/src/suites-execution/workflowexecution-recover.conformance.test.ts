@@ -40,7 +40,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
-import { awaitPhase, awaitTerminal, makeWorkflowExecution } from "../support/workflowexecutions";
+import { awaitPhase, awaitTerminal, makeWorkflowExecution } from "../support/workflowruns";
 import { makeRaiseErrorWorkflow, makeWaitWorkflow } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
 

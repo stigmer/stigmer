@@ -30,7 +30,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
-import { makeWorkflowExecution } from "../support/workflowexecutions";
+import { makeWorkflowExecution } from "../support/workflowruns";
 import { makeWorkflow } from "../support/workflows";
 import { createTarget, enforcingLaneOf, type EnforcingLane, type TargetProfile } from "../targets";
 

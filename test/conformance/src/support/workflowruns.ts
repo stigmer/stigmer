@@ -20,7 +20,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { type ExecutionValueInit, makeExecutionValues } from "./executioncontexts";
-import { type PollCoreOptions, pollUntil } from "./execution-poll";
+import { type PollCoreOptions, pollUntil } from "./run-poll";
 
 export const WORKFLOW_EXECUTION_API_VERSION = "agentic.stigmer.ai/v1";
 export const WORKFLOW_EXECUTION_KIND = "WorkflowExecution";

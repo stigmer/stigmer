@@ -72,7 +72,7 @@ function turn(options: {
         options.parentRun === undefined
           ? undefined
           : {
-              workflowExecutionId: options.parentRun,
+              workflowRunId: options.parentRun,
               signalWorkflowId: "workflow-exec-wfx_1",
               callbackToken: new Uint8Array([1, 2, 3]),
             },

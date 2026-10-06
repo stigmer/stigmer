@@ -5,7 +5,7 @@ import {
   waitForPhaseBadge,
   switchCenterView,
   getExecutionGraph,
-} from "../../helpers/workflow-execution";
+} from "../../helpers/workflow-run";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 
 // The execution page is thread-primary (the 2026-07 redesign): the DAG

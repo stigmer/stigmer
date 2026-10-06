@@ -72,7 +72,7 @@ import {
 import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode } from "../contract/errors";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { makeAgentExecution } from "../support/agentexecutions";
+import { makeAgentExecution } from "../support/agentruns";
 import { policyTriple } from "../support/iampolicies";
 import {
   SESSION_API_VERSION,
@@ -81,7 +81,7 @@ import {
   makeSessionSpec,
 } from "../support/sessions";
 import { makeWorkflow } from "../support/workflows";
-import { makeWorkflowExecution } from "../support/workflowexecutions";
+import { makeWorkflowExecution } from "../support/workflowruns";
 import { uniqueName } from "../support/naming";
 
 let target: TargetProfile;

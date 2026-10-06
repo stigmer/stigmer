@@ -41,7 +41,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { AnthropicMessageBody, MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { allToolCalls, awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
+import { allToolCalls, awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentruns";
 import { agentRefOf } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";

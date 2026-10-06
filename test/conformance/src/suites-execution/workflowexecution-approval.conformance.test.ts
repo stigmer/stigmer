@@ -87,7 +87,7 @@ import {
   awaitTerminal,
   makeWorkflowExecution,
   taskByName,
-} from "../support/workflowexecutions";
+} from "../support/workflowruns";
 import {
   HUMAN_INPUT_AFTER_TASK_NAME,
   HUMAN_INPUT_TASK_NAME,

@@ -27,7 +27,7 @@ import {
   awaitTerminal,
   makeAgentExecution,
   requireLlmProxy,
-} from "../support/agentexecutions";
+} from "../support/agentruns";
 import { provisionOrgWithConfirmedFacts } from "../support/memories";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";

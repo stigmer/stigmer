@@ -40,7 +40,7 @@ import {
   requireLlmProxy,
   requireMcpFixture,
   sessionIdOf,
-} from "../support/agentexecutions";
+} from "../support/agentruns";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeHttpMcpServer, type HttpMcpServerOptions } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";

@@ -48,10 +48,10 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
-import { sessionIdOf } from "../support/agentexecutions";
+import { sessionIdOf } from "../support/agentruns";
 import { uniqueName } from "../support/naming";
 import { makeSchedule, targetMissingReason } from "../support/schedules";
-import { pollUntil } from "../support/execution-poll";
+import { pollUntil } from "../support/run-poll";
 import { createTarget, type TargetProfile } from "../targets";
 
 // Read once at collection time to gate the describes (constructing a target is

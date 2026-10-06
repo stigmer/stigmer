@@ -94,7 +94,7 @@ import { requireNativeRow, wireModelIdOf, type ModelRegistryDocument } from "../
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { type AgentRefInit, BARE_AGENT_INSTRUCTIONS, agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/agentexecutions";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/agentruns";
 import { uniqueName } from "../support/naming";
 import { renderSystemPrompt, renderToolSurface } from "../support/request-shape";
 import { makeSkillArtifact } from "../support/skills";

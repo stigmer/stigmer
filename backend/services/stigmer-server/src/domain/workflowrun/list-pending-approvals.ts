@@ -50,7 +50,7 @@ import {
   DEFAULT_PENDING_APPROVALS_PAGE_SIZE,
   MAX_PENDING_APPROVALS_PAGE_SIZE,
 } from "./constants.js";
-import { parseRfc3339Ms } from "./execution-filter.js";
+import { parseRfc3339Ms } from "./run-filter.js";
 import { loadWorkflowExecutions } from "./queries.js";
 
 export interface PendingApprovalsDeps {

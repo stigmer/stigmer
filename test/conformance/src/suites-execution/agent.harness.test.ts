@@ -21,8 +21,8 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, MOCK_SESSION_TITLE } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/agentexecutions";
-import { pollUntil } from "../support/execution-poll";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/agentruns";
+import { pollUntil } from "../support/run-poll";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 

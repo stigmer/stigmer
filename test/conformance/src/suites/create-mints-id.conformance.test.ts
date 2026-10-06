@@ -54,7 +54,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { declaredMethods } from "../inventory/rpc-contract";
 import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeAgentExecution } from "../support/agentexecutions";
+import { makeAgentExecution } from "../support/agentruns";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentShare } from "../support/agentshares";
 import { makeApiKey } from "../support/apikeys";
@@ -67,7 +67,7 @@ import { foreignId, uniqueName, uniqueOrg } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
 import { makeSchedule } from "../support/schedules";
 import { makeSession } from "../support/sessions";
-import { makeWorkflowExecution } from "../support/workflowexecutions";
+import { makeWorkflowExecution } from "../support/workflowruns";
 import { makeWorkflow } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
 

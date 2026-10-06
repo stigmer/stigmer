@@ -106,7 +106,7 @@ import { newEnsureEngineAvailableStep } from "./engine.js";
 import {
   matchesFilterCriteria,
   matchesLegacyPhase,
-} from "./execution-filter.js";
+} from "./run-filter.js";
 import {
   cancelExecution,
   pauseExecution,
@@ -117,7 +117,7 @@ import {
 import { newPinWorkflowVersionStep } from "./pin-workflow-version-step.js";
 import { sendSignal } from "./send-signal.js";
 import { getEventLog } from "./get-event-log.js";
-import { getExecutionSummary } from "./get-execution-summary.js";
+import { getExecutionSummary } from "./get-run-summary.js";
 import { listPendingApprovals } from "./list-pending-approvals.js";
 import { readWorkflowExecutionList } from "./queries.js";
 import { workflowExecutionRunTarget } from "./run-target.js";

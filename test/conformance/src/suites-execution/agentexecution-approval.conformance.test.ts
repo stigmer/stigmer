@@ -93,7 +93,7 @@ import {
   requireMcpFixture,
   sessionIdOf,
   submitApprovalPerContract,
-} from "../support/agentexecutions";
+} from "../support/agentruns";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";

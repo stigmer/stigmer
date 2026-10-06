@@ -164,7 +164,7 @@ import {
   newPreserveExecutionVisibilityStep,
   newSetWorkflowExecutionVisibilityStep,
   newUpdateExecutionVisibilityTuplesStep,
-} from "./execution-visibility.js";
+} from "./run-visibility.js";
 import {
   TAG_VERSION_RESULT_KEY,
   TAG_VERSION_WORKFLOW_KEY,

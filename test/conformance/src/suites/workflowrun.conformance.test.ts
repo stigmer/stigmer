@@ -41,7 +41,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { collectStream } from "../support/collect-stream";
 import { uniqueName } from "../support/naming";
 import { makeWorkflow } from "../support/workflows";
-import { makeWorkflowExecution } from "../support/workflowexecutions";
+import { makeWorkflowExecution } from "../support/workflowruns";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;

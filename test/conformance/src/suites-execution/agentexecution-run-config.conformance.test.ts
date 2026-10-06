@@ -42,7 +42,7 @@ import {
   makeAgentExecution,
   requireLlmProxy,
   sessionIdOf,
-} from "../support/agentexecutions";
+} from "../support/agentruns";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 

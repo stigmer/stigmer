@@ -54,7 +54,7 @@ import { GitWorkspace, requireGit } from "../harness/git-workspace";
 import type { AnthropicMessageBody, MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { allToolCalls, awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
+import { allToolCalls, awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/agentruns";
 import {
   awaitFileReview,
   fileReviewersOf,

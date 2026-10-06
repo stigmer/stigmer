@@ -85,8 +85,8 @@ import {
   pollExecution,
   requireLlmProxy,
   sessionIdOf,
-} from "../support/agentexecutions";
-import { pollUntil } from "../support/execution-poll";
+} from "../support/agentruns";
+import { pollUntil } from "../support/run-poll";
 import { foreignId, uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 

@@ -132,10 +132,10 @@ import {
   makeAgentExecution,
   requireMcpFixture,
   sessionIdOf,
-} from "../support/agentexecutions";
+} from "../support/agentruns";
 import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
 import { makePersonalEnvironment } from "../support/environments";
-import { pollUntil } from "../support/execution-poll";
+import { pollUntil } from "../support/run-poll";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import {
   enableMyMemory,
@@ -151,7 +151,7 @@ import {
   awaitTaskStatus,
   awaitTerminal as awaitWorkflowTerminal,
   makeWorkflowExecution,
-} from "../support/workflowexecutions";
+} from "../support/workflowruns";
 import {
   createTarget,
   enforcingLaneOf,

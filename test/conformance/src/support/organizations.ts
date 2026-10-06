@@ -12,7 +12,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { setTimeout as delay } from "node:timers/promises";
 import type { ConformanceClients } from "../harness/clients";
-import { DEFAULT_POLL_MS, DEFAULT_TIMEOUT_MS } from "./execution-poll";
+import { DEFAULT_POLL_MS, DEFAULT_TIMEOUT_MS } from "./run-poll";
 import { uniqueOrg } from "./naming";
 
 const ORG_API_VERSION = "tenancy.stigmer.ai/v1";

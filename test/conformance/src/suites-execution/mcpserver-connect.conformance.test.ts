@@ -48,7 +48,7 @@ import {
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { MockOAuthAuthorizationServer } from "@stigmer/test-support/oauth-authorization-server";
 import { HERMETIC_OAUTH_REDIRECT_URI } from "@stigmer/test-support/server-process";
-import { requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
+import { requireLlmProxy, requireMcpFixture } from "../support/agentruns";
 import { makePersonalEnvironment } from "../support/environments";
 import {
   makeHttpMcpServer,

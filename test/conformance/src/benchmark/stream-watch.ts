@@ -24,7 +24,7 @@
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { isTerminalPhase } from "../support/agentexecutions";
+import { isTerminalPhase } from "../support/agentruns";
 import { collectStream, type CollectedStream } from "../support/collect-stream";
 import { findChangeSet } from "../support/file-review";
 import { visibleRows } from "./status-facts";

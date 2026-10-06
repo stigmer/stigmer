@@ -26,7 +26,7 @@ import {
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
-} from "../support/agentexecutions";
+} from "../support/agentruns";
 import { uniqueName } from "../support/naming";
 import { createOrganizationOnceReleased, organizationSlug } from "../support/organizations";
 import { createTarget, type TargetProfile } from "../targets";

@@ -13,7 +13,7 @@ import {
   clickResume,
   clickCancel,
   waitForPhaseTransition,
-} from "../../helpers/workflow-execution";
+} from "../../helpers/workflow-run";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 
 test.describe("Workflow execution via Run button", () => {

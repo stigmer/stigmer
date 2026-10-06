@@ -7,7 +7,7 @@ import {
   getExecutionThread,
   getThreadTaskCards,
   getThreadTaskCard,
-} from "../../helpers/workflow-execution";
+} from "../../helpers/workflow-run";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 
 // End-to-end flow on the thread-primary execution page (the 2026-07

@@ -1470,7 +1470,7 @@ describe("the decider is the authorized caller (direct calls, #1385)", () => {
       const result = await submitFileDecision(
         deps(),
         create(SubmitFileDecisionInputSchema, {
-          agentExecutionId: id,
+          agentRunId: id,
           changeSetId,
           scope,
           action: FileDecisionAction.APPROVE,

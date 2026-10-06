@@ -65,7 +65,7 @@ import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { requireLlmProxy } from "../support/agentexecutions";
+import { requireLlmProxy } from "../support/agentruns";
 import { makeAgent } from "../support/agents";
 import {
   type EnvVarDeclarationInit,
@@ -74,7 +74,7 @@ import {
   makeEnvironment,
   makePersonalEnvironment,
 } from "../support/environments";
-import { pollUntil } from "../support/execution-poll";
+import { pollUntil } from "../support/run-poll";
 import { type ExecutionValueInit } from "../support/executioncontexts";
 import { uniqueName } from "../support/naming";
 import { createChildOrganization } from "../support/organizations";
@@ -87,7 +87,7 @@ import {
   makeHumanInputWorkflow,
   makeWorkflow,
 } from "../support/workflows";
-import { awaitPhase, awaitTaskStatus, awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowexecutions";
+import { awaitPhase, awaitTaskStatus, awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowruns";
 import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
 let target: TargetProfile;

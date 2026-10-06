@@ -38,7 +38,7 @@ import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 
 import { getExecutionSummary as getAgentSummary } from "../../agentrun/usage.js";
-import { getExecutionSummary as getWorkflowSummary } from "../get-execution-summary.js";
+import { getExecutionSummary as getWorkflowSummary } from "../get-run-summary.js";
 
 const silentLogger = createLogger({
   level: "error",

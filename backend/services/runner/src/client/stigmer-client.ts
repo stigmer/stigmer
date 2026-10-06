@@ -141,10 +141,10 @@ export type RunnerScopedTokenScope =
  */
 function toRunnerScopedTokenOneof(scope: RunnerScopedTokenScope) {
   if ("agentExecutionId" in scope) {
-    return { case: "agentExecutionId", value: scope.agentExecutionId } as const;
+    return { case: "agentRunId", value: scope.agentExecutionId } as const;
   }
   if ("workflowExecutionId" in scope) {
-    return { case: "workflowExecutionId", value: scope.workflowExecutionId } as const;
+    return { case: "workflowRunId", value: scope.workflowExecutionId } as const;
   }
   if ("poolClaimSessionId" in scope) {
     return { case: "poolClaim", value: { sessionId: scope.poolClaimSessionId } } as const;

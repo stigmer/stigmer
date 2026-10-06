@@ -41,7 +41,7 @@ import {
   newPersistWorkflowForExecutionVisibilityUpdateStep,
   newPreserveExecutionVisibilityStep,
   newUpdateExecutionVisibilityTuplesStep,
-} from "../execution-visibility.js";
+} from "../run-visibility.js";
 import { workflowVersionHash } from "../steps.js";
 
 const ORG = "org_acme";

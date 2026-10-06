@@ -30,7 +30,7 @@ import {
   executionDurationMs,
   extractRetryCountFromMetadata,
   parseRfc3339Ms,
-} from "../execution-filter.js";
+} from "../run-filter.js";
 
 type TaskInit = MessageInitShape<typeof WorkflowTaskSchema>;
 

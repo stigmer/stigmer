@@ -35,7 +35,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { makeAgentExecution } from "../support/agentexecutions";
+import { makeAgentExecution } from "../support/agentruns";
 import { makeSession } from "../support/sessions";
 import { collectStream } from "../support/collect-stream";
 import { uniqueName, uniqueOrg } from "../support/naming";

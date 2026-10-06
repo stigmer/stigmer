@@ -19,7 +19,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { FixtureTracker } from "../../harness/fixtures";
 import { DESTRUCTIVE_ECHO_TOOL_NAME, ECHO_TOOL_NAME, type McpToolFixture } from "../../harness/mcp-server";
-import { createConnectedMcpServer, submitApprovalPerContract } from "../agentexecutions";
+import { createConnectedMcpServer, submitApprovalPerContract } from "../agentruns";
 
 function executionWithPending(toolCallIds: string[]): AgentRun {
   return create(AgentRunSchema, {

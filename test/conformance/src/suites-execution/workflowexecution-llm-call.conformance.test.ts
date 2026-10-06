@@ -25,9 +25,9 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { requireRegistryRow } from "../harness/model-registry";
-import { requireLlmProxy } from "../support/agentexecutions";
+import { requireLlmProxy } from "../support/agentruns";
 import { uniqueName } from "../support/naming";
-import { awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowexecutions";
+import { awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowruns";
 import {
   LLM_CALL_SET_VARS_TASK_NAME,
   LLM_CALL_TASK_NAME,

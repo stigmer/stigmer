@@ -110,10 +110,10 @@ function artifactInput(overrides?: {
     overrides?.agentExecutionId !== undefined ||
     overrides?.workflowExecutionId !== undefined
       ? {
-          agentExecutionId: overrides.agentExecutionId ?? "",
-          workflowExecutionId: overrides.workflowExecutionId ?? "",
+          agentRunId: overrides.agentExecutionId ?? "",
+          workflowRunId: overrides.workflowExecutionId ?? "",
         }
-      : { agentExecutionId: `aexec_01test${counter}` };
+      : { agentRunId: `aexec_01test${counter}` };
   return {
     spec: {
       displayName: `artifact-${counter}.txt`,

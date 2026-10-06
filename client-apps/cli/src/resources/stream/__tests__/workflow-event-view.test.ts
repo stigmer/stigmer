@@ -38,8 +38,8 @@ describe("toWorkflowEventView", () => {
     expect(toWorkflowEventView(event).time).toBe("--------");
   });
 
-  it("marks execution_completed/failed/cancelled/terminated as terminal", () => {
-    for (const c of ["executionCompleted", "executionCancelled", "executionTerminated"] as const) {
+  it("marks run_completed/failed/cancelled/terminated as terminal", () => {
+    for (const c of ["runCompleted", "runCancelled", "runTerminated"] as const) {
       const event = create(WorkflowRunEventSchema, { payload: { case: c, value: {} as never } });
       expect(toWorkflowEventView(event).terminal).toBe(true);
     }

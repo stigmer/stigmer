@@ -54,7 +54,7 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import type { Store } from "../../store/interface.js";
 import { listIndexInstantOfMillis } from "../../store/list-index.js";
 
-import { parseRfc3339Ms } from "./execution-filter.js";
+import { parseRfc3339Ms } from "./run-filter.js";
 import { loadWorkflowExecutions } from "./queries.js";
 
 const RANK_LIMIT = 10;

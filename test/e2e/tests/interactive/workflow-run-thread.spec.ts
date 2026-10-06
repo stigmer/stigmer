@@ -11,7 +11,7 @@ import {
   openExecutionPanel,
   getPanelToggle,
   getPanelResizeHandle,
-} from "../../helpers/workflow-execution";
+} from "../../helpers/workflow-run";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 
 // The task thread is the PRIMARY surface of the redesigned execution page

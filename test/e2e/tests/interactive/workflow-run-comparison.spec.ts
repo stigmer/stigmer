@@ -7,7 +7,7 @@ import {
   awaitWorkflowExecutionCompleted,
   navigateToExecution,
   waitForPhaseBadge,
-} from "../../helpers/workflow-execution";
+} from "../../helpers/workflow-run";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 
 test.describe("Workflow execution comparison", () => {

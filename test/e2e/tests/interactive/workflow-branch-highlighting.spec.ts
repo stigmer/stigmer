@@ -4,7 +4,7 @@ import {
   waitForPhaseBadge,
   switchCenterView,
   getExecutionGraph,
-} from "../../helpers/workflow-execution";
+} from "../../helpers/workflow-run";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 

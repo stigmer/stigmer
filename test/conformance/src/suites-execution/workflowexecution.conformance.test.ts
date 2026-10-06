@@ -43,7 +43,7 @@ import {
   awaitPhase,
   awaitTerminal,
   makeWorkflowExecution,
-} from "../support/workflowexecutions";
+} from "../support/workflowruns";
 import { makeWaitWorkflow, makeWorkflow } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
 

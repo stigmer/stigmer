@@ -74,7 +74,7 @@ import {
   requireLlmProxy,
   requireMcpFixture,
   submitApprovalPerContract,
-} from "../support/agentexecutions";
+} from "../support/agentruns";
 import { uniqueName } from "../support/naming";
 import {
   awaitParentPendingApproval,
@@ -82,7 +82,7 @@ import {
   awaitTerminal,
   makeWorkflowExecution,
   taskByName,
-} from "../support/workflowexecutions";
+} from "../support/workflowruns";
 import {
   AGENT_CALL_AFTER_TASK_NAME,
   makeAgentCallWorkflow,

@@ -1,7 +1,7 @@
 import { test, expect } from "../../fixtures";
 import { createTestWorkflowExecution } from "../../fixtures/seed-helpers";
 import { navigateToWorkflowDetail } from "../../helpers/workflow-detail";
-import { awaitWorkflowExecutionCompleted } from "../../helpers/workflow-execution";
+import { awaitWorkflowExecutionCompleted } from "../../helpers/workflow-run";
 
 /**
  * The Executions tab of a workflow detail page: the history table, the

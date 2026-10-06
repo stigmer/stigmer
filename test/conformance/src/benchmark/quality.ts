@@ -24,7 +24,7 @@ import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
-import { awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowexecutions";
+import { awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowruns";
 import { EVAL_TASK_NAME, makeEvalWorkflow } from "../support/workflows";
 import { uniqueName } from "../support/naming";
 import type { QualityCriterion, QualityTask } from "./quality-tasks";

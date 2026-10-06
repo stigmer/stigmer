@@ -39,7 +39,7 @@ import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import type { TargetProfile } from "../targets/target";
 import { type AgentRefInit, makeAgentRef } from "./agents";
 import { type ExecutionValueInit, makeExecutionValues } from "./executioncontexts";
-import { type PollCoreOptions, pollUntil } from "./execution-poll";
+import { type PollCoreOptions, pollUntil } from "./run-poll";
 import { makeHttpMcpServer } from "./mcpservers";
 
 export const AGENT_EXECUTION_API_VERSION = "agentic.stigmer.ai/v1";

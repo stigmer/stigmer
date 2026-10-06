@@ -9,7 +9,7 @@ function makeApproval(
   overrides: MessageInitShape<typeof PendingApprovalSchema> = {},
 ): PendingApproval {
   return create(PendingApprovalSchema, {
-    executionId: "wfx-1",
+    runId: "wfx-1",
     workflowName: "Article Pipeline",
     taskName: "reviewDraft",
     requester: "usr-alice",

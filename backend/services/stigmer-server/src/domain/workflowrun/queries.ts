@@ -36,7 +36,7 @@ import {
 import type { ListPageRequest } from "../../pipeline/steps/list-page.js";
 import type { Store } from "../../store/interface.js";
 import type { ListIndexQuery, ListIndexRow } from "../../store/list-index.js";
-import { applySortField } from "./execution-filter.js";
+import { applySortField } from "./run-filter.js";
 import { workflowExecutionListIndex } from "./list-index.js";
 
 /** The keys the workflow-execution index declares. */

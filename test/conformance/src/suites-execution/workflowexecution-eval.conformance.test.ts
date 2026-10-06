@@ -30,9 +30,9 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { readAnthropicRequest } from "@stigmer/test-support/llm-wire";
-import { requireLlmProxy } from "../support/agentexecutions";
+import { requireLlmProxy } from "../support/agentruns";
 import { uniqueName } from "../support/naming";
-import { awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowexecutions";
+import { awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowruns";
 import {
   EVAL_AFTER_TASK_NAME,
   EVAL_EXTRACT_TOOL_NAME,

@@ -46,7 +46,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { FAKE_CARD, postStripeWebhook, signStripePayload, signedEvent, stripeEvent, type CapturedStripeRequest } from "../harness/fake-stripe";
 import { expectGrpcCode } from "../contract/errors";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
-import { pollUntil } from "../support/execution-poll";
+import { pollUntil } from "../support/run-poll";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import type { ConformanceClients } from "../harness/clients";
