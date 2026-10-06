@@ -243,9 +243,9 @@ describe("sources", () => {
     expect(kindsOf(read(files))).toEqual({ errors: ["document-too-large"], warnings: [] });
   });
 
-  it("leaves hooks/ unread and ignored under the open manifest alone", () => {
+  it("leaves hooks/ unread under the open manifest alone, naming it as a hook not read", () => {
     const files = withFile(openPlugin(), "hooks/hooks.json", "{ not even json");
-    expect(kindsOf(read(files))).toEqual({ errors: [], warnings: [] });
+    expect(kindsOf(read(files))).toEqual({ errors: [], warnings: ["hooks-not-read"] });
   });
 });
 

@@ -980,15 +980,8 @@ describe("Plugin delete", () => {
       Code.FailedPrecondition,
       `plugin '${name}' is still used by agent '${name}-guarded'; switch the plugin's hooks off on them first`,
     );
-    await agents.update(
-      createMessage(AgentSchema, {
-        ...guarded,
-        spec: createMessage(AgentSpecSchema, {
-          ...guarded.spec,
-          hooks: [],
-        }),
-      }),
-    );
+    guarded.spec!.hooks = [];
+    await agents.update(guarded);
     await plugins.delete({ value: installed.metadata!.id });
     await expectCode(
       pluginQuery.get({ value: installed.metadata!.id }),
