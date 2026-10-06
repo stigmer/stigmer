@@ -48,7 +48,7 @@ export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps)
     const confirmed = await confirm({
       title: `Remove ${resourceName}?`,
       description:
-        "Removes the plugin and every skill, MCP server and agent it installed. The server refuses while something outside the plugin still uses one of them, or an agent's hooks use the plugin.",
+        "Removes the plugin and every skill, MCP server and agent it installed. The server refuses if something outside the plugin still uses one of them.",
       confirmLabel: "Remove",
       variant: "destructive",
     });

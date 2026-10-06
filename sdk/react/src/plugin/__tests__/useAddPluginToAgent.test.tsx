@@ -9,7 +9,8 @@
  * sources it had, and each variable the hooks read that the agent does not
  * declare is declared as a required secret, named before the save; an agent
  * that already names the plugin keeps one source; a managed agent is
- * refused the same way.
+ * refused the same way. A cleared pick and a failed read return to picking,
+ * the read's error held until cleared or reset.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -162,5 +163,25 @@ describe("useAddPluginToAgent", () => {
     act(() => hook.result.current.pick({ org: ORG, slug: "assistant" }));
     await waitFor(() => expect(hook.result.current.phase.status).toBe("managed"));
     expect(updates).toEqual([]);
+  });
+
+  it("returns to picking on a cleared pick and on a read that fails, holding the error until cleared or reset", async () => {
+    const { hook } = setup({ reviewer: agent("reviewer", {}, []) });
+    act(() => hook.result.current.pick({ org: ORG, slug: "reviewer" }));
+    await waitFor(() => expect(hook.result.current.phase.status).toBe("ready"));
+    act(() => hook.result.current.pick(null));
+    expect(hook.result.current.phase.status).toBe("picking");
+
+    act(() => hook.result.current.pick({ org: ORG, slug: "ghost" }));
+    await waitFor(() => expect(hook.result.current.error?.message).toMatch(/no agent/));
+    expect(hook.result.current.phase.status).toBe("picking");
+    act(() => hook.result.current.clearError());
+    expect(hook.result.current.error).toBeNull();
+
+    act(() => hook.result.current.pick({ org: ORG, slug: "ghost" }));
+    await waitFor(() => expect(hook.result.current.error).not.toBeNull());
+    act(() => hook.result.current.reset());
+    expect(hook.result.current.error).toBeNull();
+    expect(hook.result.current.phase.status).toBe("picking");
   });
 });

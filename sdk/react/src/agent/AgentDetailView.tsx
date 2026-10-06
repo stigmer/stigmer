@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
@@ -231,16 +230,21 @@ export function AgentDetailView({
   } | null>(null);
 
   // Several fields saved as one edit (the run defaults write run_config
-  // and harness together); a failure is attributed to `field`.
+  // and harness together); a failure is attributed to `field`. A patch
+  // built from the current input (the Hooks section reads each plugin it
+  // adds first) is a function; its error is the save's.
   const saveFields = useCallback(
     async (
       field: string,
-      patch: Partial<import("@stigmer/sdk").AgentInput>,
+      patch:
+        | Partial<import("@stigmer/sdk").AgentInput>
+        | ((input: import("@stigmer/sdk").AgentInput) => Promise<Partial<import("@stigmer/sdk").AgentInput>>),
     ): Promise<boolean> => {
       if (!agent) return false;
       setSaveError(null);
-      const input = { ...toAgentUpdateInput(agent), ...patch };
+      const base = toAgentUpdateInput(agent);
       try {
+        const input = { ...base, ...(typeof patch === "function" ? await patch(base) : patch) };
         const updated = await update(input);
         onResourceUpdated?.(updated);
         refetch();
@@ -271,36 +275,26 @@ export function AgentDetailView({
   // the same edit the plugin page's "Add to an agent" makes.
   const stigmer = useStigmer();
   const saveHookPlugins = useCallback(
-    async (rows: ResourceRefRow[]): Promise<boolean> => {
-      if (!agent) return false;
-      setSaveError(null);
-      const input = toAgentUpdateInput(agent);
-      const owner = agent.metadata?.org ?? "";
-      const key = (org: string, slug: string) => `${org || owner}/${slug}`;
-      const listed = new Set(rows.map((row) => key(row.org, row.slug)));
-      const kept = (input.hooks ?? []).filter(
-        (source) => source.plugin === undefined || listed.has(key(source.plugin.org, source.plugin.slug)),
-      );
-      const keptKeys = new Set(kept.flatMap((source) => (source.plugin ? [key(source.plugin.org, source.plugin.slug)] : [])));
-      let next: import("@stigmer/sdk").AgentInput = { ...input, hooks: kept };
-      for (const row of rows) {
-        if (keptKeys.has(key(row.org, row.slug))) continue;
-        let config: HookConfig | undefined;
-        try {
-          config = (await stigmer.plugin.getByReference({ org: row.org, slug: row.slug })).status?.hooks;
-        } catch (err) {
-          setSaveError({ field: "hooks", message: toError(err).message });
-          return false;
+    (rows: ResourceRefRow[]): Promise<boolean> =>
+      saveFields("hooks", async (input) => {
+        const owner = input.org;
+        const key = (org: string, slug: string) => `${org || owner}/${slug}`;
+        const listed = new Set(rows.map((row) => key(row.org, row.slug)));
+        const kept = (input.hooks ?? []).filter(
+          (source) => source.plugin === undefined || listed.has(key(source.plugin.org, source.plugin.slug)),
+        );
+        const keptKeys = new Set(kept.flatMap((source) => (source.plugin ? [key(source.plugin.org, source.plugin.slug)] : [])));
+        let next: import("@stigmer/sdk").AgentInput = { ...input, hooks: kept };
+        for (const row of rows.filter((candidate) => !keptKeys.has(key(candidate.org, candidate.slug)))) {
+          const config = (await stigmer.plugin.getByReference({ org: row.org, slug: row.slug })).status?.hooks;
+          if (config === undefined || config.groups.length === 0) {
+            throw new Error(`plugin '${row.slug}' has no hooks that run on Stigmer`);
+          }
+          next = withPluginHooks(next, { org: row.org, slug: row.slug }, config);
         }
-        if (config === undefined || config.groups.length === 0) {
-          setSaveError({ field: "hooks", message: `plugin '${row.slug}' has no hooks that run on Stigmer` });
-          return false;
-        }
-        next = withPluginHooks(next, { org: row.org, slug: row.slug }, config);
-      }
-      return saveFields("hooks", { hooks: next.hooks, env: next.env });
-    },
-    [agent, stigmer, saveFields],
+        return { hooks: next.hooks, env: next.env };
+      }),
+    [stigmer, saveFields],
   );
 
   const saveRunDefaults = useCallback(

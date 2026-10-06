@@ -7,8 +7,8 @@
  * plugin saves the remaining sources with the inline block kept; adding one
  * reads the plugin once and declares the variables its hooks read as
  * required secrets, exactly as the plugin page's "Add to an agent" does; a
- * plugin with no hooks that run is refused before any save; a refused save
- * shows the server's sentence in the section.
+ * plugin with no hooks that run, or one the server cannot read, is refused
+ * before any save; a refused save shows the server's sentence in the section.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -165,6 +165,20 @@ describe("AgentDetailView hooks", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(await screen.findByText("plugin 'tools' has no hooks that run on Stigmer")).toBeTruthy();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("refuses a plugin the server cannot read before any save, saying why", async () => {
+    const { update } = renderView(agentWith({ instructions: "Answer tickets." }), {}, { editable: true });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit hooks" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add plugin" }));
+    const slug = screen.getByPlaceholderText("slug");
+    fireEvent.change(slug, { target: { value: "gone" } });
+    fireEvent.keyDown(slug, { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(await screen.findByText(/plugin not found/)).toBeTruthy();
     expect(update).not.toHaveBeenCalled();
   });
 

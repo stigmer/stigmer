@@ -4,7 +4,8 @@
  * offer is listed (each server, and the plugin's hooks in their summary
  * line); once an agent is picked, the variables its hooks read are named
  * with the sentence that the agent will ask for them when a session starts;
- * Add saves once and says what was added; an agent a plugin installed is
+ * Add saves once and says what was added, or that the agent had it all; an
+ * agent a plugin installed is
  * refused before Add is offered; "Create a new agent with these tools"
  * shows only when the plugin brings servers.
  */
@@ -27,6 +28,9 @@ vi.mock("../../agent/AgentPicker.js", () => ({
       <button type="button" disabled={disabled} onClick={() => onChange({ org: "acme", slug: "assistant" })}>
         Pick assistant
       </button>
+      <button type="button" disabled={disabled} onClick={() => onChange({ org: "acme", slug: "guarded" })}>
+        Pick guarded
+      </button>
     </span>
   ),
 }));
@@ -42,19 +46,26 @@ const HOOKS = create(HookConfigSchema, {
   groups: [{ event: "PreToolUse", handlers: [{ command: "python3", args: ["guard.py", "${user_config.API_TOKEN}"] }] }],
 });
 
-function agent(slug: string, labels: Record<string, string> = {}): Agent {
+function agent(slug: string, labels: Record<string, string> = {}, guarded = false): Agent {
   return create(AgentSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: `agt_${slug}`, org: "acme", slug, name: slug === "reviewer" ? "Reviewer" : slug, labels }),
-    spec: create(AgentSpecSchema, { instructions: "Review." }),
+    spec: create(AgentSpecSchema, {
+      instructions: "Review.",
+      ...(guarded && {
+        hooks: [{ source: { case: "plugin" as const, value: { org: "acme", slug: "guard" } } }],
+        env: { API_TOKEN: { isSecret: true } },
+      }),
+    }),
   });
 }
 
 function renderDialog(offer: PluginOffer, onCreateAgent?: () => void) {
-  const agents: Record<string, Agent> = { reviewer: agent("reviewer"), assistant: agent("assistant", { "stigmer.ai/plugin": "plg_1" }) };
-  const update = vi.fn(async (input: AgentInput) => {
-    void input;
-    return agents.reviewer!;
-  });
+  const agents: Record<string, Agent> = {
+    reviewer: agent("reviewer"),
+    assistant: agent("assistant", { "stigmer.ai/plugin": "plg_1" }),
+    guarded: agent("guarded", {}, true),
+  };
+  const update = vi.fn(async (input: AgentInput) => Object.values(agents).find((a) => a.metadata?.name === input.name) ?? agents.reviewer!);
   const client = { agent: { getByReference: vi.fn(async (ref: ResourceRef) => agents[ref.slug]!), update } };
   const wrapper = ({ children }: { children: ReactNode }) => <StigmerContext.Provider value={client as never}>{children}</StigmerContext.Provider>;
   render(<AddPluginToAgentDialog org="acme" offer={offer} open onClose={() => {}} onCreateAgent={onCreateAgent} />, { wrapper });
@@ -85,6 +96,16 @@ describe("AddPluginToAgentDialog", () => {
     expect(input.mcpServerUsages?.map((usage) => usage.mcpServerRef.slug)).toEqual(["linear"]);
     expect(input.hooks).toEqual([{ plugin: { org: "acme", slug: "guard" } }]);
     expect(input.env?.["API_TOKEN"]).toEqual({ isSecret: true });
+  });
+
+  it("says when the agent already had everything the plugin adds", async () => {
+    renderDialog({ servers: [], hooks: { plugin: { org: "acme", slug: "guard" }, config: HOOKS } });
+
+    const dialog = await screen.findByRole("dialog", { name: "Add to an agent" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Pick guarded" }));
+    expect(await within(dialog).findByText("guarded already runs this plugin's hooks.")).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
+    expect(await within(dialog).findByText("guarded already had everything this plugin adds.")).toBeTruthy();
   });
 
   it("refuses an agent a plugin installed before Add is offered, and offers no new agent for hooks alone", async () => {
