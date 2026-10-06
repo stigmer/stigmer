@@ -1,9 +1,9 @@
 ---
 title: The runner when you self-host
 description:
-  What executes your Agents and Workflows on a self-hosted stack, how a run
-  reaches it, what happens when it's gone, where its keys and addresses come
-  from, and why it is one trust domain.
+  What executes your Agents on a self-hosted stack, how a run reaches it, what
+  happens when it's gone, where its keys and addresses come from, and why it is
+  one trust domain.
 ---
 
 Every self-hosting guide ends the same way: a run "traveled from the CLI to the
@@ -59,14 +59,10 @@ The [authentication guide](./authentication#what-changes) has the rules.
 ## When the runner is gone
 
 Nothing on the server notices a runner leaving; it finds out when a run has
-nobody to take it. What happens next depends on the kind of run:
-
-- **An Agent Run waits five minutes, then fails.** Its status carries the
-  reason: `No worker available to execute activity`, followed by the three usual
-  causes, starting with "the Stigmer runner is not running". The console and the
-  CLI both show it. Start the run again once the runner is back.
-- **A Workflow Run waits.** It has no deadline of its own, so a Workflow started
-  while the runner is down begins as soon as a runner polls the queue again.
+nobody to take it. **An Agent Run waits five minutes, then fails.** Its status
+carries the reason: `No worker available to execute activity`, followed by the
+three usual causes, starting with "the Stigmer runner is not running". The
+console and the CLI both show it. Start the run again once the runner is back.
 
 A runner that dies in the middle of an Agent turn is a different case. The
 runner reports to Temporal every 30 seconds while it works; when two minutes
@@ -102,10 +98,9 @@ Four of these rows carry a design decision worth knowing.
 
 **The LLM key lives with the runner and nowhere else.** The server has no
 setting for it. Agents on the native Harness need `ANTHROPIC_API_KEY`; Agents on
-the Cursor Harness need `CURSOR_API_KEY`; Workflows without Agent tasks run with
-neither. At start the runner moves its keys out of the variables it started with
-into a store only it reads, so the commands an Agent runs and the processes the
-runner starts don't inherit them.
+the Cursor Harness need `CURSOR_API_KEY`. At start the runner moves its keys out
+of the variables it started with into a store only it reads, so the commands an
+Agent runs and the processes the runner starts don't inherit them.
 
 **Files are shared by disk, not by HTTP.** The server writes an artifact to a
 path and the runner reads the same path, so the two must see one disk. That is
@@ -199,11 +194,11 @@ kubectl apply -f https://github.com/kubernetes-sigs/agent-sandbox/releases/downl
 
 Each sandbox is one `Sandbox` in the namespace `STIGMER_SANDBOX_K8S_NAMESPACE`
 names. It holds the runner's pod, a 10Gi `ReadWriteOnce` workspace claim on the
-cluster's default storage class for a Session or a Workflow Run, and a Secret
-with the runner's token and secrets. Deleting the `Sandbox` deletes the rest. A
-pod lost to a node, or deleted by hand, comes back with its files. When a
-stopped sandbox starts again, it runs the server's current runner image and
-settings, not the ones it was created with.
+cluster's default storage class for a Session, and a Secret with the runner's
+token and secrets. Deleting the `Sandbox` deletes the rest. A pod lost to a
+node, or deleted by hand, comes back with its files. When a stopped sandbox
+starts again, it runs the server's current runner image and settings, not the
+ones it was created with.
 
 An idle Session's sandbox goes to sleep. After 330 seconds with no run, its pod
 is removed and its workspace claim kept; the Session's next message starts a pod
@@ -398,7 +393,7 @@ pauses it in place, and after `STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS`
 (330) it suspends it, committing the Session's files to storage and releasing
 its memory. The next message wakes it with its files intact and a fresh runner.
 A Session with a run in progress, waiting for approval or paused is never put to
-sleep. Workflow and connect sandboxes don't sleep; they end with their run.
+sleep. Connect sandboxes don't sleep; they end with their run.
 
 The defaults come from measurements on a local Agent Substrate cluster (kind,
 Substrate v0.3.0, 2026-10-03), timed from the server accepting a message to the

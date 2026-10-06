@@ -66,6 +66,6 @@ the truth.
 ## Verify
 
 The root map's rows (`make -C apis lint`, then for `.proto` changes
-`make check-docs-yaml gen-proto-sdk-docs-check gen-task-docs-check gen-task-registry-check`),
-plus `make -C apis fmt` before committing and `make stubs-internal-check` to
-prove no `@internal` text reached a stub.
+`make check-docs-yaml gen-proto-sdk-docs-check gen-task-registry-check`), plus
+`make -C apis fmt` before committing and `make stubs-internal-check` to prove no
+`@internal` text reached a stub.

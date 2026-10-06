@@ -23,8 +23,8 @@ export interface ListRecentActivityResponse {
 /**
  * Client for the unified recent activity query.
  *
- * Returns a merged, time-sorted list of the caller's most recent
- * sessions and workflow runs in a single RPC call.
+ * Returns the caller's most recent sessions, newest activity first,
+ * in a single RPC call.
  */
 export class ActivityClient {
   private readonly client: Client<typeof ActivityQueryController>;

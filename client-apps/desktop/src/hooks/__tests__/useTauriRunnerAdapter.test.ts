@@ -1,3 +1,8 @@
+/**
+ * Pins the desktop's runner adapter: a session opened or closed in the SDK
+ * reaches the embedded runner's addSession/removeSession, and the adapter
+ * keeps one identity across renders.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
@@ -5,19 +10,14 @@ import { useTauriRunnerAdapter } from "../useTauriRunnerAdapter";
 
 const mockAddSession = vi.fn().mockResolvedValue("task-queue-1");
 const mockRemoveSession = vi.fn().mockResolvedValue(undefined);
-const mockAddWorkflowExecution = vi.fn().mockResolvedValue("task-queue-2");
-const mockRemoveWorkflowExecution = vi.fn().mockResolvedValue(undefined);
 const mockUpdateRunnerToken = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("../EmbeddedRunnerContext", () => ({
   useRunner: () => ({
     isRunning: true,
     activeSessions: [],
-    activeWorkflowExecutions: [],
     addSession: mockAddSession,
     removeSession: mockRemoveSession,
-    addWorkflowExecution: mockAddWorkflowExecution,
-    removeWorkflowExecution: mockRemoveWorkflowExecution,
     updateRunnerToken: mockUpdateRunnerToken,
     error: null,
   }),
@@ -28,14 +28,12 @@ describe("useTauriRunnerAdapter", () => {
     vi.clearAllMocks();
   });
 
-  it("returns a RunnerAdapter with all four methods", () => {
+  it("returns a RunnerAdapter with both session methods", () => {
     const { result } = renderHook(() => useTauriRunnerAdapter());
     const adapter = result.current;
 
     expect(adapter.onSessionOpened).toBeInstanceOf(Function);
     expect(adapter.onSessionClosed).toBeInstanceOf(Function);
-    expect(adapter.onWorkflowRunCreated).toBeInstanceOf(Function);
-    expect(adapter.onWorkflowRunTerminated).toBeInstanceOf(Function);
   });
 
   it("onSessionOpened delegates to addSession", async () => {
@@ -52,22 +50,6 @@ describe("useTauriRunnerAdapter", () => {
 
     expect(mockRemoveSession).toHaveBeenCalledTimes(1);
     expect(mockRemoveSession).toHaveBeenCalledWith("ses-123");
-  });
-
-  it("onWorkflowRunCreated delegates to addWorkflowExecution", async () => {
-    const { result } = renderHook(() => useTauriRunnerAdapter());
-    await result.current.onWorkflowRunCreated("wfexec-456");
-
-    expect(mockAddWorkflowExecution).toHaveBeenCalledTimes(1);
-    expect(mockAddWorkflowExecution).toHaveBeenCalledWith("wfexec-456");
-  });
-
-  it("onWorkflowRunTerminated delegates to removeWorkflowExecution", async () => {
-    const { result } = renderHook(() => useTauriRunnerAdapter());
-    await result.current.onWorkflowRunTerminated("wfexec-456");
-
-    expect(mockRemoveWorkflowExecution).toHaveBeenCalledTimes(1);
-    expect(mockRemoveWorkflowExecution).toHaveBeenCalledWith("wfexec-456");
   });
 
   it("adapter reference is stable across re-renders", () => {

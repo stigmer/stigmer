@@ -73,7 +73,7 @@
     "sdk/react": {
       "lines": 62.6,
       "branches": 55.9,
-      "cases": 5169
+      "cases": 4265
     },
     "sdk/theme": {
       "lines": 90.4,

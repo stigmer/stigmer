@@ -121,14 +121,6 @@ pages:
       form); a still sequence covers all three. The conversational tours that
       depicted an in-product creator agent were retired with that agent.
 
-  getting-started/first-workflow:
-    fate: keep
-    diataxis: tutorial
-    teaches:
-      Define a two-task Workflow in YAML, apply it, and run it from the CLI with
-      a runtime env var.
-    medium: none
-
   getting-started/embed-agent:
     fate: keep
     diataxis: tutorial
@@ -432,72 +424,6 @@ pages:
       or Cursor and verify the connection.
     medium: none
 
-  # ── Workflows ──────────────────────────────────────────────────────────
-  concepts/workflows:
-    fate: keep
-    diataxis: explanation
-    teaches:
-      When to reach for a Workflow instead of an Agent, and how tasks,
-      expressions, budgets, and human gates fit together.
-    medium: diagram
-    why:
-      Blueprint-to-runtime expansion and branch fan-out are structure; the two
-      existing mermaids carry it.
-
-  guides/workflows:
-    fate: keep
-    diataxis: landing
-    teaches:
-      That Workflows are YAML pipelines on a durable runner, and which sub-guide
-      to read in what order.
-    medium: none
-
-  guides/workflows/authoring:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      The complete Workflow YAML surface — envelope, tasks, expressions, flow
-      control, error handling, gates, budgets, validation.
-    medium: diagram
-    why:
-      Flow control (jumps, switch, fork, loops) is structure; diagrams of the
-      shapes teach faster than prose about them.
-
-  guides/workflows/patterns:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Five copy-pasteable production Workflow shapes and three anti-patterns to
-      avoid.
-    medium: diagram
-    why:
-      Each pattern is a flow shape; the per-pattern mermaid is the fastest way
-      to recognize which one you need.
-
-  guides/workflows/runs:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      The runtime side — creating runs, phase vocabulary, subscribing,
-      answering gates and signals, cancel and recover.
-    medium: diagram
-    why:
-      The phase model is a state machine currently conveyed by two tables; a
-      state diagram is its native form.
-
-  guides/workflows/review-payloads:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Attach a payload and ui_hint to a human_input gate and register a React
-      renderer so reviewers see domain-native UI.
-    medium: still
-    why:
-      The page's argument is a before/after pair — the same gate with and
-      without a renderer, one frame in each of the two sections that make the
-      claim; nothing moves in either, and the reader compares them by
-      scrolling back.
-
   # ── Platform ───────────────────────────────────────────────────────────
   concepts/environments:
     fate: keep
@@ -552,8 +478,8 @@ pages:
     diataxis: how-to
     teaches:
       Encrypt every Temporal payload the runner produces (AES-256-GCM) so
-      decrypted workflow secrets never rest in Temporal history — two env vars
-      set on both the runner and the server.
+      decrypted secrets never rest in Temporal history — two env vars set on
+      both the runner and the server.
     medium: none
 
   guides/runners/ipc-protocol:
@@ -814,9 +740,9 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      What executes Agents and Workflows on a self-hosted stack and how a run
-      reaches it through the one task queue; what an Agent run and a Workflow
-      run each do when no runner is polling; where the LLM key, the shared
+      What executes Agents on a self-hosted stack and how a run reaches it
+      through the one task queue; what an Agent run does when no runner is
+      polling; where the LLM key, the shared
       artifact disk and the runner's own API key come from per shape; why the
       runner is one trust domain; the per-Session sandbox provisioner as a
       mechanism and its limit at the current release.
@@ -940,10 +866,6 @@ pages:
 cohorts:
   cli/commands/:
     generator: gen-cli-docs
-    diataxis: reference
-    medium: none
-  guides/workflows/task-types/:
-    generator: gen-task-docs
     diataxis: reference
     medium: none
   sdk/react/:

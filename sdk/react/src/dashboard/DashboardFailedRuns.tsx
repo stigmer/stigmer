@@ -10,16 +10,15 @@ export interface DashboardFailedRunsProps {
   readonly failedRuns: readonly DashboardFailedRun[];
   readonly isLoading: boolean;
   /** Called when the user clicks "View" on a failed run. */
-  readonly onViewClick?: (id: string, type: DashboardFailedRun["type"]) => void;
+  readonly onViewClick?: (id: string) => void;
   readonly className?: string;
 }
 
 /**
- * Widget showing recent failed runs from both agent and workflow
- * domains, interleaved by timestamp.
+ * Widget showing recent failed agent runs, newest first.
  *
- * Each row includes a type badge (Agent / Workflow), the run name,
- * a truncated error, and a relative timestamp.
+ * Each row includes the run name, a truncated error, and a relative
+ * timestamp.
  */
 export const DashboardFailedRuns = memo(function DashboardFailedRuns({
   failedRuns,
@@ -59,16 +58,6 @@ export const DashboardFailedRuns = memo(function DashboardFailedRuns({
               key={run.id}
               className="stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-xs stg:hover:bg-muted/50"
             >
-              <span
-                className={cn(
-                  "stg:mt-0.5 stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none",
-                  run.type === "agent_run"
-                    ? "stg:bg-primary/10 stg:text-primary"
-                    : "stg:bg-muted stg:text-muted-foreground",
-                )}
-              >
-                {run.type === "agent_run" ? "Agent" : "Workflow"}
-              </span>
               <div className="stg:min-w-0 stg:flex-1">
                 <p className="stg:truncate stg:font-medium stg:text-foreground">
                   {run.name}
@@ -83,7 +72,7 @@ export const DashboardFailedRuns = memo(function DashboardFailedRuns({
               {onViewClick && (
                 <button
                   type="button"
-                  onClick={() => onViewClick(run.id, run.type)}
+                  onClick={() => onViewClick(run.id)}
                   className="stg:shrink-0 stg:text-primary stg:hover:underline"
                 >
                   View

@@ -79,7 +79,7 @@ function PrivacyPage() {
               <PolicySection title="How we use information">
                 <p>
                   We use the information above to provide and operate the
-                  service, execute the agents and workflows you configure, bill
+                  service, execute the agents you configure, bill
                   for usage, provide support, maintain security (including
                   rate limiting and abuse prevention), and improve the
                   platform. We do not sell your personal information, and we do

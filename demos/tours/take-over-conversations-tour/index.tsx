@@ -24,9 +24,8 @@ const CONVERSATIONS_ZONE: CSSProperties = {
 /**
  * Pure `renderStep`: each beat is the real `ConversationsWorkbench` with a
  * different controlled selection — the beat selector `steps.ts` carries.
- * The workbench subtree is `inert` (the review-renderer-tour pattern): it
- * renders real Take over / Hand back / Send controls a reader's stray
- * click must never drive mid-playback. Selection is fixture-controlled,
+ * The workbench subtree is `inert`: it renders real Take over / Hand back /
+ * Send controls a reader's stray click must never drive mid-playback. Selection is fixture-controlled,
  * so the change handler is a no-op by construction.
  */
 export function renderStep(data: TakeOverTourStep, stepIndex: number): ReactNode {

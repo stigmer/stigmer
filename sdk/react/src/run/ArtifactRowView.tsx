@@ -1,7 +1,7 @@
 "use client";
 
-// Pure presentational artifact list row shared by the session and workflow
-// artifact facets. Domain: run (data-model-agnostic — see ArtifactRowItem).
+// Pure presentational artifact list row for the session's artifact facets.
+// Domain: run (renders the ArtifactRowItem view-model).
 
 import { cn } from "@stigmer/theme";
 import { FileTypeIcon, FolderTypeIcon } from "../internal/file-icons/index.js";
@@ -41,12 +41,9 @@ export interface ArtifactRowViewProps {
  * `<button>` inside a `<button>` is an axe `nested-interactive` (WCAG 4.1.2)
  * violation. This mirrors `ExplorerRoot`'s header + remove-control pattern.
  *
- * Deliberately data-model-agnostic: it renders an {@link ArtifactRowItem}
- * view-model and takes open/activate/download closures, so the session
- * (`RunArtifact`) and workflow (`Artifact` resource) hosts share one row
- * UI without sharing a data model. The domain wrappers — session `ArtifactRow`
- * and workflow `WorkflowArtifactRow` — own identity, adapters, and download
- * wiring.
+ * It renders an {@link ArtifactRowItem} view-model and takes
+ * open/activate/download closures; the host (`ArtifactRow`, the session
+ * facets) owns identity, the adapter, and download wiring.
  *
  * All visual properties flow through `--stgm-*` tokens.
  */

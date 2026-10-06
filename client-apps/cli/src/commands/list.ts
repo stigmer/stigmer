@@ -15,7 +15,6 @@ const DEFAULT_LIMIT = 50;
 interface ListFlags extends OutputFlags {
   limit?: string;
   verb?: string;
-  type?: string;
 }
 
 export function registerList(program: Command): void {
@@ -24,7 +23,6 @@ export function registerList(program: Command): void {
     .description("list resources of a type (or 'list types' for available types)")
     .option("--limit <n>", "maximum number of results", String(DEFAULT_LIMIT))
     .option("--verb <verb>", "filter to types supporting this verb (only for 'list types')")
-    .option("--type <kind>", "run type filter: agent or workflow (only for 'list runs')")
     .action((type: string, options: ListFlags, command: Command) => runList(type, options, command));
   addReadFlags(list);
 }
@@ -68,8 +66,7 @@ async function runList(type: string, options: ListFlags, command: Command): Prom
   process.stdout.write(rendered);
 }
 
-// Runs bypass the registry: they're listed by their own controllers and
-// optionally filtered to agent (default) or workflow by `--type`. Results are
+// Runs bypass the registry: they're listed by their own controller. Results are
 // scoped to the resolved org context (--org flag, env, or configured context);
 // an unset cloud context resolves to "" = permission-bounded across orgs.
 async function runListRuns(options: ListFlags, command: Command): Promise<void> {
@@ -84,17 +81,8 @@ async function runListRuns(options: ListFlags, command: Command): Promise<void> 
   const limit = parseLimit(options.limit);
   const format = readFormat(options);
 
-  const filter = (options.type ?? "").trim().toLowerCase();
-  if (filter === "workflow" || filter === "wf") {
-    const result = await runs.listWorkflowRuns(client.stigmer, limit, org);
-    process.stdout.write(runs.renderRunList(result, format, "workflow"));
-    return;
-  }
-  if (filter !== "" && filter !== "agent") {
-    throw new UsageError(`unknown run type filter: ${options.type}\n\nValid values: agent, workflow`);
-  }
   const result = await runs.listAgentRuns(client.stigmer, limit, org);
-  process.stdout.write(runs.renderRunList(result, format, "agent"));
+  process.stdout.write(runs.renderRunList(result, format));
 }
 
 function isTypesAlias(type: string): boolean {

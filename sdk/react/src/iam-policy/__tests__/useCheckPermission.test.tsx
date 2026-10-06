@@ -245,7 +245,7 @@ function Recorder({
   return null;
 }
 
-const WORKFLOW: PermissionCheckResource = { kind: "workflow", id: "wfl_1" };
+const SKILL: PermissionCheckResource = { kind: "skill", id: "skl_1" };
 
 describe("useCheckPermission — the first render", () => {
   it("reports the check as in flight from the first render, under fail-open", () => {
@@ -295,12 +295,12 @@ describe("useCheckPermission — the first render", () => {
     await act(async () => denied.resolve(false));
     expect(renders.at(-1)).toEqual({ allowed: false, isLoading: false, error: null });
 
-    const firstForWorkflow = renders.length;
-    rerender(<Recorder resource={WORKFLOW} renders={renders} />);
+    const firstForSkill = renders.length;
+    rerender(<Recorder resource={SKILL} renders={renders} />);
 
     // Every render for the new resource is in flight at the fail value,
-    // never the agent's denial passed off as the workflow's verdict.
-    for (const value of renders.slice(firstForWorkflow)) {
+    // never the agent's denial passed off as the skill's verdict.
+    for (const value of renders.slice(firstForSkill)) {
       expect(value).toEqual({ allowed: true, isLoading: true, error: null });
     }
     await act(async () => pending.resolve(true));

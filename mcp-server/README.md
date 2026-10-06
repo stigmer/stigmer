@@ -1,8 +1,8 @@
 # `@stigmer/mcp-server`
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for the
-Stigmer platform. It exposes Stigmer **agents, skills, MCP servers, workflows,
-and environments** as MCP tools and resources — covering both the
+Stigmer platform. It exposes Stigmer **agents, skills, MCP servers, and
+environments** as MCP tools and resources — covering both the
 authoring loop (create, read, update, delete, version) and the run loop
 (run, observe, approve, cancel) — so any MCP-capable client (Claude Desktop,
 Cursor, the Stigmer CLI, etc.) can build on Stigmer through a uniform protocol.
@@ -43,16 +43,16 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
   (stigmer-server's own message limit) answers `413`.
 - **`apply_*` ergonomics are generated.** The flattened, LLM-friendly input
   schemas for the `apply_*` tools (metadata hoisting, enum→string, reference
-  flattening, oneof / `task_config` expansion) are produced at build time by the
-  codegen in `tools/codegen/src/generator/mcp-ts.ts`. Never hand-edit `src/gen/`.
+  flattening, oneof expansion) are produced at build time by the codegen in
+  `tools/codegen/src/generator/mcp-ts.ts`. Never hand-edit `src/gen/`.
 
-## Tools (30)
+## Tools (17)
 
 ### Discovery
 
 | Tool | Description |
 | --- | --- |
-| `search` | Search across agents, skills, MCP servers, workflows, and environments; results are enriched with `stigmer://` resource URIs. |
+| `search` | Search across agents, skills, MCP servers, and environments; results are enriched with `stigmer://` resource URIs. |
 
 ### Authoring
 
@@ -67,14 +67,6 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
 | `get_skill` | Read a skill (optionally a specific version). |
 | `delete_skill` | Delete a skill (all versions). |
 | `list_skill_versions` | List a skill's version history. |
-| `get_workflow` | Read a workflow by org + slug, or a historical version by hash. |
-| `apply_workflow` | Create or update a workflow, with typed per-kind task config and recursive nested tasks. |
-| `delete_workflow` | Delete a workflow. |
-| `list_workflow_versions` | List a workflow's version history (timeline only, YAML omitted). |
-| `tag_workflow_version` | Assign or move a tag (e.g. `stable`) onto a workflow version. |
-| `validate_workflow_yaml` | Validate a Serverless Workflow YAML document against the task-kind registry. |
-| `get_task_kind_registry` | List every supported workflow task kind. |
-| `get_task_kind` | Read one task kind's config/output schema and examples. |
 | `get_environment` | Read an environment (secret values arrive server-redacted). |
 | `apply_environment` | Create or update an environment; echoing `***REDACTED***` preserves existing secrets. |
 | `delete_environment` | Delete an environment. |
@@ -87,16 +79,11 @@ the assistant polls the observation tools.
 | Tool | Description |
 | --- | --- |
 | `run_agent` | Start an agent run (new session or `session_id` follow-up). |
-| `run_workflow` | Start a workflow run. |
 | `get_agent_run` | Poll an agent run: phase, message tail (compact view) or full record, pending approvals. |
-| `get_workflow_run` | Read a workflow run by id. |
-| `get_workflow_run_events` | Read the event stream for a workflow run. |
-| `list_pending_approvals` | Org-wide inbox of workflow `human_input` tasks awaiting a decision. |
 | `submit_agent_run_approval` | Approve / skip / reject a tool call an agent run is waiting on. |
-| `submit_workflow_task_approval` | Submit a reviewer decision (outcome + optional form data) for a workflow task. |
-| `cancel_run` | Gracefully cancel an agent (`aex_*`) or workflow (`wex_*`) run by ID prefix. |
+| `cancel_run` | Gracefully cancel an agent run (`aex_*`) by ID. |
 
-## Resources (6)
+## Resources (5)
 
 Resource templates let clients discover and read resources by `stigmer://` URI:
 
@@ -106,7 +93,6 @@ Resource templates let clients discover and read resources by `stigmer://` URI:
 | `stigmer_mcp_server` | `stigmer://mcp-servers/{org}/{slug}` |
 | `stigmer_skill` | `stigmer://skills/{org}/{slug}` (latest) |
 | `stigmer_skill_version` | `stigmer://skills/{org}/{slug}/{version}` |
-| `stigmer_workflow` | `stigmer://workflows/{org}/{slug}` |
 | `stigmer_environment` | `stigmer://environments/{org}/{slug}` |
 
 ## Configuration

@@ -132,7 +132,6 @@ describe("readPluginDirectory", () => {
     const description = describePlugin(outcome.plugin, outcome.warnings, stats);
     expect(description.plugin.overlay).toEqual({
       agent: "ai.stigmer/agent.yaml",
-      workflows: [],
       mcpServers: [],
     });
     expect(description.excludedFiles).toBe(3);
@@ -208,7 +207,7 @@ describe("renderPushOutcome", () => {
       status: {
         digest: "a".repeat(64),
         state: PluginState.READY,
-        materialized: { skills: 2, mcpServers: 1, agents: 1, workflows: 0 },
+        materialized: { skills: 2, mcpServers: 1, agents: 1 },
         warnings: [
           {
             kind: "model-hint-unresolved",
@@ -354,7 +353,7 @@ describe("readNextSteps", () => {
     // The renderer names only the kinds installed and prints the Next section.
     const plugin = create(PluginSchema, {
       metadata: { id: "plg_1", slug: "linear" },
-      status: { materialized: { skills: 0, mcpServers: 1, agents: 0, workflows: 0 } },
+      status: { materialized: { skills: 0, mcpServers: 1, agents: 0 } },
     });
     const result = renderPushOutcome(
       { plugin, members: [member("linear")], archiveBytes: 10 },

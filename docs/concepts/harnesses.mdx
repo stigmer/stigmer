@@ -119,8 +119,8 @@ approval flows, billing, usage tracking) works the same regardless of Harness.
 
 ```mermaid
 flowchart LR
-  S["Session"] --> W["Workflow"]
-  W --> D{Harness?}
+  S["Session"] --> R["Agent Run"]
+  R --> D{Harness?}
   D -->|Native| EG["Native Runtime"]
   D -->|Cursor| EC["Cursor Runtime"]
   EG --> P["Streaming / HITL / Billing"]

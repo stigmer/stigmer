@@ -9,8 +9,8 @@ import { test, expect } from "@playwright/test";
  * - Invalid run IDs → inline "Run not found"
  * - Invalid session IDs → SessionError ("Failed to load session", naming
  *   the id, with a retry)
- * - Invalid library slugs → inline not-found state ("Agent not found",
- *   "Workflow not found") with the access hint
+ * - Invalid library slugs → inline not-found state ("Agent not found")
+ *   with the access hint
  *
  * Each case asserts its exact state: a loose "any error-looking text"
  * match would pass on the wrong failure.
@@ -62,18 +62,6 @@ test.describe("Error state resilience", () => {
     await expect(page.getByText("Agent not found")).toBeVisible({ timeout: 15_000 });
     await expect(
       page.getByText("This agent doesn't exist or you don't have access to it."),
-    ).toBeVisible();
-    await expectNoCrash(page);
-  });
-
-  test("an invalid workflow slug shows the workflow not-found state with the access hint", async ({
-    page,
-  }) => {
-    await page.goto("/library/workflows/e2e-nonexistent-org/e2e-nonexistent-wf");
-
-    await expect(page.getByText("Workflow not found")).toBeVisible({ timeout: 15_000 });
-    await expect(
-      page.getByText("This workflow doesn't exist or you don't have access to it."),
     ).toBeVisible();
     await expectNoCrash(page);
   });

@@ -23,7 +23,7 @@ interface HostState {
 
 function runnerHost(state: HostState) {
   return mockTauri({
-    runner_status: () => ({ ...state, activeWorkflowExecutions: [] }),
+    runner_status: () => ({ ...state }),
   });
 }
 

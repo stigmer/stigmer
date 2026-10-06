@@ -13,10 +13,10 @@
  *     sidebar entries) always form their own sections titled from their
  *     meta.json, regardless of any preceding separator.
  *   - Cross-folder page refs ("concepts/agents"), file+folder hybrids
- *     ("task-types.mdx" beside "task-types/"), and folder indexes omitted from
+ *     ("runners.mdx" beside "runners/"), and folder indexes omitted from
  *     a `pages` allowlist are resolved the way Fumadocs resolves them.
  *   - `[Label](url)` link entries carry a custom sidebar label for a page
- *     (e.g. "[Welcome](/docs)", "[Overview](/docs/guides/workflows)"). When
+ *     (e.g. "[Welcome](/docs)", "[Overview](/docs/guides/runners)"). When
  *     the internal target is not collected through any other entry, the walk
  *     resolves and collects it; already-collected targets and external URLs
  *     are skipped.
@@ -178,7 +178,7 @@ export function isLinkEntry(entry: string): boolean {
 
 /**
  * Extracts the docs-relative path from an internal link entry
- * ("[Overview](/docs/guides/workflows)" → "guides/workflows"; "[Welcome](/docs)"
+ * ("[Overview](/docs/guides/runners)" → "guides/runners"; "[Welcome](/docs)"
  * → ""). Returns null for external or non-docs URLs.
  */
 export function linkTargetRelativePath(entry: string): string | null {
@@ -248,8 +248,8 @@ async function readPage(
 
 /**
  * Resolves a single meta.json `pages` entry to its pages, mirroring Fumadocs:
- * a name can be a page file, a folder, or BOTH at once (e.g. "task-types.mdx"
- * beside "task-types/" — the file is the folder's index page and the folder's
+ * a name can be a page file, a folder, or BOTH at once (e.g. "runners.mdx"
+ * beside "runners/" — the file is the folder's index page and the folder's
  * children still belong to the tree).
  */
 async function resolveEntry(

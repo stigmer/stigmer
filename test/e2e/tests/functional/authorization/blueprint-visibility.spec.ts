@@ -5,7 +5,7 @@ import { openManageAccessFromKebab, visibilityBadge } from "../../../helpers/acc
 /**
  * Blueprint visibility, the General access axis of "Manage access".
  *
- * A blueprint (agent, workflow) is created at Organization visibility, the
+ * A blueprint (an agent) is created at Organization visibility, the
  * blueprint default. Its detail header shows the level as a badge that opens
  * the Manage access dialog, and the dialog's General access control is where
  * the level changes: Private, Organization or, for an organization that
@@ -76,22 +76,6 @@ test.describe("Blueprint visibility", () => {
 
       const stored = await stigmerClient.agent.get(testAgent.id);
       expect(stored.metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);
-    });
-  });
-
-  test.describe("Workflow", () => {
-    test("the workflow's Manage access dialog carries the same General access control", async ({
-      page,
-      testWorkflow,
-    }) => {
-      await page.goto(`/library/workflows/${testWorkflow.org}/${testWorkflow.slug}`);
-      await expect(visibilityBadge(page)).toHaveText("Organization", { timeout: 15_000 });
-
-      const dialog = await openManageAccessFromKebab(page);
-      await expect(dialog.getByRole("heading", { name: "General access" })).toBeVisible();
-      await expect(
-        dialog.getByRole("button", { name: "Resource visibility: Organization" }),
-      ).toBeEnabled();
     });
   });
 });

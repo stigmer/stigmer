@@ -270,22 +270,22 @@ From the boot that read the issuer, every request needs a credential:
   mint them.
 - **Roles decide what a signed-in person may do.** Every Organization has four
   roles: owner, admin, member and viewer. Owners and admins manage the
-  Organization's Agents, Workflows, Skills and MCP Servers and its members.
-  Members use what is shared with the Organization and create their own
-  Sessions, Environments and API keys. Viewers only read what is shared. An
-  Agent, Workflow or Skill marked Private shows up in the library and opens on
-  its page only for the person who created it and the Organization's admins,
-  whether it is opened by ID or by name (`stigmer get agent acme/helper` answers
-  the same as the page does). Nobody reads another person's conversations, API
-  keys or Environments, admins included. These are the same rules Stigmer Cloud
-  enforces, so an Agent behaves the same way wherever it runs.
+  Organization's Agents, Skills and MCP Servers and its members. Members use
+  what is shared with the Organization and create their own Sessions,
+  Environments and API keys. Viewers only read what is shared. An Agent or Skill
+  marked Private shows up in the library and opens on its page only for the
+  person who created it and the Organization's admins, whether it is opened by
+  ID or by name (`stigmer get agent acme/helper` answers the same as the page
+  does). Nobody reads another person's conversations, API keys or Environments,
+  admins included. These are the same rules Stigmer Cloud enforces, so an Agent
+  behaves the same way wherever it runs.
 - **If authentication was already on before 3.16.0, roles were assigned at the
   first start of that release.** People who signed in under an earlier release
   keep what they had: whoever created an Organization owns it, whoever created
-  an Agent, Workflow, Skill, MCP Server, Environment or Schedule in it is an
-  admin there, the operator email's holder is an admin everywhere, and everyone
-  else is a member. This happens once; from then on roles change only when an
-  owner or admin changes them.
+  an Agent, Skill, MCP Server, Environment or Schedule in it is an admin there,
+  the operator email's holder is an admin everywhere, and everyone else is a
+  member. This happens once; from then on roles change only when an owner or
+  admin changes them.
 - **Nothing is readable outside its Organization.** The Public visibility level
   is retired: it is refused everywhere, and a server upgrading from a release
   that still had it moves every row that carried it to Organization visibility
@@ -296,16 +296,14 @@ From the boot that read the issuer, every request needs a credential:
   it creates, the status it reports and the memories its Agent proposes with
   `remember`, is recorded as that person. Connecting an MCP Server that declares
   credentials works the same way: the runner reads those credentials as the
-  person who asked for the connect. A Workflow shared with the Organization runs
-  the Agents it calls as the person who ran the Workflow, so that person must be
-  able to view them; a call to a private Agent fails at the Agent's read. A run
-  that was already in flight when you turned authentication on belongs to no
-  signed-in person and stops with a message saying so; start it again while
-  signed in. A run's credential is written into the run's Temporal history and
-  stays valid for ten minutes after the run ends, so protect Temporal the way
-  you protect the database. The Helm chart's bundled Temporal admits only the
-  Stigmer pod; a Temporal of your own can require TLS, mutual TLS or an API key,
-  and both the server and the runner can present them
+  person who asked for the connect. A run that was already in flight when you
+  turned authentication on belongs to no signed-in person and stops with a
+  message saying so; start it again while signed in. A run's credential is
+  written into the run's Temporal history and stays valid for ten minutes after
+  the run ends, so protect Temporal the way you protect the database. The Helm
+  chart's bundled Temporal admits only the Stigmer pod; a Temporal of your own
+  can require TLS, mutual TLS or an API key, and both the server and the runner
+  can present them
   ([Bring your own Postgres and Temporal](./kubernetes#bring-your-own-postgres-and-temporal)).
   To end a run's credential, end the run: cancel it and the credential is dead
   ten minutes later. To end every run's credential at once, rotate
@@ -322,8 +320,8 @@ From the boot that read the issuer, every request needs a credential:
 
 ### What the roles mean day to day
 
-- A member cannot create an Agent, Workflow or Skill until an owner or admin
-  promotes them under **Settings → Members**. New arrivals are members.
+- A member cannot create an Agent or Skill until an owner or admin promotes them
+  under **Settings → Members**. New arrivals are members.
 - The server does not stop a signed-in person from creating another
   Organization; whoever creates one owns it.
 - A script that presents an access token but has never signed in through the
@@ -333,8 +331,8 @@ From the boot that read the issuer, every request needs a credential:
   person. Each pauses at its next run and says why; recreate it while signed in.
 - Memories recorded before you turned authentication on belong to no signed-in
   person either, and stay hidden.
-- An admin's lists show the Organization's Agents, Workflows and Skills, not
-  other members' Sessions, Environments or API keys.
+- An admin's lists show the Organization's Agents and Skills, not other members'
+  Sessions, Environments or API keys.
 
 ## What still needs an API key
 

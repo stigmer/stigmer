@@ -34,7 +34,6 @@ const allKindsResponse = create(SearchResponseSchema, {
     create(SearchResultSchema, { kind: ApiResourceKind.agent, org: "acme", slug: "code-reviewer" }),
     create(SearchResultSchema, { kind: ApiResourceKind.skill, org: "acme", slug: "code-review" }),
     create(SearchResultSchema, { kind: ApiResourceKind.mcp_server, org: "acme", slug: "github" }),
-    create(SearchResultSchema, { kind: ApiResourceKind.workflow, org: "acme", slug: "release" }),
     create(SearchResultSchema, {
       kind: ApiResourceKind.environment,
       org: "acme",
@@ -100,7 +99,6 @@ describe("search tool integration", () => {
       "stigmer://agents/acme/code-reviewer",
       "stigmer://skills/acme/code-review",
       "stigmer://mcp-servers/acme/github",
-      "stigmer://workflows/acme/release",
       "stigmer://environments/acme/github-creds",
     ]);
   });
@@ -119,7 +117,7 @@ describe("search tool integration", () => {
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('unknown resource kind "bogus"');
     expect(result.content[0]?.text).toContain(
-      "valid kinds: agent, skill, mcp_server, workflow, environment",
+      "valid kinds: agent, skill, mcp_server, environment",
     );
   });
 

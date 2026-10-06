@@ -34,7 +34,7 @@ export interface YamlEditorProps {
 
 /**
  * YAML editor built on CodeMirror 6, shared by every YAML surface in the
- * SDK (workflow editor tab, resource manifest dialogs).
+ * SDK (the resource manifest dialogs).
  *
  * Provides syntax highlighting, line numbers, bracket matching,
  * code folding, undo/redo, and inline diagnostic markers driven by

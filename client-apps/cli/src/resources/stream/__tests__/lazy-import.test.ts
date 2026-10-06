@@ -46,13 +46,6 @@ describe("lazy-import boundary", () => {
     expect(staticImporters).toEqual([]);
   });
 
-  // The workflow run stream renders over a CLI-local plaintext/NDJSON renderer
-  // (no Ink WorkflowView this round), so it must stay out of the React/Ink graph.
-  it("workflow-stream.ts has no static react/ink imports", () => {
-    const src = readFileSync(join(SRC_ROOT, "resources/run/workflow-stream.ts"), "utf8");
-    expect(STATIC_HEAVY_IMPORT.test(src)).toBe(false);
-  });
-
   // `connect` renders plaintext only; its command + resources stay Ink-free.
   it("connect command and resources have no static react/ink imports", () => {
     for (const rel of ["commands/connect.ts", "resources/connect/connect.ts", "resources/connect/display.ts"]) {

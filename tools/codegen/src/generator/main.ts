@@ -17,7 +17,6 @@ import { runSDKClientJavaGeneration } from "./sdk-client-java.js";
 import { runSDKClientPythonGeneration } from "./sdk-client-python.js";
 import { runSDKClientTSGeneration } from "./sdk-client-ts.js";
 import { runSDKDocsGeneration } from "./sdk-docs.js";
-import { runTaskDocsGeneration } from "./task-docs.js";
 import { runTaskRegistryGeneration } from "./task-registry.js";
 
 interface Flags {
@@ -125,17 +124,6 @@ function main(): void {
       break;
     case "sdk-docs":
       runSDKDocsGeneration(flags.schemaDir, flags.outputDir, flags.apisDir);
-      break;
-    case "task-docs":
-      if (flags.metaDir === "") {
-        process.stderr.write("--meta-dir is required for --target=task-docs\n");
-        process.exit(1);
-      }
-      if (flags.apisDir === "") {
-        process.stderr.write("--apis-dir is required for --target=task-docs (index enrichment template)\n");
-        process.exit(1);
-      }
-      runTaskDocsGeneration(flags.schemaDir, flags.outputDir, flags.metaDir, flags.apisDir);
       break;
     default:
       process.stderr.write(

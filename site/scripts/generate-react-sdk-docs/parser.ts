@@ -64,11 +64,6 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for agent definitions, search, setup orchestration, and detail views.",
   },
-  workflow: {
-    title: "Workflow",
-    description:
-      "Hooks and components for workflow definitions, runs, and the visual builder.",
-  },
   runner: {
     title: "Runner",
     description:
@@ -286,8 +281,6 @@ const PROTO_TYPE_TO_SLUG: Record<string, string> = {
   Session: "session",
   Agent: "agent",
   AgentRun: "agent-run",
-  Workflow: "workflow",
-  WorkflowRun: "workflow-run",
   Environment: "environment",
   McpServer: "mcp-server",
   Skill: "skill",

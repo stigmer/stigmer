@@ -29,11 +29,9 @@ const SKELETON_LINE_WIDTHS = [85, 72, 90, 65, 78, 88, 70, 82] as const;
  * "not available for preview" (binary / unfetched), or the rendered text via
  * {@link ArtifactContentRenderer}.
  *
- * Extracted from `ArtifactContentBody` so surfaces on BOTH artifact data
- * models render file content identically — the session's `RunArtifact`
- * bodies (modal + document) and the workflow's `Artifact`-resource document.
- * Deliberately takes plain fields, not an artifact type: the two models share
- * no proto, only this presentation.
+ * Extracted from `ArtifactContentBody` (the session's `RunArtifact` bodies,
+ * modal + document). Deliberately takes plain fields, not an artifact type,
+ * so a host with its own content model can render file content identically.
  */
 export function ArtifactFileContent({
   fileName,

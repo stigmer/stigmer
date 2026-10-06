@@ -78,7 +78,7 @@ const tier2Enabled = process.argv.includes("--tier2");
 function loadStylesContext(): string {
   const stylesCss = readFileSync(join(srcRoot, "styles.css"), "utf8");
   // Drop @source/@import lines (the design system gets theme/utilities content
-  // directly below; token/xyflow imports are irrelevant to candidate parsing).
+  // directly below; token imports are irrelevant to candidate parsing).
   return stylesCss
     .split("\n")
     .filter((line) => !/^\s*@(source|import)\b/.test(line))

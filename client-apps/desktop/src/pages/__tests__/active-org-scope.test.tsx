@@ -1,9 +1,9 @@
 /**
  * Pins that the desktop pages scoped to the active organization (the
- * dashboard, the session launcher, the workflow run list) ask the
- * server by the organization's minted id, never its slug: the slug can be
- * renamed, the id cannot, and the server keys every scoped query by id. The
- * views and data hooks are pinned in @stigmer/react.
+ * dashboard and the session launcher) ask the server by the organization's
+ * minted id, never its slug: the slug can be renamed, the id cannot, and the
+ * server keys every scoped query by id. The views and data hooks are pinned
+ * in @stigmer/react.
  */
 import type { ComponentType } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -24,30 +24,10 @@ const { ACME, page, record } = vi.hoisted(() => {
 vi.mock("@stigmer/react", () => ({
   useActiveOrgId: () => ACME.id,
   useOrg: () => ({ activeOrg: { metadata: { id: ACME.id, slug: ACME.slug } } }),
-  useWorkflowDashboardSummary: ({ org }: { org: string }) => {
-    record("useWorkflowDashboardSummary", org);
-    return { summary: null, isLoading: false };
-  },
   OperationalDashboard: ({ org }: { org: string }) => {
     record("OperationalDashboard", org);
     return null;
   },
-  CostByWorkflowChart: () => null,
-  RunTrendChart: () => null,
-  useWorkflowRunList: ({ org }: { org: string }) => {
-    record("useWorkflowRunList", org);
-    return {
-      runs: [],
-      isLoading: false,
-      error: null,
-      hasMore: false,
-      loadMore: () => undefined,
-      isLoadingMore: false,
-      loadMoreError: null,
-    };
-  },
-  Button: () => null,
-  WorkflowRunPhaseBadge: () => null,
   NewSessionViewer: ({ org }: { org: string }) => {
     record("NewSessionViewer", org);
     return null;
@@ -64,7 +44,6 @@ vi.mock("../../hooks/useNativeWorkspaceContentSearcher", () => ({
 }));
 
 import DashboardPage from "../dashboard/DashboardPage";
-import WorkflowRunListPage from "../workflow/WorkflowRunListPage";
 import { SessionLauncher } from "../SessionLauncher";
 
 function renderPage(Page: ComponentType): void {
@@ -82,17 +61,10 @@ beforeEach(() => {
 });
 
 describe("desktop pages scoped to the active organization", () => {
-  it("the dashboard asks for its summary and operational view by org id", () => {
+  it("the dashboard asks for its operational view by org id", () => {
     renderPage(DashboardPage);
 
-    expect(page.orgs.useWorkflowDashboardSummary?.at(-1)).toBe(ACME.id);
     expect(page.orgs.OperationalDashboard?.at(-1)).toBe(ACME.id);
-  });
-
-  it("the workflow execution list asks by org id", () => {
-    renderPage(WorkflowRunListPage);
-
-    expect(page.orgs.useWorkflowRunList?.at(-1)).toBe(ACME.id);
   });
 
   it("the session launcher creates sessions in the org by id", () => {

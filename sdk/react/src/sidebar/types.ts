@@ -37,9 +37,8 @@ export interface SidebarLinkRenderProps {
   readonly children: ReactNode;
   /**
    * The recent-activity entry behind this row. Present only for recents
-   * rows in the workspace sidebar — consumers use it to pick the right
-   * navigation flow (session viewer vs. run viewer) without
-   * parsing `href`.
+   * rows in the workspace sidebar — consumers use it to open the
+   * session through their own navigation flow without parsing `href`.
    */
   readonly entry?: RecentActivityEntry;
 }

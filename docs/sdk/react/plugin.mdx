@@ -409,7 +409,7 @@ const { plugins, totalCount } = usePluginList("acme", { page: 1, pageSize: 20 })
 
 Data hook that lists the resources an installed plugin owns.
 
-Members are derived on the server from the plugin label on the four child
+Members are derived on the server from the plugin label on the three child
 kinds; nothing is stored on the plugin, so this list is always the truth
 about what the plugin currently holds. Pass `null` to skip fetching.
 
@@ -432,7 +432,7 @@ function usePluginMembers(pluginId: string | null): UsePluginMembersReturn
     byKind: { type: "PluginMembersByKind", description: "", typeDescriptionLink: "#pluginmembersbykind" },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
-    members: { type: "readonly PluginMember[]", description: "Every member in materialisation order: skills, MCP servers, agents, workflows." },
+    members: { type: "readonly PluginMember[]", description: "Every member in materialisation order: skills, MCP servers, agents." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
   }}
 />
@@ -752,7 +752,6 @@ the server warned about, and its versions.
     onSkillClick: { type: "(ref: PluginMemberRef) => void", description: "Called when a member row is selected; the host owns the route to each kind's page." },
     onStartSession: { type: "(agent: PluginMemberRef) => void", description: "Called when the user asks to start a session on the plugin's agent. When provided and the plugin carries an agent, \"Start session\" is the header's primary action; the host owns the route." },
     onTabChange: { type: "(tabId: string) => void", description: "" },
-    onWorkflowClick: { type: "(ref: PluginMemberRef) => void", description: "" },
     org: { type: "string", description: "Id of the organization the plugin is installed in (a slug is also accepted).", required: true },
     slug: { type: "string", description: "Plugin slug (the plugin's name).", required: true },
   }}
@@ -1386,7 +1385,6 @@ The members of a plugin grouped by kind, in the order the server materialises th
     agents: { type: "readonly PluginMember[]", description: "", required: true },
     mcpServers: { type: "readonly PluginMember[]", description: "", required: true },
     skills: { type: "readonly PluginMember[]", description: "", required: true },
-    workflows: { type: "readonly PluginMember[]", description: "", required: true },
   }}
 />
 

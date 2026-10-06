@@ -312,7 +312,7 @@ export class LocalExecutionTarget implements TargetProfile {
   }
 
   // The unified port's base URL — gRPC and the plain-HTTP lanes alike (the
-  // LocalTarget accessor, here because the architect fixture's stdio
+  // LocalTarget accessor, here because the stdio-lane fixture's
   // mcp-server dials it and the registry lane lives on it).
   httpBaseUrl(): string {
     return this.serverBaseUrl();

@@ -1,22 +1,16 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
 import {
   detailKey,
   LibraryNavigationProvider,
   useLibraryNavigation,
   type ActiveDetail,
 } from "@/domain/library/library-navigation";
-import {
-  FullViewportLayoutProvider,
-  useFullViewportLayout,
-} from "@/domain/library/full-viewport-layout";
 import { LibraryBreadcrumb } from "@/domain/library/LibraryBreadcrumb";
 import { LibraryBreadcrumbProvider } from "@stigmer/react";
 import { AgentDetailPageInner } from "@/domain/library/agents/AgentDetailPage";
 import { SkillDetailPageInner } from "@/domain/library/skills/SkillDetailPage";
 import { McpServerDetailPageInner } from "@/domain/library/mcp-servers/McpServerDetailPage";
-import { WorkflowDetailPageInner } from "@/domain/workflow/WorkflowDetailPage";
 import { ScheduleDetailPageInner } from "@/domain/library/schedules/ScheduleDetailPage";
 import { PluginDetailPageInner } from "@/domain/library/plugins/PluginDetailPage";
 
@@ -28,9 +22,7 @@ export default function LibraryLayout({
   return (
     <LibraryNavigationProvider>
       <LibraryBreadcrumbProvider>
-        <FullViewportLayoutProvider>
-          <LibraryLayoutContent>{children}</LibraryLayoutContent>
-        </FullViewportLayoutProvider>
+        <LibraryLayoutContent>{children}</LibraryLayoutContent>
       </LibraryBreadcrumbProvider>
     </LibraryNavigationProvider>
   );
@@ -38,7 +30,6 @@ export default function LibraryLayout({
 
 function LibraryLayoutContent({ children }: { children: React.ReactNode }) {
   const { activeDetail } = useLibraryNavigation();
-  const { isFullViewport } = useFullViewportLayout();
 
   const overlayActive = activeDetail != null;
 
@@ -57,20 +48,11 @@ function LibraryLayoutContent({ children }: { children: React.ReactNode }) {
   // case exists there. That divergence is inherent to the static-export
   // constraint, not drift.
   return (
-    <div
-      className={cn(
-        isFullViewport
-          ? "flex h-full flex-col"
-          : "mx-auto max-w-4xl px-6 py-8",
-      )}
-    >
-      {!isFullViewport && <LibraryBreadcrumb />}
+    <div className="mx-auto max-w-4xl px-6 py-8">
+      <LibraryBreadcrumb />
       <div
         data-slot="library-route-children"
-        className={cn(
-          overlayActive && "hidden",
-          isFullViewport && "flex min-h-0 flex-1 flex-col",
-        )}
+        className={overlayActive ? "hidden" : undefined}
         aria-hidden={overlayActive}
       >
         {children}
@@ -93,8 +75,6 @@ function LibraryDetailContent({ detail }: { detail: ActiveDetail }) {
       return <SkillDetailPageInner org={detail.org} slug={detail.slug} />;
     case "mcp-servers":
       return <McpServerDetailPageInner org={detail.org} slug={detail.slug} />;
-    case "workflows":
-      return <WorkflowDetailPageInner org={detail.org} slug={detail.slug} />;
     case "schedules":
       return <ScheduleDetailPageInner org={detail.org} slug={detail.slug} />;
     case "plugins":

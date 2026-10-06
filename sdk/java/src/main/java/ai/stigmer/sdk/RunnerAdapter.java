@@ -8,12 +8,10 @@ package ai.stigmer.sdk;
  * the appropriate lifecycle points so it never manages runner processes
  * directly — the adapter handles it transparently.
  *
- * <p>Sessions and workflow runs have different lifecycles. A session is
- * a long-lived, multi-turn conversation with no terminal phase, so its worker
- * is tied to whether the session is open (in use): {@code onSessionOpened}
- * when the session is opened, {@code onSessionClosed} when it is closed. A
- * workflow run reaches a terminal phase, so its worker is tied to
- * creation and completion.
+ * <p>A session is a long-lived, multi-turn conversation with no terminal
+ * phase, so its worker is tied to whether the session is open (in use):
+ * {@code onSessionOpened} when the session is opened, {@code onSessionClosed}
+ * when it is closed.
  *
  * <p>Each environment provides its own implementation:
  * <ul>
@@ -29,13 +27,16 @@ package ai.stigmer.sdk;
  *     public void onSessionOpened(String sessionId) {
  *         myRunner.addSession(sessionId);
  *     }
- *     // ... other methods
+ *     @Override
+ *     public void onSessionClosed(String sessionId) {
+ *         myRunner.removeSession(sessionId);
+ *     }
  * };
  *
  * try (StigmerClient client = StigmerClient.builder("sk_live_...")
  *         .runnerAdapter(adapter)
  *         .build()) {
- *     // adapter drives the runner lifecycle for local sessions/runs
+ *     // adapter drives the runner lifecycle for local sessions
  * }
  * }</pre>
  */
@@ -60,22 +61,4 @@ public interface RunnerAdapter {
      * @throws Exception if cleanup fails
      */
     void onSessionClosed(String sessionId) throws Exception;
-
-    /**
-     * Called after a workflow run is created with executionTarget=LOCAL.
-     * The adapter should ensure a runner worker is active for the given run.
-     *
-     * @param runId the server-assigned run identifier
-     * @throws Exception if the runner cannot be started
-     */
-    void onWorkflowRunCreated(String runId) throws Exception;
-
-    /**
-     * Called when a workflow run reaches a terminal phase.
-     * The adapter should clean up any runner resources allocated for the run.
-     *
-     * @param runId the run identifier to terminate
-     * @throws Exception if cleanup fails
-     */
-    void onWorkflowRunTerminated(String runId) throws Exception;
 }

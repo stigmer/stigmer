@@ -1,7 +1,5 @@
-// In-process test for the versioning tools: list_workflow_versions
-// (timeline projection — validated_yaml stripped), get_workflow's version
-// argument (slug→ID two-step into getVersion), tag_workflow_version, and
-// list_skill_versions. Same harness as reads.test.ts.
+// In-process test for the versioning tool, list_skill_versions: it forwards
+// the reference and returns the timeline. Same harness as reads.test.ts.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -20,15 +18,6 @@ import {
   ListSkillVersionsResponseSchema,
   type ListSkillVersionsInput,
 } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
-import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
-import {
-  ListWorkflowVersionsResponseSchema,
-  WorkflowVersionEntrySchema,
-  type GetWorkflowVersionInput,
-  type TagWorkflowVersionInput,
-} from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../../logger";
@@ -39,25 +28,6 @@ configureLogger({ level: "error", format: "text" });
 const HASH_A = "a".repeat(64);
 const HASH_B = "b".repeat(64);
 
-const knownWorkflow = create(WorkflowSchema, {
-  apiVersion: "v1",
-  kind: "workflow",
-  metadata: { name: "Release", slug: "release", org: "acme", id: "wkf_1" },
-});
-
-const workflowVersions = create(ListWorkflowVersionsResponseSchema, {
-  versions: [
-    { versionHash: HASH_A, tag: "stable", isCurrent: true, validatedYaml: "document: {}" },
-    { versionHash: HASH_B, validatedYaml: "document: {old: true}" },
-  ],
-  totalCount: 2,
-});
-
-const versionEntry = create(WorkflowVersionEntrySchema, {
-  versionHash: HASH_B,
-  validatedYaml: "document: {old: true}",
-});
-
 const skillVersions = create(ListSkillVersionsResponseSchema, {
   versions: [{ versionHash: HASH_A, tag: "stable", isCurrent: true }],
   totalCount: 1,
@@ -65,8 +35,6 @@ const skillVersions = create(ListSkillVersionsResponseSchema, {
 
 let backend: Http2Server;
 let client: Client;
-let lastGetVersion: GetWorkflowVersionInput | undefined;
-let lastTagVersion: TagWorkflowVersionInput | undefined;
 let lastSkillVersionsRequest: ListSkillVersionsInput | undefined;
 const openSessions = new Set<ServerHttp2Session>();
 
@@ -85,20 +53,6 @@ function parseText(result: ToolResult): Record<string, unknown> {
 
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
-    router.service(WorkflowQueryController, {
-      getByReference: () => knownWorkflow,
-      listVersions: () => workflowVersions,
-      getVersion: (req) => {
-        lastGetVersion = req;
-        return versionEntry;
-      },
-    });
-    router.service(WorkflowCommandController, {
-      tagVersion: (req) => {
-        lastTagVersion = req;
-        return knownWorkflow;
-      },
-    });
     router.service(SkillQueryController, {
       listVersions: (req) => {
         lastSkillVersionsRequest = req;
@@ -121,8 +75,6 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  lastGetVersion = undefined;
-  lastTagVersion = undefined;
   lastSkillVersionsRequest = undefined;
 });
 
@@ -133,66 +85,11 @@ afterAll(async () => {
 });
 
 describe("versioning tools integration", () => {
-  it("advertises the versioning tools", async () => {
+  it("advertises the versioning tool", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual(
-      expect.arrayContaining([
-        "list_workflow_versions",
-        "tag_workflow_version",
-        "list_skill_versions",
-      ]),
+      expect.arrayContaining(["list_skill_versions"]),
     );
-  });
-
-  it("list_workflow_versions strips validated_yaml from the timeline", async () => {
-    const result = await callTool("list_workflow_versions", { org: "acme", slug: "release" });
-    expect(result.isError).toBeFalsy();
-
-    const body = parseText(result);
-    expect(body.total_count).toBe(2);
-    const versions = body.versions as Array<Record<string, unknown>>;
-    expect(versions).toHaveLength(2);
-    expect(versions[0]).toMatchObject({ version_hash: HASH_A, tag: "stable", is_current: true });
-    for (const entry of versions) {
-      expect(entry.validated_yaml).toBeUndefined();
-    }
-  });
-
-  it("get_workflow with a version resolves the id and fetches that version", async () => {
-    const result = await callTool("get_workflow", {
-      org: "acme",
-      slug: "release",
-      version: HASH_B,
-    });
-    expect(result.isError).toBeFalsy();
-    expect(lastGetVersion?.workflowId).toBe("wkf_1");
-    expect(lastGetVersion?.versionHash).toBe(HASH_B);
-    // The version entry carries the YAML the timeline omits.
-    expect(parseText(result)).toEqual(
-      toJson(WorkflowVersionEntrySchema, versionEntry, { useProtoFieldName: true }),
-    );
-  });
-
-  it("get_workflow without a version returns the live workflow", async () => {
-    const result = await callTool("get_workflow", { org: "acme", slug: "release" });
-    expect(result.isError).toBeFalsy();
-    expect(lastGetVersion).toBeUndefined();
-    expect(parseText(result)).toEqual(
-      toJson(WorkflowSchema, knownWorkflow, { useProtoFieldName: true }),
-    );
-  });
-
-  it("tag_workflow_version resolves the id and forwards hash and tag", async () => {
-    const result = await callTool("tag_workflow_version", {
-      org: "acme",
-      slug: "release",
-      version: HASH_B,
-      tag: "stable",
-    });
-    expect(result.isError).toBeFalsy();
-    expect(lastTagVersion?.workflowId).toBe("wkf_1");
-    expect(lastTagVersion?.versionHash).toBe(HASH_B);
-    expect(lastTagVersion?.tag).toBe("stable");
   });
 
   it("list_skill_versions forwards the reference and returns the timeline", async () => {

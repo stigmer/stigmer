@@ -623,7 +623,7 @@ export function useSessionConversation(
   const stopActions = useAgentRunActions(activeRunId, {
     // The cancel/terminate also broadcasts the new phase over the stream, but
     // refetch is the belt-and-suspenders that clears the active id even if the
-    // stream has already ended — mirrors the workflow viewer's onSuccess.
+    // stream has already ended.
     onSuccess: refetch,
   });
 

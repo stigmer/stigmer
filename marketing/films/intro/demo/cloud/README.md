@@ -2,7 +2,7 @@
 
 **No film shot records against cloud anymore** — the scene-4 payoff beat is the React app in `../app/` against the local stack, so the film needs no hosted account. This folder remains the reproducible cloud twin of the Meridian world: org, MCP manifest, skill, agent, and the public-audience share variant — useful for embed-element demos (`../embed/`), which ride the guest path and are cloud-only on OSS.
 
-This folder is that shot's reproducible setup, mirroring `../seed.mjs` for the cloud minimal set: org, MCP server manifest, skill, agent, and the public-audience share variant (`traveler-assist-share.yaml` here; the committed local share is org-audience by design). The workflow and its daily schedule are deliberately excluded — a live schedule on a real backend would keep firing after the camera stops.
+This folder is that shot's reproducible setup, mirroring `../seed.mjs` for the cloud minimal set: org, MCP server manifest, skill, agent, and the public-audience share variant (`traveler-assist-share.yaml` here; the committed local share is org-audience by design). The daily digest schedule is deliberately excluded — a live schedule on a real backend would keep firing after the camera stops.
 
 ## Reseeding the cloud world
 

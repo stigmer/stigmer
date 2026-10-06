@@ -169,25 +169,6 @@ describe("host isolation of the shipped stylesheet (#454)", () => {
     expect(getComputedStyle(el).position).toBe("relative");
   });
 
-  it("xyflow styles apply only inside the .stgm scope", () => {
-    render(
-      <>
-        <div data-testid="xy-outside" className="react-flow" />
-        <StigmerProvider client={makeClient()}>
-          <div data-testid="xy-inside" className="react-flow" />
-        </StigmerProvider>
-      </>,
-    );
-    const readVar = (testId: string) =>
-      getComputedStyle(document.querySelector(`[data-testid="${testId}"]`)!)
-        .getPropertyValue("--xy-edge-stroke-default")
-        .trim();
-    // A host page using react-flow itself must keep its own styling — the
-    // SDK's copy is scoped under `:where(.stgm, .stgm *)` by the build.
-    expect(readVar("xy-outside")).toBe("");
-    expect(readVar("xy-inside")).not.toBe("");
-  });
-
   it("negative control: the pre-#454 emission shape breaks the host (this suite detects the defect)", () => {
     injectStyle(LEGACY_SDK_LEAK_CSS);
     render(

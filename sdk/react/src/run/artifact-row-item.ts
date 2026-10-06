@@ -1,20 +1,15 @@
-// Type-agnostic view-model for artifact list rows, with adapters from both
-// artifact data models. Domain: run (shared by session + workflow).
+// View-model for artifact list rows, with the adapter from the session's
+// run-artifact model. Domain: run.
 
 import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 
 /**
- * What an artifact row displays, independent of which artifact data model
- * produced it.
+ * What an artifact row displays, mapped from the session's `RunArtifact`
+ * (embedded in `AgentRun.status.artifacts`).
  *
- * Two artifact models exist and are deliberately unified ONLY at this
- * presentational layer, never at the data layer: the session's
- * `RunArtifact` (embedded in `AgentRun.status.artifacts`) and the
- * workflow's first-class `Artifact` resource. Their identity, provenance, and
- * download mechanics differ — so the view-model carries no identity; list
- * keys and open/download behavior stay with the domain-specific hosts.
+ * The view-model carries no identity; list keys and open/download behavior
+ * stay with the hosts that render the row.
  */
 export interface ArtifactRowItem {
   /** Display label (file or directory name). */
@@ -23,8 +18,8 @@ export interface ArtifactRowItem {
   readonly tooltip: string;
   /**
    * Disambiguation subtitle rendered after the name when another row shares
-   * the same display name: the parent directory for sandbox-backed artifacts,
-   * the producing task for workflow artifacts. `null` when not needed.
+   * the same display name: the artifact's parent directory. `null` when not
+   * needed.
    */
   readonly subtitlePath: string | null;
   /** Content size in bytes (protobuf `int64` is `bigint`). */
@@ -53,33 +48,6 @@ export function fromRunArtifact(
         : null,
     sizeBytes: artifact.sizeBytes,
     isDirectory: artifact.kind === RunArtifactKind.DIRECTORY,
-  };
-}
-
-/**
- * Adapts a workflow `Artifact` resource to a row item.
- *
- * A workflow artifact is always a single content-typed blob — the resource
- * model has no directory concept — so `isDirectory` is always `false`. Name
- * collisions disambiguate by the producing task (`source.task_name`), the
- * workflow analog of the session's parent-directory subtitle.
- *
- * @param hasNameCollision - When `true` and the artifact has a source task,
- *   that task name becomes the disambiguation subtitle.
- */
-export function fromArtifact(
-  artifact: Artifact,
-  hasNameCollision = false,
-): ArtifactRowItem {
-  const name =
-    artifact.spec?.displayName || artifact.metadata?.name || "Unnamed";
-  const taskName = artifact.spec?.source?.taskName ?? "";
-  return {
-    name,
-    tooltip: name,
-    subtitlePath: hasNameCollision && taskName ? taskName : null,
-    sizeBytes: artifact.status?.sizeBytes ?? BigInt(0),
-    isDirectory: false,
   };
 }
 

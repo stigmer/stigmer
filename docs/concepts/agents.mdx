@@ -120,14 +120,14 @@ that Agent.
 
 The Agent's `env` map declares the keys it needs, never their values. Values
 reach a run when it starts: from the [Environments](/docs/concepts/environments)
-bound to whatever started it (a Schedule, a Workflow task, a PlatformClient),
-from values the request passes for that one run, and, for keys still missing,
-from the personal Environment of the person sending the message, when the Agent
-belongs to the Organization the run is in (an Agent another Organization
-published reads no one's personal Environment, and an MCP Server's OAuth
-variable comes only from the sign-in to that server). The same Agent runs with
-test credentials from one Schedule and production credentials from another, and
-its definition never changes.
+bound to whatever started it (a Schedule, a PlatformClient), from values the
+request passes for that one run, and, for keys still missing, from the personal
+Environment of the person sending the message, when the Agent belongs to the
+Organization the run is in (an Agent another Organization published reads no
+one's personal Environment, and an MCP Server's OAuth variable comes only from
+the sign-in to that server). The same Agent runs with test credentials from one
+Schedule and production credentials from another, and its definition never
+changes.
 
 ### Sessions and Agent Runs
 
@@ -158,7 +158,7 @@ definition again points the Agent back at that version, and renaming it or
 changing its labels or visibility records no version.
 
 You can list an Agent's versions, open any of them, and give one a tag such as
-`stable`, the same way [Workflows](/docs/concepts/workflows) are versioned:
+`stable`:
 
 ```bash
 stigmer get agent code-reviewer --version-history
@@ -226,7 +226,7 @@ A message's settings are worked out once, when it is sent, from three layers,
 most specific first:
 
 1. **The message**, or the surface it came through: the saved `run_config` of a
-   Schedule, a channel, a share or a Workflow's `agent_call` step.
+   Schedule, a channel or a share.
 2. **The Agent**: its `run_config`.
 3. **The operator**: the defaults the operator set for that kind of run.
 
@@ -264,9 +264,9 @@ thinking off for it, without changing the Agent.
 - Stigmer checks the settings when the Agent is saved: a model needs a
   `harness`, the model must be one that Harness lists, and a fast tier or
   thinking needs a model that supports it there.
-- Saved settings stand on their own. An Agent, Schedule, channel, share or
-  Workflow step that sets a fast tier or thinking also names the model it is
-  for. Only a message may set them alone, to adjust the model it is given.
+- Saved settings stand on their own. An Agent, Schedule, channel or share that
+  sets a fast tier or thinking also names the model it is for. Only a message
+  may set them alone, to adjust the model it is given.
 
 ## The built-in assistant
 
@@ -285,10 +285,9 @@ Stigmer appears when you create Agents tailored to your domain, and a
 conversation can pick one up at any point: choosing an Agent binds the Session
 to it, and removing the Agent returns the Session to the assistant.
 
-Schedules, channels, shares and a Workflow's `agent_call` tasks always name an
-Agent. An `agent_call` task starts its conversation on the Agent it names, or
-fails saying why; it never falls back to the built-in assistant. The built-in
-assistant is for a person opening a conversation.
+Schedules, channels and shares always name an Agent; they never fall back to the
+built-in assistant. The built-in assistant is for a person opening a
+conversation.
 
 ## Instructions matter
 

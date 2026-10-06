@@ -86,7 +86,11 @@ server {
 }
 `;
 
-/** A miniature export set exercising every route shape the app has. */
+/**
+ * A miniature export set exercising every route shape the serving rules
+ * must tell apart, including a literal-segment sibling
+ * (/conversations/archived/[id]) of a two-placeholder route.
+ */
 const FILES = new Set([
   "/index.html",
   "/404.html",
@@ -97,8 +101,7 @@ const FILES = new Set([
   "/sessions/__placeholder__.html",
   "/chat/__placeholder__.html",
   "/conversations/__placeholder__/__placeholder__.html",
-  "/workflows/__placeholder__/__placeholder__.html",
-  "/workflows/executions/__placeholder__.html",
+  "/conversations/archived/__placeholder__.html",
   "/library/skills/__placeholder__/__placeholder__.html",
 ]);
 
@@ -121,16 +124,17 @@ test("one-dynamic-segment routes resolve via the two-segment block", () => {
 });
 
 test("the ambiguous three-segment pair disambiguates by filesystem probe", () => {
-  // /workflows/executions/[id]: the literal candidate exists and wins.
+  // /conversations/archived/[id]: the literal candidate exists and wins.
   assert.equal(
-    resolveProbe("/workflows/executions/wfe_123"),
-    "/workflows/executions/__placeholder__.html",
+    resolveProbe("/conversations/archived/ach_123"),
+    "/conversations/archived/__placeholder__.html",
   );
-  // /workflows/[org]/[slug]: the literal candidate does not exist, so the
-  // two-placeholder candidate serves — same URL shape, different route.
+  // /conversations/[channelId]/[key]: the literal candidate does not exist,
+  // so the two-placeholder candidate serves — same URL shape, different
+  // route.
   assert.equal(
-    resolveProbe("/workflows/acme/my-flow"),
-    "/workflows/__placeholder__/__placeholder__.html",
+    resolveProbe("/conversations/ach_01kz/919912850490"),
+    "/conversations/__placeholder__/__placeholder__.html",
   );
 });
 
@@ -166,10 +170,10 @@ test("four-segment library routes resolve to their placeholder pair", () => {
 });
 
 test("existing files always win over placeholder candidates", () => {
-  const files = new Set([...FILES, "/workflows/acme/my-flow.html"]);
+  const files = new Set([...FILES, "/conversations/ach_01kz/9199.html"]);
   assert.equal(
-    resolveRequest(probeModel, "/workflows/acme/my-flow", files),
-    "/workflows/acme/my-flow.html",
+    resolveRequest(probeModel, "/conversations/ach_01kz/9199", files),
+    "/conversations/ach_01kz/9199.html",
   );
 });
 
@@ -202,16 +206,12 @@ test("^~ prefix locations win over regex blocks (asset serving)", () => {
 // The historical failure, reproduced by the model
 // ---------------------------------------------------------------------------
 
-test("the pre-fix config produces the blank page for conversations and workflows", () => {
+test("the pre-fix config produces the blank page for conversations", () => {
   const historical = buildServerModel(parseNginxConfig(HISTORICAL_CONFIG));
-  // Both fall into the one-level block, whose candidate embeds the real
-  // channel id / org where a literal __placeholder__ must be, and miss.
+  // It falls into the one-level block, whose candidate embeds the real
+  // channel id where a literal __placeholder__ must be, and misses.
   assert.equal(
     resolveRequest(historical, "/conversations/ach_01kz/9199", FILES),
-    "/index.html",
-  );
-  assert.equal(
-    resolveRequest(historical, "/workflows/acme/my-flow", FILES),
     "/index.html",
   );
   // While /chat only worked because of its special case (the export then
@@ -363,7 +363,7 @@ test("verifyRoutes passes the probe config and fails the historical one, naming 
     [],
     ["conversations"],
     ["conversations", "[channelId]", "[key]"],
-    ["workflows", "executions", "[id]"],
+    ["conversations", "archived", "[id]"],
     ["sessions", "[id]"],
     ["chat", "[share]"],
   ]);

@@ -31,10 +31,6 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     { name: "Agent", displayName: "Agent", idPrefix: "agt" },
   ],
   [
-    ApiResourceKind.workflow,
-    { name: "Workflow", displayName: "Workflow", idPrefix: "wfl" },
-  ],
-  [
     ApiResourceKind.skill,
     { name: "Skill", displayName: "Skill", idPrefix: "skl" },
   ],
@@ -102,7 +98,6 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
 export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.organization,
   ApiResourceKind.agent,
-  ApiResourceKind.workflow,
   ApiResourceKind.skill,
   ApiResourceKind.plugin,
   ApiResourceKind.mcp_server,
@@ -132,7 +127,7 @@ export const RETIRED_KINDS: ReadonlyMap<string, string> = new Map([
   ],
   [
     "WorkflowInstance",
-    "is no longer a Stigmer resource. A run starts on the workflow itself: run `stigmer run workflow <org>/<workflow>`, pass the keys its steps read with `--env` (`--secret` for a secret) or keep them in your personal environment, and delete this file. Who can see a workflow's runs is set on the workflow.",
+    "is no longer a Stigmer resource. A run starts on an agent: run `stigmer run <org>/<agent>`, pass the keys it reads with `--env` (`--secret` for a secret) or keep them in your personal environment, and delete this file.",
   ],
   [
     "Project",

@@ -2,7 +2,7 @@
 // shared transport.
 // Go parity: mcp-server/internal/domains/mcpservers/delete.go.
 //
-// Outlier: unlike the agent/skill/workflow command controllers (which take a
+// Outlier: unlike the agent and skill command controllers (which take a
 // typed {X}Id), McpServerCommandController.delete takes the generic
 // ApiResourceDeleteInput{resource_id}.
 

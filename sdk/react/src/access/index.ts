@@ -17,5 +17,4 @@ export {
 export type {
   AccessResource,
   AccessVisibility,
-  AccessExtraSection,
 } from "./types.js";

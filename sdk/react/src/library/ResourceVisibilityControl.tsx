@@ -24,7 +24,6 @@ import {
  */
 const FGA_KIND: Record<VisibilityResourceKind, string> = {
   agent: "agent",
-  workflow: "workflow",
   plugin: "plugin",
   skill: "skill",
   mcpServer: "mcp_server",
@@ -70,7 +69,7 @@ export interface ResourceVisibilityControlProps {
  *   {@link ResourceVisibilityControlProps.onChanged} on success.
  *
  * Offered levels are kind- and context-aware (`visibilityLevels.ts`):
- * - Blueprints (agent/workflow/skill/mcp_server/plugin): Private /
+ * - Blueprints (agent/skill/mcp_server/plugin): Private /
  *   Organization, plus Child organizations when the server holds more than
  *   one organization ({@link useSingleOrg}) and the owning organization is
  *   not itself a child (its `spec.parent_org`, read with

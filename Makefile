@@ -94,7 +94,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check
 build: build-libs build-web verify-desktop docs-build build-java-sdk build-runner build-server ## Build all project artifacts
 	@echo ""
 	@echo "built: the server ($(SERVER_DIR)/dist) and runner (the CLI ships as the @stigmer/cli npm package)"
@@ -160,22 +160,13 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
 
-gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-cli-docs gen-task-docs gen-task-registry ## Generate all SDK reference docs
+gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-cli-docs gen-task-registry ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
 	@npm run build -w @stigmer/protos --silent
 	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/sdk/resources --apis-dir apis
-
-gen-task-docs: ## Generate per-task reference docs from schemas
-	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
-	@npm run build -w @stigmer/protos --silent
-	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=task-docs \
-		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflows/task-types \
-		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta --apis-dir apis
-	@$(PRETTIER_GUARD)
-	$(PRETTIER) --write --prose-wrap always docs/guides/workflows/task-types/*.mdx
 
 # The JSON Schemas live at their generator home (tools/codegen/output only):
 # the server bundles just the registry JSON (registry/bundled.ts), so the
@@ -269,7 +260,7 @@ gen-ink-sdk-docs: site-deps ## Generate Ink SDK reference docs from TypeDoc
 gen-theme-docs: site-deps ## Generate theme token reference docs from tokens.css
 	cd site && yarn generate-theme-docs
 
-gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check gen-task-docs-check gen-task-registry-check ## Verify all SDK docs are up to date (CI)
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check gen-task-registry-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
@@ -288,27 +279,6 @@ gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 		echo "error: proto SDK docs are stale — run 'make gen-proto-sdk-docs'"; exit 1; \
 	fi; \
 	echo "✓ Proto SDK docs are up to date"
-
-gen-task-docs-check: ## Verify task docs are up to date (CI)
-	@$(PRETTIER_GUARD)
-	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
-	@npm run build -w @stigmer/protos --silent
-	@tmpdir=$$(mktemp -d) && \
-	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=task-docs \
-		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" \
-		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta --apis-dir apis && \
-	$(PRETTIER) --write --prose-wrap always --config .prettierrc --ignore-path /dev/null "$$tmpdir"/*.mdx > /dev/null 2>&1; \
-	rc=0; \
-	for f in "$$tmpdir"/*; do \
-		if ! diff -q "$$f" "docs/guides/workflows/task-types/$$(basename $$f)" > /dev/null 2>&1; then \
-			rc=1; break; \
-		fi; \
-	done; \
-	rm -rf "$$tmpdir"; \
-	if [ $$rc -ne 0 ]; then \
-		echo "error: task docs are stale — run 'make gen-task-docs'"; exit 1; \
-	fi; \
-	echo "✓ Task docs are up to date"
 
 gen-react-sdk-docs-check: site-deps ## Verify React SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \

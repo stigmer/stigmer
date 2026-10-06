@@ -36,8 +36,8 @@ export interface UseAgentRunSummaryReturn {
  * and top failing agents.
  *
  * Cost is intentionally excluded from this response — the dashboard
- * sources cost from `useOrgUsageReport` (billing source of truth) to
- * prevent double-counting. See AD-DASH-005.
+ * sources cost from `useOrgUsageReport` (billing source of truth), so
+ * cost is never counted from two sources.
  */
 export function useAgentRunSummary(
   options: UseAgentRunSummaryOptions,

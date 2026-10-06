@@ -362,7 +362,7 @@ describe("manifest registry", () => {
   });
 
   it("covers the kinds the console flows depend on", () => {
-    for (const kind of ["Agent", "McpServer", "Workflow", "Environment", "AgentChannel", "ChannelApp"]) {
+    for (const kind of ["Agent", "McpServer", "Environment", "AgentChannel", "ChannelApp"]) {
       expect(manifestHandlerForYamlKind(kind), `missing handler for ${kind}`).toBeDefined();
     }
   });
@@ -378,6 +378,6 @@ describe("manifest registry", () => {
       .filter((h) => h.updateVisibility !== undefined)
       .map((h) => h.yamlKind)
       .sort();
-    expect(withBinding).toEqual(["Agent", "Environment", "McpServer", "Workflow"]);
+    expect(withBinding).toEqual(["Agent", "Environment", "McpServer"]);
   });
 });

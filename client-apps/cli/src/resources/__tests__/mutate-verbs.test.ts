@@ -2,7 +2,7 @@
 //
 // Stands up a real Connect backend over h2c serving the query *and* command
 // controllers these verbs call, points an SDK node client at it, and drives the
-// resource layer (planDelete → perform, tagVersion for workflows and agents) end to end. Asserts the
+// resource layer (planDelete → perform, tagVersion for agents) end to end. Asserts the
 // rendered result shape, the special-case routing (run→cancel,
 // already-terminal), and that backend errors map to the right CLI exit code.
 
@@ -31,9 +31,8 @@ import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcp
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
-import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -59,10 +58,6 @@ const knownMcp = create(McpServerSchema, {
   metadata: { name: "Filesystem", slug: "filesystem", org: "acme", id: "mcp_1" },
 });
 
-const knownWorkflow = create(WorkflowSchema, {
-  metadata: { name: "Deploy", slug: "deploy", org: "acme", id: "wfl_1" },
-});
-
 const knownEnvironment = create(EnvironmentSchema, {
   metadata: { name: "clinic-patient-db", slug: "clinic-patient-db", org: "acme", id: "env_1" },
 });
@@ -77,6 +72,10 @@ const knownChannelApp = create(ChannelAppSchema, {
 
 const knownSchedule = create(ScheduleSchema, {
   metadata: { name: "daily-fee-reminders", slug: "daily-fee-reminders", org: "acme", id: "sch_1" },
+});
+
+const knownPlugin = create(PluginSchema, {
+  metadata: { name: "clinic-tools", slug: "clinic-tools", org: "acme", id: "plg_1" },
 });
 
 // Pending run (cancellable) vs. an already-terminal one.
@@ -99,7 +98,6 @@ const openSessions = new Set<ServerHttp2Session>();
 
 // Spies for the command-side calls, reset per test.
 let cancelCalls: string[] = [];
-let tagCalls: { workflowId: string; versionHash: string; tag: string }[] = [];
 let agentTagCalls: { agentId: string; versionHash: string; tag: string }[] = [];
 // Force-carrying deletes record what actually rode the RPC.
 let environmentDeletes: { resourceId: string; force: boolean }[] = [];
@@ -111,7 +109,6 @@ let scheduleDeleteIds: string[] = [];
 
 beforeEach(() => {
   cancelCalls = [];
-  tagCalls = [];
   agentTagCalls = [];
   environmentDeletes = [];
   channelAppDeletes = [];
@@ -202,16 +199,10 @@ beforeAll(async () => {
       },
     });
 
-    router.service(WorkflowQueryController, {
+    router.service(PluginQueryController, {
       getByReference: (req) => {
-        if (req.slug !== "deploy") throw new ConnectError("workflow not found", Code.NotFound);
-        return knownWorkflow;
-      },
-    });
-    router.service(WorkflowCommandController, {
-      tagVersion: (req) => {
-        tagCalls.push({ workflowId: req.workflowId, versionHash: req.versionHash, tag: req.tag });
-        return knownWorkflow;
+        if (req.slug !== "clinic-tools") throw new ConnectError("plugin not found", Code.NotFound);
+        return knownPlugin;
       },
     });
 
@@ -312,7 +303,7 @@ describe("delete (standard kinds)", () => {
   });
 
   it("refuses workflow-instance as a type the CLI does not know", async () => {
-    // The kind is gone: a run names its workflow directly.
+    // The kind is gone: a run starts on an agent.
     const err = await planDelete(client, "workflow-instance", "deploy-default", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
   });
@@ -346,6 +337,16 @@ describe("delete (standard kinds)", () => {
     const err = await planDelete(client, "session", "ses_1", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
     expect(String(err.message)).toContain("does not support");
+  });
+});
+
+describe("delete (plugin)", () => {
+  it("warns that it removes the plugin and everything it installed", async () => {
+    const plan = await planDelete(client, "plugin", "clinic-tools", "acme");
+    expect(plan.warning.hints).toContain(
+      "This removes the plugin and every skill, MCP server and agent it installed. " +
+        "It is refused while another agent of yours still references one of them.",
+    );
   });
 });
 
@@ -435,29 +436,22 @@ describe("delete run (cancel special case)", () => {
   });
 });
 
-describe("tag (workflow and agent versions)", () => {
-  it("tags a workflow version and truncates the hash in the message", async () => {
-    const result = await tagVersion(client, "workflow", "acme/deploy", "abcdef1234567890", "stable", "acme");
+describe("tag (agent versions)", () => {
+  it("tags an agent version, resolving the agent by reference, and truncates the hash in the message", async () => {
+    const result = await tagVersion(client, "agent", "acme/reviewer", "abcdef1234567890", "stable", "acme");
     expect(result.status).toBe("success");
     expect(result.message).toBe("Tagged version abcdef123456 as 'stable'");
-    expect(tagCalls).toEqual([{ workflowId: "wfl_1", versionHash: "abcdef1234567890", tag: "stable" }]);
+    expect(agentTagCalls).toEqual([{ agentId: "agt_1", versionHash: "abcdef1234567890", tag: "stable" }]);
   });
 
   it("uses the org context for a bare slug", async () => {
-    await tagVersion(client, "wf", "deploy", "abc", "v1", "acme");
-    expect(tagCalls[0]?.workflowId).toBe("wfl_1");
-  });
-
-  it("tags an agent version, resolving the agent by reference", async () => {
-    const result = await tagVersion(client, "agent", "acme/reviewer", "abcdef1234567890", "stable", "acme");
-    expect(result.message).toBe("Tagged version abcdef123456 as 'stable'");
-    expect(agentTagCalls).toEqual([{ agentId: "agt_1", versionHash: "abcdef1234567890", tag: "stable" }]);
-    expect(tagCalls).toEqual([]);
+    await tagVersion(client, "agent", "reviewer", "abc", "v1", "acme");
+    expect(agentTagCalls[0]?.agentId).toBe("agt_1");
   });
 
   it("rejects unsupported resource types with a usage error naming the supported ones", async () => {
     const err = await tagVersion(client, "skill", "acme/x", "abc", "v1", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
-    expect((err as Error).message).toContain("Supported types: workflow, agent");
+    expect((err as Error).message).toContain("Supported types: agent");
   });
 });

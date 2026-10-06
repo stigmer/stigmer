@@ -118,20 +118,6 @@ test.describe("Library detail pages carry no duplicate DOM ids", () => {
     await auditIdsAndRadios(page);
   });
 
-  test("direct load renders the workflow detail exactly once — no hidden route copy", async ({
-    page,
-    testWorkflow,
-  }) => {
-    await page.goto(`/library/workflows/${testWorkflow.org}/${testWorkflow.slug}`);
-
-    await expect(
-      page.getByRole("heading", { name: testWorkflow.slug }).first(),
-    ).toBeVisible({ timeout: 15_000 });
-
-    await assertSingleMountedDetail(page, testWorkflow.slug);
-    await auditIdsAndRadios(page);
-  });
-
   test("soft navigation keeps the hidden list copy without id or radio leaks", async ({
     page,
     testAgent,

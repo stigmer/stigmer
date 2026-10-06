@@ -12,8 +12,6 @@ export type { ResourceTemplate, TemplateCategory } from "./templates/types.js";
 export { TEMPLATE_CATEGORY_LABELS } from "./templates/types.js";
 export { AGENT_TEMPLATES } from "./templates/agent-templates.js";
 export { MCP_SERVER_TEMPLATES } from "./templates/mcp-server-templates.js";
-export { WORKFLOW_TEMPLATES } from "./templates/workflow-templates.js";
-export type { WorkflowTemplateData } from "./templates/workflow-templates.js";
 
 // Hooks
 export { useWizardState } from "./useWizardState.js";

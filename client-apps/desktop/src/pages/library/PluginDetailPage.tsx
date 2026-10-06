@@ -99,7 +99,6 @@ export default function PluginDetailPage() {
         onSkillClick={({ org: o, slug: s }) => navigate(`/library/skills/${slugForOrg(o)}/${s}`)}
         onMcpServerClick={({ org: o, slug: s }) => navigate(`/library/mcp-servers/${slugForOrg(o)}/${s}`)}
         onAgentClick={({ org: o, slug: s }) => navigate(`/library/agents/${slugForOrg(o)}/${s}`)}
-        onWorkflowClick={({ org: o, slug: s }) => navigate(`/library/workflows/${slugForOrg(o)}/${s}`)}
         onCreateAgent={(usages) =>
           navigate(`/library/agents/new?mcp=${usages.map((u) => encodeURIComponent(u.mcpServerRef.slug)).join(",")}`)
         }

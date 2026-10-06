@@ -66,11 +66,12 @@ export class Stigmer extends GeneratedClient {
   readonly fetch: typeof globalThis.fetch | undefined;
 
   /**
-   * Default execution target for sessions and workflow runs.
+   * Default execution target for sessions.
    *
-   * When set, `session.create()` and `workflowRun.create()`
-   * apply this as the default when the per-call input does not
-   * specify an explicit `executionTarget`.
+   * When set, `session.create()`, `session.apply()` and an
+   * `agentRun.create()` that bootstraps its session apply this as
+   * the default when the per-call input does not specify an
+   * explicit `executionTarget`.
    *
    * `undefined` means the server decides (LOCAL for OSS, CLOUD for
    * managed).
@@ -137,9 +138,6 @@ export class Stigmer extends GeneratedClient {
    * session to auto-create) — so that the client-level
    * `defaultExecutionTarget` is applied when the per-call input
    * does not specify one.
-   *
-   * WorkflowExecutionInput does not yet have `executionTarget` in
-   * codegen; that will be wired once the codegen schema is updated.
    */
   private _applyExecutionTargetDefaults(): void {
     const target = this.defaultExecutionTarget!;

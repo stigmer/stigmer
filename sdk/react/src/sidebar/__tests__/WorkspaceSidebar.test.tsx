@@ -36,16 +36,13 @@ const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 3_600_000);
 const ENTRIES: readonly RecentActivityEntry[] = [
   {
     id: "ses_today",
-    type: "session",
     subject: "Draft email copy for the Q3 launch",
     updatedAt: hoursAgo(2),
   },
   {
-    id: "wex_yesterday",
-    type: "workflow_run",
-    subject: "Nightly refund sweep",
+    id: "ses_yesterday",
+    subject: "Reconcile the refund ledger",
     updatedAt: hoursAgo(26),
-    status: "failed",
   },
 ];
 
@@ -195,7 +192,7 @@ describe("WorkspaceSidebar — recents", () => {
     expect(screen.getByText("2h")).toBeTruthy();
   });
 
-  it("passes the entry to renderLink and derives the viewer route from its type", () => {
+  it("passes the entry to renderLink and routes every row to its session", () => {
     const seen: Record<string, string> = {};
     const spyLink: RenderSidebarLink = (props) => {
       if (props.entry) seen[props.entry.id] = props.href;
@@ -206,11 +203,11 @@ describe("WorkspaceSidebar — recents", () => {
 
     expect(seen).toEqual({
       ses_today: "/sessions/ses_today",
-      wex_yesterday: "/runs/wex_yesterday",
+      ses_yesterday: "/sessions/ses_yesterday",
     });
   });
 
-  it("highlights the active session row and renders the status badge", () => {
+  it("highlights only the active session row", () => {
     const { container } = renderSidebar(
       <WorkspaceSidebar {...baseProps()} activeSessionId="ses_today" />,
     );
@@ -218,9 +215,8 @@ describe("WorkspaceSidebar — recents", () => {
     const active = container.querySelector('[data-row-id="ses_today"]')!;
     expect(active.className).toContain("stg:bg-sidebar-accent");
     expect(active.getAttribute("aria-current")).toBe("page");
-    // The failed run row explains why it is in the list.
-    const failed = container.querySelector('[data-row-id="wex_yesterday"]')!;
-    expect(within(failed as HTMLElement).getByText("failed")).toBeTruthy();
+    const other = container.querySelector('[data-row-id="ses_yesterday"]')!;
+    expect(other.getAttribute("aria-current")).toBeNull();
   });
 
   it("renders the per-entry accessory inside its row", () => {

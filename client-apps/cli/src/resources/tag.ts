@@ -1,6 +1,6 @@
 // `tag` dispatch: assign a tag to a versioned resource. Tags are mutable
-// pointers — reassigning a tag moves it to the named version. Workflows and
-// agents carry a tag RPC; skills and plugins are tagged when they are pushed.
+// pointers — reassigning a tag moves it to the named version. Agents carry a
+// tag RPC; skills and plugins are tagged when they are pushed.
 //
 // This is an id-shaped mutation, so it rides the high-level sub-clients
 // (resolve the resource by reference, then tagVersion) rather than a raw
@@ -8,17 +8,12 @@
 
 import { create } from "@bufbuild/protobuf";
 import { TagAgentVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import { TagWorkflowVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 
 /** The resource types a tag can be assigned to, by the aliases the CLI accepts. */
-const TAGGABLE: Readonly<Record<string, "workflow" | "agent">> = {
-  workflow: "workflow",
-  wf: "workflow",
-  agent: "agent",
-};
+const TAGGABLE: ReadonlySet<string> = new Set(["agent"]);
 
 export async function tagVersion(
   client: Stigmer,
@@ -28,21 +23,14 @@ export async function tagVersion(
   tag: string,
   org: string,
 ): Promise<CommandResult> {
-  const kind = TAGGABLE[typeArg.trim().toLowerCase()];
-  if (kind === undefined) {
-    throw new UsageError(`tagging is not supported for resource type "${typeArg}"\n\nSupported types: workflow, agent`);
+  if (!TAGGABLE.has(typeArg.trim().toLowerCase())) {
+    throw new UsageError(`tagging is not supported for resource type "${typeArg}"\n\nSupported types: agent`);
   }
 
   const [refOrg, slug] = parseOrgSlug(ref, org);
-  if (kind === "workflow") {
-    const workflow = await client.workflow.getByReference({ org: refOrg, slug });
-    const workflowId = workflow.metadata?.id ?? "";
-    await client.workflow.tagVersion(create(TagWorkflowVersionInputSchema, { workflowId, versionHash: hash, tag }));
-  } else {
-    const agent = await client.agent.getByReference({ org: refOrg, slug });
-    const agentId = agent.metadata?.id ?? "";
-    await client.agent.tagVersion(create(TagAgentVersionInputSchema, { agentId, versionHash: hash, tag }));
-  }
+  const agent = await client.agent.getByReference({ org: refOrg, slug });
+  const agentId = agent.metadata?.id ?? "";
+  await client.agent.tagVersion(create(TagAgentVersionInputSchema, { agentId, versionHash: hash, tag }));
 
   return CommandResult.success(`Tagged version ${truncateHash(hash)} as '${tag}'`);
 }

@@ -7,10 +7,11 @@ import { cn } from "@stigmer/theme";
 import { useResolveAgentRunSession } from "@stigmer/react";
 import { Button } from "@/domain/_shared/ui/button";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
-import { useRunNavigation } from "@/domain/workflow/run-navigation";
+import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { SessionLauncher } from "@/domain/session/SessionLauncher";
 import { SessionPageInner } from "@/domain/session/SessionPage";
-import { WorkflowRunDetailPage } from "@/domain/workflow/WorkflowRunDetailPage";
+import { RunLoadFailed } from "@/domain/runs/RunLoadFailed";
+import { RunNotFound } from "@/domain/runs/RunNotFound";
 import { DesktopAppBanner, useDesktopBannerState } from "./DesktopAppBanner";
 import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";
@@ -118,10 +119,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {isManagementZone ? (
               children
             ) : isExecutionZone && activeRunId ? (
-              <ExecutionZoneContent
-                executionId={activeRunId}
-                key={activeRunId}
-              />
+              <RunZoneContent runId={activeRunId} key={activeRunId} />
             ) : isSessionZone ? (
               <SessionZoneContent activeSessionId={activeSessionId} />
             ) : (
@@ -137,23 +135,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 /**
  * Renders the run zone for a `/runs/<id>` path.
  *
- * Auto-detects the run type from the id prefix:
- * - `wex_*` (workflow run) → renders the workflow run viewer.
- * - `aex_*` (agent run) → resolves the parent session and hands off to
- *   the session zone via `navigateToSession`, rendering nothing meanwhile.
+ * `/runs/<id>` is the address of a run; a run is viewed in its session.
+ * The zone resolves the run's session and hands off to the session zone
+ * via `navigateToSession`, rendering nothing meanwhile. When no run
+ * resolves (an unknown id, a run the caller cannot see, or a run without a
+ * session), it says the run was not found; when reading the run failed for
+ * another reason, it says so and offers a retry.
  *
  * The `/runs/[id]` route is a no-op placeholder (like `/sessions/[id]`)
  * that only exists so static export emits an nginx fallback for deep links and
  * hard reloads; this zone owns all run rendering, so switching
  * runs via in-app navigation never reloads the page.
  */
-function ExecutionZoneContent({ executionId }: { executionId: string }) {
+function RunZoneContent({ runId }: { runId: string }) {
   const { navigateToSession } = useSessionNavigation();
-
-  const isAgentExecution = executionId.startsWith("aex_");
-  const { sessionId } = useResolveAgentRunSession(
-    isAgentExecution ? executionId : null,
-  );
+  const { sessionId, isLoading, error, refetch } = useResolveAgentRunSession(runId);
 
   useEffect(() => {
     if (sessionId) {
@@ -161,9 +157,10 @@ function ExecutionZoneContent({ executionId }: { executionId: string }) {
     }
   }, [sessionId, navigateToSession]);
 
-  if (isAgentExecution) return null;
+  if (isLoading || sessionId) return null;
+  if (error) return <RunLoadFailed error={error} onRetry={refetch} />;
 
-  return <WorkflowRunDetailPage executionId={executionId} />;
+  return <RunNotFound />;
 }
 
 /**

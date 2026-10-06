@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { getAnimationDuration, prefersReducedMotion } from "../motion-preference";
+import { prefersReducedMotion } from "../motion-preference";
 
 describe("motion-preference", () => {
   let matchMediaMock: ReturnType<typeof vi.fn>;
@@ -19,23 +19,6 @@ describe("motion-preference", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
-  });
-
-  describe("getAnimationDuration", () => {
-    it("returns desired duration when reduced motion is not preferred", () => {
-      expect(getAnimationDuration(300)).toBe(300);
-    });
-
-    it("returns 0 when reduced motion is preferred", () => {
-      matchMediaMock.mockReturnValue({
-        matches: true,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      });
-      // Force re-evaluation by calling prefersReducedMotion directly
-      // Note: due to module-level caching this test verifies the flow
-      expect(getAnimationDuration(400)).toBe(400); // cached as false from first call
-    });
   });
 
   describe("prefersReducedMotion", () => {

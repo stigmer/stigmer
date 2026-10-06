@@ -14,12 +14,6 @@ import {
 
 export { ConversationStore, type StreamState } from "./conversation-store.js";
 export { structuralShare } from "./structural-share.js";
-export {
-  WorkflowRunEventStore,
-  type WorkflowEventStreamState,
-  type DerivedTaskState,
-  type DerivedCostSummary,
-} from "./workflow-run-event-store.js";
 
 export { WorkspaceFileSelectionStore } from "./workspace-file-selection-store.js";
 export type { SelectedWorkspaceFile } from "./workspace-file-selection-store.js";

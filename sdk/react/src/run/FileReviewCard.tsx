@@ -59,8 +59,8 @@ export interface FileReviewCardProps {
   readonly interactive?: boolean;
   /**
    * Whether the expanded body renders each file's diff. Defaults to `true` —
-   * the right default wherever this card is the *only* review surface (the
-   * workflow file-review list, standalone platform-builder embeds).
+   * the right default wherever this card is the *only* review surface
+   * (standalone platform-builder embeds).
    *
    * `MessageThread` passes `false`: the transcript's stamped edit rows already
    * show every diff in place, so the expanded body collapses to a compact file
@@ -202,7 +202,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   // expander (the docked strip bounds the height, so expanding is cheap there).
   // Diff-rich mode (`showDiffs`) deliberately stays collapsed for a complete
   // multi-file set: its expanded body is every full diff with no height cap
-  // (the workflow file-review list), where "Review" is the act of opening it.
+  // (a standalone embed), where "Review" is the act of opening it.
   // A settled record always starts collapsed — the transcript's stamped rows
   // already show what changed, and the expander reveals detail on demand.
   const [expanded, setExpanded] = useState(

@@ -17,15 +17,15 @@ function transform(css: string): string {
 }
 
 describe("scopeUnprefixedSelectors", () => {
-  it("scopes unlayered rules (the xyflow tail) on the subject compound", () => {
-    expect(transform(".react-flow__node{position:absolute}")).toBe(
-      ".react-flow__node:where(.stgm, .stgm *){position:absolute}",
+  it("scopes unlayered rules (a vendor stylesheet tail) on the subject compound", () => {
+    expect(transform(".vendor__node{position:absolute}")).toBe(
+      ".vendor__node:where(.stgm, .stgm *){position:absolute}",
     );
   });
 
   it("scopes only the subject of a complex selector", () => {
-    expect(transform(".react-flow .react-flow__edge>path{stroke:red}")).toBe(
-      ".react-flow .react-flow__edge>path:where(.stgm, .stgm *){stroke:red}",
+    expect(transform(".vendor .vendor__edge>path{stroke:red}")).toBe(
+      ".vendor .vendor__edge>path:where(.stgm, .stgm *){stroke:red}",
     );
   });
 
@@ -43,8 +43,8 @@ describe("scopeUnprefixedSelectors", () => {
   });
 
   it("keeps pseudo-CLASSES inside the guarded compound", () => {
-    expect(transform(".react-flow__pane:hover{cursor:grab}")).toBe(
-      ".react-flow__pane:hover:where(.stgm, .stgm *){cursor:grab}",
+    expect(transform(".vendor__pane:hover{cursor:grab}")).toBe(
+      ".vendor__pane:hover:where(.stgm, .stgm *){cursor:grab}",
     );
   });
 
@@ -80,7 +80,7 @@ describe("scopeUnprefixedSelectors", () => {
   });
 
   it("is idempotent", () => {
-    const once = transform(".react-flow{direction:ltr}");
+    const once = transform(".vendor{direction:ltr}");
     expect(transform(once)).toBe(once);
   });
 });

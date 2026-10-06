@@ -23,7 +23,7 @@ import { compileSdkStylesheet } from "./helpers/compile-sdk-styles";
  *  2. `.stgm`-anchored — the scope container itself, hand-written
  *     `.stgm .hljs-*` rules, and everything carrying the
  *     `:where(.stgm, .stgm *)` guard added by the build's scoping pass
- *     (xyflow, the `@layer properties` block).
+ *     (unlayered rules, the `@layer properties` block).
  *  3. `stgm-`-prefixed classes — hand-written component classes
  *     (`.stgm-thread-item-enter`) and theme presets (`.stgm-theme-*`).
  *  4. `:root`/`:host` rules whose declarations are ALL namespaced custom

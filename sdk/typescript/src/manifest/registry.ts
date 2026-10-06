@@ -37,9 +37,6 @@ import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcp
 import { type Schedule, ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
-import { type Workflow, WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
-import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { type IdentityProvider, IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
 import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
@@ -120,17 +117,6 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     updateVisibility: (c, i) => c(AgentCommandController).updateVisibility(i),
   },
   {
-    kind: ApiResourceKind.workflow,
-    yamlKind: "Workflow",
-    displayName: "Workflow",
-    apiVersion: AGENTIC_V1,
-    schema: WorkflowSchema,
-    applyOrder: 4,
-    apply: (c, m) => c(WorkflowCommandController).apply(m as Workflow),
-    getByReference: (c, ref) => c(WorkflowQueryController).getByReference(ref),
-    updateVisibility: (c, i) => c(WorkflowCommandController).updateVisibility(i),
-  },
-  {
     kind: ApiResourceKind.environment,
     yamlKind: "Environment",
     displayName: "Environment",
@@ -192,8 +178,8 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     apply: (c, m) => c(AgentChannelCommandController).apply(m as AgentChannel),
     getByReference: (c, ref) => c(AgentChannelQueryController).getByReference(ref),
   },
-  // Last: a Schedule references an Agent (and, later, a Workflow) — it
-  // applies after every kind it can target.
+  // Last: a Schedule references an Agent — it applies after every kind it
+  // can target.
   {
     kind: ApiResourceKind.schedule,
     yamlKind: "Schedule",

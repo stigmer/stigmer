@@ -12,9 +12,9 @@ it runs the same platform for many teams at once and adds the capabilities that
 only make sense when someone operates Stigmer as a service — tenancy, SSO,
 billing, and the operations behind them.
 
-The contracts are identical either way. Your Agents, Workflows, Skills, and the
-CLI and SDKs that drive them work against both — moving between them is a
-configuration change, not a rewrite.
+The contracts are identical either way. Your Agents, Skills, and the CLI and
+SDKs that drive them work against both — moving between them is a configuration
+change, not a rewrite.
 
 ## The short answer
 
@@ -34,30 +34,29 @@ configuration change, not a rewrite.
 
 ## Side by side
 
-| Capability                                       | Self-hosted                                                                   | Stigmer Cloud                                               |
-| ------------------------------------------------ | ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Agents, Workflows, Skills, Sessions, MCP servers | Full — the same contracts                                                     | Full — the same contracts                                   |
-| Storage                                          | Your Postgres                                                                 | Managed                                                     |
-| Authentication                                   | Your OIDC provider, API keys and PlatformClient                               | Hosted login, SSO/SAML, identity federation, PlatformClient |
-| Organizations                                    | One team's — the server does not stop a signed-in person creating more        | As many as you need                                         |
-| Permissions                                      | Owner, admin, member and viewer roles per Organization; Private stays private | Fine-grained, per-resource roles and sharing                |
-| Sandbox isolation                                | Pluggable drivers: local process, Docker, Kubernetes (off by default)         | Managed Kubernetes isolation                                |
-| Channels (Slack, WhatsApp)                       | Not available                                                                 | Included                                                    |
-| LLM costs                                        | Your provider keys, billed by providers directly                              | Metered prepaid credits, one bill                           |
-| Model catalog                                    | Bundled, refreshes automatically                                              | Always current                                              |
-| Operations, backups, upgrades                    | Yours                                                                         | Managed                                                     |
+| Capability                            | Self-hosted                                                                   | Stigmer Cloud                                               |
+| ------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Agents, Skills, Sessions, MCP servers | Full — the same contracts                                                     | Full — the same contracts                                   |
+| Storage                               | Your Postgres                                                                 | Managed                                                     |
+| Authentication                        | Your OIDC provider, API keys and PlatformClient                               | Hosted login, SSO/SAML, identity federation, PlatformClient |
+| Organizations                         | One team's — the server does not stop a signed-in person creating more        | As many as you need                                         |
+| Permissions                           | Owner, admin, member and viewer roles per Organization; Private stays private | Fine-grained, per-resource roles and sharing                |
+| Sandbox isolation                     | Pluggable drivers: local process, Docker, Kubernetes (off by default)         | Managed Kubernetes isolation                                |
+| Channels (Slack, WhatsApp)            | Not available                                                                 | Included                                                    |
+| LLM costs                             | Your provider keys, billed by providers directly                              | Metered prepaid credits, one bill                           |
+| Model catalog                         | Bundled, refreshes automatically                                              | Always current                                              |
+| Operations, backups, upgrades         | Yours                                                                         | Managed                                                     |
 
 ## What self-hosting includes
 
 Self-hosting is not a trial edition. The
 [Docker Compose stack](/docs/guides/self-hosting/docker-compose) runs the
 complete platform — the server, a real Temporal server, Postgres, and the runner
-that executes your Agents and Workflows — with durable state in volumes you own
-and back up.
+that executes your Agents — with durable state in volumes you own and back up.
 
-- **The full platform contract.** Every Agent, Workflow, Skill, Session, and MCP
-  server capability works exactly as it does on Stigmer Cloud, through the same
-  API, CLI, and SDKs.
+- **The full platform contract.** Every Agent, Skill, Session, and MCP server
+  capability works exactly as it does on Stigmer Cloud, through the same API,
+  CLI, and SDKs.
 - **Authentication on your terms.** Point the server at any OIDC provider you
   control — Keycloak, Okta, Auth0, Dex — mint API keys for machines, and let
   your product's backend mint tokens for its own users with a
@@ -71,12 +70,12 @@ and back up.
   Kubernetes. Isolation is off by default: the stock Docker Compose stack runs
   the runner as a single trust domain, as its setup guide states up front.
 - **One Organization, one team.** Everyone who signs in joins it as a member.
-  Owners and admins author Agents, Workflows, Skills and MCP Servers; members
-  run them, and schedule, share or connect an Agent to a channel only when they
-  may edit it; each person's Sessions, Environments and API keys are their own.
-  Roles are per Organization; there is no per-resource sharing. The server does
-  not stop a signed-in person from creating a second Organization, but one is
-  the shape self-hosting is built for.
+  Owners and admins author Agents, Skills and MCP Servers; members run them, and
+  schedule, share or connect an Agent to a channel only when they may edit it;
+  each person's Sessions, Environments and API keys are their own. Roles are per
+  Organization; there is no per-resource sharing. The server does not stop a
+  signed-in person from creating a second Organization, but one is the shape
+  self-hosting is built for.
 
 ## What Stigmer Cloud adds
 

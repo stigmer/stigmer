@@ -6,11 +6,10 @@ description:
   your deployment needs.
 ---
 
-The runner is the process that executes your Agents and Workflows. Most
-integrators never touch it: on Stigmer Cloud, the platform provisions a runner
-for every run. You **embed** the runner only when you want your Agents and
-Workflows to run somewhere you control — on a user's own machine (a desktop app)
-or on your own infrastructure.
+The runner is the process that executes your Agents. Most integrators never
+touch it: on Stigmer Cloud, the platform provisions a runner for every run. You
+**embed** the runner only when you want your Agents to run somewhere you control
+— on a user's own machine (a desktop app) or on your own infrastructure.
 
 This guide shows you when to embed, what configuration each kind of integrator
 passes, and how the SDK connects to a runner you host.
@@ -19,8 +18,8 @@ passes, and how the SDK connects to a runner you host.
 
 Two questions decide everything that follows:
 
-1. **Where should your Agents and Workflows run?** On Stigmer-managed compute
-   (**cloud**) or on compute you control (**local**)?
+1. **Where should your Agents run?** On Stigmer-managed compute (**cloud**) or
+   on compute you control (**local**)?
 2. **Are you on Stigmer Cloud or running Stigmer yourself?**
 
 <Callout type="info">
@@ -194,17 +193,13 @@ your UI code never manages runner processes directly.
 interface RunnerAdapter {
   onSessionOpened(sessionId: string): Promise<void>;
   onSessionClosed(sessionId: string): Promise<void>;
-  onWorkflowRunCreated(runId: string): Promise<void>;
-  onWorkflowRunTerminated(runId: string): Promise<void>;
 }
 ```
 
-Sessions and Workflow Runs have different lifecycles, and the method names
-reflect that. A Session is a long-lived, multi-turn conversation with no
-terminal phase, so its worker is tied to whether the session is **open** (in
-use): the SDK calls `onSessionOpened` when a session is opened and
-`onSessionClosed` when it is closed. A Workflow Run ends in a terminal phase, so
-its worker is tied to **creation and completion**.
+A Session is a long-lived, multi-turn conversation with no terminal phase, so
+its worker is tied to whether the session is **open** (in use): the SDK calls
+`onSessionOpened` when a session is opened and `onSessionClosed` when it is
+closed.
 
 In React, pass the adapter and the target to `StigmerProvider`:
 
@@ -229,10 +224,9 @@ mirror exists too: `ai.stigmer.sdk.RunnerAdapter`, wired through
 `StigmerClient.builder().runnerAdapter(...)`.
 
 Most TypeScript embedders do not write that object by hand. If you already have
-a runner backend with `addSession` / `removeSession` / `addWorkflowExecution` /
-`removeWorkflowExecution` methods — the in-process manager (below), the
-desktop's embedded-runner context, or your own runner API — pass it to
-`createRunnerAdapter` and it wires the lifecycle mapping for you:
+a runner backend with `addSession` / `removeSession` methods — the in-process
+manager (below), the desktop's embedded-runner context, or your own runner API —
+pass it to `createRunnerAdapter` and it wires the lifecycle mapping for you:
 
 ```typescript
 import { createRunnerAdapter } from "@stigmer/sdk";
@@ -275,8 +269,7 @@ await manager.removeSession("ses_abc123");
 await manager.shutdown();
 ```
 
-The manager already exposes `addSession` / `removeSession` /
-`addWorkflowExecution` / `removeWorkflowExecution`, so it is a
+The manager already exposes `addSession` / `removeSession`, so it is a
 `RunnerWorkerHost` — pass it straight to `createRunnerAdapter(manager)` to get
 your `RunnerAdapter`, no hand-wiring needed.
 

@@ -3,7 +3,6 @@ import {
   hasResourceIdPrefix,
   isAgentId,
   isSessionId,
-  isWorkflowId,
   parseReference,
   validateResourceId,
 } from "../reference.js";
@@ -63,13 +62,11 @@ describe("resource-ID classification", () => {
     expect(isAgentId(`agt_${ULID}`)).toBe(true);
     expect(isAgentId(`agt-${ULID}`)).toBe(true);
     expect(isSessionId(`ses_${ULID}`)).toBe(true);
-    expect(isWorkflowId(`wfl_${ULID}`)).toBe(true);
   });
 
   it("does not classify cross-kind prefixes", () => {
     expect(isAgentId(`ses_${ULID}`)).toBe(false);
     expect(isSessionId(`agt_${ULID}`)).toBe(false);
-    expect(isWorkflowId(`agt_${ULID}`)).toBe(false);
   });
 
   it("does not mistake a slug that merely starts with a prefix for an ID", () => {
@@ -84,7 +81,7 @@ describe("resource-ID classification", () => {
 
   it("recognizes any known prefix via hasResourceIdPrefix (length-agnostic)", () => {
     expect(hasResourceIdPrefix("agt_short")).toBe(true);
-    expect(hasResourceIdPrefix("wex_anything")).toBe(true);
+    expect(hasResourceIdPrefix("ses_anything")).toBe(true);
     expect(hasResourceIdPrefix("mcp-x")).toBe(true);
     expect(hasResourceIdPrefix("plain-slug")).toBe(false);
   });

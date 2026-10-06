@@ -1,34 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { RecentActivityEntry as ProtoEntry } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { useFetch } from "../internal/useFetch.js";
-import type { RecentActivityEntry, RecentActivityType } from "./types.js";
+import type { RecentActivityEntry } from "./types.js";
 
 /** Options for {@link useRecentActivity}. */
 export interface UseRecentActivityOptions {
   /**
-   * Maximum entries to return. The server merges sessions and workflow
-   * runs into a single sorted list and returns at most `pageSize`.
+   * Maximum entries to return. The server sorts the caller's sessions
+   * by last activity and returns at most `pageSize`.
    *
    * @default 30
    */
   readonly pageSize?: number;
 }
 
-/** Minimal fields required to synthesize an optimistic sidebar entry. */
-export interface OptimisticEntryInput {
-  readonly id: string;
-  readonly type: RecentActivityType;
-  readonly subject: string;
-}
-
 /** Return value of {@link useRecentActivity}. */
 export interface UseRecentActivityReturn {
-  /** Merged entries sorted by `updatedAt` descending. */
+  /** Entries sorted by `updatedAt` descending. */
   readonly entries: readonly RecentActivityEntry[];
   /** `true` while the initial fetch is in flight. */
   readonly isLoading: boolean;
@@ -36,33 +28,27 @@ export interface UseRecentActivityReturn {
   readonly error: Error | null;
   /** Re-fetch from the server. */
   readonly refetch: () => void;
-  /**
-   * Prepend an optimistic entry to the top of the recents list.
-   * The entry is automatically replaced by server data on the next
-   * successful refetch that includes its ID.
-   */
-  readonly prependOptimistic: (entry: OptimisticEntryInput) => void;
 }
 
 const DEFAULT_PAGE_SIZE = 30;
 const EPOCH = new Date(0);
 
 /**
- * Fetches recent activity via the unified `listRecentActivity` RPC,
- * which returns a merged, time-sorted list of the caller's most
- * recent sessions and workflow runs in a single call.
+ * Fetches recent activity via the `listRecentActivity` RPC, which
+ * returns the caller's most recent sessions, time-sorted, in a single
+ * call.
  *
  * The server handles:
  * - Per-resource authorization filtering (hosted edition: FGA `can_view`
  *   enumeration — every listed entry is openable by the caller; the org
  *   only narrows the authorized set, never widens it)
- * - Cross-collection merge-sort by `statusAudit.updatedAt`
+ * - Sorting by `statusAudit.updatedAt`
  * - Fallback to `specAudit.createdAt` for documents without status updates
  * - Pagination / trimming to the requested page size
  *
- * Both editions implement the RPC with identical merge/projection semantics
+ * Both editions implement the RPC with identical projection semantics
  * (the OSS server since stigmer#461; it is single-tenant, so the caller sees
- * every stored resource and the org filter is a no-op there).
+ * every stored session and the org filter is a no-op there).
  */
 export function useRecentActivity(
   options?: UseRecentActivityOptions,
@@ -75,57 +61,40 @@ export function useRecentActivity(
     () =>
       stigmer.activity
         .listRecentActivity({ pageSize, org })
-        .then((resp) => resp.entries.map(normalizeEntry)),
+        .then((resp) =>
+          resp.entries.filter(isSessionEntry).map(normalizeRecentActivityEntry),
+        ),
     [stigmer, pageSize, org],
     [] as RecentActivityEntry[],
     { cacheKey: `recent-activity:${org}` },
   );
 
-  const [optimistic, setOptimistic] = useState<RecentActivityEntry[]>([]);
-  const prevDataRef = useRef(data);
-
-  useEffect(() => {
-    if (data !== prevDataRef.current) {
-      prevDataRef.current = data;
-      if (optimistic.length > 0) {
-        setOptimistic([]);
-      }
-    }
-  }, [data, optimistic.length]);
-
-  const entries = useMemo(() => {
-    if (optimistic.length === 0) return data;
-    const serverIds = new Set(data.map((e) => e.id));
-    const pending = optimistic.filter((e) => !serverIds.has(e.id));
-    return pending.length > 0 ? [...pending, ...data] : data;
-  }, [data, optimistic]);
-
-  const prependOptimistic = useCallback((input: OptimisticEntryInput) => {
-    setOptimistic((prev) => {
-      if (prev.some((e) => e.id === input.id)) return prev;
-      const entry: RecentActivityEntry = {
-        id: input.id,
-        type: input.type,
-        subject: input.subject,
-        updatedAt: new Date(),
-      };
-      return [entry, ...prev];
-    });
-  }, []);
-
-  return { entries, isLoading, error, refetch, prependOptimistic };
+  return { entries: data, isLoading, error, refetch };
 }
 
-function normalizeEntry(entry: ProtoEntry): RecentActivityEntry {
+/**
+ * Recents are sessions: the sidebar opens every entry at `/sessions/<id>`,
+ * so an entry the server reports under any other type is not shown.
+ */
+function isSessionEntry(entry: ProtoEntry): boolean {
+  return entry.type === "session";
+}
+
+/**
+ * Projects a wire entry onto {@link RecentActivityEntry}: an empty
+ * subject reads "Untitled session", and a missing timestamp sorts as
+ * the epoch.
+ */
+export function normalizeRecentActivityEntry(
+  entry: ProtoEntry,
+): RecentActivityEntry {
   const updatedAt = entry.updatedAt
     ? timestampDate(entry.updatedAt)
     : EPOCH;
 
   return {
     id: entry.id,
-    type: entry.type === "session" ? "session" : "workflow_run",
-    subject: entry.subject || (entry.type === "session" ? "Untitled session" : "Untitled run"),
+    subject: entry.subject || "Untitled session",
     updatedAt: updatedAt.getTime() > 0 ? updatedAt : EPOCH,
-    status: entry.status || undefined,
   };
 }

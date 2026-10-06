@@ -144,7 +144,7 @@ describe("validate on a plugin directory", () => {
       dialect: "cursor",
       mcpServers: [{ name: "github", transport: "http", env: ["GITHUB_TOKEN"] }],
       variables: [{ name: "GITHUB_TOKEN", isSecret: true, optional: false, declaredBy: "inferred" }],
-      overlay: { agent: "ai.stigmer/agent.yaml", workflows: [], mcpServers: [] },
+      overlay: { agent: "ai.stigmer/agent.yaml", mcpServers: [] },
     });
     expect(parsed.data.warnings.map((w: { kind: string }) => w.kind)).toEqual(["variable-inferred"]);
   });

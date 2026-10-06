@@ -6,21 +6,20 @@ import { http, HttpResponse, type HttpHandler } from "msw";
 import { PreviewProviders } from "../../../../../.scenar/providers";
 
 /**
- * The provider chain (`PreviewProviders` → `StigmerProvider`) fires two
- * plain-GET registry fetches on mount, in every demo, before any
- * scenario fixture is consulted. Without handlers they escape MSW
- * (`onUnhandledRequest: "bypass"`) to the real network, 404 against the
- * site server, and retry with backoff — harmless-looking on Chromium,
- * but WebKit surfaces the failures as `TypeError: Load failed` and the
+ * The provider chain (`PreviewProviders` → `StigmerProvider`) fires a
+ * plain-GET model registry fetch on mount, in every demo, before any
+ * scenario fixture is consulted. Without a handler it escapes MSW
+ * (`onUnhandledRequest: "bypass"`) to the real network, 404s against the
+ * site server, and retries with backoff — harmless-looking on Chromium,
+ * but WebKit surfaces the failure as `TypeError: Load failed` and the
  * Playwright smoke suite fails any demo with a page error (oss#271).
  *
- * The payloads are shape-faithful subsets of the server's embedded
- * registries (`backend/.../modelcatalog/data/model-registry.json` and
- * `backend/.../workflow/registry/data/task-kind-registry.json`), trimmed to
- * the fields the SDK parsers consume. The real files total ~186KB and
- * would ship to every docs visitor for data no demo renders; a demo
- * that ever renders registry-driven UI should override these with its
- * own scenario fixtures (which are matched first).
+ * The payload is a shape-faithful subset of the server's embedded
+ * registry (`backend/.../modelcatalog/data/model-registry.json`), trimmed
+ * to the fields the SDK parser consumes. The real file would ship to every
+ * docs visitor for data no demo renders; a demo that ever renders
+ * registry-driven UI should override it with its own scenario fixtures
+ * (which are matched first).
  */
 const MODEL_REGISTRY_FIXTURE = {
   models: [
@@ -47,20 +46,11 @@ const MODEL_REGISTRY_FIXTURE = {
   ],
 };
 
-const TASK_KIND_REGISTRY_FIXTURE = {
-  version: "1.0.0",
-  generatedAt: "demo-fixture",
-  descriptors: [],
-};
-
-/** Baseline MSW handlers for the fetches StigmerProvider always makes. */
+/** Baseline MSW handler for the fetch StigmerProvider always makes. */
 function stigmerBaseFixtures(): HttpHandler[] {
   return [
     http.get("*/v1/proxy/model-registry", () =>
       HttpResponse.json(MODEL_REGISTRY_FIXTURE),
-    ),
-    http.get("*/v1/proxy/task-kind-registry", () =>
-      HttpResponse.json(TASK_KIND_REGISTRY_FIXTURE),
     ),
   ];
 }
@@ -69,8 +59,8 @@ interface StigmerPreviewProviderProps {
   /**
    * Scenario-specific MSW handlers (typically Connect-RPC fixtures
    * built with `connectFixture`). Placed before the baseline
-   * handlers; MSW resolves first-match-wins, so scenarios can
-   * override the baseline registries if they ever need to.
+   * handler; MSW resolves first-match-wins, so scenarios can
+   * override the baseline registry if they ever need to.
    */
   readonly fixtures?: readonly HttpHandler[];
   readonly children: ReactNode;
@@ -80,8 +70,8 @@ interface StigmerPreviewProviderProps {
  * Demo-scenario wrapper around Scenar's PreviewProvider.
  *
  * Composes the shared Stigmer provider chain with the baseline
- * registry fixtures every StigmerProvider mount requires, so no
- * scenario can forget them. Scenarios pass only their own fixtures.
+ * registry fixture every StigmerProvider mount requires, so no
+ * scenario can forget it. Scenarios pass only their own fixtures.
  */
 export function StigmerPreviewProvider({
   fixtures,

@@ -81,8 +81,7 @@ function collectPageErrors(page: Page): string[] {
 // ---------------------------------------------------------------------------
 
 for (const entry of manifest) {
-  // demoIndex disambiguates pages that embed the same scenario twice
-  // (e.g. review-payload-gate renders two demos on review-payloads).
+  // demoIndex disambiguates pages that embed the same scenario twice.
   test(`${entry.scenarioId} #${entry.demoIndex} on ${entry.pagePath}`, async ({ page }) => {
     test.setTimeout(PLAYBACK_TIMEOUT_MS + 30_000);
 

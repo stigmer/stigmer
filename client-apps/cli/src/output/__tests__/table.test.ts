@@ -11,14 +11,14 @@ describe("renderTable", () => {
       ["NAME", "KIND"],
       [
         ["my-agent", "agent"],
-        ["wf", "workflow"],
+        ["github", "mcp_server"],
       ],
     );
     const lines = out.trimEnd().split("\n");
     expect(lines[0]).toBe("NAME       KIND");
-    expect(lines[1]).toBe("--------   --------");
+    expect(lines[1]).toBe("--------   ----------");
     expect(lines[2]).toBe("my-agent   agent");
-    expect(lines[3]).toBe("wf         workflow");
+    expect(lines[3]).toBe("github     mcp_server");
   });
 
   it("tolerates short rows by padding missing cells", () => {

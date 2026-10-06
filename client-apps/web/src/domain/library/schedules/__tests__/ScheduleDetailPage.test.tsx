@@ -48,7 +48,7 @@ vi.mock("@/domain/library/library-navigation", () => ({
   useRouteDetailYieldsToOverlay: () => false,
 }));
 
-vi.mock("@/domain/workflow/run-navigation", () => ({
+vi.mock("@/domain/runs/run-navigation", () => ({
   useRunNavigation: () => ({ navigateToRun: (id: string) => page.openedRuns.push(id) }),
 }));
 
@@ -87,9 +87,9 @@ describe("web ScheduleDetailPageInner", () => {
   it("opens a run picked on the schedule through run navigation", () => {
     render(<ScheduleDetailPageInner org="acme" slug="nightly" />);
 
-    act(() => view()?.onNavigateToRun("wfr_1"));
+    act(() => view()?.onNavigateToRun("aex_1"));
 
-    expect(page.openedRuns).toEqual(["wfr_1"]);
+    expect(page.openedRuns).toEqual(["aex_1"]);
   });
 
   it("opens the targeted agent as a library detail and lands on the list after a delete", () => {

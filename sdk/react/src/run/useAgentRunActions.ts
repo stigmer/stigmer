@@ -55,8 +55,7 @@ export interface UseAgentRunActionsReturn {
 /**
  * Behavior hook that encapsulates agent run lifecycle actions.
  *
- * The agent-execution analog of {@link useWorkflowRunActions}: each
- * action calls the corresponding RPC and returns the updated run, or
+ * Each action calls the corresponding RPC and returns the updated run, or
  * `null` on failure (with `error` populated).
  *
  * Pass `null` for `executionId` to disable all actions (they become no-ops

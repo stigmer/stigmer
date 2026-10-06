@@ -517,8 +517,7 @@ file changes in the transcript (stamped edit rows + the per-turn decision
 bar) and does not consume this hook.
 
 A thin memoizing wrapper over [`deriveRunFileChanges`](/docs/sdk/react/run#deriverunfilechanges) — the
-shared execution-domain core that also powers the workflow panel's Changes
-facet (`useWorkflowRunFileChanges`). The source (ledger-first via
+execution-domain core. The source (ledger-first via
 `displayFileChangeSets`), the net-diff collapse, and the file-list ordering
 are all documented on the core.
 
@@ -1235,8 +1234,7 @@ All visual properties flow through `--stgm-*` tokens.
 
 ### SessionViewer
 
-Full-featured agent session viewer — the graph-less analog of
-`WorkflowRunViewer`.
+Full-featured agent session viewer.
 
 Owns `useSessionPageFlow` internally and composes:
 - **Conversation column** (primary): `MessageThread` + error

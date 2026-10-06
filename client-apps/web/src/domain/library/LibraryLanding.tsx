@@ -3,7 +3,7 @@
 import { type MouseEvent, useCallback, useReducer, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Blocks, Bot, CalendarClock, FileCode2, Plus, Sparkles, Server, Workflow } from "lucide-react";
+import { Blocks, Bot, CalendarClock, FileCode2, Plus, Sparkles, Server } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import {
@@ -13,7 +13,6 @@ import {
   useSkillCount,
   useMcpServerCount,
   usePluginCount,
-  useWorkflowCount,
   ResourceCountCard,
   useActiveOrgId,
 } from "@stigmer/react";
@@ -28,12 +27,6 @@ const RESOURCE_CARDS = [
     label: "Agents",
     href: "/library/agents",
     icon: <Bot className="size-5" aria-hidden="true" />,
-  },
-  {
-    key: "workflows",
-    label: "Workflows",
-    href: "/library/workflows",
-    icon: <Workflow className="size-5" aria-hidden="true" />,
   },
   {
     key: "skills",
@@ -74,11 +67,6 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
     href: "/library/agents/new",
   },
   {
-    label: "Workflow",
-    icon: <Workflow className="size-4" aria-hidden="true" />,
-    href: "/library/workflows/new",
-  },
-  {
     label: "Skill",
     icon: <Sparkles className="size-4" aria-hidden="true" />,
     href: "/library/skills/new",
@@ -105,7 +93,6 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
 // identically on the desktop landing.
 function useResourceCounts(org: string | null, refetchToken?: unknown) {
   const agents = useAgentCount(org, { refetchToken });
-  const workflows = useWorkflowCount(org, { refetchToken });
   const skills = useSkillCount(org, { refetchToken });
   const mcpServers = useMcpServerCount(org, { refetchToken });
   const schedules = useScheduleCount(org, { refetchToken });
@@ -113,7 +100,6 @@ function useResourceCounts(org: string | null, refetchToken?: unknown) {
 
   return {
     agents,
-    workflows,
     skills,
     "mcp-servers": mcpServers,
     schedules,
@@ -143,7 +129,7 @@ export function LibraryLanding() {
     <>
       <h1 className="text-foreground mb-1 text-xl font-semibold">Library</h1>
       <p className="text-muted-foreground mb-8 text-sm">
-        Browse and manage your agents, workflows, skills, and MCP servers.
+        Browse and manage your agents, skills, and MCP servers.
       </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

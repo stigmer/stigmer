@@ -517,7 +517,7 @@ describe("ApprovalCardBody proposed content from args", () => {
   });
 
   it("without the row, a write whose content the preview left out shows the honest notice", () => {
-    // The row-less surfaces (the workflow approval list, an embedded card):
+    // The row-less surfaces (an embedded card):
     // nothing is invented from a preview that carries no content.
     render(
       <ApprovalCardBody

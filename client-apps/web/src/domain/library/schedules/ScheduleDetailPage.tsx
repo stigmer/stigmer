@@ -8,7 +8,7 @@ import {
   useLibraryNavigation,
   useRouteDetailYieldsToOverlay,
 } from "@/domain/library/library-navigation";
-import { useRunNavigation } from "@/domain/workflow/run-navigation";
+import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 
 /**

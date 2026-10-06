@@ -105,8 +105,8 @@ describe("stigmer download run", () => {
   });
 
   it("refuses an id that is not an agent run id", async () => {
-    await expect(runDownload("run", "wex_1")).rejects.toThrow(
-      new UsageError("invalid run ID: wex_1\n\nRuns must be referenced by ID (e.g., aex_01abc123)"),
+    await expect(runDownload("run", "ses_1")).rejects.toThrow(
+      new UsageError("invalid run ID: ses_1\n\nRuns must be referenced by ID (e.g., aex_01abc123)"),
     );
     expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
   });

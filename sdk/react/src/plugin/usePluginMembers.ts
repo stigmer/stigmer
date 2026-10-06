@@ -11,12 +11,11 @@ export interface PluginMembersByKind {
   readonly skills: readonly PluginMember[];
   readonly mcpServers: readonly PluginMember[];
   readonly agents: readonly PluginMember[];
-  readonly workflows: readonly PluginMember[];
 }
 
 /** Return value of {@link usePluginMembers}. */
 export interface UsePluginMembersReturn {
-  /** Every member in materialisation order: skills, MCP servers, agents, workflows. */
+  /** Every member in materialisation order: skills, MCP servers, agents. */
   readonly members: readonly PluginMember[];
   readonly byKind: PluginMembersByKind;
   /** `true` while the initial fetch or a refetch is in flight. */
@@ -32,7 +31,7 @@ const EMPTY: readonly PluginMember[] = [];
 /**
  * Data hook that lists the resources an installed plugin owns.
  *
- * Members are derived on the server from the plugin label on the four child
+ * Members are derived on the server from the plugin label on the three child
  * kinds; nothing is stored on the plugin, so this list is always the truth
  * about what the plugin currently holds. Pass `null` to skip fetching.
  *
@@ -56,7 +55,6 @@ export function usePluginMembers(pluginId: string | null): UsePluginMembersRetur
       skills: members.filter((m) => m.kind === ApiResourceKind.skill),
       mcpServers: members.filter((m) => m.kind === ApiResourceKind.mcp_server),
       agents: members.filter((m) => m.kind === ApiResourceKind.agent),
-      workflows: members.filter((m) => m.kind === ApiResourceKind.workflow),
     }),
     [members],
   );

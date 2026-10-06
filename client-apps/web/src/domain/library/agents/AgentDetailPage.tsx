@@ -31,9 +31,8 @@ import { AGENT_DELETE_DESCRIPTION } from "@/domain/library/agents/agent-delete-c
  * Lets external surfaces (the desktop app's Connect action, docs links)
  * land directly on a specific tab — e.g. `?tab=channels`. Read from
  * `window.location` instead of `useSearchParams()` because tab state is
- * deliberately local after landing (the workflow Editor-tab precedent) and
- * the static-export prerender has no URL to read (the
- * `useStaticRouteParam` idiom).
+ * deliberately local after landing and the static-export prerender has no
+ * URL to read (the `useStaticRouteParam` idiom).
  */
 function initialTabFromUrl(): string | undefined {
   if (typeof window === "undefined") return undefined;
@@ -55,16 +54,12 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const { deleteResource, isDeleting } = useDeleteResource("agent", resourceId, resourceName);
   const { agent, refetch: refetchAgent } = useAgent(org, slug);
-  const { copyYaml, copyJson, downloadYaml } = useExportResource({
-    kind: "Agent",
-    resource: agent,
-  });
+  const { copyYaml, copyJson, downloadYaml } = useExportResource({ resource: agent });
 
   const [editYamlOpen, setEditYamlOpen] = useState(false);
 
-  // Controlled tab state (the WorkflowDetailPage Editor-tab precedent),
-  // seeded from the ?tab= deep link so cross-surface handoffs land on the
-  // right tab.
+  // Controlled tab state, seeded from the ?tab= deep link so cross-surface
+  // handoffs land on the right tab.
   const [activeTab, setActiveTab] = useState<string>(
     () => initialTabFromUrl() ?? "overview",
   );

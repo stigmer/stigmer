@@ -10,10 +10,6 @@ import AxeBuilder from "@axe-core/playwright";
  * Initial rollout: fails on critical and serious violations only.
  * Moderate and minor violations are logged but do not fail.
  *
- * Known exclusion: the workflow canvas (React Flow) has complex a11y
- * characteristics that are not meaningful to audit structurally, so no
- * audited page includes it.
- *
  * Prerequisites:
  * - Local dev server (auto-started by Playwright config)
  */

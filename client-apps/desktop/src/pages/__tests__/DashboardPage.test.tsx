@@ -1,19 +1,16 @@
 /**
- * Pins the desktop dashboard's navigation wiring: a pending approval and a
- * failed run, each picked on the SDK's operational dashboard, open that run's
- * page at /runs/<id>, whatever kind of run it is; and the dashboard reads the
- * active organization by id. The dashboard and its charts are pinned in
- * @stigmer/react; here they are stubbed to capture the props they are given.
+ * Pins the desktop dashboard's navigation wiring: a failed run picked on the
+ * SDK's operational dashboard opens that run's page at /runs/<id>; and the
+ * dashboard reads the active organization by id. The dashboard is pinned in
+ * @stigmer/react; here it is stubbed to capture the props it is given.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import type { DashboardFailedRun } from "@stigmer/react";
 
 interface DashboardProps {
   org: string;
-  onApprovalClick: (runId: string) => void;
-  onFailedRunClick: (runId: string, type: DashboardFailedRun["type"]) => void;
+  onFailedRunClick: (runId: string) => void;
 }
 
 const page = vi.hoisted(() => ({
@@ -22,13 +19,10 @@ const page = vi.hoisted(() => ({
 
 vi.mock("@stigmer/react", () => ({
   useOrg: () => ({ activeOrg: { metadata: { id: "org_acme" } } }),
-  useWorkflowDashboardSummary: () => ({ summary: undefined, isLoading: false }),
   OperationalDashboard: (props: DashboardProps) => {
     page.dashboard.push(props);
     return null;
   },
-  CostByWorkflowChart: () => null,
-  RunTrendChart: () => null,
 }));
 
 import DashboardPage from "../dashboard/DashboardPage";
@@ -60,21 +54,11 @@ describe("desktop DashboardPage — opening a run", () => {
     expect(page.dashboard.at(-1)?.org).toBe("org_acme");
   });
 
-  it("opens the run a pending approval belongs to", () => {
+  it("opens a failed run at its address", () => {
     renderDashboard();
 
-    act(() => page.dashboard.at(-1)?.onApprovalClick("ar_waiting"));
+    act(() => page.dashboard.at(-1)?.onFailedRunClick("aex_failed"));
 
-    expect(screen.getByTestId("location").textContent).toBe("/runs/ar_waiting");
-  });
-
-  it("opens a failed run at the same address whatever its kind", () => {
-    renderDashboard();
-
-    act(() => page.dashboard.at(-1)?.onFailedRunClick("wfr_failed", "workflow_run"));
-    expect(screen.getByTestId("location").textContent).toBe("/runs/wfr_failed");
-
-    act(() => page.dashboard.at(-1)?.onFailedRunClick("ar_failed", "agent_run"));
-    expect(screen.getByTestId("location").textContent).toBe("/runs/ar_failed");
+    expect(screen.getByTestId("location").textContent).toBe("/runs/aex_failed");
   });
 });

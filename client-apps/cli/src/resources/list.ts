@@ -59,7 +59,6 @@ import { requireOrganization } from "../client/single-org.js";
 export const SEARCH_KINDS: ReadonlySet<ApiResourceKind> =
   new Set<ApiResourceKind>([
     ApiResourceKind.agent,
-    ApiResourceKind.workflow,
     ApiResourceKind.mcp_server,
     ApiResourceKind.skill,
     ApiResourceKind.plugin,
@@ -352,8 +351,7 @@ const SCHEDULE_TABLE: TableShape = {
   },
 };
 
-// The target oneof has one arm today (`agent`); a future workflow arm
-// extends this accessor alongside the proto.
+// The schedule's target is the agent it runs.
 function scheduleAgentRef(json: JsonObject): JsonObject {
   return obj(obj(obj(json, "spec"), "agent"), "agent_ref");
 }

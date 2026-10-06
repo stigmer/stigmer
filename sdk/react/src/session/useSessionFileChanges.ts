@@ -29,8 +29,7 @@ export interface UseSessionFileChangesReturn {
  * bar) and does not consume this hook.
  *
  * A thin memoizing wrapper over {@link deriveRunFileChanges} — the
- * shared execution-domain core that also powers the workflow panel's Changes
- * facet (`useWorkflowRunFileChanges`). The source (ledger-first via
+ * execution-domain core. The source (ledger-first via
  * `displayFileChangeSets`), the net-diff collapse, and the file-list ordering
  * are all documented on the core.
  *

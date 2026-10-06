@@ -4,9 +4,9 @@
  * embed-element demo needs: the widget on the Meridian page rendering a
  * live chat shell over the public-audience guest path (cloud-only RPCs).
  *
- * Deliberately NOT the full local seed (../seed.mjs): the workflow and
- * its daily schedule stay off cloud — a live schedule on a real backend
- * would fire (and spend) every day after the camera stops.
+ * Deliberately NOT the full local seed (../seed.mjs): the daily digest
+ * schedule stays off cloud — a live schedule on a real backend would fire
+ * (and spend) every day after the camera stops.
  *
  * Idempotent: every step is an apply/push, safe to re-run.
  *

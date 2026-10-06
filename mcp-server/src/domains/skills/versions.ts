@@ -1,7 +1,7 @@
 // Skill version-timeline path (SkillQueryController.listVersions). Each push
 // creates an immutable version identified by the artifact's SHA-256 hash;
 // entries carry hash, tag, push audit, and provenance (no artifact content, so
-// no projection is needed — unlike the workflow timeline).
+// no projection is needed).
 
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import {

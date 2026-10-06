@@ -1,6 +1,6 @@
 // `search` dispatch: a relevance-ranked, cross-resource text query over the
-// unified SearchService. Only agents and workflows are search-indexed (matching
-// the Go CLI). Results render identically to `list` (the shared SEARCH_TABLE),
+// unified SearchService. Only agents take the `search` verb (matching the Go
+// CLI). Results render identically to `list` (the shared SEARCH_TABLE),
 // with a pagination footer the command appends for human output, and names
 // each result's organization by slug in the same way.
 

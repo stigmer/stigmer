@@ -1,7 +1,7 @@
 ---
 title: Streaming
 description:
-  Consume real-time Agent Run and Workflow Run updates as they arrive.
+  Consume real-time Agent Run updates as they arrive.
 ---
 
 The `subscribe` method opens a server stream that pushes run snapshots as the
@@ -374,111 +374,6 @@ while (stream.hasNext()) {
   [`terminate`](/docs/sdk/resources/agent-run#terminate).
 </Callout>
 
-## Subscribe to a Workflow Run
-
-Workflow Run streams work the same way, with two differences:
-
-1. `subscribe` takes a request object with a `runId` field instead of a
-   bare string.
-2. Progress is tracked through `status.tasks` (a list of workflow tasks with
-   individual status) rather than `status.messages`.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-for await (const snapshot of stigmer.workflowRun.subscribe(
-  { runId: workflowRunId },
-)) {
-  const phase = snapshot.status?.phase;
-  const tasks = snapshot.status?.tasks ?? [];
-
-  for (const task of tasks) {
-    console.log(`${task.taskName}: ${task.status}`);
-  }
-
-  if (isTerminal(phase)) {
-    if (phase === "RUN_COMPLETED") {
-      console.log("Output:", snapshot.status?.output);
-    }
-    break;
-  }
-}
-```
-</Tab>
-<Tab value="Go">
-```go
-stream, err := client.WorkflowRun.Subscribe(ctx,
-    &workflowrunv1.SubscribeWorkflowRunRequest{
-        RunId: workflowRunID,
-    })
-if err != nil {
-    log.Fatal(err)
-}
-
-for {
-    snapshot, err := stream.Recv()
-    if err == io.EOF {
-        break
-    }
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    status := snapshot.GetStatus()
-    for _, task := range status.GetTasks() {
-        fmt.Printf("%s: %s\n", task.GetTaskName(), task.GetStatus())
-    }
-
-    if isTerminal(status.GetPhase()) {
-        break
-    }
-}
-```
-</Tab>
-<Tab value="Python">
-```python
-from ai.stigmer.agentic.workflowrun.v1.io_pb2 import SubscribeWorkflowRunRequest
-
-for snapshot in client.workflow_runs.subscribe(
-    SubscribeWorkflowRunRequest(run_id=workflow_run_id),
-):
-    for task in snapshot.status.tasks:
-        print(f"{task.task_name}: {task.status}")
-
-    if is_terminal(snapshot.status.phase):
-        if snapshot.status.output:
-            print("Output:", snapshot.status.output)
-        break
-```
-</Tab>
-<Tab value="Java">
-```java
-var stream = client.workflowRun.subscribe(
-    SubscribeWorkflowRunRequest.newBuilder()
-        .setRunId(workflowRunId)
-        .build());
-
-while (stream.hasNext()) {
-    var snapshot = stream.next();
-    var status = snapshot.getStatus();
-
-    for (var task : status.getTasksList()) {
-        System.out.printf("%s: %s%n", task.getTaskName(), task.getStatus());
-    }
-
-    if (isTerminal(status.getPhase())) {
-        break;
-    }
-}
-```
-</Tab>
-</SDKTabs>
-
-<Callout type="info">
-  For the complete field reference, see
-  [Workflow Run > WorkflowRunStatus](/docs/sdk/resources/workflow-run#workflowrunstatus).
-</Callout>
-
 ## What's next
 
 <Cards>
@@ -486,11 +381,6 @@ while (stream.hasNext()) {
     title="Agent Run"
     description="Full method and type reference for Agent Runs."
     href="/docs/sdk/resources/agent-run"
-  />
-  <Card
-    title="Workflow Run"
-    description="Full method and type reference for Workflow Runs."
-    href="/docs/sdk/resources/workflow-run"
   />
   <Card
     title="Connect Tools"

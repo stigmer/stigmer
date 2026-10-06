@@ -42,7 +42,7 @@ export interface ApplyManifestDialogProps {
  * upload a file, review what will change, and apply. The console
  * counterpart of `stigmer apply -f`, for every supported resource kind.
  *
- * Workflow:
+ * Steps:
  * 1. Paste manifest YAML (or JSON) into the editor, or pick a file
  * 2. Each document is validated against its kind's generated proto schema
  *    and previewed with a create-or-update badge resolved from server state

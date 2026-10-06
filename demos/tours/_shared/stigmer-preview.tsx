@@ -35,18 +35,18 @@ import type { ReactNode } from "react";
 import { createRouterTransport, type ConnectRouter } from "@connectrpc/connect";
 import { getEmbedColorMode } from "@scenar/react";
 import { Stigmer } from "@stigmer/sdk";
-import { OrgProvider, StigmerProvider, type ReviewRenderers } from "@stigmer/react";
+import { OrgProvider, StigmerProvider } from "@stigmer/react";
 import { samples } from "@stigmer/react/test";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 
 /**
- * Benign `fetch` for the two registry endpoints `StigmerProvider` requests on
- * mount — the model registry and the task-kind registry. These go over plain
- * HTTP (not through the Connect transport), so the fixture router never sees
- * them; against a packed embed's own origin they would 404. Returning an
- * empty-but-OK JSON body lets both resolve to empty registries immediately —
- * no retries, no error-state churn, no request escaping the page. Tours drive
- * their components from fixtures, so an empty registry is the right answer.
+ * Benign `fetch` for the model registry `StigmerProvider` requests on mount.
+ * It goes over plain HTTP (not through the Connect transport), so the fixture
+ * router never sees it; against a packed embed's own origin it would 404.
+ * Returning an empty-but-OK JSON body lets it resolve to an empty registry
+ * immediately — no retries, no error-state churn, no request escaping the
+ * page. Tours drive their components from fixtures, so an empty registry is
+ * the right answer.
  */
 const emptyRegistryFetch: typeof globalThis.fetch = async () =>
   new Response("{}", {
@@ -57,19 +57,6 @@ const emptyRegistryFetch: typeof globalThis.fetch = async () =>
 /** Props for the `PreviewProviders` component a tour exports from `.scenar/`. */
 interface PreviewProvidersProps {
   readonly children: ReactNode;
-}
-
-/** Per-tour provider configuration beyond RPC fixtures. */
-interface StigmerPreviewOptions {
-  /**
-   * Review renderers handed to `StigmerProvider` — the per-surface
-   * registration the review-payloads guide teaches. Renderer registration is
-   * a property of the depicted *surface*, so it is configured per tour (a
-   * tour has exactly one provider tree): a tour depicting a surface with a
-   * custom renderer passes its map here; a tour depicting a surface without
-   * one omits it and the SDK's built-in approval card renders.
-   */
-  readonly reviewRenderers?: ReviewRenderers;
 }
 
 /**
@@ -94,7 +81,6 @@ interface StigmerPreviewOptions {
  */
 export function createStigmerPreview(
   register: (router: ConnectRouter) => void,
-  options?: StigmerPreviewOptions,
 ): (props: PreviewProvidersProps) => ReactNode {
   // Built once when the tour's providers module loads: the fixtures are static,
   // so there is nothing to rebuild per render.
@@ -139,7 +125,6 @@ export function createStigmerPreview(
         client={client}
         publicBaseUrl="https://api.stigmer.ai"
         colorMode={getEmbedColorMode()}
-        reviewRenderers={options?.reviewRenderers}
       >
         <OrgProvider>{children}</OrgProvider>
       </StigmerProvider>

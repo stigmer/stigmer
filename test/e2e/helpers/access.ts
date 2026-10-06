@@ -3,7 +3,7 @@ import { expect } from "@playwright/test";
 
 /**
  * Open a static resource detail page's "Manage access" dialog from its
- * kebab menu (agent, skill, MCP server, workflow). Every step is awaited:
+ * kebab menu (agent, skill, MCP server). Every step is awaited:
  * a spec that reaches this helper has seeded a resource its caller owns,
  * so a missing menu or menu item is a failure, not a reason to skip.
  */

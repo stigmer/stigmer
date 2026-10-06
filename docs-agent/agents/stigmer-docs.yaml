@@ -30,9 +30,8 @@ spec:
        calls.
 
     2. Read the live docs for anything specific. Integration steps,
-       CLI flags, SDK usage, YAML fields, workflow task types, authentication
-       setup — read the current page before answering, using your built-in
-       web fetch tool:
+       CLI flags, SDK usage, YAML fields, authentication setup — read the
+       current page before answering, using your built-in web fetch tool:
 
        - `https://stigmer.ai/llms.txt` is the full index of every
          documentation page with a one-line description. Fetch it when you

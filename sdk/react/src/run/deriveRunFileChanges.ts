@@ -1,13 +1,11 @@
 // Pure derivation of net file changes across a chronological list of agent
 // runs, plus the FileChange → FileDiffEntry projection for file lists.
-// Domain: run (shared — the session's Changes surface and the workflow
-// panel's Changes facet both collapse per-execution captures into one net
-// change per path, and a single core prevents the two from drifting on the
-// non-trivial net-diff semantics below).
+// Domain: run (the session's Changes surface collapses per-execution
+// captures into one net change per path; the non-trivial net-diff semantics
+// below live in this one core).
 //
 // Not a hook: callers memoize on their runs reference
-// (`useSessionFileChanges` for sessions; `useWorkflowRunFileChanges`
-// aggregates a workflow's AGENT_CALL children).
+// (`useSessionFileChanges`).
 
 import { create } from "@bufbuild/protobuf";
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
@@ -46,9 +44,8 @@ import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
  *
  * **Ordering is a correctness input.** `executions` MUST be chronological:
  * the net collapse anchors on each path's first and last change, so two
- * runs touching the same path (a session's follow-up turns; two
- * workflow agent-call tasks) produce a wrong net diff if visited out of
- * order.
+ * runs touching the same path (a session's follow-up turns) produce a
+ * wrong net diff if visited out of order.
  *
  * Counts and unified diffs for whole-file captures stay derivable by the
  * presentation layer (the runner emits 0/"" sentinels), matching the

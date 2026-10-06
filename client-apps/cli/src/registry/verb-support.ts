@@ -34,18 +34,6 @@ export const VERB_SUPPORT: ReadonlyMap<
     ]),
   ],
   [
-    ApiResourceKind.workflow,
-    new Set<Verb>([
-      Verb.Apply,
-      Verb.Validate,
-      Verb.Get,
-      Verb.List,
-      Verb.Delete,
-      Verb.Run,
-      Verb.Search,
-    ]),
-  ],
-  [
     ApiResourceKind.skill,
     new Set<Verb>([Verb.Get, Verb.List, Verb.Delete, Verb.Push]),
   ],

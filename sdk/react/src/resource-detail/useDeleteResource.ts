@@ -11,7 +11,6 @@ export type DeletableResourceKind =
   | "agent"
   | "skill"
   | "mcpServer"
-  | "workflow"
   | "schedule"
   | "plugin";
 
@@ -80,9 +79,6 @@ export function useDeleteResource(
         case "mcpServer":
           await stigmer.mcpServer.delete({ resourceId });
           break;
-        case "workflow":
-          await stigmer.workflow.delete(resourceId);
-          break;
         case "schedule":
           await stigmer.schedule.delete(resourceId);
           break;
@@ -121,8 +117,6 @@ function kindLabel(kind: DeletableResourceKind): string {
       return "skill";
     case "mcpServer":
       return "MCP server";
-    case "workflow":
-      return "workflow";
     case "schedule":
       return "schedule";
     case "plugin":

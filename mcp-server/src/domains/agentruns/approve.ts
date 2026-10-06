@@ -2,8 +2,7 @@
 // waiting on (AgentRunCommandController.submitApproval).
 //
 // Pending approvals surface in get_agent_run's status.pending_approvals[] —
-// there is no org-wide inbox for agent runs (that exists only for workflow
-// human_input tasks, see workflowruns/approvals.ts). The response reuses the
+// there is no org-wide inbox for agent runs. The response reuses the
 // compact projection: the returned AgentRun embeds the full message history,
 // which the approval loop doesn't need.
 

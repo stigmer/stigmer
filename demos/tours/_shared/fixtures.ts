@@ -45,25 +45,21 @@ export const DEMO_USER: UserMenuProps["user"] = {
 export const DEMO_RECENT_ACTIVITY: readonly RecentActivityEntry[] = [
   {
     id: "ses-recents-q3-launch",
-    type: "session",
     subject: "Draft email copy for the Q3 launch",
     updatedAt: sampleDate(-2 * 3_600_000),
   },
   {
     id: "ses-recents-q2-report",
-    type: "session",
     subject: "Q2 report analysis",
     updatedAt: sampleDate(-4 * 3_600_000),
   },
   {
     id: "ses-recents-meeting-notes",
-    type: "session",
     subject: "Summarize meeting notes",
     updatedAt: sampleDate(-25 * 3_600_000),
   },
   {
     id: "ses-recents-refund-4821",
-    type: "session",
     subject: "Refund request for order #ORD-4821",
     updatedAt: sampleDate(-26 * 3_600_000),
   },

@@ -4,12 +4,11 @@
 // resolved org when absent → dry-run preview OR drive the raw command
 // controller's `apply` RPC with the full proto → build a CommandResult. Items
 // across all files are sorted into dependency order before applying so parents
-// (org → mcp_server → agent → workflow → …) land before their dependents.
+// (org → mcp_server → agent → …) land before their dependents.
 
 import { create, fromJson, type JsonValue, type Message } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { RenameInputSchema, UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -27,7 +26,6 @@ import { classify, UsageError } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
 import { defaultRegistry, unknownKindError, Verb } from "../../registry/index.js";
 import { loadDocuments, resolveYamlFiles } from "../documents.js";
-import { decodeWorkflowTaskConfigs } from "../task-configs.js";
 import { type ApplyHandler, APPLY_HANDLERS, type ControllerFn } from "./handlers.js";
 
 export interface ApplyItem {
@@ -113,14 +111,7 @@ export async function applyItem(
  */
 export function marshalItem(item: ApplyItem): Message {
   try {
-    const message = fromJson(item.handler.schema, item.document, { ignoreUnknownFields: false });
-    // Workflow task_config blocks live inside an open Struct the top-level
-    // decode cannot see into; decode them per kind so a dry-run rejects
-    // exactly what a real apply rejects (stigmer/stigmer#778).
-    if (item.handler.kind === ApiResourceKind.workflow) {
-      decodeWorkflowTaskConfigs(message as Workflow);
-    }
-    return message;
+    return fromJson(item.handler.schema, item.document, { ignoreUnknownFields: false });
   } catch (err) {
     throw new UsageError(`invalid ${item.handler.displayName} in ${item.filePath}: ${(err as Error).message}`);
   }

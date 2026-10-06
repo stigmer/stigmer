@@ -57,8 +57,6 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 | `organization`       | Organization       |
 | `session`            | Session            |
 | `skill`              | Skill              |
-| `workflow`           | Workflow           |
-| `workflowRun`        | WorkflowRun        |
 | `search`             | Cross-resource search |
 | `billing`            | Billing (credits, ledger, Stripe) |
 
@@ -208,12 +206,12 @@ Exactly one of `apiKey` or `getAccessToken` must be provided.
 
 ## Local Execution
 
-Agent and workflow runs execute in the cloud by default — the Stigmer server provisions a sandbox with a runner. To execute runs on the client (a desktop app, CLI, or self-hosted deployment), set the execution target.
+Agent runs execute in the cloud by default — the Stigmer server provisions a sandbox with a runner. To execute runs on the client (a desktop app, CLI, or self-hosted deployment), set the execution target.
 
 ### Selecting the target
 
 ```typescript
-// App-level default for every session and workflow run
+// App-level default for every session
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
   getAccessToken: () => authStore.getToken(),
@@ -229,8 +227,6 @@ const session = await stigmer.session.create({
 });
 ```
 
-`workflowRun.create()` accepts the same per-call `executionTarget`.
-
 ### `RunnerAdapter`
 
 For local execution, the client owns the runner lifecycle. `@stigmer/sdk` exports the `RunnerAdapter` type so non-React hosts (Node scripts, custom frameworks) can implement it:
@@ -241,12 +237,10 @@ import type { RunnerAdapter } from "@stigmer/sdk";
 const adapter: RunnerAdapter = {
   onSessionOpened: async (sessionId) => { /* start a worker for this session */ },
   onSessionClosed: async (sessionId) => { /* stop it */ },
-  onWorkflowRunCreated: async (runId) => { /* start a worker */ },
-  onWorkflowRunTerminated: async (runId) => { /* stop it */ },
 };
 ```
 
-If your runner backend already exposes `addSession` / `removeSession` / `addWorkflowExecution` / `removeWorkflowExecution` (a `RunnerWorkerHost`) — the in-process `createStigmerRunnerManager`, the desktop's embedded-runner context, or your own API — skip the hand-wiring and let `createRunnerAdapter` build the adapter:
+If your runner backend already exposes `addSession` / `removeSession` (a `RunnerWorkerHost`) — the in-process `createStigmerRunnerManager`, the desktop's embedded-runner context, or your own API — skip the hand-wiring and let `createRunnerAdapter` build the adapter:
 
 ```typescript
 import { createRunnerAdapter } from "@stigmer/sdk";
@@ -254,9 +248,9 @@ import { createRunnerAdapter } from "@stigmer/sdk";
 const adapter = createRunnerAdapter(myRunnerHost);
 ```
 
-A Session has no terminal phase, so its worker is tied to whether the session is **open**: attach on `onSessionOpened`, detach on `onSessionClosed` (and keep both idempotent — `onSessionOpened` may fire again on re-open). A Workflow Run runs to a terminal phase, so its worker is tied to create/terminate.
+A Session has no terminal phase, so its worker is tied to whether the session is **open**: attach on `onSessionOpened`, detach on `onSessionClosed` (and keep both idempotent — `onSessionOpened` may fire again on re-open).
 
-The SDK does not invoke these methods on its own in a non-React host — you wire the adapter to your own open/close and create/terminate code paths. In React apps, `@stigmer/react` does this wiring automatically: pass `executionTarget` and `runnerAdapter` to `StigmerProvider` and the SDK hooks invoke the adapter at the right lifecycle points.
+The SDK does not invoke these methods on its own in a non-React host — you wire the adapter to your own open/close code paths. In React apps, `@stigmer/react` does this wiring automatically: pass `executionTarget` and `runnerAdapter` to `StigmerProvider` and the SDK hooks invoke the adapter at the right lifecycle points.
 
 See the [`@stigmer/react` local execution docs](../react/README.md#local-execution) and the [runner embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for the full desktop (local) and web (cloud) walkthrough.
 

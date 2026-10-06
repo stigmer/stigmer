@@ -29,7 +29,7 @@ is the contract between them, not HTTP.
 flowchart LR
     subgraph stack [Docker Compose stack]
         server["stigmer-server<br/>API + console :7234<br/>artifacts :7235"]
-        runner["stigmer-runner<br/>executes Agents + Workflows"]
+        runner["stigmer-runner<br/>executes Agents"]
         temporal["temporal<br/>execution coordination"]
         postgres["postgres<br/>one instance, three databases"]
     end
@@ -59,8 +59,7 @@ procedures.
 - The Stigmer CLI on whichever machine you drive the stack from, this one or
   your laptop. The [local quickstart](/docs/getting-started/local) has the
   install commands.
-- An LLM provider key if you want Agents to answer. Workflows without Agent
-  tasks run without one.
+- An LLM provider key if you want Agents to answer.
 
 ## Install
 
@@ -99,9 +98,9 @@ openssl rand -base64 32
 Paste each value into its line. Two optional lines are worth setting now:
 
 - `ANTHROPIC_API_KEY`, so Agents can answer. Without it the stack still serves
-  the console, the API and LLM-free Workflow Runs; Agent Runs fail at the LLM
-  call. If your model traffic goes through an LLM gateway in front of Anthropic,
-  set `ANTHROPIC_BASE_URL` to it too (see
+  the console and the API; Agent Runs fail at the LLM call. If your model
+  traffic goes through an LLM gateway in front of Anthropic, set
+  `ANTHROPIC_BASE_URL` to it too (see
   [Send Claude calls through an LLM gateway](/docs/guides/runners/model-backends#send-claude-calls-through-an-llm-gateway)).
 - `STIGMER_OPERATOR_EMAIL`, your own email. It's stamped on what you create, and
   when you later turn authentication on, the person who signs in with this email

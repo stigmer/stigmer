@@ -197,7 +197,6 @@ export function summariseInstall(outcome: InstallPluginOutcome): string {
     [counts?.skills ?? 0, "skill"],
     [counts?.mcpServers ?? 0, "MCP server"],
     [counts?.agents ?? 0, "agent"],
-    [counts?.workflows ?? 0, "workflow"],
   ] as const;
   const named = parts.filter(([n]) => n > 0).map(([n, noun]) => count(n, noun));
   return named.length === 0 ? "nothing installed" : named.join(", ");

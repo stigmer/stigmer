@@ -10,10 +10,8 @@
  * edit one side and the root test suite (`npm test` → `node --test
  * scripts/*.test.mjs`) fails until the other side moves with it.
  *
- * Two lock shapes, chosen by what the shapes allow: byte-identical when the
- * fence and the fixture are the same text (skills.mdx ↔ SKILL_MD), and
- * value-by-value when structured constants are quoted inside a larger
- * listing (review-payloads.mdx ↔ article-review.ts's gate identity).
+ * A tour fixture the docs print in full is locked byte for byte: the fence
+ * and the fixture are the same text (skills.mdx ↔ SKILL_MD).
  *
  * A guide that prints a file for the reader to save and build quotes the
  * file in the repository that a release lane builds, byte for byte
@@ -69,48 +67,6 @@ test("skills.mdx SKILL.md listing matches skill-detail-tour's SKILL_MD byte for 
       "have drifted — the tour's still sits directly under the listing, so they " +
       "must stay byte-identical. Update both together.",
   );
-});
-
-test("review-payloads.mdx workflow YAML matches article-review.ts's gate identity", async () => {
-  const { register } = await import("tsx/esm/api");
-  register();
-  const identity = await import(
-    pathToFileURL(join(root, "demos/tours/_shared/article-review.ts")).href
-  );
-
-  const listing = extractFence(
-    "docs/guides/workflows/review-payloads.mdx",
-    "name: editorial_review",
-  );
-
-  // The page quotes the gate's identity inside a larger task block, so this
-  // lock is value-by-value, not byte-identical. Values are matched as whole
-  // YAML lines (trimmed, list dash stripped) — a substring check would let a
-  // drift like `article-diff` → `article-diff-v2` pass unnoticed. Its
-  // boundary: the outcome *labels* ("Approve", "Request changes") are display
-  // strings that never appear in the YAML and are not locked here — the
-  // page's stills are their only depiction.
-  const listingLines = listing
-    .split("\n")
-    .map((line) => line.trim().replace(/^- /, ""));
-  const expected = [
-    ["TASK_NAME", `name: ${identity.TASK_NAME}`],
-    ["REVIEW_PROMPT", `prompt: "${identity.REVIEW_PROMPT}"`],
-    ["UI_HINT", `ui_hint: ${identity.UI_HINT}`],
-    ...identity.OUTCOMES.map((outcome) => [
-      `outcome "${outcome.name}"`,
-      `name: ${outcome.name}`,
-    ]),
-  ];
-  for (const [what, expectedLine] of expected) {
-    assert.ok(
-      listingLines.includes(expectedLine),
-      `docs/guides/workflows/review-payloads.mdx's editorial_review fence and ` +
-        `demos/tours/_shared/article-review.ts have drifted: no line reads ` +
-        `${JSON.stringify(expectedLine)} (${what}). The page's stills depict ` +
-        `this exact gate — update both sides together.`,
-    );
-  }
 });
 
 test("runners.mdx's runner layer Dockerfile is deploy/runner-layer/Dockerfile byte for byte", () => {

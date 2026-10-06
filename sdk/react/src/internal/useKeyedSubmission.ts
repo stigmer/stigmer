@@ -38,10 +38,10 @@ export interface KeyedSubmission<T> {
 /**
  * Tracks per-key in-flight and error state for a family of concurrent async
  * operations that share one identity space (e.g. approval decisions keyed by
- * tool-call id, or by task name).
+ * tool-call id, or by conversation).
  *
  * This is the shared substrate behind every "many gates at once" surface: a
- * thread or a workflow can hold several pending decisions simultaneously, so a
+ * thread can hold several pending decisions simultaneously, so a
  * failure (and the spinner) must be attributable to the *one* gate it belongs
  * to. A single scalar `error`/`isSubmitting` pair cannot do that; a keyed
  * `Set`/`Map` pair can. Singleton controls (a header's cancel/pause) do not
@@ -49,7 +49,7 @@ export interface KeyedSubmission<T> {
  *
  * `run` re-throws after recording so the propagation policy stays with the
  * caller: {@link useSubmitApproval} mirrors the failure to a scalar and
- * rethrows; {@link useWorkflowRunActions} swallows it to `null`.
+ * rethrows.
  *
  * The return is `useMemo`'d over stable parts (empty-collection sentinels keep
  * the idle refs constant) so it is safe as a `React.memo` dependency.

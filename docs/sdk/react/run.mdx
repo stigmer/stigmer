@@ -11,8 +11,7 @@ description: Hooks and components for real-time streaming, tool calls, approvals
 
 Behavior hook that encapsulates agent run lifecycle actions.
 
-The agent-execution analog of [`useWorkflowRunActions`](/docs/sdk/react/workflow#useworkflowrunactions): each
-action calls the corresponding RPC and returns the updated run, or
+Each action calls the corresponding RPC and returns the updated run, or
 `null` on failure (with `error` populated).
 
 Pass `null` for `executionId` to disable all actions (they become no-ops
@@ -189,56 +188,6 @@ const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
 ```
 
 
-### useArtifactContentById
-
-Data hook that fetches the text content of an `Artifact` resource via
-`stigmer.artifact.getContent()`.
-
-The server proxies the artifact bytes through the Stigmer API rather than
-handing out a presigned URL — embedded SDK consumers on third-party origins
-avoid the CORS exposure of fetching storage URLs from the browser (the same
-rationale as the agent-execution side's `useArtifactContent`, which this
-hook mirrors; artifacts here are addressed by artifact ID, the artifact
-store's identity, instead of `executionId` + `storageKey`).
-
-Pass `null` for `artifactId` to skip fetching — the caller controls when to
-fetch based on artifact metadata (e.g. only for text content types below a
-size threshold), consistent with the `useArtifactContent(null)` convention.
-
-The server enforces a content size limit (default 512 KB). Content
-exceeding it comes back with `isTruncated: true`; offer a full download via
-`getDownloadUrl` in that case. The returned `content` is decoded as UTF-8 —
-for binary artifacts, use `getDownloadUrl` instead of this hook.
-
-**Signature**
-
-```tsx
-function useArtifactContentById(artifactId: string | null, cacheKey?: string): UseArtifactContentByIdReturn
-```
-
-<TypeTable
-  type={{
-    artifactId: { type: "string | null", description: "The `Artifact` resource id (`art_…`), or `null` to skip.", required: true },
-    cacheKey: { type: "string", description: "Optional cross-mount cache key. When set, a   remount with the same key renders previously-fetched content instantly   and refetches in the background — used by the workflow artifact document   so switching back to a recently-viewed tab is instant." },
-  }}
-/>
-
-**Returns** — `UseArtifactContentByIdReturn`
-
-<TypeTable
-  type={{
-    content: { type: "string | null", description: "Decoded text content of the artifact, or `null` when: - Fetching is skipped (`artifactId` is `null`) - The request is in-flight - The request failed" },
-    contentType: { type: "string | null", description: "MIME content type recorded at artifact creation (`ArtifactSpec.content_type`). `null` before the first successful fetch." },
-    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the content request is in-flight." },
-    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
-    isTruncated: { type: "boolean", description: "Whether the returned content was truncated by the server's `max_bytes` limit. When `true`, offer the full artifact via `getDownloadUrl` instead." },
-    refetch: { type: "() => void", description: "Re-fetch the artifact content." },
-    totalSizeBytes: { type: "bigint", description: "Actual total size of the artifact in bytes — larger than the returned content when `isTruncated` is `true` (\"showing 512 KB of 2.1 MB\")." },
-  }}
-/>
-
-
 ### useArtifactCopy
 
 Behavior hook that copies a run artifact's text to the clipboard on
@@ -291,8 +240,7 @@ const { copy, isCopying, copied } = useArtifactCopy(executionId);
 Behavior hook that downloads a run artifact on demand.
 
 Implements the click → mint fresh URL → browser download flow so every
-artifact "Download" affordance shares one implementation (the workflow's
-`Artifact`-resource counterpart is `useWorkflowArtifactDownload`). The URL
+artifact "Download" affordance shares one implementation. The URL
 is minted at click time from
 the stable `storageKey` via `getArtifactDownloadUrl`, so it is always valid —
 unlike the previously persisted, short-lived URL that expired after an hour.
@@ -716,7 +664,7 @@ function useLiveAgentRun(executionId: string | null, options?: UseLiveAgentRunOp
 
 <TypeTable
   type={{
-    error: { type: "Error | null", description: "Snapshot-fetch error, or the stream's terminal error (auto-reconnect exhausted). `null` when healthy. Not-found is NOT an error — it yields `execution: null` with no error, matching `useWorkflowRun`." },
+    error: { type: "Error | null", description: "Snapshot-fetch error, or the stream's terminal error (auto-reconnect exhausted). `null` when healthy. Not-found is NOT an error — it yields `execution: null` with no error." },
     isLoading: { type: "boolean", description: "`true` while the initial snapshot fetch is in flight (nothing to show yet)." },
     isReconnecting: { type: "boolean", description: "`true` while a transient stream drop is being retried in the background. The last snapshot stays visible — surface a subtle affordance, not an error." },
     isStreaming: { type: "boolean", description: "`true` while live updates are arriving from the stream." },
@@ -725,6 +673,52 @@ function useLiveAgentRun(executionId: string | null, options?: UseLiveAgentRunOp
     run: { type: "AgentRun | null", description: "The freshest run snapshot available: the live stream's while streaming, the fetched one otherwise. `null` while loading or when the run does not exist." },
   }}
 />
+
+
+### useResolveAgentRunSession
+
+Resolves an AgentRun ID (`aex_*`) to its parent Session ID.
+
+This hook fetches the AgentRun resource and extracts
+`spec.sessionId`. Use it when navigating from a context that
+knows only the agent run ID (a schedule's run history, a run
+link) to the session page (which requires the session ID).
+
+Pass `null` to skip fetching (stable no-op).
+
+**Signature**
+
+```tsx
+function useResolveAgentRunSession(agentExecutionId: string | null): UseResolveAgentRunSessionReturn
+```
+
+<TypeTable
+  type={{
+    agentExecutionId: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseResolveAgentRunSessionReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "A failure to read the run, or `null`. A run that does not exist or that the caller cannot see is not an error: it resolves to no session." },
+    isLoading: { type: "boolean", description: "`true` while the fetch is in flight." },
+    refetch: { type: "() => void", description: "Reads the run again (after an error, for a retry)." },
+    sessionId: { type: "string | null", description: "The resolved session ID; `null` while loading, on error, and when no session resolves (the run does not exist, the caller cannot see it, or its target names no session)." },
+  }}
+/>
+
+```tsx
+function DrillDown({ agentExecutionId }: { agentExecutionId: string }) {
+  const { sessionId, isLoading } = useResolveAgentRunSession(agentExecutionId);
+  useEffect(() => {
+    if (sessionId) navigateToSession(sessionId);
+  }, [sessionId]);
+  if (isLoading) return <Spinner />;
+  return null;
+}
+```
 
 
 ### useRunArtifacts
@@ -1231,11 +1225,9 @@ The file-content states of an artifact body: loading skeleton, error,
 "not available for preview" (binary / unfetched), or the rendered text via
 [`ArtifactContentRenderer`](#artifactcontentrenderer).
 
-Extracted from `ArtifactContentBody` so surfaces on BOTH artifact data
-models render file content identically — the session's `RunArtifact`
-bodies (modal + document) and the workflow's `Artifact`-resource document.
-Deliberately takes plain fields, not an artifact type: the two models share
-no proto, only this presentation.
+Extracted from `ArtifactContentBody` (the session's `RunArtifact` bodies,
+modal + document). Deliberately takes plain fields, not an artifact type,
+so a host with its own content model can render file content identically.
 
 **Props** — `ArtifactFileContentProps`
 
@@ -1357,9 +1349,7 @@ const [previewArtifact, setPreviewArtifact] =
 The `RunArtifact` host of the shared [`ArtifactRowView`](#artifactrowview): it owns
 the session model's identity and download mechanics (presigned URL minted
 by `executionId` + `storageKey` via [`useArtifactDownload`](#useartifactdownload)) and maps
-the artifact onto the view-model. The workflow's `Artifact`-resource host is
-`WorkflowArtifactRow` — same row UI, different data model (deliberately
-unified only at the presentational layer).
+the artifact onto the view-model.
 
 **Props** — `ArtifactRowProps`
 
@@ -1385,12 +1375,9 @@ The open target and the Download control are SIBLINGS, never nested — a
 `<button>` inside a `<button>` is an axe `nested-interactive` (WCAG 4.1.2)
 violation. This mirrors `ExplorerRoot`'s header + remove-control pattern.
 
-Deliberately data-model-agnostic: it renders an [`ArtifactRowItem`](#artifactrowitem)
-view-model and takes open/activate/download closures, so the session
-(`RunArtifact`) and workflow (`Artifact` resource) hosts share one row
-UI without sharing a data model. The domain wrappers — session `ArtifactRow`
-and workflow `WorkflowArtifactRow` — own identity, adapters, and download
-wiring.
+It renders an [`ArtifactRowItem`](#artifactrowitem) view-model and takes
+open/activate/download closures; the host (`ArtifactRow`, the session
+facets) owns identity, the adapter, and download wiring.
 
 All visual properties flow through `--stgm-*` tokens.
 
@@ -2304,7 +2291,7 @@ the thread's streaming re-render isolation.
 Virtual entry id of the artifact document FAMILY. Unlike the plan (one tab
 per session), artifacts are many: every opened artifact shares this one
 entry id and is distinguished by its identity-derived `path` (the session's
-`artifactKey`, the workflow's `Artifact` id), so
+`artifactKey`), so
 `editorKey(ARTIFACT_DOCUMENT_ENTRY_ID, path)` yields one tab per artifact —
 the VS Code "each file is a tab" model. The NUL-namespaced virtual id can
 never alias a real workspace entry, and its distinct `"artifact"` kind can
@@ -2357,22 +2344,18 @@ rendering logic based on file type.
 
 ### ArtifactRowItem
 
-What an artifact row displays, independent of which artifact data model
-produced it.
+What an artifact row displays, mapped from the session's `RunArtifact`
+(embedded in `AgentRun.status.artifacts`).
 
-Two artifact models exist and are deliberately unified ONLY at this
-presentational layer, never at the data layer: the session's
-`RunArtifact` (embedded in `AgentRun.status.artifacts`) and the
-workflow's first-class `Artifact` resource. Their identity, provenance, and
-download mechanics differ — so the view-model carries no identity; list
-keys and open/download behavior stay with the domain-specific hosts.
+The view-model carries no identity; list keys and open/download behavior
+stay with the hosts that render the row.
 
 <TypeTable
   type={{
     isDirectory: { type: "boolean", description: "Directory artifacts render a folder icon, a `/` suffix, and ZIP download copy.", required: true },
     name: { type: "string", description: "Display label (file or directory name).", required: true },
     sizeBytes: { type: "number | bigint", description: "Content size in bytes (protobuf `int64` is `bigint`).", required: true },
-    subtitlePath: { type: "string | null", description: "Disambiguation subtitle rendered after the name when another row shares the same display name: the parent directory for sandbox-backed artifacts, the producing task for workflow artifacts. `null` when not needed.", required: true },
+    subtitlePath: { type: "string | null", description: "Disambiguation subtitle rendered after the name when another row shares the same display name: the artifact's parent directory. `null` when not needed.", required: true },
     tooltip: { type: "string", description: "House-tooltip content — the fullest location/name known for the artifact.", required: true },
   }}
 />
@@ -2592,9 +2575,8 @@ type.
 
 **Ordering is a correctness input.** `executions` MUST be chronological:
 the net collapse anchors on each path's first and last change, so two
-runs touching the same path (a session's follow-up turns; two
-workflow agent-call tasks) produce a wrong net diff if visited out of
-order.
+runs touching the same path (a session's follow-up turns) produce a
+wrong net diff if visited out of order.
 
 Counts and unified diffs for whole-file captures stay derivable by the
 presentation layer (the runner emits 0/"" sentinels), matching the
@@ -2690,18 +2672,6 @@ function extractShellIntentFromPreview(toolName: string, argsPreview: string, mc
 ```
 
 
-### FILE_CHANGE_DOCUMENT_ENTRY_ID
-
-Virtual entry id of the file-change diff document FAMILY. Like artifacts
-(and unlike the session's single plan tab), file changes are many: every
-opened diff shares this one entry id and is distinguished by its
-change-path-derived tab path, so
-`editorKey(FILE_CHANGE_DOCUMENT_ENTRY_ID, path)` yields one tab per changed
-file — the VS Code "each file is a tab" model. The NUL-namespaced virtual
-id can never alias a real workspace entry, and its distinct `"filechange"`
-kind can never collide with the `"artifact"`/`"plan"` families.
-
-
 ### FileBlockReason
 
 Why an `"unavailable"` file cannot be reviewed — the honest per-file cause the
@@ -2757,20 +2727,6 @@ Props for [`FileChangeProgressBar`](#filechangeprogressbar).
     progress: { type: "FileChangeProgress | undefined", description: "The transient mid-run progress snapshot for the active turn. Feed this from `useSessionConversation().fileChangeProgress`. Renders nothing when undefined or when no files have changed yet — the server clears it once the turn's change set leaves CAPTURING, so the bar disappears exactly when the decision surface (FileReviewDock) takes over.", required: true },
   }}
 />
-
-
-### fileChangeTabPath
-
-The identity of a file change's diff tab within the family. The net rollup
-carries at most one `FileChange` per path, so the change's path IS
-the identity — and, as the tab path, its basename is exactly the tab label
-(no prefixing needed, unlike artifact tabs whose ids are opaque).
-`absolutePath` is the fallback for captures without a workspace-relative
-path, matching the keying inside the net-collapse core.
-
-```tsx
-function fileChangeTabPath(change: FileChange): string
-```
 
 
 ### fileDecisionKey
@@ -2935,7 +2891,7 @@ Props for [`FileReviewCard`](#filereviewcard).
     fileChangeSet: { type: "FileChangeSet", description: "The captured change set awaiting review (status AWAITING_REVIEW).", required: true },
     interactive: { type: "boolean", description: "Whether the card presents decision controls. Defaults to `true` (the live review surface). Set to `false` to render a **settled** change set read-only: the per-file diffs and each file's committed verdict are shown, but the decision controls, bulk footer, and error affordances are omitted. Used for a decided/reconciled set, or any set on a terminal run — a historical record of what changed and how it was decided, not an actionable gate." },
     onSubmit: { type: "(action: FileDecisionAction, options?: FileDecisionOptions) => void", description: "Called when the user makes a decision. The consumer (typically MessageThread or a platform builder's surface) handles the RPC via useFileReview. A whole-set Approve/Reject sends `CHANGE_SET` scope; a per-file Keep/Discard sends `FILE` scope with the file's id. Optional and ignored when FileReviewCardProps.interactive is `false`." },
-    showDiffs: { type: "boolean", description: "Whether the expanded body renders each file's diff. Defaults to `true` — the right default wherever this card is the *only* review surface (the workflow file-review list, standalone platform-builder embeds).  `MessageThread` passes `false`: the transcript's stamped edit rows already show every diff in place, so the expanded body collapses to a compact file list (kind letter + linked path + `+N −M` + per-file controls) and the card stays purely the decision surface. Decision semantics — digests, scopes, acknowledgments — are identical in both modes; this is presentation only (opt-in with a backward-compatible default)." },
+    showDiffs: { type: "boolean", description: "Whether the expanded body renders each file's diff. Defaults to `true` — the right default wherever this card is the *only* review surface (standalone platform-builder embeds).  `MessageThread` passes `false`: the transcript's stamped edit rows already show every diff in place, so the expanded body collapses to a compact file list (kind letter + linked path + `+N −M` + per-file controls) and the card stays purely the decision surface. Decision semantics — digests, scopes, acknowledgments — are identical in both modes; this is presentation only (opt-in with a backward-compatible default)." },
     submittingDecisionKeys: { type: "ReadonlySet<string>", description: "The decision keys currently being submitted — exactly the set useFileReview returns as `submittingDecisionKeys`. A card has more than one decision target (the whole set plus each file), so it takes the keyed set rather than a single boolean and derives each control's in-flight state via fileDecisionKey." },
   }}
 />
@@ -3097,20 +3053,6 @@ Formats an integer token count with comma-separated digit grouping
 
 ```tsx
 function formatTokenCount(count: number): string
-```
-
-
-### fromArtifact
-
-Adapts a workflow `Artifact` resource to a row item.
-
-A workflow artifact is always a single content-typed blob — the resource
-model has no directory concept — so `isDirectory` is always `false`. Name
-collisions disambiguate by the producing task (`source.task_name`), the
-workflow analog of the session's parent-directory subtitle.
-
-```tsx
-function fromArtifact(artifact: Artifact, hasNameCollision: boolean): ArtifactRowItem
 ```
 
 
@@ -4365,7 +4307,7 @@ Options for [`useLiveAgentRun`](#useliveagentrun).
 
 <TypeTable
   type={{
-    live: { type: "boolean", description: "Whether the live stream may be open. Defaults to `true`.  When `false`, the snapshot fetch still runs (so consumers always have something to render) but no subscription is opened — the visibility-gating seam for surfaces that mount many runs at once (e.g. inline agent-call transcripts in the workflow task thread, where only on-screen cards stream). A `false → true` transition attaches the stream in place; a `true → false` transition pauses it while the last-streamed snapshot stays visible (the view never rewinds to the mount-time snapshot)." },
+    live: { type: "boolean", description: "Whether the live stream may be open. Defaults to `true`.  When `false`, the snapshot fetch still runs (so consumers always have something to render) but no subscription is opened — the visibility-gating seam for surfaces that mount many runs at once (e.g. a list of inline run transcripts, where only on-screen cards stream). A `false → true` transition attaches the stream in place; a `true → false` transition pauses it while the last-streamed snapshot stays visible (the view never rewinds to the mount-time snapshot)." },
   }}
 />
 

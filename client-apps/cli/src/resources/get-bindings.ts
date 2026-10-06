@@ -12,7 +12,6 @@ import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import type { Stigmer } from "@stigmer/sdk";
@@ -36,10 +35,6 @@ export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
   [
     ApiResourceKind.agent,
     refGetter(ApiResourceKind.agent, AgentSchema, (c) => c.agent),
-  ],
-  [
-    ApiResourceKind.workflow,
-    refGetter(ApiResourceKind.workflow, WorkflowSchema, (c) => c.workflow),
   ],
   [
     ApiResourceKind.mcp_server,

@@ -2,22 +2,19 @@ Assign a tag to a resource version.
 
 `stigmer tag` attaches a named tag to a specific version of a resource,
 identified by its content hash. Tags give a stable, human-friendly handle to a
-particular version (for example `stable` or `v1`). Workflows and Agents are the
-supported resource types; Skills are tagged when they are pushed.
+particular version (for example `stable` or `v1`). Agents are the supported
+resource type; Skills are tagged when they are pushed.
 
 {/* AUTO_USAGE */}
 
 ### Common patterns
 
 ```bash
-# Tag a workflow version as stable
-stigmer tag workflow acme-corp/deploy-pipeline a1b2c3d stable
-
-# Tag a version as v1
-stigmer tag workflow acme-corp/deploy-pipeline a1b2c3d v1
-
 # Tag an agent version as stable
 stigmer tag agent acme-corp/code-reviewer a1b2c3d stable
+
+# Tag a version as v1
+stigmer tag agent acme-corp/code-reviewer a1b2c3d v1
 ```
 
 ## Examples
@@ -25,7 +22,7 @@ stigmer tag agent acme-corp/code-reviewer a1b2c3d stable
 ### Promote a version to "stable"
 
 ```bash
-stigmer tag workflow acme-corp/deploy-pipeline a1b2c3d stable
+stigmer tag agent acme-corp/code-reviewer a1b2c3d stable
 ```
 
 The tag now points at the version with hash `a1b2c3d`. Re-tagging moves the tag

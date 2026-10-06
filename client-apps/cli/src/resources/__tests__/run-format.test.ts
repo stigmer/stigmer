@@ -1,6 +1,8 @@
-import { WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+// Unit tests for the run output formatters: duration math between two
+// timestamps and ellipsis truncation.
+
 import { describe, expect, it } from "vitest";
-import { calculateDuration, formatWorkflowTaskType, truncateWithEllipsis } from "../run-format.js";
+import { calculateDuration, truncateWithEllipsis } from "../run-format.js";
 
 describe("calculateDuration", () => {
   it("returns '-' when a bound is missing or unparseable", () => {
@@ -29,20 +31,5 @@ describe("truncateWithEllipsis", () => {
 
   it("truncates and appends an ellipsis", () => {
     expect(truncateWithEllipsis("abcdefghij", 8)).toBe("abcde...");
-  });
-});
-
-describe("formatWorkflowTaskType", () => {
-  it.each([
-    [WorkflowTaskType.WORKFLOW_TASK_AGENT_INVOCATION, "agent"],
-    [WorkflowTaskType.WORKFLOW_TASK_APPROVAL, "approval"],
-    [WorkflowTaskType.WORKFLOW_TASK_API_CALL, "api_call"],
-    [WorkflowTaskType.WORKFLOW_TASK_CONDITIONAL, "condition"],
-    [WorkflowTaskType.WORKFLOW_TASK_PARALLEL, "parallel"],
-    [WorkflowTaskType.WORKFLOW_TASK_TRANSFORM, "transform"],
-    [WorkflowTaskType.WORKFLOW_TASK_CUSTOM, "custom"],
-    [WorkflowTaskType.WORKFLOW_TASK_TYPE_UNSPECIFIED, "unknown"],
-  ])("%s -> %s", (type, expected) => {
-    expect(formatWorkflowTaskType(type)).toBe(expected);
   });
 });

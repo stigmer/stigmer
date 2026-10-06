@@ -16,10 +16,6 @@ export const glossary: Record<string, string> = {
     "One run of an Agent from start to finish. Each time an Agent handles a request, that is one run.",
   Session:
     "An ongoing conversation with an Agent across multiple messages. A session remembers what was said earlier so the Agent can follow along.",
-  Workflow:
-    "A step-by-step automation that runs tasks in a defined order. Workflows keep running reliably even if something crashes.",
-  "Workflow Run":
-    "One run of a Workflow from start to finish.",
   Skill:
     "A piece of knowledge you attach to an Agent so it has domain expertise. Skills let you give an Agent specialized information without rewriting its instructions.",
   "MCP Server":
@@ -27,7 +23,7 @@ export const glossary: Record<string, string> = {
   PlatformClient:
     "A credential pair your backend uses to mint Stigmer-signed user tokens. Use it to embed Stigmer in your product without setting up OIDC federation.",
   Organization:
-    "The boundary that holds people, Agents, Workflows, Sessions and secrets together; nothing outside it sees them.",
+    "The boundary that holds people, Agents, Sessions and secrets together; nothing outside it sees them.",
   Environment:
     "A separate space (like testing or production) where the same Agent can run with different settings.",
   "Agent Channel":

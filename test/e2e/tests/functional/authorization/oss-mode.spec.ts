@@ -7,10 +7,8 @@ import { test, expect } from "@playwright/test";
  *
  * The rest of the posture is pinned where it lives: the members and
  * invitations sections in settings.spec.ts, blueprint visibility in
- * blueprint-visibility.spec.ts, a workflow's run visibility in
- * interactive/workflow-run-visibility.spec.ts, sharing in
- * share-resource.spec.ts, the owner's actions in
- * permission-gate.spec.ts.
+ * blueprint-visibility.spec.ts, sharing in share-resource.spec.ts, the
+ * owner's actions in permission-gate.spec.ts.
  */
 
 test.describe("OSS Mode - Authorization UI", () => {

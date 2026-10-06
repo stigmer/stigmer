@@ -76,12 +76,12 @@ func WithDialOptions(opts ...grpc.DialOption) ClientOption {
 	}
 }
 
-// WithExecutionTarget sets the default execution target for all sessions
-// and workflow runs created through this client.
+// WithExecutionTarget sets the default execution target for every session
+// created through this client.
 //
-// When set, Session.Create() and WorkflowRun.Create() apply this
-// as the default when the per-call input does not specify an explicit
-// ExecutionTarget. This is an app-level setting, not a per-session choice.
+// When set, Session.Create() applies this as the default when the per-call
+// input does not specify an explicit ExecutionTarget. This is an app-level
+// setting, not a per-session choice.
 //
 //	client, _ := stigmer.NewClient(
 //	    stigmer.WithAPIKey("sk_live_..."),

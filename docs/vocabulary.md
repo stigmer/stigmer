@@ -54,22 +54,21 @@ more precise language. Never use a right-column term in a left-column context.
 Scan this table to find the right word for your context. Detailed entries with
 definitions, API names, and examples follow below.
 
-| Term              | Sales site            | Quickstart / tutorial                  | Concepts / how-to   | Reference / SDK                        | README         |
-| ----------------- | --------------------- | -------------------------------------- | ------------------- | -------------------------------------- | -------------- |
-| **Agent**         | Agent                 | Agent                                  | Agent               | Agent, `kind: Agent`                   | Agent          |
-| **Skill**         | domain knowledge      | Skill ("domain knowledge")             | Skill               | Skill, `skill_refs`                    | Skill          |
-| **Plugin**        | plugin                | plugin ("what you install")            | Plugin              | Plugin, `kind: Plugin`                 | plugin         |
-| **Marketplace**   | marketplace           | Marketplace ("where you install from") | Marketplace         | Marketplace; source, `stigmer install` | marketplace    |
-| **MCP Server**    | tools                 | MCP server ("tool connection")         | MCP Server          | McpServer, `mcp_server_usages`         | MCP server     |
-| **Session**       | conversation          | Session ("conversation")               | Session             | Session, `kind: Session`               | Session        |
-| **Runner**        | compute               | runner ("where your Agent runs")       | Runner              | Runner                                 | runner         |
-| **Workflow**      | multi-step automation | Workflow                               | Workflow            | Workflow, `kind: Workflow`             | Workflow       |
-| **Harness**       | execution engine      | harness ("execution engine")           | Harness             | Harness, `SessionSpec.harness`         | harness        |
-| **Approval flow** | approval flow         | approval flow                          | approval flow, HITL | `destructive_hint`, `submitApproval`   | HITL, approval |
-| **Organization**  | Organization          | Organization                           | Organization        | Organization, `kind: organization`     | Organization   |
-| **Team**          | teams                 | ---                                    | Team                | Team, `kind: team`                     | Team           |
-| **Environment**   | Environment           | Environment                            | Environment         | Environment, `kind: Environment`       | Environment    |
-| **Preference**    | preferences           | preference ("standing context")        | Preference          | `spec.preferences.standing_context`    | Preference     |
+| Term              | Sales site       | Quickstart / tutorial                  | Concepts / how-to   | Reference / SDK                        | README         |
+| ----------------- | ---------------- | -------------------------------------- | ------------------- | -------------------------------------- | -------------- |
+| **Agent**         | Agent            | Agent                                  | Agent               | Agent, `kind: Agent`                   | Agent          |
+| **Skill**         | domain knowledge | Skill ("domain knowledge")             | Skill               | Skill, `skill_refs`                    | Skill          |
+| **Plugin**        | plugin           | plugin ("what you install")            | Plugin              | Plugin, `kind: Plugin`                 | plugin         |
+| **Marketplace**   | marketplace      | Marketplace ("where you install from") | Marketplace         | Marketplace; source, `stigmer install` | marketplace    |
+| **MCP Server**    | tools            | MCP server ("tool connection")         | MCP Server          | McpServer, `mcp_server_usages`         | MCP server     |
+| **Session**       | conversation     | Session ("conversation")               | Session             | Session, `kind: Session`               | Session        |
+| **Runner**        | compute          | runner ("where your Agent runs")       | Runner              | Runner                                 | runner         |
+| **Harness**       | execution engine | harness ("execution engine")           | Harness             | Harness, `SessionSpec.harness`         | harness        |
+| **Approval flow** | approval flow    | approval flow                          | approval flow, HITL | `destructive_hint`, `submitApproval`   | HITL, approval |
+| **Organization**  | Organization     | Organization                           | Organization        | Organization, `kind: organization`     | Organization   |
+| **Team**          | teams            | ---                                    | Team                | Team, `kind: team`                     | Team           |
+| **Environment**   | Environment      | Environment                            | Environment         | Environment, `kind: Environment`       | Environment    |
+| **Preference**    | preferences      | preference ("standing context")        | Preference          | `spec.preferences.standing_context`    | Preference     |
 
 <!-- vale Stigmer.terms = NO -->
 
@@ -82,13 +81,11 @@ IdentityProvider, `kind: identity_provider` | Identity Provider |
 `kind: identity_account` | Identity Account | | **PlatformClient** | --- | --- |
 PlatformClient | PlatformClient, `kind: platform_client` | PlatformClient | |
 **Agent Run** | --- | run | Agent Run | AgentRun, `kind: AgentRun` | Agent Run |
-| **Workflow Run** | --- | run | Workflow Run | WorkflowRun, `kind: WorkflowRun`
-| Workflow Run | | **Sub-Agent** | --- | --- | Sub-Agent | SubAgent,
-`sub_agents` | Sub-Agent | | **Agent Channel** | --- | --- | channel, Agent
-Channel | AgentChannel, `kind: AgentChannel` | Agent Channel | | **Channel App**
-| --- | --- | Channel App | ChannelApp, `kind: ChannelApp` | Channel App | |
-**Schedule** | --- | --- | schedule, Schedule | Schedule, `kind: Schedule` |
-Schedule |
+| **Sub-Agent** | --- | --- | Sub-Agent | SubAgent, `sub_agents` | Sub-Agent | |
+**Agent Channel** | --- | --- | channel, Agent Channel | AgentChannel,
+`kind: AgentChannel` | Agent Channel | | **Channel App** | --- | --- | Channel
+App | ChannelApp, `kind: ChannelApp` | Channel App | | **Schedule** | --- | ---
+| schedule, Schedule | Schedule, `kind: Schedule` | Schedule |
 
 Dash (—) means the term should not appear in that context.
 
@@ -200,9 +197,9 @@ only MCP servers installs its servers and no agent of its own).
   `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
   `.codex-plugin/plugin.json`), `skills/`, `mcp.json`, `agents/`, `hooks/`, and
   Stigmer's own `ai.stigmer/` overlay. Installing it materializes ordinary
-  Skills, MCP Servers, an Agent and Workflows, each labelled with the plugin's
-  id; those resources are the plugin's to redefine, so you change the plugin and
-  push it again rather than editing them, or compose your own Agent over them.
+  Skills, MCP Servers and an Agent, each labelled with the plugin's id; those
+  resources are the plugin's to redefine, so you change the plugin and push it
+  again rather than editing them, or compose your own Agent over them.
 - **What it is not**: a plugin does not run on its own. The Agent it installs
   runs, in a Session, on a Runner, exactly like an Agent you wrote by hand; the
   plugin's hooks run within the tool calls of each Agent that names the plugin.
@@ -464,52 +461,6 @@ The execution engine that processes agent activities for a Session.
 
 ---
 
-#### Workflow
-
-A step-by-step automation that runs tasks in a defined order.
-
-- **User-facing alternative**: "multi-step automation" on the sales site.
-  "Workflow" works across all other contexts---the word is widely understood.
-- **Capitalize**: Yes, when referring to the Stigmer resource.
-- **API surface**: `kind: Workflow`, prefix `wfl`. proto:
-  `workflow/v1/api.proto`, `workflow/v1/spec.proto`. CLI:
-  `stigmer apply -f workflow.yaml`, `stigmer run <name>`.
-- **Key fields**: `spec.document` (contains the Workflow DSL definition),
-  `spec.tasks` (the task list). Task kinds include `set_vars`, `http_call`,
-  `agent_call`, `wait`, and control flow via `flow.then`.
-- **Pattern**: Workflow → Workflow Run. A Workflow is the template; a
-  WorkflowRun is one run of it, started on the Workflow itself
-  (`spec.workflow_id`) and pinned to the version the Workflow had when the run
-  started. A version covers the whole spec (tasks, each step's Environments, the
-  declared `env`, the budget, the description); run visibility is outside it.
-- **Run visibility**: who can see a Workflow's runs, a setting on the Workflow
-  (`spec.run_visibility`): `workflow_run_visibility_private` (the default; each
-  run is visible to the person who started it) or
-  `workflow_run_visibility_organization` (every member of the Organization sees
-  every run, past runs included). Only the Workflow's owner changes it, through
-  `updateRunVisibility` or the Workflow's page. User-facing copy says "who can
-  see the runs", never "execution visibility".
-- **DSL**: Based on CNCF Serverless Workflow specification. Only mention the
-  spec name in reference docs---it adds no value for the general audience.
-
-**Good examples**:
-
-| Context    | Copy                                                                                                                                                                             |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Automate multi-step processes. Your Agent checks, decides, acts, and reports---reliably, every time."                                                                           |
-| Quickstart | "Create a Workflow---a series of steps that run in order. Workflows keep running even if something crashes."                                                                     |
-| Concepts   | "A Workflow chains tasks together: call an API, run an Agent, wait for approval, send a notification. Stigmer runs each step reliably and recovers automatically from failures." |
-| Reference  | "`Workflow`---a managed resource defining a multi-step automation. Uses CNCF Serverless Workflow DSL. Tasks support `http_call`, `agent_call`, `set_vars`, and `wait` kinds."    |
-
-**Bad examples**:
-
-| Context    | Copy                                                  | Problem                                                                                                 |
-| ---------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Sales site | "Orchestrate CNCF Serverless Workflows."              | The specification name is meaningless to founders.                                                      |
-| Quickstart | "The Zigflow engine executes your Temporal Workflow." | Internal implementation details. Readers don't need to know about Zigflow or Temporal to use Workflows. |
-
----
-
 #### Approval flow (Human-in-the-Loop)
 
 A mechanism where an Agent pauses and waits for a human to approve or reject an
@@ -521,22 +472,15 @@ action before proceeding.
 - **Capitalize**: No. "Approval flow" is a description of behavior, not a named
   Stigmer resource kind. Capitalize "Human-in-the-Loop" when used as a feature
   name in marketing.
-- **API surface**: There is no single `ApprovalFlow` resource. Approvals are
-  configured through two mechanisms:
-  1. **Tool-call approval**---by default not configured: Stigmer asks before
-     shell commands, file writes and deletes, and MCP tools whose server marks
-     them destructive (`destructive_hint`). An Agent's hooks (`hooks`) decide
-     call by call: refuse, ask, or allow. Its `tools` and `disallowed_tools`
-     lists decide which tools it has at all. Submitted via
-     `AgentRunCommandController.submitApproval`. Statuses:
-     `TOOL_CALL_WAITING_APPROVAL`, `TOOL_CALL_SKIPPED`. Actions: `APPROVE`,
-     `SKIP`, `REJECT`.
-  2. **Workflow-task approval**---a dedicated task kind `WORKFLOW_TASK_APPROVAL`
-     within a Workflow definition, with structured input (approvers, message,
-     timeout).
-- **Important**: These are two different mechanisms that share the word
-  "approval." See the [inconsistency register](#6-two-approval-models) for
-  details and recommended resolution.
+- **API surface**: There is no single `ApprovalFlow` resource. Approval is
+  tool-call approval, by default not configured: Stigmer asks before shell
+  commands, file writes and deletes, and MCP tools whose server marks them
+  destructive (`destructive_hint`). An Agent's hooks (`hooks`) decide call by
+  call: refuse, ask, or allow. Its `tools` and `disallowed_tools` lists decide
+  which tools it has at all. Submitted via
+  `AgentRunCommandController.submitApproval`. Statuses:
+  `TOOL_CALL_WAITING_APPROVAL`, `TOOL_CALL_SKIPPED`. Actions: `APPROVE`, `SKIP`,
+  `REJECT`.
 
 **Good examples**:
 
@@ -605,8 +549,8 @@ clear definitions.
 
 #### Organization
 
-The boundary that holds people, Agents, Workflows, Sessions and secrets
-together; nothing outside it sees them.
+The boundary that holds people, Agents, Sessions and secrets together; nothing
+outside it sees them.
 
 - **Capitalize**: Yes, when referring to the Stigmer concept.
 - **API surface**: `kind: organization`, prefix `org`. proto:
@@ -902,13 +846,13 @@ whatever roles its person holds elsewhere.
   their Organizations.
 - **Reach**: its Organization's resources; the person's own account, and their
   API keys limited to the same Organization; in a child organization, reading
-  and running the Agents, Skills, Workflows, MCP Servers and Plugins its parent
-  shares at `visibility_child_orgs`; and, for a credential bound to a parent,
-  managing that parent's child organizations (never reading what they hold). It
-  cannot create an Organization, except a child of its own, or accept an
-  invitation to another one. One exception: a platform operator's acts (credits,
-  plans, pricing, licenses) follow the person's platform role, so their limited
-  key still performs them.
+  and running the Agents, Skills, MCP Servers and Plugins its parent shares at
+  `visibility_child_orgs`; and, for a credential bound to a parent, managing
+  that parent's child organizations (never reading what they hold). It cannot
+  create an Organization, except a child of its own, or accept an invitation to
+  another one. One exception: a platform operator's acts (credits, plans,
+  pricing, licenses) follow the person's platform role, so their limited key
+  still performs them.
 - **Context rule**: Use in authentication guides and reference. On the sales
   site, say "a key that works in one Organization." In quickstart, avoid unless
   the tutorial covers API keys, federation or PlatformClient.
@@ -921,8 +865,8 @@ whatever roles its person holds elsewhere.
 #### Team
 
 A named group of an Organization's people that access is shared with as one.
-Sharing an Agent, a Workflow or another resource with a Team gives every member
-of the Team that access; joining the Team grants it, and leaving the Team or the
+Sharing an Agent, a Skill or another resource with a Team gives every member of
+the Team that access; joining the Team grants it, and leaving the Team or the
 Organization takes it away.
 
 - **Capitalize**: Yes, when referring to the Stigmer resource. "Your team" in
@@ -1017,41 +961,15 @@ One run of an Agent from start to finish.
 
 ---
 
-#### Workflow Run
-
-One run of a Workflow from start to finish.
-
-- **User-facing alternative**: "run" in tutorials, "Workflow Run" in concepts
-  and reference.
-- **Capitalize**: Yes, as a compound proper noun.
-- **API surface**: `kind: WorkflowRun`, prefix `wex`. proto:
-  `workflowrun/v1/api.proto`. CLI: `stigmer get run <id>`, `stigmer list runs`,
-  `stigmer runs <cancel|pause|resume|logs|approve> <id>`.
-- **Pattern**: Follows Workflow → WorkflowRun. A run names its Workflow
-  (`spec.workflow_id`, required) and records the version it runs
-  (`status.workflow_version_hash`). Its keys come from the values passed with
-  it, then, for declared keys still missing, from the personal Environment of
-  the person who started it.
-- **Engine words**: the engine underneath still says "execution": its logs, its
-  Temporal task queues (`workflow_execution_stigmer`) and operator settings such
-  as `TEMPORAL_WORKFLOW_EXECUTION_STIGMER_TASK_QUEUE` keep that word.
-- **Former name**: `WorkflowExecution` (`kind: WorkflowExecution`). Do not use
-  it in new writing.
-
----
-
 #### Run
 
-The word "run" means three different things across Stigmer. Say which one when a
-page touches more than one.
+The word "run" means two different things across Stigmer. Say which one when a
+page touches both.
 
-1. **A Stigmer run**---what a user starts: an Agent Run or a Workflow Run, with
-   an id (`aex_...`, `wex_...`), a phase and a page in the console. This is the
-   meaning everywhere in user-facing docs.
-2. **A workflow's `run` task**---a step inside a Workflow that runs a script or
-   a container. It is a task kind, not a Stigmer run; one Workflow Run may
-   execute many `run` tasks.
-3. **Temporal's run of a workflow**---one attempt of a Temporal workflow
+1. **A Stigmer run**---what a user starts: an Agent Run, with an id (`aex_...`),
+   a phase and a page in the console. This is the meaning everywhere in
+   user-facing docs.
+2. **Temporal's run of a workflow**---one attempt of a Temporal workflow
    (`runId`). It appears only in engine code and engine operations pages, never
    in user-facing docs.
 
@@ -1160,14 +1078,14 @@ subtask.
 
 #### Durable Execution
 
-The ability for Agent Runs and Workflow Runs to survive crashes, restart
-automatically, and resume exactly where they left off.
+The ability for Agent Runs to survive crashes, restart automatically, and resume
+exactly where they left off.
 
 - **Capitalize**: Yes, as a Stigmer concept.
 - **Implementation**: Powered by Temporal. Do not mention Temporal on the sales
   site or in quickstart. Name it in architecture docs and reference pages.
 - **Sales-site phrasing**: "Agents that keep running even if something crashes."
-  or "Your Workflows resume where they left off---automatically."
+  or "Your Agents resume where they left off---automatically."
 - **Context rule**: "Durable Execution" as a term belongs in concepts and
   reference. On the sales site and in quickstart, describe the benefit without
   naming the mechanism.
@@ -1181,7 +1099,7 @@ conventions. Every resource has four top-level fields: `apiVersion`, `kind`,
 `metadata`, and `spec`.
 
 - **apiVersion**: Always `agentic.stigmer.ai/v1` for current resources.
-- **kind**: The resource type (for example, `Agent`, `Workflow`, `Skill`).
+- **kind**: The resource type (for example, `Agent`, `Skill`, `McpServer`).
 - **metadata**: Contains `name` and optional labels.
 - **spec**: The resource-specific configuration.
 - **Context rule**: Show by example in quickstart (the reader sees the YAML
@@ -1207,17 +1125,6 @@ that define Stigmer's API contracts.
   any language."
 - **proto location**: All proto definitions live under `apis/ai/stigmer/` in the
   Stigmer OSS repo.
-
----
-
-#### CNCF Serverless Workflow
-
-The open specification that Stigmer's Workflow DSL is based on.
-
-- **Context rule**: Reference docs only. Link to `https://serverlessworkflow.io`
-  when mentioned. In all other contexts, just say "Workflow" and describe the
-  capabilities.
-- **Do not say**: "CNCF Serverless Workflow" on the sales site or in tutorials.
 
 ---
 
@@ -1251,8 +1158,8 @@ The gRPC API server that powers the local development experience.
 #### Agent Runner
 
 The TypeScript Temporal worker (`stigmer-runner`, `backend/services/runner`)
-that executes agent sessions and Workflow Runs, driving both harnesses: Cursor
-and the native deep-agent (LangGraph.js).
+that executes agent sessions, driving both harnesses: Cursor and the native
+deep-agent (LangGraph.js).
 
 - **Capitalize**: Yes.
 - **Context rule**: Architecture docs only. Customers do not start or configure
@@ -1280,18 +1187,6 @@ harness via the `@cursor/sdk`.
 
 ---
 
-#### Workflow Runner
-
-Retired term. Workflow tasks are executed by the unified TypeScript runner (see
-Agent Runner) — there is no separate workflow worker.
-
-- **Capitalize**: Yes (when quoting historical docs).
-- **Context rule**: Do not use in new writing. Any doc describing a "Go Temporal
-  worker that executes Workflow tasks" is describing the retired service — point
-  it at the Agent Runner entry instead.
-
----
-
 #### Execution Context
 
 Ephemeral runtime secrets and variables scoped to a specific run.
@@ -1305,9 +1200,9 @@ Ephemeral runtime secrets and variables scoped to a specific run.
 
 #### Seedpack
 
-Retired term. The starter bundle of Agents, Skills, MCP Servers and Workflows
-that earlier releases installed on a fresh stack. A fresh install now gets the
-one Organization its server makes at its first start and nothing else: a Session
+Retired term. The starter bundle of Agents, Skills and MCP Servers that earlier
+releases installed on a fresh stack. A fresh install now gets the one
+Organization its server makes at its first start and nothing else: a Session
 with no Agent runs the built-in assistant, and everything else is a Plugin you
 install by name; see Plugin and Marketplace.
 
@@ -1321,10 +1216,10 @@ install by name; see Plugin and Marketplace.
 #### Project
 
 Retired term. A `kind: Project` was a manifest (`stigmer.yaml`) at the root of a
-directory that listed the Agents, Skills, MCP Servers and Workflows applied from
-it as members, reconciled by `stigmer apply`; a second flavour synthesised the
-members from a TypeScript, Go or Python program. Both were removed with the
-kind: a folder of resources that belong together is a Plugin, installed with
+directory that listed the Agents, Skills and MCP Servers applied from it as
+members, reconciled by `stigmer apply`; a second flavour synthesised the members
+from a TypeScript, Go or Python program. Both were removed with the kind: a
+folder of resources that belong together is a Plugin, installed with
 `stigmer push plugin` or from the Marketplace, and upgraded or removed as one
 unit. The seven Project pages under the SDK reference and `examples/project`
 went with it.
@@ -1341,8 +1236,8 @@ went with it.
 #### Public (visibility)
 
 Retired term. `visibility_public` was a resource visibility level that made an
-Agent, Skill, MCP Server, Workflow or Plugin readable to every signed-in person
-on the server, and the Library's "All" scope listed other Organizations' public
+Agent, Skill, MCP Server or Plugin readable to every signed-in person on the
+server, and the Library's "All" scope listed other Organizations' public
 resources for reference in place. Both went with the level: a resource is
 visible to its creator (Private), to its Organization (Organization, the
 default), or to every Organization a platform manages through its Identity
@@ -1367,38 +1262,17 @@ Agent bound to Environments, and a Session named an instance rather than its
 Agent; every Agent carried a default one. The kind and its CLI verbs were
 removed: a Session names its Agent directly (`agent_ref`) and runs the version
 it started on, and Environments are bound to what starts a run (a Schedule, a
-Workflow `agent_call` task, a PlatformClient), with the personal Environment of
-the person sending the message filling the Agent's declared keys that nothing
-else supplies when the Agent belongs to the run's own Organization (an Agent
-another Organization published reads none, and an MCP Server's OAuth variable
-comes only from the sign-in to that server).
+PlatformClient), with the personal Environment of the person sending the message
+filling the Agent's declared keys that nothing else supplies when the Agent
+belongs to the run's own Organization (an Agent another Organization published
+reads none, and an MCP Server's OAuth variable comes only from the sign-in to
+that server).
 
 - **Capitalize**: Yes, when naming the retired kind in an upgrade note.
 - **Context rule**: Do not use in new writing. A reader still meets the word in
   the sentence `stigmer apply -f` and `stigmer validate -f` print for a manifest
   that still carries `kind: AgentInstance`, which says what happened and names
   `stigmer run`.
-
----
-
-#### Workflow Instance
-
-Retired term. A `kind: WorkflowInstance` (prefix `win`) was a deployed copy of a
-Workflow bound to Environments, and every Workflow carried a default one; a run
-went through an instance, and the setting for who can see the runs lived on it.
-The kind and its calls were removed: a run names its Workflow directly
-(`spec.workflow_id`) and runs the version it started on, the declared keys a run
-does not pass come from the personal Environment of the person who started it
-(for a Workflow of the run's own Organization), and run visibility is a setting
-on the Workflow that only its owner changes.
-
-- **Capitalize**: Yes, when naming the retired kind in an upgrade note.
-- **Context rule**: Do not use in new writing. A reader still meets the word in
-  the sentence `stigmer apply -f` and `stigmer validate -f` print for a manifest
-  that still carries `kind: WorkflowInstance`, which says what happened and
-  names `stigmer run`. A key the team bound once on an instance has no shared
-  home yet: each person saves it in their own personal Environment or passes it
-  with the run.
 
 ---
 
@@ -1441,7 +1315,7 @@ matching the positioning document's category name.
 **Recommendation**: Update to align with the positioning category "AI Agent
 platform." The "SDK-first" aspect can remain as a supporting description, not as
 the category name. Example: "Stigmer Cloud---the cloud-hosted AI Agent platform.
-Define Agents and Workflows as code."
+Define Agents as code."
 
 ---
 
@@ -1498,45 +1372,7 @@ shorthand exists or is planned.
 
 ---
 
-### 6. Two approval models
-
-**What**: The word "approval" refers to two distinct mechanisms:
-
-1. **Tool-call approval**---an Agent pauses before executing a tool and asks a
-   human to approve. Required by default for shell commands, file writes and
-   deletes, and MCP tools their server marks destructive; an Agent's hooks can
-   refuse, ask about or allow any call. Submitted via
-   `AgentRunCommandController.submitApproval`.
-
-2. **Workflow-task approval**---a dedicated Workflow task kind
-   (`WORKFLOW_TASK_APPROVAL`) that pauses a Workflow Run and waits for human
-   input. Has structured parameters: approvers, message, timeout.
-
-These are different mechanisms with different APIs, different configuration
-surfaces, and different runtime behaviors. Using the same word "approval" for
-both creates ambiguity in documentation.
-
-**Where**:
-
-- `agentrun/v1/approval.proto`, `agentrun/v1/command.proto`
-- `workflowrun/v1/api.proto` (WorkflowTask with WORKFLOW_TASK_APPROVAL)
-- `mcpserver/v1/status.proto` (`DiscoveredTool.destructive_hint`)
-- `agent/v1/spec.proto` (`tools`, `disallowed_tools`, `hooks`)
-
-**Recommendation**: In customer-facing documentation, distinguish between:
-
-- "Tool approval"---the Agent asks before using a tool (Pillar 3: "Asks Before
-  Acting")
-- "Workflow approval"---a Workflow pauses at a checkpoint and asks a human to
-  approve before continuing
-
-Both are approval flows, but they should be documented as distinct topics with
-clear names. The sales site can use the umbrella term "approval flows" since the
-distinction doesn't matter at that level.
-
----
-
-### 7. Child-organization words---RESOLVED
+### 6. Child-organization words---RESOLVED
 
 **What**: An Organization that belongs to another Organization, one per customer
 of an integrator, was called platform-managed, managed, tenant and external in

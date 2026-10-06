@@ -40,9 +40,7 @@ export interface ArtifactRowProps {
  * The `RunArtifact` host of the shared {@link ArtifactRowView}: it owns
  * the session model's identity and download mechanics (presigned URL minted
  * by `executionId` + `storageKey` via {@link useArtifactDownload}) and maps
- * the artifact onto the view-model. The workflow's `Artifact`-resource host is
- * `WorkflowArtifactRow` — same row UI, different data model (deliberately
- * unified only at the presentational layer).
+ * the artifact onto the view-model.
  *
  * @see ArtifactsTab — session-panel facet (rows open editor-pane document tabs)
  * @see ArtifactsWidget — panel-less embeddable (rows open the preview modal)

@@ -25,11 +25,11 @@ file. You never edit the chart, and it refuses a value it does not know.
 
 One Deployment whose pod has two containers: the server, which serves the API,
 the web console and the artifact file server, and the runner, which executes
-Agents and Workflows and holds your LLM key. They share the pod's network and
-one artifact disk, the way the compose stack's two containers share one volume,
-which is why the chart needs no shared-filesystem storage class. Postgres runs
-as a StatefulSet with its own disk and Temporal as a Deployment, both bundled
-unless you point the chart at your own.
+Agents and holds your LLM key. They share the pod's network and one artifact
+disk, the way the compose stack's two containers share one volume, which is why
+the chart needs no shared-filesystem storage class. Postgres runs as a
+StatefulSet with its own disk and Temporal as a Deployment, both bundled unless
+you point the chart at your own.
 
 For a release named `stigmer`, the chart creates four PersistentVolumeClaims.
 Three hold durable state: `data-stigmer-postgres-0` (every resource and run
@@ -51,8 +51,7 @@ procedures.
   [local quickstart](/docs/getting-started/local) has the install commands.
 - Laptop ports 7234 and 7235 free for the port-forward. If the laptop stack
   runs, stop it first with `stigmer down`; it uses the same ports.
-- An LLM provider key if you want Agents to answer. Workflows without Agent
-  tasks run without one.
+- An LLM provider key if you want Agents to answer.
 
 ## Install
 
@@ -88,10 +87,9 @@ kubectl -n stigmer create secret generic stigmer-llm-keys \
   --from-literal=ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Without it the stack still serves the console, the API and LLM-free Workflow
-Runs; Agent Runs fail at the LLM call. You can add the key later: create this
-Secret, add its line to your values file, and run the `helm upgrade` shown
-further down this page.
+Without it the stack still serves the console and the API; Agent Runs fail at
+the LLM call. You can add the key later: create this Secret, add its line to
+your values file, and run the `helm upgrade` shown further down this page.
 
 If your model traffic goes through an LLM gateway in front of Anthropic, give
 the runner its address in your values file (see

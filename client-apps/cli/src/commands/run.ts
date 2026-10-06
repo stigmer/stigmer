@@ -1,8 +1,8 @@
-// `stigmer run [agent-ref | <type> <reference>]` — run an agent (or start a
-// workflow run) and stream it. Thin handler: parse flags, resolve the
-// reference (smart 0/1/2-arg dispatch mirroring Go's run.go + run_picker.go),
-// then delegate to the shared run stack. Heavy modules (backend client, Ink,
-// the differ) load lazily inside the action so `--help` stays fast.
+// `stigmer run [agent]` — run an agent and stream it. Thin handler: parse
+// flags, resolve the reference (0/1-arg dispatch mirroring Go's run.go +
+// run_picker.go), then delegate to the shared run stack. Heavy modules
+// (backend client, Ink, the differ) load lazily inside the action so `--help`
+// stays fast.
 //
 // No reference at all is the built-in assistant: `stigmer run -m "..."` runs
 // it at once (the person said what to say, so there is nothing to pick), and
@@ -28,24 +28,23 @@ interface RunFlags extends AgentExecOptions {
 }
 
 export function registerRun(program: Command): void {
+  // One argument: the agent. A second is refused rather than ignored, so the
+  // old `run <type> <reference>` form fails loudly instead of resolving an
+  // agent named by its first word.
   const run = program
-    .command("run [type] [reference]")
-    .description("run an agent or workflow by reference");
+    .command("run [agent]")
+    .description("run an agent by reference")
+    .allowExcessArguments(false);
   addAgentExecFlags(run)
     .option("--json", "stream events as newline-delimited JSON")
     .option("--download <dir>", "download artifacts to directory when complete")
     .action(
-      (
-        type: string | undefined,
-        reference: string | undefined,
-        options: RunFlags,
-        command: Command,
-      ) => runRun(type, reference, options, command),
+      (agent: string | undefined, options: RunFlags, command: Command) =>
+        runRun(agent, options, command),
     );
 }
 
 async function runRun(
-  type: string | undefined,
   reference: string | undefined,
   options: RunFlags,
   command: Command,
@@ -63,7 +62,7 @@ async function runRun(
 
   // 0 args → the built-in assistant when a message was given; else the
   // interactive agent picker on a TTY; otherwise actionable guidance.
-  if (type === undefined) {
+  if (reference === undefined) {
     if ((options.message ?? "") !== "") {
       await runResolvedAgent(undefined, options, org, outputMode, client);
       return;
@@ -74,18 +73,13 @@ async function runRun(
     }
     throw browseUnavailableError("");
   }
-  // 1 arg → smart resolution; 2 args → explicit "<type> <reference>".
-  if (reference === undefined) {
-    await runSmart(type, options, org, outputMode, client);
-    return;
-  }
-  await runExplicit(type, reference, options, org, outputMode, client);
+  await runSmart(reference, options, org, outputMode, client);
 }
 
-// stigmer run <value>: classify the single argument and dispatch (Go's
+// stigmer run <value>: classify the argument and dispatch (Go's
 // executeRunSmart). Session IDs belong to `resume`; complete agent IDs resolve
-// directly; other resource IDs require the explicit two-arg form; bare text is
-// resolved as an agent slug.
+// directly; other resource IDs are not runnable; bare text is resolved as an
+// agent slug.
 async function runSmart(
   value: string,
   options: RunFlags,
@@ -113,7 +107,7 @@ async function runSmart(
       return;
     }
     throw new UsageError(
-      `Cannot run resource ID "${value}" directly with the short form\n\nUse the explicit form:\n  stigmer run <type> <id>`,
+      `Cannot run resource ID "${value}": only agents run\n\nTo run an agent:\n  stigmer run <agent-id>`,
     );
   }
 
@@ -131,38 +125,6 @@ async function runSmart(
     }
     throw browseUnavailableError(value);
   }
-  await runResolvedAgent(agent, options, org, outputMode, client);
-}
-
-// stigmer run <type> <reference>: explicit form (Go's executeRun + routeRun).
-async function runExplicit(
-  type: string,
-  reference: string,
-  options: RunFlags,
-  org: string,
-  outputMode: "inline" | "json",
-  client: import("../client/index.js").BackendClient,
-): Promise<void> {
-  const { defaultRegistry, Verb } = await import("../registry/index.js");
-  const { ApiResourceKind } =
-    await import("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb");
-
-  const info = defaultRegistry().getByAlias(type);
-  if (info === undefined) {
-    throw new UsageError(
-      `unknown resource type: ${type}\n\nAvailable types: agent, workflow`,
-    );
-  }
-  if (!info.supportedVerbs.has(Verb.Run)) {
-    throw new UsageError(`${info.displayName} does not support 'run'`);
-  }
-
-  if (info.kind === ApiResourceKind.workflow) {
-    await runWorkflow(reference, options, org, outputMode, client);
-    return;
-  }
-  const { resolveAgentRef } = await import("../resources/run/resolve.js");
-  const agent = await resolveAgentRef(client.stigmer, reference, org);
   await runResolvedAgent(agent, options, org, outputMode, client);
 }
 
@@ -214,79 +176,6 @@ async function runResolvedAgent(
     downloadDir: options.download ?? "",
     outputMode,
     client,
-  });
-}
-
-// Workflow path: create the run, then either detach (print IDs + return,
-// Go parity) or stream it live over the canonical event stream. Mirrors Go's
-// routeRun workflow branch's guards. `--json` now produces a real NDJSON event
-// stream (Go silently ignored run workflow --json).
-async function runWorkflow(
-  reference: string,
-  options: RunFlags,
-  org: string,
-  outputMode: "inline" | "json",
-  client: import("../client/index.js").BackendClient,
-): Promise<void> {
-  if (options.workspace.length > 0) {
-    throw new UsageError(
-      "--workspace is not supported for workflows (workspace is an agent-level concept)",
-    );
-  }
-  const [
-    { resolveWorkflowRef },
-    { createWorkflowRun },
-    { loadAndMergeEnv },
-    { parseApprovalAction },
-  ] = await Promise.all([
-    import("../resources/run/resolve.js"),
-    import("../resources/run/create.js"),
-    import("../resources/run/env.js"),
-    import("../resources/run/prepare.js"),
-  ]);
-
-  const workflow = await resolveWorkflowRef(client.stigmer, reference, org);
-  const runtimeEnv = loadAndMergeEnv({
-    envFlags: options.env,
-    secretFlags: options.secret,
-    envFiles: options.envFile,
-    secretFiles: options.secretFile,
-  });
-  if (runtimeEnv.STIGMER_ORG === undefined && org !== "") {
-    runtimeEnv.STIGMER_ORG = { value: org, isSecret: false };
-  }
-
-  const run = await createWorkflowRun(
-    client.controller.bind(client),
-    {
-      workflowId: workflow.metadata?.id ?? "",
-      orgId: org,
-      message: options.message ?? "",
-      runtimeEnv,
-    },
-  );
-  const id = run.metadata?.id ?? "";
-
-  if (options.detach === true) {
-    process.stdout.write(`Workflow run created: ${id}\n`);
-    process.stdout.write(
-      `Track it with: stigmer runs logs ${id} --follow\n`,
-    );
-    return;
-  }
-
-  const { ApprovalAction } =
-    await import("@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb");
-  const { streamWorkflowRun } =
-    await import("../resources/run/workflow-stream.js");
-  await streamWorkflowRun({
-    client: client.stigmer,
-    runId: id,
-    outputMode,
-    defaultAction:
-      options.autoApprove === true
-        ? ApprovalAction.APPROVE_ALL
-        : parseApprovalAction(options.approveDefault ?? ""),
   });
 }
 

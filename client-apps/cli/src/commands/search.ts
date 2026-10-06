@@ -1,5 +1,5 @@
-// `stigmer search <type> <query>` — relevance-ranked text search over agents and
-// workflows. Thin handler: validate type/verb/flags, delegate to the resource
+// `stigmer search <type> <query>` — relevance-ranked text search over agents.
+// Thin handler: validate type/verb/flags, delegate to the resource
 // layer, then append the pagination footer for human output.
 
 import type { Command } from "commander";
@@ -21,7 +21,7 @@ interface SearchFlags extends OutputFlags {
 export function registerSearch(program: Command): void {
   const search = program
     .command("search <type> <query>")
-    .description("search resources by text query (supported types: agent, workflow)")
+    .description("search resources by text query (supported types: agent)")
     .option("--page <n>", "page number (1-indexed)", String(DEFAULT_PAGE))
     .option("--page-size <n>", "results per page (max 100)", String(DEFAULT_PAGE_SIZE))
     .action((type: string, query: string, options: SearchFlags, command: Command) =>
@@ -33,7 +33,7 @@ export function registerSearch(program: Command): void {
 async function runSearch(type: string, query: string, options: SearchFlags, command: Command): Promise<void> {
   const info = defaultRegistry().getByAlias(type);
   if (info === undefined) {
-    throw new UsageError(`unknown resource type: ${type}\n\nAvailable types: agent, workflow`);
+    throw new UsageError(`unknown resource type: ${type}\n\nAvailable types: agent`);
   }
   if (!info.supportedVerbs.has(Verb.Search)) {
     throw new UsageError(`${info.displayName} does not support 'search'`);

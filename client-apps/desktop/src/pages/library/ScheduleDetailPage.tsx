@@ -24,7 +24,7 @@ export default function ScheduleDetailPage() {
 
   // A schedule's last run is an agent run (aex_…); on
   // desktop it is viewed through its parent session — the same
-  // resolve-then-navigate pattern as WorkflowRunDetailPage.
+  // resolve-then-navigate pattern as the run page (pages/runs/RunPage).
   const [pendingExecutionId, setPendingExecutionId] = useState<string | null>(null);
   const { sessionId } = useResolveAgentRunSession(pendingExecutionId);
 

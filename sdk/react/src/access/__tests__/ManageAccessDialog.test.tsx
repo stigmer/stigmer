@@ -122,24 +122,6 @@ describe("ManageAccessDialog", () => {
     expect(screen.getByText("People with access")).toBeTruthy();
   });
 
-  it("renders the extra section only when provided", () => {
-    render(
-      <ManageAccessDialog
-        open
-        onOpenChange={() => {}}
-        resource={RESOURCE}
-        extraSection={{
-          title: "Run visibility",
-          description: "Who can observe runs.",
-          content: <div data-testid="run-visibility" />,
-        }}
-      />,
-    );
-
-    expect(screen.getByText("Run visibility")).toBeTruthy();
-    expect(screen.getByTestId("run-visibility")).toBeTruthy();
-  });
-
   it("requests close via Done and the close affordance", () => {
     const onOpenChange = vi.fn();
     render(

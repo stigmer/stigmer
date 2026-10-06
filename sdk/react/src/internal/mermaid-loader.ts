@@ -1,6 +1,5 @@
 /**
- * Lazy loader for the `mermaid` library, isolated in its own module — the
- * same seam pattern as `workflow/layout/elk-layout-engine.ts` — so
+ * Lazy loader for the `mermaid` library, isolated in its own module so
  * {@link file://./MermaidDiagram.tsx} stays a pure presentation component and
  * tests can mock the load outcome (resolve, reject) without touching module
  * registries.

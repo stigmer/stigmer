@@ -39,7 +39,6 @@ vi.mock("@stigmer/react", () => {
     useSkillCount: count,
     useMcpServerCount: count,
     usePluginCount: count,
-    useWorkflowCount: count,
     useActiveOrgId: () => "org_acme",
     useAgent: () => ({ agent: null, refetch: () => undefined }),
     useMcpServer: () => ({ mcpServer: null, refetch: () => undefined }),
@@ -93,7 +92,7 @@ describe("web library org scope", () => {
   it("LibraryLanding counts every kind in the active org by its id", () => {
     render(<LibraryLanding />);
 
-    expect(page.counted).toHaveLength(6);
+    expect(page.counted).toHaveLength(5);
     expect(new Set(page.counted)).toEqual(new Set(["org_acme"]));
   });
 

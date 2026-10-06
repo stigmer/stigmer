@@ -13,7 +13,7 @@ describe("buildProgram", () => {
   it("registers the read commands", () => {
     const program = buildProgram();
     const names = program.commands.map((command) => command.name());
-    expect(names).toEqual(expect.arrayContaining(["search", "usage", "diff"]));
+    expect(names).toEqual(expect.arrayContaining(["search", "usage"]));
   });
 
   it("registers the artifact commands", () => {

@@ -39,8 +39,6 @@ import { SkillDiffDialog } from "../../skill/SkillDiffDialog.js";
 import { TeamListPanel } from "../../team/TeamListPanel.js";
 import { OrgUsagePanel } from "../../usage/OrgUsagePanel.js";
 import { VersionTimeline } from "../../version-history/VersionTimeline.js";
-import { WorkflowVersionDiffViewer } from "../../workflow/WorkflowVersionDiffViewer.js";
-import { WorkflowVersionTimeline } from "../../workflow/WorkflowVersionTimeline.js";
 
 /** The client calls a row's component makes while it loads, by namespace. */
 type ClientStub = {
@@ -196,18 +194,6 @@ const SITES: readonly Site[] = [
     label: "Loading version history",
     client: {},
     ui: <VersionTimeline entries={[]} isLoading />,
-  },
-  {
-    name: "WorkflowVersionDiffViewer",
-    label: "Loading diff",
-    client: { workflow: { getVersion: pending } },
-    ui: <WorkflowVersionDiffViewer workflowId="wfl_acme" hashA="a1b2c3d" hashB="e4f5a6b" />,
-  },
-  {
-    name: "WorkflowVersionTimeline",
-    label: "Loading workflow version history",
-    client: { workflow: { listVersions: pending } },
-    ui: <WorkflowVersionTimeline workflowId="wfl_acme" org="acme" slug="deploy" />,
   },
 ];
 
