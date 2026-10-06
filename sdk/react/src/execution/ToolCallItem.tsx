@@ -1,12 +1,12 @@
 "use client";
 
 import { memo } from "react";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 import {
   ApprovalAction,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
@@ -46,7 +46,7 @@ export interface ToolCallItemProps {
    * detail panel renders a {@link SubAgentSection} instead of
    * a {@link ToolCallDetail}.
    */
-  readonly subAgentExecution?: SubAgentExecution | null;
+  readonly subAgentExecution?: SubAgentRun | null;
   /**
    * Forces the detail panel open on first render regardless of the
    * auto-disclosure policy. Defaults to `false`.

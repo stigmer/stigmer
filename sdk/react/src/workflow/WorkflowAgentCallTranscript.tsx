@@ -5,12 +5,12 @@
 // settled — replacing the earlier "Open transcript" document tab.
 
 import { memo, useCallback, useMemo } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   FileChangeSetStatus,
   type FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import { displayFileChangeSets } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { useLiveAgentExecution } from "../execution/useLiveAgentExecution.js";
@@ -23,7 +23,7 @@ import { useInViewport } from "../internal/useInViewport.js";
 import type { UseWorkflowExecutionActionsReturn } from "./useWorkflowExecutionActions.js";
 
 /** Stable empty list so the thread's memoized rows keep identity. */
-const EMPTY_EXECUTIONS: readonly AgentExecution[] = [];
+const EMPTY_EXECUTIONS: readonly AgentRun[] = [];
 
 /**
  * The HITL wiring for an inline child transcript: the slice of

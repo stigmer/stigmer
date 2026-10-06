@@ -1056,9 +1056,9 @@ describe("[rpc:SkillCommandController.pushFromExecutionArtifact] Skill conforman
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
-        clients.skillCommand.pushFromExecutionArtifact({
+        clients.skillCommand.pushFromRunArtifact({
           org,
-          executionId: "",
+          runId: "",
           storageKey: "artifacts/aex_example/skill.zip",
         }),
       Code.InvalidArgument,
@@ -1070,9 +1070,9 @@ describe("[rpc:SkillCommandController.pushFromExecutionArtifact] Skill conforman
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
-        clients.skillCommand.pushFromExecutionArtifact({
+        clients.skillCommand.pushFromRunArtifact({
           org,
-          executionId: "aex_example",
+          runId: "aex_example",
           storageKey: "",
         }),
       Code.InvalidArgument,
@@ -1083,9 +1083,9 @@ describe("[rpc:SkillCommandController.pushFromExecutionArtifact] Skill conforman
   it("rejects an empty org (InvalidArgument)", async () => {
     await expectGrpcCode(
       () =>
-        clients.skillCommand.pushFromExecutionArtifact({
+        clients.skillCommand.pushFromRunArtifact({
           org: "",
-          executionId: "aex_example",
+          runId: "aex_example",
           storageKey: "artifacts/aex_example/skill.zip",
         }),
       Code.InvalidArgument,
@@ -1099,9 +1099,9 @@ describe("[rpc:SkillCommandController.pushFromExecutionArtifact] Skill conforman
     // different execution is rejected as a path-traversal attempt.
     await expectGrpcCode(
       () =>
-        clients.skillCommand.pushFromExecutionArtifact({
+        clients.skillCommand.pushFromRunArtifact({
           org,
-          executionId: "aex_example",
+          runId: "aex_example",
           storageKey: "artifacts/aex_other/skill.zip",
         }),
       Code.InvalidArgument,

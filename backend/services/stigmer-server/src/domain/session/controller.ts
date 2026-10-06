@@ -45,7 +45,7 @@ import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
-import type { AgentExecutionTemporalConfig } from "../agentexecution/temporal/config.js";
+import type { AgentExecutionTemporalConfig } from "../agentrun/temporal/config.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
   internalError,

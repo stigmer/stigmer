@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import type { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import { isTerminalPhase } from "../execution/execution-phases.js";
 import {
   useWorkspaceEditorsStoreRef,
@@ -20,7 +20,7 @@ export interface UseSessionPanelOptions {
    * A transition between running and terminal resets the user's sticky view
    * pick (mirroring the retired inspector-tab FSM).
    */
-  readonly phase: ExecutionPhase | null;
+  readonly phase: RunPhase | null;
   /**
    * Whether the session has git write-backs. The first arrival auto-surfaces
    * the Changes view — but only while the panel is open; a collapsed panel
@@ -164,7 +164,7 @@ export interface SessionPanelController {
    * artifact's {@link artifactKey} is the tab identity, shared with the
    * `SurfaceVirtualDocument` the viewer builds for the open tab.
    */
-  readonly openArtifact: (artifact: ExecutionArtifact) => void;
+  readonly openArtifact: (artifact: RunArtifact) => void;
   /**
    * Pin an artifact's tab (clear its preview state) — the double-click half of
    * the open/activate split, the encapsulated sibling of {@link openArtifact}.
@@ -173,7 +173,7 @@ export interface SessionPanelController {
    * already opened the preview tab, so this promotes it to a persistent tab. A
    * no-op if the artifact is not open.
    */
-  readonly pinArtifact: (artifact: ExecutionArtifact) => void;
+  readonly pinArtifact: (artifact: RunArtifact) => void;
 }
 
 /**
@@ -303,7 +303,7 @@ export function useSessionPanel({
   );
 
   const openArtifact = useCallback(
-    (artifact: ExecutionArtifact) => {
+    (artifact: RunArtifact) => {
       editorsStore.openPreview(ARTIFACT_DOCUMENT_ENTRY_ID, artifactKey(artifact));
       requestOpenChange(true);
     },
@@ -311,7 +311,7 @@ export function useSessionPanel({
   );
 
   const pinArtifact = useCallback(
-    (artifact: ExecutionArtifact) => {
+    (artifact: RunArtifact) => {
       editorsStore.pin(ARTIFACT_DOCUMENT_ENTRY_ID, artifactKey(artifact));
     },
     [editorsStore],

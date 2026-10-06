@@ -7,7 +7,7 @@
  */
 
 import { vi } from "vitest";
-import { ExecutionControlSignal } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunControlSignal } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 
 type MockMethods = {
@@ -17,7 +17,7 @@ type MockMethods = {
 export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
   return {
     updateStatus: vi.fn().mockResolvedValue({
-      signal: ExecutionControlSignal.UNSPECIFIED,
+      signal: RunControlSignal.UNSPECIFIED,
     }),
     getExecution: vi.fn().mockResolvedValue({}),
     getExecutionContextByExecutionId: vi.fn().mockResolvedValue({}),

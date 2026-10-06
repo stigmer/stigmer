@@ -7,13 +7,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentExecutionListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { AgentRunListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
 const toastSuccess = vi.fn();
@@ -30,11 +30,11 @@ const fakeSession = create(SessionSchema, {
   spec: { subject: "Fix the flaky test" },
 });
 
-const fakeExecution = create(AgentExecutionSchema, {
+const fakeExecution = create(AgentRunSchema, {
   metadata: { id: "aex_01" },
   spec: { target: { case: "sessionId", value: "ses_01" }, message: "Why is CI red?" },
   status: {
-    phase: ExecutionPhase.EXECUTION_COMPLETED,
+    phase: RunPhase.RUN_COMPLETED,
     messages: [
       { type: MessageType.MESSAGE_THINKING, content: "Checking the loop." },
       { type: MessageType.MESSAGE_AI, content: "Found it." },
@@ -68,7 +68,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   listBySession = vi.fn(() =>
     Promise.resolve(
-      create(AgentExecutionListSchema, {
+      create(AgentRunListSchema, {
         totalPages: 1,
         entries: [fakeExecution],
       }),

@@ -29,11 +29,11 @@ import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { isToolCallRowHidden } from "../../../shared/tool-row.js";
 import { denialLedgerPath } from "../approval-state.js";
 import { toolCallIdentityToken } from "../approval-state.js";
@@ -50,8 +50,8 @@ async function write(rel: string, content: string): Promise<void> {
   await writeFile(join(repo, rel), content, "utf-8");
 }
 
-function newStatus(): AgentExecutionStatus {
-  return create(AgentExecutionStatusSchema, {});
+function newStatus(): AgentRunStatus {
+  return create(AgentRunStatusSchema, {});
 }
 
 /** A streamed (COMPLETED) file-edit tool call, as the SDK would have recorded. */
@@ -70,7 +70,7 @@ function streamedEdit(id: string, path: string, content: string): AgentMessage {
 }
 
 /** Boundary options for this turn; overrides layer the per-test shape. */
-function boundaryOpts(status: AgentExecutionStatus, overrides?: Partial<TurnBoundaryOptions>): TurnBoundaryOptions {
+function boundaryOpts(status: AgentRunStatus, overrides?: Partial<TurnBoundaryOptions>): TurnBoundaryOptions {
   return {
     status,
     transcript: new TranscriptBuilder(EXEC_ID, status),

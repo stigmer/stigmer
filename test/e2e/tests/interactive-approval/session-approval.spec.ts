@@ -36,7 +36,7 @@ import {
   messageThread,
   type SeededGatedExecution,
 } from "../../helpers/approval";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 const mockUrl = getMockControlUrl();
 
@@ -71,7 +71,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     await awaitExecutionPhase(
       stigmerClient,
       seeded.executionId,
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
     await page.goto(`/sessions/${seeded.sessionId}`);
@@ -88,7 +88,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
 
     // The real submitApproval RPC fired and the run resumed to completion.
     const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
-    expect(phase, "approved execution completes").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(phase, "approved execution completes").toBe(RunPhase.RUN_COMPLETED);
     await assertComposerEnabled(page);
   });
 
@@ -97,7 +97,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     await awaitExecutionPhase(
       stigmerClient,
       seeded.executionId,
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
     await page.goto(`/sessions/${seeded.sessionId}`);
@@ -105,7 +105,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     await skipButton(page).click();
 
     const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
-    expect(phase, "skipped execution completes").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(phase, "skipped execution completes").toBe(RunPhase.RUN_COMPLETED);
   });
 
   test("Reject resolves the gate and the run completes", async ({ page, stigmerClient }) => {
@@ -113,7 +113,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     await awaitExecutionPhase(
       stigmerClient,
       seeded.executionId,
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
     await page.goto(`/sessions/${seeded.sessionId}`);
@@ -123,7 +123,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     // REJECT fails the tool, not the run: the agent is told and continues to
     // completion (matches the conformance + Go HITL contract).
     const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
-    expect(phase, "rejected execution still completes").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(phase, "rejected execution still completes").toBe(RunPhase.RUN_COMPLETED);
   });
 
   test("Approve-all clears co-pending gates and arms the auto-approve indicator", async ({
@@ -143,7 +143,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     await awaitExecutionPhase(
       stigmerClient,
       seeded.executionId,
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
     await page.goto(`/sessions/${seeded.sessionId}`);
@@ -158,7 +158,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     // second call and never settled).
     await expect(autoApproveIndicator(page)).toBeVisible({ timeout: 15_000 });
     const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
-    expect(phase, "approve-all completes the run un-gated").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(phase, "approve-all completes the run un-gated").toBe(RunPhase.RUN_COMPLETED);
   });
 
   // Sequential-gate regression backstop. Under the OSS-default memory
@@ -204,7 +204,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     await awaitExecutionPhase(
       stigmerClient,
       seeded.executionId,
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
     await page.goto(`/sessions/${seeded.sessionId}`);
@@ -224,7 +224,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     await awaitExecutionPhase(
       stigmerClient,
       seeded.executionId,
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
     // Gate B is now the live, inline gate — proven by B's distinct row appearing
@@ -237,7 +237,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     // Approving B drains the terminating text turn (queue -> 0) and the run ends.
     const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
     expect(phase, "second approval completes the multi-step run").toBe(
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_COMPLETED,
     );
     expect(await control.remaining(), "mock script consumed exactly").toBe(0);
     await assertComposerEnabled(page);
@@ -260,7 +260,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
       await awaitExecutionPhase(
         stigmerClient,
         seeded.executionId,
-        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        RunPhase.RUN_WAITING_FOR_APPROVAL,
       );
 
       await page.goto(`/sessions/${seeded.sessionId}`);
@@ -281,7 +281,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
       // Resolve so the run terminates cleanly (and the queue drains).
       await approveButton(page).click();
       const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
-      expect(phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      expect(phase).toBe(RunPhase.RUN_COMPLETED);
     });
   });
 });

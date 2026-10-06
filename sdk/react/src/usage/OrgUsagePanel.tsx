@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
-import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
 import type {
   DailyCostEntry,
   GetOrgUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { formatCost, formatTokenCount } from "../execution/UsageWidget.js";
 import { useOrgUsageReport } from "./useOrgUsageReport.js";
 import {
@@ -241,7 +241,7 @@ function SummaryCards({
       <div className="stg:grid stg:grid-cols-3 stg:gap-3">
         <div className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-3.5 stg:py-2.5">
           <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatCompactNumber(report.totalExecutions)}
+            {formatCompactNumber(report.totalRuns)}
           </div>
           <div className="stg:text-[0.65rem] stg:text-muted-foreground">Executions</div>
         </div>

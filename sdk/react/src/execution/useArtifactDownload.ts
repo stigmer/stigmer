@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -65,9 +65,9 @@ export function useArtifactDownload(
       setIsDownloading(true);
       setError(null);
       try {
-        const result = await stigmer.agentExecution.getArtifactDownloadUrl(
+        const result = await stigmer.agentRun.getArtifactDownloadUrl(
           create(GetArtifactDownloadUrlRequestSchema, {
-            executionId,
+            runId: executionId,
             storageKey,
             // This is a save-to-disk action, so mint a URL that forces a
             // browser download (Content-Disposition: attachment). Browsers

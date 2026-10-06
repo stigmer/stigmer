@@ -83,9 +83,9 @@
 // A golden moves only under a ruling quoted in the PR that moves it, with
 // every hunk explained; never a quiet `vitest -u`.
 import { create } from "@bufbuild/protobuf";
-import { ExecutionPhase, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { RunPhase, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -144,7 +144,7 @@ async function runAgentTurn(
     structuredOutputSchema?: Parameters<typeof makeAgentExecution>[0]["structuredOutputSchema"];
     reply?: AnthropicMessageBody;
   } = {},
-): Promise<{ final: AgentExecution; request: AnthropicRequestBody; body: unknown }> {
+): Promise<{ final: AgentRun; request: AnthropicRequestBody; body: unknown }> {
   const scriptedBefore = mock.scriptedRequests().length;
   mock.enqueue(turn.reply ?? anthropicText("Hello."));
   const execution = await clients.agentExecutionCommand.create(
@@ -166,9 +166,9 @@ async function runAgentTurn(
   const final = await awaitTerminal(clients, executionId);
   expect(
     final.status?.phase,
-    `the bare turn should complete; ${executionId} reached ${ExecutionPhase[final.status?.phase ?? 0]} ` +
+    `the bare turn should complete; ${executionId} reached ${RunPhase[final.status?.phase ?? 0]} ` +
       `(status.error: ${JSON.stringify(final.status?.error ?? "")})`,
-  ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  ).toBe(RunPhase.RUN_COMPLETED);
 
   const scripted = mock.scriptedRequests();
   expect(scripted.length, "one scripted text turn is exactly one request from the agent loop").toBe(scriptedBefore + 1);

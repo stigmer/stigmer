@@ -8,28 +8,28 @@
 
 import type { Client } from "@connectrpc/connect";
 import { create, type DescService } from "@bufbuild/protobuf";
-import { type AgentExecution, AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { type AgentRun, AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import {
-  type AgentExecutionSpec,
-  AgentExecutionSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  type AgentRunSpec,
+  AgentRunSpecSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import {
   type RunConfig,
   RunConfigSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { type SessionSpec, SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import {
-  type WorkflowExecution,
-  WorkflowExecutionSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
-import { WorkflowExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/spec_pb";
+  type WorkflowRun,
+  WorkflowRunSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
+import { WorkflowRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/spec_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -87,12 +87,12 @@ export interface CreateAgentExecutionInput {
 export async function createAgentExecution(
   controller: ControllerFn,
   input: CreateAgentExecutionInput,
-): Promise<AgentExecution> {
-  const execution = create(AgentExecutionSchema, {
+): Promise<AgentRun> {
+  const execution = create(AgentRunSchema, {
     apiVersion: API_VERSION,
     kind: "AgentExecution",
     metadata: create(ApiResourceMetadataSchema, { name: executionName(), org: input.orgId }),
-    spec: create(AgentExecutionSpecSchema, {
+    spec: create(AgentRunSpecSchema, {
       message: input.message === "" ? "execute" : input.message,
       runtimeEnv: toExecutionValues(input.runtimeEnv),
       attachments: [...input.attachments],
@@ -105,7 +105,7 @@ export async function createAgentExecution(
       interactionMode: input.mode === "plan" ? InteractionMode.PLAN : InteractionMode.UNSPECIFIED,
     }),
   });
-  return controller(AgentExecutionCommandController).create(execution);
+  return controller(AgentRunCommandController).create(execution);
 }
 
 /** Inputs for creating a workflow execution. */
@@ -124,24 +124,24 @@ export interface CreateWorkflowExecutionInput {
 export async function createWorkflowExecution(
   controller: ControllerFn,
   input: CreateWorkflowExecutionInput,
-): Promise<WorkflowExecution> {
-  const execution = create(WorkflowExecutionSchema, {
+): Promise<WorkflowRun> {
+  const execution = create(WorkflowRunSchema, {
     apiVersion: API_VERSION,
     kind: "WorkflowExecution",
     metadata: create(ApiResourceMetadataSchema, { name: executionName(), org: input.orgId }),
-    spec: create(WorkflowExecutionSpecSchema, {
+    spec: create(WorkflowRunSpecSchema, {
       workflowId: input.workflowId,
       triggerMessage: input.message === "" ? "execute" : input.message,
       runtimeEnv: toExecutionValues(input.runtimeEnv),
     }),
   });
-  return controller(WorkflowExecutionCommandController).create(execution);
+  return controller(WorkflowRunCommandController).create(execution);
 }
 
 // The turn's target: an existing session by id, or the session_spec of the
 // conversation the backend creates for it. An unset target is a new
 // conversation with the built-in assistant.
-function buildTarget(input: CreateAgentExecutionInput): AgentExecutionSpec["target"] {
+function buildTarget(input: CreateAgentExecutionInput): AgentRunSpec["target"] {
   const sessionId = input.sessionId ?? "";
   if (sessionId !== "") return { case: "sessionId", value: sessionId };
   const sessionSpec = buildSessionSpec(input.agentRef, input.workspaceEntries, input.harness);

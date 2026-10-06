@@ -448,7 +448,7 @@ export async function createTestWorkflowExecution(
   const org = opts?.org ?? DEFAULT_ORG;
   const name = `e2e-exec-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
-  const execution = await client.workflowExecution.create({
+  const execution = await client.workflowRun.create({
     name,
     org,
     workflowId,
@@ -461,7 +461,7 @@ export async function createTestWorkflowExecution(
     id,
     workflowId,
     cleanup: async () => {
-      await client.workflowExecution.delete(id).catch(() => {});
+      await client.workflowRun.delete(id).catch(() => {});
     },
   };
 }

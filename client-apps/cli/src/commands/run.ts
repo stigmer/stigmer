@@ -276,7 +276,7 @@ async function runWorkflow(
   }
 
   const { ApprovalAction } =
-    await import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb");
+    await import("@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb");
   const { streamWorkflowExecution } =
     await import("../resources/run/workflow-stream.js");
   await streamWorkflowExecution({

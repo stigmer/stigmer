@@ -9,7 +9,7 @@
 // depend on the identity without pulling the diff renderer into their module
 // graph (headless-first). Mirrors artifact-document.ts.
 
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { virtualEntryId } from "../internal/store/index.js";
 
 /**

@@ -49,15 +49,15 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { join } from "node:path";
-import { ApprovalAction, ExecutionControlSignal, ExecutionPhase, MessageType, SubAgentStatus, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, RunControlSignal, RunPhase, MessageType, SubAgentStatus, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { RecalledMemoriesReportSchema, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
-import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
-import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
+import { RecalledMemoriesReportSchema, type AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { Config } from "../../config.js";
@@ -124,12 +124,12 @@ export interface RuntimeTurnOptions {
   readonly onControls?: (controls: InvocationControls) => void;
 }
 
-export function systemMessages(status: AgentExecutionStatus): string[] {
+export function systemMessages(status: AgentRunStatus): string[] {
   return status.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content);
 }
 
 /** The assistant's texts; a message that only carries tool-call rows has none and is not one. */
-export function aiMessages(status: AgentExecutionStatus): string[] {
+export function aiMessages(status: AgentRunStatus): string[] {
   return status.messages.filter((m) => m.type === MessageType.MESSAGE_AI && m.content !== "").map((m) => m.content);
 }
 
@@ -224,7 +224,7 @@ export class RuntimeExecutionDriver {
  * settled turn owes its transcript before the arm reads anything else. An
  * arm that persisted nothing is a failure, named.
  */
-function finalStatusOf(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver): AgentExecutionStatus {
+function finalStatusOf(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver): AgentRunStatus {
   const final = driver.record.lastFullStatus;
   if (!final) throw new Error(`${harness.subject.name}: the runtime persisted no full status`);
   assertTranscriptStreamsNothing(harness.subject.name, final);
@@ -243,9 +243,9 @@ function finalStatusOf(harness: RuntimeContractHarness, driver: RuntimeExecution
  * kit's self-check can hand it a status that still streams and prove it
  * fires.
  */
-export function assertTranscriptStreamsNothing(subjectName: string, status: AgentExecutionStatus): void {
+export function assertTranscriptStreamsNothing(subjectName: string, status: AgentRunStatus): void {
   const streaming: string[] = [];
-  const sweep = (scope: string, messages: AgentExecutionStatus["messages"]): void => {
+  const sweep = (scope: string, messages: AgentRunStatus["messages"]): void => {
     messages.forEach((m, i) => {
       if (m.isStreaming) streaming.push(`${scope}messages[${i}]`);
       for (const tc of m.toolCalls) {
@@ -254,7 +254,7 @@ export function assertTranscriptStreamsNothing(subjectName: string, status: Agen
     });
   };
   sweep("", status.messages);
-  for (const sub of status.subAgentExecutions) sweep(`subAgentExecutions[${sub.id}].`, sub.messages);
+  for (const sub of status.subAgentRuns) sweep(`subAgentExecutions[${sub.id}].`, sub.messages);
   if (streaming.length > 0) {
     throw new Error(`${subjectName}: a settled turn's transcript is still streaming at ${streaming.join(", ")}`);
   }
@@ -264,7 +264,7 @@ export function assertTranscriptStreamsNothing(subjectName: string, status: Agen
 export interface RuntimeArmResult {
   readonly driver: RuntimeExecutionDriver;
   readonly invocations: readonly ActivityInvocation[];
-  readonly final: AgentExecutionStatus;
+  readonly final: AgentRunStatus;
 }
 
 // ── Arm: completed ──────────────────────────────────────────────────────────
@@ -286,7 +286,7 @@ export async function assertCompletedTurn(harness: RuntimeContractHarness, label
   expect(slim.phase, `${subject.name}: a completed turn returns COMPLETED`).toBe("EXECUTION_COMPLETED");
   expect(slim.final_text, `${subject.name}: the slim return carries the last assistant text`).toBe(text);
   expect(slim, `${subject.name}: the slim return carries no transcript`).not.toHaveProperty("messages");
-  expect(driver.record.persistedPhases.at(-1), `${subject.name}: the last persist is COMPLETED`).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  expect(driver.record.persistedPhases.at(-1), `${subject.name}: the last persist is COMPLETED`).toBe(RunPhase.RUN_COMPLETED);
   expect(driver.record.setupProgress.slice(0, RUNTIME_SETUP_LABELS.length), `${subject.name}: the runtime's resolution labels lead the setup progress`).toEqual([...RUNTIME_SETUP_LABELS]);
   if (subject.adapter.capabilities.stateIdSource === "engine-minted") {
     expect(driver.record.sessionUpdates, `${subject.name}: an engine-minted adapter binds once`).toHaveLength(1);
@@ -321,7 +321,7 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, l
 
   const first = await driver.turn([propose]);
   expect(slimOf(subject, first).phase, `${subject.name}: a proposal returns WAITING_FOR_APPROVAL`).toBe("EXECUTION_WAITING_FOR_APPROVAL");
-  expect(driver.record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+  expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
   expect(driver.record.waitingToolCalls().map((tc) => tc.id), `${subject.name}: exactly the proposal waits`).toEqual([id]);
   expect(subject.executionCount(id), `${subject.name}: a proposal never executes in its own turn`).toBe(0);
   const bindsAfterFirst = driver.record.sessionUpdates.length;
@@ -495,13 +495,13 @@ export async function assertToolCallLimitTerminates(harness: RuntimeContractHarn
   // `slimOf` is the RETURN assertion (a retry would spend the same budget).
   expect(slimOf(subject, invocation).phase, `${subject.name}: the tool-call limit is TERMINATED, not FAILED`).toBe("EXECUTION_TERMINATED");
   const final = finalStatusOf(harness, driver);
-  expect(final.phase).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+  expect(final.phase).toBe(RunPhase.RUN_TERMINATED);
   expect(final.error.startsWith(TOOL_CALL_LIMIT_ERROR_PREFIX), `${subject.name}: the error carries the cross-repo prefix; got "${final.error}"`).toBe(true);
   expect(final.error, `${subject.name}: the copy is the table's, byte for byte`).toBe(formatToolCallLimitError());
   expect(systemMessages(final), `${subject.name}: the user copy is the one system row`).toEqual([TOOL_CALL_LIMIT_USER_COPY]);
   expect(final.completedAt, `${subject.name}: a TERMINATED turn completes`).not.toBe("");
   expect(aiMessages(final), `${subject.name}: the step after the limit is never processed`).not.toContain(NEVER_SEEN);
-  expect(driver.record.persistedPhases.at(-1), `${subject.name}: the terminal is persisted, not merely returned`).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+  expect(driver.record.persistedPhases.at(-1), `${subject.name}: the terminal is persisted, not merely returned`).toBe(RunPhase.RUN_TERMINATED);
   return { driver, invocations: [invocation], final };
 }
 
@@ -538,7 +538,7 @@ export async function assertReinvocationCarriesThePersistedStatus(harness: Runti
   const second = await driver.turn([propose, scenario.say("Done.")]);
   expect(slimOf(subject, second).phase, `${subject.name}: the resumed turn completes`).toBe("EXECUTION_COMPLETED");
   const final = finalStatusOf(harness, driver);
-  expect(final.subAgentExecutions.map((s) => s.id), `${subject.name}: the prior turn's sub-agent row survives the resume`).toContain(planted.subAgentId);
+  expect(final.subAgentRuns.map((s) => s.id), `${subject.name}: the prior turn's sub-agent row survives the resume`).toContain(planted.subAgentId);
   expect(Object.keys(final.todos), `${subject.name}: the prior turn's to-dos survive the resume`).toContain(planted.todoId);
   expect(final.artifacts.map((a) => a.name), `${subject.name}: the prior turn's artifacts survive the resume`).toContain(planted.artifactName);
   expect(final.workspaceWriteBacks.map((w) => w.workspaceEntryName), `${subject.name}: the prior turn's write-back rows survive the resume`).toContain(planted.writeBackEntry);
@@ -557,7 +557,7 @@ export async function assertFirstTurnSeedsNothing(harness: RuntimeContractHarnes
   const invocation = await driver.turn([scenario.say("Fresh start.")]);
   expect(slimOf(subject, invocation).phase).toBe("EXECUTION_COMPLETED");
   const final = finalStatusOf(harness, driver);
-  expect(final.subAgentExecutions.map((s) => s.id), `${subject.name}: a first turn seeds no sub-agent rows`).not.toContain(planted.subAgentId);
+  expect(final.subAgentRuns.map((s) => s.id), `${subject.name}: a first turn seeds no sub-agent rows`).not.toContain(planted.subAgentId);
   expect(Object.keys(final.todos), `${subject.name}: a first turn seeds no to-dos`).not.toContain(planted.todoId);
   expect(final.artifacts.map((a) => a.name), `${subject.name}: a first turn seeds no artifacts`).not.toContain(planted.artifactName);
   expect(final.workspaceWriteBacks, `${subject.name}: a first turn seeds no write-back rows`).toHaveLength(0);
@@ -567,7 +567,7 @@ export async function assertFirstTurnSeedsNothing(harness: RuntimeContractHarnes
 }
 
 /** Write the prior turn's facts onto the server-held status, as its writes would have left them. */
-function plantPriorTurnFacts(held: AgentExecutionStatus, label: string) {
+function plantPriorTurnFacts(held: AgentRunStatus, label: string) {
   const planted = {
     subAgentId: `${label}-sub`,
     todoId: `${label}-todo`,
@@ -577,9 +577,9 @@ function plantPriorTurnFacts(held: AgentExecutionStatus, label: string) {
     structuredOutput: { verdict: "carried" } as JsonObject,
     inputTokens: 4_242n,
   };
-  held.subAgentExecutions.push(create(SubAgentExecutionSchema, { id: planted.subAgentId, name: "researcher", status: SubAgentStatus.SUB_AGENT_COMPLETED }));
+  held.subAgentRuns.push(create(SubAgentRunSchema, { id: planted.subAgentId, name: "researcher", status: SubAgentStatus.SUB_AGENT_COMPLETED }));
   held.todos[planted.todoId] = create(TodoItemSchema, { id: planted.todoId, content: "carry me", status: TodoStatus.TODO_PENDING });
-  held.artifacts.push(create(ExecutionArtifactSchema, { name: planted.artifactName }));
+  held.artifacts.push(create(RunArtifactSchema, { name: planted.artifactName }));
   held.workspaceWriteBacks.push(create(WorkspaceWriteBackSchema, { workspaceEntryName: planted.writeBackEntry, phase: WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_COMMITTED }));
   held.recalledMemoriesReport = create(RecalledMemoriesReportSchema, { selectionActive: true, injectedMemoryIds: [planted.memoryId] });
   held.structuredOutput = planted.structuredOutput;
@@ -619,10 +619,10 @@ export async function assertOrchestratorStopSettlesAndThrows(
   expect(
     driver.record.persistedPhases.at(-1),
     `${subject.name}: the stop writes no phase; the last phase is the turn's own`,
-  ).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+  ).toBe(RunPhase.RUN_IN_PROGRESS);
   const settle = driver.record.persisted.at(-1);
   if (!settle) throw new Error(`${subject.name}: the runtime persisted nothing`);
-  expect(settle.phase, `${subject.name}: the settle write carries no phase`).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
+  expect(settle.phase, `${subject.name}: the settle write carries no phase`).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
   assertTranscriptStreamsNothing(subject.name, settle);
   expect(settle.error, `${subject.name}: a stop is not an error`).toBe("");
   expect(settle.completedAt, `${subject.name}: a stopped turn is not complete`).toBe("");
@@ -650,7 +650,7 @@ export async function assertWorkerShutdownPersistsAndThrows(harness: RuntimeCont
   expect(threwCancelledFailure(invocation.outcome), `${subject.name}: a shutdown THROWS a CancelledFailure`).toBe(true);
   if (!threwCancelledFailure(invocation.outcome)) throw new Error("unreachable");
   expect(invocation.outcome.error.message).toBe(TERMINAL_COPY.workerShutdown.throwMessage);
-  expect(driver.record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_FAILED);
+  expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
   const final = finalStatusOf(harness, driver);
   expect(final.error).toBe(TERMINAL_COPY.workerShutdown.error);
   expect(final.completedAt).not.toBe("");
@@ -697,7 +697,7 @@ export async function assertStallFailsTheTurn(harness: RuntimeContractHarness, l
   }
 
   expect(slimOf(subject, invocation).phase, `${subject.name}: a stall RETURNS FAILED`).toBe("EXECUTION_FAILED");
-  expect(driver.record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_FAILED);
+  expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
   const final = finalStatusOf(harness, driver);
   expect(final.error).toMatch(/^\[StallTimeoutError\] Agent stream stalled: no activity for \d+s( \(last tool: [^)]+\))?\. Retry or resume\.$/);
   expect(systemMessages(final)).toHaveLength(1);
@@ -730,7 +730,7 @@ export async function assertCostCapTerminates(harness: RuntimeContractHarness, l
   ]);
 
   expect(slimOf(subject, invocation).phase, `${subject.name}: the cost cap TERMINATES`).toBe("EXECUTION_TERMINATED");
-  expect(driver.record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+  expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_TERMINATED);
   const final = finalStatusOf(harness, driver);
   expect(final.error).toMatch(/^Agent reached the cost limit for this message \(~\$[\d.]+ of the \$0\.50 budget\)\. Send another message to continue\.$/);
   expect(systemMessages(final)).toEqual([
@@ -756,14 +756,14 @@ export async function assertPlatformStopCompletesEarly(harness: RuntimeContractH
   const driver = new RuntimeExecutionDriver(harness, label, {
     controlSignal: (status) =>
       status.messages.some((m) => m.toolCalls.some((tc) => tc.status === ToolCallStatus.TOOL_CALL_COMPLETED))
-        ? ExecutionControlSignal.STOP
-        : ExecutionControlSignal.UNSPECIFIED,
+        ? RunControlSignal.STOP
+        : RunControlSignal.UNSPECIFIED,
   });
 
   const invocation = await driver.turn([scenario.say("Starting the suite."), scenario.read(`${label}-read`, "package.json"), scenario.say(NEVER_SEEN)]);
 
   expect(slimOf(subject, invocation).phase, `${subject.name}: a platform STOP completes the turn`).toBe("EXECUTION_COMPLETED");
-  expect(driver.record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
   const final = finalStatusOf(harness, driver);
   expect(final.error, `${subject.name}: a platform stop is not an error`).toBe("");
   expect(systemMessages(final)).toEqual([TERMINAL_COPY.platformStop.row]);
@@ -783,7 +783,7 @@ export async function assertEngineCancelledEndsCancelled(harness: RuntimeContrac
   const slim = slimOf(subject, invocation);
   expect(slim.phase, `${subject.name}: an engine cancel ends CANCELLED`).toBe("EXECUTION_CANCELLED");
   expect(slim).not.toHaveProperty("final_text");
-  expect(driver.record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_CANCELLED);
+  expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_CANCELLED);
   const final = finalStatusOf(harness, driver);
   expect(final.error).toBe("");
   expect(final.completedAt).not.toBe("");
@@ -808,7 +808,7 @@ export async function assertFailedSurfaceWritesItsCopy(harness: RuntimeContractH
   const invocation = await driver.turn([scenario.say("Checking the repository."), scenario.fail(message, surface), scenario.say(NEVER_SEEN)]);
 
   expect(slimOf(subject, invocation).phase, `${subject.name}: a ${surface} failure RETURNS FAILED`).toBe("EXECUTION_FAILED");
-  expect(driver.record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_FAILED);
+  expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
   const final = finalStatusOf(harness, driver);
   expect(final.error, `${subject.name}: a failed turn names its error`).not.toBe("");
   expect(final.completedAt).not.toBe("");
@@ -881,7 +881,7 @@ export async function assertResolutionErrorFailsBeforeEngine(harness: RuntimeCon
   });
 
   expect(slimOf(subject, invocation).phase).toBe("EXECUTION_FAILED");
-  expect(driver.record.persistedPhases, `${subject.name}: nothing was persisted before the failure`).toEqual([ExecutionPhase.EXECUTION_FAILED]);
+  expect(driver.record.persistedPhases, `${subject.name}: nothing was persisted before the failure`).toEqual([RunPhase.RUN_FAILED]);
   const final = finalStatusOf(harness, driver);
   // One grammar for a FAILED `status.error` (stigmer#1122): the described
   // fault, unframed, exactly what the details row carries.
@@ -905,7 +905,7 @@ export async function assertWorkspaceLockTimeoutFails(harness: RuntimeContractHa
     const invocation = await driver.turn([scenario.say(NEVER_SEEN)], { config: { workspaceLockTimeoutMs: 500 } });
 
     expect(slimOf(subject, invocation).phase).toBe("EXECUTION_FAILED");
-    expect(driver.record.persistedPhases).toEqual([ExecutionPhase.EXECUTION_FAILED]);
+    expect(driver.record.persistedPhases).toEqual([RunPhase.RUN_FAILED]);
     const final = finalStatusOf(harness, driver);
     const resolvedDir = await realpath(driver.workspaceDir);
     expect(final.error).toContain(`Workspace is in use by another session: ${resolvedDir}`);

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   StreamController,
   type StreamControllerSink,
@@ -17,11 +17,11 @@ import type { StreamState } from "../store/conversation-store";
 // ---------------------------------------------------------------------------
 
 function makeSnapshot(
-  phase: ExecutionPhase,
+  phase: RunPhase,
   messageCount = 0,
-): AgentExecution {
-  const exec = create(AgentExecutionSchema);
-  const status = create(AgentExecutionStatusSchema);
+): AgentRun {
+  const exec = create(AgentRunSchema);
+  const status = create(AgentRunStatusSchema);
   status.phase = phase;
   for (let i = 0; i < messageCount; i++) {
     status.messages.push({} as never);
@@ -31,12 +31,12 @@ function makeSnapshot(
 }
 
 function createTestSink(): StreamControllerSink & {
-  snapshots: AgentExecution[];
+  snapshots: AgentRun[];
   states: Array<{ stage: string; executionId?: string; error?: Error }>;
   connectTimeouts: number;
   slow: boolean[];
 } {
-  const snapshots: AgentExecution[] = [];
+  const snapshots: AgentRun[] = [];
   const states: Array<{ stage: string; executionId?: string; error?: Error }> =
     [];
   const slow: boolean[] = [];
@@ -45,7 +45,7 @@ function createTestSink(): StreamControllerSink & {
     states,
     connectTimeouts: 0,
     slow,
-    ingestSnapshot(snapshot: AgentExecution) {
+    ingestSnapshot(snapshot: AgentRun) {
       snapshots.push(snapshot);
     },
     setStreamState(state: StreamState) {
@@ -178,7 +178,7 @@ describe("StreamController", () => {
     it("resets when starting a different execution", () => {
       controller.start("exec-1");
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
       );
       controller.start("exec-2");
       expect(controller.state).toEqual({
@@ -197,7 +197,7 @@ describe("StreamController", () => {
 
     it("transitions from connecting to streaming on first snapshot", () => {
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
       );
       expect(controller.state).toEqual({
         stage: "streaming",
@@ -207,14 +207,14 @@ describe("StreamController", () => {
 
     it("buffers the snapshot (does not flush immediately)", () => {
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
       );
       expect(sink.snapshots).toHaveLength(0);
       expect(controller.hasPendingFlush).toBe(true);
     });
 
     it("flushes on scheduler callback", () => {
-      const snap = makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS);
+      const snap = makeSnapshot(RunPhase.RUN_IN_PROGRESS);
       controller.handleSnapshot(snap);
       scheduler.flush();
       expect(sink.snapshots).toEqual([snap]);
@@ -222,9 +222,9 @@ describe("StreamController", () => {
     });
 
     it("coalesces multiple snapshots into one flush", () => {
-      const snap1 = makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS, 1);
-      const snap2 = makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS, 2);
-      const snap3 = makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS, 3);
+      const snap1 = makeSnapshot(RunPhase.RUN_IN_PROGRESS, 1);
+      const snap2 = makeSnapshot(RunPhase.RUN_IN_PROGRESS, 2);
+      const snap3 = makeSnapshot(RunPhase.RUN_IN_PROGRESS, 3);
 
       controller.handleSnapshot(snap1);
       controller.handleSnapshot(snap2);
@@ -237,13 +237,13 @@ describe("StreamController", () => {
 
     it("schedules a new flush after the previous one fires", () => {
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS, 1),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS, 1),
       );
       scheduler.flush();
       expect(scheduler.size).toBe(0);
 
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS, 2),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS, 2),
       );
       expect(scheduler.size).toBe(1);
     });
@@ -256,7 +256,7 @@ describe("StreamController", () => {
     });
 
     it("flushes immediately without waiting for scheduler", () => {
-      const snap = makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED);
+      const snap = makeSnapshot(RunPhase.RUN_COMPLETED);
       controller.handleSnapshot(snap);
       expect(sink.snapshots).toEqual([snap]);
       expect(scheduler.size).toBe(0);
@@ -264,7 +264,7 @@ describe("StreamController", () => {
 
     it("transitions to complete", () => {
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED),
+        makeSnapshot(RunPhase.RUN_COMPLETED),
       );
       expect(controller.state).toEqual({
         stage: "complete",
@@ -274,19 +274,19 @@ describe("StreamController", () => {
 
     it("cancels any pending non-terminal flush", () => {
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS, 1),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS, 1),
       );
       expect(scheduler.size).toBe(1);
 
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED),
+        makeSnapshot(RunPhase.RUN_COMPLETED),
       );
       expect(scheduler.size).toBe(0);
     });
 
     it("handles terminal as first snapshot (connecting -> complete)", () => {
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED),
+        makeSnapshot(RunPhase.RUN_COMPLETED),
       );
       expect(controller.state).toEqual({
         stage: "complete",
@@ -299,21 +299,21 @@ describe("StreamController", () => {
 
     it("handles EXECUTION_FAILED as terminal", () => {
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_FAILED),
+        makeSnapshot(RunPhase.RUN_FAILED),
       );
       expect(controller.state.stage).toBe("complete");
     });
 
     it("handles EXECUTION_CANCELLED as terminal", () => {
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_CANCELLED),
+        makeSnapshot(RunPhase.RUN_CANCELLED),
       );
       expect(controller.state.stage).toBe("complete");
     });
 
     it("handles EXECUTION_TERMINATED as terminal", () => {
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_TERMINATED),
+        makeSnapshot(RunPhase.RUN_TERMINATED),
       );
       expect(controller.state.stage).toBe("complete");
     });
@@ -322,7 +322,7 @@ describe("StreamController", () => {
   describe("handleStreamEnd()", () => {
     it("flushes buffered snapshot and transitions to complete", () => {
       controller.start("exec-1");
-      const snap = makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS);
+      const snap = makeSnapshot(RunPhase.RUN_IN_PROGRESS);
       controller.handleSnapshot(snap);
       controller.handleStreamEnd();
 
@@ -336,7 +336,7 @@ describe("StreamController", () => {
     it("no-ops if already complete (terminal snapshot already handled)", () => {
       controller.start("exec-1");
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED),
+        makeSnapshot(RunPhase.RUN_COMPLETED),
       );
       sink.states.length = 0;
 
@@ -365,7 +365,7 @@ describe("StreamController", () => {
 
     it("flushes buffered snapshot before transitioning", () => {
       controller.start("exec-1");
-      const snap = makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS);
+      const snap = makeSnapshot(RunPhase.RUN_IN_PROGRESS);
       controller.handleSnapshot(snap);
       controller.handleError(new Error("fail"));
 
@@ -375,7 +375,7 @@ describe("StreamController", () => {
     it("cancels pending rAF", () => {
       controller.start("exec-1");
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
       );
       expect(scheduler.size).toBe(1);
 
@@ -399,7 +399,7 @@ describe("StreamController", () => {
     it("cancels pending flush", () => {
       controller.start("exec-1");
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
       );
       controller.reset();
       expect(scheduler.size).toBe(0);
@@ -409,7 +409,7 @@ describe("StreamController", () => {
     it("clears buffered snapshot", () => {
       controller.start("exec-1");
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
       );
       controller.reset();
       scheduler.flush();
@@ -434,7 +434,7 @@ describe("StreamController", () => {
       controller.start("exec-1");
       controller.reset();
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
       );
       expect(sink.snapshots).toHaveLength(0);
     });
@@ -457,7 +457,7 @@ describe("StreamController", () => {
     it("does not fire once a first snapshot arrives (connect timer cleared)", () => {
       controller.start("exec-1");
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
       );
       timers.fire(CONNECT_MS);
       expect(sink.connectTimeouts).toBe(0);
@@ -466,7 +466,7 @@ describe("StreamController", () => {
     it("does not fire after a terminal snapshot", () => {
       controller.start("exec-1");
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_FAILED),
+        makeSnapshot(RunPhase.RUN_FAILED),
       );
       timers.fire(CONNECT_MS);
       expect(sink.connectTimeouts).toBe(0);
@@ -491,7 +491,7 @@ describe("StreamController", () => {
     it("sets the slow hint after the threshold while streaming", () => {
       controller.start("exec-1");
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
       );
       timers.fire(SLOW_MS);
       expect(sink.slow.at(-1)).toBe(true);
@@ -503,7 +503,7 @@ describe("StreamController", () => {
       expect(sink.slow.at(-1)).toBe(true);
 
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
       );
       // Re-arming on a fresh snapshot clears the prior hint.
       expect(sink.slow.at(-1)).toBe(false);
@@ -515,7 +515,7 @@ describe("StreamController", () => {
       expect(sink.slow.at(-1)).toBe(true);
 
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED),
+        makeSnapshot(RunPhase.RUN_COMPLETED),
       );
       expect(sink.slow.at(-1)).toBe(false);
     });
@@ -534,7 +534,7 @@ describe("StreamController", () => {
     it("does not fire after reaching a terminal phase", () => {
       controller.start("exec-1");
       controller.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED),
+        makeSnapshot(RunPhase.RUN_COMPLETED),
       );
       const before = sink.slow.length;
       timers.fire(SLOW_MS);
@@ -572,7 +572,7 @@ describe("StreamController", () => {
 
       expect(() => {
         defaultController.handleSnapshot(
-          makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+          makeSnapshot(RunPhase.RUN_IN_PROGRESS),
         );
       }).not.toThrow();
 
@@ -586,7 +586,7 @@ describe("StreamController", () => {
       });
       defaultController.start("exec-1");
       defaultController.handleSnapshot(
-        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
       );
       defaultController.reset();
 

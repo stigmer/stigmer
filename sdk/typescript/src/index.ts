@@ -202,11 +202,11 @@ export {
   type SlackChannelConfigInput,
 } from "./gen/agentchannel.js";
 export {
-  AgentExecutionClient,
-  toAgentExecutionUpdateInput,
-  type AgentExecutionInput,
+  AgentRunClient,
+  toAgentRunUpdateInput,
+  type AgentRunInput,
   type AttachmentInput,
-} from "./gen/agentexecution.js";
+} from "./gen/agentrun.js";
 export {
   AgentShareClient,
   toAgentShareUpdateInput,
@@ -402,7 +402,7 @@ export {
   type FlowControlInput,
 } from "./gen/workflow.js";
 export {
-  WorkflowExecutionClient,
-  toWorkflowExecutionUpdateInput,
-  type WorkflowExecutionInput,
-} from "./gen/workflowexecution.js";
+  WorkflowRunClient,
+  toWorkflowRunUpdateInput,
+  type WorkflowRunInput,
+} from "./gen/workflowrun.js";

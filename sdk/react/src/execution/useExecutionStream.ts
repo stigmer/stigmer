@@ -9,8 +9,8 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { isTransientStreamError } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -33,7 +33,7 @@ import { isTerminalPhase } from "./execution-phases.js";
 /** Return value of {@link useExecutionStream}. */
 export interface UseExecutionStreamReturn {
   /** Latest full execution snapshot from the stream, or `null` before the first update arrives. */
-  readonly execution: AgentExecution | null;
+  readonly execution: AgentRun | null;
   /**
    * Convenience extraction of `execution.status.phase`.
    *
@@ -41,7 +41,7 @@ export interface UseExecutionStreamReturn {
    * snapshot. Returns `EXECUTION_PHASE_UNSPECIFIED` when `execution`
    * is `null`.
    */
-  readonly phase: ExecutionPhase;
+  readonly phase: RunPhase;
   /** `true` while receiving non-terminal updates from the server stream. */
   readonly isStreaming: boolean;
   /** `true` after subscription starts but before the first snapshot arrives. */
@@ -338,7 +338,7 @@ export function useExecutionStream(
       while (!signal.aborted) {
         let sawTerminal = false;
         try {
-          for await (const snapshot of stigmer.agentExecution.subscribe(
+          for await (const snapshot of stigmer.agentRun.subscribe(
             executionId,
             signal,
           )) {
@@ -355,7 +355,7 @@ export function useExecutionStream(
 
             const phase =
               snapshot.status?.phase ??
-              ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+              RunPhase.RUN_PHASE_UNSPECIFIED;
             if (isTerminalPhase(phase)) {
               sawTerminal = true;
               break;
@@ -419,7 +419,7 @@ export function useExecutionStream(
   // -- Derive public return values ------------------------------------------
   const phase = useMemo(
     () =>
-      execution?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+      execution?.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
     [execution],
   );
 

@@ -1,10 +1,10 @@
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import type { RecentActivityEntry, UserMenuProps } from "@stigmer/react";
 import type { UseWorkspaceEntriesReturn } from "@stigmer/react";
 import { samples, sampleDate } from "@stigmer/react/test";
@@ -82,9 +82,9 @@ export const DEMO_RECENT_ACTIVITY: readonly RecentActivityEntry[] = [
  */
 export function snapshot(
   msgs: AgentMessage[],
-  phase: ExecutionPhase = ExecutionPhase.EXECUTION_IN_PROGRESS,
-  artifacts?: ExecutionArtifact[],
-): AgentExecution {
+  phase: RunPhase = RunPhase.RUN_IN_PROGRESS,
+  artifacts?: RunArtifact[],
+): AgentRun {
   const firstHumanIdx = msgs.findIndex((m) => m.type === MessageType.MESSAGE_HUMAN);
   const specMessage = firstHumanIdx >= 0 ? msgs[firstHumanIdx].content : "";
   const statusMessages =

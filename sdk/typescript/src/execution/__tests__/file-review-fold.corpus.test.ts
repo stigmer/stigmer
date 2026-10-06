@@ -21,11 +21,11 @@ import { create, fromJson, type JsonValue } from "@bufbuild/protobuf";
 import {
   FileReviewEventSchema,
   FileReviewEventStreamSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   FileChangeSetStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { foldFileReviewEventStream } from "../file-review-fold";
 import { isTerminalPhase } from "../execution-phases";
 
@@ -64,8 +64,8 @@ function statusFromName(name: string): FileChangeSetStatus {
   return value;
 }
 
-function phaseFromName(name: string): ExecutionPhase {
-  const value = ExecutionPhase[name as keyof typeof ExecutionPhase];
+function phaseFromName(name: string): RunPhase {
+  const value = RunPhase[name as keyof typeof RunPhase];
   if (typeof value !== "number") {
     throw new Error(`unknown ExecutionPhase in corpus: ${name}`);
   }
@@ -93,7 +93,7 @@ describe("file-review fold — cross-edition corpus parity", () => {
         fromJson(FileReviewEventSchema, ev),
       );
       const stream = create(FileReviewEventStreamSchema, {
-        executionId: vector.execution_id,
+        runId: vector.execution_id,
         events,
       });
 

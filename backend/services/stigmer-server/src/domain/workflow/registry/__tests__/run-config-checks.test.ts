@@ -17,8 +17,8 @@ import { describe, expect, it } from "vitest";
 import {
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 
 import { createLogger } from "../../../../boot/logger.js";
 import { bundledModelRegistryDocument } from "../bundled.js";

@@ -235,10 +235,10 @@ describe("the rule, for a caller bound to one organization", () => {
       binding.verdict(caller, { kind, id, permission: VIEW });
     expect(await verdictOf(ApiResourceKind.session, "ses_a")).toBe("inside");
     expect(await verdictOf(ApiResourceKind.session, "ses_b")).toBe("outside");
-    expect(await verdictOf(ApiResourceKind.agent_execution, "aex_a")).toBe(
+    expect(await verdictOf(ApiResourceKind.agent_run, "aex_a")).toBe(
       "inside",
     );
-    expect(await verdictOf(ApiResourceKind.agent_execution, "aex_b")).toBe(
+    expect(await verdictOf(ApiResourceKind.agent_run, "aex_b")).toBe(
       "outside",
     );
   });

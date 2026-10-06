@@ -19,7 +19,7 @@
 // range and loop detection, each pinned beside its code in the runner
 // (recursion-limit.test.ts, execution-budget.test.ts, tool-rounds.test.ts,
 // loop-detection.test.ts).
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -113,8 +113,8 @@ describe("AgentExecution run_config.max_tool_rounds", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `execution ${executionId} should be TERMINATED by its budget; reached ${ExecutionPhase[final.status?.phase ?? 0]} (error: ${final.status?.error ?? ""})`,
-    ).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+      `execution ${executionId} should be TERMINATED by its budget; reached ${RunPhase[final.status?.phase ?? 0]} (error: ${final.status?.error ?? ""})`,
+    ).toBe(RunPhase.RUN_TERMINATED);
     const error = final.status?.error ?? "";
     expect(
       error.startsWith(TOOL_CALL_LIMIT_PREFIX),

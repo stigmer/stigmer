@@ -17,12 +17,12 @@
 // the abort as a normal exit (no stack trace).
 
 import { create } from "@bufbuild/protobuf";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   GetEventLogRequestSchema,
   SubscribeEventsRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { shouldColorize, styler } from "../output/style.js";
 import { formatAgentPhase, isTerminalAgentPhase, resolveExecutionType } from "./execution.js";
@@ -60,9 +60,9 @@ export async function streamExecutionLogs(
 }
 
 async function printWorkflowLog(client: Stigmer, opts: LogsOptions, streams: LogsStreams): Promise<void> {
-  const resp = await client.workflowExecution.getEventLog(
+  const resp = await client.workflowRun.getEventLog(
     create(GetEventLogRequestSchema, {
-      executionId: opts.executionId,
+      runId: opts.executionId,
       pageSize: EVENT_LOG_PAGE_SIZE,
       ...(opts.task ? { taskName: opts.task } : {}),
     }),
@@ -83,8 +83,8 @@ async function followWorkflowLogs(
   signal: AbortSignal,
   streams: LogsStreams,
 ): Promise<void> {
-  const stream = client.workflowExecution.subscribeEvents(
-    create(SubscribeEventsRequestSchema, { executionId: opts.executionId }),
+  const stream = client.workflowRun.subscribeEvents(
+    create(SubscribeEventsRequestSchema, { runId: opts.executionId }),
     signal,
   );
   try {
@@ -101,7 +101,7 @@ async function followWorkflowLogs(
 }
 
 async function printAgentMessages(client: Stigmer, opts: LogsOptions, streams: LogsStreams): Promise<void> {
-  const exec = await client.agentExecution.get(opts.executionId);
+  const exec = await client.agentRun.get(opts.executionId);
   const messages = exec.status?.messages ?? [];
   if (messages.length === 0) {
     streams.out.write("No messages recorded for this execution.\n");
@@ -118,12 +118,12 @@ async function followAgentLogs(
 ): Promise<void> {
   let lastMsgCount = 0;
   try {
-    for await (const exec of client.agentExecution.subscribe(opts.executionId, signal)) {
+    for await (const exec of client.agentRun.subscribe(opts.executionId, signal)) {
       const messages = exec.status?.messages ?? [];
       for (let i = lastMsgCount; i < messages.length; i++) renderAgentMessage(messages[i], streams);
       lastMsgCount = messages.length;
 
-      const phase = exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+      const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
       if (isTerminalAgentPhase(phase)) {
         const style = styler(streams.colorize);
         streams.out.write(`\n${style.dim("[end]")} execution ${formatAgentPhase(phase)}\n`);

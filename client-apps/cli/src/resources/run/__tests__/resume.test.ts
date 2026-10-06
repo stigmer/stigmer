@@ -8,8 +8,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { BackendClient } from "../../../client/index.js";
 
@@ -31,10 +31,10 @@ import { openSession } from "../resume.js";
 const client = { stigmer: {} } as unknown as BackendClient;
 
 function executionIn(
-  phase: ExecutionPhase,
+  phase: RunPhase,
   interactionMode: InteractionMode = InteractionMode.UNSPECIFIED,
 ) {
-  return create(AgentExecutionSchema, {
+  return create(AgentRunSchema, {
     metadata: { id: "aex_1", org: "acme" },
     spec: { interactionMode },
     status: { phase },
@@ -55,7 +55,7 @@ afterEach(() => {
 describe("openSession", () => {
   it("re-attaches a live turn in the session's organization", async () => {
     session.executions.mockResolvedValue([
-      executionIn(ExecutionPhase.EXECUTION_IN_PROGRESS),
+      executionIn(RunPhase.RUN_IN_PROGRESS),
     ]);
 
     await openSession({
@@ -72,7 +72,7 @@ describe("openSession", () => {
 
   it("opens the interactive composer in the session's organization", async () => {
     session.executions.mockResolvedValue([
-      executionIn(ExecutionPhase.EXECUTION_COMPLETED),
+      executionIn(RunPhase.RUN_COMPLETED),
     ]);
     tty.supported = true;
 
@@ -90,7 +90,7 @@ describe("openSession", () => {
 
   it("continues a session whose latest turn ran in plan mode in plan mode", async () => {
     session.executions.mockResolvedValue([
-      executionIn(ExecutionPhase.EXECUTION_IN_PROGRESS, InteractionMode.PLAN),
+      executionIn(RunPhase.RUN_IN_PROGRESS, InteractionMode.PLAN),
     ]);
 
     await openSession({ client, sessionId: "ses_1", mode: "", outputMode: "json" });
@@ -100,7 +100,7 @@ describe("openSession", () => {
 
   it("an explicit --mode outranks the latest turn's plan mode", async () => {
     session.executions.mockResolvedValue([
-      executionIn(ExecutionPhase.EXECUTION_IN_PROGRESS, InteractionMode.PLAN),
+      executionIn(RunPhase.RUN_IN_PROGRESS, InteractionMode.PLAN),
     ]);
 
     await openSession({ client, sessionId: "ses_1", mode: "agent", outputMode: "json" });
@@ -110,7 +110,7 @@ describe("openSession", () => {
 
   it("continues in the agent default when the latest turn named no mode", async () => {
     session.executions.mockResolvedValue([
-      executionIn(ExecutionPhase.EXECUTION_IN_PROGRESS),
+      executionIn(RunPhase.RUN_IN_PROGRESS),
     ]);
 
     await openSession({ client, sessionId: "ses_1", mode: "", outputMode: "json" });

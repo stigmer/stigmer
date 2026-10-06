@@ -14,8 +14,8 @@ import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   ToolCallSchema,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { McpToolDetail } from "../McpToolDetail";
 import { ToolArgsView } from "../ToolArgsView";
 import { ToolCallDetail } from "../ToolCallDetail";

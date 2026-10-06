@@ -1,6 +1,6 @@
-import type { AgentExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { ExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import type { AgentRunSummary } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { RunSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 
 /**
  * Unified dashboard summary combining operational metrics from both
@@ -26,9 +26,9 @@ export interface DashboardSummary {
    */
   readonly totalCostUsd: number;
   /** Agent-side execution summary for per-source breakdown in tooltips. */
-  readonly agent: AgentExecutionSummary | null;
+  readonly agent: AgentRunSummary | null;
   /** Workflow-side execution summary for per-source breakdown in tooltips. */
-  readonly workflow: ExecutionSummary | null;
+  readonly workflow: RunSummary | null;
   /** Org-level usage report for cost details. */
   readonly orgUsage: GetOrgUsageReportOutput | null;
 }

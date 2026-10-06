@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useMemo, type ReactNode } from "react";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { WorkflowExecutionPhaseBadge } from "./WorkflowExecutionPhaseBadge.js";
 import type { UseWorkflowExecutionActionsReturn } from "./useWorkflowExecutionActions.js";
@@ -11,7 +11,7 @@ import { formatDuration, formatMicroUsd } from "./format-utils.js";
 
 /** Props for {@link WorkflowExecutionHeader}. */
 export interface WorkflowExecutionHeaderProps {
-  readonly execution: WorkflowExecution;
+  readonly execution: WorkflowRun;
   readonly streamState: WorkflowEventStreamState;
   readonly costSummary: DerivedCostSummary;
   readonly actions: UseWorkflowExecutionActionsReturn;
@@ -30,9 +30,9 @@ export interface WorkflowExecutionHeaderProps {
   readonly className?: string;
 }
 
-const RUNNING_PHASES = new Set<ExecutionPhase>([
-  ExecutionPhase.EXECUTION_PENDING,
-  ExecutionPhase.EXECUTION_IN_PROGRESS,
+const RUNNING_PHASES = new Set<RunPhase>([
+  RunPhase.RUN_PENDING,
+  RunPhase.RUN_IN_PROGRESS,
 ]);
 
 /**
@@ -44,11 +44,11 @@ const RUNNING_PHASES = new Set<ExecutionPhase>([
  * - Paused: Resume, Cancel
  * - Failed: Recover
  */
-const TERMINAL_PHASES = new Set<ExecutionPhase>([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
+const TERMINAL_PHASES = new Set<RunPhase>([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
 ]);
 
 export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
@@ -62,7 +62,7 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
   headerActions,
   className,
 }: WorkflowExecutionHeaderProps) {
-  const phase = execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  const phase = execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   const name = execution.metadata?.name ?? execution.metadata?.id ?? "Execution";
   const startedAt = execution.status?.startedAt ?? "";
   const completedAt = execution.status?.completedAt ?? "";
@@ -80,8 +80,8 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
   }, [costSummary.costConsumedMicros]);
 
   const isRunning = RUNNING_PHASES.has(phase);
-  const isPaused = phase === ExecutionPhase.EXECUTION_PAUSED;
-  const isFailed = phase === ExecutionPhase.EXECUTION_FAILED;
+  const isPaused = phase === RunPhase.RUN_PAUSED;
+  const isFailed = phase === RunPhase.RUN_FAILED;
   const isLive =
     streamState.stage === "streaming" ||
     streamState.stage === "connecting" ||

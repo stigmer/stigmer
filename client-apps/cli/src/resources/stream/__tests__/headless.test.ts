@@ -6,27 +6,27 @@ import { create } from "@bufbuild/protobuf";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
 import {
   ApprovalAction,
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { ApprovalNeededEvent, StreamEvent } from "../events.js";
 import { type HeadlessRenderer, runHeadlessStream, SUBSCRIPTION_DRAIN_GRACE_MS } from "../headless.js";
 
-function snapshot(phase: ExecutionPhase, opts: { waiting?: boolean } = {}): AgentExecution {
+function snapshot(phase: RunPhase, opts: { waiting?: boolean } = {}): AgentRun {
   const toolCalls = opts.waiting
     ? [create(ToolCallSchema, { id: "t1", name: "delete", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL })]
     : [];
-  return create(AgentExecutionSchema, {
-    status: create(AgentExecutionStatusSchema, {
+  return create(AgentRunSchema, {
+    status: create(AgentRunStatusSchema, {
       phase,
       messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "hi", toolCalls })],
       pendingApprovals: opts.waiting ? [create(PendingApprovalSchema, { toolCallId: "t1", toolName: "delete" })] : [],
@@ -34,7 +34,7 @@ function snapshot(phase: ExecutionPhase, opts: { waiting?: boolean } = {}): Agen
   });
 }
 
-function source(snapshots: AgentExecution[]): (signal: AbortSignal) => AsyncIterable<AgentExecution> {
+function source(snapshots: AgentRun[]): (signal: AbortSignal) => AsyncIterable<AgentRun> {
   return async function* (signal: AbortSignal) {
     for (const s of snapshots) {
       if (signal.aborted) throw new DOMException("Aborted", "AbortError");
@@ -58,7 +58,7 @@ describe("runHeadlessStream", () => {
   it("drives to a terminal done and returns the phase", async () => {
     const renderer = new RecordingRenderer();
     const result = await runHeadlessStream({
-      subscribe: source([snapshot(ExecutionPhase.EXECUTION_IN_PROGRESS), snapshot(ExecutionPhase.EXECUTION_COMPLETED)]),
+      subscribe: source([snapshot(RunPhase.RUN_IN_PROGRESS), snapshot(RunPhase.RUN_COMPLETED)]),
       submitApproval: async () => {},
       renderer,
       sessionId: "ses_1",
@@ -73,8 +73,8 @@ describe("runHeadlessStream", () => {
     const submitted: Array<{ id: string; action: ApprovalAction }> = [];
     const result = await runHeadlessStream({
       subscribe: source([
-        snapshot(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, { waiting: true }),
-        snapshot(ExecutionPhase.EXECUTION_COMPLETED),
+        snapshot(RunPhase.RUN_WAITING_FOR_APPROVAL, { waiting: true }),
+        snapshot(RunPhase.RUN_COMPLETED),
       ]),
       submitApproval: async (id, action) => void submitted.push({ id, action }),
       renderer,
@@ -90,8 +90,8 @@ describe("runHeadlessStream", () => {
     const renderer = new RecordingRenderer();
     const result = await runHeadlessStream({
       subscribe: source([
-        snapshot(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, { waiting: true }),
-        snapshot(ExecutionPhase.EXECUTION_COMPLETED),
+        snapshot(RunPhase.RUN_WAITING_FOR_APPROVAL, { waiting: true }),
+        snapshot(RunPhase.RUN_COMPLETED),
       ]),
       submitApproval: async () => {
         throw new ConnectError("nope", Code.InvalidArgument);
@@ -110,13 +110,13 @@ describe("runHeadlessStream", () => {
   // each way out: a terminal snapshot, a permanent submit failure, a stream
   // that ends without one.
   it.each([
-    ["a terminal snapshot", [snapshot(ExecutionPhase.EXECUTION_COMPLETED)], false],
+    ["a terminal snapshot", [snapshot(RunPhase.RUN_COMPLETED)], false],
     [
       "a permanent submit failure",
-      [snapshot(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, { waiting: true })],
+      [snapshot(RunPhase.RUN_WAITING_FOR_APPROVAL, { waiting: true })],
       true,
     ],
-    ["a stream that ends first", [snapshot(ExecutionPhase.EXECUTION_IN_PROGRESS)], false],
+    ["a stream that ends first", [snapshot(RunPhase.RUN_IN_PROGRESS)], false],
   ])("cancels the subscription once the drive ends on %s", async (_label, snapshots, submitFails) => {
     let given: AbortSignal | undefined;
     const inner = source(snapshots);
@@ -140,8 +140,8 @@ describe("runHeadlessStream", () => {
     let readToEnd = false;
     const result = await runHeadlessStream({
       subscribe: async function* () {
-        yield snapshot(ExecutionPhase.EXECUTION_COMPLETED);
-        yield snapshot(ExecutionPhase.EXECUTION_COMPLETED);
+        yield snapshot(RunPhase.RUN_COMPLETED);
+        yield snapshot(RunPhase.RUN_COMPLETED);
         readToEnd = true;
       },
       submitApproval: async () => {},
@@ -165,7 +165,7 @@ describe("runHeadlessStream", () => {
       const running = runHeadlessStream({
         subscribe: async function* (signal) {
           given = signal;
-          yield snapshot(ExecutionPhase.EXECUTION_COMPLETED);
+          yield snapshot(RunPhase.RUN_COMPLETED);
           await new Promise((_resolve, reject) =>
             signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true }),
           );
@@ -189,7 +189,7 @@ describe("runHeadlessStream", () => {
     const running = runHeadlessStream({
       subscribe: async function* (signal) {
         given = signal;
-        yield snapshot(ExecutionPhase.EXECUTION_IN_PROGRESS);
+        yield snapshot(RunPhase.RUN_IN_PROGRESS);
         await new Promise((_resolve, reject) =>
           signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true }),
         );
@@ -210,7 +210,7 @@ describe("runHeadlessStream", () => {
     const controller = new AbortController();
     controller.abort();
     const result = await runHeadlessStream({
-      subscribe: source([snapshot(ExecutionPhase.EXECUTION_IN_PROGRESS)]),
+      subscribe: source([snapshot(RunPhase.RUN_IN_PROGRESS)]),
       submitApproval: async () => {},
       renderer: new RecordingRenderer(),
       sessionId: "",

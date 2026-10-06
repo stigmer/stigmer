@@ -17,14 +17,14 @@
 // for the user to resolve out-of-band via `stigmer execution approve`.
 
 import { create } from "@bufbuild/protobuf";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { WorkflowExecution, WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { WorkflowRun, WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import {
   SubmitWorkflowApprovalInputSchema,
   SubscribeEventsRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { shouldColorize, type Styler, styler } from "../../output/style.js";
 import { calculateDuration } from "../execution-format.js";
@@ -70,7 +70,7 @@ export interface WorkflowStreamStreams {
 export async function streamWorkflowExecution(
   deps: WorkflowStreamDeps,
   streams: WorkflowStreamStreams = defaultStreams(),
-): Promise<WorkflowExecution> {
+): Promise<WorkflowRun> {
   const controller = new AbortController();
   const onSignal = (): void => controller.abort();
   process.once("SIGINT", onSignal);
@@ -81,8 +81,8 @@ export async function streamWorkflowExecution(
   let ended = false;
   let grace: ReturnType<typeof setTimeout> | undefined;
   try {
-    const stream = deps.client.workflowExecution.subscribeEvents(
-      create(SubscribeEventsRequestSchema, { executionId: deps.executionId }),
+    const stream = deps.client.workflowRun.subscribeEvents(
+      create(SubscribeEventsRequestSchema, { runId: deps.executionId }),
       AbortSignal.any([controller.signal, subscription.signal]),
     );
     for await (const event of stream) {
@@ -107,7 +107,7 @@ export async function streamWorkflowExecution(
   return runWorkflowEpilogue(deps.client, deps.executionId, streams);
 }
 
-function renderEvent(event: WorkflowExecutionEvent, mode: RunOutputMode, streams: WorkflowStreamStreams): void {
+function renderEvent(event: WorkflowRunEvent, mode: RunOutputMode, streams: WorkflowStreamStreams): void {
   if (mode === "json") {
     streams.data(`${JSON.stringify(workflowEventToNdjson(event))}\n`);
     return;
@@ -119,7 +119,7 @@ function renderEvent(event: WorkflowExecutionEvent, mode: RunOutputMode, streams
 // failures); without one, print the manual escape hatch and leave it for the user.
 // Each tool_call_id is handled once (mirrors Go's promptedToolCallIDs guard).
 async function maybeResolveApproval(
-  event: WorkflowExecutionEvent,
+  event: WorkflowRunEvent,
   deps: WorkflowStreamDeps,
   streams: WorkflowStreamStreams,
   resolved: Set<string>,
@@ -138,9 +138,9 @@ async function maybeResolveApproval(
   }
 
   await retryWithBackoff(signal, APPROVAL_RETRY_MAX_ATTEMPTS, APPROVAL_RETRY_BASE_DELAY_MS, async () => {
-    await deps.client.workflowExecution.submitApproval(
+    await deps.client.workflowRun.submitApproval(
       create(SubmitWorkflowApprovalInputSchema, {
-        executionId: deps.executionId,
+        runId: deps.executionId,
         toolCallId,
         action: deps.defaultAction,
       }),
@@ -156,11 +156,11 @@ async function runWorkflowEpilogue(
   client: Stigmer,
   executionId: string,
   streams: WorkflowStreamStreams,
-): Promise<WorkflowExecution> {
-  const exec = await client.workflowExecution.get(executionId);
+): Promise<WorkflowRun> {
+  const exec = await client.workflowRun.get(executionId);
   const style = styler(streams.colorize);
   const status = exec.status;
-  const phase = status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  const phase = status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
 
   streams.status("");
   streams.status(summaryHeadline(phase, status?.error ?? "", style));
@@ -178,15 +178,15 @@ async function runWorkflowEpilogue(
   return exec;
 }
 
-function summaryHeadline(phase: ExecutionPhase, error: string, style: Styler): string {
+function summaryHeadline(phase: RunPhase, error: string, style: Styler): string {
   switch (phase) {
-    case ExecutionPhase.EXECUTION_COMPLETED:
+    case RunPhase.RUN_COMPLETED:
       return style.green("✓ Workflow completed");
-    case ExecutionPhase.EXECUTION_FAILED:
+    case RunPhase.RUN_FAILED:
       return style.red(`✗ Workflow failed${error !== "" ? `: ${error}` : ""}`);
-    case ExecutionPhase.EXECUTION_CANCELLED:
+    case RunPhase.RUN_CANCELLED:
       return style.yellow("Workflow cancelled");
-    case ExecutionPhase.EXECUTION_TERMINATED:
+    case RunPhase.RUN_TERMINATED:
       return style.yellow("Workflow terminated");
     default:
       return style.yellow(`Workflow exited (${formatWorkflowPhase(phase)})`);

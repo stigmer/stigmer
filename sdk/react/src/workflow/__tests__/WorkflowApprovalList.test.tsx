@@ -4,9 +4,9 @@ import { create } from "@bufbuild/protobuf";
 import {
   WorkflowPendingApprovalSchema,
   type WorkflowPendingApproval,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ToolKind } from "@stigmer/sdk";
 import { WorkflowApprovalList } from "../WorkflowApprovalList";
 
@@ -32,7 +32,7 @@ function makeGate(overrides?: {
   toolKind?: ToolKind;
 }): WorkflowPendingApproval {
   return create(WorkflowPendingApprovalSchema, {
-    childAgentExecutionId: overrides?.childAgentExecutionId ?? "agx_child_1",
+    childAgentRunId: overrides?.childAgentExecutionId ?? "agx_child_1",
     approval: create(PendingApprovalSchema, {
       toolCallId: overrides?.toolCallId ?? "tc_1",
       toolName: overrides?.toolName ?? "delete_file",
@@ -68,7 +68,7 @@ describe("WorkflowApprovalList rendering", () => {
 
   it("skips a surfaced gate missing its approval payload (nothing to decide)", () => {
     const orphan = create(WorkflowPendingApprovalSchema, {
-      childAgentExecutionId: "agx_orphan",
+      childAgentRunId: "agx_orphan",
       // approval intentionally unset.
     });
     render(

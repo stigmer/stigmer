@@ -2,8 +2,8 @@
 
 import { memo, useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { ListWorkflowExecutionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { ListWorkflowRunsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import { cn } from "@stigmer/theme";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
@@ -15,7 +15,7 @@ import { usePendingApprovals } from "./usePendingApprovals.js";
 import { ExecutionSummaryWidget } from "./ExecutionSummaryWidget.js";
 import { PendingApprovalsWidget } from "./PendingApprovalsWidget.js";
 import { FailedRunsWidget } from "./FailedRunsWidget.js";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 
 export interface WorkflowDashboardProps {
   /** Organization id for scoping the dashboard data (a slug is also accepted). */
@@ -29,7 +29,7 @@ export interface WorkflowDashboardProps {
   readonly className?: string;
 }
 
-const FAILED_LIST_INITIAL: readonly WorkflowExecution[] = [];
+const FAILED_LIST_INITIAL: readonly WorkflowRun[] = [];
 
 /**
  * Composed dashboard widget that aggregates execution KPIs,
@@ -78,21 +78,21 @@ export const WorkflowDashboard = memo(function WorkflowDashboard({
     () =>
       org
         ? async () => {
-            const resp = await stigmer.workflowExecution.list(
-              create(ListWorkflowExecutionsRequestSchema, {
+            const resp = await stigmer.workflowRun.list(
+              create(ListWorkflowRunsRequestSchema, {
                 pageSize: 5,
-                phase: ExecutionPhase.EXECUTION_FAILED,
+                phase: RunPhase.RUN_FAILED,
                 org,
               }),
             );
-            return [...resp.entries] as readonly WorkflowExecution[];
+            return [...resp.entries] as readonly WorkflowRun[];
           }
         : null,
     [stigmer, org],
   );
 
   const { data: failedRuns, isLoading: failedLoading } = useFetch<
-    readonly WorkflowExecution[]
+    readonly WorkflowRun[]
   >(fetchFailedFn, [stigmer, org], FAILED_LIST_INITIAL, {
     refetchInterval: 60_000,
   });

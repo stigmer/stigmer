@@ -17,9 +17,9 @@
  * shape of legacy (pre-stamping) sessions whose flowed edit rows were hidden.
  */
 
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 import { extractFilePath } from "./file-tools.js";
 import { isSecretLikePath } from "./filereview/secret-paths.js";
 import { toolApprovalCategory } from "./tool-kind.js";
@@ -113,7 +113,7 @@ export function stampFlowedFileEditRows(
  * turn's stream), because sub-agent rows lack the top-level pass's shields.
  */
 export function stampFlowedSubAgentFileEditRows(
-  subAgents: readonly SubAgentExecution[],
+  subAgents: readonly SubAgentRun[],
   changeSetId: string,
   priorToolCallIds: ReadonlySet<string>,
   flowed?: (tc: ToolCall) => boolean,
@@ -160,7 +160,7 @@ export function withholdSecretFileContent(tc: ToolCall): boolean {
  */
 export function withholdSecretContentFromMessages(
   messages: readonly AgentMessage[],
-  subAgents?: readonly SubAgentExecution[],
+  subAgents?: readonly SubAgentRun[],
 ): void {
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
@@ -237,7 +237,7 @@ export function isToolCallRowHidden(tc: ToolCall): boolean {
  * none; Cursor clones them in) — the snapshot reflects whatever is present.
  */
 export function collectSubAgentToolCallIds(
-  subAgents: readonly SubAgentExecution[],
+  subAgents: readonly SubAgentRun[],
 ): Set<string> {
   const ids = new Set<string>();
   for (const sa of subAgents) {

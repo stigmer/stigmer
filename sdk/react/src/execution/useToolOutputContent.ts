@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ToolCallOutputRef } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { ToolCallOutputRef } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { useArtifactContent } from "./useArtifactContent.js";
 import { execIdFromStorageKey } from "./useFileChangeContent.js";
 

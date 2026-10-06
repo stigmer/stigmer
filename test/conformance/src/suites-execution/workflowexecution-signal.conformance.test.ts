@@ -55,9 +55,9 @@
 //   negatives (only PENDING/IN_PROGRESS are signalable).
 import { Code } from "@connectrpc/connect";
 import {
-  ExecutionPhase,
+  RunPhase,
   WorkflowTaskStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -117,7 +117,7 @@ describe("WorkflowExecution sendSignal — happy path", () => {
 
     // Deliver the matching signal with a payload.
     await clients.workflowExecutionCommand.sendSignal({
-      executionId,
+      runId: executionId,
       signalName: SIGNAL_NAME,
       payload: { message: "hello from conformance" },
     });
@@ -126,8 +126,8 @@ describe("WorkflowExecution sendSignal — happy path", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `the signaled run should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `the signaled run should COMPLETE; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
     expect(taskByName(final, LISTEN_TASK_NAME)?.status, "the listen task completes after the signal").toBe(
       WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED,
     );
@@ -155,7 +155,7 @@ describe("WorkflowExecution sendSignal — idempotency_key dedupe", () => {
     // buffers it and the run stays gated (see the header for why this shape).
     const bufferedSignal = "conformance-dedupe-buffered";
     await clients.workflowExecutionCommand.sendSignal({
-      executionId,
+      runId: executionId,
       signalName: bufferedSignal,
       idempotencyKey: "dedupe-evt-1",
     });
@@ -164,7 +164,7 @@ describe("WorkflowExecution sendSignal — idempotency_key dedupe", () => {
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.sendSignal({
-          executionId,
+          runId: executionId,
           signalName: bufferedSignal,
           idempotencyKey: "dedupe-evt-1",
         }),
@@ -174,7 +174,7 @@ describe("WorkflowExecution sendSignal — idempotency_key dedupe", () => {
 
     // A distinct key passes: the matching gate signal completes the run.
     await clients.workflowExecutionCommand.sendSignal({
-      executionId,
+      runId: executionId,
       signalName: SIGNAL_NAME,
       idempotencyKey: "dedupe-evt-2",
     });
@@ -182,7 +182,7 @@ describe("WorkflowExecution sendSignal — idempotency_key dedupe", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `the run signaled under a distinct key should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `the run signaled under a distinct key should COMPLETE; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
   });
 });

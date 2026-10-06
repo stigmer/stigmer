@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { ExecutionPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { RunPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useDashboardFailedRuns } from "../useDashboardFailedRuns";
@@ -50,11 +50,11 @@ describe("useDashboardFailedRuns", () => {
     // orgs' failures.
     const agentRequest = agentList.mock.calls[0][0];
     expect(agentRequest.org).toBe("acme");
-    expect(agentRequest.phase).toBe(AgentPhase.EXECUTION_FAILED);
+    expect(agentRequest.phase).toBe(AgentPhase.RUN_FAILED);
 
     const workflowRequest = workflowList.mock.calls[0][0];
     expect(workflowRequest.org).toBe("acme");
-    expect(workflowRequest.phase).toBe(WorkflowPhase.EXECUTION_FAILED);
+    expect(workflowRequest.phase).toBe(WorkflowPhase.RUN_FAILED);
   });
 
   it("does not fetch until an org is available", async () => {

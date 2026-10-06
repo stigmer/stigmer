@@ -1,8 +1,8 @@
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   WorkflowTaskStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 
 /**
  * A flattened, UI-ready row derived from a {@link WorkflowExecution}.
@@ -16,7 +16,7 @@ import {
 export interface ExecutionRow {
   readonly id: string;
   readonly name: string;
-  readonly phase: ExecutionPhase;
+  readonly phase: RunPhase;
   readonly startedAt: Date | null;
   readonly completedAt: Date | null;
   /** Milliseconds between started_at and completed_at. `null` when not yet completed or timestamps missing. */
@@ -37,7 +37,7 @@ export interface ExecutionRow {
   readonly hasHumanWait: boolean;
   readonly error: string | null;
   /** Reference to the original execution for downstream consumers that need the full object. */
-  readonly _source: WorkflowExecution;
+  readonly _source: WorkflowRun;
 }
 
 const BIGINT_ZERO = BigInt(0);
@@ -69,7 +69,7 @@ function extractRetryCount(metadata: { fields?: Record<string, unknown> } | unde
  * Pure function with zero side effects. Computes duration, identifies
  * the failed/current task, counts retries, and normalizes bigint fields.
  */
-export function deriveExecutionRow(exec: WorkflowExecution): ExecutionRow {
+export function deriveExecutionRow(exec: WorkflowRun): ExecutionRow {
   const meta = exec.metadata;
   const status = exec.status;
   const tasks = status?.tasks ?? [];
@@ -80,7 +80,7 @@ export function deriveExecutionRow(exec: WorkflowExecution): ExecutionRow {
   let durationMs: number | null = null;
   if (startedAt && completedAt) {
     durationMs = completedAt.getTime() - startedAt.getTime();
-  } else if (startedAt && status?.phase === ExecutionPhase.EXECUTION_IN_PROGRESS) {
+  } else if (startedAt && status?.phase === RunPhase.RUN_IN_PROGRESS) {
     durationMs = Date.now() - startedAt.getTime();
   }
 
@@ -114,7 +114,7 @@ export function deriveExecutionRow(exec: WorkflowExecution): ExecutionRow {
   return {
     id: meta?.id ?? "",
     name: meta?.name || meta?.slug || "",
-    phase: status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+    phase: status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
     startedAt,
     completedAt,
     durationMs,
@@ -137,7 +137,7 @@ export function deriveExecutionRow(exec: WorkflowExecution): ExecutionRow {
  * Batch-derives execution rows from a list of raw executions.
  * Preserves input order.
  */
-export function deriveExecutionRows(executions: readonly WorkflowExecution[]): ExecutionRow[] {
+export function deriveExecutionRows(executions: readonly WorkflowRun[]): ExecutionRow[] {
   return executions.map(deriveExecutionRow);
 }
 
@@ -187,7 +187,7 @@ export function sortExecutionRows(
 // ---------------------------------------------------------------------------
 
 export interface ExecutionClientFilters {
-  readonly phases?: readonly ExecutionPhase[];
+  readonly phases?: readonly RunPhase[];
   readonly minDurationMs?: number;
   readonly maxDurationMs?: number;
   readonly minCostMicros?: bigint;

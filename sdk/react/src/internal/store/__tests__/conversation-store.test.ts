@@ -1,15 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ConversationStore, type StreamState } from "../conversation-store";
 
 // ---------------------------------------------------------------------------
@@ -17,11 +17,11 @@ import { ConversationStore, type StreamState } from "../conversation-store";
 // ---------------------------------------------------------------------------
 
 function makeExec(
-  phase: ExecutionPhase,
+  phase: RunPhase,
   messages?: Array<{ type: MessageType; content: string }>,
-): AgentExecution {
-  const exec = create(AgentExecutionSchema);
-  const status = create(AgentExecutionStatusSchema);
+): AgentRun {
+  const exec = create(AgentRunSchema);
+  const status = create(AgentRunStatusSchema);
   status.phase = phase;
   if (messages) {
     status.messages = messages.map((m) => {
@@ -90,7 +90,7 @@ describe("ConversationStore", () => {
       const listener = vi.fn();
       store.subscribe(listener);
 
-      const snapshot = makeExec(ExecutionPhase.EXECUTION_IN_PROGRESS, [
+      const snapshot = makeExec(RunPhase.RUN_IN_PROGRESS, [
         { type: MessageType.MESSAGE_AI, content: "hello" },
       ]);
       store.ingestSnapshot(snapshot);
@@ -101,7 +101,7 @@ describe("ConversationStore", () => {
 
     it("does not notify when structural sharing produces the same reference", () => {
       const store = new ConversationStore();
-      const snapshot = makeExec(ExecutionPhase.EXECUTION_IN_PROGRESS, [
+      const snapshot = makeExec(RunPhase.RUN_IN_PROGRESS, [
         { type: MessageType.MESSAGE_AI, content: "hello" },
       ]);
       store.ingestSnapshot(snapshot);
@@ -109,7 +109,7 @@ describe("ConversationStore", () => {
       const listener = vi.fn();
       store.subscribe(listener);
 
-      const identical = makeExec(ExecutionPhase.EXECUTION_IN_PROGRESS, [
+      const identical = makeExec(RunPhase.RUN_IN_PROGRESS, [
         { type: MessageType.MESSAGE_AI, content: "hello" },
       ]);
       store.ingestSnapshot(identical);
@@ -120,7 +120,7 @@ describe("ConversationStore", () => {
 
     it("applies structural sharing: preserves unchanged message refs", () => {
       const store = new ConversationStore();
-      const snap1 = makeExec(ExecutionPhase.EXECUTION_IN_PROGRESS, [
+      const snap1 = makeExec(RunPhase.RUN_IN_PROGRESS, [
         { type: MessageType.MESSAGE_HUMAN, content: "question" },
         { type: MessageType.MESSAGE_AI, content: "partial" },
       ]);
@@ -129,7 +129,7 @@ describe("ConversationStore", () => {
       const prevMsgs = store.getExecution()!.status!.messages;
       const humanMsg = prevMsgs[0];
 
-      const snap2 = makeExec(ExecutionPhase.EXECUTION_IN_PROGRESS, [
+      const snap2 = makeExec(RunPhase.RUN_IN_PROGRESS, [
         { type: MessageType.MESSAGE_HUMAN, content: "question" },
         { type: MessageType.MESSAGE_AI, content: "partial answer growing" },
       ]);
@@ -255,7 +255,7 @@ describe("ConversationStore", () => {
     it("clears execution and stream state", () => {
       const store = new ConversationStore();
       store.ingestSnapshot(
-        makeExec(ExecutionPhase.EXECUTION_IN_PROGRESS, [
+        makeExec(RunPhase.RUN_IN_PROGRESS, [
           { type: MessageType.MESSAGE_AI, content: "hi" },
         ]),
       );
@@ -284,7 +284,7 @@ describe("ConversationStore", () => {
   describe("getExecution / getStreamState referential stability", () => {
     it("getExecution returns the same reference across calls when unchanged", () => {
       const store = new ConversationStore();
-      const snap = makeExec(ExecutionPhase.EXECUTION_IN_PROGRESS);
+      const snap = makeExec(RunPhase.RUN_IN_PROGRESS);
       store.ingestSnapshot(snap);
 
       const ref1 = store.getExecution();

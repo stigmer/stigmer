@@ -17,10 +17,10 @@ import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/status_pb";
 import {
-  WorkflowExecutionSchema,
-  WorkflowExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/spec_pb";
+  WorkflowRunSchema,
+  WorkflowRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
@@ -88,8 +88,8 @@ export function retiredWorkflowExecutionRow(options: {
   readonly metadata: MetadataInit;
   readonly instanceId: string;
   readonly callbackToken?: Uint8Array;
-  readonly spec?: MessageInitShape<typeof WorkflowExecutionSpecSchema>;
-  readonly status?: MessageInitShape<typeof WorkflowExecutionStatusSchema>;
+  readonly spec?: MessageInitShape<typeof WorkflowRunSpecSchema>;
+  readonly status?: MessageInitShape<typeof WorkflowRunStatusSchema>;
 }): Uint8Array {
   const spec = new BinaryWriter();
   if (options.instanceId !== "") {
@@ -97,8 +97,8 @@ export function retiredWorkflowExecutionRow(options: {
   }
   spec.raw(
     toBinary(
-      WorkflowExecutionSpecSchema,
-      create(WorkflowExecutionSpecSchema, options.spec ?? {}),
+      WorkflowRunSpecSchema,
+      create(WorkflowRunSpecSchema, options.spec ?? {}),
     ),
   );
   if (options.callbackToken !== undefined) {
@@ -118,8 +118,8 @@ export function retiredWorkflowExecutionRow(options: {
       .tag(5, WireType.LengthDelimited)
       .bytes(
         toBinary(
-          WorkflowExecutionStatusSchema,
-          create(WorkflowExecutionStatusSchema, options.status),
+          WorkflowRunStatusSchema,
+          create(WorkflowRunStatusSchema, options.status),
         ),
       );
   }
@@ -128,11 +128,11 @@ export function retiredWorkflowExecutionRow(options: {
 
 /** The current encoding of a run (the envelope retiredWorkflowExecutionRow writes), for byte comparisons. */
 export function workflowExecutionBytes(
-  init: MessageInitShape<typeof WorkflowExecutionSchema>,
+  init: MessageInitShape<typeof WorkflowRunSchema>,
 ): Uint8Array {
   return toBinary(
-    WorkflowExecutionSchema,
-    create(WorkflowExecutionSchema, {
+    WorkflowRunSchema,
+    create(WorkflowRunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "WorkflowExecution",
       ...init,

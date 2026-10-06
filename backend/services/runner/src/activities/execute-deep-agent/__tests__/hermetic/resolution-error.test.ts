@@ -32,8 +32,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -101,7 +101,7 @@ describe("ExecuteDeepAgent hermetic — resolution error", () => {
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
     expect(slim.phase).toBe("EXECUTION_FAILED");
     expect(() => JSON.stringify(slim), "the return is serializable").not.toThrow();
-    expect(record.persistedPhases, "the one and only full persist").toEqual([ExecutionPhase.EXECUTION_FAILED]);
+    expect(record.persistedPhases, "the one and only full persist").toEqual([RunPhase.RUN_FAILED]);
 
     // ── Assert: the copy ─────────────────────────────────────────────────────
     const final = record.lastFullStatus!;
@@ -120,7 +120,7 @@ describe("ExecuteDeepAgent hermetic — resolution error", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/resolution-error.status.json");
   });
 });

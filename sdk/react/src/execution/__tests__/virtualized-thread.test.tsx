@@ -3,16 +3,16 @@ import { render, screen, cleanup } from "@testing-library/react";
 import React from "react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   buildThreadItems,
   ThreadItemRenderer,
@@ -112,18 +112,18 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 function makeExecution(id: string, specMessage: string, aiContent: string) {
-  const exec = create(AgentExecutionSchema);
+  const exec = create(AgentRunSchema);
 
   const meta = create(ApiResourceMetadataSchema);
   meta.id = id;
   exec.metadata = meta;
 
-  const spec = create(AgentExecutionSpecSchema);
+  const spec = create(AgentRunSpecSchema);
   spec.message = specMessage;
   exec.spec = spec;
 
-  const status = create(AgentExecutionStatusSchema);
-  status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+  const status = create(AgentRunStatusSchema);
+  status.phase = RunPhase.RUN_COMPLETED;
   const humanMsg = create(AgentMessageSchema);
   humanMsg.type = MessageType.MESSAGE_HUMAN;
   humanMsg.content = specMessage;
@@ -178,7 +178,7 @@ describe("ThreadItemRenderer", () => {
   it("renders a phase badge item", () => {
     const item: ThreadItem = {
       kind: "phase-badge",
-      phase: ExecutionPhase.EXECUTION_FAILED,
+      phase: RunPhase.RUN_FAILED,
       key: "phase-1",
     };
 

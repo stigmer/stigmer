@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import { GetArtifactContentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { GetArtifactContentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -154,10 +154,10 @@ export function useArtifactContent(
   const { data, isLoading, isRefetching, error, refetch } = useFetch(
     executionId && storageKey
       ? () =>
-          stigmer.agentExecution
+          stigmer.agentRun
             .getArtifactContent(
               create(GetArtifactContentRequestSchema, {
-                executionId,
+                runId: executionId,
                 storageKey,
                 ...(entryPath ? { entryPath } : {}),
               }),

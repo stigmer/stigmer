@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 // Mock the child execution stream: each child id maps to a canned execution.
 const mockExecutions: Record<string, any> = {};

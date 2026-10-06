@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
-import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -95,10 +95,10 @@ export function useArtifactDownloadUrl(
   const { data, isLoading, isRefetching, error, refetch } = useFetch(
     active
       ? () =>
-          stigmer.agentExecution
+          stigmer.agentRun
             .getArtifactDownloadUrl(
               create(GetArtifactDownloadUrlRequestSchema, {
-                executionId: executionId!,
+                runId: executionId!,
                 storageKey: storageKey!,
               }),
             )

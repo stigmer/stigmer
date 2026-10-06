@@ -16,20 +16,20 @@ import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
-  AgentExecutionListSchema,
+  AgentRunListSchema,
   GetArtifactContentResponseSchema,
   type GetArtifactContentRequest,
   type GetArtifactContentResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import {
@@ -59,12 +59,12 @@ function session() {
 
 /** Turn 1: prompt echo dedupe, thinking, tool call with args + inline
  * result + duration, offloaded text output, image output, raw system. */
-function exec1(): AgentExecution {
-  return create(AgentExecutionSchema, {
+function exec1(): AgentRun {
+  return create(AgentRunSchema, {
     metadata: { id: "aex_01a" },
     spec: { target: { case: "sessionId", value: "ses_01" }, message: "Why is CI red?" },
     status: {
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       startedAt: "2026-08-20T10:00:00Z",
       completedAt: "2026-08-20T10:01:00Z",
       messages: [
@@ -135,25 +135,25 @@ function exec1(): AgentExecution {
 }
 
 /** Superseded by exec3's edit-and-resubmit — excluded by default. */
-function exec2(): AgentExecution {
-  return create(AgentExecutionSchema, {
+function exec2(): AgentRun {
+  return create(AgentRunSchema, {
     metadata: { id: "aex_01b" },
     spec: { target: { case: "sessionId", value: "ses_01" }, message: "old prompt" },
-    status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
+    status: { phase: RunPhase.RUN_COMPLETED },
   });
 }
 
 /** Turn 2: edit-and-resubmit successor with a sub-agent delegation. */
-function exec3(): AgentExecution {
-  return create(AgentExecutionSchema, {
+function exec3(): AgentRun {
+  return create(AgentRunSchema, {
     metadata: { id: "aex_01c" },
     spec: {
       target: { case: "sessionId", value: "ses_01" },
       message: "edited prompt",
-      supersedesExecutionId: "aex_01b",
+      supersedesRunId: "aex_01b",
     },
     status: {
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       startedAt: "2026-08-20T11:00:00Z",
       messages: [
         {
@@ -168,7 +168,7 @@ function exec3(): AgentExecution {
           ],
         },
       ],
-      subAgentExecutions: [
+      subAgentRuns: [
         {
           id: "tc_sa",
           name: "explore",
@@ -206,8 +206,8 @@ function exec3(): AgentExecution {
 }
 
 /** Turn 3: an in-flight Build-from-plan turn. */
-function exec4(): AgentExecution {
-  return create(AgentExecutionSchema, {
+function exec4(): AgentRun {
+  return create(AgentRunSchema, {
     metadata: { id: "aex_01d" },
     spec: {
       target: { case: "sessionId", value: "ses_01" },
@@ -215,14 +215,14 @@ function exec4(): AgentExecution {
       buildFromPlan: true,
     },
     status: {
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       startedAt: "2026-08-20T12:00:00Z",
       messages: [{ type: MessageType.MESSAGE_AI, content: "Working on it." }],
     },
   });
 }
 
-function allExecutions(): AgentExecution[] {
+function allExecutions(): AgentRun[] {
   // Deliberately scrambled: assembly must restore ULID order.
   return [exec3(), exec1(), exec4(), exec2()];
 }
@@ -298,10 +298,10 @@ describe("assembleSessionTranscript", () => {
   });
 
   it("suppresses the 'execute' placeholder prompt", () => {
-    const exec = create(AgentExecutionSchema, {
+    const exec = create(AgentRunSchema, {
       metadata: { id: "aex_x" },
       spec: { target: { case: "sessionId", value: "ses_01" }, message: "execute" },
-      status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
+      status: { phase: RunPhase.RUN_COMPLETED },
     });
     const t = assembleSessionTranscript(session(), [exec]);
     expect(t.turns[0].userPrompt).toBeNull();
@@ -366,7 +366,7 @@ describe("resolveOffloadedOutputs", () => {
     const subAgentRequest = requests.find(
       (r) => r.storageKey === "artifacts/aex_01c/toolcalls/tc_sa_1.txt",
     );
-    expect(subAgentRequest?.executionId).toBe("aex_01c");
+    expect(subAgentRequest?.runId).toBe("aex_01c");
   });
 
   it("never fetches image refs, but records them for the serializers", async () => {
@@ -422,7 +422,7 @@ describe("resolveOffloadedOutputs", () => {
     // fetch on a deferred so the in-flight count is observable, then releases
     // them one at a time; the pool must never exceed two and must drain all six.
     const keys = Array.from({ length: 6 }, (_, i) => `artifacts/aex_pool/toolcalls/tc_${i}.txt`);
-    const execution = create(AgentExecutionSchema, {
+    const execution = create(AgentRunSchema, {
       metadata: { id: "aex_pool" },
       status: {
         messages: [
@@ -503,7 +503,7 @@ describe("fetchSessionTranscript", () => {
         ...artifacts.client.agentExecution,
         listBySession: () =>
           Promise.resolve(
-            create(AgentExecutionListSchema, {
+            create(AgentRunListSchema, {
               totalPages: overrides?.totalPages ?? 1,
               entries: allExecutions(),
             }),
@@ -602,11 +602,11 @@ describe("transcriptToMarkdown", () => {
   });
 
   it("sizes fences past backtick runs in the content", () => {
-    const exec = create(AgentExecutionSchema, {
+    const exec = create(AgentRunSchema, {
       metadata: { id: "aex_x" },
       spec: { target: { case: "sessionId", value: "ses_01" }, message: "prompt" },
       status: {
-        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        phase: RunPhase.RUN_COMPLETED,
         messages: [
           {
             type: MessageType.MESSAGE_AI,

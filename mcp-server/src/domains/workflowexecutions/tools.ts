@@ -8,12 +8,12 @@
 
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
   type GetEventLogRequestSchema,
   GetEventLogResponseSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 import { z } from "zod";
 
 import { resolveToken, withClient, type BackendTarget } from "../client.js";
@@ -206,13 +206,13 @@ async function getWorkflowExecution(
     throw new Error("execution_id is required");
   }
   return withClient(
-    WorkflowExecutionQueryController,
+    WorkflowRunQueryController,
     serverAddress,
     token,
     async (client, callOptions) => {
       try {
         const execution = await client.get({ value: executionId }, callOptions);
-        return toProtoJson(WorkflowExecutionSchema, execution);
+        return toProtoJson(WorkflowRunSchema, execution);
       } catch (err) {
         throw rpcError(err, `workflow execution "${executionId}"`);
       }
@@ -236,12 +236,12 @@ async function getWorkflowExecutionEvents(
     throw new Error("execution_id is required");
   }
   return withClient(
-    WorkflowExecutionQueryController,
+    WorkflowRunQueryController,
     serverAddress,
     token,
     async (client, callOptions) => {
       const req: MessageInitShape<typeof GetEventLogRequestSchema> = {
-        executionId: args.executionId,
+        runId: args.executionId,
         taskName: args.taskName ?? "",
       };
       // Forward page_size only when set, letting the server apply its default.

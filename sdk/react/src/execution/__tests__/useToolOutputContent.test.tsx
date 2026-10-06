@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import type { UseArtifactContentReturn } from "../useArtifactContent";
 
 // Mock the underlying content fetch so the test asserts the derivation logic

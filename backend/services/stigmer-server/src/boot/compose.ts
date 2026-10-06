@@ -57,14 +57,14 @@ import { registerAgentServices } from "../domain/agent/controller.js";
 import {
   newConfigFromEnv,
   ROUTING_SESSION,
-} from "../domain/agentexecution/temporal/config.js";
-import { registerAgentExecutionServices } from "../domain/agentexecution/controller.js";
+} from "../domain/agentrun/temporal/config.js";
+import { registerAgentExecutionServices } from "../domain/agentrun/controller.js";
 import {
   LocalArtifactStorage,
   newArtifactStorage,
 } from "../artifactstorage/artifact-storage.js";
 import type { ArtifactStorage } from "../artifactstorage/artifact-storage.js";
-import { StreamBroker } from "../domain/agentexecution/stream-broker.js";
+import { StreamBroker } from "../domain/agentrun/stream-broker.js";
 import { newExecutionEngineStateProvider } from "../temporal/agentexecution/engine-client.js";
 import { newMcpServerEngineStateProvider } from "../temporal/mcpserver/engine-client.js";
 import { newAgentExecutionWorkerFactory } from "../temporal/agentexecution/worker.js";
@@ -232,12 +232,12 @@ import {
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import { ModelRegistryStore } from "../domain/workflow/registry/model-registry-store.js";
 import { InProcessValidator } from "../domain/workflow/validation/validator.js";
-import { registerWorkflowExecutionServices } from "../domain/workflowexecution/controller.js";
-import { StreamBroker as WorkflowExecutionStreamBroker } from "../domain/workflowexecution/stream-broker.js";
+import { registerWorkflowExecutionServices } from "../domain/workflowrun/controller.js";
+import { StreamBroker as WorkflowExecutionStreamBroker } from "../domain/workflowrun/stream-broker.js";
 import {
   newWorkflowExecutionConfigFromEnv,
   WORKFLOW_ROUTING_EXECUTION,
-} from "../domain/workflowexecution/temporal/config.js";
+} from "../domain/workflowrun/temporal/config.js";
 import { builtInSandboxProvisionerFactories } from "../sandbox/builtins.js";
 import { newSandboxLane } from "../sandbox/lane.js";
 import {

@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState, useCallback } from "react";
 import { cn } from "@stigmer/theme";
-import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { formatDuration, formatMicroUsd } from "../format-utils.js";
 import type { TaskComparison, ExecutionComparison } from "./types.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../internal/tooltip.js";

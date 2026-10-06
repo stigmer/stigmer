@@ -7,7 +7,7 @@
 // execution-level net file-diff rollup across all AGENT_CALL tasks.
 
 import { useMemo } from "react";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { toFileDiffEntry } from "../../execution/deriveExecutionFileChanges.js";
 import { DiffFileList } from "../../version-history/DiffFileList.js";
 

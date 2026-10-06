@@ -11,7 +11,7 @@ import { useState, type ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";

@@ -1,5 +1,5 @@
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 /** Extracted workflow YAML and accompanying explanation from an agent response. */
 export interface ExtractedWorkflowYaml {
@@ -24,7 +24,7 @@ const YAML_FENCE_REGEX = /```ya?ml\s*\n([\s\S]*?)```/g;
  * this as an extraction error.
  */
 export function extractWorkflowYaml(
-  execution: AgentExecution | null,
+  execution: AgentRun | null,
 ): ExtractedWorkflowYaml | null {
   if (!execution?.status?.messages?.length) return null;
 

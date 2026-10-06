@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { toDisplayFileChange } from "@stigmer/sdk";
 import type { ToolResultView } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";

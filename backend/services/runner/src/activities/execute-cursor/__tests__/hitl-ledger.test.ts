@@ -36,19 +36,19 @@ import { join } from "node:path";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
 import type {
   AgentMessage,
   ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   MessageType,
   ToolCallStatus,
   ApprovalAction,
   ApprovalPolicySource,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 
 import {
   resetDenialLedger,
@@ -1906,7 +1906,7 @@ describe("stampUnattendedSkippedToolCalls", () => {
       id: "u3", name: "shell", status: ToolCallStatus.TOOL_CALL_PENDING,
       args: { command: "make" },
     });
-    const subAgents = [create(SubAgentExecutionSchema, { messages: [aiMessageWith([subRow])] })];
+    const subAgents = [create(SubAgentRunSchema, { messages: [aiMessageWith([subRow])] })];
 
     const stamped = stampUnattendedSkippedToolCalls(
       [aiMessageWith([parentRow])],

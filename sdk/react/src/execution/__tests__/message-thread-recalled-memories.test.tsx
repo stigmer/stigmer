@@ -17,21 +17,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
+  AgentRunSchema,
+  AgentRunStatusSchema,
   RecalledMemoriesReportSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  AgentExecutionSpecSchema,
+  AgentRunSpecSchema,
   RecalledMemoriesSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { MessageThread } from "../MessageThread";
 
@@ -65,22 +65,22 @@ function makeExecution(opts: {
   specMessage?: string;
   facts?: ReadonlyArray<{ id: string; content: string }>;
   report?: { selectionActive: boolean; injectedMemoryIds?: string[] };
-}): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+}): AgentRun {
+  const exec = create(AgentRunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id: opts.id });
 
-  const spec = create(AgentExecutionSpecSchema);
+  const spec = create(AgentRunSpecSchema);
   spec.message = opts.specMessage ?? "Hello";
   exec.spec = spec;
 
-  const status = create(AgentExecutionStatusSchema);
+  const status = create(AgentRunStatusSchema);
   if (opts.facts) {
     status.recalledMemories = create(RecalledMemoriesSchema, {
       enabled: true,
       facts: opts.facts.map((f) => ({ memoryId: f.id, content: f.content })),
     });
   }
-  status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+  status.phase = RunPhase.RUN_COMPLETED;
   status.messages = [
     create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Done." }),
   ];
@@ -159,7 +159,7 @@ describe("MessageThread recalled-memories item", () => {
       report: { selectionActive: true, injectedMemoryIds: ["mem_b"] },
     });
     const live = makeExecution({ id: "e-live", specMessage: "current turn" });
-    live.status!.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
+    live.status!.phase = RunPhase.RUN_IN_PROGRESS;
 
     render(
       <MessageThread executions={[historical]} activeStreamExecution={live} />,

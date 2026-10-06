@@ -9,12 +9,12 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ApprovalRequestedPayloadSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { ApprovalRequestedPayloadSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   WorkflowTaskStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import type {
   DerivedCostSummary,
   DerivedTaskState,
@@ -118,8 +118,8 @@ const mockedUseArtifacts = vi.mocked(useWorkflowExecutionArtifacts);
 const mockedUseFileChanges = vi.mocked(useWorkflowExecutionFileChanges);
 const mockedUseActions = vi.mocked(useWorkflowExecutionActions);
 
-function makeExecution(phase: ExecutionPhase) {
-  return create(WorkflowExecutionSchema, {
+function makeExecution(phase: RunPhase) {
+  return create(WorkflowRunSchema, {
     metadata: { id: "wex_1", name: "nightly-report" },
     spec: { workflowId: "wf_1" },
     status: {
@@ -190,7 +190,7 @@ function mockActions() {
   } as unknown as ReturnType<typeof useWorkflowExecutionActions>;
 }
 
-function arrange(phase: ExecutionPhase = ExecutionPhase.EXECUTION_COMPLETED) {
+function arrange(phase: RunPhase = RunPhase.RUN_COMPLETED) {
   const refetch = vi.fn();
   mockedUseWorkflowExecution.mockReturnValue({
     execution: makeExecution(phase),
@@ -273,7 +273,7 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
   });
 
   it("Diagnose opens the diagnosis document in the panel's editor area; its close button closes the tab", () => {
-    arrange(ExecutionPhase.EXECUTION_FAILED);
+    arrange(RunPhase.RUN_FAILED);
     renderViewer({ org: "acme" });
 
     fireEvent.click(screen.getByRole("button", { name: "Diagnose" }));
@@ -287,7 +287,7 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
   });
 
   it("Diagnose is idempotent — a re-click focuses the one diagnosis tab", () => {
-    arrange(ExecutionPhase.EXECUTION_FAILED);
+    arrange(RunPhase.RUN_FAILED);
     renderViewer({ org: "acme" });
 
     fireEvent.click(screen.getByRole("button", { name: "Diagnose" }));
@@ -300,7 +300,7 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
 
   it("Diagnose is withheld when the Organization has no Workflow Architect — the action would dead-end on the agent", () => {
     architect.availability = "absent";
-    arrange(ExecutionPhase.EXECUTION_FAILED);
+    arrange(RunPhase.RUN_FAILED);
     renderViewer({ org: "acme" });
 
     expect(screen.queryByRole("button", { name: "Diagnose" })).toBeNull();
@@ -310,7 +310,7 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
 
   it("Diagnose is withheld while the Workflow Architect probe is in flight — never an action that vanishes", () => {
     architect.availability = "loading";
-    arrange(ExecutionPhase.EXECUTION_FAILED);
+    arrange(RunPhase.RUN_FAILED);
     renderViewer({ org: "acme" });
 
     expect(screen.queryByRole("button", { name: "Diagnose" })).toBeNull();
@@ -437,7 +437,7 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle)", () => {
   });
 
   it("a gating human_input renders its review form ON the card — the viewer threads the task-approval wiring", () => {
-    arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    arrange(RunPhase.RUN_IN_PROGRESS);
     mockedUseEventStream.mockReturnValue({
       events: [],
       taskStates: new Map([
@@ -547,7 +547,7 @@ describe("WorkflowExecutionViewer (approval boundary)", () => {
   }
 
   it("a gate opening mid-run refetches the snapshot WITHOUT opening the panel or selecting anything", () => {
-    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const { refetch } = arrange(RunPhase.RUN_IN_PROGRESS);
     mockStream("running");
     const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
     expect(refetch).not.toHaveBeenCalled();
@@ -572,7 +572,7 @@ describe("WorkflowExecutionViewer (approval boundary)", () => {
   });
 
   it("a gate resolving also refetches — decided gates never linger", () => {
-    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const { refetch } = arrange(RunPhase.RUN_IN_PROGRESS);
     mockStream("waiting_approval");
     const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
     // Mount observed the gate already open → one entering crossing.
@@ -588,7 +588,7 @@ describe("WorkflowExecutionViewer (approval boundary)", () => {
   });
 
   it("terminal-execution replay never refetches", () => {
-    const { refetch } = arrange(ExecutionPhase.EXECUTION_COMPLETED);
+    const { refetch } = arrange(RunPhase.RUN_COMPLETED);
     mockStream("waiting_approval");
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
@@ -628,7 +628,7 @@ describe("WorkflowExecutionViewer (terminal-phase refetch)", () => {
   }
 
   it("the live stream reaching its terminal event refetches the snapshot once — the cards' full I/O and the header phase land without a reload", () => {
-    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const { refetch } = arrange(RunPhase.RUN_IN_PROGRESS);
     mockStreamStage("streaming");
     const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
     expect(refetch).not.toHaveBeenCalled();
@@ -650,7 +650,7 @@ describe("WorkflowExecutionViewer (terminal-phase refetch)", () => {
   });
 
   it("a reconnecting stream that resolves straight to complete also refetches", () => {
-    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const { refetch } = arrange(RunPhase.RUN_IN_PROGRESS);
     mockStreamStage("reconnecting");
     const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
 
@@ -663,7 +663,7 @@ describe("WorkflowExecutionViewer (terminal-phase refetch)", () => {
   });
 
   it("a terminal-replay mount (already complete, never streamed) does not refetch", () => {
-    const { refetch } = arrange(ExecutionPhase.EXECUTION_COMPLETED);
+    const { refetch } = arrange(RunPhase.RUN_COMPLETED);
     mockStreamStage("complete");
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
@@ -677,7 +677,7 @@ describe("WorkflowExecutionViewer (terminal-phase refetch)", () => {
   // connecting → streaming exactly when the FIRST event is delivered, so
   // that transition IS the "run started" signal.
   it("the stream's first delivery refetches a pending-landing snapshot — the phase badge and Pause/Cancel catch up to the started run", () => {
-    const { refetch } = arrange(ExecutionPhase.EXECUTION_PENDING);
+    const { refetch } = arrange(RunPhase.RUN_PENDING);
     mockStreamStage("connecting");
     const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
     expect(refetch).not.toHaveBeenCalled();
@@ -696,7 +696,7 @@ describe("WorkflowExecutionViewer (terminal-phase refetch)", () => {
   });
 
   it("a reconnect recovery (reconnecting → streaming) refetches — the snapshot may have moved during the outage", () => {
-    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const { refetch } = arrange(RunPhase.RUN_IN_PROGRESS);
     mockStreamStage("streaming");
     const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
     // Mid-run mount: the snapshot was just fetched — no refetch.

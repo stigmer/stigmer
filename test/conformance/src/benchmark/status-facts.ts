@@ -21,8 +21,8 @@
 // create. The other runtime attachments (channel messaging, conversation)
 // need a channel or conversation label the benchmark never sets.
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { BenchmarkAxes, SampleOutcome, TokenCounts } from "./report";
 
 const MICROS_PER_USD = 1_000_000;
@@ -42,7 +42,7 @@ export interface StatusFacts {
 }
 
 /** The status-borne half of a sample, from the terminal execution as the client received it. */
-export function statusFacts(execution: AgentExecution): StatusFacts {
+export function statusFacts(execution: AgentRun): StatusFacts {
   const usage = execution.status?.streamingUsage;
   const input = toNumber(usage?.inputTokens);
   const output = toNumber(usage?.outputTokens);
@@ -75,14 +75,14 @@ export function statusFacts(execution: AgentExecution): StatusFacts {
  * and neither is a sample. The `timeout` outcome is the watcher's, never the
  * status's (the status has no such phase).
  */
-export function outcomeOf(phase: ExecutionPhase | undefined): SampleOutcome {
+export function outcomeOf(phase: RunPhase | undefined): SampleOutcome {
   switch (phase) {
-    case ExecutionPhase.EXECUTION_COMPLETED:
+    case RunPhase.RUN_COMPLETED:
       return "completed";
-    case ExecutionPhase.EXECUTION_FAILED:
+    case RunPhase.RUN_FAILED:
       return "failed";
-    case ExecutionPhase.EXECUTION_CANCELLED:
-    case ExecutionPhase.EXECUTION_TERMINATED:
+    case RunPhase.RUN_CANCELLED:
+    case RunPhase.RUN_TERMINATED:
       return "cancelled";
     default:
       return "failed";
@@ -96,7 +96,7 @@ export function outcomeOf(phase: ExecutionPhase | undefined): SampleOutcome {
  * separately an AI row alone (its `first_text_ms`). Sub-agent rows live under
  * `sub_agent_executions` and are not the thread the user is watching.
  */
-export function visibleRows(execution: AgentExecution): { visible: boolean; text: boolean } {
+export function visibleRows(execution: AgentRun): { visible: boolean; text: boolean } {
   let visible = false;
   let text = false;
   for (const message of execution.status?.messages ?? []) {
@@ -116,7 +116,7 @@ export function visibleRows(execution: AgentExecution): { visible: boolean; text
  * with content (sub-agent rows live under `sub_agent_executions`), "" when
  * the turn produced none. What a user reads as the turn's answer.
  */
-export function finalReply(execution: AgentExecution): string {
+export function finalReply(execution: AgentRun): string {
   const messages = execution.status?.messages ?? [];
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const message = messages[i];
@@ -151,7 +151,7 @@ export function nullAxes(): BenchmarkAxes {
   };
 }
 
-function createdAt(execution: AgentExecution): string {
+function createdAt(execution: AgentRun): string {
   const stamp = execution.status?.audit?.specAudit?.createdAt;
   return stamp === undefined ? "" : timestampDate(stamp).toISOString();
 }

@@ -454,13 +454,13 @@ describe("the built-in model", () => {
 });
 
 describe("the parent-inheritance walker refuses what would make asking the parent wrong", () => {
-  const execution = declared(declarationFor(ApiResourceKind.agent_execution), "agent_execution");
+  const execution = declared(declarationFor(ApiResourceKind.agent_run), "agent_execution");
   const session = declared(builtInModel.byType("session"), "session");
 
   /** agent_execution as the model has it, with one line rewritten. */
   function executionWith(relation: string, rewrite: Rewrite): KindDeclaration {
     return throwawayDeclaration({
-      kind: ApiResourceKind.agent_execution,
+      kind: ApiResourceKind.agent_run,
       relations: [...execution.relations].map(([name, current]) =>
         name === relation ? ([name, rewrite] as const) : ([name, current] as const),
       ),

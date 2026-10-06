@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { HarnessCostSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { HarnessCostSummary } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { formatCost } from "../execution/UsageWidget.js";
 
 /** Props for {@link HarnessSplitCard}. */

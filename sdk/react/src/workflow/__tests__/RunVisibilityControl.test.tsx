@@ -10,7 +10,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import type { Stigmer } from "@stigmer/sdk";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { RunVisibilityControl } from "../RunVisibilityControl";
 
@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 function renderControl(
-  executionVisibility: WorkflowExecutionVisibility,
+  executionVisibility: WorkflowRunVisibility,
   updateExecutionVisibility: (input: unknown) => Promise<unknown>,
 ) {
   const onChanged = vi.fn();
@@ -47,7 +47,7 @@ describe("RunVisibilityControl", () => {
   it("calls the workflow's updateExecutionVisibility with its id and the chosen level", async () => {
     const updated = { metadata: { id: "wf_1" } };
     const update = vi.fn(async () => updated);
-    const { onChanged } = renderControl(WorkflowExecutionVisibility.private, update);
+    const { onChanged } = renderControl(WorkflowRunVisibility.private, update);
 
     fireEvent.click(option(/^All organization members/));
 
@@ -55,15 +55,15 @@ describe("RunVisibilityControl", () => {
     expect(onChanged).toHaveBeenCalledWith(updated);
     expect(update).toHaveBeenCalledTimes(1);
     const input = (update.mock.calls[0] as unknown as [
-      { resourceId: string; executionVisibility: WorkflowExecutionVisibility },
+      { resourceId: string; executionVisibility: WorkflowRunVisibility },
     ])[0];
     expect(input.resourceId).toBe("wf_1");
-    expect(input.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+    expect(input.executionVisibility).toBe(WorkflowRunVisibility.organization);
   });
 
   it("reads an unspecified level as private and does not call for the level already set", () => {
     const update = vi.fn(async () => ({}));
-    renderControl(WorkflowExecutionVisibility.unspecified, update);
+    renderControl(WorkflowRunVisibility.unspecified, update);
 
     const privateOption = option(/^Only the person who runs it/);
     expect(privateOption.getAttribute("aria-checked")).toBe("true");
@@ -72,7 +72,7 @@ describe("RunVisibilityControl", () => {
   });
 
   it("says the setting reaches every run, past runs included", () => {
-    renderControl(WorkflowExecutionVisibility.private, vi.fn(async () => ({})));
+    renderControl(WorkflowRunVisibility.private, vi.fn(async () => ({})));
 
     expect(option(/^All organization members/).textContent).toContain(
       "past runs included",
@@ -83,7 +83,7 @@ describe("RunVisibilityControl", () => {
     const update = vi.fn(async () => {
       throw new Error("You cannot change who sees this workflow's runs.");
     });
-    const { onChanged } = renderControl(WorkflowExecutionVisibility.private, update);
+    const { onChanged } = renderControl(WorkflowRunVisibility.private, update);
 
     fireEvent.click(option(/^All organization members/));
 

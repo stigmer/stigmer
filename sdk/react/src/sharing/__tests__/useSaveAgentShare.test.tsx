@@ -7,7 +7,7 @@ import type { AgentShareInput } from "@stigmer/sdk";
 import {
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import {
   draftFromShare,

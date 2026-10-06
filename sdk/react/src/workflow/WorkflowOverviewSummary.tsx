@@ -2,12 +2,12 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { ExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import type { RunSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 
 /** Props for {@link WorkflowOverviewSummary}. */
 export interface WorkflowOverviewSummaryProps {
   /** Aggregated summary data. `null` while loading or when unavailable. */
-  readonly summary: ExecutionSummary | null;
+  readonly summary: RunSummary | null;
   /** Whether the summary is still loading. */
   readonly isLoading: boolean;
   /** Additional CSS class names for the root container. */

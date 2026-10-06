@@ -27,10 +27,10 @@
  * it was `ExecutionState` in the native adapter (renamed in #1097).
  */
 
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 
 /**
  * One scope's transcript: the `messages[]` it folds into (by reference) and
@@ -85,17 +85,17 @@ export class Transcript {
 }
 
 /** The transcript half of a persisted status: what a reinvocation seeds through the builder. */
-export type TranscriptSeed = Pick<AgentExecutionStatus, "messages" | "subAgentExecutions" | "artifacts" | "workspaceWriteBacks" | "todos">;
+export type TranscriptSeed = Pick<AgentRunStatus, "messages" | "subAgentRuns" | "artifacts" | "workspaceWriteBacks" | "todos">;
 
 /** A sub-agent's row and the transcript folded into it. */
 export interface SubAgentScope {
-  readonly row: SubAgentExecution;
+  readonly row: SubAgentRun;
   readonly transcript: Transcript;
 }
 
 export class TranscriptState {
   /** The protobuf projection being built. */
-  readonly proto: AgentExecutionStatus;
+  readonly proto: AgentRunStatus;
 
   /** The root transcript, over `proto.messages`. */
   readonly root: Transcript;
@@ -107,10 +107,10 @@ export class TranscriptState {
    * sub-agent row (a reinvocation's seed carries prior turns' rows, whose
    * events may be re-driven).
    */
-  constructor(proto: AgentExecutionStatus) {
+  constructor(proto: AgentRunStatus) {
     this.proto = proto;
     this.root = new Transcript(proto.messages);
-    for (const row of proto.subAgentExecutions) {
+    for (const row of proto.subAgentRuns) {
       this.subAgentsById.set(row.id, { row, transcript: new Transcript(row.messages) });
     }
   }
@@ -126,8 +126,8 @@ export class TranscriptState {
   }
 
   /** Push a new sub-agent row onto the status and open its transcript. The caller checks the id is new. */
-  openSubAgent(row: SubAgentExecution): SubAgentScope {
-    this.proto.subAgentExecutions.push(row);
+  openSubAgent(row: SubAgentRun): SubAgentScope {
+    this.proto.subAgentRuns.push(row);
     const scope = { row, transcript: new Transcript(row.messages) };
     this.subAgentsById.set(row.id, scope);
     return scope;
@@ -150,7 +150,7 @@ export class TranscriptState {
       this.proto.messages.push(message);
       this.root.index(message);
     }
-    for (const row of persisted.subAgentExecutions) {
+    for (const row of persisted.subAgentRuns) {
       if (this.subAgentsById.has(row.id)) continue;
       this.openSubAgent(row);
     }

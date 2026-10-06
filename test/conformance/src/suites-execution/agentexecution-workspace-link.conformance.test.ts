@@ -20,7 +20,7 @@
 // Deliberately out of scope, pinned beside the code in stigmer-link.test.ts:
 // the empty directory that is simply removed, the refusal to displace a
 // `.stigmer` that holds the platform dir, and the cross-filesystem copy.
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { lstat, mkdir, readdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -178,8 +178,8 @@ describe("the workspace .stigmer link on a skill turn", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `execution ${executionId} should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]} (error: ${final.status?.error ?? ""})`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `execution ${executionId} should complete; reached ${RunPhase[final.status?.phase ?? 0]} (error: ${final.status?.error ?? ""})`,
+    ).toBe(RunPhase.RUN_COMPLETED);
 
     // The turn's end takes the link away (the activity's cleanup, which may
     // trail the terminal status write) and leaves the user's bytes moved.

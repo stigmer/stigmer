@@ -16,16 +16,16 @@
  * agent-execution family ONLY. Workflowexecution is unmetered in the cloud
  * edition, and no hook is built ahead of need there.
  */
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 
 /** One observed phase transition, delivered post-merge. */
 export interface AgentExecutionStatusTransition {
   /** The merged, persisted execution snapshot. Observers may not mutate it. */
-  readonly execution: AgentExecution;
-  readonly oldPhase: ExecutionPhase;
-  readonly newPhase: ExecutionPhase;
+  readonly execution: AgentRun;
+  readonly oldPhase: RunPhase;
+  readonly newPhase: RunPhase;
 }
 
 /**
@@ -43,7 +43,7 @@ export type AgentExecutionStatusObserver = (
  * to their defaults (the verified non-fatal posture), never the RPC.
  */
 export type AgentExecutionResponseDecorator = (
-  execution: AgentExecution,
+  execution: AgentRun,
   response: UpdateStatusResponse,
 ) => void | Promise<void>;
 

@@ -10,20 +10,20 @@
 // command layer owns presentation (single source of the success wording).
 
 import { create } from "@bufbuild/protobuf";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
-  CancelAgentExecutionInputSchema,
-  PauseAgentExecutionInputSchema,
-  ResumeAgentExecutionInputSchema,
-  TerminateAgentExecutionInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { ExecutionPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+  CancelAgentRunInputSchema,
+  PauseAgentRunInputSchema,
+  ResumeAgentRunInputSchema,
+  TerminateAgentRunInputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
-  CancelWorkflowExecutionInputSchema,
-  PauseWorkflowExecutionInputSchema,
-  ResumeWorkflowExecutionInputSchema,
-  TerminateWorkflowExecutionInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+  CancelWorkflowRunInputSchema,
+  PauseWorkflowRunInputSchema,
+  ResumeWorkflowRunInputSchema,
+  TerminateWorkflowRunInputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { type ExecutionType, formatAgentPhase, formatWorkflowPhase, resolveExecutionType } from "./execution.js";
 
@@ -37,42 +37,42 @@ export interface ControlResult {
 export async function cancelExecution(client: Stigmer, id: string, reason: string): Promise<ControlResult> {
   const type = resolveExecutionType(id);
   if (type === "agent") {
-    const result = await client.agentExecution.cancel(create(CancelAgentExecutionInputSchema, { id, reason }));
-    return { type, phase: formatAgentPhase(result.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) };
+    const result = await client.agentRun.cancel(create(CancelAgentRunInputSchema, { id, reason }));
+    return { type, phase: formatAgentPhase(result.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) };
   }
-  const result = await client.workflowExecution.cancel(create(CancelWorkflowExecutionInputSchema, { id, reason }));
-  return { type, phase: formatWorkflowPhase(result.status?.phase ?? WorkflowExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) };
+  const result = await client.workflowRun.cancel(create(CancelWorkflowRunInputSchema, { id, reason }));
+  return { type, phase: formatWorkflowPhase(result.status?.phase ?? WorkflowExecutionPhase.RUN_PHASE_UNSPECIFIED) };
 }
 
 /** Force-stop an execution immediately (agent or workflow). Mirrors Go execution.Terminate. */
 export async function terminateExecution(client: Stigmer, id: string, reason: string): Promise<ControlResult> {
   const type = resolveExecutionType(id);
   if (type === "agent") {
-    const result = await client.agentExecution.terminate(create(TerminateAgentExecutionInputSchema, { id, reason }));
-    return { type, phase: formatAgentPhase(result.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) };
+    const result = await client.agentRun.terminate(create(TerminateAgentRunInputSchema, { id, reason }));
+    return { type, phase: formatAgentPhase(result.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) };
   }
-  const result = await client.workflowExecution.terminate(create(TerminateWorkflowExecutionInputSchema, { id, reason }));
-  return { type, phase: formatWorkflowPhase(result.status?.phase ?? WorkflowExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) };
+  const result = await client.workflowRun.terminate(create(TerminateWorkflowRunInputSchema, { id, reason }));
+  return { type, phase: formatWorkflowPhase(result.status?.phase ?? WorkflowExecutionPhase.RUN_PHASE_UNSPECIFIED) };
 }
 
 /** Pause a running execution (agent or workflow). Mirrors Go execution.Pause. */
 export async function pauseExecution(client: Stigmer, id: string, reason: string): Promise<ControlResult> {
   const type = resolveExecutionType(id);
   if (type === "agent") {
-    const result = await client.agentExecution.pause(create(PauseAgentExecutionInputSchema, { id, reason }));
-    return { type, phase: formatAgentPhase(result.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) };
+    const result = await client.agentRun.pause(create(PauseAgentRunInputSchema, { id, reason }));
+    return { type, phase: formatAgentPhase(result.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) };
   }
-  const result = await client.workflowExecution.pause(create(PauseWorkflowExecutionInputSchema, { id, reason }));
-  return { type, phase: formatWorkflowPhase(result.status?.phase ?? WorkflowExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) };
+  const result = await client.workflowRun.pause(create(PauseWorkflowRunInputSchema, { id, reason }));
+  return { type, phase: formatWorkflowPhase(result.status?.phase ?? WorkflowExecutionPhase.RUN_PHASE_UNSPECIFIED) };
 }
 
 /** Resume a paused execution (agent or workflow). Mirrors Go execution.Resume (no reason). */
 export async function resumeExecution(client: Stigmer, id: string): Promise<ControlResult> {
   const type = resolveExecutionType(id);
   if (type === "agent") {
-    const result = await client.agentExecution.resume(create(ResumeAgentExecutionInputSchema, { id }));
-    return { type, phase: formatAgentPhase(result.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) };
+    const result = await client.agentRun.resume(create(ResumeAgentRunInputSchema, { id }));
+    return { type, phase: formatAgentPhase(result.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) };
   }
-  const result = await client.workflowExecution.resume(create(ResumeWorkflowExecutionInputSchema, { id }));
-  return { type, phase: formatWorkflowPhase(result.status?.phase ?? WorkflowExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) };
+  const result = await client.workflowRun.resume(create(ResumeWorkflowRunInputSchema, { id }));
+  return { type, phase: formatWorkflowPhase(result.status?.phase ?? WorkflowExecutionPhase.RUN_PHASE_UNSPECIFIED) };
 }

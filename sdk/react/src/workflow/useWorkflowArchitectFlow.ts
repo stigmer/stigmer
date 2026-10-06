@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { getUserMessage } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useCreateSession } from "../session/useCreateSession.js";
@@ -70,7 +70,7 @@ export interface UseWorkflowArchitectFlowReturn {
    * Non-null during `streaming`, `complete`, and `extraction-failed`
    * phases. Pass to `MessageThread` for rendering agent messages.
    */
-  readonly execution: AgentExecution | null;
+  readonly execution: AgentRun | null;
   /** `true` while the agent execution is actively streaming. */
   readonly isStreaming: boolean;
 
@@ -170,7 +170,7 @@ export function useWorkflowArchitectFlow(
     if (phase !== "streaming") return;
 
     const isTerminal =
-      stream.phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED &&
+      stream.phase !== RunPhase.RUN_PHASE_UNSPECIFIED &&
       isTerminalPhase(stream.phase);
 
     if (isTerminal && !prevTerminalRef.current) {

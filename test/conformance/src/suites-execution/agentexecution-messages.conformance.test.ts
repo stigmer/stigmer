@@ -21,9 +21,9 @@
 //   reached the mock — a runner that stops resolving fails here on either
 //   edition. The two ids must differ, or the arm would pass on the identity
 //   fallback it exists to catch.
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -84,7 +84,7 @@ async function runAgent(opts: {
   tools?: readonly FixtureTool[];
   modelName?: string;
   message?: string;
-}): Promise<AgentExecution> {
+}): Promise<AgentRun> {
   const { org } = await target.provisionTenancy();
   let mcpServerRefs: string[] = [];
   if (opts.tools !== undefined) {
@@ -114,12 +114,12 @@ async function runAgent(opts: {
   return awaitTerminal(clients, executionId);
 }
 
-function expectCompleted(final: AgentExecution): void {
+function expectCompleted(final: AgentRun): void {
   expect(
     final.status?.phase,
-    `execution ${final.metadata?.id} should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]} ` +
+    `execution ${final.metadata?.id} should complete; reached ${RunPhase[final.status?.phase ?? 0]} ` +
       `(status.error: ${JSON.stringify(final.status?.error ?? "")})`,
-  ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  ).toBe(RunPhase.RUN_COMPLETED);
 }
 
 describe("AgentExecution messages — text and thinking turns", () => {

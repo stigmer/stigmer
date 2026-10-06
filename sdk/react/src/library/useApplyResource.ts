@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { PushSkillFromExecutionArtifactRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+import { PushSkillFromRunArtifactRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { parseManifest } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -177,14 +177,14 @@ export function useApplyResource(): UseApplyResourceReturn {
       setError(null);
 
       try {
-        const request = create(PushSkillFromExecutionArtifactRequestSchema, {
+        const request = create(PushSkillFromRunArtifactRequestSchema, {
           org: params.org,
-          executionId: params.executionId,
+          runId: params.executionId,
           storageKey: params.storageKey,
           tag: params.tag ?? "",
         });
 
-        const skill = await stigmer.skill.pushFromExecutionArtifact(request);
+        const skill = await stigmer.skill.pushFromRunArtifact(request);
         return {
           kind: "Skill",
           name: skill.metadata?.name ?? "",

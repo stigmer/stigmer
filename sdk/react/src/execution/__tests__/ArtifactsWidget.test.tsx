@@ -2,29 +2,29 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import {
-  ExecutionArtifactKind,
-  ExecutionPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  RunArtifactKind,
+  RunPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { ArtifactsWidget } from "../ArtifactsWidget";
 
 function artifact(name: string) {
-  return create(ExecutionArtifactSchema, {
+  return create(RunArtifactSchema, {
     name,
-    kind: ExecutionArtifactKind.FILE,
+    kind: RunArtifactKind.FILE,
     sizeBytes: 1024n,
     sandboxPath: `.stigmer/${name}`,
     storageKey: `artifacts/aex_1/${name}`,
   });
 }
 
-const execution = create(AgentExecutionSchema, {
+const execution = create(AgentRunSchema, {
   metadata: { id: "aex_1" },
   status: {
-    phase: ExecutionPhase.EXECUTION_COMPLETED,
+    phase: RunPhase.RUN_COMPLETED,
     artifacts: [artifact("agent.yaml"), artifact("notes.md")],
   },
 });

@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 
 /** Return value of {@link useExecutionArtifacts}. */
 export interface UseExecutionArtifactsReturn {
   /** Artifacts published by the agent during execution. Ordered by creation time (oldest first). */
-  readonly artifacts: readonly ExecutionArtifact[];
+  readonly artifacts: readonly RunArtifact[];
   /** `true` when the execution has at least one artifact. */
   readonly hasArtifacts: boolean;
   /** Total number of artifacts. */
@@ -45,7 +45,7 @@ export interface UseExecutionArtifactsReturn {
  * @see formatArtifactSize — human-readable file size formatting
  */
 export function useExecutionArtifacts(
-  execution: AgentExecution | null,
+  execution: AgentRun | null,
 ): UseExecutionArtifactsReturn {
   return useMemo(() => {
     const artifacts = execution?.status?.artifacts ?? [];

@@ -1,13 +1,13 @@
 "use client";
 
 import { memo } from "react";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 
 /** Props for {@link WorkflowExecutionPhaseBadge}. */
 export interface WorkflowExecutionPhaseBadgeProps {
   /** The workflow execution phase to display. */
-  readonly phase: ExecutionPhase;
+  readonly phase: RunPhase;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -18,9 +18,9 @@ interface PhaseConfig {
   readonly colorClass: string;
 }
 
-const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
+const PHASE_CONFIG: ReadonlyMap<RunPhase, PhaseConfig> = new Map([
   [
-    ExecutionPhase.EXECUTION_PENDING,
+    RunPhase.RUN_PENDING,
     {
       label: "Pending",
       icon: PulseDotIcon,
@@ -28,7 +28,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     },
   ],
   [
-    ExecutionPhase.EXECUTION_IN_PROGRESS,
+    RunPhase.RUN_IN_PROGRESS,
     {
       label: "Running",
       icon: PulseDotIcon,
@@ -36,7 +36,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     },
   ],
   [
-    ExecutionPhase.EXECUTION_COMPLETED,
+    RunPhase.RUN_COMPLETED,
     {
       label: "Completed",
       icon: CheckIcon,
@@ -44,7 +44,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     },
   ],
   [
-    ExecutionPhase.EXECUTION_FAILED,
+    RunPhase.RUN_FAILED,
     {
       label: "Failed",
       icon: XIcon,
@@ -52,7 +52,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     },
   ],
   [
-    ExecutionPhase.EXECUTION_CANCELLED,
+    RunPhase.RUN_CANCELLED,
     {
       label: "Cancelled",
       icon: XIcon,
@@ -60,7 +60,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     },
   ],
   [
-    ExecutionPhase.EXECUTION_TERMINATED,
+    RunPhase.RUN_TERMINATED,
     {
       label: "Terminated",
       icon: StopIcon,
@@ -68,7 +68,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     },
   ],
   [
-    ExecutionPhase.EXECUTION_PAUSED,
+    RunPhase.RUN_PAUSED,
     {
       label: "Paused",
       icon: PauseIcon,

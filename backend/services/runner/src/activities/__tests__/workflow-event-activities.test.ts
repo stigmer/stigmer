@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { toProtoEvent, initSequenceFromEventLog, emitWorkflowEvents, loadRecoveryContext } from "../workflow-event-activities.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
-import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { WorkflowEventDescriptor } from "../../workflow-engine/types.js";
 
 const mockGetEventLogHighWaterMark = vi.fn<(executionId: string) => Promise<bigint>>();
@@ -220,9 +220,9 @@ describe("toProtoEvent", () => {
         workflowId: "wf-123",
       });
 
-      expect(evt.eventType).toBe(WorkflowEventType.execution_started);
+      expect(evt.eventType).toBe(WorkflowEventType.run_started);
       expect(evt.payload.case).toBe("executionStarted");
-      if (evt.payload.case !== "executionStarted") throw new Error("unexpected");
+      if (evt.payload.case !== "runStarted") throw new Error("unexpected");
       expect(evt.payload.value.totalTasks).toBe(5);
       expect(evt.payload.value.workflowId).toBe("wf-123");
     });
@@ -238,9 +238,9 @@ describe("toProtoEvent", () => {
         totalTokens: 1500,
       });
 
-      expect(evt.eventType).toBe(WorkflowEventType.execution_completed);
+      expect(evt.eventType).toBe(WorkflowEventType.run_completed);
       expect(evt.payload.case).toBe("executionCompleted");
-      if (evt.payload.case !== "executionCompleted") throw new Error("unexpected");
+      if (evt.payload.case !== "runCompleted") throw new Error("unexpected");
       expect(evt.payload.value.durationMs).toBe(BigInt(12000));
       expect(evt.payload.value.totalCostMicros).toBe(BigInt(500000));
       expect(evt.payload.value.totalTokens).toBe(BigInt(1500));
@@ -257,9 +257,9 @@ describe("toProtoEvent", () => {
         durationMs: 3000,
       });
 
-      expect(evt.eventType).toBe(WorkflowEventType.execution_failed);
+      expect(evt.eventType).toBe(WorkflowEventType.run_failed);
       expect(evt.payload.case).toBe("executionFailed");
-      if (evt.payload.case !== "executionFailed") throw new Error("unexpected");
+      if (evt.payload.case !== "runFailed") throw new Error("unexpected");
       expect(evt.payload.value.error).toBe("API call failed");
       expect(evt.payload.value.failedTaskName).toBe("callApi");
       expect(evt.payload.value.durationMs).toBe(BigInt(3000));
@@ -702,7 +702,7 @@ describe("toProtoEvent", () => {
 
       expect(evt.eventType).toBe(WorkflowEventType.agent_call_started);
       if (evt.payload.case !== "agentCallStarted") throw new Error("unexpected");
-      expect(evt.payload.value.childExecutionId).toBe("exec-child-1");
+      expect(evt.payload.value.childRunId).toBe("exec-child-1");
       expect(evt.payload.value.agentSlug).toBe("my-agent");
       expect(evt.payload.value.messageSummary).toBe("Summarize the report");
     });

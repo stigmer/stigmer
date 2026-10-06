@@ -8,16 +8,16 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { useArtifactInspection } from "../useArtifactInspection";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
 function fileArtifact(name: string) {
-  return create(ExecutionArtifactSchema, {
+  return create(RunArtifactSchema, {
     name,
-    kind: ExecutionArtifactKind.FILE,
+    kind: RunArtifactKind.FILE,
     sizeBytes: 64n,
     sandboxPath: `.stigmer/${name}`,
     storageKey: `artifacts/aex_1/${name}`,
@@ -26,9 +26,9 @@ function fileArtifact(name: string) {
 }
 
 function dirArtifact(name: string) {
-  return create(ExecutionArtifactSchema, {
+  return create(RunArtifactSchema, {
     name,
-    kind: ExecutionArtifactKind.DIRECTORY,
+    kind: RunArtifactKind.DIRECTORY,
     sizeBytes: 512n,
     sandboxPath: `.stigmer/${name}`,
     storageKey: `artifacts/aex_1/${name}`,

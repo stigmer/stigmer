@@ -1,13 +1,13 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import type { ExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { RunSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { formatDurationSec } from "./format-utils.js";
 
 export interface ExecutionSummaryWidgetProps {
-  readonly summary: ExecutionSummary | null;
+  readonly summary: RunSummary | null;
   readonly isLoading: boolean;
   readonly className?: string;
 }
@@ -15,17 +15,17 @@ export interface ExecutionSummaryWidgetProps {
 interface StatCardDef {
   readonly label: string;
   readonly valueClass: string;
-  readonly getValue: (s: ExecutionSummary) => string;
+  readonly getValue: (s: RunSummary) => string;
 }
 
 const PHASE_LABEL: ReadonlyMap<number, string> = new Map([
-  [ExecutionPhase.EXECUTION_PENDING, "Pending"],
-  [ExecutionPhase.EXECUTION_IN_PROGRESS, "Running"],
-  [ExecutionPhase.EXECUTION_COMPLETED, "Completed"],
-  [ExecutionPhase.EXECUTION_FAILED, "Failed"],
-  [ExecutionPhase.EXECUTION_CANCELLED, "Cancelled"],
-  [ExecutionPhase.EXECUTION_TERMINATED, "Terminated"],
-  [ExecutionPhase.EXECUTION_PAUSED, "Paused"],
+  [RunPhase.RUN_PENDING, "Pending"],
+  [RunPhase.RUN_IN_PROGRESS, "Running"],
+  [RunPhase.RUN_COMPLETED, "Completed"],
+  [RunPhase.RUN_FAILED, "Failed"],
+  [RunPhase.RUN_CANCELLED, "Cancelled"],
+  [RunPhase.RUN_TERMINATED, "Terminated"],
+  [RunPhase.RUN_PAUSED, "Paused"],
 ]);
 
 const STAT_CARDS: readonly StatCardDef[] = [
@@ -38,13 +38,13 @@ const STAT_CARDS: readonly StatCardDef[] = [
     label: "Completed",
     valueClass: "stg:text-success",
     getValue: (s) =>
-      String(s.phaseCounts[ExecutionPhase.EXECUTION_COMPLETED] ?? 0),
+      String(s.phaseCounts[RunPhase.RUN_COMPLETED] ?? 0),
   },
   {
     label: "Failed",
     valueClass: "stg:text-destructive",
     getValue: (s) =>
-      String(s.phaseCounts[ExecutionPhase.EXECUTION_FAILED] ?? 0),
+      String(s.phaseCounts[RunPhase.RUN_FAILED] ?? 0),
   },
   {
     label: "Total Cost",
@@ -74,13 +74,13 @@ export const ExecutionSummaryWidget = memo(function ExecutionSummaryWidget({
     if (!summary) return [];
     const entries: { label: string; count: number; colorClass: string }[] = [];
     const colorMap: Record<number, string> = {
-      [ExecutionPhase.EXECUTION_PENDING]: "stg:bg-muted-foreground",
-      [ExecutionPhase.EXECUTION_IN_PROGRESS]: "stg:bg-primary",
-      [ExecutionPhase.EXECUTION_COMPLETED]: "stg:bg-success",
-      [ExecutionPhase.EXECUTION_FAILED]: "stg:bg-destructive",
-      [ExecutionPhase.EXECUTION_CANCELLED]: "stg:bg-muted-foreground",
-      [ExecutionPhase.EXECUTION_TERMINATED]: "stg:bg-destructive",
-      [ExecutionPhase.EXECUTION_PAUSED]: "stg:bg-muted-foreground",
+      [RunPhase.RUN_PENDING]: "stg:bg-muted-foreground",
+      [RunPhase.RUN_IN_PROGRESS]: "stg:bg-primary",
+      [RunPhase.RUN_COMPLETED]: "stg:bg-success",
+      [RunPhase.RUN_FAILED]: "stg:bg-destructive",
+      [RunPhase.RUN_CANCELLED]: "stg:bg-muted-foreground",
+      [RunPhase.RUN_TERMINATED]: "stg:bg-destructive",
+      [RunPhase.RUN_PAUSED]: "stg:bg-muted-foreground",
     };
     for (const [phase, count] of Object.entries(summary.phaseCounts)) {
       const p = Number(phase);

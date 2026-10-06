@@ -15,7 +15,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),

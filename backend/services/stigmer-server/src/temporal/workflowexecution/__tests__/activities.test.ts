@@ -24,18 +24,18 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import { timestampMs } from "@bufbuild/protobuf/wkt";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
-  WorkflowExecutionSchema,
-  WorkflowExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { WorkflowExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+  WorkflowRunSchema,
+  WorkflowRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import type { WorkflowRunStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
-import { StreamBroker } from "../../../domain/workflowexecution/stream-broker.js";
+import { StreamBroker } from "../../../domain/workflowrun/stream-broker.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import {
@@ -53,10 +53,10 @@ const silentLogger = createLogger({
 
 describe("applyActivityStatusMerge (the activity's own merge, not the RPC's)", () => {
   function merged(
-    existingStatus: MessageInitShape<typeof WorkflowExecutionStatusSchema>,
-    updates: WorkflowExecutionStatus,
-  ): WorkflowExecution {
-    const execution = create(WorkflowExecutionSchema, {
+    existingStatus: MessageInitShape<typeof WorkflowRunStatusSchema>,
+    updates: WorkflowRunStatus,
+  ): WorkflowRun {
+    const execution = create(WorkflowRunSchema, {
       metadata: { id: "wfe-1" },
       status: existingStatus,
     });
@@ -67,16 +67,16 @@ describe("applyActivityStatusMerge (the activity's own merge, not the RPC's)", (
   it("applies a phase-only update and preserves tasks, error, and totals", () => {
     const result = merged(
       {
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         tasks: [{ taskName: "t1" }],
         error: "prior",
         totalCostMicros: 5n,
       },
-      create(WorkflowExecutionStatusSchema, {
-        phase: ExecutionPhase.EXECUTION_PAUSED,
+      create(WorkflowRunStatusSchema, {
+        phase: RunPhase.RUN_PAUSED,
       }),
     );
-    expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_PAUSED);
+    expect(result.status?.phase).toBe(RunPhase.RUN_PAUSED);
     expect(result.status?.tasks.map((task) => task.taskName)).toEqual(["t1"]);
     expect(result.status?.error).toBe("prior");
     expect(result.status?.totalCostMicros).toBe(5n);
@@ -87,9 +87,9 @@ describe("applyActivityStatusMerge (the activity's own merge, not the RPC's)", (
     // activity always does (update_status_impl.go's unconditional bump).
     const before = Date.now() - 1;
     const result = merged(
-      { phase: ExecutionPhase.EXECUTION_PAUSED },
-      create(WorkflowExecutionStatusSchema, {
-        phase: ExecutionPhase.EXECUTION_PAUSED,
+      { phase: RunPhase.RUN_PAUSED },
+      create(WorkflowRunStatusSchema, {
+        phase: RunPhase.RUN_PAUSED,
       }),
     );
     const updatedAt = result.status?.audit?.statusAudit?.updatedAt;
@@ -101,8 +101,8 @@ describe("applyActivityStatusMerge (the activity's own merge, not the RPC's)", (
   it("replaces tasks only when the update carries a non-empty set", () => {
     const withEmpty = merged(
       { tasks: [{ taskName: "keep" }] },
-      create(WorkflowExecutionStatusSchema, {
-        phase: ExecutionPhase.EXECUTION_FAILED,
+      create(WorkflowRunStatusSchema, {
+        phase: RunPhase.RUN_FAILED,
       }),
     );
     expect(withEmpty.status?.tasks.map((task) => task.taskName)).toEqual([
@@ -111,7 +111,7 @@ describe("applyActivityStatusMerge (the activity's own merge, not the RPC's)", (
 
     const withTasks = merged(
       { tasks: [{ taskName: "old" }] },
-      create(WorkflowExecutionStatusSchema, {
+      create(WorkflowRunStatusSchema, {
         tasks: [{ taskName: "new-1" }, { taskName: "new-2" }],
       }),
     );
@@ -124,8 +124,8 @@ describe("applyActivityStatusMerge (the activity's own merge, not the RPC's)", (
   it("treats zero totals as no-update, never reset", () => {
     const result = merged(
       { totalCostMicros: 7n, totalInputTokens: 3n, totalOutputTokens: 2n },
-      create(WorkflowExecutionStatusSchema, {
-        phase: ExecutionPhase.EXECUTION_FAILED,
+      create(WorkflowRunStatusSchema, {
+        phase: RunPhase.RUN_FAILED,
         error: "boom",
       }),
     );
@@ -138,7 +138,7 @@ describe("applyActivityStatusMerge (the activity's own merge, not the RPC's)", (
   it("sets timestamps only when provided", () => {
     const result = merged(
       { startedAt: "2026-01-01T00:00:00Z" },
-      create(WorkflowExecutionStatusSchema, {
+      create(WorkflowRunStatusSchema, {
         completedAt: "2026-01-02T00:00:00Z",
       }),
     );
@@ -182,12 +182,12 @@ describe("UpdateWorkflowExecutionStatus activity (real store)", () => {
   it("persists the merge atomically and broadcasts the updated execution", async () => {
     const id = "wfe-activity-1";
     await store.saveResource(
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
       id,
-      WorkflowExecutionSchema,
-      create(WorkflowExecutionSchema, {
+      WorkflowRunSchema,
+      create(WorkflowRunSchema, {
         metadata: { id, name: id },
-        status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+        status: { phase: RunPhase.RUN_IN_PROGRESS },
       }),
     );
 
@@ -196,19 +196,19 @@ describe("UpdateWorkflowExecutionStatus activity (real store)", () => {
       await activity()(
         id,
         toJson(
-          WorkflowExecutionStatusSchema,
-          create(WorkflowExecutionStatusSchema, {
-            phase: ExecutionPhase.EXECUTION_CANCELLED,
+          WorkflowRunStatusSchema,
+          create(WorkflowRunStatusSchema, {
+            phase: RunPhase.RUN_CANCELLED,
           }),
         ),
       );
 
       const stored = await store.getResource(
-        ApiResourceKind.workflow_execution,
+        ApiResourceKind.workflow_run,
         id,
-        WorkflowExecutionSchema,
+        WorkflowRunSchema,
       );
-      expect(stored.status?.phase).toBe(ExecutionPhase.EXECUTION_CANCELLED);
+      expect(stored.status?.phase).toBe(RunPhase.RUN_CANCELLED);
       // CANCELLED carries NO error (stigmer#282's quiet-terminal contract).
       expect(stored.status?.error).toBe("");
       // The unconditional audit bump reached the stored state.
@@ -216,10 +216,10 @@ describe("UpdateWorkflowExecutionStatus activity (real store)", () => {
 
       // The broadcast landed on the registered subscriber AFTER the
       // persist committed.
-      const frames: WorkflowExecution[] = subscription.queue;
+      const frames: WorkflowRun[] = subscription.queue;
       expect(frames).toHaveLength(1);
       expect(frames[0]!.status?.phase).toBe(
-        ExecutionPhase.EXECUTION_CANCELLED,
+        RunPhase.RUN_CANCELLED,
       );
     } finally {
       broker.unsubscribe(id, subscription);
@@ -229,21 +229,21 @@ describe("UpdateWorkflowExecutionStatus activity (real store)", () => {
   it("writes NO workflow_execution_events (the activity never touches the event log)", async () => {
     const id = "wfe-activity-2";
     await store.saveResource(
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
       id,
-      WorkflowExecutionSchema,
-      create(WorkflowExecutionSchema, {
+      WorkflowRunSchema,
+      create(WorkflowRunSchema, {
         metadata: { id, name: id },
-        status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+        status: { phase: RunPhase.RUN_IN_PROGRESS },
       }),
     );
 
     await activity()(
       id,
       toJson(
-        WorkflowExecutionStatusSchema,
-        create(WorkflowExecutionStatusSchema, {
-          phase: ExecutionPhase.EXECUTION_FAILED,
+        WorkflowRunStatusSchema,
+        create(WorkflowRunStatusSchema, {
+          phase: RunPhase.RUN_FAILED,
           error: "Workflow execution failed: child boom",
         }),
       ),
@@ -258,9 +258,9 @@ describe("UpdateWorkflowExecutionStatus activity (real store)", () => {
       activity()(
         "wfe-missing",
         toJson(
-          WorkflowExecutionStatusSchema,
-          create(WorkflowExecutionStatusSchema, {
-            phase: ExecutionPhase.EXECUTION_FAILED,
+          WorkflowRunStatusSchema,
+          create(WorkflowRunStatusSchema, {
+            phase: RunPhase.RUN_FAILED,
           }),
         ),
       ),

@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 import { useAutoScroll } from "../../internal/useAutoScroll.js";
 import { JumpToLatestButton } from "../../internal/JumpToLatestButton.js";

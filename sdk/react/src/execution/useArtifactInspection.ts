@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { useArtifactContent } from "./useArtifactContent.js";
 import { isTextArtifact } from "./artifact-utils.js";
 import { useDetectStigmerResource } from "../library/useDetectStigmerResource.js";
@@ -102,13 +102,13 @@ export interface ArtifactInspection {
  * @param options - {@link UseArtifactInspectionOptions}.
  */
 export function useArtifactInspection(
-  artifact: ExecutionArtifact,
+  artifact: RunArtifact,
   executionId: string,
   org: string,
   options?: UseArtifactInspectionOptions,
 ): ArtifactInspection {
   const slugForOrg = useOrgSlugForId();
-  const isDirectory = artifact.kind === ExecutionArtifactKind.DIRECTORY;
+  const isDirectory = artifact.kind === RunArtifactKind.DIRECTORY;
   const canFetchContent = !isDirectory && isTextArtifact(artifact);
 
   const {

@@ -1,8 +1,8 @@
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   WorkflowTaskStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 
 /**
  * A single failed execution reference within a {@link FailureGroup}.
@@ -50,7 +50,7 @@ function parseDate(iso: string | undefined): Date | null {
  * within each group sorted by failure time descending (most recent first).
  */
 export function deriveFailureAnalysis(
-  executions: readonly WorkflowExecution[],
+  executions: readonly WorkflowRun[],
 ): FailureGroup[] {
   const groupMap = new Map<string, {
     taskName: string;
@@ -58,7 +58,7 @@ export function deriveFailureAnalysis(
   }>();
 
   for (const exec of executions) {
-    if (exec.status?.phase !== ExecutionPhase.EXECUTION_FAILED) continue;
+    if (exec.status?.phase !== RunPhase.RUN_FAILED) continue;
 
     const tasks = exec.status?.tasks ?? [];
     let failedTaskName = "(unknown)";

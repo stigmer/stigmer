@@ -1,5 +1,5 @@
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 /**
  * File extensions recognized as human-readable text content.
@@ -50,7 +50,7 @@ const TEXT_EXTENSIONS = new Set([
  * ```
  */
 export function getArtifactExtension(
-  artifact: ExecutionArtifact,
+  artifact: RunArtifact,
 ): string | null {
   return getFileExtension(artifact.name);
 }
@@ -71,8 +71,8 @@ export function getArtifactExtension(
  * const shouldFetch = isTextArtifact(artifact) && Number(artifact.sizeBytes) < MAX_SIZE;
  * ```
  */
-export function isTextArtifact(artifact: ExecutionArtifact): boolean {
-  if (artifact.kind === ExecutionArtifactKind.DIRECTORY) return false;
+export function isTextArtifact(artifact: RunArtifact): boolean {
+  if (artifact.kind === RunArtifactKind.DIRECTORY) return false;
 
   const ext = getArtifactExtension(artifact);
   if (ext === null) return false;

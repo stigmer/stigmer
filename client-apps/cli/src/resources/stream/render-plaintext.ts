@@ -6,7 +6,7 @@
 // use --json for a machine-readable non-TTY stream. Phase/done/stream-error are
 // not rendered: the driver returns the outcome and the command surfaces it.
 
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { resolveToolKindByName, shellIntentFromArgs } from "@stigmer/sdk";
 import type { ApprovalNeededEvent, StreamEvent, ToolCallInfo } from "./events.js";
 import type { HeadlessRenderer } from "./headless.js";

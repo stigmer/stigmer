@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import { useArtifactContent } from "../execution/useArtifactContent.js";
 import {
   detectSkillPackage,
@@ -66,7 +66,7 @@ export interface UseDetectSkillPackageReturn {
  * @see {@link detectSkillPackage} for the pure function (non-React usage)
  */
 export function useDetectSkillPackage(
-  artifact: ExecutionArtifact | null,
+  artifact: RunArtifact | null,
   executionId: string | null,
 ): UseDetectSkillPackageReturn {
   const isPackage = artifact ? isSkillPackage(artifact) : false;

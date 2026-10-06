@@ -1,6 +1,6 @@
 "use client";
 
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 
 /**

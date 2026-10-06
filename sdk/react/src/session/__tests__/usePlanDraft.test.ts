@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { SessionPlan } from "../../library/detect-plan-artifact";
 import { usePlanDraft, planDraftKey } from "../usePlanDraft";
 
@@ -11,9 +11,9 @@ afterEach(cleanup);
 function plan(executionId: string, contentHash: string): SessionPlan {
   return {
     executionId,
-    artifact: create(ExecutionArtifactSchema, {
+    artifact: create(RunArtifactSchema, {
       name: "plan.md",
-      kind: ExecutionArtifactKind.FILE,
+      kind: RunArtifactKind.FILE,
       storageKey: `artifacts/${executionId}/plan.md`,
       contentHash,
     }),

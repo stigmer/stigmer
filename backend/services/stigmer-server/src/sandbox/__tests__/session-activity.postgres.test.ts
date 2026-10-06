@@ -17,8 +17,8 @@ import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import {
@@ -44,7 +44,7 @@ const silentLogger = createLogger({
 
 afterAll(dropPostgresFixture);
 
-describe.each(driverFixtures([ApiResourceKind.agent_execution]))(
+describe.each(driverFixtures([ApiResourceKind.agent_run]))(
   "the cheap read's look-back on $name",
   (fixture) => {
     describe.skipIf(fixture.skip)("recentActivity", () => {
@@ -68,15 +68,15 @@ describe.each(driverFixtures([ApiResourceKind.agent_execution]))(
 
       async function save(
         id: string,
-        phase: ExecutionPhase,
+        phase: RunPhase,
         createdAt: number,
         completedAt?: number,
       ): Promise<void> {
         await opened.store.saveResource(
-          ApiResourceKind.agent_execution,
+          ApiResourceKind.agent_run,
           id,
-          AgentExecutionSchema,
-          create(AgentExecutionSchema, {
+          AgentRunSchema,
+          create(AgentRunSchema, {
             apiVersion: "agentic.stigmer.ai/v1",
             kind: "AgentExecution",
             metadata: { id, name: id, org: "org-a" },
@@ -101,10 +101,10 @@ describe.each(driverFixtures([ApiResourceKind.agent_execution]))(
       }
 
       it("catches a run stamped at the same instant as one already read", async () => {
-        await save("aex_1", ExecutionPhase.EXECUTION_COMPLETED, T0 - 1_000, T0);
+        await save("aex_1", RunPhase.RUN_COMPLETED, T0 - 1_000, T0);
         await reader.recentActivity("ses_a");
         t += PASS_MS;
-        await save("aex_2", ExecutionPhase.EXECUTION_IN_PROGRESS, T0 - 1_000);
+        await save("aex_2", RunPhase.RUN_IN_PROGRESS, T0 - 1_000);
         expect(await reader.recentActivity("ses_a")).toEqual({
           busy: true,
           lastActiveAt: new Date(T0),
@@ -112,19 +112,19 @@ describe.each(driverFixtures([ApiResourceKind.agent_execution]))(
       });
 
       it("catches a run stamped exactly at the bound", async () => {
-        await save("aex_1", ExecutionPhase.EXECUTION_COMPLETED, T0 - 1_000, T0);
+        await save("aex_1", RunPhase.RUN_COMPLETED, T0 - 1_000, T0);
         await reader.recentActivity("ses_a");
         const bound = t - RECENT_LOOKBACK_MS;
         t += PASS_MS;
-        await save("aex_2", ExecutionPhase.EXECUTION_IN_PROGRESS, bound);
+        await save("aex_2", RunPhase.RUN_IN_PROGRESS, bound);
         expect((await reader.recentActivity("ses_a")).busy).toBe(true);
       });
 
       it("catches a run stamped inside the look-back before the newest run already read", async () => {
-        await save("aex_1", ExecutionPhase.EXECUTION_COMPLETED, T0, T0 + 1_000);
+        await save("aex_1", RunPhase.RUN_COMPLETED, T0, T0 + 1_000);
         await reader.recentActivity("ses_a");
         t += PASS_MS;
-        await save("aex_0", ExecutionPhase.EXECUTION_IN_PROGRESS, T0 - 60_000);
+        await save("aex_0", RunPhase.RUN_IN_PROGRESS, T0 - 60_000);
         expect(await reader.recentActivity("ses_a")).toEqual({
           busy: true,
           lastActiveAt: new Date(T0 + 1_000),

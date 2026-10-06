@@ -193,7 +193,7 @@ export function newFireDirectRunStep<Desc extends DescMessage>(
       switch (outcome.kind) {
         case "started":
           result.outcome = ScheduleRunOutcome.STARTED;
-          result.executionId = outcome.executionId;
+          result.runId = outcome.executionId;
           deps.logger.info("Schedule triggered manually — run started", {
             schedule_id: scheduleId,
             execution_id: outcome.executionId,

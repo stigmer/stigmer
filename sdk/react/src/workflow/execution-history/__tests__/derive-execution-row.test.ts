@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   WorkflowTaskStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
   deriveExecutionRow,
   deriveExecutionRows,
@@ -20,7 +20,7 @@ function makeExecution(overrides: {
   id?: string;
   name?: string;
   slug?: string;
-  phase?: ExecutionPhase;
+  phase?: RunPhase;
   startedAt?: string;
   completedAt?: string;
   error?: string;
@@ -33,7 +33,7 @@ function makeExecution(overrides: {
     error?: string;
     metadata?: Record<string, unknown>;
   }>;
-} = {}): WorkflowExecution {
+} = {}): WorkflowRun {
   return {
     metadata: {
       id: overrides.id ?? "wfx_test",
@@ -41,7 +41,7 @@ function makeExecution(overrides: {
       slug: overrides.slug ?? "test-execution",
     },
     status: {
-      phase: overrides.phase ?? ExecutionPhase.EXECUTION_COMPLETED,
+      phase: overrides.phase ?? RunPhase.RUN_COMPLETED,
       startedAt: overrides.startedAt ?? "2026-05-23T12:00:00Z",
       completedAt: overrides.completedAt ?? "2026-05-23T12:01:00Z",
       error: overrides.error ?? "",
@@ -55,7 +55,7 @@ function makeExecution(overrides: {
         metadata: t.metadata ? { fields: t.metadata } : undefined,
       })),
     },
-  } as unknown as WorkflowExecution;
+  } as unknown as WorkflowRun;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ describe("deriveExecutionRow", () => {
     const row = deriveExecutionRow(makeExecution({
       startedAt: "",
       completedAt: "",
-      phase: ExecutionPhase.EXECUTION_PENDING,
+      phase: RunPhase.RUN_PENDING,
     }));
     expect(row.durationMs).toBeNull();
   });
@@ -96,7 +96,7 @@ describe("deriveExecutionRow", () => {
     const row = deriveExecutionRow(makeExecution({
       startedAt: new Date(now - 5000).toISOString(),
       completedAt: "",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
     }));
     expect(row.durationMs).toBeGreaterThanOrEqual(4900);
     expect(row.durationMs).toBeLessThan(6000);
@@ -116,7 +116,7 @@ describe("deriveExecutionRow", () => {
 
   it("identifies the first failed task", () => {
     const row = deriveExecutionRow(makeExecution({
-      phase: ExecutionPhase.EXECUTION_FAILED,
+      phase: RunPhase.RUN_FAILED,
       tasks: [
         { taskName: "step_a", status: WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED },
         { taskName: "step_b", status: WorkflowTaskStatus.WORKFLOW_TASK_FAILED, error: "timeout" },
@@ -128,7 +128,7 @@ describe("deriveExecutionRow", () => {
 
   it("identifies the current in-progress task", () => {
     const row = deriveExecutionRow(makeExecution({
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       tasks: [
         { taskName: "step_a", status: WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED },
         { taskName: "step_b", status: WorkflowTaskStatus.WORKFLOW_TASK_IN_PROGRESS },
@@ -270,12 +270,12 @@ describe("sortExecutionRows", () => {
 describe("filterExecutionRows", () => {
   const rows: ExecutionRow[] = [
     deriveExecutionRow(makeExecution({
-      id: "completed", phase: ExecutionPhase.EXECUTION_COMPLETED,
+      id: "completed", phase: RunPhase.RUN_COMPLETED,
       startedAt: "2026-05-23T12:00:00Z", completedAt: "2026-05-23T12:00:10Z",
       totalCostMicros: 50_000,
     })),
     deriveExecutionRow(makeExecution({
-      id: "failed", phase: ExecutionPhase.EXECUTION_FAILED,
+      id: "failed", phase: RunPhase.RUN_FAILED,
       startedAt: "2026-05-23T12:00:00Z", completedAt: "2026-05-23T12:05:00Z",
       totalCostMicros: 500_000,
       tasks: [
@@ -283,20 +283,20 @@ describe("filterExecutionRows", () => {
       ],
     })),
     deriveExecutionRow(makeExecution({
-      id: "running", phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      id: "running", phase: RunPhase.RUN_IN_PROGRESS,
       startedAt: "2026-05-23T12:00:00Z", completedAt: undefined,
       totalCostMicros: 10_000,
     })),
   ];
 
   it("filters by phase", () => {
-    const result = filterExecutionRows(rows, { phases: [ExecutionPhase.EXECUTION_FAILED] });
+    const result = filterExecutionRows(rows, { phases: [RunPhase.RUN_FAILED] });
     expect(result.map((r) => r.id)).toEqual(["failed"]);
   });
 
   it("filters by multiple phases", () => {
     const result = filterExecutionRows(rows, {
-      phases: [ExecutionPhase.EXECUTION_COMPLETED, ExecutionPhase.EXECUTION_IN_PROGRESS],
+      phases: [RunPhase.RUN_COMPLETED, RunPhase.RUN_IN_PROGRESS],
     });
     expect(result.map((r) => r.id)).toEqual(["completed", "running"]);
   });
@@ -318,7 +318,7 @@ describe("filterExecutionRows", () => {
 
   it("combines multiple filters (AND logic)", () => {
     const result = filterExecutionRows(rows, {
-      phases: [ExecutionPhase.EXECUTION_COMPLETED, ExecutionPhase.EXECUTION_FAILED],
+      phases: [RunPhase.RUN_COMPLETED, RunPhase.RUN_FAILED],
       minCostMicros: BigInt(100_000),
     });
     expect(result.map((r) => r.id)).toEqual(["failed"]);
@@ -331,7 +331,7 @@ describe("filterExecutionRows", () => {
 
   it("returns empty when nothing matches", () => {
     const result = filterExecutionRows(rows, {
-      phases: [ExecutionPhase.EXECUTION_CANCELLED],
+      phases: [RunPhase.RUN_CANCELLED],
     });
     expect(result).toHaveLength(0);
   });

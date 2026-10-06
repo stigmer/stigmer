@@ -8,14 +8,14 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import { create } from "@bufbuild/protobuf";
 import {
   GetEventLogRequestSchema,
   SubscribeEventsRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { isTransientStreamError } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -47,7 +47,7 @@ export interface UseWorkflowExecutionEventStreamOptions {
    * decide between live streaming (non-terminal) and batch loading
    * (terminal). When omitted, defaults to live streaming.
    */
-  readonly executionPhase?: ExecutionPhase;
+  readonly executionPhase?: RunPhase;
   /**
    * Automatically re-establish the live subscription with exponential
    * backoff when it drops with a transient transport error, resuming from
@@ -67,7 +67,7 @@ export interface UseWorkflowExecutionEventStreamOptions {
 /** Return value of {@link useWorkflowExecutionEventStream}. */
 export interface UseWorkflowExecutionEventStreamReturn {
   /** All accumulated events, ordered by sequence_number ascending. */
-  readonly events: readonly WorkflowExecutionEvent[];
+  readonly events: readonly WorkflowRunEvent[];
   /** Derived task states from the event log. */
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
   /** Derived cost/budget summary from the latest checkpoint or aggregation. */
@@ -97,11 +97,11 @@ export interface UseWorkflowExecutionEventStreamReturn {
   readonly reconnect: () => void;
 }
 
-const TERMINAL_PHASES = new Set<ExecutionPhase>([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
+const TERMINAL_PHASES = new Set<RunPhase>([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
 ]);
 
 /**
@@ -115,8 +115,8 @@ const TERMINAL_PHASES = new Set<ExecutionPhase>([
  * Extracted for testability.
  */
 export function isRecoveryTransition(
-  prevPhase: ExecutionPhase | undefined,
-  nextPhase: ExecutionPhase | undefined,
+  prevPhase: RunPhase | undefined,
+  nextPhase: RunPhase | undefined,
 ): boolean {
   if (prevPhase === undefined || nextPhase === undefined) return false;
   return TERMINAL_PHASES.has(prevPhase) && !TERMINAL_PHASES.has(nextPhase);
@@ -180,7 +180,7 @@ export function useWorkflowExecutionEventStream(
   // Track previous phase to detect recovery (terminal → active).
   // useRef (not useState) because the transition drives an effect-time
   // side effect (store reset + gRPC subscription), not a rendered value.
-  const prevPhaseRef = useRef<ExecutionPhase | undefined>(undefined);
+  const prevPhaseRef = useRef<RunPhase | undefined>(undefined);
 
   // Track the execution the store is currently populated for, so we can
   // detect a switch to a different execution (vs. a reconnect or phase
@@ -243,9 +243,9 @@ export function useWorkflowExecutionEventStream(
           let hasMore = true;
 
           while (hasMore && !abortController.signal.aborted) {
-            const resp = await stigmer.workflowExecution.getEventLog(
+            const resp = await stigmer.workflowRun.getEventLog(
               create(GetEventLogRequestSchema, {
-                executionId,
+                runId: executionId,
                 afterSequence,
                 eventTypes: eventTypes ? [...eventTypes] : [],
                 pageSize: 500,
@@ -293,9 +293,9 @@ export function useWorkflowExecutionEventStream(
             // no events are lost or duplicated.
             const afterSequence = currentStore.getLatestSequence();
 
-            for await (const event of stigmer.workflowExecution.subscribeEvents(
+            for await (const event of stigmer.workflowRun.subscribeEvents(
               create(SubscribeEventsRequestSchema, {
-                executionId,
+                runId: executionId,
                 afterSequence,
                 eventTypes: eventTypes ? [...eventTypes] : [],
               }),

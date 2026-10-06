@@ -26,7 +26,7 @@ import {
 } from "@testing-library/react";
 import type { Stigmer } from "@stigmer/sdk";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { WorkflowRunDialog } from "../WorkflowRunDialog";
 
@@ -53,7 +53,7 @@ const DECLARED_ENV = {
 
 function makeWorkflow(overrides?: {
   org?: string;
-  executionVisibility?: WorkflowExecutionVisibility;
+  executionVisibility?: WorkflowRunVisibility;
 }): Workflow {
   return {
     metadata: {
@@ -65,7 +65,7 @@ function makeWorkflow(overrides?: {
     spec: {
       env: DECLARED_ENV,
       executionVisibility:
-        overrides?.executionVisibility ?? WorkflowExecutionVisibility.private,
+        overrides?.executionVisibility ?? WorkflowRunVisibility.private,
     },
   } as unknown as Workflow;
 }
@@ -233,7 +233,7 @@ describe("WorkflowRunDialog", () => {
     const { client } = makeClient([]);
     renderDialog(
       makeWorkflow({
-        executionVisibility: WorkflowExecutionVisibility.organization,
+        executionVisibility: WorkflowRunVisibility.organization,
       }),
       client,
     );

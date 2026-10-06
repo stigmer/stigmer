@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import type { WorkflowInput } from "@stigmer/sdk";
 import { useWorkflow } from "./useWorkflow.js";
@@ -219,7 +219,7 @@ export function WorkflowDetailView({
     "can_manage_audience",
   );
   const executionVisibility =
-    workflow?.spec?.executionVisibility ?? WorkflowExecutionVisibility.unspecified;
+    workflow?.spec?.runVisibility ?? WorkflowRunVisibility.unspecified;
   const runVisibilitySection = useMemo<AccessExtraSection | undefined>(
     () =>
       canManageAudience && workflowResourceId

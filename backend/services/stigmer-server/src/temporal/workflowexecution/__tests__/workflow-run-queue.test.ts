@@ -12,7 +12,7 @@ import {
   WORKFLOW_ROUTING_EXECUTION,
   WORKFLOW_ROUTING_GLOBAL,
   WorkflowExecutionTemporalConfig,
-} from "../../../domain/workflowexecution/temporal/config.js";
+} from "../../../domain/workflowrun/temporal/config.js";
 import { newWorkflowRunQueue } from "../dispatch.js";
 
 function configRouting(routing: string): WorkflowExecutionTemporalConfig {

@@ -19,7 +19,7 @@
  */
 
 import type { ModelParameterValue } from "@cursor/sdk";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import type { UsageDelta } from "../../harness/types.js";
 import { getCursorModelPricingForVariant, computeTurnCost } from "./model-pricing.js";

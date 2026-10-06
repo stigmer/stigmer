@@ -1,4 +1,4 @@
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 /**
  * String form of the service tier for component props and hook inputs

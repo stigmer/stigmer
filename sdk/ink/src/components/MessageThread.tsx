@@ -1,21 +1,21 @@
 import React, { useMemo } from "react";
 import { Box, Text, Static } from "ink";
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type {
   AgentMessage,
   ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
   ApprovalAction,
-  ExecutionPhase,
+  RunPhase,
   FileChangeSetStatus,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   isTerminalPhase,
   FileReviewContext,
@@ -32,9 +32,9 @@ import { FileReviewRecord } from "./FileReviewRecord.js";
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
   /** Completed executions in chronological order. */
-  readonly executions: readonly AgentExecution[];
+  readonly executions: readonly AgentRun[];
   /** The currently streaming execution (appended after `executions`). */
-  readonly activeStreamExecution?: AgentExecution | null;
+  readonly activeStreamExecution?: AgentRun | null;
   /** Optimistic user message shown before the stream delivers it. */
   readonly pendingUserMessage?: string | null;
   /** Callback for approval actions. Shows approval UI when provided. */
@@ -59,8 +59,8 @@ export interface MessageThreadProps {
 type ThreadItem =
   | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly key: string }
-  | { readonly kind: "sub-agent"; readonly subAgent: SubAgentExecution; readonly key: string }
-  | { readonly kind: "phase"; readonly phase: ExecutionPhase; readonly key: string }
+  | { readonly kind: "sub-agent"; readonly subAgent: SubAgentRun; readonly key: string }
+  | { readonly kind: "phase"; readonly phase: RunPhase; readonly key: string }
   | { readonly kind: "pending-message"; readonly content: string; readonly key: string }
   | { readonly kind: "file-review-record"; readonly set: FileChangeSet; readonly key: string }
   | { readonly kind: "approval"; readonly pendingApproval: PendingApproval; readonly key: string };
@@ -81,13 +81,13 @@ function isSettledSet(status: FileChangeSetStatus): boolean {
  * the execution's tail for each decided/reconciled/failed change set.
  */
 function buildExecutionSegment(
-  exec: AgentExecution,
+  exec: AgentRun,
   ei: number,
   includeFileReviewRecords: boolean,
 ): ThreadItem[] {
   const seg: ThreadItem[] = [];
   const messages = exec.status?.messages ?? [];
-  const subAgents = exec.status?.subAgentExecutions ?? [];
+  const subAgents = exec.status?.subAgentRuns ?? [];
 
   const specMessage = exec.spec?.message;
   if (specMessage && specMessage !== "execute") {
@@ -161,8 +161,8 @@ function buildExecutionSegment(
  * without shrinking the Static array.
  */
 function buildThreadItems(
-  executions: readonly AgentExecution[],
-  activeStreamExecution: AgentExecution | null | undefined,
+  executions: readonly AgentRun[],
+  activeStreamExecution: AgentRun | null | undefined,
   pendingUserMessage: string | null | undefined,
   includeApprovals: boolean,
   includeFileReviewRecords: boolean,
@@ -195,11 +195,11 @@ function buildThreadItems(
   // --- Transient tail (always live) ---
   const lastExec = allExecutions[allExecutions.length - 1];
   const lastPhase =
-    lastExec?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    lastExec?.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
 
   if (
     isTerminalPhase(lastPhase) &&
-    lastPhase !== ExecutionPhase.EXECUTION_COMPLETED
+    lastPhase !== RunPhase.RUN_COMPLETED
   ) {
     items.push({ kind: "phase", phase: lastPhase, key: `phase-${lastPhase}` });
   }
@@ -236,8 +236,8 @@ function buildThreadItems(
  * collision so a live decision is reflected before it is persisted.
  */
 function buildChangeSetsById(
-  executions: readonly AgentExecution[],
-  activeStreamExecution: AgentExecution | null | undefined,
+  executions: readonly AgentRun[],
+  activeStreamExecution: AgentRun | null | undefined,
 ): FileReviewContextValue {
   const changeSetsById = new Map<string, FileChangeSet>();
   for (const exec of executions) {

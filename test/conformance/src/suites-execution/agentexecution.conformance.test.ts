@@ -56,15 +56,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   FileDecisionAction,
   FileDecisionScope,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -174,7 +174,7 @@ describe("AgentExecution conformance — CRUD & identity", () => {
     expect(created.status?.agentId, "the turn records the agent its conversation pins").toBe(agent.metadata!.id);
     expect(created.status?.agentVersionHash, "and the version it runs").toBe(agent.status!.versionHash);
     // create persists before starting Temporal, so the returned phase is PENDING.
-    expect(created.status?.phase).toBe(ExecutionPhase.EXECUTION_PENDING);
+    expect(created.status?.phase).toBe(RunPhase.RUN_PENDING);
 
     await awaitTerminal(clients, created.metadata!.id);
   });
@@ -213,7 +213,7 @@ describe("AgentExecution conformance — CRUD & identity", () => {
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
     // Status advances as the run progresses, so parity (which ignores status, id,
     // and version) is the right equivalence here.
-    assertResourceParity(AgentExecutionSchema, created, fetched, "create vs get");
+    assertResourceParity(AgentRunSchema, created, fetched, "create vs get");
 
     await awaitTerminal(clients, created.metadata!.id);
   });
@@ -272,7 +272,7 @@ describe("AgentExecution conformance — completion", () => {
 
     const final = await awaitTerminal(clients, created.metadata!.id);
 
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     expect(final.status?.startedAt, "started_at is set when the run begins").toBeTruthy();
     expect(final.status?.completedAt, "completed_at is set on completion").toBeTruthy();
   });
@@ -287,7 +287,7 @@ describe("AgentExecution conformance — completion", () => {
 
     mock.releaseHolds();
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
 
     const readContext = async (): Promise<"present" | "gone"> => {
       try {
@@ -304,7 +304,7 @@ describe("AgentExecution conformance — completion", () => {
       readContext,
       (state) => state === "gone",
       (_, timeoutMs) =>
-        `execution ${executionId}'s ExecutionContext was still readable ${timeoutMs}ms after the run reached ${ExecutionPhase[final.status!.phase]}`,
+        `execution ${executionId}'s ExecutionContext was still readable ${timeoutMs}ms after the run reached ${RunPhase[final.status!.phase]}`,
       { timeoutMs: 30_000 },
     );
   });
@@ -334,7 +334,7 @@ describe("AgentExecution conformance — queries", () => {
 
     // Whether the server applies the filter or ignores it, a COMPLETED execution
     // must appear in a COMPLETED-filtered list; this asserts inclusion only.
-    const listed = await clients.agentExecutionQuery.list({ phase: ExecutionPhase.EXECUTION_COMPLETED });
+    const listed = await clients.agentExecutionQuery.list({ phase: RunPhase.RUN_COMPLETED });
     expect(listed.entries.map((e) => e.metadata?.id)).toContain(created.metadata?.id);
   });
 
@@ -433,13 +433,13 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
 
-    const running = await awaitPhase(clients, created.metadata!.id, ExecutionPhase.EXECUTION_IN_PROGRESS);
-    expect(running.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const running = await awaitPhase(clients, created.metadata!.id, RunPhase.RUN_IN_PROGRESS);
+    expect(running.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
 
     // Settle the run before the next test; cancel of a running execution is the
     // next test's subject.
     await clients.agentExecutionCommand.cancel({ id: created.metadata!.id });
-    await awaitPhase(clients, created.metadata!.id, ExecutionPhase.EXECUTION_CANCELLED);
+    await awaitPhase(clients, created.metadata!.id, RunPhase.RUN_CANCELLED);
   });
 
   it("[rpc:AgentExecutionCommandController.cancel] cancel transitions a running execution to CANCELLED with completed_at", async () => {
@@ -447,11 +447,11 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
     const id = created.metadata!.id;
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
 
     await clients.agentExecutionCommand.cancel({ id, reason: "conformance" });
 
-    const cancelled = await awaitPhase(clients, id, ExecutionPhase.EXECUTION_CANCELLED);
+    const cancelled = await awaitPhase(clients, id, RunPhase.RUN_CANCELLED);
     expect(cancelled.status?.completedAt, "cancel records completed_at").toBeTruthy();
   });
 
@@ -460,12 +460,12 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
     const id = created.metadata!.id;
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
 
     await clients.agentExecutionCommand.terminate({ id, reason: "conformance" });
 
-    const terminated = await awaitPhase(clients, id, ExecutionPhase.EXECUTION_TERMINATED);
-    expect(terminated.status?.phase).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+    const terminated = await awaitPhase(clients, id, RunPhase.RUN_TERMINATED);
+    expect(terminated.status?.phase).toBe(RunPhase.RUN_TERMINATED);
   });
 
   // A repeated stop on an execution the same stop already ended is a benign
@@ -479,13 +479,13 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
     const id = created.metadata!.id;
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
     await clients.agentExecutionCommand.cancel({ id, reason: "conformance" });
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_CANCELLED);
+    await awaitPhase(clients, id, RunPhase.RUN_CANCELLED);
 
     const again = await clients.agentExecutionCommand.cancel({ id, reason: "conformance, again" });
     expect(again.status?.phase, "the second cancel answers the already-cancelled execution").toBe(
-      ExecutionPhase.EXECUTION_CANCELLED,
+      RunPhase.RUN_CANCELLED,
     );
   });
 
@@ -494,13 +494,13 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
     const id = created.metadata!.id;
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
     await clients.agentExecutionCommand.terminate({ id, reason: "conformance" });
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_TERMINATED);
+    await awaitPhase(clients, id, RunPhase.RUN_TERMINATED);
 
     const again = await clients.agentExecutionCommand.terminate({ id, reason: "conformance, again" });
     expect(again.status?.phase, "the second terminate answers the already-terminated execution").toBe(
-      ExecutionPhase.EXECUTION_TERMINATED,
+      RunPhase.RUN_TERMINATED,
     );
   });
 
@@ -509,10 +509,10 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
     const id = created.metadata!.id;
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
 
     await clients.agentExecutionCommand.pause({ id, reason: "conformance" });
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_PAUSED);
+    await awaitPhase(clients, id, RunPhase.RUN_PAUSED);
 
     // Resume WHILE the first turn is still held. The paused activity is
     // NOT promptly cancelled (cancellation reaches the runner lazily,
@@ -534,7 +534,7 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
       mock.enqueue(anthropicText("Working RESUMED..."));
     }
     await clients.agentExecutionCommand.resume({ id });
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
 
     // Settle fence: give the WORKER time to consume the buffered pause +
     // resume signals before the held turn can complete. The PAUSED and
@@ -566,7 +566,7 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     // catches it when the rogue write lands FIRST. The release fires
     // inside the stream's first predicate call (the registration
     // snapshot), guaranteeing the subscription sees every later persist.
-    const hasResumedText = (e: AgentExecution): boolean =>
+    const hasResumedText = (e: AgentRun): boolean =>
       e.status?.messages.some((m) => m.content === "Working RESUMED...") ?? false;
     let released = false;
     const stream = await collectStream(
@@ -596,7 +596,7 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
       });
     }
     const settled = await awaitTerminal(clients, id);
-    expect(settled.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(settled.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 });
 
@@ -775,7 +775,7 @@ describe("AgentExecution conformance — create negative paths", () => {
     expect(session.status?.agentId ?? "", "and pins none").toBe("");
 
     const settled = await awaitTerminal(clients, created.metadata!.id);
-    expect(settled.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(settled.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 });
 
@@ -836,7 +836,7 @@ describe("AgentExecution conformance — one-call session bootstrap (session_spe
 
     // The first message runs to completion in the bootstrapped session.
     const final = await awaitTerminal(clients, created.metadata!.id);
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
   // The validation negative (the harness_state_id server-owned-field guard)
@@ -872,11 +872,11 @@ describe("AgentExecution conformance — a turn's dispatch queue is the server's
         org,
         name: uniqueName("aex-parent"),
         agentRef: agentRefOf(agent),
-        parent: { workflowExecutionId },
+        parent: { workflowRunId: workflowExecutionId },
       }),
     );
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
-    expect(created.spec?.parent?.workflowExecutionId, "the trusted-local caller's link is kept").toBe(
+    expect(created.spec?.parent?.workflowRunId, "the trusted-local caller's link is kept").toBe(
       workflowExecutionId,
     );
 
@@ -886,7 +886,7 @@ describe("AgentExecution conformance — a turn's dispatch queue is the server's
     expect(
       final.status?.phase,
       `the linked turn should complete on the shared pool; error: ${final.status?.error || "(none)"}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    ).toBe(RunPhase.RUN_COMPLETED);
   });
 
   it("[rpc:AgentExecutionCommandController.create] a request naming a dispatch queue in the retired field still runs on the shared runner pool", async () => {
@@ -895,7 +895,7 @@ describe("AgentExecution conformance — a turn's dispatch queue is the server's
 
     mock.enqueue(anthropicText("Done."));
     const request = create(
-      AgentExecutionSchema,
+      AgentRunSchema,
       makeAgentExecution({ org, name: uniqueName("aex-queue"), agentRef: agentRefOf(agent) }),
     );
     // The retired field's bytes as a caller could still send them: a string
@@ -914,7 +914,7 @@ describe("AgentExecution conformance — a turn's dispatch queue is the server's
     expect(
       final.status?.phase,
       `a caller-named queue must never route the turn; error: ${final.status?.error || "(none)"}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    ).toBe(RunPhase.RUN_COMPLETED);
   });
 });
 
@@ -955,7 +955,7 @@ describe("AgentExecution conformance — attachments (#285)", () => {
     expect(
       final.status?.phase,
       `expected COMPLETED; error: ${final.status?.error || "(none)"}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    ).toBe(RunPhase.RUN_COMPLETED);
 
     // And the materialized bytes match end to end. The runner writes
     // attachments to the session platform dir under ITS home — the
@@ -1012,7 +1012,7 @@ describe("AgentExecution conformance — attachments (#285)", () => {
 
     // The spec-referenced key presigns — no need to wait for the run.
     const presigned = await clients.agentExecutionQuery.getArtifactDownloadUrl({
-      executionId: execution.metadata!.id,
+      runId: execution.metadata!.id,
       storageKey: uploaded.storageKey,
     });
     expect(presigned.downloadUrl, "attachment key should presign").toBeTruthy();
@@ -1021,7 +1021,7 @@ describe("AgentExecution conformance — attachments (#285)", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionQuery.getArtifactDownloadUrl({
-          executionId: execution.metadata!.id,
+          runId: execution.metadata!.id,
           storageKey: "attachments/01JXFOREIGNULIDULIDULIDULX/other.txt",
         }),
       Code.InvalidArgument,
@@ -1072,7 +1072,7 @@ describe("AgentExecution conformance — attachments (#285)", () => {
     expect(
       final.status?.phase,
       `expected COMPLETED; error: ${final.status?.error || "(none)"}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    ).toBe(RunPhase.RUN_COMPLETED);
 
     // The provider-bound payload: find the user message carrying block content.
     interface AnthropicWireBlock {
@@ -1143,7 +1143,7 @@ describe("AgentExecution conformance — subscribe & populated read surfaces", (
     expect(stream.outcome, "the server closes on the terminal update").toBe("closed");
     expect(stream.messages.length, "at least the snapshot plus the terminal update").toBeGreaterThanOrEqual(2);
     expect(stream.messages[0]?.metadata?.id).toBe(created.metadata?.id);
-    expect(stream.messages.at(-1)?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(stream.messages.at(-1)?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
   it("[rpc:AgentExecutionQueryController.subscribe] subscribe sends the snapshot but never closes on an already-terminal run (the pinned idle-forever quirk)", async () => {
@@ -1165,7 +1165,7 @@ describe("AgentExecution conformance — subscribe & populated read surfaces", (
     // to trip the close check — exactly one message, and the reader aborts.
     expect(stream.outcome, "no server close — the bounded reader had to abort").toBe("timeout");
     expect(stream.messages).toHaveLength(1);
-    expect(stream.messages[0]?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(stream.messages[0]?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
   it("[rpc:AgentExecutionQueryController.getExecutionUsageReport] a completed run's usage report answers the zero-valued aggregate (this edition records no usage)", async () => {
@@ -1178,8 +1178,8 @@ describe("AgentExecution conformance — subscribe & populated read surfaces", (
     // (the NotFound arm is Class A), yet the aggregate is still a
     // structurally complete zero report — OSS deliberately aggregates no
     // usage data at all.
-    const report = await clients.agentExecutionQuery.getExecutionUsageReport({
-      executionId: created.metadata!.id,
+    const report = await clients.agentExecutionQuery.getRunUsageReport({
+      runId: created.metadata!.id,
     });
     expect(report.aggregate, "the aggregate is always present").toBeDefined();
     expect(report.aggregate?.totalTokens).toBe(0n);
@@ -1204,7 +1204,7 @@ describe("AgentExecution conformance — subscribe & populated read surfaces", (
     const err = await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({
-          agentExecutionId: created.metadata!.id,
+          agentRunId: created.metadata!.id,
           changeSetId: "cs_x",
           expectedDigest: "digest",
           scope: FileDecisionScope.CHANGE_SET,

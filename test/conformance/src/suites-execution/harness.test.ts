@@ -11,7 +11,7 @@
 // executeFromExecution path with no LLM, MCP, API key, proxy, object storage,
 // or checkpointer service (jq runs in-process; the only egress is gRPC back to
 // the server). So a green run isolates exactly one thing — the engine plumbing.
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -61,13 +61,13 @@ describe("Execution harness smoke — set_vars WorkflowExecution", () => {
     // reliably without introducing timing flake.)
     expect(execution.metadata?.id, "create assigns a prefixed execution id").toMatch(/^wex_[0-9a-z]+$/);
     expect(execution.status?.phase, "create returns a PENDING execution").toBe(
-      ExecutionPhase.EXECUTION_PENDING,
+      RunPhase.RUN_PENDING,
     );
 
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `execution ${executionId} should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `execution ${executionId} should complete; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
   });
 });

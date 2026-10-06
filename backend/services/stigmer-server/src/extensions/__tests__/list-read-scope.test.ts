@@ -293,7 +293,7 @@ describe("restrictListByReadScope", () => {
     await restrictListByReadScope(
       recording,
       caller,
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
       [
         {
           metadata: {
@@ -363,7 +363,7 @@ describe("restrictListByReadScope", () => {
       const kept = await restrictListByReadScope(
         scope,
         caller,
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         executions,
         "",
       );
@@ -396,7 +396,7 @@ describe("restrictListByReadScope", () => {
       const kept = await restrictListByReadScope(
         scope,
         caller,
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         executions,
         "",
       );
@@ -423,7 +423,7 @@ describe("restrictListByReadScope", () => {
       await restrictListByReadScope(
         scope,
         caller,
-        ApiResourceKind.workflow_execution,
+        ApiResourceKind.workflow_run,
         runs,
         "",
       );
@@ -452,7 +452,7 @@ describe("restrictListByReadScope", () => {
       const kept = await restrictListByReadScope(
         undefined,
         caller,
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         executions,
         "acme",
       );

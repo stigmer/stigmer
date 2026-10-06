@@ -21,14 +21,14 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { clone, create, toBinary } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   FileDecisionSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
   DiffCompleteness,
   FileCaptureClass,
@@ -40,7 +40,7 @@ import {
   FileReviewBlockReason,
   FileReviewEventType,
   SnapshotKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { ArtifactStorage } from "../../artifact-storage.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import {
@@ -99,18 +99,18 @@ async function write(rel: string, content: string): Promise<void> {
   await writeFile(join(repo, rel), content, "utf-8");
 }
 
-function newStatus(): AgentExecutionStatus {
-  return create(AgentExecutionStatusSchema, {});
+function newStatus(): AgentRunStatus {
+  return create(AgentRunStatusSchema, {});
 }
-function eventsOfType(status: AgentExecutionStatus, type: FileReviewEventType) {
+function eventsOfType(status: AgentRunStatus, type: FileReviewEventType) {
   return (status.fileReviewEventStream?.events ?? []).filter((e) => e.eventType === type);
 }
-function candidateChanges(status: AgentExecutionStatus): CapturedFileChange[] {
+function candidateChanges(status: AgentRunStatus): CapturedFileChange[] {
   const ev = eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)[0];
   return ev?.payload.case === "candidateCaptured" ? ev.payload.value.changes : [];
 }
 function decidedChangeSet(
-  status: AgentExecutionStatus,
+  status: AgentRunStatus,
   decisionByPath: Record<string, FileDecisionAction>,
 ) {
   const changes = candidateChanges(status).map((c) => clone(CapturedFileChangeSchema, c));
@@ -326,13 +326,13 @@ function makeStorage(): ArtifactStorage & { blobs: Map<string, Buffer> } {
   return Object.assign(storage, { blobs });
 }
 
-function candidateSnapshotKind(status: AgentExecutionStatus): SnapshotKind | undefined {
+function candidateSnapshotKind(status: AgentRunStatus): SnapshotKind | undefined {
   const ev = eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)[0];
   return ev?.payload.case === "candidateCaptured"
     ? ev.payload.value.candidateSnapshot?.kind
     : undefined;
 }
-function candidateCompleteness(status: AgentExecutionStatus): DiffCompleteness | undefined {
+function candidateCompleteness(status: AgentRunStatus): DiffCompleteness | undefined {
   const ev = eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)[0];
   return ev?.payload.case === "candidateCaptured"
     ? ev.payload.value.diffCompleteness
@@ -340,7 +340,7 @@ function candidateCompleteness(status: AgentExecutionStatus): DiffCompleteness |
 }
 
 describe("capture reconcile — the decision rules the resume enforces (moved from execute-cursor/capture-flow.test in #1096)", () => {
-  async function captureTwoFileTurn(status: AgentExecutionStatus): Promise<void> {
+  async function captureTwoFileTurn(status: AgentRunStatus): Promise<void> {
     const baseline = await captureBaselineToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS });
     await write("notes.md", "planton notes\n");
     await write("src/main.ts", "export const x = 99;\n");
@@ -719,8 +719,8 @@ describe("capture orchestration — git-tracked secret withheld", () => {
   // Serialize the WHOLE persisted status (ledger + any rows) and assert neither
   // the baseline nor the new secret bytes survive anywhere — the leak-scan that
   // would FAIL before this fix (the git diff carried the inline body).
-  function assertNoSecretBytes(status: AgentExecutionStatus): void {
-    const wire = Buffer.from(toBinary(AgentExecutionStatusSchema, status));
+  function assertNoSecretBytes(status: AgentRunStatus): void {
+    const wire = Buffer.from(toBinary(AgentRunStatusSchema, status));
     expect(wire.includes(Buffer.from(BASELINE_SECRET))).toBe(false);
     expect(wire.includes(Buffer.from(NEW_SECRET))).toBe(false);
   }

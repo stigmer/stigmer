@@ -2,7 +2,7 @@
 
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
-import { ListArtifactsByExecutionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
+import { ListArtifactsByRunRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -37,9 +37,9 @@ export function useWorkflowExecutionArtifacts(
 
   const fetchFn = executionId
     ? async () => {
-        const resp = await stigmer.artifact.listByExecution(
-          create(ListArtifactsByExecutionRequestSchema, {
-            workflowExecutionId: executionId,
+        const resp = await stigmer.artifact.listByRun(
+          create(ListArtifactsByRunRequestSchema, {
+            workflowRunId: executionId,
           }),
         );
         return [...resp.entries];

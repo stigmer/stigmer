@@ -1,9 +1,9 @@
 "use client";
 
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import { create } from "@bufbuild/protobuf";
-import { GetEventLogRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { GetEventLogRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -22,7 +22,7 @@ export interface UseWorkflowExecutionEventLogOptions {
 /** Return value of {@link useWorkflowExecutionEventLog}. */
 export interface UseWorkflowExecutionEventLogReturn {
   /** Events in the current page, ordered by sequence_number ascending. */
-  readonly events: readonly WorkflowExecutionEvent[];
+  readonly events: readonly WorkflowRunEvent[];
   /** Whether more events exist after the last event in this response. */
   readonly hasMore: boolean;
   /** Highest sequence_number returned, for cursor-based pagination. */
@@ -38,7 +38,7 @@ export interface UseWorkflowExecutionEventLogReturn {
 }
 
 interface EventLogData {
-  events: readonly WorkflowExecutionEvent[];
+  events: readonly WorkflowRunEvent[];
   hasMore: boolean;
   latestSequence: bigint;
 }
@@ -76,9 +76,9 @@ export function useWorkflowExecutionEventLog(
 
   const fetchFn = executionId
     ? async () => {
-        const resp = await stigmer.workflowExecution.getEventLog(
+        const resp = await stigmer.workflowRun.getEventLog(
           create(GetEventLogRequestSchema, {
-            executionId,
+            runId: executionId,
             afterSequence,
             eventTypes: [...eventTypes],
             taskName,

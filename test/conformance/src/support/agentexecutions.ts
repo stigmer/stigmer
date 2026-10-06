@@ -17,16 +17,16 @@
 // asserted (see the seam's own header below).
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import type { InitShape } from "./init-shape";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import type {
   AttachmentSchema,
   WorkflowParentSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -92,7 +92,7 @@ export interface AgentExecutionOptions {
 // A complete, valid AgentExecution create request. run_config is left unset
 // unless provided, so the only variable inputs are the target, the message,
 // and the optional overrides.
-export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeof AgentExecutionSchema> {
+export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeof AgentRunSchema> {
   return {
     apiVersion: AGENT_EXECUTION_API_VERSION,
     kind: AGENT_EXECUTION_KIND,
@@ -125,7 +125,7 @@ export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeo
 // oneof holds one arm), refused here rather than silently dropping one.
 function executionTarget(
   opts: AgentExecutionOptions,
-): Pick<NonNullable<InitShape<typeof AgentExecutionSchema>["spec"]>, "target"> {
+): Pick<NonNullable<InitShape<typeof AgentRunSchema>["spec"]>, "target"> {
   if (opts.sessionId !== undefined) {
     if (opts.agentRef !== undefined || opts.sessionSpec !== undefined) {
       throw new Error("makeAgentExecution: sessionId excludes agentRef and sessionSpec (spec.target is a oneof)");
@@ -145,7 +145,7 @@ function executionTarget(
 // The session a persisted turn belongs to: the server replaces a new
 // conversation's session_spec with the id of the session it created, so
 // every stored turn reads through the session_id arm ("" when it has none).
-export function sessionIdOf(execution: AgentExecution | undefined): string {
+export function sessionIdOf(execution: AgentRun | undefined): string {
   const target = execution?.spec?.target;
   return target?.case === "sessionId" ? target.value : "";
 }
@@ -154,14 +154,14 @@ export function sessionIdOf(execution: AgentExecution | undefined): string {
 // (resume revives it) and WAITING_FOR_APPROVAL is a wait, not an end state.
 // Note the AgentExecution enum numbering diverges from WorkflowExecution:
 // WAITING_FOR_APPROVAL=6, PAUSED=7, TERMINATED=8.
-const TERMINAL_PHASES: ReadonlySet<ExecutionPhase> = new Set([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
+const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
 ]);
 
-export function isTerminalPhase(phase: ExecutionPhase | undefined): boolean {
+export function isTerminalPhase(phase: RunPhase | undefined): boolean {
   return phase !== undefined && TERMINAL_PHASES.has(phase);
 }
 
@@ -178,15 +178,15 @@ export interface PollOptions extends PollCoreOptions {
 export function pollExecution(
   clients: ConformanceClients,
   executionId: string,
-  predicate: (exec: AgentExecution) => boolean,
+  predicate: (exec: AgentRun) => boolean,
   opts: PollOptions = {},
-): Promise<AgentExecution> {
+): Promise<AgentRun> {
   const phaseTrace: string[] = [];
   return pollUntil(
     async () => {
       const execution = await clients.agentExecutionQuery.get({ value: executionId });
       const phase =
-        ExecutionPhase[execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED];
+        RunPhase[execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED];
       if (phaseTrace.at(-1) !== phase) {
         phaseTrace.push(phase);
       }
@@ -211,11 +211,11 @@ export function pollExecution(
 export function awaitPhase(
   clients: ConformanceClients,
   executionId: string,
-  phase: ExecutionPhase,
+  phase: RunPhase,
   opts: PollOptions = {},
-): Promise<AgentExecution> {
+): Promise<AgentRun> {
   return pollExecution(clients, executionId, (e) => e.status?.phase === phase, {
-    label: `phase ${ExecutionPhase[phase]}`,
+    label: `phase ${RunPhase[phase]}`,
     ...opts,
   });
 }
@@ -225,7 +225,7 @@ export function awaitTerminal(
   clients: ConformanceClients,
   executionId: string,
   opts: PollOptions = {},
-): Promise<AgentExecution> {
+): Promise<AgentRun> {
   return pollExecution(clients, executionId, (e) => isTerminalPhase(e.status?.phase), {
     label: "a terminal phase",
     ...opts,
@@ -259,7 +259,7 @@ export interface SubmitApprovalPerContractOptions {
   // contract is asserted on: the submit response for a direct submit; for the
   // workflow forwarder — whose own response is the PARENT, loaded before the
   // forward — a fresh get of the child.
-  submit: () => Promise<AgentExecution>;
+  submit: () => Promise<AgentRun>;
   // pending_approvals the response must carry after this decision: 0 for a
   // single gate, 1 for the first approve of two co-pending calls.
   expectedRemaining: number;
@@ -274,7 +274,7 @@ export interface SubmitApprovalPerContractOptions {
 // vitest's `expect` refuses to load without a running test worker.
 export async function submitApprovalPerContract(
   opts: SubmitApprovalPerContractOptions,
-): Promise<AgentExecution> {
+): Promise<AgentRun> {
   const { expect } = await import("vitest");
   const response = await opts.submit();
   expect(response.status?.pendingApprovals.length, opts.label).toBe(opts.expectedRemaining);
@@ -287,7 +287,7 @@ export async function submitApprovalPerContract(
 // resumed stream does not keep stable. The server records the principal it
 // authorized, the same id it stamps as created_by on what that caller creates,
 // so a suite compares the two without knowing the edition's identity scheme.
-export function decidedByOf(execution: AgentExecution, toolCallId: string): string | undefined {
+export function decidedByOf(execution: AgentRun, toolCallId: string): string | undefined {
   const decided = (execution.status?.approvalEventStream?.events ?? []).find(
     (event) => event.approvalRequestId === toolCallId && event.payload.case === "decided",
   );
@@ -296,10 +296,10 @@ export function decidedByOf(execution: AgentExecution, toolCallId: string): stri
 
 // Root and sub-agent transcripts, the same scan the server's pending-approval
 // projection runs — the REJECT arm reads the decided tool call through it.
-export function allToolCalls(execution: AgentExecution): ToolCall[] {
+export function allToolCalls(execution: AgentRun): ToolCall[] {
   const root = execution.status?.messages.flatMap((message) => message.toolCalls) ?? [];
   const nested =
-    execution.status?.subAgentExecutions.flatMap((subAgent) =>
+    execution.status?.subAgentRuns.flatMap((subAgent) =>
       subAgent.messages.flatMap((message) => message.toolCalls),
     ) ?? [];
   return [...root, ...nested];

@@ -35,8 +35,8 @@
 // of validation as contract; the question is filed as a runner issue. Replaces
 // the Go offline suite's structured_output_offline_test.go hard arms.
 import type { JsonObject } from "@bufbuild/protobuf";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -116,7 +116,7 @@ async function runWithSchema(
   finalText: string,
   schema: JsonObject | undefined,
   extractorTurn?: AnthropicMessageBody,
-): Promise<AgentExecution> {
+): Promise<AgentRun> {
   const { org } = await target.provisionTenancy();
   const agent = await clients.agentCommand.create(
     makeAgent({
@@ -145,15 +145,15 @@ async function runWithSchema(
   const final = await awaitTerminal(clients, executionId);
   expect(
     final.status?.phase,
-    `the run should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]} ` +
+    `the run should complete; reached ${RunPhase[final.status?.phase ?? 0]} ` +
       `(status.error: ${JSON.stringify(final.status?.error ?? "")})`,
-  ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  ).toBe(RunPhase.RUN_COMPLETED);
   return final;
 }
 
 // protobuf-es carries a google.protobuf.Struct field as a plain JsonObject, so
 // status.structured_output compares as values with no unwrapping.
-function structuredOutputOf(final: AgentExecution): JsonObject | undefined {
+function structuredOutputOf(final: AgentRun): JsonObject | undefined {
   return final.status?.structuredOutput;
 }
 

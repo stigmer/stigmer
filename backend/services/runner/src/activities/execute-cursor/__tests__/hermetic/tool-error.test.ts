@@ -29,8 +29,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -113,7 +113,7 @@ describe("ExecuteCursor hermetic — an ungated tool call that fails", () => {
     // ── Assert: a failed read does not fail the turn ─────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
     // ── Assert: the one FAILED row ───────────────────────────────────────────
     const rows = record.toolCalls();
@@ -132,7 +132,7 @@ describe("ExecuteCursor hermetic — an ungated tool call that fails", () => {
 
     // ── Assert: the golden ───────────────────────────────────────────────────
     const final = record.lastFullStatus!;
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/tool-error.status.json");
   });
 });

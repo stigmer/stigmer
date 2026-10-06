@@ -15,13 +15,13 @@ import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spe
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import {
   InteractionMode,
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import {
   AgentShareSpecSchema,
@@ -66,14 +66,14 @@ import { WorkflowSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/
 import {
   WorkflowTaskKind,
   BudgetExceededPolicy,
-  WorkflowExecutionVisibility,
+  WorkflowRunVisibility,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/spec_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/spec_pb";
 
 import { buildAgentProto, toAgentUpdateInput } from "../gen/agent";
 import { buildAgentChannelProto, toAgentChannelUpdateInput } from "../gen/agentchannel";
-import { buildAgentExecutionProto, toAgentExecutionUpdateInput } from "../gen/agentexecution";
+import { buildAgentRunProto, toAgentRunUpdateInput } from "../gen/agentrun";
 import { buildAgentShareProto, toAgentShareUpdateInput } from "../gen/agentshare";
 import { buildApiKeyProto, toApiKeyUpdateInput } from "../gen/apikey";
 import { buildChannelAppProto, toChannelAppUpdateInput } from "../gen/channelapp";
@@ -87,7 +87,7 @@ import { buildPlatformClientProto, toPlatformClientUpdateInput } from "../gen/pl
 import { buildScheduleProto, toScheduleUpdateInput } from "../gen/schedule";
 import { buildSessionProto, toSessionUpdateInput } from "../gen/session";
 import { buildWorkflowProto, toWorkflowUpdateInput } from "../gen/workflow";
-import { buildWorkflowExecutionProto, toWorkflowExecutionUpdateInput } from "../gen/workflowexecution";
+import { buildWorkflowRunProto, toWorkflowRunUpdateInput } from "../gen/workflowrun";
 
 /**
  * Systematic wipe-bug guard for every generated toXxxUpdateInput mapper
@@ -313,7 +313,7 @@ describe("toAgentChannelUpdateInput", () => {
 
 describe("toAgentExecutionUpdateInput", () => {
   const fixture = () =>
-    create(AgentExecutionSchema, {
+    create(AgentRunSchema, {
       metadata: META,
       spec: {
         target: {
@@ -352,13 +352,13 @@ describe("toAgentExecutionUpdateInput", () => {
           },
         ],
         workspaceFileRefs: ["src/app.ts"],
-        supersedesExecutionId: "exec-0",
+        supersedesRunId: "exec-0",
         conversationCatchup: {
           digest: "Prior turns summarized.",
           windowEnd: timestampFromDate(new Date("2026-08-15T10:00:00Z")),
         },
         parent: {
-          workflowExecutionId: "wfx-1",
+          workflowRunId: "wfx-1",
           signalWorkflowId: "wf-1",
           callbackToken: new Uint8Array([1, 2, 3]),
         },
@@ -366,27 +366,27 @@ describe("toAgentExecutionUpdateInput", () => {
     });
 
   it("fixture covers every AgentExecutionSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(AgentExecutionSpecSchema, fixture().spec!);
+    assertFixtureCoversSpec(AgentRunSpecSchema, fixture().spec!);
   });
 
   it("round-trips the full spec and metadata through the builder", () => {
     const original = fixture();
     assertSpecRoundTrip(
-      AgentExecutionSpecSchema,
+      AgentRunSpecSchema,
       original,
-      buildAgentExecutionProto(toAgentExecutionUpdateInput(original)),
+      buildAgentRunProto(toAgentRunUpdateInput(original)),
     );
   });
 
   it("round-trips the existing-session arm of the target oneof", () => {
-    const original = create(AgentExecutionSchema, {
+    const original = create(AgentRunSchema, {
       metadata: META,
       spec: { target: { case: "sessionId", value: "ses-1" }, message: "Again." },
     });
     assertSpecRoundTrip(
-      AgentExecutionSpecSchema,
+      AgentRunSpecSchema,
       original,
-      buildAgentExecutionProto(toAgentExecutionUpdateInput(original)),
+      buildAgentRunProto(toAgentRunUpdateInput(original)),
     );
   });
 });
@@ -884,7 +884,7 @@ describe("toWorkflowUpdateInput", () => {
           maxDurationSeconds: 1800,
           onExceeded: BudgetExceededPolicy.budget_exceeded_human_review,
         },
-        executionVisibility: WorkflowExecutionVisibility.organization,
+        runVisibility: WorkflowRunVisibility.organization,
       },
     });
 
@@ -906,8 +906,8 @@ describe("toWorkflowUpdateInput", () => {
       ...toWorkflowUpdateInput(fixture()),
       description: "Nightly triage, revised.",
     });
-    expect(rebuilt.spec?.executionVisibility).toBe(
-      WorkflowExecutionVisibility.organization,
+    expect(rebuilt.spec?.runVisibility).toBe(
+      WorkflowRunVisibility.organization,
     );
     expect(rebuilt.spec?.description).toBe("Nightly triage, revised.");
   });
@@ -915,7 +915,7 @@ describe("toWorkflowUpdateInput", () => {
 
 describe("toWorkflowExecutionUpdateInput", () => {
   const fixture = () =>
-    create(WorkflowExecutionSchema, {
+    create(WorkflowRunSchema, {
       metadata: META,
       spec: {
         workflowId: "wf-1",
@@ -927,15 +927,15 @@ describe("toWorkflowExecutionUpdateInput", () => {
     });
 
   it("fixture covers every WorkflowExecutionSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(WorkflowExecutionSpecSchema, fixture().spec!);
+    assertFixtureCoversSpec(WorkflowRunSpecSchema, fixture().spec!);
   });
 
   it("round-trips the full spec and metadata through the builder", () => {
     const original = fixture();
     assertSpecRoundTrip(
-      WorkflowExecutionSpecSchema,
+      WorkflowRunSpecSchema,
       original,
-      buildWorkflowExecutionProto(toWorkflowExecutionUpdateInput(original)),
+      buildWorkflowRunProto(toWorkflowRunUpdateInput(original)),
     );
   });
 });

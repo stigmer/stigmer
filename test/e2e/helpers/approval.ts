@@ -5,8 +5,8 @@ import type { Page, Locator } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { TerminateAgentExecutionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { TerminateAgentRunInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import {
   anthropicText,
   anthropicToolUses,
@@ -142,7 +142,7 @@ export async function seedGatedSession(
   }
   await control.enqueue(anthropicText("Done."));
 
-  const execution = await client.agentExecution.create({
+  const execution = await client.agentRun.create({
     name: `e2e-approval-exec-${stamp}`,
     org,
     sessionId,
@@ -161,15 +161,15 @@ export async function seedGatedSession(
       // it terminal, then delete — and bound EVERY call so cleanup can never hang
       // the suite regardless of backend state.
       await withTimeout(
-        client.agentExecution.terminate(
-          create(TerminateAgentExecutionInputSchema, {
+        client.agentRun.terminate(
+          create(TerminateAgentRunInputSchema, {
             id: executionId,
             reason: "e2e approval spec teardown",
           }),
         ),
         3_000,
       ).catch(() => {});
-      await withTimeout(client.agentExecution.delete(executionId), 5_000).catch(() => {});
+      await withTimeout(client.agentRun.delete(executionId), 5_000).catch(() => {});
       await withTimeout(client.session.delete(sessionId), 5_000).catch(() => {});
       await withTimeout(client.agent.delete(agentId), 5_000).catch(() => {});
     },
@@ -251,7 +251,7 @@ export async function seedToolRunSession(
   }
   await control.enqueue(anthropicText("Done."));
 
-  const execution = await client.agentExecution.create({
+  const execution = await client.agentRun.create({
     name: `e2e-toolrun-exec-${stamp}`,
     org,
     sessionId,
@@ -267,15 +267,15 @@ export async function seedToolRunSession(
     executionId,
     cleanup: async () => {
       await withTimeout(
-        client.agentExecution.terminate(
-          create(TerminateAgentExecutionInputSchema, {
+        client.agentRun.terminate(
+          create(TerminateAgentRunInputSchema, {
             id: executionId,
             reason: "e2e tool-run spec teardown",
           }),
         ),
         3_000,
       ).catch(() => {});
-      await withTimeout(client.agentExecution.delete(executionId), 5_000).catch(() => {});
+      await withTimeout(client.agentRun.delete(executionId), 5_000).catch(() => {});
       await withTimeout(client.session.delete(sessionId), 5_000).catch(() => {});
       await withTimeout(client.agent.delete(agentId), 5_000).catch(() => {});
     },
@@ -300,25 +300,25 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 // Execution phase polling (node client)
 // ---------------------------------------------------------------------------
 
-const TERMINAL_PHASES: ReadonlySet<ExecutionPhase> = new Set([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
+const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
 ]);
 
 /** Polls the execution until it reaches a specific phase, or throws on timeout. */
 export async function awaitExecutionPhase(
   client: Stigmer,
   executionId: string,
-  phase: ExecutionPhase,
+  phase: RunPhase,
   opts: { timeoutMs?: number; intervalMs?: number } = {},
 ): Promise<void> {
   await pollExecution(
     client,
     executionId,
     (p) => p === phase,
-    `phase ${ExecutionPhase[phase]}`,
+    `phase ${RunPhase[phase]}`,
     opts,
   );
 }
@@ -328,7 +328,7 @@ export async function awaitExecutionTerminal(
   client: Stigmer,
   executionId: string,
   opts: { timeoutMs?: number; intervalMs?: number } = {},
-): Promise<ExecutionPhase> {
+): Promise<RunPhase> {
   return pollExecution(
     client,
     executionId,
@@ -341,14 +341,14 @@ export async function awaitExecutionTerminal(
 async function pollExecution(
   client: Stigmer,
   executionId: string,
-  predicate: (phase: ExecutionPhase) => boolean,
+  predicate: (phase: RunPhase) => boolean,
   label: string,
   opts: { timeoutMs?: number; intervalMs?: number },
-): Promise<ExecutionPhase> {
+): Promise<RunPhase> {
   const timeoutMs = opts.timeoutMs ?? 60_000;
   const intervalMs = opts.intervalMs ?? 500;
   const deadline = Date.now() + timeoutMs;
-  let last = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  let last = RunPhase.RUN_PHASE_UNSPECIFIED;
   let lastGetError: unknown;
   while (Date.now() < deadline) {
     // Bound EACH get: if the backend wedges (e.g. an execution that doesn't
@@ -358,8 +358,8 @@ async function pollExecution(
     // Capping the call keeps the loop honoring `timeoutMs`, so a stuck backend
     // surfaces as a fast, phase-annotated failure instead of a 90s hang.
     try {
-      const exec = await withTimeout(client.agentExecution.get(executionId), 5_000);
-      last = exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+      const exec = await withTimeout(client.agentRun.get(executionId), 5_000);
+      last = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
       lastGetError = undefined;
       if (predicate(last)) return last;
     } catch (err) {
@@ -373,7 +373,7 @@ async function pollExecution(
       : "";
   throw new Error(
     `execution ${executionId} did not reach ${label} within ${timeoutMs}ms ` +
-      `(last phase: ${ExecutionPhase[last]})${errSuffix}`,
+      `(last phase: ${RunPhase[last]})${errSuffix}`,
   );
 }
 
@@ -470,14 +470,14 @@ export async function settleThroughFileReview(
   await awaitExecutionPhase(
     client,
     seeded.executionId,
-    ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+    RunPhase.RUN_WAITING_FOR_APPROVAL,
   );
   await page.goto(`/sessions/${seeded.sessionId}`);
   await fileReviewApproveButton(page).click({ timeout: 30_000 });
   const phase = await awaitExecutionTerminal(client, seeded.executionId);
-  if (phase !== ExecutionPhase.EXECUTION_COMPLETED) {
+  if (phase !== RunPhase.RUN_COMPLETED) {
     throw new Error(
-      `review-resolved run should complete, got ${ExecutionPhase[phase]}`,
+      `review-resolved run should complete, got ${RunPhase[phase]}`,
     );
   }
 }

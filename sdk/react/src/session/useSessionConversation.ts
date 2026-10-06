@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { ApprovalAction, ExecutionPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { ApprovalAction, RunPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -183,11 +183,11 @@ export interface UseSessionConversationReturn {
    * message stands in the original's place. Superseded records remain in
    * execution history surfaces; only the conversation view hides them.
    */
-  readonly completedExecutions: readonly AgentExecution[];
+  readonly completedExecutions: readonly AgentRun[];
   /** Currently streaming execution (stream or fetch fallback), or null. */
-  readonly activeStreamExecution: AgentExecution | null;
+  readonly activeStreamExecution: AgentRun | null;
   /** Phase of the active execution, or null if none active. */
-  readonly activePhase: ExecutionPhase | null;
+  readonly activePhase: RunPhase | null;
   /** True while the active execution's stream is delivering updates. */
   readonly isStreaming: boolean;
   /**
@@ -582,7 +582,7 @@ export function useSessionConversation(
   // MessageThread a fresh executions array mid-stream, defeating its
   // memoization.
   const streamSupersededId =
-    stream.execution?.spec?.supersedesExecutionId || null;
+    stream.execution?.spec?.supersedesRunId || null;
   const supersededIds = useMemo(
     () => supersededExecutionIds(executions, streamSupersededId),
     [executions, streamSupersededId],
@@ -608,7 +608,7 @@ export function useSessionConversation(
   const activeStreamExecution =
     stream.execution ?? fetchedActiveExecution;
 
-  const activePhase = useMemo<ExecutionPhase | null>(() => {
+  const activePhase = useMemo<RunPhase | null>(() => {
     if (!activeExecutionId) return null;
     return stream.phase;
   }, [activeExecutionId, stream.phase]);
@@ -617,8 +617,8 @@ export function useSessionConversation(
   // (PENDING / IN_PROGRESS). Other non-terminal phases (e.g.
   // WAITING_FOR_APPROVAL) are handled by their own control surface.
   const isStoppable =
-    activePhase === ExecutionPhase.EXECUTION_PENDING ||
-    activePhase === ExecutionPhase.EXECUTION_IN_PROGRESS;
+    activePhase === RunPhase.RUN_PENDING ||
+    activePhase === RunPhase.RUN_IN_PROGRESS;
 
   const stopActions = useAgentExecutionActions(activeExecutionId, {
     // The cancel/terminate also broadcasts the new phase over the stream, but

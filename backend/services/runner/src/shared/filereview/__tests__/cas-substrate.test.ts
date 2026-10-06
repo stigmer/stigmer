@@ -15,7 +15,7 @@ import { tmpdir } from "node:os";
 import {
   FileCaptureClass,
   FileChangeKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { LocalArtifactStorage, ProxyArtifactStorage, type ArtifactStorage } from "../../artifact-storage.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import { sha256Bytes } from "../digest.js";

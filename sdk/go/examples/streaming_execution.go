@@ -23,7 +23,7 @@ func StreamingExecution() {
 	}
 	defer client.Close()
 
-	exec, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecutionInput{
+	exec, err := client.AgentRun.Create(ctx, &stigmer.AgentRunInput{
 		SessionSpec: &stigmer.SessionSpecInput{
 			AgentRef: stigmer.ResourceRef{Org: "my-org", Slug: "code-reviewer"},
 		},
@@ -39,7 +39,7 @@ func StreamingExecution() {
 	}
 	fmt.Printf("Created execution: %s\n", exec.GetMetadata().GetId())
 
-	stream, err := client.AgentExecution.Subscribe(ctx, exec.GetMetadata().GetId())
+	stream, err := client.AgentRun.Subscribe(ctx, exec.GetMetadata().GetId())
 	if err != nil {
 		log.Fatal(err)
 	}

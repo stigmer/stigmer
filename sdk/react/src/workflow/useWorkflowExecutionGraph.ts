@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import type { Node, Edge } from "@xyflow/react";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import type { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import { isNotFound } from "@stigmer/sdk";
 import { GetWorkflowVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
@@ -32,7 +32,7 @@ export interface UseWorkflowExecutionGraphOptions {
    * skips its own `useWorkflowExecution` call — eliminating the
    * duplicate fetch.
    */
-  readonly execution?: WorkflowExecution | null;
+  readonly execution?: WorkflowRun | null;
 
   /**
    * Externally-derived task states from a shared event store. When
@@ -57,7 +57,7 @@ export interface UseWorkflowExecutionGraphReturn {
   /** React Flow edges. */
   readonly edges: Edge[];
   /** Current execution lifecycle phase. */
-  readonly executionPhase: ExecutionPhase | undefined;
+  readonly executionPhase: RunPhase | undefined;
   /** `true` while the graph model is being loaded (workflow fetch + parse). */
   readonly isLoading: boolean;
   /** Error from workflow fetch or graph building. */
@@ -252,7 +252,7 @@ export function useWorkflowExecutionGraph(
       let approvalToolName: string | undefined;
       if (taskState?.status === "waiting_approval" && taskState.childExecutionId && pendingApprovals) {
         const match = pendingApprovals.find(
-          (pa) => pa.childAgentExecutionId === taskState.childExecutionId,
+          (pa) => pa.childAgentRunId === taskState.childExecutionId,
         );
         if (match?.approval?.toolName) {
           approvalToolName = match.approval.toolName;

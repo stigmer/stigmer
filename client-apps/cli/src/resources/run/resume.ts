@@ -5,8 +5,8 @@
 // The TTY path defers to Ink's SessionView, which loads history and offers a
 // follow-up composer for free.
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, ExecutionPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalAction, RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { BackendClient } from "../../client/index.js";
 import { getSessionById, listExecutionsBySession } from "../session.js";
 import { NdjsonRenderer } from "../stream/render-ndjson.js";
@@ -22,11 +22,11 @@ import { streamAgentExecution, type RunOutputMode } from "./stream.js";
 const PENDING_SUBJECT = "Auto-created session";
 
 // Phases where the latest execution is still producing output — re-attach live.
-const ACTIVE_PHASES: ReadonlySet<ExecutionPhase> = new Set([
-  ExecutionPhase.EXECUTION_PENDING,
-  ExecutionPhase.EXECUTION_IN_PROGRESS,
-  ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
-  ExecutionPhase.EXECUTION_PAUSED,
+const ACTIVE_PHASES: ReadonlySet<RunPhase> = new Set([
+  RunPhase.RUN_PENDING,
+  RunPhase.RUN_IN_PROGRESS,
+  RunPhase.RUN_WAITING_FOR_APPROVAL,
+  RunPhase.RUN_PAUSED,
 ]);
 
 export interface OpenSessionDeps {
@@ -50,7 +50,7 @@ export async function openSession(deps: OpenSessionDeps): Promise<void> {
   }
 
   const latest = entries[0];
-  const phase = latest.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  const phase = latest.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   const effectiveMode = resolveResumeMode(deps.mode, latest);
 
   const header: SessionHeaderInfo = {
@@ -85,7 +85,7 @@ export async function openSession(deps: OpenSessionDeps): Promise<void> {
 async function replaySession(
   deps: OpenSessionDeps,
   org: string,
-  entries: readonly AgentExecution[],
+  entries: readonly AgentRun[],
   header: SessionHeaderInfo,
 ): Promise<void> {
   if (deps.outputMode === "inline" && isInkSupported(process.stdout)) {
@@ -111,7 +111,7 @@ async function replaySession(
 
 // Mirrors Go's resolveResumeMode: --mode wins; else infer "plan" from the last
 // execution's InteractionMode; else default (agent).
-function resolveResumeMode(explicit: RunMode, latest: AgentExecution): RunMode {
+function resolveResumeMode(explicit: RunMode, latest: AgentRun): RunMode {
   if (explicit !== "") return explicit;
   if (latest.spec?.interactionMode === InteractionMode.PLAN) return "plan";
   return "";

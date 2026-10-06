@@ -35,20 +35,20 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import {
-  ExecutionControlSignal,
-  ExecutionPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  RunControlSignal,
+  RunPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
@@ -902,7 +902,7 @@ describe("extension composition (driver substitution)", () => {
       server.inProcessTransport,
     );
     const out = await client.getRunnerScopedToken({
-      scope: { case: "agentExecutionId", value: "aex_substituted" },
+      scope: { case: "agentRunId", value: "aex_substituted" },
     });
     expect(out.runnerScopedToken).toBe("fake-execution_scoped-aex_substituted");
     expect(out.expiresInSeconds).toBe(42);
@@ -987,7 +987,7 @@ describe("extension composition (gate slots + status hooks)", () => {
       ],
       responseDecorators: [
         (_execution, response): void => {
-          response.signal = ExecutionControlSignal.STOP;
+          response.signal = RunControlSignal.STOP;
         },
       ],
     },
@@ -1122,48 +1122,48 @@ describe("extension composition (gate slots + status hooks)", () => {
   it("observers see the terminal updateStatus transition once and the decorator contributes the signal", async () => {
     const executionId = "aexec_o4_hooks";
     await server.store.saveResource(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
       executionId,
-      AgentExecutionSchema,
-      create(AgentExecutionSchema, {
+      AgentRunSchema,
+      create(AgentRunSchema, {
         metadata: { id: executionId, name: executionId, org: "acme" },
         spec: { message: "hook test" },
-        status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+        status: { phase: RunPhase.RUN_IN_PROGRESS },
       }),
     );
     const command = createClient(
-      AgentExecutionCommandController,
+      AgentRunCommandController,
       portTransport,
     );
 
     observed.length = 0;
     const reply = await command.updateStatus({
-      executionId,
+      runId: executionId,
       status: {
-        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        phase: RunPhase.RUN_COMPLETED,
         completedAt: "2026-08-27T10:00:00Z",
         messages: [{ content: "done" }],
       },
     });
     // The decorator's contribution rides the field the shared reply
     // schema already carries (the cloud's control-signal seam).
-    expect(reply.signal).toBe(ExecutionControlSignal.STOP);
+    expect(reply.signal).toBe(RunControlSignal.STOP);
     expect(observed).toHaveLength(1);
-    expect(observed[0]?.oldPhase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
-    expect(observed[0]?.newPhase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(observed[0]?.oldPhase).toBe(RunPhase.RUN_IN_PROGRESS);
+    expect(observed[0]?.newPhase).toBe(RunPhase.RUN_COMPLETED);
     expect(observed[0]?.execution.metadata?.id).toBe(executionId);
 
     // A repeat report with the phase unchanged decorates the reply but
     // does NOT re-notify (the phase-change rule).
     const repeat = await command.updateStatus({
-      executionId,
+      runId: executionId,
       status: {
-        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        phase: RunPhase.RUN_COMPLETED,
         completedAt: "2026-08-27T10:00:00Z",
         messages: [{ content: "done" }],
       },
     });
-    expect(repeat.signal).toBe(ExecutionControlSignal.STOP);
+    expect(repeat.signal).toBe(RunControlSignal.STOP);
     expect(observed).toHaveLength(1);
   });
 });
@@ -1464,15 +1464,15 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       const runIds = ["aex_c2_cascade_1", "aex_c2_cascade_2"];
       for (const runId of runIds) {
         await server.store.saveResource(
-          ApiResourceKind.agent_execution,
+          ApiResourceKind.agent_run,
           runId,
-          AgentExecutionSchema,
-          create(AgentExecutionSchema, {
+          AgentRunSchema,
+          create(AgentRunSchema, {
             apiVersion: "agentic.stigmer.ai/v1",
             kind: "AgentExecution",
             metadata: { id: runId, name: runId, org: seededOrgId },
             spec: { target: { case: "sessionId", value: sessionId } },
-            status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
+            status: { phase: RunPhase.RUN_COMPLETED },
           }),
         );
       }
@@ -1481,7 +1481,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       await createClient(SessionCommandController, portTransport).delete({ value: sessionId });
 
       expect(cascadeOrder(deletedEvents)).toEqual([
-        ...runIds.map((runId): [ApiResourceKind, string] => [ApiResourceKind.agent_execution, runId]),
+        ...runIds.map((runId): [ApiResourceKind, string] => [ApiResourceKind.agent_run, runId]),
         [ApiResourceKind.session, sessionId],
       ]);
       expectOneCallerAndOrganization(deletedEvents);
@@ -1502,19 +1502,19 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
         }),
       );
       await server.store.saveResource(
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         runId,
-        AgentExecutionSchema,
-        create(AgentExecutionSchema, {
+        AgentRunSchema,
+        create(AgentRunSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "AgentExecution",
           metadata: { id: runId, name: runId, org: seededOrgId },
           spec: { target: { case: "sessionId", value: sessionId } },
-          status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
+          status: { phase: RunPhase.RUN_COMPLETED },
         }),
       );
       deletedEvents.length = 0;
-      failDeleteKinds.add(ApiResourceKind.agent_execution);
+      failDeleteKinds.add(ApiResourceKind.agent_run);
       try {
         await createClient(SessionCommandController, portTransport).delete({ value: sessionId });
       } finally {
@@ -1526,7 +1526,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
         [ApiResourceKind.session, sessionId],
       ]);
       await expect(
-        server.store.getResource(ApiResourceKind.agent_execution, runId, AgentExecutionSchema),
+        server.store.getResource(ApiResourceKind.agent_run, runId, AgentRunSchema),
       ).rejects.toBeInstanceOf(ResourceNotFoundError);
     });
   });
@@ -1734,7 +1734,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
     const workflows = () => createClient(WorkflowCommandController, portTransport);
     const workflowQuery = () => createClient(WorkflowQueryController, portTransport);
 
-    function workflowInput(name: string, level: WorkflowExecutionVisibility) {
+    function workflowInput(name: string, level: WorkflowRunVisibility) {
       return create(WorkflowSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Workflow",
@@ -1742,7 +1742,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
         spec: {
           document: { dsl: "1.0.0", namespace: "tests", name, version: "0.1.0" },
           tasks: [{ name: "seed", kind: 1, taskConfig: { variables: { greeting: "hello" } } }],
-          executionVisibility: level,
+          runVisibility: level,
         },
       });
     }
@@ -1750,10 +1750,10 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
     it("create at ORGANIZATION fires the audience once; a private and an unset create fire nothing", async () => {
       executionVisibilityEvents.length = 0;
       const shared = await workflows().create(
-        workflowInput("seeded-shared-runs", WorkflowExecutionVisibility.organization),
+        workflowInput("seeded-shared-runs", WorkflowRunVisibility.organization),
       );
-      await workflows().create(workflowInput("seeded-private-runs", WorkflowExecutionVisibility.private));
-      await workflows().create(workflowInput("seeded-unset-runs", WorkflowExecutionVisibility.unspecified));
+      await workflows().create(workflowInput("seeded-private-runs", WorkflowRunVisibility.private));
+      await workflows().create(workflowInput("seeded-unset-runs", WorkflowRunVisibility.unspecified));
       expect(executionVisibilityEvents).toEqual([
         {
           workflowId: shared.metadata?.id,
@@ -1765,17 +1765,17 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
 
     it("updateExecutionVisibility fires the level's audience every time, the empty one included", async () => {
       const workflow = await workflows().create(
-        workflowInput("seeded-toggled-runs", WorkflowExecutionVisibility.private),
+        workflowInput("seeded-toggled-runs", WorkflowRunVisibility.private),
       );
       const id = workflow.metadata?.id ?? "";
       executionVisibilityEvents.length = 0;
-      await workflows().updateExecutionVisibility({
+      await workflows().updateRunVisibility({
         resourceId: id,
-        executionVisibility: WorkflowExecutionVisibility.organization,
+        runVisibility: WorkflowRunVisibility.organization,
       });
-      await workflows().updateExecutionVisibility({
+      await workflows().updateRunVisibility({
         resourceId: id,
-        executionVisibility: WorkflowExecutionVisibility.private,
+        runVisibility: WorkflowRunVisibility.private,
       });
       expect(executionVisibilityEvents.map((event) => [event.workflowId, event.shapes])).toEqual([
         [id, ["org-viewer"]],
@@ -1785,36 +1785,36 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
 
     it("update and apply keep the stored level whatever the request carries, and fire nothing", async () => {
       const workflow = await workflows().create(
-        workflowInput("seeded-kept-runs", WorkflowExecutionVisibility.organization),
+        workflowInput("seeded-kept-runs", WorkflowRunVisibility.organization),
       );
       const id = workflow.metadata?.id ?? "";
       executionVisibilityEvents.length = 0;
       const lowered = clone(WorkflowSchema, workflow);
-      lowered.spec!.executionVisibility = WorkflowExecutionVisibility.private;
+      lowered.spec!.runVisibility = WorkflowRunVisibility.private;
       lowered.spec!.description = "edited";
       const updated = await workflows().update(lowered);
       expect(updated.spec?.description, "the update itself landed").toBe("edited");
-      expect(updated.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+      expect(updated.spec?.runVisibility).toBe(WorkflowRunVisibility.organization);
       const reapplied = clone(WorkflowSchema, lowered);
-      reapplied.spec!.executionVisibility = WorkflowExecutionVisibility.unspecified;
+      reapplied.spec!.runVisibility = WorkflowRunVisibility.unspecified;
       const applied = await workflows().apply(reapplied);
-      expect(applied.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+      expect(applied.spec?.runVisibility).toBe(WorkflowRunVisibility.organization);
       const stored = await workflowQuery().get({ value: id });
-      expect(stored.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+      expect(stored.spec?.runVisibility).toBe(WorkflowRunVisibility.organization);
       expect(executionVisibilityEvents).toEqual([]);
     });
 
     it("a driver failure fails the RPC with the level already persisted; the retry converges", async () => {
       const workflow = await workflows().create(
-        workflowInput("seeded-retried-runs", WorkflowExecutionVisibility.private),
+        workflowInput("seeded-retried-runs", WorkflowRunVisibility.private),
       );
       const id = workflow.metadata?.id ?? "";
       failExecutionVisibility = true;
       let refused: ConnectError | undefined;
       try {
-        await workflows().updateExecutionVisibility({
+        await workflows().updateRunVisibility({
           resourceId: id,
-          executionVisibility: WorkflowExecutionVisibility.organization,
+          runVisibility: WorkflowRunVisibility.organization,
         });
       } catch (error) {
         refused = ConnectError.from(error);
@@ -1824,13 +1824,13 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       expect(refused?.code).toBe(Code.Internal);
       expect(refused?.rawMessage).toBe("failed to update execution visibility tuples");
       const stored = await workflowQuery().get({ value: id });
-      expect(stored.spec?.executionVisibility, "post-persist: the level landed").toBe(
-        WorkflowExecutionVisibility.organization,
+      expect(stored.spec?.runVisibility, "post-persist: the level landed").toBe(
+        WorkflowRunVisibility.organization,
       );
       executionVisibilityEvents.length = 0;
-      await workflows().updateExecutionVisibility({
+      await workflows().updateRunVisibility({
         resourceId: id,
-        executionVisibility: WorkflowExecutionVisibility.organization,
+        runVisibility: WorkflowRunVisibility.organization,
       });
       expect(executionVisibilityEvents.map((event) => event.shapes)).toEqual([["org-viewer"]]);
     });
@@ -1840,7 +1840,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       let refused: ConnectError | undefined;
       try {
         await workflows().create(
-          workflowInput("seeded-failed-audience", WorkflowExecutionVisibility.organization),
+          workflowInput("seeded-failed-audience", WorkflowRunVisibility.organization),
         );
       } catch (error) {
         refused = ConnectError.from(error);

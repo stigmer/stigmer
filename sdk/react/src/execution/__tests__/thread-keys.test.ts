@@ -1,27 +1,27 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 import {
   TodoItemSchema,
   type TodoItem,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   TodoStatus,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { buildThreadItems } from "../MessageThread";
 
 // ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ function makeToolCall(name: string, id: string) {
 }
 
 function makeSubAgent(id: string) {
-  const sa = create(SubAgentExecutionSchema);
+  const sa = create(SubAgentRunSchema);
   sa.id = id;
   sa.name = "test-agent";
   return sa;
@@ -74,30 +74,30 @@ function todoMap(items: TodoItem[]): { [id: string]: TodoItem } {
 function makeExecution(opts: {
   id: string;
   specMessage?: string;
-  phase?: ExecutionPhase;
+  phase?: RunPhase;
   messages?: ReturnType<typeof makeMessage>[];
   subAgents?: ReturnType<typeof makeSubAgent>[];
   todos?: { [id: string]: TodoItem };
-}): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+}): AgentRun {
+  const exec = create(AgentRunSchema);
 
   const meta = create(ApiResourceMetadataSchema);
   meta.id = opts.id;
   exec.metadata = meta;
 
   if (opts.specMessage) {
-    const spec = create(AgentExecutionSpecSchema);
+    const spec = create(AgentRunSpecSchema);
     spec.message = opts.specMessage;
     exec.spec = spec;
   }
 
-  const status = create(AgentExecutionStatusSchema);
-  status.phase = opts.phase ?? ExecutionPhase.EXECUTION_COMPLETED;
+  const status = create(AgentRunStatusSchema);
+  status.phase = opts.phase ?? RunPhase.RUN_COMPLETED;
   if (opts.messages) {
     status.messages = opts.messages;
   }
   if (opts.subAgents) {
-    status.subAgentExecutions = opts.subAgents;
+    status.subAgentRuns = opts.subAgents;
   }
   if (opts.todos) {
     status.todos = opts.todos;
@@ -183,7 +183,7 @@ describe("buildThreadItems key generation", () => {
     const exec = makeExecution({
       id: "exec-stable",
       specMessage: "Hello",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages,
     });
 
@@ -194,7 +194,7 @@ describe("buildThreadItems key generation", () => {
     const completedExec = makeExecution({
       id: "exec-stable",
       specMessage: "Hello",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       messages,
     });
     const itemsCompleted = buildThreadItems(
@@ -235,7 +235,7 @@ describe("buildThreadItems key generation", () => {
       const activeExec = makeExecution({
         id: "exec-new",
         specMessage: "Hello world",
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
       });
 
       const items = buildThreadItems(
@@ -268,7 +268,7 @@ describe("buildThreadItems key generation", () => {
       const activeExec = makeExecution({
         id: "exec-mismatch",
         specMessage: "Original message",
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
       });
 
       const items = buildThreadItems(
@@ -289,7 +289,7 @@ describe("buildThreadItems key generation", () => {
       const activeExec = makeExecution({
         id: "exec-synth",
         specMessage: "Hello",
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
       });
 
       const items = buildThreadItems(
@@ -314,7 +314,7 @@ describe("buildThreadItems key generation", () => {
       const activeExec = makeExecution({
         id: "exec-current",
         specMessage: "New message",
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
       });
 
       const items = buildThreadItems(
@@ -353,7 +353,7 @@ describe("buildThreadItems key generation", () => {
     const exec2 = makeExecution({
       id: "exec-2",
       specMessage: "Second turn",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [
         makeMessage(MessageType.MESSAGE_THINKING, "Let me think..."),
         makeMessage(MessageType.MESSAGE_AI, "Here's my answer", {
@@ -416,9 +416,9 @@ describe("buildThreadItems key generation", () => {
   });
 
   it("falls back to index-based prefix when metadata.id is missing", () => {
-    const exec = create(AgentExecutionSchema);
-    const status = create(AgentExecutionStatusSchema);
-    status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+    const exec = create(AgentRunSchema);
+    const status = create(AgentRunStatusSchema);
+    status.phase = RunPhase.RUN_COMPLETED;
     status.messages = [makeMessage(MessageType.MESSAGE_AI, "No metadata")];
     exec.status = status;
 
@@ -432,7 +432,7 @@ describe("buildThreadItems key generation", () => {
       const exec = makeExecution({
         id: "exec-pending",
         specMessage: "Hello",
-        phase: ExecutionPhase.EXECUTION_PENDING,
+        phase: RunPhase.RUN_PENDING,
       });
 
       const items = buildThreadItems([], exec, null, false, undefined);
@@ -449,7 +449,7 @@ describe("buildThreadItems key generation", () => {
       const exec = makeExecution({
         id: "exec-in-progress",
         specMessage: "Hello",
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
       });
 
       const items = buildThreadItems([], exec, null, false, undefined);
@@ -466,7 +466,7 @@ describe("buildThreadItems key generation", () => {
       const exec = makeExecution({
         id: "exec-streaming",
         specMessage: "Hello",
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         messages: [
           makeMessage(MessageType.MESSAGE_AI, "Here's my response"),
         ],
@@ -482,7 +482,7 @@ describe("buildThreadItems key generation", () => {
       const exec = makeExecution({
         id: "exec-failed",
         specMessage: "Hello",
-        phase: ExecutionPhase.EXECUTION_FAILED,
+        phase: RunPhase.RUN_FAILED,
       });
 
       const items = buildThreadItems([], exec, null, false, undefined);
@@ -495,7 +495,7 @@ describe("buildThreadItems key generation", () => {
       const exec = makeExecution({
         id: "exec-done",
         specMessage: "Hello",
-        phase: ExecutionPhase.EXECUTION_PENDING,
+        phase: RunPhase.RUN_PENDING,
       });
 
       const items = buildThreadItems([exec], null, null, false, undefined);
@@ -508,14 +508,14 @@ describe("buildThreadItems key generation", () => {
       const pendingExec = makeExecution({
         id: "exec-transition",
         specMessage: "Hello",
-        phase: ExecutionPhase.EXECUTION_PENDING,
+        phase: RunPhase.RUN_PENDING,
       });
       const itemsPending = buildThreadItems([], pendingExec, null, false, undefined);
 
       const inProgressExec = makeExecution({
         id: "exec-transition",
         specMessage: "Hello",
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
       });
       const itemsInProgress = buildThreadItems([], inProgressExec, null, false, undefined);
 

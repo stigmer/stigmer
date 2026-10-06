@@ -22,7 +22,7 @@
 // by the edition boundary (see CapabilityFlags.billingGates), so there is no
 // denial contract to pin — the scheduleFiring skip posture.
 import { Code } from "@connectrpc/connect";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -132,7 +132,7 @@ describe.skipIf(!billingEnabled)(
       expect(
         final.status?.phase,
         "the funded org's run completes — the denial was credit-driven",
-      ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      ).toBe(RunPhase.RUN_COMPLETED);
     });
   },
 );

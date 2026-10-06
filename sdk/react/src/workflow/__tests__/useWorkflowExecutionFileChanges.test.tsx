@@ -7,26 +7,26 @@ vi.mock("../../hooks", () => ({
 }));
 
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileReviewBaselineCapturedSchema,
   FileReviewCandidateCapturedSchema,
   FileReviewEventSchema,
   FileReviewEventStreamSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   FileChangeKind,
   FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { WorkflowTaskSchema, type WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { WorkflowTaskSchema, type WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
 import { useStigmer } from "../../hooks";
@@ -98,15 +98,15 @@ function terminalChildWithLedger(
   path: string,
   before: string,
   after: string,
-): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+): AgentRun {
+  const exec = create(AgentRunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.status = create(AgentExecutionStatusSchema);
-  exec.status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+  exec.status = create(AgentRunStatusSchema);
+  exec.status.phase = RunPhase.RUN_COMPLETED;
   exec.status.fileChangeSets = [];
   const changeSetId = `${id}:0`;
   exec.status.fileReviewEventStream = create(FileReviewEventStreamSchema, {
-    executionId: id,
+    runId: id,
     events: [
       create(FileReviewEventSchema, {
         changeSetId,

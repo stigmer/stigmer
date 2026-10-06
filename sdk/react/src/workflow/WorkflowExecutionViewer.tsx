@@ -2,8 +2,8 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
-import { WorkflowTaskStatus, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowTaskStatus, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { useWorkflowExecution } from "./useWorkflowExecution.js";
 import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStream.js";
@@ -217,7 +217,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   } = useWorkflowExecution(executionId);
 
   const phase = execution?.status?.phase;
-  const isRunning = phase === ExecutionPhase.EXECUTION_PENDING || phase === ExecutionPhase.EXECUTION_IN_PROGRESS;
+  const isRunning = phase === RunPhase.RUN_PENDING || phase === RunPhase.RUN_IN_PROGRESS;
 
   const {
     events,

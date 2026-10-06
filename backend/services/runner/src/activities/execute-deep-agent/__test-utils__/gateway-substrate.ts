@@ -30,7 +30,7 @@
  * drive hands the gate the identity `buildSubAgentMiddleware` does.
  */
 
-import { ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";

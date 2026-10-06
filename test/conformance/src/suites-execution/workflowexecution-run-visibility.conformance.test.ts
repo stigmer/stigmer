@@ -24,7 +24,7 @@
 // workflow suite's (suites/workflow.conformance.test.ts). Where the target
 // lends no enforcing lane the arm skips VISIBLY with its reason.
 import { Code } from "@connectrpc/connect";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -116,16 +116,16 @@ describe("WorkflowExecution run visibility — who observes a workflow's runs (o
     await expectReads(founder, workflowId, runId, "the run's own person");
     await expectRefused(teammate, workflowId, runId, "a teammate, while the runs are private,");
 
-    await founder.workflowCommand.updateExecutionVisibility({
+    await founder.workflowCommand.updateRunVisibility({
       resourceId: workflowId,
-      executionVisibility: WorkflowExecutionVisibility.organization,
+      runVisibility: WorkflowRunVisibility.organization,
     });
     await expectReads(teammate, workflowId, runId, "a teammate, once the runs are the organization's,");
     await expectRefused(stranger, workflowId, runId, "another organization's member", false);
 
-    await founder.workflowCommand.updateExecutionVisibility({
+    await founder.workflowCommand.updateRunVisibility({
       resourceId: workflowId,
-      executionVisibility: WorkflowExecutionVisibility.private,
+      runVisibility: WorkflowRunVisibility.private,
     });
     await expectRefused(teammate, workflowId, runId, "a teammate, once the runs are private again,");
   });

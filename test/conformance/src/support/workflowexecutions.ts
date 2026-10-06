@@ -8,16 +8,16 @@
 // shared so the smoke test and the domain suite gate on one definition, and the
 // readers of what a run leaves on its public event log.
 import type { InitShape } from "./init-shape";
-import type { WorkflowExecution, WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun, WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   WorkflowTaskStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
   type ApprovalResolvedPayload,
   WorkflowEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { type ExecutionValueInit, makeExecutionValues } from "./executioncontexts";
 import { type PollCoreOptions, pollUntil } from "./execution-poll";
@@ -41,7 +41,7 @@ export interface WorkflowExecutionOptions {
 // unset (-> LOCAL -> the stigmer_runner queue).
 export function makeWorkflowExecution(
   opts: WorkflowExecutionOptions,
-): InitShape<typeof WorkflowExecutionSchema> {
+): InitShape<typeof WorkflowRunSchema> {
   return {
     apiVersion: WORKFLOW_EXECUTION_API_VERSION,
     kind: WORKFLOW_EXECUTION_KIND,
@@ -56,14 +56,14 @@ export function makeWorkflowExecution(
 
 // Terminal = the engine will never move the phase again. PAUSED is NOT terminal
 // (resume revives it); PENDING/IN_PROGRESS are in-flight.
-const TERMINAL_PHASES: ReadonlySet<ExecutionPhase> = new Set([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
+const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
 ]);
 
-export function isTerminalPhase(phase: ExecutionPhase | undefined): boolean {
+export function isTerminalPhase(phase: RunPhase | undefined): boolean {
   return phase !== undefined && TERMINAL_PHASES.has(phase);
 }
 
@@ -79,17 +79,17 @@ export interface PollOptions extends PollCoreOptions {
 export function pollExecution(
   clients: ConformanceClients,
   executionId: string,
-  predicate: (exec: WorkflowExecution) => boolean,
+  predicate: (exec: WorkflowRun) => boolean,
   opts: PollOptions = {},
-): Promise<WorkflowExecution> {
+): Promise<WorkflowRun> {
   return pollUntil(
     () => clients.workflowExecutionQuery.get({ value: executionId }),
     predicate,
     (last, timeoutMs) => {
-      const phase = last?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+      const phase = last?.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
       return (
         `execution ${executionId} did not satisfy ${opts.label ?? "the predicate"} ` +
-        `within ${timeoutMs}ms (last phase: ${ExecutionPhase[phase]})`
+        `within ${timeoutMs}ms (last phase: ${RunPhase[phase]})`
       );
     },
     opts,
@@ -100,11 +100,11 @@ export function pollExecution(
 export function awaitPhase(
   clients: ConformanceClients,
   executionId: string,
-  phase: ExecutionPhase,
+  phase: RunPhase,
   opts: PollOptions = {},
-): Promise<WorkflowExecution> {
+): Promise<WorkflowRun> {
   return pollExecution(clients, executionId, (e) => e.status?.phase === phase, {
-    label: `phase ${ExecutionPhase[phase]}`,
+    label: `phase ${RunPhase[phase]}`,
     ...opts,
   });
 }
@@ -114,7 +114,7 @@ export function awaitTerminal(
   clients: ConformanceClients,
   executionId: string,
   opts: PollOptions = {},
-): Promise<WorkflowExecution> {
+): Promise<WorkflowRun> {
   return pollExecution(clients, executionId, (e) => isTerminalPhase(e.status?.phase), {
     label: "a terminal phase",
     ...opts,
@@ -124,7 +124,7 @@ export function awaitTerminal(
 // Looks up a task in an execution's per-task status array by its workflow name.
 // The HITL gate is observed and resolved by task_name, so the suite reads tasks
 // through this rather than positional indexing.
-export function taskByName(exec: WorkflowExecution, taskName: string): WorkflowTask | undefined {
+export function taskByName(exec: WorkflowRun, taskName: string): WorkflowTask | undefined {
   return exec.status?.tasks.find((t) => t.taskName === taskName);
 }
 
@@ -140,7 +140,7 @@ export async function awaitTaskStatus(
   taskName: string,
   status: WorkflowTaskStatus,
   opts: PollOptions = {},
-): Promise<WorkflowExecution> {
+): Promise<WorkflowRun> {
   const exec = await pollExecution(
     clients,
     executionId,
@@ -150,9 +150,9 @@ export async function awaitTaskStatus(
 
   const observed = taskByName(exec, taskName)?.status;
   if (observed !== status) {
-    const phase = exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
     throw new Error(
-      `execution ${executionId} reached terminal phase ${ExecutionPhase[phase]} ` +
+      `execution ${executionId} reached terminal phase ${RunPhase[phase]} ` +
         `before task ${taskName} reached ${WorkflowTaskStatus[status]} ` +
         `(task status: ${observed === undefined ? "absent" : WorkflowTaskStatus[observed]})`,
     );
@@ -166,7 +166,7 @@ export function awaitTaskWaitingApproval(
   executionId: string,
   taskName: string,
   opts: PollOptions = {},
-): Promise<WorkflowExecution> {
+): Promise<WorkflowRun> {
   return awaitTaskStatus(clients, executionId, taskName, WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL, opts);
 }
 
@@ -181,7 +181,7 @@ export async function awaitParentPendingApproval(
   clients: ConformanceClients,
   executionId: string,
   opts: PollOptions = {},
-): Promise<WorkflowExecution> {
+): Promise<WorkflowRun> {
   const exec = await pollExecution(
     clients,
     executionId,
@@ -190,9 +190,9 @@ export async function awaitParentPendingApproval(
   );
 
   if ((exec.status?.pendingApprovals.length ?? 0) === 0) {
-    const phase = exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
     throw new Error(
-      `execution ${executionId} reached terminal phase ${ExecutionPhase[phase]} ` +
+      `execution ${executionId} reached terminal phase ${RunPhase[phase]} ` +
         "before surfacing a child agent approval in status.pending_approvals",
     );
   }
@@ -211,7 +211,7 @@ export async function approvalResolutionsOf(
   taskName: string,
 ): Promise<ApprovalResolvedPayload[]> {
   const log = await clients.workflowExecutionQuery.getEventLog({
-    executionId,
+    runId: executionId,
     eventTypes: [WorkflowEventType.approval_resolved],
     taskName,
   });

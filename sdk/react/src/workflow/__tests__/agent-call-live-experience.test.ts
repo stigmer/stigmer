@@ -9,13 +9,13 @@
 
 import { describe, expect, it } from "vitest";
 import { WorkflowExecutionEventStore } from "../../internal/store/workflow-execution-event-store";
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 
 function makeStoreEvent(
   taskName: string,
   seq: number,
   payload: { case: string; value: unknown },
-): WorkflowExecutionEvent {
+): WorkflowRunEvent {
   return {
     eventId: `evt-${seq}`,
     eventType: 0,
@@ -25,7 +25,7 @@ function makeStoreEvent(
     payload,
     $typeName: "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent",
     $unknown: undefined,
-  } as unknown as WorkflowExecutionEvent;
+  } as unknown as WorkflowRunEvent;
 }
 
 // ---------------------------------------------------------------------------

@@ -20,7 +20,7 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import type { Value } from "@bufbuild/protobuf/wkt";
 import { ValueSchema, timestampDate } from "@bufbuild/protobuf/wkt";
 
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { AgentCallTaskConfig } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/agent_call_pb";
@@ -543,7 +543,7 @@ function convertEmitEventTask(cfg: EmitEventTaskConfig): YamlMap {
         case "signal":
           targets.push({
             signal: {
-              execution_id: target.target.value.executionId,
+              execution_id: target.target.value.runId,
               signal_name: target.target.value.signalName,
             },
           });

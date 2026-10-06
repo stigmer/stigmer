@@ -2,8 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { useKeyedSubmission } from "../internal/useKeyedSubmission.js";
@@ -93,9 +93,9 @@ export function useSubmitApproval(): UseSubmitApprovalReturn {
       setError(null);
       try {
         await keyed.run(toolCallId, async () => {
-          await stigmer.agentExecution.submitApproval(
+          await stigmer.agentRun.submitApproval(
             create(SubmitApprovalInputSchema, {
-              agentExecutionId: executionId,
+              agentRunId: executionId,
               toolCallId,
               action,
               comment: comment ?? "",

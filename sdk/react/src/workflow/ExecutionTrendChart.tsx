@@ -1,12 +1,12 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import type { ExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { RunSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 
 export interface ExecutionTrendChartProps {
-  readonly summary: ExecutionSummary | null;
+  readonly summary: RunSummary | null;
   readonly isLoading: boolean;
   readonly className?: string;
 }
@@ -23,31 +23,31 @@ const PHASE_DISPLAY: ReadonlyMap<
   { label: string; colorClass: string; bgColorClass: string }
 > = new Map([
   [
-    ExecutionPhase.EXECUTION_COMPLETED,
+    RunPhase.RUN_COMPLETED,
     { label: "Completed", colorClass: "stg:text-success", bgColorClass: "stg:bg-success" },
   ],
   [
-    ExecutionPhase.EXECUTION_FAILED,
+    RunPhase.RUN_FAILED,
     { label: "Failed", colorClass: "stg:text-destructive", bgColorClass: "stg:bg-destructive" },
   ],
   [
-    ExecutionPhase.EXECUTION_IN_PROGRESS,
+    RunPhase.RUN_IN_PROGRESS,
     { label: "Running", colorClass: "stg:text-primary", bgColorClass: "stg:bg-primary" },
   ],
   [
-    ExecutionPhase.EXECUTION_PENDING,
+    RunPhase.RUN_PENDING,
     { label: "Pending", colorClass: "stg:text-muted-foreground", bgColorClass: "stg:bg-muted-foreground" },
   ],
   [
-    ExecutionPhase.EXECUTION_PAUSED,
+    RunPhase.RUN_PAUSED,
     { label: "Paused", colorClass: "stg:text-muted-foreground", bgColorClass: "stg:bg-muted-foreground/60" },
   ],
   [
-    ExecutionPhase.EXECUTION_CANCELLED,
+    RunPhase.RUN_CANCELLED,
     { label: "Cancelled", colorClass: "stg:text-muted-foreground", bgColorClass: "stg:bg-muted-foreground/40" },
   ],
   [
-    ExecutionPhase.EXECUTION_TERMINATED,
+    RunPhase.RUN_TERMINATED,
     { label: "Terminated", colorClass: "stg:text-destructive", bgColorClass: "stg:bg-destructive/60" },
   ],
 ]);

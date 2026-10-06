@@ -6,12 +6,12 @@
 // tool-call timeline. For yaml/json, defer to the standard proto renderers so
 // `trace -o json` and `get -o json` produce the identical envelope.
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { WorkflowExecution, WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { WorkflowRun, WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { renderProtoJson, renderProtoYaml } from "../output/index.js";
 import { type Styler, shouldColorize, styler } from "../output/style.js";
@@ -34,32 +34,32 @@ export async function traceExecution(
   streams: TraceStreams = defaultStreams(),
 ): Promise<void> {
   if (resolveExecutionType(executionId) === "workflow") {
-    const exec = await client.workflowExecution.get(executionId);
+    const exec = await client.workflowRun.get(executionId);
     if (format === "yaml") {
-      streams.write(renderProtoYaml(WorkflowExecutionSchema, exec));
+      streams.write(renderProtoYaml(WorkflowRunSchema, exec));
       return;
     }
     if (format === "json") {
-      streams.write(renderProtoJson(WorkflowExecutionSchema, exec));
+      streams.write(renderProtoJson(WorkflowRunSchema, exec));
       return;
     }
     renderWorkflowTrace(exec, streams);
     return;
   }
 
-  const exec = await client.agentExecution.get(executionId);
+  const exec = await client.agentRun.get(executionId);
   if (format === "yaml") {
-    streams.write(renderProtoYaml(AgentExecutionSchema, exec));
+    streams.write(renderProtoYaml(AgentRunSchema, exec));
     return;
   }
   if (format === "json") {
-    streams.write(renderProtoJson(AgentExecutionSchema, exec));
+    streams.write(renderProtoJson(AgentRunSchema, exec));
     return;
   }
   renderAgentTrace(exec, streams);
 }
 
-function renderWorkflowTrace(exec: WorkflowExecution, streams: TraceStreams): void {
+function renderWorkflowTrace(exec: WorkflowRun, streams: TraceStreams): void {
   const style = styler(streams.colorize);
   const name = exec.metadata?.name || exec.metadata?.id || "";
   const phase = formatWorkflowPhase(exec.status?.phase ?? 0);
@@ -107,7 +107,7 @@ function workflowTaskStatusIcon(status: WorkflowTaskStatus, style: Styler): stri
   }
 }
 
-function renderAgentTrace(exec: AgentExecution, streams: TraceStreams): void {
+function renderAgentTrace(exec: AgentRun, streams: TraceStreams): void {
   const style = styler(streams.colorize);
   const name = exec.metadata?.name || exec.metadata?.id || "";
   const phase = formatAgentPhase(exec.status?.phase ?? 0);
@@ -139,7 +139,7 @@ interface ToolCallSummary {
 
 // Mirrors Go's extractToolCallSummary: tool calls on AI messages, with results
 // truncated to 40 chars.
-function extractToolCallSummaries(exec: AgentExecution): ToolCallSummary[] {
+function extractToolCallSummaries(exec: AgentRun): ToolCallSummary[] {
   const calls: ToolCallSummary[] = [];
   for (const message of exec.status?.messages ?? []) {
     if (message.type !== MessageType.MESSAGE_AI) continue;

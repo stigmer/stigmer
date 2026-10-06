@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { SummarizationEvent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/context_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { SummarizationEvent } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/context_pb";
 
 /**
  * Context window health state derived from utilization percentage.
@@ -113,7 +113,7 @@ function mapEvent(e: SummarizationEvent): SummarizationEventView {
  * ```
  */
 export function useContextWindow(
-  execution: AgentExecution | null,
+  execution: AgentRun | null,
 ): UseContextWindowReturn {
   const contextInfo = execution?.status?.contextInfo ?? null;
 

@@ -87,7 +87,7 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     { name: "Session", displayName: "Session", idPrefix: "ses" },
   ],
   [
-    ApiResourceKind.agent_execution,
+    ApiResourceKind.agent_run,
     { name: "AgentExecution", displayName: "Agent Execution", idPrefix: "aex" },
   ],
 ]);

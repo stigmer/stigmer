@@ -36,8 +36,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -146,8 +146,8 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
       "EXECUTION_WAITING_FOR_APPROVAL",
     );
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
     ]);
     expect(agent.runs[0].cancelCalls, "a flowed edit is not a denial; nothing is cancelled").toHaveLength(0);
 
@@ -175,7 +175,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, record.lastFullStatus!), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     expect(json, "no temp path may reach the golden").not.toContain(env.workspaceRootDir);
     await expect(json).toMatchFileSnapshot("./goldens/file-review-capture.status.json");
   });

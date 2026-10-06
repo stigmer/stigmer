@@ -13,8 +13,8 @@
  * the runtime's catch can reach it; the body is unchanged.
  */
 
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { utcTimestamp } from "./status.js";
 
@@ -23,7 +23,7 @@ import { utcTimestamp } from "./status.js";
  * proto array to CANCELLED with a completion timestamp, in place. Returns
  * true if any sub-agent changed.
  */
-export function cancelInProgressSubAgentProtos(subAgents: SubAgentExecution[]): boolean {
+export function cancelInProgressSubAgentProtos(subAgents: SubAgentRun[]): boolean {
   let changed = false;
   for (const sub of subAgents) {
     if (

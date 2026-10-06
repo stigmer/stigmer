@@ -1,6 +1,6 @@
 "use client";
 
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import { cn } from "@stigmer/theme";
 import { useArtifactInspection } from "./useArtifactInspection.js";
 import { ArtifactContentBody } from "./ArtifactContentBody.js";
@@ -12,7 +12,7 @@ import type { ApplyResourceResult } from "../library/useApplyResource.js";
 /** Props for {@link ArtifactDocument}. */
 export interface ArtifactDocumentProps {
   /** The artifact to render. */
-  readonly artifact: ExecutionArtifact;
+  readonly artifact: RunArtifact;
   /** Execution that produced this artifact version (content + skill fetching). */
   readonly executionId: string;
   /** Organization for the "Apply to [org]" / "Push Skill to [org]" CTA. */

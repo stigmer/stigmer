@@ -16,10 +16,10 @@
 // hook's plain `FileChange[]` seam without touching consumers.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { deriveExecutionFileChanges } from "../execution/deriveExecutionFileChanges.js";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -234,7 +234,7 @@ export function useWorkflowExecutionFileChanges({
   // Fetched child snapshots by id (rendered state) + the settled-ness each id
   // was fetched at (ref — drives the ≤2-fetches policy, never rendered).
   const [executionsById, setExecutionsById] = useState<
-    ReadonlyMap<string, AgentExecution>
+    ReadonlyMap<string, AgentRun>
   >(() => new Map());
   const fetchedSettledRef = useRef(new Map<string, boolean>());
 
@@ -283,7 +283,7 @@ export function useWorkflowExecutionFileChanges({
       const results = await Promise.all(
         toFetch.map(async (child) => {
           try {
-            const execution = await stigmerRef.current.agentExecution.get(
+            const execution = await stigmerRef.current.agentRun.get(
               child.childExecutionId,
             );
             return { child, execution, error: null as Error | null };
@@ -315,7 +315,7 @@ export function useWorkflowExecutionFileChanges({
   }, [executionId, signature, fetchKey]);
 
   const fileChanges = useMemo(() => {
-    const ordered: AgentExecution[] = [];
+    const ordered: AgentRun[] = [];
     for (const child of stableChildren) {
       const execution = executionsById.get(child.childExecutionId);
       if (execution) ordered.push(execution);

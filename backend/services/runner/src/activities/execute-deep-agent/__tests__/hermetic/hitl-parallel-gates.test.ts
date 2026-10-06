@@ -24,9 +24,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   ApprovalAction,
-  ExecutionPhase,
+  RunPhase,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -116,7 +116,7 @@ describe("ExecuteDeepAgent hermetic — two gated calls in one round (sqlite)", 
       const turn2 = await runDeepAgentTurn(scenario, { turnSeq: 1 });
       expect(turn2.outcome.kind).toBe("returned");
       expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
-      expect(record.persistedPhases.filter((p) => p === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL)).toHaveLength(1);
+      expect(record.persistedPhases.filter((p) => p === RunPhase.RUN_WAITING_FOR_APPROVAL)).toHaveLength(1);
 
       const rows = record.lastFullStatus!.messages.flatMap((m) => m.toolCalls);
       expect(rows.filter((tc) => tc.id === CALL_A.id), "one row per call, never duplicated").toHaveLength(1);

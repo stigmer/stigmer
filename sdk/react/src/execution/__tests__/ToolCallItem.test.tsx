@@ -4,17 +4,17 @@ import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   ToolCallSchema,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   PendingApprovalSchema,
   type PendingApproval,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   FileDecisionSchema,
   type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
   ApprovalAction,
   FileChangeKind,
@@ -22,7 +22,7 @@ import {
   FileDecisionAction,
   FileDecisionScope,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { FileReviewContext } from "../FileReviewContext";

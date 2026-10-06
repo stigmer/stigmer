@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext } from "react";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 /**
  * Context value that carries the run's pending approvals to the tool rows

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   useSessionArtifacts,
   artifactKey,
@@ -14,7 +14,7 @@ import { isPlanArtifact } from "../../library/detect-plan-artifact.js";
 import type { ApplyResourceResult } from "../../library/useApplyResource.js";
 
 export interface ArtifactsTabProps {
-  readonly executions: readonly AgentExecution[];
+  readonly executions: readonly AgentRun[];
   readonly org: string;
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**

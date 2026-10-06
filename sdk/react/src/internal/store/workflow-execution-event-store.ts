@@ -1,14 +1,14 @@
 import type {
-  WorkflowExecutionEvent,
+  WorkflowRunEvent,
   ApprovalRequestedPayload,
   ApprovalResolvedPayload,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 // The CHILD AgentExecution's phase enum (carried on agent_call_progress
 // payloads) — distinct from the workflow's own ExecutionPhase.
-import { ExecutionPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 // ---------------------------------------------------------------------------
 // Stream state (mirrors ConversationStore's StreamState shape)
@@ -130,7 +130,7 @@ type Listener = () => void;
  * is lazily recomputed and cached.
  */
 export class WorkflowExecutionEventStore {
-  private _events: readonly WorkflowExecutionEvent[] = [];
+  private _events: readonly WorkflowRunEvent[] = [];
   private _streamState: WorkflowEventStreamState = IDLE_STATE;
   private _listeners = new Set<Listener>();
 
@@ -145,7 +145,7 @@ export class WorkflowExecutionEventStore {
    * and maintains ascending order. Notifies listeners only when new
    * events are actually added.
    */
-  appendEvents(events: readonly WorkflowExecutionEvent[]): void {
+  appendEvents(events: readonly WorkflowRunEvent[]): void {
     if (events.length === 0) return;
 
     const currentMax = this._events.length > 0
@@ -167,8 +167,8 @@ export class WorkflowExecutionEventStore {
 
     for (const evt of newEvents) {
       if (
-        evt.eventType === WorkflowEventType.execution_started &&
-        evt.payload.case === "executionStarted"
+        evt.eventType === WorkflowEventType.run_started &&
+        evt.payload.case === "runStarted"
       ) {
         this._totalTasks = evt.payload.value.totalTasks;
       }
@@ -209,7 +209,7 @@ export class WorkflowExecutionEventStore {
     };
   };
 
-  getEvents = (): readonly WorkflowExecutionEvent[] => {
+  getEvents = (): readonly WorkflowRunEvent[] => {
     return this._events;
   };
 
@@ -261,7 +261,7 @@ export class WorkflowExecutionEventStore {
 // ---------------------------------------------------------------------------
 
 function deriveTaskStates(
-  events: readonly WorkflowExecutionEvent[],
+  events: readonly WorkflowRunEvent[],
 ): ReadonlyMap<string, DerivedTaskState> {
   const map = new Map<string, DerivedTaskState>();
 
@@ -374,7 +374,7 @@ function deriveTaskStates(
         if (prev) {
           map.set(taskName, {
             ...prev,
-            childExecutionId: p.value.childExecutionId || prev.childExecutionId,
+            childExecutionId: p.value.childRunId || prev.childExecutionId,
             agentSlug: p.value.agentSlug || prev.agentSlug,
           });
         }
@@ -385,7 +385,7 @@ function deriveTaskStates(
           map.set(taskName, {
             ...prev,
             status: deriveChildGateStatus(prev.status, p.value.agentPhase),
-            childExecutionId: p.value.childExecutionId || prev.childExecutionId,
+            childExecutionId: p.value.childRunId || prev.childExecutionId,
             currentToolName: p.value.currentToolName || prev.currentToolName,
             messagesCount: p.value.messagesCount || prev.messagesCount,
             toolCallsCount: p.value.toolCallsCount || prev.toolCallsCount,
@@ -470,13 +470,13 @@ function deriveChildGateStatus(
   childPhase: AgentExecutionPhase,
 ): DerivedTaskState["status"] {
   if (status === "running") {
-    return childPhase === AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+    return childPhase === AgentExecutionPhase.RUN_WAITING_FOR_APPROVAL
       ? "waiting_approval"
       : "running";
   }
   if (status === "waiting_approval") {
-    return childPhase === AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL ||
-      childPhase === AgentExecutionPhase.EXECUTION_PHASE_UNSPECIFIED
+    return childPhase === AgentExecutionPhase.RUN_WAITING_FOR_APPROVAL ||
+      childPhase === AgentExecutionPhase.RUN_PHASE_UNSPECIFIED
       ? "waiting_approval"
       : "running";
   }
@@ -484,7 +484,7 @@ function deriveChildGateStatus(
 }
 
 function deriveCostSummary(
-  events: readonly WorkflowExecutionEvent[],
+  events: readonly WorkflowRunEvent[],
 ): DerivedCostSummary {
   // Prefer the latest budget_checkpoint event
   for (let i = events.length - 1; i >= 0; i--) {
@@ -503,7 +503,7 @@ function deriveCostSummary(
   // Fall back to execution_completed summary
   for (let i = events.length - 1; i >= 0; i--) {
     const p = events[i].payload;
-    if (p.case === "executionCompleted") {
+    if (p.case === "runCompleted") {
       return {
         costConsumedMicros: p.value.totalCostMicros,
         costRemainingMicros: BIGINT_NEG_ONE,

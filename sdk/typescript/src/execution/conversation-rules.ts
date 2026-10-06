@@ -13,7 +13,7 @@
 // This module has no React or framework dependency so it can be shared by
 // @stigmer/react, @stigmer/ink, and the CLI.
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 
 /**
  * Returns the executions in chronological (oldest-first) order — the order a
@@ -27,8 +27,8 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
  * timestamps; entries missing an id sort last but keep a stable relative order.
  */
 export function sortChronologically(
-  executions: readonly AgentExecution[],
-): AgentExecution[] {
+  executions: readonly AgentRun[],
+): AgentRun[] {
   return [...executions].sort((a, b) => {
     const aId = a.metadata?.id ?? "";
     const bId = b.metadata?.id ?? "";
@@ -54,12 +54,12 @@ export function sortChronologically(
  * streams before the list refetch delivers it.
  */
 export function supersededExecutionIds(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
   extraSupersededId?: string | null,
 ): Set<string> {
   const ids = new Set<string>();
   for (const e of executions) {
-    const superseded = e.spec?.supersedesExecutionId;
+    const superseded = e.spec?.supersedesRunId;
     if (superseded) ids.add(superseded);
   }
   if (extraSupersededId) ids.add(extraSupersededId);
@@ -75,7 +75,7 @@ export function supersededExecutionIds(
  * attribute words to the user they never typed; the plan the turn builds from
  * is the visible cause.
  */
-export function isBuildFromPlanTurn(exec: AgentExecution): boolean {
+export function isBuildFromPlanTurn(exec: AgentRun): boolean {
   return exec.spec?.buildFromPlan === true;
 }
 
@@ -91,7 +91,7 @@ export function isBuildFromPlanTurn(exec: AgentExecution): boolean {
  *  - a Build-from-plan turn's machine-written label (see
  *    {@link isBuildFromPlanTurn}).
  */
-export function syntheticUserPrompt(exec: AgentExecution): string | null {
+export function syntheticUserPrompt(exec: AgentRun): string | null {
   const specMessage = exec.spec?.message;
   if (!specMessage || specMessage === "execute" || isBuildFromPlanTurn(exec)) {
     return null;

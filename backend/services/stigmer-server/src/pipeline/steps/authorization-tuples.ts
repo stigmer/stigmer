@@ -39,7 +39,7 @@
  */
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
@@ -175,13 +175,13 @@ export function diffVisibilityShapes(
  * unset level name nobody, so each run stays its starter's.
  */
 export function executionAudienceShapes(
-  level: WorkflowExecutionVisibility,
+  level: WorkflowRunVisibility,
 ): ReadonlySet<ExecutionAudienceShape> {
   switch (level) {
-    case WorkflowExecutionVisibility.organization:
+    case WorkflowRunVisibility.organization:
       return new Set<ExecutionAudienceShape>(["org-viewer"]);
-    case WorkflowExecutionVisibility.private:
-    case WorkflowExecutionVisibility.unspecified:
+    case WorkflowRunVisibility.private:
+    case WorkflowRunVisibility.unspecified:
       return new Set<ExecutionAudienceShape>();
     default: {
       const exhaustive: never = level;

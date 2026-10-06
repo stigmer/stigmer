@@ -26,16 +26,16 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import {
-  AgentExecutionSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
+  AgentRunSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
 import {
   ApprovalAction,
-  ExecutionPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
-import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+  RunPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   SessionSchema,
@@ -45,17 +45,17 @@ import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/sessi
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import {
-  WorkflowExecutionSchema,
-  type WorkflowExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
-import { ExecutionPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+  WorkflowRunSchema,
+  type WorkflowRun,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
+import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
   PendingApprovalsListSchema,
   type ListPendingApprovalsRequest,
   type SubmitWorkflowTaskApprovalInput,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../../logger";
@@ -76,8 +76,8 @@ const knownWorkflow = create(WorkflowSchema, {
 });
 
 /** An execution with a scriptable phase and an 8-message history. */
-function agentExecutionFixture(phase: ExecutionPhase): AgentExecution {
-  return create(AgentExecutionSchema, {
+function agentExecutionFixture(phase: RunPhase): AgentRun {
+  return create(AgentRunSchema, {
     apiVersion: "v1",
     kind: "AgentExecution",
     metadata: { name: "run", org: "acme", id: "aex_1" },
@@ -87,13 +87,13 @@ function agentExecutionFixture(phase: ExecutionPhase): AgentExecution {
       phase,
       messages: Array.from({ length: 8 }, (_, i) => ({ content: `msg-${i}` })),
       // Bulk fields the compact view must prune.
-      subAgentExecutions: [{ name: "researcher", input: "dig into the logs" }],
+      subAgentRuns: [{ name: "researcher", input: "dig into the logs" }],
     },
   });
 }
 
-function workflowExecutionFixture(phase: WorkflowExecutionPhase): WorkflowExecution {
-  return create(WorkflowExecutionSchema, {
+function workflowExecutionFixture(phase: WorkflowExecutionPhase): WorkflowRun {
+  return create(WorkflowRunSchema, {
     apiVersion: "v1",
     kind: "WorkflowExecution",
     metadata: { name: "run", org: "acme", id: "wex_1" },
@@ -111,7 +111,7 @@ function sessionFixture(agentRef?: { org: string; slug: string }): Session {
 }
 
 const pendingApprovals = create(PendingApprovalsListSchema, {
-  entries: [{ executionId: "wex_1", workflowName: "Release", taskName: "sign-off" }],
+  entries: [{ runId: "wex_1", workflowName: "Release", taskName: "sign-off" }],
   totalCount: 1,
 });
 
@@ -120,11 +120,11 @@ let client: Client;
 const openSessions = new Set<ServerHttp2Session>();
 
 // Captured requests / scripted state, reset per test.
-let createdAgentExecution: AgentExecution | undefined;
-let createdWorkflowExecution: WorkflowExecution | undefined;
-let agentExecutionState: AgentExecution;
+let createdAgentExecution: AgentRun | undefined;
+let createdWorkflowExecution: WorkflowRun | undefined;
+let agentExecutionState: AgentRun;
 let sessionState: Session;
-let workflowExecutionState: WorkflowExecution;
+let workflowExecutionState: WorkflowRun;
 let lastAgentApproval: SubmitApprovalInput | undefined;
 let lastWorkflowApproval: SubmitWorkflowTaskApprovalInput | undefined;
 let lastPendingApprovalsRequest: ListPendingApprovalsRequest | undefined;
@@ -160,7 +160,7 @@ beforeAll(async () => {
         return knownAgent;
       },
     });
-    router.service(AgentExecutionQueryController, {
+    router.service(AgentRunQueryController, {
       get: () => agentExecutionState,
     });
     router.service(SessionQueryController, {
@@ -171,18 +171,18 @@ beforeAll(async () => {
         return sessionState;
       },
     });
-    router.service(AgentExecutionCommandController, {
+    router.service(AgentRunCommandController, {
       create: (req) => {
         createdAgentExecution = req;
-        return agentExecutionFixture(ExecutionPhase.EXECUTION_PENDING);
+        return agentExecutionFixture(RunPhase.RUN_PENDING);
       },
       submitApproval: (req) => {
         lastAgentApproval = req;
-        return agentExecutionFixture(ExecutionPhase.EXECUTION_IN_PROGRESS);
+        return agentExecutionFixture(RunPhase.RUN_IN_PROGRESS);
       },
       cancel: () => {
         agentCancelCalls++;
-        return agentExecutionFixture(ExecutionPhase.EXECUTION_CANCELLED);
+        return agentExecutionFixture(RunPhase.RUN_CANCELLED);
       },
     });
     router.service(WorkflowQueryController, {
@@ -191,25 +191,25 @@ beforeAll(async () => {
         return knownWorkflow;
       },
     });
-    router.service(WorkflowExecutionQueryController, {
+    router.service(WorkflowRunQueryController, {
       get: () => workflowExecutionState,
       listPendingApprovals: (req) => {
         lastPendingApprovalsRequest = req;
         return pendingApprovals;
       },
     });
-    router.service(WorkflowExecutionCommandController, {
+    router.service(WorkflowRunCommandController, {
       create: (req) => {
         createdWorkflowExecution = req;
-        return workflowExecutionFixture(WorkflowExecutionPhase.EXECUTION_PENDING);
+        return workflowExecutionFixture(WorkflowExecutionPhase.RUN_PENDING);
       },
       submitWorkflowTaskApproval: (req) => {
         lastWorkflowApproval = req;
-        return workflowExecutionFixture(WorkflowExecutionPhase.EXECUTION_IN_PROGRESS);
+        return workflowExecutionFixture(WorkflowExecutionPhase.RUN_IN_PROGRESS);
       },
       cancel: () => {
         workflowCancelCalls++;
-        return workflowExecutionFixture(WorkflowExecutionPhase.EXECUTION_CANCELLED);
+        return workflowExecutionFixture(WorkflowExecutionPhase.RUN_CANCELLED);
       },
     });
   };
@@ -230,9 +230,9 @@ beforeAll(async () => {
 beforeEach(() => {
   createdAgentExecution = undefined;
   createdWorkflowExecution = undefined;
-  agentExecutionState = agentExecutionFixture(ExecutionPhase.EXECUTION_IN_PROGRESS);
+  agentExecutionState = agentExecutionFixture(RunPhase.RUN_IN_PROGRESS);
   sessionState = sessionFixture({ org: "acme", slug: "code-reviewer" });
-  workflowExecutionState = workflowExecutionFixture(WorkflowExecutionPhase.EXECUTION_IN_PROGRESS);
+  workflowExecutionState = workflowExecutionFixture(WorkflowExecutionPhase.RUN_IN_PROGRESS);
   lastAgentApproval = undefined;
   lastWorkflowApproval = undefined;
   lastPendingApprovalsRequest = undefined;
@@ -477,7 +477,7 @@ describe("execution tools integration", () => {
   it("get_agent_execution view=full returns the backend protojson verbatim", async () => {
     const result = await callTool("get_agent_execution", { execution_id: "aex_1", view: "full" });
     expect(parseText(result)).toEqual(
-      toJson(AgentExecutionSchema, agentExecutionState, { useProtoFieldName: true }),
+      toJson(AgentRunSchema, agentExecutionState, { useProtoFieldName: true }),
     );
   });
 
@@ -489,7 +489,7 @@ describe("execution tools integration", () => {
       comment: "wrong repository",
     });
     expect(result.isError).toBeFalsy();
-    expect(lastAgentApproval?.agentExecutionId).toBe("aex_1");
+    expect(lastAgentApproval?.agentRunId).toBe("aex_1");
     expect(lastAgentApproval?.toolCallId).toBe("call_7");
     expect(lastAgentApproval?.action).toBe(ApprovalAction.REJECT);
     expect(lastAgentApproval?.comment).toBe("wrong repository");
@@ -514,7 +514,7 @@ describe("execution tools integration", () => {
       form_data: { severity: "low" },
     });
     expect(result.isError).toBeFalsy();
-    expect(lastWorkflowApproval?.executionId).toBe("wex_1");
+    expect(lastWorkflowApproval?.runId).toBe("wex_1");
     expect(lastWorkflowApproval?.taskName).toBe("sign-off");
     expect(lastWorkflowApproval?.outcome).toBe("approve");
     expect(lastWorkflowApproval?.comment).toBe("lgtm");
@@ -531,7 +531,7 @@ describe("execution tools integration", () => {
   });
 
   it("cancel_execution short-circuits a terminal agent execution", async () => {
-    agentExecutionState = agentExecutionFixture(ExecutionPhase.EXECUTION_COMPLETED);
+    agentExecutionState = agentExecutionFixture(RunPhase.RUN_COMPLETED);
     const body = parseText(await callTool("cancel_execution", { execution_id: "aex_1" }));
     expect(agentCancelCalls).toBe(0);
     expect(body.already_terminal).toBe(true);

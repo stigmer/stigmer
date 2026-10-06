@@ -7,7 +7,7 @@ import { getUserMessage, type AttachmentInput, type ResourceRef } from "@stigmer
 import {
   GetArtifactContentRequestSchema,
   UploadAttachmentRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
@@ -65,7 +65,7 @@ import {
   type SessionArtifactEntry,
 } from "./useSessionArtifacts.js";
 import type { SetupTabProps } from "./facets/SetupTab.js";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
@@ -117,9 +117,9 @@ async function fetchPlanText(
   stigmer: ReturnType<typeof useStigmer>,
   plan: SessionPlan,
 ): Promise<string> {
-  const result = await stigmer.agentExecution.getArtifactContent(
+  const result = await stigmer.agentRun.getArtifactContent(
     create(GetArtifactContentRequestSchema, {
-      executionId: plan.executionId,
+      runId: plan.executionId,
       storageKey: plan.artifact.storageKey,
     }),
   );
@@ -462,8 +462,8 @@ export function SessionViewer({
 
   const phase =
     flow.displayExecution?.status?.phase ??
-    ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-  const hasPhase = phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    RunPhase.RUN_PHASE_UNSPECIFIED;
+  const hasPhase = phase !== RunPhase.RUN_PHASE_UNSPECIFIED;
 
   // Facet arrival counts: rail badges inside the panel, the chip's dot-count
   // while collapsed. Arrivals never auto-open the panel (badge-only signal).
@@ -583,7 +583,7 @@ export function SessionViewer({
       try {
         const approvedText =
           planDraft.readDraft() ?? (await fetchPlanText(stigmer, sessionPlan));
-        const response = await stigmer.agentExecution.uploadAttachment(
+        const response = await stigmer.agentRun.uploadAttachment(
           create(UploadAttachmentRequestSchema, {
             filename: planFileName,
             content: new TextEncoder().encode(approvedText),
@@ -1420,7 +1420,7 @@ function SessionPanelRegion({
     flow.workspace.entries.some((entry) => entry.type === "git");
   const displayPhase =
     flow.displayExecution?.status?.phase ??
-    ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    RunPhase.RUN_PHASE_UNSPECIFIED;
 
   // The session facets (Config / Changes / Artifacts / Usage) as
   // injected rail views — the full inspector feature set inside one panel.

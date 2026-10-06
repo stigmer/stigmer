@@ -10,9 +10,9 @@
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 import { describe, expect, it } from "vitest";
 import { contentToken, grantToken, type DeniedLedgerEntry } from "../approval-state.js";
 import { stampHookRefusedToolCalls } from "../boundary-rows.js";
@@ -47,7 +47,7 @@ describe("stampHookRefusedToolCalls", () => {
       { toolName: "Shell", token: grantToken("shell", "rm -rf x"), kind: "approval", hook: "safety" },
     ];
     const messages = [message(earlier), message(shell, edit, read, ran, listing), message(row("c-task", "task", {}, ToolCallStatus.TOOL_CALL_COMPLETED))];
-    const subAgents = [create(SubAgentExecutionSchema, { id: "c-task", messages: [message(inSubAgent)] })];
+    const subAgents = [create(SubAgentRunSchema, { id: "c-task", messages: [message(inSubAgent)] })];
 
     expect(stampHookRefusedToolCalls(messages, subAgents, ledger, 1, "/w")).toBe(5);
     expect([listing.error, listing.approvalPolicyHook]).toEqual(["no listing src", "safety"]);

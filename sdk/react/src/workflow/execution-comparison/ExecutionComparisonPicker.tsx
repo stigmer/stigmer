@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../../internal/DialogShell.js";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { useWorkflowExecutionList } from "../useWorkflowExecutionList.js";
 import { WorkflowExecutionPhaseBadge } from "../WorkflowExecutionPhaseBadge.js";
 import { formatDuration } from "../format-utils.js";
@@ -18,7 +18,7 @@ export interface ExecutionComparisonPickerProps {
   /** The base execution ID (already selected, shown as context). */
   readonly baseExecutionId: string;
   /** The phase of the base execution (used for smart pre-selection). */
-  readonly basePhase: ExecutionPhase;
+  readonly basePhase: RunPhase;
   /** Called when the user confirms a comparison target. */
   readonly onConfirm: (compareExecutionId: string) => void;
   /** Called when the dialog is dismissed. */
@@ -26,10 +26,10 @@ export interface ExecutionComparisonPickerProps {
 }
 
 const TERMINAL_PHASES = new Set([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
 ]);
 
 /**
@@ -61,7 +61,7 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
       executions.filter(
         (e) =>
           e.metadata?.id !== baseExecutionId &&
-          TERMINAL_PHASES.has(e.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED),
+          TERMINAL_PHASES.has(e.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED),
       ),
     [executions, baseExecutionId],
   );
@@ -71,9 +71,9 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
     if (selectedId) return;
 
     const preferredPhase =
-      basePhase === ExecutionPhase.EXECUTION_FAILED
-        ? ExecutionPhase.EXECUTION_COMPLETED
-        : ExecutionPhase.EXECUTION_FAILED;
+      basePhase === RunPhase.RUN_FAILED
+        ? RunPhase.RUN_COMPLETED
+        : RunPhase.RUN_FAILED;
 
     const preferred = candidates.find(
       (e) => e.status?.phase === preferredPhase,
@@ -141,7 +141,7 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
           {candidates.map((exec) => {
             const id = exec.metadata?.id ?? "";
             const name = exec.metadata?.name || exec.metadata?.slug || id;
-            const phase = exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+            const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
             const startedAt = exec.status?.startedAt;
             const completedAt = exec.status?.completedAt;
             const durationMs = getDurationMs(startedAt, completedAt);

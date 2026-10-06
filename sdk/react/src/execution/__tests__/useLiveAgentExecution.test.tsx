@@ -10,12 +10,12 @@ vi.mock("../useExecutionStream", () => ({
 }));
 
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerError } from "@stigmer/sdk";
 import { useStigmer } from "../../hooks";
 import { useExecutionStream } from "../useExecutionStream";
@@ -25,10 +25,10 @@ import { useLiveAgentExecution } from "../useLiveAgentExecution";
 // Fixtures
 // ---------------------------------------------------------------------------
 
-function executionFixture(id: string, phase: ExecutionPhase): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+function executionFixture(id: string, phase: RunPhase): AgentRun {
+  const exec = create(AgentRunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.status = create(AgentExecutionStatusSchema, { phase });
+  exec.status = create(AgentRunStatusSchema, { phase });
   return exec;
 }
 
@@ -36,7 +36,7 @@ function executionFixture(id: string, phase: ExecutionPhase): AgentExecution {
 function idleStream() {
   return {
     execution: null,
-    phase: ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+    phase: RunPhase.RUN_PHASE_UNSPECIFIED,
     isStreaming: false,
     isConnecting: false,
     isReconnecting: false,
@@ -51,7 +51,7 @@ function idleStream() {
 const mockUseStigmer = vi.mocked(useStigmer);
 const mockUseExecutionStream = vi.mocked(useExecutionStream);
 
-function mockGet(impl: (id: string) => Promise<AgentExecution>) {
+function mockGet(impl: (id: string) => Promise<AgentRun>) {
   mockUseStigmer.mockReturnValue({
     agentExecution: { get: vi.fn(impl) },
   } as unknown as ReturnType<typeof useStigmer>);
@@ -68,7 +68,7 @@ beforeEach(() => {
 
 describe("useLiveAgentExecution", () => {
   it("serves a terminal execution from get() alone and never subscribes", async () => {
-    const terminal = executionFixture("aex_1", ExecutionPhase.EXECUTION_COMPLETED);
+    const terminal = executionFixture("aex_1", RunPhase.RUN_COMPLETED);
     mockGet(async () => terminal);
 
     const { result } = renderHook(() => useLiveAgentExecution("aex_1"));
@@ -77,7 +77,7 @@ describe("useLiveAgentExecution", () => {
     await waitFor(() => expect(result.current.execution).toBe(terminal));
 
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(result.current.phase).toBe(RunPhase.RUN_COMPLETED);
     expect(result.current.isStreaming).toBe(false);
     // The stream gate must stay closed for a terminal phase — every call
     // (pre-fetch and post-fetch renders alike) passes null.
@@ -87,7 +87,7 @@ describe("useLiveAgentExecution", () => {
   });
 
   it("layers the stream once the fetched phase is non-terminal", async () => {
-    const running = executionFixture("aex_2", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const running = executionFixture("aex_2", RunPhase.RUN_IN_PROGRESS);
     mockGet(async () => running);
 
     const { result } = renderHook(() => useLiveAgentExecution("aex_2"));
@@ -99,8 +99,8 @@ describe("useLiveAgentExecution", () => {
   });
 
   it("prefers the streamed snapshot over the fetched one once streaming", async () => {
-    const fetched = executionFixture("aex_3", ExecutionPhase.EXECUTION_IN_PROGRESS);
-    const streamed = executionFixture("aex_3", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const fetched = executionFixture("aex_3", RunPhase.RUN_IN_PROGRESS);
+    const streamed = executionFixture("aex_3", RunPhase.RUN_IN_PROGRESS);
     mockGet(async () => fetched);
     mockUseExecutionStream.mockReturnValue({
       ...idleStream(),
@@ -143,7 +143,7 @@ describe("useLiveAgentExecution", () => {
   });
 
   it("surfaces the stream's terminal error when the fetch is healthy", async () => {
-    const running = executionFixture("aex_4", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const running = executionFixture("aex_4", RunPhase.RUN_IN_PROGRESS);
     const streamError = new Error("stream exhausted retries");
     mockGet(async () => running);
     mockUseExecutionStream.mockReturnValue({
@@ -162,7 +162,7 @@ describe("useLiveAgentExecution", () => {
   });
 
   it("reconnect() retries both the fetch and the stream", async () => {
-    const running = executionFixture("aex_5", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const running = executionFixture("aex_5", RunPhase.RUN_IN_PROGRESS);
     const getFn = vi.fn(async () => running);
     mockUseStigmer.mockReturnValue({
       agentExecution: { get: getFn },
@@ -207,7 +207,7 @@ describe("useLiveAgentExecution", () => {
 
 describe("useLiveAgentExecution { live }", () => {
   it("live: false fetches the snapshot but never subscribes", async () => {
-    const running = executionFixture("aex_p1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const running = executionFixture("aex_p1", RunPhase.RUN_IN_PROGRESS);
     mockGet(async () => running);
 
     const { result } = renderHook(() =>
@@ -222,7 +222,7 @@ describe("useLiveAgentExecution { live }", () => {
   });
 
   it("live: true (and omitted) behave identically for a non-terminal execution", async () => {
-    const running = executionFixture("aex_p2", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const running = executionFixture("aex_p2", RunPhase.RUN_IN_PROGRESS);
     mockGet(async () => running);
 
     const { result } = renderHook(() =>
@@ -236,7 +236,7 @@ describe("useLiveAgentExecution { live }", () => {
   });
 
   it("a terminal execution never streams regardless of live", async () => {
-    const terminal = executionFixture("aex_p3", ExecutionPhase.EXECUTION_COMPLETED);
+    const terminal = executionFixture("aex_p3", RunPhase.RUN_COMPLETED);
     mockGet(async () => terminal);
 
     const { result } = renderHook(() =>
@@ -250,7 +250,7 @@ describe("useLiveAgentExecution { live }", () => {
   });
 
   it("false → true attaches the stream in place", async () => {
-    const running = executionFixture("aex_p4", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const running = executionFixture("aex_p4", RunPhase.RUN_IN_PROGRESS);
     mockGet(async () => running);
 
     const { result, rerender } = renderHook(
@@ -272,8 +272,8 @@ describe("useLiveAgentExecution { live }", () => {
   });
 
   it("never rewinds: a stream pause keeps the last-streamed snapshot, not the mount fetch", async () => {
-    const fetched = executionFixture("aex_p5", ExecutionPhase.EXECUTION_IN_PROGRESS);
-    const streamed = executionFixture("aex_p5", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const fetched = executionFixture("aex_p5", RunPhase.RUN_IN_PROGRESS);
+    const streamed = executionFixture("aex_p5", RunPhase.RUN_IN_PROGRESS);
     mockGet(async () => fetched);
     mockUseExecutionStream.mockReturnValue({
       ...idleStream(),
@@ -299,9 +299,9 @@ describe("useLiveAgentExecution { live }", () => {
   });
 
   it("does not leak the previous execution's snapshot across an id switch", async () => {
-    const first = executionFixture("aex_p6a", ExecutionPhase.EXECUTION_IN_PROGRESS);
-    const streamedFirst = executionFixture("aex_p6a", ExecutionPhase.EXECUTION_IN_PROGRESS);
-    const second = executionFixture("aex_p6b", ExecutionPhase.EXECUTION_COMPLETED);
+    const first = executionFixture("aex_p6a", RunPhase.RUN_IN_PROGRESS);
+    const streamedFirst = executionFixture("aex_p6a", RunPhase.RUN_IN_PROGRESS);
+    const second = executionFixture("aex_p6b", RunPhase.RUN_COMPLETED);
     mockGet(async (id) => (id === "aex_p6a" ? first : second));
     mockUseExecutionStream.mockReturnValue({
       ...idleStream(),

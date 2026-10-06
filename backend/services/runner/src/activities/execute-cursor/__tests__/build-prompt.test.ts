@@ -9,8 +9,8 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
 
 import { appendStructuredOutputDirective, buildPrompt, isHitlReinvocation, primarySendCarriesImages, promptCarriesStandingContext } from "../prompt-builder.js";
 import type { BuildPromptInput } from "../prompt-builder.js";

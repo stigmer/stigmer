@@ -9,8 +9,8 @@
 // message tail and drops the bulky server-side bookkeeping fields; "full" is
 // the verbatim protojson for when the model genuinely needs everything.
 
-import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentRunSchema, type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
 
 import { withClient } from "../client.js";
 import { toProtoJson } from "../marshal.js";
@@ -45,18 +45,18 @@ export async function fetchAgentExecution(
     throw new Error("execution_id is required");
   }
   return withClient(
-    AgentExecutionQueryController,
+    AgentRunQueryController,
     serverAddress,
     token,
     async (client, callOptions) => {
-      let execution: AgentExecution;
+      let execution: AgentRun;
       try {
         execution = await client.get({ value: executionId }, callOptions);
       } catch (err) {
         throw rpcError(err, `agent execution "${executionId}"`);
       }
       return view === "full"
-        ? toProtoJson(AgentExecutionSchema, execution)
+        ? toProtoJson(AgentRunSchema, execution)
         : compactExecutionJson(execution, messageLimit);
     },
   );
@@ -77,8 +77,8 @@ export interface CompactExecution {
  * Shared by the write tools that return an AgentExecution (approve, cancel):
  * their responses embed the same potentially-huge status.
  */
-export function compactExecution(execution: AgentExecution, messageLimit: number): CompactExecution {
-  const data = JSON.parse(toProtoJson(AgentExecutionSchema, execution)) as Record<string, unknown>;
+export function compactExecution(execution: AgentRun, messageLimit: number): CompactExecution {
+  const data = JSON.parse(toProtoJson(AgentRunSchema, execution)) as Record<string, unknown>;
   let totalMessages = 0;
 
   const status = data.status as Record<string, unknown> | undefined;
@@ -101,7 +101,7 @@ export function compactExecution(execution: AgentExecution, messageLimit: number
  * the model can tell when the message tail is a window (and re-request with a
  * larger message_limit or view=full).
  */
-export function compactExecutionJson(execution: AgentExecution, messageLimit: number): string {
+export function compactExecutionJson(execution: AgentRun, messageLimit: number): string {
   const { totalMessages, data } = compactExecution(execution, messageLimit);
   return JSON.stringify(
     { view: "compact", total_messages: totalMessages, execution: data },

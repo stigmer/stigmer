@@ -28,7 +28,7 @@
 // nothing, the `.stigmer/` read that survives a list without Read, and the
 // Cursor engine (the gateway contract, approval-gateway-contract.test.ts,
 // runs the lists on both engines).
-import { ApprovalEventType, ExecutionPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalEventType, RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -123,13 +123,13 @@ describe("AgentExecution tool lists — out of scope is refused, never gated", (
     const settled = await pollExecution(
       clients,
       executionId,
-      (e) => isTerminalPhase(e.status?.phase) || e.status?.phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      (e) => isTerminalPhase(e.status?.phase) || e.status?.phase === RunPhase.RUN_WAITING_FOR_APPROVAL,
       { label: "a terminal phase or an approval gate" },
     );
     expect(
-      ExecutionPhase[settled.status?.phase ?? 0],
+      RunPhase[settled.status?.phase ?? 0],
       `execution ${executionId} completes without a gate (error: ${settled.status?.error ?? ""})`,
-    ).toBe(ExecutionPhase[ExecutionPhase.EXECUTION_COMPLETED]);
+    ).toBe(RunPhase[RunPhase.RUN_COMPLETED]);
     expect(settled.status?.pendingApprovals ?? [], "no approval is pending").toEqual([]);
     expect(
       (settled.status?.approvalEventStream?.events ?? []).filter((e) => e.eventType === ApprovalEventType.REQUESTED),

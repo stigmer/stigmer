@@ -21,7 +21,7 @@ vi.mock("@connectrpc/connect", () => ({
 
 import { StigmerClient } from "../stigmer-client.js";
 import { withRunCredential } from "../../shared/run-credential-store.js";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
@@ -312,7 +312,7 @@ describe("StigmerClient", () => {
       for (const req of [
         makeExecutionContextRequest(),
         makeScopedTokenExchangeRequest(),
-        makeRequest(AgentExecutionCommandController.typeName, "create"),
+        makeRequest(AgentRunCommandController.typeName, "create"),
       ]) {
         await withRunCredential("run-cred", () => runInterceptor(req));
         expect(req.header.get("authorization")).toBe("Bearer run-cred");

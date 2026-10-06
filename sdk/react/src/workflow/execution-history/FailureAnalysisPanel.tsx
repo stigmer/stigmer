@@ -2,13 +2,13 @@
 
 import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { deriveFailureAnalysis, type FailureGroup } from "./derive-failure-analysis.js";
 
 /** Props for {@link FailureAnalysisPanel}. */
 export interface FailureAnalysisPanelProps {
   /** Raw executions to analyze. Only FAILED executions are considered. */
-  readonly executions: readonly WorkflowExecution[];
+  readonly executions: readonly WorkflowRun[];
   /** Called when the user clicks a failed execution link. */
   readonly onExecutionClick?: (executionId: string) => void;
   /** Maximum number of failure groups to show initially. @default 5 */

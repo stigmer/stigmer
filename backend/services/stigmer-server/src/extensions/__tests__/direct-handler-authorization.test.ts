@@ -262,11 +262,11 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
   it("artifact listByExecution denies on the PARENT execution with the Java handler's copy", async () => {
     const query = createClient(ArtifactQueryController, transport);
     await expectDenied(
-      () => query.listByExecution({ workflowExecutionId: "wfe_01any" }),
+      () => query.listByRun({ workflowRunId: "wfe_01any" }),
       "unauthorized to list artifacts for this execution",
     );
     await expectDenied(
-      () => query.listByExecution({ agentExecutionId: "aex_01any" }),
+      () => query.listByRun({ agentRunId: "aex_01any" }),
       "unauthorized to list artifacts for this execution",
     );
   });

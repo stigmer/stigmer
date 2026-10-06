@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { ExecutionPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { ExecutionPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { RunPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   useWorkflowDashboardSummary,
   type UseWorkflowDashboardSummaryOptions,
@@ -11,7 +11,7 @@ import { useOrgUsageReport } from "../usage/useOrgUsageReport.js";
 import { dateRangeFromPreset } from "../usage/date-range.js";
 import {
   useAgentExecutionSummary,
-  AgentExecutionSummaryTimeWindow,
+  AgentRunSummaryTimeWindow,
 } from "./useAgentExecutionSummary.js";
 import type { DashboardSummary } from "./types.js";
 
@@ -56,7 +56,7 @@ export function useDashboardSummary(
   const { summary: agentSummary, isLoading: agLoading, error: agError, refetch: agRefetch } =
     useAgentExecutionSummary({
       org: options.org,
-      timeWindow: AgentExecutionSummaryTimeWindow.LAST_7D,
+      timeWindow: AgentRunSummaryTimeWindow.LAST_7D,
       refetchInterval,
     });
 
@@ -73,11 +73,11 @@ export function useDashboardSummary(
     const wfActive = workflowSummary?.activeCount ?? 0;
     const agActive = agentSummary?.activeCount ?? 0;
 
-    const wfCompleted = workflowSummary?.phaseCounts[WorkflowPhase.EXECUTION_COMPLETED] ?? 0;
-    const agCompleted = agentSummary?.phaseCounts[AgentPhase.EXECUTION_COMPLETED] ?? 0;
+    const wfCompleted = workflowSummary?.phaseCounts[WorkflowPhase.RUN_COMPLETED] ?? 0;
+    const agCompleted = agentSummary?.phaseCounts[AgentPhase.RUN_COMPLETED] ?? 0;
 
-    const wfFailed = workflowSummary?.phaseCounts[WorkflowPhase.EXECUTION_FAILED] ?? 0;
-    const agFailed = agentSummary?.phaseCounts[AgentPhase.EXECUTION_FAILED] ?? 0;
+    const wfFailed = workflowSummary?.phaseCounts[WorkflowPhase.RUN_FAILED] ?? 0;
+    const agFailed = agentSummary?.phaseCounts[AgentPhase.RUN_FAILED] ?? 0;
 
     const totalCostMicros = Number(orgUsage?.totalBillableCostMicros ?? BigInt(0));
     const totalCostUsd = totalCostMicros / 1_000_000;

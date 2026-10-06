@@ -57,8 +57,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -155,9 +155,9 @@ describe("ExecuteCursor hermetic — orchestrator stop vs worker shutdown", () =
     expect(threwCancelledFailure(invocation.outcome), "an orchestrator stop THROWS CancelledFailure").toBe(true);
     if (!threwCancelledFailure(invocation.outcome)) throw new Error("unreachable");
     expect(invocation.outcome.error.message).toBe("Activity paused by orchestrator");
-    expect(record.persistedPhases, "the stop writes no phase").toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS]);
+    expect(record.persistedPhases, "the stop writes no phase").toEqual([RunPhase.RUN_IN_PROGRESS]);
     const final = record.persisted.at(-1)!;
-    expect(final.phase, "the settle write carries no phase").toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
+    expect(final.phase, "the settle write carries no phase").toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
     expect(final.error, "a stop is not an error").toBe("");
     expect(final.completedAt, "a stopped turn is not complete").toBe("");
     expect(
@@ -166,7 +166,7 @@ describe("ExecuteCursor hermetic — orchestrator stop vs worker shutdown", () =
     ).toEqual([]);
     expect(final.messages.some((m) => m.content === NEVER_SEEN), "nothing after the cancel is processed").toBe(false);
 
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/pause.status.json");
   });
 
@@ -197,8 +197,8 @@ describe("ExecuteCursor hermetic — orchestrator stop vs worker shutdown", () =
     if (!threwCancelledFailure(invocation.outcome)) throw new Error("unreachable");
     expect(invocation.outcome.error.message).toBe("Activity cancelled (worker shutdown, not user pause)");
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_FAILED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_FAILED,
     ]);
     const final = record.lastFullStatus!;
     expect(final.error).toBe("Execution interrupted: runner worker was shut down. Retry or resume.");
@@ -210,7 +210,7 @@ describe("ExecuteCursor hermetic — orchestrator stop vs worker shutdown", () =
     ]);
     expect(final.messages.some((m) => m.content === NEVER_SEEN)).toBe(false);
 
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/worker-shutdown.status.json");
   });
 });

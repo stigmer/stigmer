@@ -26,9 +26,9 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApprovalMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 
 let mockGetAgentByReference: ReturnType<typeof vi.fn>;
 let mockCreateSession: ReturnType<typeof vi.fn>;
@@ -73,8 +73,8 @@ const appConfig = testConfig({ stigmerTokenRef: { current: "test-token" } });
 const WEX = "wex_test1";
 
 /** The AgentExecution the activity handed the control plane's create. */
-function createdExecution(): AgentExecution {
-  return mockCreateAgentExecution.mock.calls[0][0] as AgentExecution;
+function createdExecution(): AgentRun {
+  return mockCreateAgentExecution.mock.calls[0][0] as AgentRun;
 }
 
 /** The agent every reference resolves to: its own organization (an id) and slug. */

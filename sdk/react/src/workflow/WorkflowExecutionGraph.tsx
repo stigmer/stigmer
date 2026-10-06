@@ -21,7 +21,7 @@ import { WorkflowGraphModeProvider } from "./WorkflowGraphModeContext.js";
 import { useWorkflowExecutionGraph } from "./useWorkflowExecutionGraph.js";
 import type { UseWorkflowExecutionGraphReturn } from "./useWorkflowExecutionGraph.js";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { useFollowExecution } from "./useFollowExecution.js";
 import { useActiveTaskName } from "./useActiveTaskName.js";
 import { ExecutionActiveTaskIndicator } from "./ExecutionActiveTaskIndicator.js";
@@ -39,7 +39,7 @@ export interface WorkflowExecutionGraphProps {
    * skips its own execution fetch — eliminating duplicate API calls.
    * Pass `undefined` (or omit) for standalone usage.
    */
-  readonly execution?: WorkflowExecution | null;
+  readonly execution?: WorkflowRun | null;
   /**
    * Externally-derived task states from a shared event store. When
    * provided, the graph skips its own event stream subscription.

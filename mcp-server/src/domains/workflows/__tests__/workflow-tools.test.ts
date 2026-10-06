@@ -22,12 +22,12 @@ import {
   TaskKindDescriptorSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_descriptor_pb";
 import { TaskKindRegistryQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_registry_query_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
   type GetEventLogRequest,
   GetEventLogResponseSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../../../logger";
@@ -41,7 +41,7 @@ const registry = create(GetTaskKindRegistryResponseSchema, {
     create(TaskKindDescriptorSchema, { kind: WorkflowTaskKind.for_each }),
   ],
 });
-const execution = create(WorkflowExecutionSchema, { apiVersion: "v1", kind: "workflow_execution" });
+const execution = create(WorkflowRunSchema, { apiVersion: "v1", kind: "workflow_execution" });
 const eventLog = create(GetEventLogResponseSchema, {});
 
 let backend: Http2Server;
@@ -62,7 +62,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
     router.service(TaskKindRegistryQueryController, { getTaskKindRegistry: () => registry });
-    router.service(WorkflowExecutionQueryController, {
+    router.service(WorkflowRunQueryController, {
       get: (req) => {
         lastExecutionId = req.value;
         return execution;
@@ -133,7 +133,7 @@ describe("workflow query tools integration", () => {
     expect(result.isError).toBeFalsy();
     expect(lastExecutionId).toBe("wex_123");
     expect(JSON.parse(result.content[0]?.text ?? "{}")).toEqual(
-      toJson(WorkflowExecutionSchema, execution, { useProtoFieldName: true }),
+      toJson(WorkflowRunSchema, execution, { useProtoFieldName: true }),
     );
   });
 

@@ -36,10 +36,10 @@
 // A tracked file is modified with edit_file (write_file creates; it does not
 // overwrite a file the agent has not read).
 import {
-  ExecutionPhase,
+  RunPhase,
   FileChangeKind,
   FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -182,7 +182,7 @@ async function expectClearedAtBoundary(executionId: string, paths: string[]): Pr
   const set = requireReviewSet(waiting);
   for (const path of paths) requireChangeByPath(set, path);
   await submitChangeSetDecision(clients, executionId, set, FileDecisionAction.REJECT);
-  await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_COMPLETED);
+  await awaitPhase(clients, executionId, RunPhase.RUN_COMPLETED);
 }
 
 describe("AgentExecution file review — mid-run progress", () => {

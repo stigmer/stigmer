@@ -39,8 +39,8 @@
 import { setMaxListeners } from "node:events";
 import { heartbeat, CancelledFailure, Context } from "@temporalio/activity";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, InteractionMode, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, InteractionMode, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -148,8 +148,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   const { adapter, activityName, client, config } = deps;
   const { executionId } = input;
 
-  const status = create(AgentExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+  const status = create(AgentRunStatusSchema, {
+    phase: RunPhase.RUN_IN_PROGRESS,
     startedAt: utcTimestamp(),
   });
 
@@ -252,7 +252,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
       await chokepoint.write();
       return { kind: "return", value: slimStatus(status) };
     }
-    cancelInProgressSubAgentProtos(status.subAgentExecutions);
+    cancelInProgressSubAgentProtos(status.subAgentRuns);
     await chokepoint.write();
     return { kind: "throw", error: failure ?? new CancelledFailure(arm.disposition.message) };
   };
@@ -430,9 +430,9 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
 
     switch (outcome.kind) {
       case "completed":
-        return reviewPending ? pauseCompletedTurnForReview(turn) : completeTurn(turn, ExecutionPhase.EXECUTION_COMPLETED);
+        return reviewPending ? pauseCompletedTurnForReview(turn) : completeTurn(turn, RunPhase.RUN_COMPLETED);
       case "cancelled":
-        return reviewPending ? settleWith(awaitingReviewArm()) : completeTurn(turn, ExecutionPhase.EXECUTION_CANCELLED);
+        return reviewPending ? settleWith(awaitingReviewArm()) : completeTurn(turn, RunPhase.RUN_CANCELLED);
       case "awaiting_approval":
         // The adapter put the WAITING rows on the transcript (and a captured
         // candidate, if any, rides the same write); the arm flips the phase,
@@ -537,13 +537,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
    * structured output visible atomically; the slim return with `final_text`
    * and `structured` beside it.
    */
-  async function completeTurn(turn: TurnInput, phase: ExecutionPhase): Promise<Settled> {
+  async function completeTurn(turn: TurnInput, phase: RunPhase): Promise<Settled> {
     status.completedAt = utcTimestamp();
     status.phase = phase;
 
     let finalText: string | undefined;
 
-    if (phase === ExecutionPhase.EXECUTION_COMPLETED) {
+    if (phase === RunPhase.RUN_COMPLETED) {
       finalText = lastAssistantText();
       await resolveStructuredOutput(turn, finalText);
 
@@ -572,7 +572,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     // NOW persist — the subscriber sees the phase and structured_output atomically.
     await chokepoint.write();
     console.log(
-      `${activityName} completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}, ` +
+      `${activityName} completed: execution=${executionId}, phase=${RunPhase[status.phase]}, ` +
         `hasStructuredOutput=${status.structuredOutput !== undefined}` +
         (status.error ? `, error=${status.error}` : ""),
     );

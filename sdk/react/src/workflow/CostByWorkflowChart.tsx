@@ -2,7 +2,7 @@
 
 import { memo, useMemo } from "react";
 import { cn } from "@stigmer/theme";
-import type { WorkflowCostBreakdown } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import type { WorkflowCostBreakdown } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 
 export interface CostByWorkflowChartProps {
   readonly breakdowns: readonly WorkflowCostBreakdown[];
@@ -101,7 +101,7 @@ export const CostByWorkflowChart = memo(function CostByWorkflowChart({
                     {formatCost(breakdown.totalCostUsd)}
                   </span>
                   <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-                    {breakdown.executionCount} runs
+                    {breakdown.runCount} runs
                   </span>
                 </span>
               </div>

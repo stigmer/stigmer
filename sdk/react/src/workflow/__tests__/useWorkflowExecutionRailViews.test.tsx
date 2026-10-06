@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
-import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type {
   DerivedCostSummary,
   DerivedTaskState,

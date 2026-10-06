@@ -3,7 +3,7 @@
 // Session-model artifact list row: adapts an ExecutionArtifact + its download
 // wiring onto the shared, data-model-agnostic ArtifactRowView.
 
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import { useMemo } from "react";
 import {
   fromExecutionArtifact,
@@ -15,7 +15,7 @@ import { useArtifactDownload } from "./useArtifactDownload.js";
 /** Props for {@link ArtifactRow}. */
 export interface ArtifactRowProps {
   /** The execution artifact to render. */
-  readonly artifact: ExecutionArtifact;
+  readonly artifact: RunArtifact;
   /** ID of the execution that produced this artifact — used to mint its download URL. */
   readonly executionId: string;
   /**

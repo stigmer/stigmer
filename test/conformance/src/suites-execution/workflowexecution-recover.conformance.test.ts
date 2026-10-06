@@ -35,7 +35,7 @@
 // - recover with empty id -> InvalidArgument; missing execution -> NotFound
 //   (the latter two are the shared lifecycle negatives; recover shares the
 //   proto-validated `id` field with cancel/pause).
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -96,7 +96,7 @@ describe("WorkflowExecution recover — happy path", () => {
     const executionId = await createExecution(org, workflowId);
 
     // The raise_error task fails the run deterministically.
-    const failed = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_FAILED);
+    const failed = await awaitPhase(clients, executionId, RunPhase.RUN_FAILED);
     expect(failed.status?.error, "a FAILED execution carries an error message").toBeTruthy();
 
     // recover terminates the failed orchestrator and starts a fresh one. The
@@ -107,12 +107,12 @@ describe("WorkflowExecution recover — happy path", () => {
     });
     expect(
       recovered.status?.phase,
-      `recover should move the execution out of FAILED; got ${ExecutionPhase[recovered.status?.phase ?? 0]}`,
-    ).not.toBe(ExecutionPhase.EXECUTION_FAILED);
+      `recover should move the execution out of FAILED; got ${RunPhase[recovered.status?.phase ?? 0]}`,
+    ).not.toBe(RunPhase.RUN_FAILED);
 
     // The fresh orchestrator clears the prior error and re-enters the running
     // lifecycle; observe IN_PROGRESS, then the error is empty at that point.
-    const running = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const running = await awaitPhase(clients, executionId, RunPhase.RUN_IN_PROGRESS);
     expect(running.status?.error, "recover clears the prior failure's error").toBeFalsy();
 
     // The same spec re-fails on the fresh orchestrator — proof recovery actually
@@ -120,8 +120,8 @@ describe("WorkflowExecution recover — happy path", () => {
     const reFailed = await awaitTerminal(clients, executionId);
     expect(
       reFailed.status?.phase,
-      `the recovered raise_error run re-fails; got ${ExecutionPhase[reFailed.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_FAILED);
+      `the recovered raise_error run re-fails; got ${RunPhase[reFailed.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_FAILED);
   });
 
   it("[rpc:WorkflowExecutionCommandController.recover] is an idempotent no-op on an already-IN_PROGRESS execution", async () => {
@@ -129,19 +129,19 @@ describe("WorkflowExecution recover — happy path", () => {
     const workflowId = await provisionWaitWorkflow(org);
     const executionId = await createExecution(org, workflowId);
 
-    await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, executionId, RunPhase.RUN_IN_PROGRESS);
 
     // recover on a running execution hits the alreadyInTargetState branch: it
     // succeeds without restarting and the execution stays IN_PROGRESS.
     const recovered = await clients.workflowExecutionCommand.recover({ id: executionId });
     expect(recovered.status?.phase, "recover on a running execution is a no-op that stays IN_PROGRESS").toBe(
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      RunPhase.RUN_IN_PROGRESS,
     );
 
     // The execution is still genuinely running afterward (not terminated by the
     // no-op recover); stop the timer to clean up.
     const stillRunning = await clients.workflowExecutionQuery.get({ value: executionId });
-    expect(stillRunning.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    expect(stillRunning.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
     await clients.workflowExecutionCommand.cancel({ id: executionId });
   });
 });

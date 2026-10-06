@@ -15,8 +15,8 @@ import {
   ToolCallSchema,
   type AgentMessage,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { composeTurnRecoveryDigest, formatTurnRecoveryText } from "../turn-recovery.js";
 

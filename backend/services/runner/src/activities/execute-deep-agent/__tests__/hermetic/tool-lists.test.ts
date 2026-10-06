@@ -22,10 +22,10 @@ import { create } from "@bufbuild/protobuf";
 import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   ApprovalPolicySource,
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -94,7 +94,7 @@ describe("ExecuteDeepAgent hermetic — tool lists", () => {
       const invocation = await runDeepAgentTurn(scenario);
 
       expect(invocation.outcome.kind).toBe("returned");
-      expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
       const rows = record.toolCalls();
       expect(rows).toHaveLength(1);
       const row = rows[0];
@@ -141,8 +141,8 @@ describe("ExecuteDeepAgent hermetic — tool lists", () => {
     const invocation = await runDeepAgentTurn(scenario);
 
     expect(invocation.outcome.kind).toBe("returned");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
-    const subRows = record.lastFullStatus!.subAgentExecutions.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
+    const subRows = record.lastFullStatus!.subAgentRuns.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
     expect(subRows.map((r) => [r.id, r.status])).toEqual([["call-sub-shell", ToolCallStatus.TOOL_CALL_FAILED]]);
     expect(subRows[0].error).toContain('Sub-agent "worker": tools [Read]');
     expect(subRows[0].approvalPolicySource).toBe(ApprovalPolicySource.UNSPECIFIED);
@@ -166,7 +166,7 @@ describe("ExecuteDeepAgent hermetic — tool lists", () => {
     expect(invocation.outcome.kind, "a deterministic refusal RETURNS").toBe("returned");
     const final = record.lastFullStatus!;
     const message = new ToolListResolutionError(AGENT_OWNER, tools).message;
-    expect(final.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(final.phase).toBe(RunPhase.RUN_FAILED);
     expect(final.error).toBe(message);
     expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
       `Execution failed: ${message}`,

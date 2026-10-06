@@ -3,11 +3,11 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { useExecutionStream } from "../useExecutionStream";
@@ -57,16 +57,16 @@ function createControllableStream<T>() {
   };
 }
 
-function makeSnapshot(phase: ExecutionPhase): AgentExecution {
-  const exec = create(AgentExecutionSchema);
-  const status = create(AgentExecutionStatusSchema);
+function makeSnapshot(phase: RunPhase): AgentRun {
+  const exec = create(AgentRunSchema);
+  const status = create(AgentRunStatusSchema);
   status.phase = phase;
   exec.status = status;
   return exec;
 }
 
 function createMockStigmer(
-  subscribeFn: Stigmer["agentExecution"]["subscribe"],
+  subscribeFn: Stigmer["agentRun"]["subscribe"],
 ) {
   return {
     agentExecution: { subscribe: subscribeFn },
@@ -88,12 +88,12 @@ function createWrapper(client: Stigmer) {
 // ---------------------------------------------------------------------------
 
 describe("useExecutionStream", () => {
-  let stream: ReturnType<typeof createControllableStream<AgentExecution>>;
+  let stream: ReturnType<typeof createControllableStream<AgentRun>>;
   let subscribeFn: ReturnType<typeof vi.fn>;
   let mockStigmer: Stigmer;
 
   beforeEach(() => {
-    stream = createControllableStream<AgentExecution>();
+    stream = createControllableStream<AgentRun>();
     subscribeFn = vi.fn().mockReturnValue(stream.generator);
     mockStigmer = createMockStigmer(subscribeFn);
   });
@@ -128,7 +128,7 @@ describe("useExecutionStream", () => {
     });
 
     act(() => {
-      stream.push(makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS));
+      stream.push(makeSnapshot(RunPhase.RUN_IN_PROGRESS));
     });
 
     await waitFor(() => {
@@ -144,23 +144,23 @@ describe("useExecutionStream", () => {
     });
 
     act(() => {
-      stream.push(makeSnapshot(ExecutionPhase.EXECUTION_PENDING));
+      stream.push(makeSnapshot(RunPhase.RUN_PENDING));
     });
 
     await waitFor(() => {
       expect(result.current.execution).not.toBeNull();
       expect(result.current.execution?.status?.phase).toBe(
-        ExecutionPhase.EXECUTION_PENDING,
+        RunPhase.RUN_PENDING,
       );
     });
 
     act(() => {
-      stream.push(makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS));
+      stream.push(makeSnapshot(RunPhase.RUN_IN_PROGRESS));
     });
 
     await waitFor(() => {
       expect(result.current.execution?.status?.phase).toBe(
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        RunPhase.RUN_IN_PROGRESS,
       );
     });
   });
@@ -171,13 +171,13 @@ describe("useExecutionStream", () => {
     });
 
     act(() => {
-      stream.push(makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED));
+      stream.push(makeSnapshot(RunPhase.RUN_COMPLETED));
     });
 
     await waitFor(() => {
       expect(result.current.isStreaming).toBe(false);
       expect(result.current.execution).not.toBeNull();
-      expect(result.current.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      expect(result.current.phase).toBe(RunPhase.RUN_COMPLETED);
     });
   });
 
@@ -208,7 +208,7 @@ describe("useExecutionStream", () => {
       expect(result.current.error?.message).toBe("timeout");
     });
 
-    const newStream = createControllableStream<AgentExecution>();
+    const newStream = createControllableStream<AgentRun>();
     subscribeFn.mockReturnValue(newStream.generator);
 
     act(() => result.current.reconnect());
@@ -231,14 +231,14 @@ describe("useExecutionStream", () => {
     );
 
     act(() => {
-      stream.push(makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS));
+      stream.push(makeSnapshot(RunPhase.RUN_IN_PROGRESS));
     });
 
     await waitFor(() => {
       expect(result.current.isStreaming).toBe(true);
     });
 
-    const newStream = createControllableStream<AgentExecution>();
+    const newStream = createControllableStream<AgentRun>();
     subscribeFn.mockReturnValue(newStream.generator);
 
     rerender({ id: "exec-2" });
@@ -273,7 +273,7 @@ describe("useExecutionStream", () => {
     );
 
     act(() => {
-      stream.push(makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS));
+      stream.push(makeSnapshot(RunPhase.RUN_IN_PROGRESS));
     });
 
     await waitFor(() => {
@@ -295,16 +295,16 @@ describe("useExecutionStream", () => {
     });
 
     expect(result.current.phase).toBe(
-      ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+      RunPhase.RUN_PHASE_UNSPECIFIED,
     );
 
     act(() => {
-      stream.push(makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS));
+      stream.push(makeSnapshot(RunPhase.RUN_IN_PROGRESS));
     });
 
     await waitFor(() => {
       expect(result.current.phase).toBe(
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        RunPhase.RUN_IN_PROGRESS,
       );
     });
   });
@@ -326,12 +326,12 @@ describe("useExecutionStream", () => {
 
   it("handles all terminal phases correctly", async () => {
     for (const terminalPhase of [
-      ExecutionPhase.EXECUTION_COMPLETED,
-      ExecutionPhase.EXECUTION_FAILED,
-      ExecutionPhase.EXECUTION_CANCELLED,
-      ExecutionPhase.EXECUTION_TERMINATED,
+      RunPhase.RUN_COMPLETED,
+      RunPhase.RUN_FAILED,
+      RunPhase.RUN_CANCELLED,
+      RunPhase.RUN_TERMINATED,
     ]) {
-      const localStream = createControllableStream<AgentExecution>();
+      const localStream = createControllableStream<AgentRun>();
       subscribeFn.mockReturnValue(localStream.generator);
 
       const { result, unmount } = renderHook(
@@ -358,18 +358,18 @@ describe("useExecutionStream", () => {
 // ---------------------------------------------------------------------------
 
 describe("useExecutionStream — auto-reconnect", () => {
-  const IN_PROGRESS = ExecutionPhase.EXECUTION_IN_PROGRESS;
+  const IN_PROGRESS = RunPhase.RUN_IN_PROGRESS;
   // Tiny backoff so retries fire near-instantly under real timers; avoids the
   // fake-timer / `waitFor` interaction that makes such tests brittle.
   const fastReconnect = { baseDelayMs: 5, maxDelayMs: 5 } as const;
 
   it("auto-reconnects after a transient drop and keeps the last snapshot", async () => {
-    const s1 = createControllableStream<AgentExecution>();
-    const s2 = createControllableStream<AgentExecution>();
+    const s1 = createControllableStream<AgentRun>();
+    const s2 = createControllableStream<AgentRun>();
     let call = 0;
     const subscribeFn = vi.fn(() => (call++ === 0 ? s1.generator : s2.generator));
     const stigmer = createMockStigmer(
-      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+      subscribeFn as unknown as Stigmer["agentRun"]["subscribe"],
     );
 
     const { result } = renderHook(
@@ -397,12 +397,12 @@ describe("useExecutionStream — auto-reconnect", () => {
   });
 
   it("auto-reconnects when the stream ends before a terminal phase", async () => {
-    const s1 = createControllableStream<AgentExecution>();
-    const s2 = createControllableStream<AgentExecution>();
+    const s1 = createControllableStream<AgentRun>();
+    const s2 = createControllableStream<AgentRun>();
     let call = 0;
     const subscribeFn = vi.fn(() => (call++ === 0 ? s1.generator : s2.generator));
     const stigmer = createMockStigmer(
-      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+      subscribeFn as unknown as Stigmer["agentRun"]["subscribe"],
     );
 
     const { result } = renderHook(
@@ -425,12 +425,12 @@ describe("useExecutionStream — auto-reconnect", () => {
   it("surfaces an error only after retries are exhausted", async () => {
     const subscribeFn = vi.fn(
       () =>
-        (async function* (): AsyncGenerator<AgentExecution> {
+        (async function* (): AsyncGenerator<AgentRun> {
           throw new TypeError("Load failed");
         })(),
     );
     const stigmer = createMockStigmer(
-      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+      subscribeFn as unknown as Stigmer["agentRun"]["subscribe"],
     );
 
     const { result } = renderHook(
@@ -451,10 +451,10 @@ describe("useExecutionStream — auto-reconnect", () => {
   });
 
   it("does not reconnect after a terminal snapshot", async () => {
-    const s1 = createControllableStream<AgentExecution>();
+    const s1 = createControllableStream<AgentRun>();
     const subscribeFn = vi.fn(() => s1.generator);
     const stigmer = createMockStigmer(
-      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+      subscribeFn as unknown as Stigmer["agentRun"]["subscribe"],
     );
 
     const { result } = renderHook(
@@ -462,7 +462,7 @@ describe("useExecutionStream — auto-reconnect", () => {
       { wrapper: createWrapper(stigmer) },
     );
 
-    act(() => s1.push(makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED)));
+    act(() => s1.push(makeSnapshot(RunPhase.RUN_COMPLETED)));
     await waitFor(() => expect(result.current.isStreaming).toBe(false));
 
     await new Promise((r) => setTimeout(r, 30));
@@ -474,12 +474,12 @@ describe("useExecutionStream — auto-reconnect", () => {
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(1); // full delay
     const subscribeFn = vi.fn(
       () =>
-        (async function* (): AsyncGenerator<AgentExecution> {
+        (async function* (): AsyncGenerator<AgentRun> {
           throw new TypeError("Load failed");
         })(),
     );
     const stigmer = createMockStigmer(
-      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+      subscribeFn as unknown as Stigmer["agentRun"]["subscribe"],
     );
 
     const { result, unmount } = renderHook(
@@ -501,10 +501,10 @@ describe("useExecutionStream — auto-reconnect", () => {
   });
 
   it("respects autoReconnect: false (immediate error, no retry)", async () => {
-    const s1 = createControllableStream<AgentExecution>();
+    const s1 = createControllableStream<AgentRun>();
     const subscribeFn = vi.fn(() => s1.generator);
     const stigmer = createMockStigmer(
-      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+      subscribeFn as unknown as Stigmer["agentRun"]["subscribe"],
     );
 
     const { result } = renderHook(
@@ -527,15 +527,15 @@ describe("useExecutionStream — auto-reconnect", () => {
 // ---------------------------------------------------------------------------
 
 describe("useExecutionStream — watchdog", () => {
-  const IN_PROGRESS = ExecutionPhase.EXECUTION_IN_PROGRESS;
+  const IN_PROGRESS = RunPhase.RUN_IN_PROGRESS;
 
   it("self-heals once then surfaces connectTimedOut on a silent connect", async () => {
     // Every subscribe returns a stream that never delivers a snapshot.
     const subscribeFn = vi.fn(
-      () => createControllableStream<AgentExecution>().generator,
+      () => createControllableStream<AgentRun>().generator,
     );
     const stigmer = createMockStigmer(
-      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+      subscribeFn as unknown as Stigmer["agentRun"]["subscribe"],
     );
 
     const { result } = renderHook(
@@ -558,10 +558,10 @@ describe("useExecutionStream — watchdog", () => {
 
   it("reconnect() clears connectTimedOut and re-subscribes", async () => {
     const subscribeFn = vi.fn(
-      () => createControllableStream<AgentExecution>().generator,
+      () => createControllableStream<AgentRun>().generator,
     );
     const stigmer = createMockStigmer(
-      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+      subscribeFn as unknown as Stigmer["agentRun"]["subscribe"],
     );
 
     const { result } = renderHook(
@@ -587,10 +587,10 @@ describe("useExecutionStream — watchdog", () => {
   });
 
   it("flips isSlow on a silent live stream and clears it on the next snapshot", async () => {
-    const s = createControllableStream<AgentExecution>();
+    const s = createControllableStream<AgentRun>();
     const subscribeFn = vi.fn(() => s.generator);
     const stigmer = createMockStigmer(
-      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+      subscribeFn as unknown as Stigmer["agentRun"]["subscribe"],
     );
 
     const { result } = renderHook(
@@ -612,7 +612,7 @@ describe("useExecutionStream — watchdog", () => {
     // A terminal snapshot resolves the stall deterministically (no re-arm).
     // The non-terminal "next snapshot clears + re-arms" path is covered without
     // timing races in the StreamController unit test.
-    act(() => s.push(makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED)));
+    act(() => s.push(makeSnapshot(RunPhase.RUN_COMPLETED)));
     await waitFor(() => expect(result.current.isSlow).toBe(false));
   });
 });

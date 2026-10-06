@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { GetSessionUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { GetSessionUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 
 vi.mock("../../hooks", () => ({
   useStigmer: vi.fn(),
@@ -16,13 +16,13 @@ import { useSessionUsage } from "../useSessionUsage";
 const SESSION_ID = "sess-1";
 
 function makeExecution(
-  phase: ExecutionPhase,
+  phase: RunPhase,
   streamingUsage?: Record<string, unknown>,
-): AgentExecution {
+): AgentRun {
   return {
     spec: { target: { case: "sessionId", value: SESSION_ID } },
     status: { phase, streamingUsage },
-  } as unknown as AgentExecution;
+  } as unknown as AgentRun;
 }
 
 function streamingUsage(costUsd: number): Record<string, unknown> {
@@ -108,7 +108,7 @@ describe("useSessionUsage", () => {
     const getReport = vi.fn(async () => emptyReport());
     mockStigmer(getReport);
 
-    const executions = [makeExecution(ExecutionPhase.EXECUTION_IN_PROGRESS, streamingUsage(0.05))];
+    const executions = [makeExecution(RunPhase.RUN_IN_PROGRESS, streamingUsage(0.05))];
     const { result } = renderHook(() => useSessionUsage(executions));
 
     await flush();
@@ -122,7 +122,7 @@ describe("useSessionUsage", () => {
     const getReport = vi.fn(async () => authoritativeReport(60_000n));
     mockStigmer(getReport);
 
-    const executions = [makeExecution(ExecutionPhase.EXECUTION_IN_PROGRESS, streamingUsage(0.05))];
+    const executions = [makeExecution(RunPhase.RUN_IN_PROGRESS, streamingUsage(0.05))];
     const { result } = renderHook(() => useSessionUsage(executions));
 
     await flush();
@@ -148,7 +148,7 @@ describe("useSessionUsage", () => {
     const getReport = vi.fn(async () => authoritativeReport(60_000n));
     mockStigmer(getReport);
 
-    const executions = [makeExecution(ExecutionPhase.EXECUTION_IN_PROGRESS, streamingUsage(0.05))];
+    const executions = [makeExecution(RunPhase.RUN_IN_PROGRESS, streamingUsage(0.05))];
     renderHook(() => useSessionUsage(executions));
 
     await act(async () => {
@@ -173,7 +173,7 @@ describe("useSessionUsage", () => {
     const getReport = vi.fn(async () => authoritativeReport(60_000n));
     mockStigmer(getReport);
 
-    let executions = [makeExecution(ExecutionPhase.EXECUTION_IN_PROGRESS, streamingUsage(0.05))];
+    let executions = [makeExecution(RunPhase.RUN_IN_PROGRESS, streamingUsage(0.05))];
     const { rerender } = renderHook(() => useSessionUsage(executions));
 
     await act(async () => {
@@ -183,7 +183,7 @@ describe("useSessionUsage", () => {
 
     // Execution settles — polling stops, and a single final refetch fires to
     // capture the last turn's authoritative record promptly.
-    executions = [makeExecution(ExecutionPhase.EXECUTION_COMPLETED, streamingUsage(0.05))];
+    executions = [makeExecution(RunPhase.RUN_COMPLETED, streamingUsage(0.05))];
     rerender();
     await act(async () => {
       await Promise.resolve();

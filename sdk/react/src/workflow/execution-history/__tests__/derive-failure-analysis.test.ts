@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   WorkflowTaskStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { deriveFailureAnalysis, type FailureGroup } from "../derive-failure-analysis";
 
 // ---------------------------------------------------------------------------
@@ -13,7 +13,7 @@ import { deriveFailureAnalysis, type FailureGroup } from "../derive-failure-anal
 function makeExecution(overrides: {
   id?: string;
   name?: string;
-  phase?: ExecutionPhase;
+  phase?: RunPhase;
   completedAt?: string;
   error?: string;
   tasks?: Array<{
@@ -21,7 +21,7 @@ function makeExecution(overrides: {
     status: WorkflowTaskStatus;
     error?: string;
   }>;
-}): WorkflowExecution {
+}): WorkflowRun {
   return {
     metadata: {
       id: overrides.id ?? "wfx_test",
@@ -29,7 +29,7 @@ function makeExecution(overrides: {
       slug: overrides.name ?? "test-execution",
     },
     status: {
-      phase: overrides.phase ?? ExecutionPhase.EXECUTION_FAILED,
+      phase: overrides.phase ?? RunPhase.RUN_FAILED,
       completedAt: overrides.completedAt ?? "2026-05-23T12:00:00Z",
       error: overrides.error ?? "execution failed",
       tasks: (overrides.tasks ?? []).map((t) => ({
@@ -38,7 +38,7 @@ function makeExecution(overrides: {
         error: t.error ?? "",
       })),
     },
-  } as unknown as WorkflowExecution;
+  } as unknown as WorkflowRun;
 }
 
 // ---------------------------------------------------------------------------
@@ -48,8 +48,8 @@ function makeExecution(overrides: {
 describe("deriveFailureAnalysis", () => {
   it("returns empty array when no executions are failed", () => {
     const execs = [
-      makeExecution({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
-      makeExecution({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+      makeExecution({ phase: RunPhase.RUN_COMPLETED }),
+      makeExecution({ phase: RunPhase.RUN_IN_PROGRESS }),
     ];
     expect(deriveFailureAnalysis(execs)).toEqual([]);
   });
@@ -147,12 +147,12 @@ describe("deriveFailureAnalysis", () => {
 
   it("ignores non-failed executions mixed with failed ones", () => {
     const execs = [
-      makeExecution({ id: "ok", phase: ExecutionPhase.EXECUTION_COMPLETED }),
+      makeExecution({ id: "ok", phase: RunPhase.RUN_COMPLETED }),
       makeExecution({
-        id: "fail", phase: ExecutionPhase.EXECUTION_FAILED,
+        id: "fail", phase: RunPhase.RUN_FAILED,
         tasks: [{ taskName: "step_x", status: WorkflowTaskStatus.WORKFLOW_TASK_FAILED, error: "boom" }],
       }),
-      makeExecution({ id: "running", phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+      makeExecution({ id: "running", phase: RunPhase.RUN_IN_PROGRESS }),
     ];
 
     const groups = deriveFailureAnalysis(execs);

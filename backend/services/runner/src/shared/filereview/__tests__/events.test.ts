@@ -6,14 +6,14 @@
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
   FileReviewBlockReason,
   FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   appendFileReviewEvents,
   buildBaselineCapturedEvent,
@@ -335,12 +335,12 @@ describe("deriveDiffCompleteness", () => {
 
 describe("appendFileReviewEvents", () => {
   it("seeds the stream and appends append-only by event_id", () => {
-    const status = create(AgentExecutionStatusSchema, {});
+    const status = create(AgentRunStatusSchema, {});
     const baseline = buildBaselineCapturedEvent(ctx, undefined);
     const candidate = buildCandidateCapturedEvent(ctx, undefined, []);
 
     appendFileReviewEvents(status, "exec-1", [baseline, candidate]);
-    expect(status.fileReviewEventStream?.executionId).toBe("exec-1");
+    expect(status.fileReviewEventStream?.runId).toBe("exec-1");
     expect(status.fileReviewEventStream?.events).toHaveLength(2);
 
     // Re-appending the same events (a re-sent heartbeat) is idempotent.

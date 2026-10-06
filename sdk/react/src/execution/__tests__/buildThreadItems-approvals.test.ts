@@ -1,31 +1,31 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   type AgentMessage,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   PendingApprovalSchema,
   type PendingApproval,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
 import {
-  SubAgentExecutionSchema,
-  type SubAgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+  SubAgentRunSchema,
+  type SubAgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
 
 // ---------------------------------------------------------------------------
@@ -58,16 +58,16 @@ function approval(toolCallId: string, toolName: string): PendingApproval {
 
 function execution(opts: {
   messages?: AgentMessage[];
-  subAgents?: SubAgentExecution[];
+  subAgents?: SubAgentRun[];
   pendingApprovals?: PendingApproval[];
-}): AgentExecution {
-  return create(AgentExecutionSchema, {
+}): AgentRun {
+  return create(AgentRunSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: "aex-1" }),
-    spec: create(AgentExecutionSpecSchema, { message: "go" }),
-    status: create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+    spec: create(AgentRunSpecSchema, { message: "go" }),
+    status: create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
       messages: opts.messages ?? [],
-      subAgentExecutions: opts.subAgents ?? [],
+      subAgentRuns: opts.subAgents ?? [],
       pendingApprovals: opts.pendingApprovals ?? [],
     }),
   });
@@ -116,7 +116,7 @@ describe("buildThreadItems — inline vs. bottom approval partition", () => {
     // A `task` call with a matching SubAgentExecution renders as a SubAgentSection,
     // not an approval-capable ToolCallItem — so its spawn gate must surface below.
     const task = toolCall("tc-task", "task");
-    const sub = create(SubAgentExecutionSchema, { id: "tc-task", name: "researcher" });
+    const sub = create(SubAgentRunSchema, { id: "tc-task", name: "researcher" });
     const exec = execution({
       messages: [aiWithTools([task])],
       subAgents: [sub],
@@ -131,7 +131,7 @@ describe("buildThreadItems — inline vs. bottom approval partition", () => {
 
   it("does NOT emit a bottom card for an approval on a sub-agent's nested tool", () => {
     const task = toolCall("tc-task", "task");
-    const sub = create(SubAgentExecutionSchema, {
+    const sub = create(SubAgentRunSchema, {
       id: "tc-task",
       name: "researcher",
       messages: [aiWithTools([toolCall("tc-nested", "fetch")])],
@@ -197,14 +197,14 @@ function completedToolCall(id: string, name: string): ToolCall {
 }
 
 function execAtPhase(
-  phase: ExecutionPhase,
+  phase: RunPhase,
   messages: AgentMessage[],
   pendingApprovals: PendingApproval[] = [],
-): AgentExecution {
-  return create(AgentExecutionSchema, {
+): AgentRun {
+  return create(AgentRunSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: "aex-1" }),
-    spec: create(AgentExecutionSpecSchema, { message: "Self-DM me" }),
-    status: create(AgentExecutionStatusSchema, {
+    spec: create(AgentRunSpecSchema, { message: "Self-DM me" }),
+    status: create(AgentRunStatusSchema, {
       phase,
       messages,
       pendingApprovals,
@@ -230,7 +230,7 @@ function hasToolInGroup(items: ThreadItem[], toolCallId: string): boolean {
 describe("buildThreadItems — approve-all transcript renders faithfully (client triangulation)", () => {
   it("renders the leading thinking block and the gated tool while approval is pending", () => {
     const exec = execAtPhase(
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
       [
         thinkingMsg("planning the self-DM"),
         aiWithTools([toolCall("tc-getappstate", "getAppState")]),
@@ -245,7 +245,7 @@ describe("buildThreadItems — approve-all transcript renders faithfully (client
   });
 
   it("renders thinking + first tool + appended leased tools after approve-all resume", () => {
-    const exec = execAtPhase(ExecutionPhase.EXECUTION_IN_PROGRESS, [
+    const exec = execAtPhase(RunPhase.RUN_IN_PROGRESS, [
       thinkingMsg("planning the self-DM"),
       aiWithTools([completedToolCall("tc-getappstate", "getAppState")]),
       aiWithTools([completedToolCall("tc-click", "click")]),

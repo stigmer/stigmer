@@ -1,7 +1,7 @@
 import type { Page, Locator } from "@playwright/test";
 import { expect } from "@playwright/test";
 import type { Stigmer } from "@stigmer/sdk";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 
 export type WorkflowPhase =
   | "Pending"
@@ -52,13 +52,13 @@ export async function awaitWorkflowExecutionCompleted(
   await expect
     .poll(
       async () =>
-        (await client.workflowExecution.get(executionId)).status?.phase,
+        (await client.workflowRun.get(executionId)).status?.phase,
       {
         timeout: 60_000,
         message: `workflow execution ${executionId} completes`,
       },
     )
-    .toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    .toBe(RunPhase.RUN_COMPLETED);
 }
 
 export async function waitForPhaseBadge(

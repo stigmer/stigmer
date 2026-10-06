@@ -28,12 +28,12 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionControlSignal,
-  ExecutionPhase,
+  RunControlSignal,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -82,9 +82,9 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
       controlSignal: (status) => {
         if (status.messages.some((m) => m.toolCalls.length > 0)) {
           stopsAnswered += 1;
-          return ExecutionControlSignal.STOP;
+          return RunControlSignal.STOP;
         }
-        return ExecutionControlSignal.UNSPECIFIED;
+        return RunControlSignal.UNSPECIFIED;
       },
     });
     const scenario = beginDeepAgentScenario({
@@ -106,7 +106,7 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
     expect(stopsAnswered, "the platform said STOP at least once").toBeGreaterThan(0);
     expect(invocation.outcome.kind, "a platform stop RETURNS").toBe("returned");
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
-    expect(record.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_COMPLETED]);
+    expect(record.persistedPhases).toEqual([RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_COMPLETED]);
     const final = record.lastFullStatus!;
     expect(final.error).toBe("");
     expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
@@ -121,7 +121,7 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/platform-stop.status.json");
   });
 });

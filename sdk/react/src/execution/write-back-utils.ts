@@ -1,4 +1,4 @@
-import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
+import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
 
 // ---------------------------------------------------------------------------
 // diff --stat summary parsing

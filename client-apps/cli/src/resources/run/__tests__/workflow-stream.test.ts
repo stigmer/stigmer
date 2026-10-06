@@ -13,17 +13,17 @@
 import { create } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
-import { ExecutionPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
+import { RunPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
-  type WorkflowExecutionEvent,
-  WorkflowExecutionEventSchema,
+  type WorkflowRunEvent,
+  WorkflowRunEventSchema,
   WorkflowEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { SubmitWorkflowApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { SubmitWorkflowApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
@@ -42,10 +42,10 @@ beforeEach(() => {
 });
 
 // Final state returned by the epilogue Get: one task done, one failed.
-const finalExec = create(WorkflowExecutionSchema, {
+const finalExec = create(WorkflowRunSchema, {
   metadata: { id: "wex_1", name: "Deploy" },
   status: {
-    phase: ExecutionPhase.EXECUTION_COMPLETED,
+    phase: RunPhase.RUN_COMPLETED,
     startedAt: "2026-06-12T10:00:00Z",
     completedAt: "2026-06-12T10:01:30Z",
     tasks: [
@@ -55,26 +55,26 @@ const finalExec = create(WorkflowExecutionSchema, {
   },
 });
 
-function event(type: WorkflowEventType, payload: WorkflowExecutionEvent["payload"], taskName = "") {
-  return create(WorkflowExecutionEventSchema, { eventType: type, occurredAt: "2026-06-12T10:00:01Z", taskName, payload });
+function event(type: WorkflowEventType, payload: WorkflowRunEvent["payload"], taskName = "") {
+  return create(WorkflowRunEventSchema, { eventType: type, occurredAt: "2026-06-12T10:00:01Z", taskName, payload });
 }
 
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
-    router.service(WorkflowExecutionQueryController, {
+    router.service(WorkflowRunQueryController, {
       get: () => finalExec,
       subscribeEvents: async function* () {
-        yield event(WorkflowEventType.execution_started, { case: "executionStarted", value: {} as never });
+        yield event(WorkflowEventType.run_started, { case: "runStarted", value: {} as never });
         yield event(WorkflowEventType.task_started, { case: "taskStarted", value: {} as never }, "build");
         yield event(
           WorkflowEventType.approval_requested,
           { case: "approvalRequested", value: { toolCallId: "tc_99", prompt: "delete prod?" } as never },
           "ship",
         );
-        yield event(WorkflowEventType.execution_completed, { case: "executionCompleted", value: {} as never });
+        yield event(WorkflowEventType.run_completed, { case: "runCompleted", value: {} as never });
       },
     });
-    router.service(WorkflowExecutionCommandController, {
+    router.service(WorkflowRunCommandController, {
       submitApproval: (req) => (approvals.push(req), finalExec),
     });
   };
@@ -162,7 +162,7 @@ describe("live run workflow streaming", () => {
 });
 
 /** A client whose event stream is `events(signal)`, with the final Get the epilogue reads. */
-function scriptedClient(events: (signal: AbortSignal) => AsyncIterable<WorkflowExecutionEvent>): Stigmer {
+function scriptedClient(events: (signal: AbortSignal) => AsyncIterable<WorkflowRunEvent>): Stigmer {
   const workflowExecution = {
     subscribeEvents: (_request: unknown, signal: AbortSignal) => events(signal),
     get: async () => finalExec,
@@ -171,8 +171,8 @@ function scriptedClient(events: (signal: AbortSignal) => AsyncIterable<WorkflowE
   return { workflowExecution } as unknown as Stigmer;
 }
 
-const started = () => event(WorkflowEventType.execution_started, { case: "executionStarted", value: {} as never });
-const completed = () => event(WorkflowEventType.execution_completed, { case: "executionCompleted", value: {} as never });
+const started = () => event(WorkflowEventType.run_started, { case: "runStarted", value: {} as never });
+const completed = () => event(WorkflowEventType.run_completed, { case: "runCompleted", value: {} as never });
 
 describe("the subscription never outlives the stream", () => {
   afterEach(() => {

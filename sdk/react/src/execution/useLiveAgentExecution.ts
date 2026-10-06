@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useRef } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
@@ -33,12 +33,12 @@ export interface UseLiveAgentExecutionReturn {
    * streaming, the fetched one otherwise. `null` while loading or when the
    * execution does not exist.
    */
-  readonly execution: AgentExecution | null;
+  readonly execution: AgentRun | null;
   /**
    * Convenience extraction of `execution.status.phase`; returns
    * `EXECUTION_PHASE_UNSPECIFIED` when `execution` is `null`.
    */
-  readonly phase: ExecutionPhase;
+  readonly phase: RunPhase;
   /** `true` while the initial snapshot fetch is in flight (nothing to show yet). */
   readonly isLoading: boolean;
   /** `true` while live updates are arriving from the stream. */
@@ -92,7 +92,7 @@ export function useLiveAgentExecution(
   const fetchFn = executionId
     ? async () => {
         try {
-          return await stigmer.agentExecution.get(executionId);
+          return await stigmer.agentRun.get(executionId);
         } catch (err) {
           if (isNotFound(err)) return null;
           throw err;
@@ -116,7 +116,7 @@ export function useLiveAgentExecution(
   // `live` is the consumer's visibility gate layered on top (an off-screen
   // surface pauses its subscription without losing the fetch).
   const fetchedPhase =
-    fetched?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    fetched?.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   const shouldStream =
     live && fetched !== null && !isTerminalPhase(fetchedPhase);
   const stream = useExecutionStream(shouldStream ? executionId : null);
@@ -128,7 +128,7 @@ export function useLiveAgentExecution(
   // id so an execution switch never leaks the previous one's snapshot.
   const lastStreamedRef = useRef<{
     id: string;
-    execution: AgentExecution;
+    execution: AgentRun;
   } | null>(null);
   if (executionId && stream.execution) {
     lastStreamedRef.current = { id: executionId, execution: stream.execution };
@@ -139,7 +139,7 @@ export function useLiveAgentExecution(
   const execution =
     stream.execution ?? lastStreamedRef.current?.execution ?? fetched;
   const phase =
-    execution?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    execution?.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
 
   const streamReconnect = stream.reconnect;
   const reconnect = useCallback(() => {

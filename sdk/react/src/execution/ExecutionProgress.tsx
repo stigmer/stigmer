@@ -1,7 +1,7 @@
 "use client";
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge.js";
 import { TodoList } from "./TodoList.js";
@@ -9,7 +9,7 @@ import { TodoList } from "./TodoList.js";
 /** Props for {@link ExecutionProgress}. */
 export interface ExecutionProgressProps {
   /** The execution to display progress for. Renders nothing when null. */
-  readonly execution: AgentExecution | null;
+  readonly execution: AgentRun | null;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -58,7 +58,7 @@ export function ExecutionProgress({
   // have written a cancellation sentinel — so the phase, not the error field,
   // decides whether to render the alert. The muted Cancelled badge suffices.
   const error =
-    phase === ExecutionPhase.EXECUTION_CANCELLED
+    phase === RunPhase.RUN_CANCELLED
       ? undefined
       : execution.status?.error;
 

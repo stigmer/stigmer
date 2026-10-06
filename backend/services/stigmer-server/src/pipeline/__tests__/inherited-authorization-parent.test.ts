@@ -23,7 +23,7 @@ import { inheritedAuthorizationParentOf } from "../apiresource-meta.js";
 describe("inheritedAuthorizationParentOf — the parent a kind's authorization is", () => {
   it("agent_execution's authorization is its session's: relation `session`, spec field `session_id`", () => {
     const parent = inheritedAuthorizationParentOf(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
     );
     expect(parent).toBeDefined();
     expect(parent?.kind).toBe("session");
@@ -41,7 +41,7 @@ describe("inheritedAuthorizationParentOf — the parent a kind's authorization i
   });
 
   it.each([
-    ApiResourceKind.workflow_execution,
+    ApiResourceKind.workflow_run,
     ApiResourceKind.memory,
   ])("a kind with an additional, partial parent owns itself: %s", (kind) => {
     expect(inheritedAuthorizationParentOf(kind)).toBeUndefined();

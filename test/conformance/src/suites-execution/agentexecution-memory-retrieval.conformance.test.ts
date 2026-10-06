@@ -17,7 +17,7 @@
 // target whose conformance user passes it. The capture-gate refusal is
 // pinned in the CRUD-level memory suite.
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
@@ -80,7 +80,7 @@ async function runExecution(org: string) {
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: execution.metadata!.id }));
 
   const settled = await awaitTerminal(clients, execution.metadata!.id);
-  expect(settled.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  expect(settled.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   return settled;
 }
 

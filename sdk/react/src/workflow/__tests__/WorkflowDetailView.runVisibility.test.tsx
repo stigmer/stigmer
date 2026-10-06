@@ -15,7 +15,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { AccessExtraSection } from "../../access/types";
 import type { TabItem } from "../../tabs/Tabs";
 import { WorkflowDetailView } from "../WorkflowDetailView";
@@ -72,7 +72,7 @@ afterEach(() => {
   state.permissionAsks = [];
   state.extraSections = [];
   state.tabs = [];
-  state.executionVisibility = WorkflowExecutionVisibility.private;
+  state.executionVisibility = WorkflowRunVisibility.private;
 });
 
 function lastSection(): AccessExtraSection | undefined {
@@ -91,7 +91,7 @@ describe("WorkflowDetailView run visibility", () => {
 
   it("offers the run visibility section to someone who may change the workflow's audience", () => {
     state.canManageAudience = true;
-    state.executionVisibility = WorkflowExecutionVisibility.organization;
+    state.executionVisibility = WorkflowRunVisibility.organization;
     render(<WorkflowDetailView org="org_acme" slug="nightly-triage" />);
 
     const section = lastSection();
@@ -100,7 +100,7 @@ describe("WorkflowDetailView run visibility", () => {
     const control = section?.content as { props: Record<string, unknown> };
     expect(control.props.workflowId).toBe("wf_1");
     expect(control.props.executionVisibility).toBe(
-      WorkflowExecutionVisibility.organization,
+      WorkflowRunVisibility.organization,
     );
   });
 

@@ -17,7 +17,7 @@
  *     below) so no construction site can invent a third mapping.
  */
 
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 /**
  * The effective tier after platform-default resolution: never UNSPECIFIED.

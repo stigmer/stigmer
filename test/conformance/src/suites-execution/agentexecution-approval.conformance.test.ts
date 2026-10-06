@@ -63,16 +63,16 @@
 // contract above is asserted there once, so a decision the server failed to
 // record is red at the submit that made it, never a timeout later in the arm.
 import { Code } from "@connectrpc/connect";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   ApprovalAction,
   ApprovalEventType,
   ApprovalPolicySource,
-  ExecutionPhase,
+  RunPhase,
   FileDecisionAction,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -153,7 +153,7 @@ async function runToGate(
   agentRef: AgentRefInit,
   blocks: ToolUseBlock[],
   opts: { autoApproveAll?: boolean; turnsBeforeDone?: AnthropicMessageBody[] } = {},
-): Promise<{ executionId: string; gated: AgentExecution }> {
+): Promise<{ executionId: string; gated: AgentRun }> {
   mock.enqueue(anthropicToolUses(blocks));
   // Further assistant turns between the gated one and the terminating text —
   // the lever for a SECOND tool turn on the same server (the lease arm).
@@ -166,7 +166,7 @@ async function runToGate(
   const executionId = execution.metadata!.id;
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
 
-  const gated = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, {
+  const gated = await awaitPhase(clients, executionId, RunPhase.RUN_WAITING_FOR_APPROVAL, {
     label: "WAITING_FOR_APPROVAL",
   });
   return { executionId, gated };
@@ -180,7 +180,7 @@ function echoBlock(toolCallId: string, text: string): ToolUseBlock {
 // Whether the approval-event stream records `type` for a tool call. The
 // stream is keyed by approval_request_id, which the proto pins equal to the
 // tool_call_id (approval.proto), so the transcript's id is the lookup key.
-function approvalStreamHas(exec: AgentExecution, toolCallId: string, type: ApprovalEventType): boolean {
+function approvalStreamHas(exec: AgentRun, toolCallId: string, type: ApprovalEventType): boolean {
   return (exec.status?.approvalEventStream?.events ?? []).some(
     (event) => event.approvalRequestId === toolCallId && event.eventType === type,
   );
@@ -207,7 +207,7 @@ describe("AgentExecution submitApproval — gate resolution", () => {
       label: "approve clears the pending gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId,
           action: ApprovalAction.APPROVE,
         }),
@@ -216,8 +216,8 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `approved execution should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `approved execution should COMPLETE; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
     // And the decision is on the ledger too, keyed by the same id.
     expect(
       approvalStreamHas(final, toolCallId, ApprovalEventType.APPROVED),
@@ -248,14 +248,14 @@ describe("AgentExecution submitApproval — gate resolution", () => {
       label: "skip clears the pending gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId,
           action: ApprovalAction.SKIP,
         }),
     });
 
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase, "skipped execution should COMPLETE").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase, "skipped execution should COMPLETE").toBe(RunPhase.RUN_COMPLETED);
   });
 
   it("[rpc:AgentExecutionCommandController.submitApproval] REJECT resolves the gate; the agent continues to completion", async () => {
@@ -269,7 +269,7 @@ describe("AgentExecution submitApproval — gate resolution", () => {
       label: "reject clears the pending gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId,
           action: ApprovalAction.REJECT,
           comment: "not this time",
@@ -280,7 +280,7 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     // which adapts, and the execution COMPLETES (issue #197 — the proto enum, the
     // native runner, and this suite agree).
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase, "rejected execution still COMPLETES").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase, "rejected execution still COMPLETES").toBe(RunPhase.RUN_COMPLETED);
 
     // The rejected tool call is terminalized deterministically — never left stuck
     // at WAITING_APPROVAL — carrying the REJECT decision for audit. This is stable
@@ -314,7 +314,7 @@ describe("AgentExecution submitApproval — gate resolution", () => {
       label: "APPROVE_ALL resolves both gates at once",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
           action: ApprovalAction.APPROVE_ALL,
         }),
@@ -324,7 +324,7 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     // APPROVE would have re-gated and this would never settle).
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "APPROVE_ALL completes the execution un-gated").toBe(
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_COMPLETED,
     );
   });
 });
@@ -346,7 +346,7 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
 
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "auto_approve_all completes without a gate").toBe(
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_COMPLETED,
     );
   });
 
@@ -374,7 +374,7 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
       label: "the settling approve clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId: pending.toolCallId,
           action: ApprovalAction.APPROVE,
         }),
@@ -396,7 +396,7 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
 
     const approveFirst = () =>
       clients.agentExecutionCommand.submitApproval({
-        agentExecutionId: executionId,
+        agentRunId: executionId,
         toolCallId: firstId,
         action: ApprovalAction.APPROVE,
       });
@@ -419,14 +419,14 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
       label: "the second approve clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId: secondId,
           action: ApprovalAction.APPROVE,
         }),
     });
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "execution completes after idempotent + final approval").toBe(
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_COMPLETED,
     );
   });
 });
@@ -452,7 +452,7 @@ describe("AgentExecution submitApproval — lease, cancel at the gate, durable r
       label: "APPROVE_ALL resolves the first gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
           action: ApprovalAction.APPROVE_ALL,
         }),
@@ -461,7 +461,7 @@ describe("AgentExecution submitApproval — lease, cancel at the gate, durable r
     // Reaching COMPLETED with all three turns consumed and nothing pending is the
     // proof: the second echo ran under the lease instead of parking the run.
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase, "the leased second call never re-gated").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase, "the leased second call never re-gated").toBe(RunPhase.RUN_COMPLETED);
     expect(final.status?.pendingApprovals).toHaveLength(0);
     expect(mock.remaining(), "all three scripted turns were consumed").toBe(0);
   });
@@ -490,14 +490,14 @@ describe("AgentExecution submitApproval — lease, cancel at the gate, durable r
       label: "approve clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId,
           action: ApprovalAction.APPROVE,
         }),
     });
 
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     const resumed = allToolCalls(final).find((tc) => tc.id === toolCallId);
     expect(resumed, "the gated call is in the final transcript under its original id").toBeDefined();
     expect(resumed!.name).toBe(DESTRUCTIVE_ECHO_TOOL_NAME);
@@ -515,7 +515,7 @@ describe("AgentExecution submitApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: "aex_whatever",
+          agentRunId: "aex_whatever",
           toolCallId: "call_x",
           action: ApprovalAction.UNSPECIFIED,
         }),
@@ -528,7 +528,7 @@ describe("AgentExecution submitApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: "",
+          agentRunId: "",
           toolCallId: "call_x",
           action: ApprovalAction.APPROVE,
         }),
@@ -541,7 +541,7 @@ describe("AgentExecution submitApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: "aex_whatever",
+          agentRunId: "aex_whatever",
           toolCallId: "",
           action: ApprovalAction.APPROVE,
         }),
@@ -554,7 +554,7 @@ describe("AgentExecution submitApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: "aex_does_not_exist_000000",
+          agentRunId: "aex_does_not_exist_000000",
           toolCallId: "call_x",
           action: ApprovalAction.APPROVE,
         }),
@@ -571,7 +571,7 @@ describe("AgentExecution submitApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId: "call_not_a_real_id",
           action: ApprovalAction.APPROVE,
         }),
@@ -586,7 +586,7 @@ describe("AgentExecution submitApproval — negatives", () => {
       label: "the settling approve clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
           action: ApprovalAction.APPROVE,
         }),
@@ -611,7 +611,7 @@ describe("AgentExecution submitApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId: "call_echo_terminal",
           action: ApprovalAction.APPROVE,
         }),
@@ -660,7 +660,7 @@ describe("AgentExecution — an agent's hooks decide at the gate", () => {
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
 
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase, "a refused call does not stop the run").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase, "a refused call does not stop the run").toBe(RunPhase.RUN_COMPLETED);
     const row = allToolCalls(final).find((tc) => tc.id === "call_echo_hook_deny");
     expect(row, `execution ${executionId}: the refused call has a row`).toBeDefined();
     expect(ToolCallStatus[row!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
@@ -688,13 +688,13 @@ describe("AgentExecution — an agent's hooks decide at the gate", () => {
       label: "approving the hook's ask clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId: pending.toolCallId,
           action: ApprovalAction.APPROVE,
         }),
     });
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     const row = allToolCalls(final).find((tc) => tc.id === pending.toolCallId);
     expect(ApprovalPolicySource[row!.approvalPolicySource], "the row says the hook decided").toBe(
       ApprovalPolicySource[ApprovalPolicySource.HOOK],
@@ -752,7 +752,7 @@ describe("AgentExecution — a pushed plugin's hooks decide at the gate", () => 
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
 
-    const gated = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, {
+    const gated = await awaitPhase(clients, executionId, RunPhase.RUN_WAITING_FOR_APPROVAL, {
       label: "WAITING_FOR_APPROVAL on the plugin's ask",
     });
     const refused = allToolCalls(gated).find((tc) => tc.id === "call_hook_rm");
@@ -771,13 +771,13 @@ describe("AgentExecution — a pushed plugin's hooks decide at the gate", () => 
       label: "approving the plugin's ask clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId: pending.toolCallId,
           action: ApprovalAction.APPROVE,
         }),
     });
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     const published = allToolCalls(final).find((tc) => tc.id === "call_hook_publish");
     expect(published?.result).toContain("published");
   });
@@ -835,7 +835,7 @@ describe("AgentExecution — a pushed Cursor-format plugin's hooks decide at the
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
 
-    const gated = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, {
+    const gated = await awaitPhase(clients, executionId, RunPhase.RUN_WAITING_FOR_APPROVAL, {
       label: "WAITING_FOR_APPROVAL on the Cursor plugin's ask",
     });
     const refused = allToolCalls(gated).find((tc) => tc.id === "call_cursor_hook_rm");
@@ -854,13 +854,13 @@ describe("AgentExecution — a pushed Cursor-format plugin's hooks decide at the
       label: "approving the Cursor plugin's ask clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId: pending.toolCallId,
           action: ApprovalAction.APPROVE,
         }),
     });
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     const published = allToolCalls(final).find((tc) => tc.id === "call_cursor_hook_publish");
     expect(published?.result).toContain("published");
   });
@@ -943,7 +943,7 @@ describe("AgentExecution — a real plugin, unchanged, refuses at the gate and s
     expect(set.changes.map((change) => change.pathAfter), "the rule file is the turn's one workspace change").toEqual([RULE.path]);
     await submitFileDecisionByPath(clients, firstId, set, RULE.path, FileDecisionAction.APPROVE);
     const trusted = await awaitTerminal(clients, firstId);
-    expect(trusted.status?.phase, "refused calls do not stop the run").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(trusted.status?.phase, "refused calls do not stop the run").toBe(RunPhase.RUN_COMPLETED);
     const rows = allToolCalls(trusted);
     const row = (id: string) => {
       const found = rows.find((tc) => tc.id === id);
@@ -979,7 +979,7 @@ describe("AgentExecution — a real plugin, unchanged, refuses at the gate and s
     const secondId = second.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: secondId }));
 
-    const gated = await awaitPhase(clients, secondId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, {
+    const gated = await awaitPhase(clients, secondId, RunPhase.RUN_WAITING_FOR_APPROVAL, {
       label: "WAITING_FOR_APPROVAL on the default's card for a call hookify let pass",
     });
     const refused = allToolCalls(gated).find((tc) => tc.id === "call_hookify_rm_untrusted");
@@ -998,13 +998,13 @@ describe("AgentExecution — a real plugin, unchanged, refuses at the gate and s
       label: "approving the default's card clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: secondId,
+          agentRunId: secondId,
           toolCallId: pending.toolCallId,
           action: ApprovalAction.APPROVE,
         }),
     });
     const final = await awaitTerminal(clients, secondId);
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     const quiet = allToolCalls(final).find((tc) => tc.id === "call_hookify_quiet");
     expect(ToolCallStatus[quiet!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED]);
     expect(quiet!.result).toContain("built");

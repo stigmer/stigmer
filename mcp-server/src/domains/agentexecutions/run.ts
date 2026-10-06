@@ -31,12 +31,12 @@ import {
 } from "@connectrpc/connect";
 import { create as createMessage } from "@bufbuild/protobuf";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
 import {
-  type AgentExecutionSpec,
-  AgentExecutionSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  type AgentRunSpec,
+  AgentRunSpecSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import {
   ExecutionValueSchema,
   type ExecutionValue,
@@ -78,7 +78,7 @@ export async function runAgent(
   const desc = `agent "${args.agent}" in org "${args.org}"`;
   return withTransport(serverAddress, token, async (transport, callOptions) => {
     const sessionId = args.sessionId ?? "";
-    let target: AgentExecutionSpec["target"];
+    let target: AgentRunSpec["target"];
     if (sessionId !== "") {
       await assertSessionRunsAgent(transport, callOptions, sessionId, args);
       target = { case: "sessionId", value: sessionId };
@@ -104,7 +104,7 @@ export async function runAgent(
       }
     }
 
-    const execution = createMessage(AgentExecutionSchema, {
+    const execution = createMessage(AgentRunSchema, {
       apiVersion: API_VERSION,
       kind: "AgentExecution",
       // `org` names the agent's organization. A follow-up in an existing
@@ -115,7 +115,7 @@ export async function runAgent(
         name: executionName(),
         org: sessionId === "" ? args.org : "",
       }),
-      spec: createMessage(AgentExecutionSpecSchema, {
+      spec: createMessage(AgentRunSpecSchema, {
         // Empty message means "just run" — the CLI applies the same default.
         message: args.message === "" ? "execute" : args.message,
         runtimeEnv: toExecutionValues(args.runtimeEnv),
@@ -123,10 +123,10 @@ export async function runAgent(
       }),
     });
 
-    const command = createClient(AgentExecutionCommandController, transport);
+    const command = createClient(AgentRunCommandController, transport);
     try {
       const created = await command.create(execution, callOptions);
-      return toProtoJson(AgentExecutionSchema, created);
+      return toProtoJson(AgentRunSchema, created);
     } catch (err) {
       throw rpcError(err, `execution of ${desc}`);
     }

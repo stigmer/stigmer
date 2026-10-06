@@ -23,10 +23,10 @@
 // is test/fixtures/tool-view/. Engine result formats are version-fragile, so
 // every assumption here is fixture-backed and degrades gracefully to json/text.
 
-import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { FileChangeCaptureLevel } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { FileChangeCaptureLevel } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 
 export { ToolKind, FileChangeCaptureLevel };
 

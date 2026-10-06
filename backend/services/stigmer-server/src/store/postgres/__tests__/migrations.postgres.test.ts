@@ -54,12 +54,12 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import {
   ApprovalMode,
   InteractionMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
@@ -89,7 +89,7 @@ import {
 } from "../../__tests__/retired-execution-rows.js";
 import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { sessionListIndex } from "../../../domain/session/list-index.js";
-import { workflowExecutionListIndex } from "../../../domain/workflowexecution/list-index.js";
+import { workflowExecutionListIndex } from "../../../domain/workflowrun/list-index.js";
 import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.js";
 import {
   retiredWorkflowExecutionRow,
@@ -1714,7 +1714,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           expect(rows.rowCount).toBe(total);
           for (const r of rows.rows) {
             const spec = fromBinary(
-              WorkflowExecutionSchema,
+              WorkflowRunSchema,
               new Uint8Array(r.data),
             ).spec;
             expect(spec?.workflowId).toBe("wfl_1");

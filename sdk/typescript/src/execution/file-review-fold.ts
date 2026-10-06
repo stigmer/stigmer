@@ -26,18 +26,18 @@
 // shared by @stigmer/react and @stigmer/ink and mirror-able by the Go CLI.
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type {
   FileChangeSet,
   FileReviewEvent,
   FileReviewEventStream,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
   FileChangeSetStatus,
   FileDecisionScope,
   FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 /**
  * Folds a file-review event ledger into its list of {@link FileChangeSet}s,
@@ -105,7 +105,7 @@ export function foldFileReviewEventStream(
  * @returns The change sets to display, or an empty array when there are none.
  */
 export function displayFileChangeSets(
-  status: AgentExecutionStatus | undefined,
+  status: AgentRunStatus | undefined,
 ): FileChangeSet[] {
   const projected = status?.fileChangeSets;
   if (projected && projected.length > 0) return projected;

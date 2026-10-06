@@ -1,5 +1,5 @@
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { parse as parseYaml } from "yaml";
 
 /**
@@ -58,9 +58,9 @@ const SKILL_MD_ENTRY = "SKILL.md";
  * }
  * ```
  */
-export function isSkillPackage(artifact: ExecutionArtifact): boolean {
+export function isSkillPackage(artifact: RunArtifact): boolean {
   return (
-    artifact.kind === ExecutionArtifactKind.DIRECTORY &&
+    artifact.kind === RunArtifactKind.DIRECTORY &&
     artifact.entries.includes(SKILL_MD_ENTRY)
   );
 }
@@ -93,7 +93,7 @@ export function isSkillPackage(artifact: ExecutionArtifact): boolean {
  * @see {@link useDetectSkillPackage} for the React hook that automates the full flow
  */
 export function detectSkillPackage(
-  artifact: ExecutionArtifact,
+  artifact: RunArtifact,
   skillMdContent: string,
 ): SkillPackageDetection {
   if (!isSkillPackage(artifact)) {

@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { MessageEntry } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 
 /** Props for {@link SubAgentBlock}. */
 export interface SubAgentBlockProps {
   /** The sub-agent execution data. */
-  readonly subAgent: SubAgentExecution;
+  readonly subAgent: SubAgentRun;
   /** Whether this block starts expanded. */
   readonly defaultExpanded?: boolean;
   /** Whether this component can receive keyboard focus for toggling. */
@@ -112,7 +112,7 @@ export function SubAgentBlock({
   );
 }
 
-function renderSubAgentMessages(subAgent: SubAgentExecution): React.ReactNode {
+function renderSubAgentMessages(subAgent: SubAgentRun): React.ReactNode {
   const messages = subAgent.messages ?? [];
   if (messages.length === 0) return null;
 

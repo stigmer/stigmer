@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
 import { useArtifactDownload } from "./useArtifactDownload.js";
@@ -18,7 +18,7 @@ import type { ApplyResourceResult } from "../library/useApplyResource.js";
 /** Props for {@link ArtifactPreviewContent}. */
 export interface ArtifactPreviewContentProps {
   /** The execution artifact to preview. */
-  readonly artifact: ExecutionArtifact;
+  readonly artifact: RunArtifact;
   /** ID of the execution that produced this artifact. */
   readonly executionId: string;
   /** Organization id for the "Apply to [org]" / "Push Skill to [org]" CTA (a slug is also accepted). */
@@ -177,7 +177,7 @@ export function ArtifactPreviewContent({
 /** Props for {@link ArtifactPreviewModal}. */
 export interface ArtifactPreviewModalProps {
   /** The execution artifact to preview. */
-  readonly artifact: ExecutionArtifact;
+  readonly artifact: RunArtifact;
   /** ID of the execution that produced this artifact. */
   readonly executionId: string;
   /** Organization id for the "Apply to [org]" / "Push Skill to [org]" CTA (a slug is also accepted). */
@@ -306,7 +306,7 @@ function ContentHeader({
   isDetecting,
   onClose,
 }: {
-  readonly artifact: ExecutionArtifact;
+  readonly artifact: RunArtifact;
   readonly isDirectory: boolean;
   readonly detectionLabel: string | null;
   readonly isDetecting: boolean;
@@ -376,7 +376,7 @@ function ActionBar({
   onApply,
   onImplement,
 }: {
-  readonly artifact: ExecutionArtifact;
+  readonly artifact: RunArtifact;
   readonly executionId: string;
   readonly isDirectory: boolean;
   readonly hasContent: boolean;

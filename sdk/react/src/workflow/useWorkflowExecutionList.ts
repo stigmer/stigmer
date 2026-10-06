@@ -1,11 +1,11 @@
 "use client";
 
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import {
-  ListWorkflowExecutionsRequestSchema,
-  ListWorkflowExecutionsByWorkflowRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+  ListWorkflowRunsRequestSchema,
+  ListWorkflowRunsByWorkflowRequestSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import { useMemo } from "react";
 import { useStigmer } from "../hooks.js";
 import { useCursorPages } from "../internal/useCursorPages.js";
@@ -66,7 +66,7 @@ export interface UseWorkflowExecutionListOptions {
 /** Return value of {@link useWorkflowExecutionList}. */
 export interface UseWorkflowExecutionListReturn {
   /** Executions newest created first: the first page, then every page loaded since. */
-  readonly executions: readonly WorkflowExecution[];
+  readonly executions: readonly WorkflowRun[];
   /**
    * The first page's `total_pages`: 1 when it holds the whole list, 0 while
    * more pages follow. The server does not count pages; read `hasMore`.
@@ -91,12 +91,12 @@ export interface UseWorkflowExecutionListReturn {
 }
 
 interface ExecutionPage {
-  readonly entries: readonly WorkflowExecution[];
+  readonly entries: readonly WorkflowRun[];
   readonly nextPageToken: string;
   readonly totalPages: number;
 }
 
-function executionIdentity(execution: WorkflowExecution): string {
+function executionIdentity(execution: WorkflowRun): string {
   return execution.metadata?.id ?? "";
 }
 
@@ -134,11 +134,11 @@ export function useWorkflowExecutionList(
   const fetchPage = async (token: string): Promise<ExecutionPage> => {
     const pageToken = token === "" ? startToken : token;
     const resp = workflowId
-      ? await stigmer.workflowExecution.listByWorkflow(
-          create(ListWorkflowExecutionsByWorkflowRequestSchema, { workflowId, pageSize, pageToken }),
+      ? await stigmer.workflowRun.listByWorkflow(
+          create(ListWorkflowRunsByWorkflowRequestSchema, { workflowId, pageSize, pageToken }),
         )
-      : await stigmer.workflowExecution.list(
-          create(ListWorkflowExecutionsRequestSchema, { pageSize, pageToken, org }),
+      : await stigmer.workflowRun.list(
+          create(ListWorkflowRunsRequestSchema, { pageSize, pageToken, org }),
         );
     return {
       entries: resp.entries,
@@ -158,7 +158,7 @@ export function useWorkflowExecutionList(
     isRefetching,
     error,
     refetch,
-  } = useCursorPages<WorkflowExecution, ExecutionPage>(
+  } = useCursorPages<WorkflowRun, ExecutionPage>(
     fetchPage,
     [stigmer, workflowId, org, pageSize, startToken],
     executionIdentity,

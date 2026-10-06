@@ -209,21 +209,21 @@ function RunTableRow({
         {formatRunDuration(run) ?? "—"}
       </span>
       <span role="cell" className="stg:min-w-0 stg:text-right">
-        {run.executionId ? (
+        {run.runId ? (
           onNavigateToExecution ? (
             <button
               type="button"
-              onClick={() => onNavigateToExecution(run.executionId)}
+              onClick={() => onNavigateToExecution(run.runId)}
               className={cn(
                 "stg:max-w-full stg:truncate stg:font-mono stg:text-[0.65rem] stg:text-primary stg:underline-offset-2 stg:hover:underline",
                 "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
               )}
             >
-              {run.executionId}
+              {run.runId}
             </button>
           ) : (
             <span className="stg:font-mono stg:text-[0.65rem] stg:text-muted-foreground">
-              {run.executionId}
+              {run.runId}
             </span>
           )
         ) : (
@@ -338,21 +338,21 @@ function CompactRunRow({
           {run.reason}
         </p>
       )}
-      {run.executionId &&
+      {run.runId &&
         (onNavigateToExecution ? (
           <button
             type="button"
-            onClick={() => onNavigateToExecution(run.executionId)}
+            onClick={() => onNavigateToExecution(run.runId)}
             className={cn(
               "stg:self-start stg:font-mono stg:text-[0.65rem] stg:text-primary stg:underline-offset-2 stg:hover:underline",
               "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
             )}
           >
-            {run.executionId}
+            {run.runId}
           </button>
         ) : (
           <span className="stg:self-start stg:font-mono stg:text-[0.65rem] stg:text-muted-foreground">
-            {run.executionId}
+            {run.runId}
           </span>
         ))}
     </li>

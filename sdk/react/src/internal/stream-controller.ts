@@ -1,7 +1,7 @@
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { StreamState } from "./store/conversation-store.js";
 import { isTerminalPhase } from "../execution/execution-phases.js";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,7 +35,7 @@ export const DEFAULT_SLOW_THRESHOLD_MS = 60_000;
  */
 export interface StreamControllerSink {
   /** Ingest a snapshot into the store (applies structural sharing). */
-  ingestSnapshot(snapshot: AgentExecution): void;
+  ingestSnapshot(snapshot: AgentRun): void;
   /** Transition the store's stream lifecycle state. */
   setStreamState(state: StreamState): void;
   /**
@@ -81,7 +81,7 @@ export interface StreamControllerWatchdog {
  */
 export class StreamController {
   private _state: StreamState = IDLE;
-  private _bufferedSnapshot: AgentExecution | null = null;
+  private _bufferedSnapshot: AgentRun | null = null;
   private _rafId: number | null = null;
   private _sink: StreamControllerSink;
   private _scheduleFlush: (cb: () => void) => number;
@@ -143,12 +143,12 @@ export class StreamController {
    * Non-terminal snapshots are buffered for rAF coalescing.
    * Terminal snapshots flush immediately.
    */
-  handleSnapshot(snapshot: AgentExecution): void {
+  handleSnapshot(snapshot: AgentRun): void {
     const executionId = this._activeExecutionId();
     if (!executionId) return;
 
     const phase =
-      snapshot.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+      snapshot.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
     const terminal = isTerminalPhase(phase);
 
     if (terminal) {

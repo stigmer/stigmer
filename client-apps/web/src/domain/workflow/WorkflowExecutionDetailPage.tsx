@@ -91,7 +91,7 @@ export function WorkflowExecutionDetailPage({
         headerActions={
           <ManageAccessButton
             resource={{
-              kind: ApiResourceKind.workflow_execution,
+              kind: ApiResourceKind.workflow_run,
               kindString: "workflow_execution",
               id: executionId,
               org: orgId,

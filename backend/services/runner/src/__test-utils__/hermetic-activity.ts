@@ -85,19 +85,19 @@ import { CancelledFailure } from "@temporalio/activity";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { clone, create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-  type AgentExecutionStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+  type AgentRunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   ApprovalAction,
-  ExecutionControlSignal,
-  ExecutionPhase,
+  RunControlSignal,
+  RunPhase,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
@@ -124,7 +124,7 @@ import { mockStigmerClient } from "./mock-client.js";
  * message.
  */
 export interface ExecutionRecordInput {
-  readonly execution: AgentExecution;
+  readonly execution: AgentRun;
   readonly session: Session;
   readonly agent: Agent | undefined;
   /**
@@ -135,7 +135,7 @@ export interface ExecutionRecordInput {
    * policy can key on the transcript ("stop once the first assistant message
    * is in"). Defaults to UNSPECIFIED: keep going.
    */
-  readonly controlSignal?: (status: AgentExecutionStatus) => ExecutionControlSignal;
+  readonly controlSignal?: (status: AgentRunStatus) => RunControlSignal;
 }
 
 /**
@@ -162,12 +162,12 @@ export interface ExecutionRecordInput {
  * assert the phase sequence the activity wrote, independent of the final state.
  */
 export class ExecutionRecord {
-  readonly execution: AgentExecution;
+  readonly execution: AgentRun;
   readonly session: Session;
   readonly agent: Agent | undefined;
-  private readonly controlSignal: (status: AgentExecutionStatus) => ExecutionControlSignal;
+  private readonly controlSignal: (status: AgentRunStatus) => RunControlSignal;
   /** Every `updateStatus` payload, in order, snapshotted at write time. */
-  readonly persisted: AgentExecutionStatus[] = [];
+  readonly persisted: AgentRunStatus[] = [];
   /** Fired after every full-status `applyStatusUpdate`; {@link whenToolCallsSettled} subscribes here. */
   private readonly persistListeners = new Set<() => void>();
   /** Setup-progress labels reported before the stream started, in order. */
@@ -180,10 +180,10 @@ export class ExecutionRecord {
   readonly sessionUpdates: Session[] = [];
 
   constructor(input: ExecutionRecordInput) {
-    this.execution = clone(AgentExecutionSchema, input.execution);
+    this.execution = clone(AgentRunSchema, input.execution);
     this.session = input.session;
     this.agent = input.agent;
-    this.controlSignal = input.controlSignal ?? (() => ExecutionControlSignal.UNSPECIFIED);
+    this.controlSignal = input.controlSignal ?? (() => RunControlSignal.UNSPECIFIED);
   }
 
   get executionId(): string {
@@ -191,15 +191,15 @@ export class ExecutionRecord {
   }
 
   /** The status the server would currently hold (what `getExecution` returns). */
-  get status(): AgentExecutionStatus | undefined {
+  get status(): AgentRunStatus | undefined {
     return this.execution.status;
   }
 
   /** The last FULL status written (phase set), or undefined if none yet. */
-  get lastFullStatus(): AgentExecutionStatus | undefined {
+  get lastFullStatus(): AgentRunStatus | undefined {
     for (let i = this.persisted.length - 1; i >= 0; i--) {
       const s = this.persisted[i];
-      if (s.phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) return s;
+      if (s.phase !== RunPhase.RUN_PHASE_UNSPECIFIED) return s;
     }
     return undefined;
   }
@@ -209,10 +209,10 @@ export class ExecutionRecord {
    * shape of the persist cadence. The COUNT of persists depends on the
    * debounce timer and is deliberately not exposed as an assertion surface.
    */
-  get persistedPhases(): ExecutionPhase[] {
-    const out: ExecutionPhase[] = [];
+  get persistedPhases(): RunPhase[] {
+    const out: RunPhase[] = [];
     for (const s of this.persisted) {
-      if (s.phase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) continue;
+      if (s.phase === RunPhase.RUN_PHASE_UNSPECIFIED) continue;
       if (out[out.length - 1] !== s.phase) out.push(s.phase);
     }
     return out;
@@ -284,7 +284,7 @@ export class ExecutionRecord {
     const out = new Set<string>();
     const status = this.execution.status;
     if (!status) return out;
-    const transcripts = [status.messages, ...status.subAgentExecutions.map((s) => s.messages)];
+    const transcripts = [status.messages, ...status.subAgentRuns.map((s) => s.messages)];
     for (const messages of transcripts) {
       for (const message of messages) {
         for (const tc of message.toolCalls) {
@@ -339,20 +339,20 @@ export class ExecutionRecord {
    * workflow does, stigmer#980): the server's merge applies the transcript and
    * leaves the phase to its writers, so the double keeps the held phase.
    */
-  applyStatusUpdate(status: AgentExecutionStatus): ExecutionControlSignal {
-    const snapshot = clone(AgentExecutionStatusSchema, status);
+  applyStatusUpdate(status: AgentRunStatus): RunControlSignal {
+    const snapshot = clone(AgentRunStatusSchema, status);
     this.persisted.push(snapshot);
-    if (snapshot.phase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) {
+    if (snapshot.phase === RunPhase.RUN_PHASE_UNSPECIFIED) {
       if (snapshot.setupProgress?.currentPhase) {
         this.setupProgress.push(snapshot.setupProgress.currentPhase);
       }
       if (snapshot.messages.length > 0) {
-        const heldPhase = this.execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+        const heldPhase = this.execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
         this.execution.status = this.keepServerStamp(snapshot);
         this.execution.status.phase = heldPhase;
         for (const listener of [...this.persistListeners]) listener();
       }
-      return ExecutionControlSignal.UNSPECIFIED;
+      return RunControlSignal.UNSPECIFIED;
     }
     this.execution.status = this.keepServerStamp(snapshot);
     for (const listener of [...this.persistListeners]) listener();
@@ -360,8 +360,8 @@ export class ExecutionRecord {
   }
 
   /** The runner's write with the server-stamped fields of the held status carried over. */
-  private keepServerStamp(snapshot: AgentExecutionStatus): AgentExecutionStatus {
-    const next = clone(AgentExecutionStatusSchema, snapshot);
+  private keepServerStamp(snapshot: AgentRunStatus): AgentRunStatus {
+    const next = clone(AgentRunStatusSchema, snapshot);
     const held = this.execution.status;
     if (held === undefined) return next;
     next.agentId = held.agentId;
@@ -386,7 +386,7 @@ export class ExecutionRecord {
    */
   client(overrides: Partial<StigmerClient> = {}): StigmerClient {
     return mockStigmerClient({
-      getExecution: vi.fn(async () => clone(AgentExecutionSchema, this.execution)),
+      getExecution: vi.fn(async () => clone(AgentRunSchema, this.execution)),
       getSession: vi.fn(async () => this.session),
       getAgent: vi.fn(async () => {
         if (this.agent === undefined) {
@@ -403,7 +403,7 @@ export class ExecutionRecord {
         }
         return create(AgentVersionEntrySchema, { versionHash, specSnapshot: this.agent.spec });
       }),
-      updateStatus: vi.fn(async (_id: string, status: AgentExecutionStatus) => {
+      updateStatus: vi.fn(async (_id: string, status: AgentRunStatus) => {
         // The activity reads only `.signal`; UNSPECIFIED means "keep going".
         return create(UpdateStatusResponseSchema, { signal: this.applyStatusUpdate(status) });
       }),

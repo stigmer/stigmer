@@ -33,8 +33,8 @@
 // here asserts what holds regardless: the registry call is made and recorded,
 // the architect answers a YAML block, and a second execution in the same
 // session refines it.
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -200,7 +200,7 @@ function serverAddress(): string {
 async function runArchitect(
   ctx: { org: string; sessionId: string; runtimeEnv: ReturnType<typeof stigmerMcpServerRuntimeEnv> },
   message: string,
-): Promise<AgentExecution> {
+): Promise<AgentRun> {
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org: ctx.org,
@@ -215,14 +215,14 @@ async function runArchitect(
   const final = await awaitTerminal(clients, execution.metadata!.id, { timeoutMs: 120_000 });
   expect(
     final.status?.phase,
-    `the architect run should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]} ` +
+    `the architect run should complete; reached ${RunPhase[final.status?.phase ?? 0]} ` +
       `(status.error: ${JSON.stringify(final.status?.error ?? "")})`,
-  ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  ).toBe(RunPhase.RUN_COMPLETED);
   return final;
 }
 
 // The YAML block of the run's final assistant message, or a named failure.
-function yamlOf(final: AgentExecution): string {
+function yamlOf(final: AgentRun): string {
   const lastAi = [...(final.status?.messages ?? [])].reverse().find((m) => m.type === MessageType.MESSAGE_AI);
   const yaml = extractWorkflowYaml(lastAi?.content ?? "");
   if (yaml === undefined) {

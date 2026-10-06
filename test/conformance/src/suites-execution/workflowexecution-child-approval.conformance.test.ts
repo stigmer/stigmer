@@ -54,11 +54,11 @@
 // deliberately NOT asserted here: OSS never produces that state, so they belong to
 // the gated/cloud contract, not the edition-agnostic negatives.
 import { Code } from "@connectrpc/connect";
-import { ApprovalAction, ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   WorkflowTaskStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -120,7 +120,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
-          executionId: "",
+          runId: "",
           toolCallId: "call_x",
           action: ApprovalAction.APPROVE,
         }),
@@ -132,7 +132,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
-          executionId: "wex_whatever",
+          runId: "wex_whatever",
           toolCallId: "",
           action: ApprovalAction.APPROVE,
         }),
@@ -144,7 +144,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
-          executionId: "wex_whatever",
+          runId: "wex_whatever",
           toolCallId: "call_x",
           action: ApprovalAction.UNSPECIFIED,
         }),
@@ -156,7 +156,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
-          executionId: "wex_doesnotexist",
+          runId: "wex_doesnotexist",
           toolCallId: "call_x",
           action: ApprovalAction.APPROVE,
         }),
@@ -181,12 +181,12 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.workflowExecutionCommand.delete({ value: executionId }));
 
-    await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, executionId, RunPhase.RUN_IN_PROGRESS);
 
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
-          executionId,
+          runId: executionId,
           toolCallId: "call_x",
           action: ApprovalAction.APPROVE,
         }),
@@ -220,7 +220,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
-          executionId,
+          runId: executionId,
           toolCallId: "call_x",
           action: ApprovalAction.APPROVE,
         }),
@@ -294,7 +294,7 @@ describe.skipIf(!forwarderEnabled)(
       // The child's gate surfaces at the parent, carrying the routing identity.
       const gated = await awaitParentPendingApproval(clients, executionId);
       const pending = gated.status!.pendingApprovals[0]!;
-      expect(pending.childAgentExecutionId, "the parent gate carries the child execution id").toBeTruthy();
+      expect(pending.childAgentRunId, "the parent gate carries the child execution id").toBeTruthy();
       expect(pending.approval?.toolCallId, "the parent gate carries the tool call id").toBeTruthy();
       expect(pending.approval?.toolName, "the parent gate names the gated tool").toBe(DESTRUCTIVE_ECHO_TOOL_NAME);
 
@@ -303,13 +303,13 @@ describe.skipIf(!forwarderEnabled)(
       // the forward, so the contract is read off the child — whose gate the same
       // agent-execution handler resolves synchronously — and a decision that did
       // not reach the child is red here, not "the workflow never completed".
-      const childExecutionId = pending.childAgentExecutionId;
+      const childExecutionId = pending.childAgentRunId;
       const decidedChild = await submitApprovalPerContract({
         expectedRemaining: 0,
         label: "the forwarded approve clears the child's gate",
         submit: async () => {
           await clients.workflowExecutionCommand.submitApproval({
-            executionId,
+            runId: executionId,
             toolCallId: pending.approval!.toolCallId,
             action: ApprovalAction.APPROVE,
           });
@@ -336,8 +336,8 @@ describe.skipIf(!forwarderEnabled)(
       const final = await awaitTerminal(clients, executionId);
       expect(
         final.status?.phase,
-        `forwarded approval should COMPLETE the workflow; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-      ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+        `forwarded approval should COMPLETE the workflow; reached ${RunPhase[final.status?.phase ?? 0]}`,
+      ).toBe(RunPhase.RUN_COMPLETED);
       expect(
         taskByName(final, AGENT_CALL_AFTER_TASK_NAME)?.status,
         "the downstream task runs after the child resumes",

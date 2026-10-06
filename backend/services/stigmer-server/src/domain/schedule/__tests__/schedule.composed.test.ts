@@ -16,7 +16,7 @@
  *     EnsureEngineAvailable refusal — never a gRPC error;
  *   - the fire ledger: manual rows, cascade on delete, listRuns paging.
  */
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -403,7 +403,7 @@ describe("trigger — the two-level contract", () => {
     const result = await command.trigger({ value: id });
     expect(result.outcome).toBe(ScheduleRunOutcome.TARGET_MISSING);
     expect(result.refusalReason).toBe(`target agent ${acmeId}/ephemeral not found`);
-    expect(result.executionId).toBe("");
+    expect(result.runId).toBe("");
     // The post-fire row: last_fire_at stamped by the handler.
     expect(result.schedule?.status?.lastFireAt).toBeDefined();
 

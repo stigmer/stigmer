@@ -1,13 +1,13 @@
 "use client";
 
 import { memo, useContext, useMemo } from "react";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   MessageType,
   SubAgentStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince.js";
@@ -28,7 +28,7 @@ import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 /** Props for {@link SubAgentSection}. */
 export interface SubAgentSectionProps {
   /** The sub-agent execution to render. */
-  readonly subAgentExecution: SubAgentExecution;
+  readonly subAgentExecution: SubAgentRun;
   /**
    * Whether to render as a collapsible card with expand/collapse
    * toggle. Defaults to `true`.
@@ -124,7 +124,7 @@ export const SubAgentSection = memo(function SubAgentSection({
 // ---------------------------------------------------------------------------
 
 interface CollapsibleCardProps {
-  readonly sub: SubAgentExecution;
+  readonly sub: SubAgentRun;
   readonly statusInfo: SubAgentStatusInfo;
   readonly displayLabel: string;
   readonly duration: string | null;
@@ -301,7 +301,7 @@ function RunningDuration({ startedAt }: { readonly startedAt: string }) {
 // ---------------------------------------------------------------------------
 
 interface FlatContentProps {
-  readonly sub: SubAgentExecution;
+  readonly sub: SubAgentRun;
   readonly statusInfo: SubAgentStatusInfo;
   readonly StatusIcon: () => React.JSX.Element;
   readonly duration: string | null;

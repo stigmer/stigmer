@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { ToolCallItem } from "./ToolCallItem.js";
@@ -20,7 +20,7 @@ export interface ToolCallGroupProps {
    * `SubAgentExecution.id` are rendered with a nested sub-agent
    * thread instead of a standard detail panel.
    */
-  readonly subAgentExecutions?: readonly SubAgentExecution[];
+  readonly subAgentExecutions?: readonly SubAgentRun[];
   /**
    * Custom label formatter for a folded run chip (e.g. a run of reads).
    * Receives the run's tool calls and returns the chip's collapsed label.
@@ -119,7 +119,7 @@ export const ToolCallGroup = memo(function ToolCallGroup({
 
   const subAgentMap = useMemo(() => {
     if (!subAgentExecutions || subAgentExecutions.length === 0) return null;
-    const map = new Map<string, SubAgentExecution>();
+    const map = new Map<string, SubAgentRun>();
     for (const sub of subAgentExecutions) {
       map.set(sub.id, sub);
     }

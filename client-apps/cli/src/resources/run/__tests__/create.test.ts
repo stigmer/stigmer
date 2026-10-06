@@ -6,7 +6,7 @@
 // the RPC.
 
 import { describe, expect, it } from "vitest";
-import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import {
@@ -14,7 +14,7 @@ import {
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { type ControllerFn, createAgentExecution, createWorkflowExecution } from "../create.js";
@@ -22,7 +22,7 @@ import { type ControllerFn, createAgentExecution, createWorkflowExecution } from
 const AGENT_REF = { org: "acme", slug: "helper" };
 
 // The embedded session_spec of a new-conversation target, or undefined.
-function sessionSpecOf(exec: AgentExecution): SessionSpec | undefined {
+function sessionSpecOf(exec: AgentRun): SessionSpec | undefined {
   const target = exec.spec?.target;
   return target?.case === "sessionSpec" ? target.value : undefined;
 }

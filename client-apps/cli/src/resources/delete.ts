@@ -18,7 +18,7 @@
 // to delete and *how* to describe it.
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { omitsOrganization } from "../client/single-org.js";
 import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
@@ -253,7 +253,7 @@ function planExecutionCancel(client: Stigmer, reference: string): DeletePlan {
       );
       const id = execution.metadata?.id ?? "";
       const status = formatAgentPhase(
-        execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+        execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
       );
 
       const out = wasAlreadyTerminal

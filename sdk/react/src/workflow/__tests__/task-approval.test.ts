@@ -6,7 +6,7 @@ import {
   ApprovalResolvedPayloadSchema,
   type ApprovalRequestedPayload,
   type ApprovalResolvedPayload,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import {
   deriveTaskApprovalRequest,
   deriveTaskApprovalDecision,

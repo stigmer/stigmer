@@ -31,11 +31,11 @@
  */
 
 import type { SDKUserMessage } from "@cursor/sdk";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
 import { toCursorImages } from "../../shared/attachment-vision.js";
@@ -381,7 +381,7 @@ export async function platformReadRoot(primaryDir: string, platformDir: string):
  * holds this session's conversation, so this turn resumes it — the runtime's
  * `isReinvocation` answers its own question and is not consulted here.
  */
-export function readAdjudicatedRows(input: TurnInput, status: AgentExecutionStatus): AdjudicatedRows {
+export function readAdjudicatedRows(input: TurnInput, status: AgentRunStatus): AdjudicatedRows {
   const reinvoked = input.threadId !== "";
   const adjudicated = reinvoked ? reconstructAdjudicatedApprovals(input.execution.status?.messages ?? []) : undefined;
   return {

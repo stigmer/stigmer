@@ -14,7 +14,7 @@ import type { Stigmer } from "@stigmer/sdk";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { GetWorkflowVersionInput } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { StigmerContext } from "../../context";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
 import type { CanvasTaskNodeData } from "../workflow-graph-conversions";
@@ -57,7 +57,7 @@ const LIVE_WORKFLOW = create(WorkflowSchema, {
 const NO_TASK_STATES: ReadonlyMap<string, DerivedTaskState> = new Map();
 
 function executionPinning(versionHash: string) {
-  return create(WorkflowExecutionSchema, {
+  return create(WorkflowRunSchema, {
     metadata: { id: "wex-source", org: "org-1" },
     spec: { workflowId: "wfl-source" },
     status: { workflowVersionHash: versionHash },

@@ -14,7 +14,7 @@
 // (no API key, no network), artifacts are on local disk, and the checkpointer is
 // in-memory. A single Anthropic text turn with stop_reason end_turn is the
 // smallest script that reaches EXECUTION_COMPLETED.
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -68,13 +68,13 @@ describe("Execution harness smoke — agent text turn", () => {
     // against the mock. (We assert the deterministic endpoints, PENDING and
     // COMPLETED, not the sub-second IN_PROGRESS transient.)
     expect(execution.metadata?.id, "create assigns a prefixed execution id").toMatch(/^aex_[0-9a-z]+$/);
-    expect(execution.status?.phase, "create returns a PENDING execution").toBe(ExecutionPhase.EXECUTION_PENDING);
+    expect(execution.status?.phase, "create returns a PENDING execution").toBe(RunPhase.RUN_PENDING);
 
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `execution ${executionId} should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `execution ${executionId} should complete; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
     expect(final.status?.startedAt, "started_at is set when the run begins").toBeTruthy();
     expect(final.status?.completedAt, "completed_at is set on completion").toBeTruthy();
 

@@ -49,10 +49,10 @@ describe("searchIndexedKinds derivation (kind_meta)", () => {
         ApiResourceKind.workflow,
         ApiResourceKind.environment,
         ApiResourceKind.session,
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         ApiResourceKind.execution_context,
         ApiResourceKind.organization,
-        ApiResourceKind.workflow_execution,
+        ApiResourceKind.workflow_run,
         ApiResourceKind.plugin,
       ].sort((a, b) => a - b),
     );

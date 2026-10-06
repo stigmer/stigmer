@@ -3,16 +3,16 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { ArtifactPreviewContent } from "../ArtifactPreviewModal";
 
 // A non-text artifact: ArtifactPreviewContent skips the content fetch, so the
 // test exercises the Implement action without any network mocking.
-const binaryArtifact = create(ExecutionArtifactSchema, {
+const binaryArtifact = create(RunArtifactSchema, {
   name: "report.bin",
-  kind: ExecutionArtifactKind.FILE,
+  kind: RunArtifactKind.FILE,
   sizeBytes: 128n,
   storageKey: "artifacts/aex_1/report.bin",
 });

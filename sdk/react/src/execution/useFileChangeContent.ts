@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type {
   FileChange,
   FileContent,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { execIdFromStorageKey } from "@stigmer/sdk";
 import { useArtifactContent } from "./useArtifactContent.js";
 import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";

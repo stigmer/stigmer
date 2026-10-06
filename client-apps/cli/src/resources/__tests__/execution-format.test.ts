@@ -1,4 +1,4 @@
-import { WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { calculateDuration, formatWorkflowTaskType, truncateWithEllipsis } from "../execution-format.js";
 

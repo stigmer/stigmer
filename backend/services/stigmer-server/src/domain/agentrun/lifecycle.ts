@@ -1,0 +1,911 @@
+/**
+ * The lifecycle RPCs — ports cancel.go, terminate.go, pause.go,
+ * resume.go, recover.go, recreate_execution_context_step.go, and
+ * lifecycle_steps.go: the five phase-transition commands over one shared
+ * step vocabulary.
+ *
+ * Every Temporal touchpoint rides the engine seam. With the engine
+ * disconnected the Temporal steps refuse
+ * FailedPrecondition("Temporal is not available") — Go's nil-client arm,
+ * asserted by the Class A conformance lifecycle negatives. With a
+ * connected engine, workflow-not-found is warn-and-proceed (the local
+ * state update still applies; the workflow may simply have completed).
+ *
+ * The phase transition + persist is ONE atomic read-modify-write under
+ * the store's per-resource write lock — the lifecycle counterpart of the
+ * UpdateStatus merge chokepoint (pause/cancel/terminate are reachable
+ * from WAITING_FOR_APPROVAL, so the concurrent-SubmitApproval window is
+ * real); lifecycle simply authors no approval events.
+ *
+ * That persist makes each transition atomic, not a whole chain. Recover's
+ * chain acts on Temporal and on the run's ExecutionContext before its
+ * persist, all decided on one read of the execution, so two recovers run
+ * side by side would both act on a stale FAILED. Recover therefore runs one
+ * at a time per execution, inside a turn on the server's KeyedSerializer
+ * (pipeline/keyed-serializer.ts, stigmer#1672).
+ */
+import { create } from "@bufbuild/protobuf";
+import { ConnectError } from "@connectrpc/connect";
+
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import {
+  AgentRunSchema,
+  AgentRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import {
+  RunPhase,
+  RunPhaseSchema,
+  SubAgentStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type {
+  CancelAgentRunInput,
+  PauseAgentRunInput,
+  RecoverAgentRunInput,
+  ResumeAgentRunInput,
+  TerminateAgentRunInput,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import type { DescMessage, DescMethod, MessageShape } from "@bufbuild/protobuf";
+import { enumToJson } from "@bufbuild/protobuf";
+
+import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
+import { stepsForSlot } from "../../extensions/gate-slots.js";
+import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks.js";
+import {
+  failedPreconditionError,
+  internalError,
+  invalidArgumentError,
+  notFoundError,
+} from "../../pipeline/errors.js";
+import type { KeyedSerializer } from "../../pipeline/keyed-serializer.js";
+import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { newPipeline } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import {
+  LOADED_EXECUTION_KEY,
+  RequestContext,
+} from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
+import type { Store } from "../../store/interface.js";
+
+import type { SandboxLane } from "../../sandbox/lane.js";
+import { ensureSessionSandboxForExecution } from "../../sandbox/steps.js";
+import { deleteExecutionContextForExecution } from "../executioncontext/internal-delete.js";
+import type { ExecutionContextBuilderDeps } from "./create-execution-context-step.js";
+import { buildAndPersistExecutionContext } from "./create-execution-context-step.js";
+import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
+import type { ExecutionEngineStateProvider } from "./engine.js";
+import { EngineDispatchError, EngineWorkflowNotFoundError } from "./engine.js";
+import {
+  newAuthorizeRecoveredRunAgentStep,
+  newResolveRecoveredRunAgentStep,
+  newStampRecoveredRunAgentStep,
+} from "./resolve-run-agent.js";
+import { notifyStatusObservers } from "./status-observers.js";
+import { sessionIdOf } from "./target.js";
+import { settleInterruptedToolCalls } from "./tool-call-settle.js";
+import type { StreamBroker } from "./stream-broker.js";
+
+// Context keys — Go's key strings, verbatim. The loaded-execution key is
+// the shared pipeline constant (request-context.ts): extension gate steps
+// in the recover slot read the loaded execution through it.
+const REASON_KEY = "reason";
+const ALREADY_IN_TARGET_STATE_KEY = "alreadyInTargetState";
+
+/** The pinned no-engine refusal (Go "Temporal is not available"). */
+export const TEMPORAL_UNAVAILABLE_MESSAGE = "Temporal is not available";
+
+export interface LifecycleDeps {
+  readonly store: Store;
+  readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
+  readonly authorizer: Authorizer;
+  /**
+   * Recover's per-execution turn (pipeline/keyed-serializer.ts). One
+   * instance per server, shared by both routers: the composition root
+   * builds it, because the routes are registered once per router.
+   */
+  readonly recoverSerializer: KeyedSerializer;
+  readonly broker: StreamBroker;
+  readonly engineState: ExecutionEngineStateProvider;
+  /** The shared EC-builder deps, consumed by recover's recreate step. */
+  readonly executionContextBuilder: ExecutionContextBuilderDeps;
+  /** The composed slot registrations — recover's pre-side-effect slot. */
+  readonly gateSteps: ResolvedGateSteps;
+  /** The composed status-transition observers. */
+  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  /** The sandbox lane — recover re-ensures the session sandbox. */
+  readonly sandboxLane: SandboxLane;
+  /** Dispatch config for the sandbox ensure's target/queue resolution. */
+  readonly temporalConfig: AgentExecutionTemporalConfig;
+}
+
+/** Inputs that carry an execution id (Go LifecycleInput). */
+interface LifecycleInputShape {
+  id: string;
+}
+/** Inputs that also carry a reason (Go LifecycleInputWithReason). */
+interface LifecycleInputWithReasonShape extends LifecycleInputShape {
+  reason: string;
+}
+
+// ---------------------------------------------------------------------------
+// Shared steps (lifecycle_steps.go).
+// ---------------------------------------------------------------------------
+
+function newLoadExecutionByIdStep<Desc extends DescMessage>(
+  deps: LifecycleDeps,
+): PipelineStep<Desc> {
+  return {
+    name: "LoadExecutionById",
+    async execute(ctx) {
+      const executionId = (ctx.newState as unknown as LifecycleInputShape).id;
+      if (executionId === "") {
+        throw invalidArgumentError("execution id is required");
+      }
+      let execution: AgentRun;
+      try {
+        execution = await deps.store.getResource(
+          ApiResourceKind.agent_run,
+          executionId,
+          AgentRunSchema,
+        );
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("agent_execution", executionId);
+        }
+        throw internalError(error, "failed to load agent execution");
+      }
+      ctx.set(LOADED_EXECUTION_KEY, execution);
+    },
+  };
+}
+
+function loadedExecution<Desc extends DescMessage>(
+  ctx: RequestContext<Desc>,
+): AgentRun {
+  return ctx.get(LOADED_EXECUTION_KEY) as AgentRun;
+}
+
+function phaseName(phase: RunPhase): string {
+  return enumToJson(RunPhaseSchema, phase) as string;
+}
+
+/**
+ * The five phase-validation steps share one shape: an already-in-target
+ * phase is idempotent success (skips the remaining steps), a phase
+ * outside the allowed set refuses FailedPrecondition with the pinned
+ * per-verb copy.
+ */
+function newValidatePhaseStep<Desc extends DescMessage>(config: {
+  name: string;
+  targetPhase: RunPhase;
+  allowed: RunPhase[];
+  refusal: (phase: RunPhase) => string;
+  logger: Logger;
+}): PipelineStep<Desc> {
+  return {
+    name: config.name,
+    execute(ctx) {
+      const execution = loadedExecution(ctx);
+      const phase =
+        execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
+      if (phase === config.targetPhase) {
+        config.logger.debug(
+          "Execution already in target state, returning success (idempotent)",
+          { executionId: execution.metadata?.id ?? "" },
+        );
+        ctx.set(ALREADY_IN_TARGET_STATE_KEY, true);
+        return;
+      }
+      if (!config.allowed.includes(phase)) {
+        throw failedPreconditionError(config.refusal(phase));
+      }
+    },
+  };
+}
+
+/**
+ * The engine-facing lifecycle steps: skip when already in target state,
+ * refuse FailedPrecondition when disconnected (Go's nil temporalClient),
+ * warn-and-proceed on workflow-not-found (the workflow may have already
+ * completed; the local state update still applies).
+ */
+function newEngineLifecycleStep<Desc extends DescMessage>(config: {
+  name: string;
+  deps: LifecycleDeps;
+  invoke: (
+    engine: Extract<
+      ReturnType<ExecutionEngineStateProvider>,
+      { connected: true }
+    >,
+    executionId: string,
+    ctx: RequestContext<Desc>,
+  ) => Promise<void>;
+  failureMessage: string;
+}): PipelineStep<Desc> {
+  return {
+    name: config.name,
+    async execute(ctx) {
+      if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
+        return;
+      }
+      const engine = config.deps.engineState();
+      if (!engine.connected) {
+        throw failedPreconditionError(TEMPORAL_UNAVAILABLE_MESSAGE);
+      }
+      const execution = loadedExecution(ctx);
+      const executionId = execution.metadata?.id ?? "";
+      try {
+        await config.invoke(engine, executionId, ctx);
+      } catch (error) {
+        if (error instanceof EngineWorkflowNotFoundError) {
+          config.deps.logger.warn(
+            "Temporal workflow not found, may have already completed",
+            { executionId },
+          );
+          return;
+        }
+        throw internalError(error, config.failureMessage);
+      }
+    },
+  };
+}
+
+/**
+ * Applies a lifecycle phase transition in place: target phase +
+ * phase-dependent fields (completed_at, error, the terminal sub-agent
+ * cascade, the terminal tool-call settle #207, the terminal
+ * pending_approvals clear). The body run inside the updateResource
+ * closure — the transition is computed against the very snapshot that
+ * will be persisted (Go applyLifecyclePhaseTransition, exercised directly
+ * by the lifecycle unit tests).
+ */
+export function applyLifecyclePhaseTransition(
+  execution: AgentRun,
+  targetPhase: RunPhase,
+  setError: boolean,
+  clearError: boolean,
+  reason: string,
+): void {
+  execution.status ??= create(AgentRunStatusSchema);
+  const status = execution.status;
+  status.phase = targetPhase;
+
+  // completed_at for terminal phases; PAUSED is NOT terminal.
+  if (
+    targetPhase === RunPhase.RUN_CANCELLED ||
+    targetPhase === RunPhase.RUN_TERMINATED
+  ) {
+    const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+    status.completedAt = now;
+
+    // Cascade to in-flight sub-agents: a cancelled/terminated parent
+    // leaves no live delegation, so IN_PROGRESS/PENDING sub-agents move
+    // to CANCELLED — never a permanent "Running" zombie. Authoritative
+    // here: the runner's own cancellation persist is best-effort and can
+    // be lost to the cancellation race.
+    cancelInProgressSubAgents(status.subAgentRuns, now);
+
+    // Same cascade for in-flight tool calls (issue #207) — authoritative
+    // for force-kill, where the runner never gets a finalize.
+    settleInterruptedToolCalls(status, now);
+
+    // A terminal execution has no actionable approvals; this blind clear
+    // keeps the invariant on the bypass paths too, edition-consistently
+    // with the Cloud terminal handlers (the graceful-cancel case is also
+    // cleared later by the workflow cleanup running the seam).
+    status.pendingApprovals = [];
+  }
+
+  // Clear completed_at for recovery / resume back to IN_PROGRESS.
+  if (targetPhase === RunPhase.RUN_IN_PROGRESS) {
+    status.completedAt = "";
+  }
+
+  if (setError) {
+    status.error =
+      reason !== "" ? `Terminated: ${reason}` : "Terminated by user";
+  }
+  if (clearError) {
+    status.error = "";
+  }
+}
+
+/**
+ * Transitions non-terminal sub-agents (IN_PROGRESS/PENDING) to CANCELLED
+ * with a completion timestamp (only when empty, preserving any
+ * runner-recorded one) — Go cancelInProgressSubAgents.
+ */
+export function cancelInProgressSubAgents(
+  subAgents: SubAgentRun[],
+  completedAt: string,
+): void {
+  for (const sa of subAgents) {
+    // Go skips nil elements (lifecycle_cancel_cascade_test.go NilSafe);
+    // the defensive twin for a hole smuggled past the type system.
+    if (sa === undefined) {
+      continue;
+    }
+    if (
+      sa.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS ||
+      sa.status === SubAgentStatus.SUB_AGENT_PENDING
+    ) {
+      sa.status = SubAgentStatus.SUB_AGENT_CANCELLED;
+      if (sa.completedAt === "") {
+        sa.completedAt = completedAt;
+      }
+    }
+  }
+}
+
+/**
+ * The atomic phase-transition persist (Go
+ * UpdateExecutionPhaseAndPersistStep): one read-modify-write under the
+ * per-resource write lock, so an approval event a concurrent
+ * SubmitApproval appends between the earlier load and this persist can
+ * never be lost. UpdateResource requires existence (no upsert): a
+ * lifecycle op racing a delete returns NOT_FOUND rather than resurrecting
+ * a half-built document.
+ */
+function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
+  deps: LifecycleDeps,
+  targetPhase: RunPhase,
+  setError: boolean,
+  clearError: boolean,
+): PipelineStep<Desc> {
+  return {
+    name: "UpdateExecutionPhaseAndPersist",
+    async execute(ctx) {
+      if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
+        return;
+      }
+      const execution = loadedExecution(ctx);
+      const executionId = execution.metadata?.id ?? "";
+      const reasonValue = ctx.get(REASON_KEY);
+      const reason = typeof reasonValue === "string" ? reasonValue : "";
+
+      let updated: AgentRun;
+      let oldPhase = RunPhase.RUN_PHASE_UNSPECIFIED;
+      try {
+        updated = await deps.store.updateResource(
+          ApiResourceKind.agent_run,
+          executionId,
+          AgentRunSchema,
+          (loaded) => {
+            oldPhase =
+              loaded.status?.phase ??
+              RunPhase.RUN_PHASE_UNSPECIFIED;
+            applyLifecyclePhaseTransition(
+              loaded,
+              targetPhase,
+              setError,
+              clearError,
+              reason,
+            );
+          },
+        );
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("agent_execution", executionId);
+        }
+        throw internalError(error, "failed to persist execution");
+      }
+      // Notify site 2 of 5 (status-observers.ts): observers see the persisted
+      // transition before LifecycleBroadcast runs — broadcast stays last.
+      await notifyStatusObservers(deps, updated, oldPhase, targetPhase);
+      // Hand the persisted result to the broadcast step and the handler's
+      // return value (both read the same key).
+      ctx.set(LOADED_EXECUTION_KEY, updated);
+    },
+  };
+}
+
+/** Publishes the transition to live subscribers (Go LifecycleBroadcastStep). */
+function newLifecycleBroadcastStep<Desc extends DescMessage>(
+  deps: LifecycleDeps,
+): PipelineStep<Desc> {
+  return {
+    name: "LifecycleBroadcast",
+    execute(ctx) {
+      if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
+        return;
+      }
+      deps.broker.broadcast(loadedExecution(ctx));
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The five RPCs.
+// ---------------------------------------------------------------------------
+
+async function runLifecyclePipeline<Desc extends DescMessage>(
+  deps: LifecycleDeps,
+  pipelineName: string,
+  schema: Desc,
+  input: MessageShape<Desc>,
+  method: DescMethod,
+  identity: CallerIdentity,
+  steps: PipelineStep<Desc>[],
+): Promise<AgentRun> {
+  const reqCtx = new RequestContext(
+    schema,
+    input,
+    identity,
+    ApiResourceKind.agent_run,
+  );
+  const builder = newPipeline<Desc>(pipelineName, deps.logger);
+  builder.addStep(newAuthorizeStep(method, deps.authorizer));
+  for (const step of steps) {
+    builder.addStep(step);
+  }
+  await builder.build().execute(reqCtx);
+
+  const execution = reqCtx.get(LOADED_EXECUTION_KEY);
+  if (execution === undefined) {
+    throw internalError(
+      new Error(`execution not found in context after ${pipelineName}`),
+      `execution not found in context after ${pipelineName.replace("agentexecution-", "")} pipeline`,
+    );
+  }
+  return execution as AgentRun;
+}
+
+/**
+ * Cancel — graceful cancellation via the workflow's cancel signal; the
+ * agent can save checkpoint and clean up before CANCELLED.
+ */
+export async function cancelExecution(
+  deps: LifecycleDeps,
+  input: CancelAgentRunInput,
+  identity: CallerIdentity,
+): Promise<AgentRun> {
+  type Desc = typeof AgentRunCommandController.method.cancel.input;
+  deps.logger.info("Cancel agent execution request", {
+    executionId: input.id,
+    reason: input.reason,
+  });
+  return runLifecyclePipeline<Desc>(
+    deps,
+    "agentexecution-cancel",
+    AgentRunCommandController.method.cancel.input,
+    input,
+    AgentRunCommandController.method.cancel,
+    identity,
+    [
+      newLoadExecutionByIdStep(deps),
+      newValidatePhaseStep({
+        name: "ValidateCancellable",
+        targetPhase: RunPhase.RUN_CANCELLED,
+        allowed: [
+          RunPhase.RUN_PENDING,
+          RunPhase.RUN_IN_PROGRESS,
+        ],
+        refusal: (phase) =>
+          `cannot cancel execution in phase ${phaseName(phase)}; only PENDING or IN_PROGRESS can be cancelled`,
+        logger: deps.logger,
+      }),
+      newEngineLifecycleStep({
+        name: "CancelTemporalWorkflow",
+        deps,
+        invoke: (engine, executionId) =>
+          engine.engine.cancelWorkflow(executionId),
+        failureMessage: "failed to cancel Temporal workflow",
+      }),
+      newUpdateExecutionPhaseAndPersistStep(
+        deps,
+        RunPhase.RUN_CANCELLED,
+        false,
+        false,
+      ),
+      newLifecycleBroadcastStep(deps),
+    ],
+  );
+}
+
+/** Terminate — the forceful sibling: terminates the workflow, sets error. */
+export async function terminateExecution(
+  deps: LifecycleDeps,
+  input: TerminateAgentRunInput,
+  identity: CallerIdentity,
+): Promise<AgentRun> {
+  type Desc = typeof AgentRunCommandController.method.terminate.input;
+  deps.logger.info("Terminate agent execution request", {
+    executionId: input.id,
+    reason: input.reason,
+  });
+  return runLifecyclePipeline<Desc>(
+    deps,
+    "agentexecution-terminate",
+    AgentRunCommandController.method.terminate.input,
+    input,
+    AgentRunCommandController.method.terminate,
+    identity,
+    [
+      newLoadExecutionByIdStep(deps),
+      newValidatePhaseStep({
+        name: "ValidateTerminable",
+        targetPhase: RunPhase.RUN_TERMINATED,
+        allowed: [
+          RunPhase.RUN_PENDING,
+          RunPhase.RUN_IN_PROGRESS,
+        ],
+        refusal: (phase) =>
+          `cannot terminate execution in phase ${phaseName(phase)}; only PENDING or IN_PROGRESS can be terminated`,
+        logger: deps.logger,
+      }),
+      newEngineLifecycleStep({
+        name: "TerminateTemporalWorkflow",
+        deps,
+        invoke: async (engine, executionId, ctx) => {
+          const reason =
+            (ctx.newState as unknown as LifecycleInputWithReasonShape).reason ||
+            "Terminated by user";
+          await engine.engine.terminateWorkflow(executionId, reason);
+          // Store the resolved reason for the phase update's error text.
+          ctx.set(REASON_KEY, reason);
+        },
+        failureMessage: "failed to terminate Temporal workflow",
+      }),
+      newUpdateExecutionPhaseAndPersistStep(
+        deps,
+        RunPhase.RUN_TERMINATED,
+        true,
+        false,
+      ),
+      newLifecycleBroadcastStep(deps),
+    ],
+  );
+}
+
+/** Pause — signals the workflow's pause gate; PAUSED is resumable. */
+export async function pauseExecution(
+  deps: LifecycleDeps,
+  input: PauseAgentRunInput,
+  identity: CallerIdentity,
+): Promise<AgentRun> {
+  type Desc = typeof AgentRunCommandController.method.pause.input;
+  deps.logger.info("Pause agent execution request", {
+    executionId: input.id,
+    reason: input.reason,
+  });
+  return runLifecyclePipeline<Desc>(
+    deps,
+    "agentexecution-pause",
+    AgentRunCommandController.method.pause.input,
+    input,
+    AgentRunCommandController.method.pause,
+    identity,
+    [
+      newLoadExecutionByIdStep(deps),
+      newValidatePhaseStep({
+        name: "ValidatePausable",
+        targetPhase: RunPhase.RUN_PAUSED,
+        allowed: [
+          RunPhase.RUN_PENDING,
+          RunPhase.RUN_IN_PROGRESS,
+        ],
+        refusal: (phase) =>
+          `cannot pause execution in phase ${phaseName(phase)}; only PENDING or IN_PROGRESS can be paused`,
+        logger: deps.logger,
+      }),
+      newEngineLifecycleStep({
+        name: "SignalPauseToTemporal",
+        deps,
+        invoke: async (engine, executionId, ctx) => {
+          const reason =
+            (ctx.newState as unknown as LifecycleInputWithReasonShape).reason ||
+            "Paused by user";
+          await engine.engine.signalPause(executionId, reason);
+          ctx.set(REASON_KEY, reason);
+        },
+        failureMessage: "failed to send pause signal to Temporal workflow",
+      }),
+      newUpdateExecutionPhaseAndPersistStep(
+        deps,
+        RunPhase.RUN_PAUSED,
+        false,
+        false,
+      ),
+      newLifecycleBroadcastStep(deps),
+    ],
+  );
+}
+
+/** Resume — signals the pause gate open; PAUSED → IN_PROGRESS. */
+export async function resumeExecution(
+  deps: LifecycleDeps,
+  input: ResumeAgentRunInput,
+  identity: CallerIdentity,
+): Promise<AgentRun> {
+  type Desc = typeof AgentRunCommandController.method.resume.input;
+  deps.logger.info("Resume agent execution request", {
+    executionId: input.id,
+  });
+  return runLifecyclePipeline<Desc>(
+    deps,
+    "agentexecution-resume",
+    AgentRunCommandController.method.resume.input,
+    input,
+    AgentRunCommandController.method.resume,
+    identity,
+    [
+      newLoadExecutionByIdStep(deps),
+      newValidatePhaseStep({
+        name: "ValidateResumable",
+        targetPhase: RunPhase.RUN_IN_PROGRESS,
+        allowed: [RunPhase.RUN_PAUSED],
+        refusal: (phase) =>
+          `cannot resume execution in phase ${phaseName(phase)}; only PAUSED executions can be resumed`,
+        logger: deps.logger,
+      }),
+      newEngineLifecycleStep({
+        name: "SignalResumeToTemporal",
+        deps,
+        invoke: (engine, executionId) =>
+          engine.engine.signalResume(executionId),
+        failureMessage: "failed to send resume signal to Temporal workflow",
+      }),
+      newUpdateExecutionPhaseAndPersistStep(
+        deps,
+        RunPhase.RUN_IN_PROGRESS,
+        false,
+        false,
+      ),
+      newLifecycleBroadcastStep(deps),
+    ],
+  );
+}
+
+/**
+ * Recover — terminate-and-start-fresh for FAILED executions (deliberately
+ * NOT Temporal reset: the runner activity RETURNS its FAILED result, so a
+ * reset replays the preserved failure instead of re-dispatching, issue
+ * #200; continuity is carried by the harness state, not Temporal
+ * history). Order rationale: terminate BEFORE EC recreation (a still-live
+ * old workflow's cleanup must not delete the new EC); recreate EC BEFORE
+ * workflow start (the runner's setup needs env); start BEFORE the phase
+ * update (a failed start leaves the execution FAILED — recover retries).
+ *
+ * One recover of an execution runs at a time (stigmer#1672): the chain runs
+ * inside the execution's turn on `deps.recoverSerializer`, Authorize
+ * included, because the pipeline has no finalizer a step could release a
+ * turn from. A concurrent second recover waits, then loads the execution as
+ * the first left it: IN_PROGRESS takes the idempotent arm (the same answer,
+ * no side effects); still FAILED is a genuine retry.
+ */
+export async function recoverExecution(
+  deps: LifecycleDeps,
+  input: RecoverAgentRunInput,
+  identity: CallerIdentity,
+): Promise<AgentRun> {
+  deps.logger.info("Recover agent execution request", {
+    executionId: input.id,
+  });
+  return deps.recoverSerializer.run(input.id, () =>
+    runRecoverPipeline(deps, input, identity),
+  );
+}
+
+/** Whether the recover found the execution already running (the idempotent arm). */
+function alreadyRecovered(ctx: { get(key: string): unknown }): boolean {
+  return ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true;
+}
+
+/** The recover chain itself, run inside the execution's turn. */
+function runRecoverPipeline(
+  deps: LifecycleDeps,
+  input: RecoverAgentRunInput,
+  identity: CallerIdentity,
+): Promise<AgentRun> {
+  type Desc = typeof AgentRunCommandController.method.recover.input;
+  return runLifecyclePipeline<Desc>(
+    deps,
+    "agentexecution-recover",
+    AgentRunCommandController.method.recover.input,
+    input,
+    AgentRunCommandController.method.recover,
+    identity,
+    [
+      newLoadExecutionByIdStep(deps),
+      newValidatePhaseStep({
+        name: "ValidateRecoverable",
+        targetPhase: RunPhase.RUN_IN_PROGRESS,
+        allowed: [RunPhase.RUN_FAILED],
+        refusal: (phase) =>
+          `cannot recover execution in phase ${phaseName(phase)}; only FAILED executions can be recovered`,
+        logger: deps.logger,
+      }),
+      // A rerun runs the agent again, so the caller must still be able
+      // to, asked before anything is terminated, charged or written: the
+      // agent the turn recorded, or its session's pin for a turn that
+      // recorded none (resolve-run-agent.ts).
+      newResolveRecoveredRunAgentStep(deps.store, alreadyRecovered),
+      newAuthorizeRecoveredRunAgentStep(deps.authorizer, alreadyRecovered),
+      // TerminateExistingWorkflow: a FAILED execution's workflow has
+      // normally already completed (NOT_FOUND = success); termination
+      // matters for the rarer DB-says-FAILED-but-workflow-live state —
+      // the workflow ID must be terminal before the fresh start reuses
+      // it.
+      newEngineLifecycleStep({
+        name: "TerminateExistingWorkflow",
+        deps,
+        invoke: (engine, executionId) =>
+          engine.engine.terminateWorkflow(
+            executionId,
+            "Recovery: terminating before fresh workflow start",
+          ),
+        failureMessage: "failed to terminate previous workflow during recovery",
+      }),
+      // The pre-side-effect gate slot: after workflow termination, before
+      // re-launch side effects, where a billing composition re-arms (a
+      // terminated workflow issues no new settles). Empty in OSS.
+      ...stepsForSlot<Desc>(
+        deps.gateSteps,
+        "agent-execution-recover:pre-side-effect-gate",
+      ),
+      // A turn created before turns recorded their agent records the
+      // session's pin here, persisted before the context is rebuilt and
+      // the fresh workflow's runner reads it (resolve-run-agent.ts).
+      newStampRecoveredRunAgentStep(deps.store, deps.logger, alreadyRecovered),
+      newRecreateExecutionContextStep(deps),
+      newStartFreshWorkflowStep(deps),
+      // The session-lane sandbox ensure — same position and
+      // non-critical posture as the create chain's step: after the
+      // workflow start, never failing the recover (the shared body
+      // pre-stamps failures onto status.error instead).
+      {
+        name: "EnsureSessionSandbox",
+        async execute(ctx) {
+          if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
+            return;
+          }
+          await ensureSessionSandboxForExecution(
+            {
+              store: deps.store,
+              logger: deps.logger,
+              lane: deps.sandboxLane,
+              temporalConfig: deps.temporalConfig,
+            },
+            loadedExecution(ctx),
+            ctx.callerIdentity,
+          );
+        },
+      },
+      newUpdateExecutionPhaseAndPersistStep(
+        deps,
+        RunPhase.RUN_IN_PROGRESS,
+        false,
+        true, // clear error on recovery
+      ),
+      newLifecycleBroadcastStep(deps),
+    ],
+  );
+}
+
+/**
+ * Rebuilds the ExecutionContext for a recovered execution (Go
+ * recreateExecutionContextStep): the failed run's workflow cleanup
+ * deleted the EC, so a fresh start would hydrate with an empty
+ * environment. Re-resolving from CURRENT configuration is the point
+ * ("fix the API key, then recover"). DELIBERATE divergence from
+ * WorkflowExecution's graceful recreate: a failure here FAILS the
+ * recover RPC — the agent EC carries OAuth tokens and declared env vars
+ * the run genuinely needs; the execution stays FAILED and recover can be
+ * retried. Stale-EC delete first (best-effort): the failure-path cleanup
+ * is itself best-effort, and the EC name derives from the execution id.
+ * It is the server's own delete of the context, through the context's
+ * delete chain (domain/executioncontext/internal-delete.ts, stigmer#1647).
+ */
+function newRecreateExecutionContextStep(
+  deps: LifecycleDeps,
+): PipelineStep<typeof AgentRunCommandController.method.recover.input> {
+  return {
+    name: "RecreateExecutionContext",
+    async execute(ctx) {
+      if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
+        return;
+      }
+      const execution = loadedExecution(ctx);
+      const executionId = execution.metadata?.id ?? "";
+
+      const builder = deps.executionContextBuilder;
+      await deleteExecutionContextForExecution(
+        {
+          store: builder.store,
+          deleter: builder.executionContextDeleter,
+          logger: deps.logger,
+        },
+        executionId,
+        "recover",
+      );
+
+      // A persisted execution always carries session_id (the create
+      // pipeline guarantees it) and the agent it runs (its stamp, recorded
+      // by the step before when it had none). Go wraps with %w — the inner
+      // status code survives to the wire (notably the FailedPrecondition
+      // OAuth pre-flight refusal and NotFound loads, exactly as the same
+      // failure surfaces on the create path); plain errors chain to the
+      // pipeline's Internal fallback.
+      try {
+        await buildAndPersistExecutionContext(
+          deps.executionContextBuilder,
+          execution,
+        );
+      } catch (error) {
+        if (error instanceof ConnectError) {
+          throw new ConnectError(
+            `recreate execution context for recovered execution ${executionId}: ${error.rawMessage}`,
+            error.code,
+          );
+        }
+        throw new Error(
+          `recreate execution context for recovered execution ${executionId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    },
+  };
+}
+
+/**
+ * Starts a brand-new workflow for the recovered execution (Go
+ * StartFreshWorkflowStep): Temporal allows workflow-id reuse after the
+ * previous run reached a terminal state. Dispatch is re-resolved with no
+ * queue override and the parent link's coordinates (its callback token,
+ * its signal target, its run's queue) are deliberately NOT carried — a
+ * recovered execution is a standalone rerun (the single-use token was
+ * already completed with the failure; the parent already observed the
+ * failure; the parent's sandbox queue loses its poller when the parent
+ * completes). Known documented limitation: a durable (http) LangGraph
+ * checkpointer would duplicate the user message; the OSS default memory
+ * checkpointer replays from scratch, so this is moot here.
+ */
+function newStartFreshWorkflowStep(
+  deps: LifecycleDeps,
+): PipelineStep<typeof AgentRunCommandController.method.recover.input> {
+  return {
+    name: "StartFreshWorkflow",
+    async execute(ctx) {
+      if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
+        return;
+      }
+      const engine = deps.engineState();
+      if (!engine.connected) {
+        throw failedPreconditionError(
+          "Temporal is not available (workflow creator not set)",
+        );
+      }
+      const execution = loadedExecution(ctx);
+      const executionId = execution.metadata?.id ?? "";
+      try {
+        await engine.engine.startInvokeWorkflow({
+          executionId,
+          sessionId: sessionIdOf(execution.spec),
+          agentId: execution.status?.agentId ?? "",
+          callbackToken: new Uint8Array(),
+          autoApproveAll: execution.spec?.autoApproveAll ?? false,
+          parentWorkflowId: "",
+          activityTaskQueueOverride: "",
+        });
+      } catch (error) {
+        if (error instanceof EngineDispatchError) {
+          throw failedPreconditionError(error.message);
+        }
+        throw internalError(
+          error,
+          "failed to start fresh Temporal workflow for recovered execution",
+        );
+      }
+      deps.logger.info(
+        "Started fresh Temporal workflow for recovered execution",
+        { executionId },
+      );
+    },
+  };
+}

@@ -15,9 +15,9 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { utcTimestamp } from "./status.js";
 
 /**

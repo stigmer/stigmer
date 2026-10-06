@@ -8,7 +8,7 @@
 
 import { type Styler, styler } from "../../output/style.js";
 import { type EventTone, type WorkflowEventView, toWorkflowEventView } from "./workflow-event-view.js";
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 
 /** A single-line writer (e.g. a wrapper over process.stdout). */
 export interface LineSink {
@@ -16,7 +16,7 @@ export interface LineSink {
 }
 
 /** Render a workflow event as one tinted line to `sink`. */
-export function renderWorkflowEventPlaintext(event: WorkflowExecutionEvent, sink: LineSink, colorize: boolean): void {
+export function renderWorkflowEventPlaintext(event: WorkflowRunEvent, sink: LineSink, colorize: boolean): void {
   const view = toWorkflowEventView(event);
   sink.write(formatLine(view, styler(colorize)));
 }

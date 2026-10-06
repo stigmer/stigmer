@@ -13,8 +13,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import type { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { UpdateWorkflowExecutionVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
+import type { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { UpdateWorkflowRunVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -28,7 +28,7 @@ export interface UseUpdateWorkflowExecutionVisibilityReturn {
    */
   readonly updateExecutionVisibility: (
     workflowId: string,
-    executionVisibility: WorkflowExecutionVisibility,
+    executionVisibility: WorkflowRunVisibility,
   ) => Promise<Workflow>;
   /** `true` while the update RPC is in flight. */
   readonly isUpdating: boolean;
@@ -52,16 +52,16 @@ export function useUpdateWorkflowExecutionVisibility(): UseUpdateWorkflowExecuti
   const updateExecutionVisibility = useCallback(
     async (
       workflowId: string,
-      executionVisibility: WorkflowExecutionVisibility,
+      executionVisibility: WorkflowRunVisibility,
     ): Promise<Workflow> => {
       setIsUpdating(true);
       setError(null);
 
       try {
-        return await stigmer.workflow.updateExecutionVisibility(
-          create(UpdateWorkflowExecutionVisibilityInputSchema, {
+        return await stigmer.workflow.updateRunVisibility(
+          create(UpdateWorkflowRunVisibilityInputSchema, {
             resourceId: workflowId,
-            executionVisibility,
+            runVisibility: executionVisibility,
           }),
         );
       } catch (err) {

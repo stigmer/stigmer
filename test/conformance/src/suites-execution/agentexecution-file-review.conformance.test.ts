@@ -31,18 +31,18 @@
 // Reads of the workspace are the suite's own fixture, not a runner internal.
 import { Code } from "@connectrpc/connect";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema, type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   DiffCompleteness,
-  ExecutionPhase,
+  RunPhase,
   FileCaptureClass,
   FileChangeKind,
   FileDecisionAction,
   FileReviewBlockReason,
   FileReviewEventType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { CapturedFileChange, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { CapturedFileChange, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -165,16 +165,16 @@ async function runToReview(
   workspace: GitWorkspace,
   turns: AnthropicMessageBody[],
   opts: { message?: string; autoApproveAll?: boolean } = {},
-): Promise<{ executionId: string; waiting: AgentExecution; set: FileChangeSet }> {
+): Promise<{ executionId: string; waiting: AgentRun; set: FileChangeSet }> {
   const executionId = await startFileReviewRun(workspace, turns, opts);
   const waiting = await awaitFileReview(clients, executionId);
-  expect(waiting.status?.phase).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+  expect(waiting.status?.phase).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
   expect(waiting.status?.pendingApprovals, "file review is the only gate; no tool approval").toHaveLength(0);
   return { executionId, waiting, set: requireReviewSet(waiting) };
 }
 
-async function awaitCompleted(executionId: string): Promise<AgentExecution> {
-  const final = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_COMPLETED);
+async function awaitCompleted(executionId: string): Promise<AgentRun> {
+  const final = await awaitPhase(clients, executionId, RunPhase.RUN_COMPLETED);
   expect(mock.remaining(), "a pure file-review decision must NOT re-invoke the model").toBe(0);
   return final;
 }
@@ -320,7 +320,7 @@ describe("AgentExecution file review — keep and discard", () => {
       "a decision bound to a digest the reviewer did not see is refused",
     );
     const still = await clients.agentExecutionQuery.get({ value: executionId });
-    expect(still.status?.phase, "the refusal decides nothing").toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(still.status?.phase, "the refusal decides nothing").toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     requireReviewSet(still);
 
     await submitFileDecisionByPath(clients, executionId, set, path, FileDecisionAction.APPROVE);
@@ -351,7 +351,7 @@ describe("AgentExecution file review — binary changes", () => {
       "an unreviewable diff cannot be approved as-is",
     );
     const still = await clients.agentExecutionQuery.get({ value: executionId });
-    expect(still.status?.phase).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(still.status?.phase).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
 
     await submitFileDecisionByPath(clients, executionId, set, path, FileDecisionAction.REJECT);
     await awaitCompleted(executionId);
@@ -479,7 +479,7 @@ describe("AgentExecution file review — secrets never persist", () => {
       "a secret entry has no keepable bytes",
     );
     expect((await clients.agentExecutionQuery.get({ value: executionId })).status?.phase).toBe(
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
     await submitFileDecisionByPath(clients, executionId, set, path, FileDecisionAction.REJECT);
@@ -530,7 +530,7 @@ describe("AgentExecution file review — secrets never persist", () => {
     expect(change.before, "the baseline secret's bytes never enter the ledger").toBeUndefined();
     expect(change.after, "the new secret's bytes never enter the ledger").toBeUndefined();
 
-    const statusJson = JSON.stringify(toJson(AgentExecutionSchema, waiting));
+    const statusJson = JSON.stringify(toJson(AgentRunSchema, waiting));
     expect(statusJson, "the old token is nowhere on the wire").not.toContain(oldToken);
     expect(statusJson, "the new token is nowhere on the wire").not.toContain(newToken);
     const store = target.artifactStoreDir();
@@ -568,7 +568,7 @@ describe("AgentExecution file review — secrets never persist", () => {
     // off); what stays fail-closed is that the bytes never persist anywhere.
     expect(await workspace.exists(path), "the bypass let the write land in the working tree").toBe(true);
 
-    expect(JSON.stringify(toJson(AgentExecutionSchema, waiting)), "the secret is nowhere on the wire").not.toContain(
+    expect(JSON.stringify(toJson(AgentRunSchema, waiting)), "the secret is nowhere on the wire").not.toContain(
       secret.trim(),
     );
     expect(await storeContains(target.artifactStoreDir(), secret.trim()), "the secret never reached the store").toBe(

@@ -166,9 +166,9 @@ function requestedKindName(
 ): string {
   switch (arm) {
     case "agent-execution":
-      return getKindName(ApiResourceKind.agent_execution);
+      return getKindName(ApiResourceKind.agent_run);
     case "workflow-execution":
-      return getKindName(ApiResourceKind.workflow_execution);
+      return getKindName(ApiResourceKind.workflow_run);
     default: {
       const exhaustive: never = arm;
       throw new Error(`unhandled exchange arm: ${JSON.stringify(exhaustive)}`);

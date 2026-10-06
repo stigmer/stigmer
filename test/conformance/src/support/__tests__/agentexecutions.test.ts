@@ -11,8 +11,8 @@
 // Pure: hand-built resources and stubbed clients, no target.
 // Domain: conformance support (execution engine).
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { type McpServer, McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { describe, expect, it, vi } from "vitest";
@@ -21,8 +21,8 @@ import { FixtureTracker } from "../../harness/fixtures";
 import { DESTRUCTIVE_ECHO_TOOL_NAME, ECHO_TOOL_NAME, type McpToolFixture } from "../../harness/mcp-server";
 import { createConnectedMcpServer, submitApprovalPerContract } from "../agentexecutions";
 
-function executionWithPending(toolCallIds: string[]): AgentExecution {
-  return create(AgentExecutionSchema, {
+function executionWithPending(toolCallIds: string[]): AgentRun {
+  return create(AgentRunSchema, {
     metadata: { id: "aex_unit" },
     status: { pendingApprovals: toolCallIds.map((toolCallId) => ({ toolCallId })) },
   });

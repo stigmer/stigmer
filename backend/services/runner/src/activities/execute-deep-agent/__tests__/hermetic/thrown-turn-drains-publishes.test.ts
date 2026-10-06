@@ -28,8 +28,8 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -59,7 +59,7 @@ const REPORT_BODY = "# Report\n\nWritten before the provider failed.\n";
 const WRITE_CALL_ID = "call-hermetic-write-0001";
 const PROVIDER_FAULT = "provider stream failed mid-turn";
 
-function systemMessages(status: AgentExecutionStatus): string[] {
+function systemMessages(status: AgentRunStatus): string[] {
   return status.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content);
 }
 
@@ -136,7 +136,7 @@ describe("ExecuteDeepAgent hermetic — a thrown turn drains its inline publishe
     expect(invocation.outcome.kind, "a provider failure RETURNS the status").toBe("returned");
     const final = record.lastFullStatus!;
     expect(final.phase, "the edit reaches review before the failure settles").toBe(
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
     expect(final.error, "a deferred terminal writes no error yet").toBe("");
     expect(systemMessages(final), "the failure's rows ride the review").toEqual([

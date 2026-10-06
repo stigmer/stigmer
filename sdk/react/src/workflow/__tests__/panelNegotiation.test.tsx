@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import type { DerivedCostSummary } from "../../internal/store/workflow-execution-event-store";
 import { useWorkflowExecution } from "../useWorkflowExecution";
 import { useWorkflowExecutionEventStream } from "../useWorkflowExecutionEventStream";
@@ -72,9 +72,9 @@ const COST_SUMMARY: DerivedCostSummary = {
   thresholdBreached: false,
 };
 
-function arrange(phase: ExecutionPhase = ExecutionPhase.EXECUTION_IN_PROGRESS) {
+function arrange(phase: RunPhase = RunPhase.RUN_IN_PROGRESS) {
   mockedUseWorkflowExecution.mockReturnValue({
-    execution: create(WorkflowExecutionSchema, {
+    execution: create(WorkflowRunSchema, {
       metadata: { id: "wex_1", name: "nightly-report" },
       spec: { workflowId: "wf_1" },
       status: { phase, startedAt: "2026-07-15T00:00:00Z", tasks: [] },
@@ -146,7 +146,7 @@ describe('WorkflowExecutionViewer — panel="none"', () => {
   });
 
   it("withholds Diagnose — its conversation renders inside the panel", () => {
-    arrange(ExecutionPhase.EXECUTION_FAILED);
+    arrange(RunPhase.RUN_FAILED);
     render(
       <WorkflowExecutionViewer executionId="wex_1" org="acme" panel="none" />,
     );
@@ -173,7 +173,7 @@ describe('WorkflowExecutionViewer — panel="none"', () => {
 
 describe("WorkflowExecutionViewer — Diagnose in the default panel mode", () => {
   it("offers Diagnose on a failed execution (the contrast for the none-mode withholding)", () => {
-    arrange(ExecutionPhase.EXECUTION_FAILED);
+    arrange(RunPhase.RUN_FAILED);
     render(<WorkflowExecutionViewer executionId="wex_1" org="acme" />);
     expect(screen.getByRole("button", { name: "Diagnose" })).toBeDefined();
   });

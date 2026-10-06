@@ -180,7 +180,7 @@ describe("artifact domain — create & content addressing", () => {
     // uses (all resources share metadata at field 3).
     const executionId = "wexec_01orgproxy";
     await server.store.saveResource(
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
       executionId,
       ArtifactSchema,
       create(ArtifactSchema, {
@@ -259,21 +259,21 @@ describe("artifact domain — read surfaces", () => {
     const fetched = await query.get({ value: created.metadata!.id });
     expect(fetched.status?.contentHash).toBe(created.status?.contentHash);
 
-    const listed = await query.listByExecution({
-      workflowExecutionId: executionId,
+    const listed = await query.listByRun({
+      workflowRunId: executionId,
     });
     expect(listed.totalPages).toBe(1);
     expect(listed.entries).toHaveLength(1);
 
     // The OTHER source arm must not match the same id.
-    const other = await query.listByExecution({
-      agentExecutionId: executionId,
+    const other = await query.listByRun({
+      agentRunId: executionId,
     });
     expect(other.entries).toHaveLength(0);
   });
 
   it("listByExecution without any filter answers InvalidArgument", async () => {
-    const err = await grpcError(() => query.listByExecution({}));
+    const err = await grpcError(() => query.listByRun({}));
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toBe(
       "workflow_execution_id or agent_execution_id is required",

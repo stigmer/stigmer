@@ -14,9 +14,9 @@
 import { readFile } from "node:fs/promises";
 import { type JsonObject } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { SubmitWorkflowTaskApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { SubmitWorkflowTaskApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 
@@ -30,9 +30,9 @@ export interface ApproveWorkflowOptions {
 
 /** Submit a workflow task approval. `reviewer` stays unset (server-attributed). */
 export async function approveWorkflowTask(client: Stigmer, opts: ApproveWorkflowOptions): Promise<void> {
-  await client.workflowExecution.submitWorkflowTaskApproval(
+  await client.workflowRun.submitWorkflowTaskApproval(
     create(SubmitWorkflowTaskApprovalInputSchema, {
-      executionId: opts.executionId,
+      runId: opts.executionId,
       taskName: opts.taskName,
       outcome: opts.outcome,
       comment: opts.comment,
@@ -50,9 +50,9 @@ export interface ApproveAgentOptions {
 
 /** Submit an agent tool-call approval. `--comment` is carried through. */
 export async function approveAgentToolCall(client: Stigmer, opts: ApproveAgentOptions): Promise<void> {
-  await client.agentExecution.submitApproval(
+  await client.agentRun.submitApproval(
     create(SubmitApprovalInputSchema, {
-      agentExecutionId: opts.executionId,
+      agentRunId: opts.executionId,
       toolCallId: opts.toolCallId,
       action: resolveApprovalAction(opts.action),
       comment: opts.comment,

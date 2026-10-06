@@ -33,7 +33,7 @@
 // The populated arms of every one of these RPCs are Class B and live in
 // suites-execution/.
 import { Code } from "@connectrpc/connect";
-import { FileDecisionAction, FileDecisionScope } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { FileDecisionAction, FileDecisionScope } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -113,7 +113,7 @@ describe("WorkflowExecution conformance — the engine gate (Class A)", () => {
 describe("WorkflowExecution conformance — zero-record read surfaces (Class A)", () => {
   it("[rpc:WorkflowExecutionQueryController.getExecutionSummary] getExecutionSummary answers the pinned zero shape", async () => {
     const { org } = await target.provisionTenancy();
-    const summary = await clients.workflowExecutionQuery.getExecutionSummary({ org });
+    const summary = await clients.workflowExecutionQuery.getRunSummary({ org });
 
     expect(summary.activeCount).toBe(0);
     expect(summary.phaseCounts).toEqual({});
@@ -150,7 +150,7 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     // Code only: the proto validation layer fires before the handler's own
     // required-id check, so the message is the interceptor's, not a pin.
     await expectGrpcCode(
-      () => clients.workflowExecutionQuery.getEventLog({ executionId: "" }),
+      () => clients.workflowExecutionQuery.getEventLog({ runId: "" }),
       Code.InvalidArgument,
       "getEventLog without an execution id",
     );
@@ -163,7 +163,7 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     // no-existence-check behavior.
     if (!target.capabilities.enforcingAuthorizer) {
       const page = await clients.workflowExecutionQuery.getEventLog({
-        executionId: "wfe_01conformancemissing",
+        runId: "wfe_01conformancemissing",
       });
       expect(page.events).toHaveLength(0);
       expect(page.hasMore).toBe(false);
@@ -178,7 +178,7 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     await expectGrpcCode(
       () =>
         collectStream((signal) =>
-          clients.workflowExecutionQuery.subscribe({ executionId: "" }, { signal }),
+          clients.workflowExecutionQuery.subscribe({ runId: "" }, { signal }),
         ),
       Code.InvalidArgument,
       "subscribe with an empty id",
@@ -186,7 +186,7 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     await expectGrpcCode(
       () =>
         collectStream((signal) =>
-          clients.workflowExecutionQuery.subscribeEvents({ executionId: "" }, { signal }),
+          clients.workflowExecutionQuery.subscribeEvents({ runId: "" }, { signal }),
         ),
       Code.InvalidArgument,
       "subscribeEvents with an empty id",
@@ -202,7 +202,7 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
       () =>
         collectStream((signal) =>
           clients.workflowExecutionQuery.subscribe(
-            { executionId: "wfe_01conformancemissing" },
+            { runId: "wfe_01conformancemissing" },
             { signal },
           ),
         ),
@@ -213,7 +213,7 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
       () =>
         collectStream((signal) =>
           clients.workflowExecutionQuery.subscribeEvents(
-            { executionId: "wfe_01conformancemissing" },
+            { runId: "wfe_01conformancemissing" },
             { signal },
           ),
         ),
@@ -236,8 +236,8 @@ describe("WorkflowExecution conformance — submitFileDecision negatives (Class 
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitFileDecision({
-          executionId: "",
-          childAgentExecutionId: "aexec_x",
+          runId: "",
+          childAgentRunId: "aexec_x",
           changeSetId: "cs_x",
           expectedDigest: "digest",
           scope: FileDecisionScope.CHANGE_SET,
@@ -249,8 +249,8 @@ describe("WorkflowExecution conformance — submitFileDecision negatives (Class 
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitFileDecision({
-          executionId: "wfe_x",
-          childAgentExecutionId: "aexec_x",
+          runId: "wfe_x",
+          childAgentRunId: "aexec_x",
           changeSetId: "cs_x",
           expectedDigest: "digest",
           scope: FileDecisionScope.UNSPECIFIED,
@@ -262,8 +262,8 @@ describe("WorkflowExecution conformance — submitFileDecision negatives (Class 
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitFileDecision({
-          executionId: "wfe_x",
-          childAgentExecutionId: "aexec_x",
+          runId: "wfe_x",
+          childAgentRunId: "aexec_x",
           changeSetId: "cs_x",
           expectedDigest: "",
           scope: FileDecisionScope.CHANGE_SET,
@@ -279,8 +279,8 @@ describe("WorkflowExecution conformance — submitFileDecision negatives (Class 
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitFileDecision({
-          executionId: "wfe_01conformancemissing",
-          childAgentExecutionId: "aexec_x",
+          runId: "wfe_01conformancemissing",
+          childAgentRunId: "aexec_x",
           changeSetId: "cs_x",
           expectedDigest: "digest",
           scope: FileDecisionScope.CHANGE_SET,

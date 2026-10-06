@@ -39,8 +39,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -128,8 +128,8 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
     expect(slim.phase).toBe("EXECUTION_FAILED");
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_FAILED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_FAILED,
     ]);
     const final = record.lastFullStatus!;
     expect(final.error).toBe(`${AUTH_ERROR} [category=auth, source=sdk, retryable=false]`);
@@ -148,7 +148,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(invocation.heartbeats.length).toBeGreaterThan(0);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/run-error-non-retryable.status.json");
   });
 
@@ -202,8 +202,8 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(slim.phase).toBe("EXECUTION_COMPLETED");
     expect(slim.final_text).toBe(FINAL_TEXT);
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_COMPLETED,
     ]);
     const final = record.lastFullStatus!;
     expect(final.error, "the primary failure is superseded by the recovery").toBe("");
@@ -228,7 +228,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/recovery-transport-timeout.status.json");
   });
 
@@ -265,8 +265,8 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
     expect(slim.phase).toBe("EXECUTION_CANCELLED");
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_CANCELLED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_CANCELLED,
     ]);
     const final = record.lastFullStatus!;
     expect(final.error, "a cancel is not an error").toBe("");
@@ -284,7 +284,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/run-cancelled.status.json");
   });
 });

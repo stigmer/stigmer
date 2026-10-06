@@ -306,7 +306,7 @@ export function newAuthorizeExecutionContextCreateStep(
       let decision: AuthzDecision;
       try {
         decision = await authorizer.authorize(caller, {
-          permission: IamPermission.can_create_execution_in,
+          permission: IamPermission.can_create_run_in,
           resourceKind: ApiResourceKind.organization,
           resourceId: ctx.newState.metadata?.org ?? "",
         });

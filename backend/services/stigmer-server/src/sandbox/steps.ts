@@ -35,24 +35,24 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../boot/logger.js";
-import type { AgentExecutionTemporalConfig } from "../domain/agentexecution/temporal/config.js";
+import type { AgentExecutionTemporalConfig } from "../domain/agentrun/temporal/config.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import {
   WORKFLOW_ROUTING_EXECUTION,
   type WorkflowExecutionTemporalConfig,
-} from "../domain/workflowexecution/temporal/config.js";
+} from "../domain/workflowrun/temporal/config.js";
 import { unavailableError } from "../pipeline/errors.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
 import {
@@ -62,8 +62,8 @@ import {
 import { resolveWorkflowTaskQueue } from "../temporal/workflowexecution/dispatch.js";
 import type { Store } from "../store/interface.js";
 import { mintSandboxToken, type SandboxLane } from "./lane.js";
-import { sessionIdOf } from "../domain/agentexecution/target.js";
-import { parentRunQueueOf } from "../domain/agentexecution/vouch-workflow-parent.js";
+import { sessionIdOf } from "../domain/agentrun/target.js";
+import { parentRunQueueOf } from "../domain/agentrun/vouch-workflow-parent.js";
 import type { WorkflowRunQueue } from "../temporal/workflowexecution/dispatch.js";
 
 /**
@@ -85,7 +85,7 @@ export const SANDBOX_PROVISIONING_FAILED_PREFIX =
  */
 export type SandboxCaller = Pick<CallerIdentity, "identityId" | "callerClass">;
 
-type AgentExecutionCreateDesc = typeof AgentExecutionSchema;
+type AgentExecutionCreateDesc = typeof AgentRunSchema;
 
 export interface EnsureSessionSandboxDeps {
   readonly store: Store;
@@ -142,7 +142,7 @@ export function newEnsureSessionSandboxStep(
  */
 export async function ensureSessionSandboxForExecution(
   deps: EnsureSessionSandboxDeps,
-  execution: AgentExecution,
+  execution: AgentRun,
   caller: SandboxCaller,
 ): Promise<void> {
   if (!deps.lane.enabled) {
@@ -232,11 +232,11 @@ async function stampProvisioningFailure(
     (cause instanceof Error ? cause.message : String(cause));
   try {
     await store.updateResource(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
       executionId,
-      AgentExecutionSchema,
-      (execution: AgentExecution) => {
-        execution.status ??= create(AgentExecutionStatusSchema);
+      AgentRunSchema,
+      (execution: AgentRun) => {
+        execution.status ??= create(AgentRunStatusSchema);
         if (execution.status.error === "") {
           execution.status.error = message;
         }
@@ -266,7 +266,7 @@ export interface EnsureWorkflowSandboxDeps {
  */
 export function newEnsureWorkflowSandboxStep(
   deps: EnsureWorkflowSandboxDeps,
-): PipelineStep<typeof WorkflowExecutionSchema> {
+): PipelineStep<typeof WorkflowRunSchema> {
   return {
     name: "EnsureWorkflowSandbox",
     async execute(ctx) {
@@ -289,7 +289,7 @@ export function newEnsureWorkflowSandboxStep(
  */
 export async function ensureWorkflowSandboxForExecution(
   deps: EnsureWorkflowSandboxDeps,
-  execution: WorkflowExecution,
+  execution: WorkflowRun,
   caller: SandboxCaller,
 ): Promise<void> {
   if (!deps.lane.enabled) {
@@ -342,10 +342,10 @@ export async function ensureWorkflowSandboxForExecution(
 
 /** The workflow-execution phases after which the per-execution sandbox has no work left. */
 const TERMINAL_WORKFLOW_PHASES: ReadonlySet<WorkflowExecutionPhase> = new Set([
-  WorkflowExecutionPhase.EXECUTION_COMPLETED,
-  WorkflowExecutionPhase.EXECUTION_FAILED,
-  WorkflowExecutionPhase.EXECUTION_CANCELLED,
-  WorkflowExecutionPhase.EXECUTION_TERMINATED,
+  WorkflowExecutionPhase.RUN_COMPLETED,
+  WorkflowExecutionPhase.RUN_FAILED,
+  WorkflowExecutionPhase.RUN_CANCELLED,
+  WorkflowExecutionPhase.RUN_TERMINATED,
 ]);
 
 /**

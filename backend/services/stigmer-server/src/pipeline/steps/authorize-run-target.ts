@@ -75,7 +75,7 @@ export const RUN_GATE_CHECKS = {
     resourceKind: ApiResourceKind.agent,
   },
   session: {
-    permission: IamPermission.can_create_execution_in,
+    permission: IamPermission.can_create_run_in,
     resourceKind: ApiResourceKind.session,
   },
   workflow: {

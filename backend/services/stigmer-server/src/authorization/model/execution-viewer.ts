@@ -18,7 +18,7 @@
 import { isMessage } from "@bufbuild/protobuf";
 
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 
 import { executionAudienceShapes } from "../../pipeline/steps/authorization-tuples.js";
 
@@ -31,7 +31,7 @@ export const executionViewer: DerivedRelation = (object, row) => {
     return Promise.resolve([]);
   }
   const level =
-    row.spec?.executionVisibility ?? WorkflowExecutionVisibility.unspecified;
+    row.spec?.runVisibility ?? WorkflowRunVisibility.unspecified;
   const org = row.metadata?.org ?? "";
   if (org === "") {
     return Promise.resolve([]);

@@ -5,7 +5,7 @@
 
 import { useMemo } from "react";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import type {
   DerivedCostSummary,
   DerivedTaskState,

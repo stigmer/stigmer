@@ -12,11 +12,11 @@
 // on what happened. Ports Go's execution.renderWorkflowEvent switch
 // (internal/cli/execution/logs_workflow.go), preserving its glyphs and wording.
 
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
-  type WorkflowExecutionEvent,
+  type WorkflowRunEvent,
   WorkflowEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 
 /** Color intent for an event line; the renderer maps this to ANSI (or nothing). */
 export type EventTone = "success" | "error" | "warning" | "info" | "muted";
@@ -41,7 +41,7 @@ export function workflowEventTypeName(type: WorkflowEventType): string {
 }
 
 /** Map a workflow event to its display view. Switches on the typed oneof payload. */
-export function toWorkflowEventView(event: WorkflowExecutionEvent): WorkflowEventView {
+export function toWorkflowEventView(event: WorkflowRunEvent): WorkflowEventView {
   const time = formatEventTime(event.occurredAt);
   const taskName = event.taskName;
   const view = (glyph: string, tone: EventTone, text: string, terminal = false): WorkflowEventView => ({
@@ -53,19 +53,19 @@ export function toWorkflowEventView(event: WorkflowExecutionEvent): WorkflowEven
   });
 
   switch (event.payload.case) {
-    case "executionStarted":
+    case "runStarted":
       return view("▶", "success", "execution started");
-    case "executionCompleted":
+    case "runCompleted":
       return view("✓", "success", "execution completed", true);
-    case "executionFailed":
+    case "runFailed":
       return view("✗", "error", `execution failed: ${event.payload.value.error}`, true);
-    case "executionPaused":
+    case "runPaused":
       return view("⏸", "warning", "execution paused");
-    case "executionResumed":
+    case "runResumed":
       return view("▶", "success", "execution resumed");
-    case "executionCancelled":
+    case "runCancelled":
       return view("⊘", "warning", "execution cancelled", true);
-    case "executionTerminated":
+    case "runTerminated":
       return view("⊘", "error", "execution terminated", true);
     case "taskStarted":
       return view("→", "info", `task started: ${taskName}`);

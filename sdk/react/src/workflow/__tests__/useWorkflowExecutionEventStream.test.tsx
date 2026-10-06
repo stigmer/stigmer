@@ -3,13 +3,13 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { createElement } from "react";
 import { create } from "@bufbuild/protobuf";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
-  WorkflowExecutionEventSchema,
+  WorkflowRunEventSchema,
   WorkflowEventType,
   TaskStartedPayloadSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import { StigmerContext } from "../../context";
 import { WorkflowExecutionEventStore } from "../../internal/store";
 import {
@@ -28,12 +28,12 @@ async function flush(): Promise<void> {
 }
 
 const PHASE = {
-  PENDING: ExecutionPhase.EXECUTION_PENDING,
-  IN_PROGRESS: ExecutionPhase.EXECUTION_IN_PROGRESS,
-  COMPLETED: ExecutionPhase.EXECUTION_COMPLETED,
-  FAILED: ExecutionPhase.EXECUTION_FAILED,
-  CANCELLED: ExecutionPhase.EXECUTION_CANCELLED,
-  TERMINATED: ExecutionPhase.EXECUTION_TERMINATED,
+  PENDING: RunPhase.RUN_PENDING,
+  IN_PROGRESS: RunPhase.RUN_IN_PROGRESS,
+  COMPLETED: RunPhase.RUN_COMPLETED,
+  FAILED: RunPhase.RUN_FAILED,
+  CANCELLED: RunPhase.RUN_CANCELLED,
+  TERMINATED: RunPhase.RUN_TERMINATED,
 } as const;
 
 function makeMockClient(overrides?: {
@@ -64,8 +64,8 @@ function createWrapper(client: any) {
 function makeTaskStartedEvent(
   seq: number,
   taskName: string,
-): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-06-02T00:00:00Z",
@@ -160,7 +160,7 @@ describe("useWorkflowExecutionEventStream", () => {
     const subscribeEvents = vi.fn(async function* () {});
     const client = makeMockClient({ getEventLog, subscribeEvents });
 
-    let phase = PHASE.FAILED as ExecutionPhase;
+    let phase = PHASE.FAILED as RunPhase;
 
     const { result, rerender } = renderHook(
       () =>
@@ -205,7 +205,7 @@ describe("useWorkflowExecutionEventStream", () => {
     }));
     const client = makeMockClient({ subscribeEvents, getEventLog });
 
-    let phase = PHASE.IN_PROGRESS as ExecutionPhase;
+    let phase = PHASE.IN_PROGRESS as RunPhase;
 
     const { rerender } = renderHook(
       () =>
@@ -237,7 +237,7 @@ describe("useWorkflowExecutionEventStream", () => {
     }));
     const client = makeMockClient({ getEventLog });
 
-    let phase: ExecutionPhase | undefined = undefined;
+    let phase: RunPhase | undefined = undefined;
 
     const { rerender } = renderHook(
       () =>
@@ -330,7 +330,7 @@ describe("useWorkflowExecutionEventStream", () => {
     const client = makeMockClient({ getEventLog, subscribeEvents });
 
     let execId = "wex-001";
-    let phase = PHASE.COMPLETED as ExecutionPhase;
+    let phase = PHASE.COMPLETED as RunPhase;
 
     const { result, rerender } = renderHook(
       () =>

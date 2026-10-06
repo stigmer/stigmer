@@ -1,13 +1,13 @@
 "use client";
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { useSessionUsage, type ExecutionUsageEntry } from "../useSessionUsage.js";
 import { UsageWidget, formatCost } from "../../execution/UsageWidget.js";
 import { FacetSection } from "./primitives.js";
 
 export interface UsageTabProps {
-  readonly executions: readonly AgentExecution[];
+  readonly executions: readonly AgentRun[];
 }
 
 /**
@@ -60,7 +60,7 @@ function ExecutionModelList({
   executions,
 }: {
   readonly entries: readonly ExecutionUsageEntry[];
-  readonly executions: readonly AgentExecution[];
+  readonly executions: readonly AgentRun[];
 }) {
   return (
     <FacetSection heading="Models per run">
@@ -109,7 +109,7 @@ function RowBadge({ children }: { readonly children: React.ReactNode }) {
  * contract).
  */
 function requestedTierLabel(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
   executionId: string,
 ): string | null {
   const match = executions.find((e) => e.metadata?.id === executionId);

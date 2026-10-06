@@ -18,7 +18,7 @@ import {
   type SurfaceVirtualDocument,
 } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { DEMO_ORG, MOCK_WORKSPACE } from "./fixtures";
 import "./SessionView.css";
 
@@ -46,7 +46,7 @@ export type SessionPanelFacetId = "configure" | "artifacts" | "usage" | "changes
 
 interface SessionViewProps {
   /** When set, renders the conversation via `MessageThread`. */
-  readonly execution?: AgentExecution;
+  readonly execution?: AgentRun;
   /**
    * Render the execution's pending-approval gates inline on their tool rows.
    * `MessageThread` gates approval UI on the presence of an
@@ -171,7 +171,7 @@ function ThreadState({
   panelView,
   openArtifactName,
 }: {
-  readonly execution: AgentExecution;
+  readonly execution: AgentRun;
   readonly showApprovals: boolean;
   readonly agentRef?: ResourceRef | null;
   readonly panelView?: SessionPanelFacetId;

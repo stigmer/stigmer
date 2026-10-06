@@ -8,12 +8,12 @@ import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import {
-  WorkflowExecutionEventSchema,
+  WorkflowRunEventSchema,
   WorkflowEventType,
   TaskStartedPayloadSchema,
   TaskCompletedPayloadSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
 import { WorkflowExecutionEventStore } from "../../internal/store/workflow-execution-event-store";
 import { projectThreadItems } from "../thread/project-thread-items";
@@ -327,8 +327,8 @@ describe("projectThreadItems", () => {
 //      existing key) never reorder cards mid-run.
 // ---------------------------------------------------------------------------
 
-function startedEvent(seq: number, taskName: string): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+function startedEvent(seq: number, taskName: string): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-07-16T00:00:00Z",
@@ -344,8 +344,8 @@ function startedEvent(seq: number, taskName: string): WorkflowExecutionEvent {
   });
 }
 
-function completedEvent(seq: number, taskName: string): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+function completedEvent(seq: number, taskName: string): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-07-16T00:00:00Z",

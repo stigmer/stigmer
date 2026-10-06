@@ -1,9 +1,9 @@
 "use client";
 
 import { memo, useCallback } from "react";
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { WorkflowPendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import type { WorkflowPendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import { ApprovalCard } from "../execution/ApprovalCard.js";
 
@@ -91,9 +91,9 @@ export function WorkflowApprovalList({
         const toolCallId = ref.approval.toolCallId;
         return (
           <WorkflowApprovalItem
-            key={toolCallId || ref.childAgentExecutionId}
+            key={toolCallId || ref.childAgentRunId}
             approval={ref.approval}
-            childAgentExecutionId={ref.childAgentExecutionId}
+            childAgentExecutionId={ref.childAgentRunId}
             onSubmitApproval={onSubmitApproval}
             isSubmitting={submittingToolCallIds?.has(toolCallId) ?? false}
             error={approvalErrors?.get(toolCallId) ?? null}

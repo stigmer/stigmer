@@ -41,7 +41,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { LedgerEntryType } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { ModelPricingBaselineStatus } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
-import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
 import { FixtureTracker } from "../harness/fixtures";
 import { FAKE_CARD, postStripeWebhook, signStripePayload, signedEvent, stripeEvent, type CapturedStripeRequest } from "../harness/fake-stripe";
 import { expectGrpcCode } from "../contract/errors";
@@ -324,7 +324,7 @@ async function armRecharge(op: PrivilegedScope): Promise<ArmedRecharge> {
     monthlyCapMicros: RECHARGE.capMicros,
   });
   const executionId = uniqueName("exec-recharge");
-  const authorized = await op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" });
+  const authorized = await op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" });
   expect(authorized.authorized, "the $3 org is admitted").toBe(true);
   await debitOnce(op, executionId, 1);
   const paymentIntent = await awaitStripeRequest((r) => r.method === "POST" && r.path === "/v1/payment_intents", `auto-recharge PaymentIntent for ${org}`);
@@ -337,7 +337,7 @@ async function armRecharge(op: PrivilegedScope): Promise<ArmedRecharge> {
 // the signal. `sequence` must be unique per execution.
 async function debitOnce(op: PrivilegedScope, executionId: string, sequence: number): Promise<void> {
   await op.clients.billingCommand.recordLlmCallUsage({
-    executionId,
+    runId: executionId,
     sequence,
     provider: "anthropic",
     resolvedModel: "claude-sonnet-4-6",
@@ -533,7 +533,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
       endTime: timestampFromDate(new Date(Date.now() + 3600_000)),
     });
     expect(report.llmCallCount).toBe(0);
-    expect(report.executionCount).toBe(0);
+    expect(report.runCount).toBe(0);
     expect(report.totalBillableAmountMicros).toBe(0n);
     expect(report.totalProviderCostMicros).toBe(0n);
   });
@@ -898,12 +898,12 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const { org } = await fundedOrg();
     const executionId = uniqueName("exec");
     const lanes: Array<[string, () => Promise<unknown>]> = [
-      ["authorizeExecution", () => clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" })],
-      ["finalizeExecution", () => clients.billingCommand.finalizeExecution({ executionId })],
-      ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ executionId })],
-      ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6" })],
+      ["authorizeExecution", () => clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" })],
+      ["finalizeExecution", () => clients.billingCommand.finalizeRun({ runId: executionId })],
+      ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ runId: executionId })],
+      ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6" })],
       ["previewAuthorization", () => clients.billingQuery.previewAuthorization({ org })],
-      ["getExecutionBillingSignal", () => clients.billingQuery.getExecutionBillingSignal({ executionId })],
+      ["getExecutionBillingSignal", () => clients.billingQuery.getRunBillingSignal({ runId: executionId })],
     ];
     for (const [name, op] of lanes) {
       const denied = await expectGrpcCode(op, Code.PermissionDenied, `ordinary caller ${name}`);
@@ -948,7 +948,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const preview = await op.clients.billingQuery.previewAuthorization({ org: unfunded });
     expect(preview.authorized).toBe(false);
     expect(preview.denialReason).toBe(COPY.insufficientCredits);
-    const denied = await op.clients.billingCommand.authorizeExecution({ org: unfunded, executionId: uniqueName("exec"), harness: "native" });
+    const denied = await op.clients.billingCommand.authorizeRun({ org: unfunded, runId: uniqueName("exec"), harness: "native" });
     expect(denied.authorized).toBe(false);
     expect(denied.denialReason).toBe(COPY.insufficientCredits);
     expect(denied.reservationId).toBe("");
@@ -965,13 +965,13 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const before = (await op.clients.billingQuery.getCreditBalance({ org })).availableMicros;
     const executionId = uniqueName("exec");
 
-    const noReservation = await op.clients.billingQuery.getExecutionBillingSignal({ executionId });
+    const noReservation = await op.clients.billingQuery.getRunBillingSignal({ runId: executionId });
     expect(noReservation.reason).toBe("");
 
     const results = await Promise.all([
-      op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" }),
-      op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" }),
-      op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" }),
+      op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" }),
+      op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" }),
+      op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" }),
     ]);
     for (const result of results) expect(result.authorized).toBe(true);
     const reservationIds = new Set(results.map((r) => r.reservationId));
@@ -979,13 +979,13 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const held = (await op.clients.billingQuery.getCreditBalance({ org })).reservedMicros;
     expect(held).toBe(results[0]?.reservedMicros ?? -1n);
 
-    const settled = await op.clients.billingCommand.finalizeExecution({ executionId });
+    const settled = await op.clients.billingCommand.finalizeRun({ runId: executionId });
     expect(settled.releasedReservationMicros).toBe(results[0]?.reservedMicros ?? -1n);
     const afterFirst = await op.clients.billingQuery.getCreditBalance({ org });
     expect(afterFirst.reservedMicros).toBe(0n);
     expect(afterFirst.availableMicros, "no usage was recorded, so settling returns the hold in full").toBe(before);
 
-    await op.clients.billingCommand.finalizeExecution({ executionId }).catch(() => undefined);
+    await op.clients.billingCommand.finalizeRun({ runId: executionId }).catch(() => undefined);
     const afterSecond = await op.clients.billingQuery.getCreditBalance({ org });
     expect(afterSecond.availableMicros).toBe(before);
     expect(afterSecond.reservedMicros).toBe(0n);
@@ -994,7 +994,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
   it("[billing.rpc.finalize-execution.unknown-execution-failed-precondition] [rpc:BillingCommandController.finalizeExecution] settling an execution that was never authorized is refused FAILED_PRECONDITION", async () => {
     const op = await operator();
     await expectGrpcCode(
-      () => op.clients.billingCommand.finalizeExecution({ executionId: uniqueName("never-authorized") }),
+      () => op.clients.billingCommand.finalizeRun({ runId: uniqueName("never-authorized") }),
       Code.FailedPrecondition,
       "finalize unknown execution",
     );
@@ -1005,9 +1005,9 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const org = op.context.org;
     await fundAs(op.clients, org);
     const executionId = uniqueName("exec");
-    const first = await op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" });
-    await op.clients.billingCommand.finalizeExecution({ executionId });
-    const rearmed = await op.clients.billingCommand.rearmForRecovery({ executionId });
+    const first = await op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" });
+    await op.clients.billingCommand.finalizeRun({ runId: executionId });
+    const rearmed = await op.clients.billingCommand.rearmForRecovery({ runId: executionId });
     expect(rearmed.authorized).toBe(true);
     expect(rearmed.reservationId).not.toBe("");
     expect(rearmed.reservationId).not.toBe(first.reservationId);
@@ -1018,16 +1018,16 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const org = op.context.org;
     await fundAs(op.clients, org);
     const executionId = uniqueName("exec");
-    await op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" });
-    await op.clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6", requestedModel: "claude-sonnet-4-6" });
-    await op.clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 2, provider: "anthropic", resolvedModel: "model-nobody-priced", requestedModel: "model-nobody-priced" });
+    await op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" });
+    await op.clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6", requestedModel: "claude-sonnet-4-6" });
+    await op.clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 2, provider: "anthropic", resolvedModel: "model-nobody-priced", requestedModel: "model-nobody-priced" });
     const report = await op.clients.billingQuery.getBillingUsageReport({
       org,
       startTime: timestampFromDate(new Date(Date.now() - 3600_000)),
       endTime: timestampFromDate(new Date(Date.now() + 3600_000)),
     });
     expect(report.llmCallCount).toBe(2);
-    expect(report.executionCount).toBe(1);
+    expect(report.runCount).toBe(1);
   });
 
   // --- the pricing-governance lanes (operator tooling with a console).
@@ -1267,10 +1267,10 @@ describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (
       ["getOrCreateBillingAccount", () => clients.billingCommand.getOrCreateBillingAccount({ org })],
       ["adjustCredits", () => clients.billingCommand.adjustCredits({ org, amountMicros: 1n, reason: "x", idempotencyKey: "k" })],
       ["grantCredits", () => clients.billingCommand.grantCredits({ org, amountMicros: 1n, reason: "x", idempotencyKey: "k" })],
-      ["authorizeExecution", () => clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" })],
-      ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 1, provider: "anthropic", resolvedModel: "m" })],
-      ["finalizeExecution", () => clients.billingCommand.finalizeExecution({ executionId })],
-      ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ executionId })],
+      ["authorizeExecution", () => clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" })],
+      ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 1, provider: "anthropic", resolvedModel: "m" })],
+      ["finalizeExecution", () => clients.billingCommand.finalizeRun({ runId: executionId })],
+      ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ runId: executionId })],
       ["createCreditCheckoutSession", () => clients.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
       ["createBillingPortalSession", () => clients.billingCommand.createBillingPortalSession({ org, returnUrl: "https://x/back" })],
       ["createPaymentMethodSetupSession", () => clients.billingCommand.createPaymentMethodSetupSession({ org, successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
@@ -1286,7 +1286,7 @@ describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (
       ["getModelPricingGovernance", () => clients.billingQuery.getModelPricingGovernance({})],
       ["listModelPricingBaselines", () => clients.billingQuery.listModelPricingBaselines({})],
       ["previewAuthorization", () => clients.billingQuery.previewAuthorization({ org })],
-      ["getExecutionBillingSignal", () => clients.billingQuery.getExecutionBillingSignal({ executionId })],
+      ["getExecutionBillingSignal", () => clients.billingQuery.getRunBillingSignal({ runId: executionId })],
     ];
     expect(lanes, "the 23 RPCs, no more, no fewer").toHaveLength(23);
     for (const [name, op] of lanes) {

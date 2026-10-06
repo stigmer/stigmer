@@ -651,7 +651,7 @@ describe("run gate — a workflow parent link is the vouched runner's (on the en
           makeAgentExecution({
             org: context.org,
             name: uniqueName("member-child-turn"),
-            parent: { workflowExecutionId: "wfx_notvouched" },
+            parent: { workflowRunId: "wfx_notvouched" },
           }),
         ),
       Code.InvalidArgument,

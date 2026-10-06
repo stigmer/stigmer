@@ -6,9 +6,9 @@
 // by sub-agent ID and emits started/message/tool/completed events with the
 // sub-agent ID set for nested rendering.
 
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   collectToolCallsFromMessages,
   isTerminalSubAgentStatus,
@@ -33,7 +33,7 @@ export class SubAgentTracking {
   private readonly cursors = new Map<string, SubAgentCursor>();
 
   /** Process all sub-agent executions in a snapshot. Mirrors Go's emitSubAgentEvents. */
-  emit(subAgents: readonly SubAgentExecution[]): StreamEvent[] {
+  emit(subAgents: readonly SubAgentRun[]): StreamEvent[] {
     const out: StreamEvent[] = [];
 
     for (const sa of subAgents) {

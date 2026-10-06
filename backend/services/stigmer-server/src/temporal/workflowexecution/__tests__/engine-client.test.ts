@@ -30,12 +30,12 @@ import {
   ENGINE_DISCONNECTED,
   EngineWorkflowNotFoundError,
   type StartWorkflowExecutionInput,
-} from "../../../domain/workflowexecution/engine.js";
+} from "../../../domain/workflowrun/engine.js";
 import {
   WORKFLOW_DEFAULT_EXECUTION_TARGET_LOCAL,
   WORKFLOW_ROUTING_GLOBAL,
   WorkflowExecutionTemporalConfig,
-} from "../../../domain/workflowexecution/temporal/config.js";
+} from "../../../domain/workflowrun/temporal/config.js";
 import type { RunCredentialMint } from "../../../runnerauth/dispatch-credential.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import {

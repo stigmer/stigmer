@@ -14,16 +14,16 @@ import {
   FileReviewBaselineCapturedSchema,
   FileReviewCandidateCapturedSchema,
   FileReviewReconciledSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionScope,
   FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
   displayFileChangeSets,
   foldFileReviewEventStream,
@@ -127,7 +127,7 @@ function failed(changeSetId: string) {
 }
 
 function stream(...events: ReturnType<typeof baseline>[]) {
-  return create(FileReviewEventStreamSchema, { executionId: "aex_1", events });
+  return create(FileReviewEventStreamSchema, { runId: "aex_1", events });
 }
 
 // ---------------------------------------------------------------------------
@@ -250,7 +250,7 @@ describe("displayFileChangeSets", () => {
 
   it("prefers the server projection when present (preserving its reference)", () => {
     const projected = [create(FileChangeSetSchema, { id: "cs1" })];
-    const status = create(AgentExecutionStatusSchema, {
+    const status = create(AgentRunStatusSchema, {
       fileChangeSets: projected,
       // A ledger is also present, but the projection wins for a live execution.
       fileReviewEventStream: stream(baseline("cs1")),
@@ -260,7 +260,7 @@ describe("displayFileChangeSets", () => {
   });
 
   it("folds the ledger when the projection is empty (terminal execution)", () => {
-    const status = create(AgentExecutionStatusSchema, {
+    const status = create(AgentRunStatusSchema, {
       fileChangeSets: [], // terminal: server projects nil
       fileReviewEventStream: stream(
         baseline("cs1"),
@@ -275,7 +275,7 @@ describe("displayFileChangeSets", () => {
   });
 
   it("returns [] when neither projection nor ledger has content", () => {
-    const status = create(AgentExecutionStatusSchema, {});
+    const status = create(AgentRunStatusSchema, {});
     expect(displayFileChangeSets(status)).toEqual([]);
   });
 });

@@ -47,9 +47,9 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { COST_LIMIT_USER_COPY, formatCostLimitError } from "../shared/cost-guard.js";
 import { TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../shared/tool-rounds.js";
@@ -64,7 +64,7 @@ export type TerminalDisposition = { readonly kind: "return" } | { readonly kind:
 /** One arm of the table: what to write, and how to end. */
 export interface TerminalArm {
   /** `EXECUTION_PHASE_UNSPECIFIED` writes no phase: the merge applies a phase only when one is sent. */
-  readonly phase: ExecutionPhase;
+  readonly phase: RunPhase;
   /** `status.error`; absent leaves it as it is (a pause is not an error). */
   readonly error?: string;
   /** System rows appended in order, each exactly once. */
@@ -110,7 +110,7 @@ export const TERMINAL_COPY = {
 /** The watchdog cancelled a turn that made no progress. RETURN: an identical prompt would wedge again. */
 export function stallArm(error: StallTimeoutError): TerminalArm {
   return {
-    phase: ExecutionPhase.EXECUTION_FAILED,
+    phase: RunPhase.RUN_FAILED,
     error: formatStallFailure(error),
     rows: [
       `Execution failed: the agent made no progress for too long and was stopped (${error.message}). You can retry or resume.`,
@@ -129,7 +129,7 @@ export function stallArm(error: StallTimeoutError): TerminalArm {
  */
 export function costCapArm(maxCostUsd: number, estimatedCostUsd: number): TerminalArm {
   return {
-    phase: ExecutionPhase.EXECUTION_TERMINATED,
+    phase: RunPhase.RUN_TERMINATED,
     error: formatCostLimitError(maxCostUsd, estimatedCostUsd),
     rows: [COST_LIMIT_USER_COPY],
     completes: true,
@@ -146,7 +146,7 @@ export function costCapArm(maxCostUsd: number, estimatedCostUsd: number): Termin
  */
 export function toolCallLimitArm(): TerminalArm {
   return {
-    phase: ExecutionPhase.EXECUTION_TERMINATED,
+    phase: RunPhase.RUN_TERMINATED,
     error: formatToolCallLimitError(),
     rows: [TOOL_CALL_LIMIT_USER_COPY],
     completes: true,
@@ -157,7 +157,7 @@ export function toolCallLimitArm(): TerminalArm {
 /** The runner is draining. Not a user's stop: FAILED with the shutdown copy, thrown as cancelled. */
 export function workerShutdownArm(): TerminalArm {
   return {
-    phase: ExecutionPhase.EXECUTION_FAILED,
+    phase: RunPhase.RUN_FAILED,
     error: TERMINAL_COPY.workerShutdown.error,
     rows: [TERMINAL_COPY.workerShutdown.row],
     completes: true,
@@ -173,7 +173,7 @@ export function workerShutdownArm(): TerminalArm {
  */
 export function orchestratorStopArm(): TerminalArm {
   return {
-    phase: ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+    phase: RunPhase.RUN_PHASE_UNSPECIFIED,
     rows: [],
     completes: false,
     disposition: { kind: "throw", message: TERMINAL_COPY.orchestratorStop.throwMessage },
@@ -183,7 +183,7 @@ export function orchestratorStopArm(): TerminalArm {
 /** Temporal cancelled for its own reason (a heartbeat timeout). FAILED with the unresponsive copy, thrown as cancelled. */
 export function infrastructureCancelArm(): TerminalArm {
   return {
-    phase: ExecutionPhase.EXECUTION_FAILED,
+    phase: RunPhase.RUN_FAILED,
     error: TERMINAL_COPY.infrastructureCancel.error,
     rows: [TERMINAL_COPY.infrastructureCancel.row],
     completes: true,
@@ -200,7 +200,7 @@ export function infrastructureCancelArm(): TerminalArm {
  * ends belongs in this one table.
  */
 export function awaitingApprovalArm(): TerminalArm {
-  return { phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, rows: [], completes: false, disposition: RETURN };
+  return { phase: RunPhase.RUN_WAITING_FOR_APPROVAL, rows: [], completes: false, disposition: RETURN };
 }
 
 /**
@@ -222,7 +222,7 @@ export function awaitingApprovalArm(): TerminalArm {
  */
 export function awaitingReviewArm(deferred?: TerminalArm): TerminalArm {
   return {
-    phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+    phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
     rows: deferred?.rows ?? [],
     completes: false,
     disposition: RETURN,
@@ -232,7 +232,7 @@ export function awaitingReviewArm(deferred?: TerminalArm): TerminalArm {
 /** The control plane answered STOP. A clean COMPLETED early exit. */
 export function platformStopArm(): TerminalArm {
   return {
-    phase: ExecutionPhase.EXECUTION_COMPLETED,
+    phase: RunPhase.RUN_COMPLETED,
     rows: [TERMINAL_COPY.platformStop.row],
     completes: true,
     disposition: RETURN,
@@ -242,7 +242,7 @@ export function platformStopArm(): TerminalArm {
 /** Another turn held the primary tree past the lock timeout. RETURN: a retry would queue behind the same holder. */
 export function workspaceLockTimeoutArm(error: WorkspaceLockTimeoutError): TerminalArm {
   return {
-    phase: ExecutionPhase.EXECUTION_FAILED,
+    phase: RunPhase.RUN_FAILED,
     error: error.message,
     rows: [`Execution failed: ${error.message}`],
     completes: true,
@@ -271,7 +271,7 @@ export function fileReviewResolvedArm(settlement: {
   } else if (settlement.discardedPaths.length > 0) {
     rows.push(`${TERMINAL_COPY.fileReview.discardedPrefix}${settlement.discardedPaths.join(", ")}.`);
   }
-  return { phase: ExecutionPhase.EXECUTION_COMPLETED, rows, completes: true, disposition: RETURN };
+  return { phase: RunPhase.RUN_COMPLETED, rows, completes: true, disposition: RETURN };
 }
 
 /**
@@ -294,7 +294,7 @@ export function failedArm(message: string, surface: FailureSurface): TerminalArm
       }
     }
   })();
-  return { phase: ExecutionPhase.EXECUTION_FAILED, error: message, rows, completes: true, disposition: RETURN };
+  return { phase: RunPhase.RUN_FAILED, error: message, rows, completes: true, disposition: RETURN };
 }
 
 /**
@@ -317,14 +317,14 @@ export function unexpectedErrorArm(errorType: string, errorMessage: string): Ter
  * on purpose: rows reach a status only through `applyTerminalArm`, so no
  * caller can append an arm's copy a second time (the shape of stigmer#1054).
  */
-function appendSystemRows(status: AgentExecutionStatus, rows: readonly string[]): void {
+function appendSystemRows(status: AgentRunStatus, rows: readonly string[]): void {
   for (const content of rows) {
     status.messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_SYSTEM, content, timestamp: utcTimestamp() }));
   }
 }
 
 /** Write an arm onto the status: phase, error, completion stamp, rows. The caller persists and disposes. */
-export function applyTerminalArm(status: AgentExecutionStatus, arm: TerminalArm): void {
+export function applyTerminalArm(status: AgentRunStatus, arm: TerminalArm): void {
   status.phase = arm.phase;
   if (arm.error !== undefined) status.error = arm.error;
   if (arm.completes) status.completedAt = utcTimestamp();

@@ -30,7 +30,7 @@
 
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ApprovalAction, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../client/stigmer-client.js", async () =>
   (await import("../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -100,7 +100,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
     it("a completed turn: the runtime's six labels are the whole list, the phases, the stated price and its basis", async () => {
       clock.reset();
       const { driver, final } = await assertCompletedTurn(harness, "fake-completed");
-      expect(driver.record.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_COMPLETED]);
+      expect(driver.record.persistedPhases).toEqual([RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_COMPLETED]);
       expect(driver.record.setupProgress).toEqual([...RUNTIME_SETUP_LABELS]);
       expect(final.streamingUsage?.estimatedCostUsd, "the summary is the adapter's stated price, summed").toBeCloseTo(0.00136, 9);
       expect(final.streamingUsage?.model, "the basis the adapter named").toBe("fixture-model");
@@ -111,9 +111,9 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       clock.reset();
       const { driver } = await assertApprovalRoundTrip(harness, "fake-approval");
       expect(driver.record.persistedPhases).toEqual([
-        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_WAITING_FOR_APPROVAL,
+        RunPhase.RUN_IN_PROGRESS,
+        RunPhase.RUN_COMPLETED,
       ]);
       expect(driver.record.sessionUpdates, "an engine-minted adapter binds once across the round trip").toHaveLength(1);
     });
@@ -132,7 +132,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
     ] as const)("a %s failure: the fake's message reaches the status verbatim, with that surface's rows", async (surface, rows) => {
       clock.reset();
       const { driver, final } = await assertFailedSurfaceWritesItsCopy(harness, surface, FAILURE_MESSAGES[surface], `fake-failed-${surface}`);
-      expect(driver.record.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_FAILED]);
+      expect(driver.record.persistedPhases).toEqual([RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_FAILED]);
       expect(final.error).toBe(FAILURE_MESSAGES[surface]);
       expect(systemMessages(final)).toEqual(rows);
     });
@@ -154,9 +154,9 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       clock.reset();
       const { driver, final } = await assertNonExecutingDecisionSettlesSkipped(harness, ApprovalAction.REJECT, "fake-reject");
       expect(driver.record.persistedPhases).toEqual([
-        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_WAITING_FOR_APPROVAL,
+        RunPhase.RUN_IN_PROGRESS,
+        RunPhase.RUN_COMPLETED,
       ]);
       expect(aiMessages(final)).toContain("Moving on.");
       expect(systemMessages(final), "no terminal copy: the run ended normally").toEqual([]);

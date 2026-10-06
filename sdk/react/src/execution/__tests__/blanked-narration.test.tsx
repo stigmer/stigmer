@@ -2,22 +2,22 @@ import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   type AgentMessage,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { buildThreadItems } from "../MessageThread";
 import { MessageEntry } from "../MessageEntry";
 
@@ -65,12 +65,12 @@ function gatedAiMessage(): AgentMessage {
  * gated tool call (WAITING_APPROVAL), then the blanked provisional narration
  * (a THINKING and an AI message, both with empty content). Count preserved.
  */
-function waitingForApprovalExecution(): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+function waitingForApprovalExecution(): AgentRun {
+  const exec = create(AgentRunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-hitl" });
-  exec.spec = create(AgentExecutionSpecSchema, { message: "make the change" });
-  exec.status = create(AgentExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+  exec.spec = create(AgentRunSpecSchema, { message: "make the change" });
+  exec.status = create(AgentRunStatusSchema, {
+    phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
     messages: [
       aiText("Let me create the file."),
       gatedAiMessage(),

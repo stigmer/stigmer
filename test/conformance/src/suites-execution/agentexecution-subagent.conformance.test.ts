@@ -16,7 +16,7 @@
 // with id / name / subject / started_at / completed_at / output all populated
 // (the shape the SDK's sub-agent panel reads); the run consumed exactly its
 // three turns.
-import { ExecutionPhase, SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase, SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -101,9 +101,9 @@ describe("AgentExecution sub-agent delegation", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `delegation should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]} ` +
+      `delegation should complete; reached ${RunPhase[final.status?.phase ?? 0]} ` +
         `(status.error: ${JSON.stringify(final.status?.error ?? "")})`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    ).toBe(RunPhase.RUN_COMPLETED);
 
     // The parent's transcript: a completed `task` call whose result is the child's answer.
     const parentToolCalls = (final.status?.messages ?? []).flatMap((m) => m.toolCalls);
@@ -113,7 +113,7 @@ describe("AgentExecution sub-agent delegation", () => {
     expect(task!.result, "the task result is the sub-agent's output").toContain("solar");
 
     // The child's own record.
-    const subAgents = final.status?.subAgentExecutions ?? [];
+    const subAgents = final.status?.subAgentRuns ?? [];
     expect(subAgents.map((s) => s.name), "exactly the named sub-agent ran").toEqual([RESEARCHER]);
     const child = subAgents[0]!;
     expect(child.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);

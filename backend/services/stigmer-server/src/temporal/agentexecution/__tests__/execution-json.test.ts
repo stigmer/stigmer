@@ -6,7 +6,7 @@
  * enum reading as its zero value, and that everything else survives.
  */
 import { describe, expect, it } from "vitest";
-import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { decodeLoadedExecution } from "../execution-json.js";
 

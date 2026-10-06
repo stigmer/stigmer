@@ -21,7 +21,7 @@ import (
 	"net"
 	"testing"
 
-	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
+	agentrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
@@ -40,7 +40,7 @@ const (
 // controllers. A single instance is shared across both controller shims.
 type captureState struct {
 	lastSession        *sessionv1.Session
-	lastAgentExecution *agentexecutionv1.AgentExecution
+	lastAgentExecution *agentrunv1.AgentRun
 }
 
 // The session and agent-execution command controllers each require a method
@@ -58,11 +58,11 @@ func (s *sessionCaptureServer) Create(_ context.Context, req *sessionv1.Session)
 }
 
 type agentExecutionCaptureServer struct {
-	agentexecutionv1.UnimplementedAgentExecutionCommandControllerServer
+	agentrunv1.UnimplementedAgentRunCommandControllerServer
 	state *captureState
 }
 
-func (s *agentExecutionCaptureServer) Create(_ context.Context, req *agentexecutionv1.AgentExecution) (*agentexecutionv1.AgentExecution, error) {
+func (s *agentExecutionCaptureServer) Create(_ context.Context, req *agentrunv1.AgentRun) (*agentrunv1.AgentRun, error) {
 	s.state.lastAgentExecution = req
 	return req, nil
 }
@@ -78,7 +78,7 @@ func newCaptureClient(t *testing.T) (*Client, *captureState) {
 	lis := bufconn.Listen(1024 * 1024)
 	srv := grpc.NewServer()
 	sessionv1.RegisterSessionCommandControllerServer(srv, &sessionCaptureServer{state: state})
-	agentexecutionv1.RegisterAgentExecutionCommandControllerServer(srv, &agentExecutionCaptureServer{state: state})
+	agentrunv1.RegisterAgentRunCommandControllerServer(srv, &agentExecutionCaptureServer{state: state})
 
 	go func() { _ = srv.Serve(lis) }()
 
@@ -233,7 +233,7 @@ func TestWorkspaceSourceOneof_SessionCreate(t *testing.T) {
 func TestWorkspaceSourceOneof_AgentExecutionSessionSpec(t *testing.T) {
 	t.Run("git_repo", func(t *testing.T) {
 		client, state := newCaptureClient(t)
-		if _, err := client.AgentExecution.Create(context.Background(), &AgentExecutionInput{
+		if _, err := client.AgentRun.Create(context.Background(), &AgentRunInput{
 			Org:     "acme",
 			Message: "hello",
 			SessionSpec: &SessionSpecInput{
@@ -259,7 +259,7 @@ func TestWorkspaceSourceOneof_AgentExecutionSessionSpec(t *testing.T) {
 
 	t.Run("local_path", func(t *testing.T) {
 		client, state := newCaptureClient(t)
-		if _, err := client.AgentExecution.Create(context.Background(), &AgentExecutionInput{
+		if _, err := client.AgentRun.Create(context.Background(), &AgentRunInput{
 			Org:     "acme",
 			Message: "hello",
 			SessionSpec: &SessionSpecInput{

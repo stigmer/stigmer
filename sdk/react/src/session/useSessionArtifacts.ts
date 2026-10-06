@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { isTerminalPhase } from "../execution/execution-phases.js";
 
 /**
@@ -17,7 +17,7 @@ import { isTerminalPhase } from "../execution/execution-phases.js";
  */
 export interface SessionArtifactEntry {
   /** The proto artifact record containing name, path, size, and download URL. */
-  readonly artifact: ExecutionArtifact;
+  readonly artifact: RunArtifact;
   /** ID of the execution that produced this artifact version. */
   readonly executionId: string;
   /** Whether the producing execution is in a terminal phase. */
@@ -56,7 +56,7 @@ export interface UseSessionArtifactsReturn {
  * `/` segment in `EditorTabs`), so `sandbox_path` gives a natural filename
  * label with cross-directory disambiguation for free.
  */
-export function artifactKey(artifact: ExecutionArtifact): string {
+export function artifactKey(artifact: RunArtifact): string {
   return artifact.sandboxPath || artifact.name;
 }
 
@@ -100,7 +100,7 @@ export function artifactKey(artifact: ExecutionArtifact): string {
  * @see ArtifactsWidget — styled component that renders this data
  */
 export function useSessionArtifacts(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
 ): UseSessionArtifactsReturn {
   return useMemo(() => {
     const entryMap = new Map<string, SessionArtifactEntry>();
@@ -109,7 +109,7 @@ export function useSessionArtifacts(
       const executionId = execution.metadata?.id ?? "";
       const phase =
         execution.status?.phase ??
-        ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+        RunPhase.RUN_PHASE_UNSPECIFIED;
       const terminal = isTerminalPhase(phase);
 
       for (const artifact of execution.status?.artifacts ?? []) {

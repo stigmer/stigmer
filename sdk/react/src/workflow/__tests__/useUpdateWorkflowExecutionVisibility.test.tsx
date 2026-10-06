@@ -8,8 +8,8 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { act, renderHook, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { UpdateWorkflowExecutionVisibilityInput } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import type { UpdateWorkflowRunVisibilityInput } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { useUpdateWorkflowExecutionVisibility } from "../useUpdateWorkflowExecutionVisibility";
 
@@ -18,7 +18,7 @@ afterEach(cleanup);
 const UPDATED = { metadata: { id: "wfl_1" } } as Workflow;
 
 function renderUpdate(
-  update: (input: UpdateWorkflowExecutionVisibilityInput) => Promise<Workflow>,
+  update: (input: UpdateWorkflowRunVisibilityInput) => Promise<Workflow>,
 ) {
   const client = { workflow: { updateExecutionVisibility: vi.fn(update) } };
   const view = renderHook(() => useUpdateWorkflowExecutionVisibility(), {
@@ -37,14 +37,14 @@ describe("useUpdateWorkflowExecutionVisibility", () => {
     await act(async () => {
       updated = await result.current.updateExecutionVisibility(
         "wfl_1",
-        WorkflowExecutionVisibility.organization,
+        WorkflowRunVisibility.organization,
       );
     });
 
     expect(updated).toBe(UPDATED);
     const input = update.mock.calls[0]![0];
     expect(input.resourceId).toBe("wfl_1");
-    expect(input.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+    expect(input.runVisibility).toBe(WorkflowRunVisibility.organization);
     expect(result.current.isUpdating).toBe(false);
     expect(result.current.error).toBeNull();
   });
@@ -56,7 +56,7 @@ describe("useUpdateWorkflowExecutionVisibility", () => {
 
     await act(async () => {
       await expect(
-        result.current.updateExecutionVisibility("wfl_1", WorkflowExecutionVisibility.organization),
+        result.current.updateExecutionVisibility("wfl_1", WorkflowRunVisibility.organization),
       ).rejects.toThrow("permission denied");
     });
 

@@ -2,15 +2,15 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { ArtifactDocument } from "../ArtifactDocument";
 
 function fileArtifact(name: string) {
-  return create(ExecutionArtifactSchema, {
+  return create(RunArtifactSchema, {
     name,
-    kind: ExecutionArtifactKind.FILE,
+    kind: RunArtifactKind.FILE,
     sizeBytes: 64n,
     storageKey: `artifacts/aex_1/${name}`,
     contentHash: "hash-1",
@@ -18,9 +18,9 @@ function fileArtifact(name: string) {
 }
 
 function dirArtifact(name: string) {
-  return create(ExecutionArtifactSchema, {
+  return create(RunArtifactSchema, {
     name,
-    kind: ExecutionArtifactKind.DIRECTORY,
+    kind: RunArtifactKind.DIRECTORY,
     sizeBytes: 512n,
     storageKey: `artifacts/aex_1/${name}`,
     entries: ["a.txt", "b.txt"],

@@ -41,13 +41,13 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   SubAgentStatus,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -151,7 +151,7 @@ describe("ExecuteCursor hermetic — sub-agent delegation", () => {
     // ── Assert: outcome ──────────────────────────────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
     // ── Assert: the root transcript ──────────────────────────────────────────
     const final = record.lastFullStatus!;
@@ -164,8 +164,8 @@ describe("ExecuteCursor hermetic — sub-agent delegation", () => {
     ]);
 
     // ── Assert: the sub-agent execution ──────────────────────────────────────
-    expect(final.subAgentExecutions).toHaveLength(1);
-    const sub = final.subAgentExecutions[0];
+    expect(final.subAgentRuns).toHaveLength(1);
+    const sub = final.subAgentRuns[0];
     expect(sub.id, "keyed by the task call id").toBe(TASK_CALL_ID);
     expect(sub.name).toBe("helper");
     expect(sub.subject).toBe(TASK_ARGS.description);
@@ -190,7 +190,7 @@ describe("ExecuteCursor hermetic — sub-agent delegation", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/sub-agent-delegation.status.json");
   });
 });

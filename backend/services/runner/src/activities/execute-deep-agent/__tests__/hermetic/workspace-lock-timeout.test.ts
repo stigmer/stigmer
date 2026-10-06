@@ -38,7 +38,7 @@
 import { mkdirSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -116,7 +116,7 @@ describe("ExecuteDeepAgent hermetic — workspace lock timeout", () => {
       );
       const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
       expect(slim.phase).toBe("EXECUTION_FAILED");
-      expect(record.persistedPhases, "the one and only full persist").toEqual([ExecutionPhase.EXECUTION_FAILED]);
+      expect(record.persistedPhases, "the one and only full persist").toEqual([RunPhase.RUN_FAILED]);
 
       // ── Assert: the copy, built with the same class over the real path ─────
       const expectedMessage = new WorkspaceLockTimeoutError(resolvedDir, 0).message;

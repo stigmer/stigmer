@@ -29,7 +29,7 @@ import type { DescMessage } from "@bufbuild/protobuf";
 
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -66,8 +66,8 @@ function executionVisibilityEventOf(
     orgId: workflow.metadata?.org ?? "",
     shapes: [
       ...executionAudienceShapes(
-        workflow.spec?.executionVisibility ??
-          WorkflowExecutionVisibility.unspecified,
+        workflow.spec?.runVisibility ??
+          WorkflowRunVisibility.unspecified,
       ),
     ],
   };
@@ -94,9 +94,9 @@ export function newPreserveExecutionVisibilityStep(): PipelineStep<WorkflowDesc>
       }
       const merged = ctx.newState;
       if (merged.spec !== undefined) {
-        merged.spec.executionVisibility =
-          existing.spec?.executionVisibility ??
-          WorkflowExecutionVisibility.unspecified;
+        merged.spec.runVisibility =
+          existing.spec?.runVisibility ??
+          WorkflowRunVisibility.unspecified;
       }
     },
   };
@@ -190,7 +190,7 @@ export function newLoadWorkflowForExecutionVisibilityUpdateStep<
 export function newSetWorkflowExecutionVisibilityStep<
   Desc extends DescMessage,
 >(
-  levelOf: (ctx: RequestContext<Desc>) => WorkflowExecutionVisibility,
+  levelOf: (ctx: RequestContext<Desc>) => WorkflowRunVisibility,
 ): PipelineStep<Desc> {
   return {
     name: "SetWorkflowExecutionVisibility",
@@ -200,7 +200,7 @@ export function newSetWorkflowExecutionVisibilityStep<
       ) as Workflow;
 
       workflow.spec ??= create(WorkflowSpecSchema);
-      workflow.spec.executionVisibility = levelOf(ctx);
+      workflow.spec.runVisibility = levelOf(ctx);
       setAuditFieldsForUpdate(
         WorkflowSchema,
         workflow,

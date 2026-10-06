@@ -11,14 +11,14 @@
 // agentexecutions/approve.ts).
 
 import type { JsonObject, MessageInitShape } from "@bufbuild/protobuf";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
 import {
   type ListPendingApprovalsRequestSchema,
   PendingApprovalsListSchema,
   type SubmitWorkflowTaskApprovalInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 
 import { withClient } from "../client.js";
 import { toProtoJson } from "../marshal.js";
@@ -37,7 +37,7 @@ export async function listPendingApprovals(
   args: ListPendingApprovalsArgs,
 ): Promise<string> {
   return withClient(
-    WorkflowExecutionQueryController,
+    WorkflowRunQueryController,
     serverAddress,
     token,
     async (client, callOptions) => {
@@ -74,12 +74,12 @@ export async function submitWorkflowTaskApproval(
   args: SubmitWorkflowTaskApprovalArgs,
 ): Promise<string> {
   return withClient(
-    WorkflowExecutionCommandController,
+    WorkflowRunCommandController,
     serverAddress,
     token,
     async (client, callOptions) => {
       const req: MessageInitShape<typeof SubmitWorkflowTaskApprovalInputSchema> = {
-        executionId: args.executionId,
+        runId: args.executionId,
         taskName: args.taskName,
         outcome: args.outcome,
         comment: args.comment ?? "",
@@ -90,7 +90,7 @@ export async function submitWorkflowTaskApproval(
       }
       try {
         const execution = await client.submitWorkflowTaskApproval(req, callOptions);
-        return toProtoJson(WorkflowExecutionSchema, execution);
+        return toProtoJson(WorkflowRunSchema, execution);
       } catch (err) {
         throw rpcError(
           err,

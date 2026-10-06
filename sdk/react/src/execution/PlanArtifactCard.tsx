@@ -2,7 +2,7 @@
 
 import { memo, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { ArtifactPreviewModal } from "./ArtifactPreviewModal.js";
 import { formatArtifactSize } from "./artifact-utils.js";
@@ -15,7 +15,7 @@ export interface PlanArtifactCardProps {
   /** Execution that produced the plan — used to fetch the plan content. */
   readonly executionId: string;
   /** The published `plan.md` artifact (from `findPlanArtifact`). */
-  readonly artifact: ExecutionArtifact;
+  readonly artifact: RunArtifact;
   /**
    * The plan's title (its leading `# H1`). The card is the plan's compact
    * stand-in in the thread, so the title is what makes it recognizable.

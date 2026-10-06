@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   GetSessionUsageReportInputSchema,
   type GetSessionUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { ModelUsage, StreamingUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { ModelUsage, StreamingUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
 import { useStigmer } from "../hooks.js";
 import { isTerminalPhase } from "../execution/execution-phases.js";
 import { useFetch } from "../internal/useFetch.js";
@@ -149,8 +149,8 @@ function mapReport(report: GetSessionUsageReportOutput): UseSessionUsageReturn {
     cacheCreationTokens: Number(agg.cacheCreationInputTokens),
     llmCallCount,
     modelBreakdown: report.modelBreakdown.map(mapModelUsage),
-    executionBreakdown: report.executions.map((e) => ({
-      executionId: e.executionId,
+    executionBreakdown: report.runs.map((e) => ({
+      executionId: e.runId,
       resolvedModel: e.primaryModel,
       billableCostUsd: microsToUsd(e.billableCostMicros),
       isEstimated: e.isEstimated,
@@ -168,7 +168,7 @@ function mapReport(report: GetSessionUsageReportOutput): UseSessionUsageReturn {
  * (e.g., Cursor harness where the proxy does not capture main agent turns).
  */
 function aggregateStreamingUsage(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
 ): UseSessionUsageReturn {
   let inputTokens = 0;
   let outputTokens = 0;
@@ -242,7 +242,7 @@ function aggregateStreamingUsage(
  * @param executions - All executions for a session (completed + active).
  */
 export function useSessionUsage(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
 ): UseSessionUsageReturn {
   const stigmer = useStigmer();
 
@@ -269,7 +269,7 @@ export function useSessionUsage(
   // recreated on every streaming re-render (which would prevent it firing).
   const fetchReport = useCallback(
     () =>
-      stigmer.agentExecution.getSessionUsageReport(
+      stigmer.agentRun.getSessionUsageReport(
         create(GetSessionUsageReportInputSchema, { sessionId: sessionId! }),
       ),
     [sessionId, stigmer],

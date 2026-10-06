@@ -3,12 +3,12 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { Stigmer } from "@stigmer/sdk";
@@ -28,19 +28,19 @@ function makeSession(id: string): Session {
 
 function makeExecution(
   id: string,
-  phase: ExecutionPhase,
+  phase: RunPhase,
   opts?: { supersedes?: string },
-): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+): AgentRun {
+  const exec = create(AgentRunSchema);
   const metadata = create(ApiResourceMetadataSchema);
   metadata.id = id;
   exec.metadata = metadata;
-  const status = create(AgentExecutionStatusSchema);
+  const status = create(AgentRunStatusSchema);
   status.phase = phase;
   exec.status = status;
   if (opts?.supersedes) {
-    const spec = create(AgentExecutionSpecSchema);
-    spec.supersedesExecutionId = opts.supersedes;
+    const spec = create(AgentRunSpecSchema);
+    spec.supersedesRunId = opts.supersedes;
     exec.spec = spec;
   }
   return exec;
@@ -128,18 +128,18 @@ function createWrapper(client: Stigmer) {
 describe("useSessionConversation", () => {
   let methods: MockMethods;
   let mockStigmer: Stigmer;
-  let stream: ReturnType<typeof createControllableStream<AgentExecution>>;
+  let stream: ReturnType<typeof createControllableStream<AgentRun>>;
 
   beforeEach(() => {
-    stream = createControllableStream<AgentExecution>();
+    stream = createControllableStream<AgentRun>();
     methods = {
       sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
       listBySession: vi.fn().mockResolvedValue({ entries: [] }),
       executionCreate: vi.fn(),
       subscribe: vi.fn().mockReturnValue(stream.generator),
       submitApproval: vi.fn().mockResolvedValue({}),
-      cancel: vi.fn().mockResolvedValue(makeExecution("e1", ExecutionPhase.EXECUTION_CANCELLED)),
-      terminate: vi.fn().mockResolvedValue(makeExecution("e1", ExecutionPhase.EXECUTION_TERMINATED)),
+      cancel: vi.fn().mockResolvedValue(makeExecution("e1", RunPhase.RUN_CANCELLED)),
+      terminate: vi.fn().mockResolvedValue(makeExecution("e1", RunPhase.RUN_TERMINATED)),
     };
     mockStigmer = createMockStigmer(methods);
   });
@@ -199,8 +199,8 @@ describe("useSessionConversation", () => {
   });
 
   it("completedExecutions excludes the active non-terminal execution", async () => {
-    const completed = makeExecution("e1", ExecutionPhase.EXECUTION_COMPLETED);
-    const active = makeExecution("e2", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const completed = makeExecution("e1", RunPhase.RUN_COMPLETED);
+    const active = makeExecution("e2", RunPhase.RUN_IN_PROGRESS);
     methods.listBySession.mockResolvedValue({
       entries: [completed, active],
     });
@@ -217,7 +217,7 @@ describe("useSessionConversation", () => {
   });
 
   it("canSendFollowUp is true when no active execution", async () => {
-    const completed = makeExecution("e1", ExecutionPhase.EXECUTION_COMPLETED);
+    const completed = makeExecution("e1", RunPhase.RUN_COMPLETED);
     methods.listBySession.mockResolvedValue({ entries: [completed] });
 
     const { result } = renderHook(
@@ -231,7 +231,7 @@ describe("useSessionConversation", () => {
   });
 
   it("canSendFollowUp is false while an execution is active", async () => {
-    const active = makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const active = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
     methods.listBySession.mockResolvedValue({ entries: [active] });
 
     const { result } = renderHook(
@@ -246,7 +246,7 @@ describe("useSessionConversation", () => {
 
   it("sendFollowUp sets pendingUserMessage optimistically", async () => {
     methods.listBySession.mockResolvedValue({ entries: [] });
-    const newExec = makeExecution("new-exec", ExecutionPhase.EXECUTION_PENDING);
+    const newExec = makeExecution("new-exec", RunPhase.RUN_PENDING);
     newExec.metadata!.id = "new-exec";
     methods.executionCreate.mockResolvedValue(newExec);
 
@@ -268,11 +268,11 @@ describe("useSessionConversation", () => {
 
   it("sendFollowUp carries the submit's attachments as pendingAttachments, cleared with the first snapshot", async () => {
     methods.listBySession.mockResolvedValue({ entries: [] });
-    const newExec = makeExecution("new-exec", ExecutionPhase.EXECUTION_PENDING);
+    const newExec = makeExecution("new-exec", RunPhase.RUN_PENDING);
     newExec.metadata!.id = "new-exec";
     methods.executionCreate.mockResolvedValue(newExec);
 
-    const newStream = createControllableStream<AgentExecution>();
+    const newStream = createControllableStream<AgentRun>();
     methods.subscribe.mockReturnValue(newStream.generator);
 
     const attachments = [
@@ -295,7 +295,7 @@ describe("useSessionConversation", () => {
 
     act(() => {
       newStream.push(
-        makeExecution("new-exec", ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeExecution("new-exec", RunPhase.RUN_IN_PROGRESS),
       );
     });
 
@@ -330,7 +330,7 @@ describe("useSessionConversation", () => {
 
   it("sendFollowUp creates execution via the SDK", async () => {
     methods.listBySession.mockResolvedValue({ entries: [] });
-    const newExec = makeExecution("new-exec", ExecutionPhase.EXECUTION_PENDING);
+    const newExec = makeExecution("new-exec", RunPhase.RUN_PENDING);
     newExec.metadata!.id = "new-exec";
     methods.executionCreate.mockResolvedValue(newExec);
 
@@ -361,7 +361,7 @@ describe("useSessionConversation", () => {
     session.metadata!.org = "acme";
     methods.sessionGet.mockResolvedValue(session);
     methods.listBySession.mockResolvedValue({ entries: [] });
-    const newExec = makeExecution("new-exec", ExecutionPhase.EXECUTION_PENDING);
+    const newExec = makeExecution("new-exec", RunPhase.RUN_PENDING);
     methods.executionCreate.mockResolvedValue(newExec);
 
     const { result } = renderHook(
@@ -397,11 +397,11 @@ describe("useSessionConversation", () => {
   it("pendingUserMessage clears when stream delivers first snapshot", async () => {
     methods.listBySession.mockResolvedValue({ entries: [] });
 
-    const newExec = makeExecution("new-exec", ExecutionPhase.EXECUTION_PENDING);
+    const newExec = makeExecution("new-exec", RunPhase.RUN_PENDING);
     newExec.metadata!.id = "new-exec";
     methods.executionCreate.mockResolvedValue(newExec);
 
-    const newStream = createControllableStream<AgentExecution>();
+    const newStream = createControllableStream<AgentRun>();
     methods.subscribe.mockReturnValue(newStream.generator);
 
     const { result } = renderHook(
@@ -419,7 +419,7 @@ describe("useSessionConversation", () => {
 
     act(() => {
       newStream.push(
-        makeExecution("new-exec", ExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeExecution("new-exec", RunPhase.RUN_IN_PROGRESS),
       );
     });
 
@@ -430,7 +430,7 @@ describe("useSessionConversation", () => {
 
   it("sets NO optimistic pendingUserMessage for a buildFromPlan send (the thread hides the turn)", async () => {
     methods.listBySession.mockResolvedValue({ entries: [] });
-    const newExec = makeExecution("new-exec", ExecutionPhase.EXECUTION_PENDING);
+    const newExec = makeExecution("new-exec", RunPhase.RUN_PENDING);
     newExec.metadata!.id = "new-exec";
     methods.executionCreate.mockResolvedValue(newExec);
 
@@ -495,7 +495,7 @@ describe("useSessionConversation", () => {
   it("retryLastSend resubmits the same message after a failure", async () => {
     methods.listBySession.mockResolvedValue({ entries: [] });
     methods.executionCreate.mockRejectedValueOnce(new Error("boom"));
-    const retried = makeExecution("e-retry", ExecutionPhase.EXECUTION_PENDING);
+    const retried = makeExecution("e-retry", RunPhase.RUN_PENDING);
     retried.metadata!.id = "e-retry";
     methods.executionCreate.mockResolvedValue(retried);
 
@@ -527,10 +527,10 @@ describe("useSessionConversation", () => {
 
   it("full follow-up lifecycle: active execution completes → canSendFollowUp → sendFollowUp succeeds", async () => {
     // Start with one IN_PROGRESS execution (simulates a Cursor execution running)
-    const activeExec = makeExecution("exec-1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const activeExec = makeExecution("exec-1", RunPhase.RUN_IN_PROGRESS);
     methods.listBySession.mockResolvedValue({ entries: [activeExec] });
 
-    const execStream = createControllableStream<AgentExecution>();
+    const execStream = createControllableStream<AgentRun>();
     methods.subscribe.mockReturnValue(execStream.generator);
 
     const { result } = renderHook(
@@ -544,7 +544,7 @@ describe("useSessionConversation", () => {
     expect(result.current.canSendFollowUp).toBe(false);
 
     // Stream delivers EXECUTION_COMPLETED — simulating Cursor run finishing
-    const completedExec = makeExecution("exec-1", ExecutionPhase.EXECUTION_COMPLETED);
+    const completedExec = makeExecution("exec-1", RunPhase.RUN_COMPLETED);
     act(() => {
       execStream.push(completedExec);
     });
@@ -559,7 +559,7 @@ describe("useSessionConversation", () => {
     });
 
     // Now send a follow-up message
-    const followUpExec = makeExecution("exec-2", ExecutionPhase.EXECUTION_PENDING);
+    const followUpExec = makeExecution("exec-2", RunPhase.RUN_PENDING);
     followUpExec.metadata!.id = "exec-2";
     methods.executionCreate.mockResolvedValue(followUpExec);
 
@@ -579,7 +579,7 @@ describe("useSessionConversation", () => {
   });
 
   it("isStoppable is false when no execution is active", async () => {
-    const completed = makeExecution("e1", ExecutionPhase.EXECUTION_COMPLETED);
+    const completed = makeExecution("e1", RunPhase.RUN_COMPLETED);
     methods.listBySession.mockResolvedValue({ entries: [completed] });
 
     const { result } = renderHook(
@@ -592,10 +592,10 @@ describe("useSessionConversation", () => {
   });
 
   it("isStoppable becomes true once the active execution streams IN_PROGRESS", async () => {
-    const active = makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const active = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
     methods.listBySession.mockResolvedValue({ entries: [active] });
 
-    const execStream = createControllableStream<AgentExecution>();
+    const execStream = createControllableStream<AgentRun>();
     methods.subscribe.mockReturnValue(execStream.generator);
 
     const { result } = renderHook(
@@ -606,17 +606,17 @@ describe("useSessionConversation", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     act(() => {
-      execStream.push(makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS));
+      execStream.push(makeExecution("e1", RunPhase.RUN_IN_PROGRESS));
     });
 
     await waitFor(() => expect(result.current.isStoppable).toBe(true));
   });
 
   it("stop() cancels the active execution, then escalates to terminate on repeat", async () => {
-    const active = makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const active = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
     methods.listBySession.mockResolvedValue({ entries: [active] });
 
-    const execStream = createControllableStream<AgentExecution>();
+    const execStream = createControllableStream<AgentRun>();
     methods.subscribe.mockReturnValue(execStream.generator);
 
     const { result } = renderHook(
@@ -627,7 +627,7 @@ describe("useSessionConversation", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     act(() => {
-      execStream.push(makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS));
+      execStream.push(makeExecution("e1", RunPhase.RUN_IN_PROGRESS));
     });
     await waitFor(() => expect(result.current.isStoppable).toBe(true));
 
@@ -646,7 +646,7 @@ describe("useSessionConversation", () => {
   });
 
   it("stop() is a no-op when nothing is stoppable", async () => {
-    const completed = makeExecution("e1", ExecutionPhase.EXECUTION_COMPLETED);
+    const completed = makeExecution("e1", RunPhase.RUN_COMPLETED);
     methods.listBySession.mockResolvedValue({ entries: [completed] });
 
     const { result } = renderHook(
@@ -668,10 +668,10 @@ describe("useSessionConversation", () => {
 describe("useSessionConversation — supersede filtering (edit-and-resubmit)", () => {
   let methods: MockMethods;
   let mockStigmer: Stigmer;
-  let stream: ReturnType<typeof createControllableStream<AgentExecution>>;
+  let stream: ReturnType<typeof createControllableStream<AgentRun>>;
 
   beforeEach(() => {
-    stream = createControllableStream<AgentExecution>();
+    stream = createControllableStream<AgentRun>();
     methods = {
       sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
       listBySession: vi.fn().mockResolvedValue({ entries: [] }),
@@ -683,8 +683,8 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
   });
 
   it("hides a superseded execution from completedExecutions", async () => {
-    const cancelled = makeExecution("e1", ExecutionPhase.EXECUTION_CANCELLED);
-    const successor = makeExecution("e2", ExecutionPhase.EXECUTION_COMPLETED, {
+    const cancelled = makeExecution("e1", RunPhase.RUN_CANCELLED);
+    const successor = makeExecution("e2", RunPhase.RUN_COMPLETED, {
       supersedes: "e1",
     });
     methods.listBySession.mockResolvedValue({
@@ -702,11 +702,11 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
   });
 
   it("hides every link of a chained supersede (A <- B <- C)", async () => {
-    const a = makeExecution("e1", ExecutionPhase.EXECUTION_CANCELLED);
-    const b = makeExecution("e2", ExecutionPhase.EXECUTION_CANCELLED, {
+    const a = makeExecution("e1", RunPhase.RUN_CANCELLED);
+    const b = makeExecution("e2", RunPhase.RUN_CANCELLED, {
       supersedes: "e1",
     });
-    const c = makeExecution("e3", ExecutionPhase.EXECUTION_COMPLETED, {
+    const c = makeExecution("e3", RunPhase.RUN_COMPLETED, {
       supersedes: "e2",
     });
     methods.listBySession.mockResolvedValue({ entries: [a, b, c] });
@@ -725,13 +725,13 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
     // The stopped turn is still the only listed execution; its successor
     // exists only as the live stream — the supersede link must be read off
     // the stream copy for the old turn to disappear immediately.
-    const stopped = makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const stopped = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
     methods.listBySession.mockResolvedValue({ entries: [stopped] });
 
-    const successorStream = createControllableStream<AgentExecution>();
+    const successorStream = createControllableStream<AgentRun>();
     methods.subscribe.mockReturnValue(successorStream.generator);
     methods.executionCreate.mockResolvedValue(
-      makeExecution("e2", ExecutionPhase.EXECUTION_PENDING),
+      makeExecution("e2", RunPhase.RUN_PENDING),
     );
 
     const { result } = renderHook(
@@ -748,7 +748,7 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
 
     act(() => {
       successorStream.push(
-        makeExecution("e2", ExecutionPhase.EXECUTION_IN_PROGRESS, {
+        makeExecution("e2", RunPhase.RUN_IN_PROGRESS, {
           supersedes: "e1",
         }),
       );
@@ -760,8 +760,8 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
   });
 
   it("treats a dangling supersede link as a no-op", async () => {
-    const completed = makeExecution("e1", ExecutionPhase.EXECUTION_COMPLETED);
-    const successor = makeExecution("e2", ExecutionPhase.EXECUTION_COMPLETED, {
+    const completed = makeExecution("e1", RunPhase.RUN_COMPLETED);
+    const successor = makeExecution("e2", RunPhase.RUN_COMPLETED, {
       supersedes: "does-not-exist",
     });
     methods.listBySession.mockResolvedValue({
@@ -780,7 +780,7 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
   it("sendFollowUp forwards supersedesExecutionId to execution creation", async () => {
     methods.listBySession.mockResolvedValue({ entries: [] });
     methods.executionCreate.mockResolvedValue(
-      makeExecution("e2", ExecutionPhase.EXECUTION_PENDING),
+      makeExecution("e2", RunPhase.RUN_PENDING),
     );
 
     const { result } = renderHook(
@@ -807,8 +807,8 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
     // e1 was cancelled but has not reached a terminal phase yet; e2 (its
     // successor) is the active turn. The display filter hides e1, but the
     // active execution must still resolve to e2 from the UNfiltered list.
-    const windingDown = makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS);
-    const successor = makeExecution("e2", ExecutionPhase.EXECUTION_IN_PROGRESS, {
+    const windingDown = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
+    const successor = makeExecution("e2", RunPhase.RUN_IN_PROGRESS, {
       supersedes: "e1",
     });
     methods.listBySession.mockResolvedValue({
@@ -829,7 +829,7 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
 describe("useSessionConversation — local runner worker lifecycle", () => {
   let methods: MockMethods;
   let mockStigmer: Stigmer;
-  let stream: ReturnType<typeof createControllableStream<AgentExecution>>;
+  let stream: ReturnType<typeof createControllableStream<AgentRun>>;
 
   function createMockAdapter(): RunnerAdapter & {
     onSessionOpened: ReturnType<typeof vi.fn>;
@@ -860,7 +860,7 @@ describe("useSessionConversation — local runner worker lifecycle", () => {
   }
 
   beforeEach(() => {
-    stream = createControllableStream<AgentExecution>();
+    stream = createControllableStream<AgentRun>();
     methods = {
       sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
       listBySession: vi.fn().mockResolvedValue({ entries: [] }),

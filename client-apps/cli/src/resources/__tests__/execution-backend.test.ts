@@ -10,23 +10,23 @@
 import { create } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
-import { ExecutionPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
+import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
   GetEventLogResponseSchema,
   type SubmitWorkflowTaskApprovalInput,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import {
-  WorkflowExecutionEventSchema,
+  WorkflowRunEventSchema,
   WorkflowEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
@@ -55,10 +55,10 @@ beforeEach(() => {
 });
 
 // A workflow execution with two tasks (one done, one failed) for the trace view.
-const workflowExec = create(WorkflowExecutionSchema, {
+const workflowExec = create(WorkflowRunSchema, {
   metadata: { id: "wex_1", name: "Deploy" },
   status: {
-    phase: WorkflowExecutionPhase.EXECUTION_COMPLETED,
+    phase: WorkflowExecutionPhase.RUN_COMPLETED,
     startedAt: "2026-06-12T10:00:00Z",
     completedAt: "2026-06-12T10:01:30Z",
     tasks: [
@@ -69,10 +69,10 @@ const workflowExec = create(WorkflowExecutionSchema, {
 });
 
 // An agent execution carrying two messages for the agent log + trace views.
-const agentExec = create(AgentExecutionSchema, {
+const agentExec = create(AgentRunSchema, {
   metadata: { id: "aex_1", name: "Reviewer" },
   status: {
-    phase: ExecutionPhase.EXECUTION_COMPLETED,
+    phase: RunPhase.RUN_COMPLETED,
     startedAt: "2026-06-12T10:00:00Z",
     completedAt: "2026-06-12T10:00:20Z",
     messages: [
@@ -82,26 +82,26 @@ const agentExec = create(AgentExecutionSchema, {
   },
 });
 
-function controlResult(phase: ExecutionPhase) {
-  return create(AgentExecutionSchema, { metadata: { id: "aex_1" }, status: { phase } });
+function controlResult(phase: RunPhase) {
+  return create(AgentRunSchema, { metadata: { id: "aex_1" }, status: { phase } });
 }
 function workflowControlResult(phase: WorkflowExecutionPhase) {
-  return create(WorkflowExecutionSchema, { metadata: { id: "wex_1" }, status: { phase } });
+  return create(WorkflowRunSchema, { metadata: { id: "wex_1" }, status: { phase } });
 }
 
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
-    router.service(AgentExecutionQueryController, {
+    router.service(AgentRunQueryController, {
       get: () => agentExec,
       subscribe: async function* () {
-        yield create(AgentExecutionSchema, {
+        yield create(AgentRunSchema, {
           metadata: { id: "aex_1" },
-          status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS, messages: [{ type: MessageType.MESSAGE_AI, content: "thinking" }] },
+          status: { phase: RunPhase.RUN_IN_PROGRESS, messages: [{ type: MessageType.MESSAGE_AI, content: "thinking" }] },
         });
-        yield create(AgentExecutionSchema, {
+        yield create(AgentRunSchema, {
           metadata: { id: "aex_1" },
           status: {
-            phase: ExecutionPhase.EXECUTION_COMPLETED,
+            phase: RunPhase.RUN_COMPLETED,
             messages: [
               { type: MessageType.MESSAGE_AI, content: "thinking" },
               { type: MessageType.MESSAGE_AI, content: "final answer" },
@@ -110,35 +110,35 @@ beforeAll(async () => {
         });
       },
     });
-    router.service(AgentExecutionCommandController, {
-      cancel: (req) => (agentControl.push({ verb: "cancel", id: req.id, reason: req.reason }), controlResult(ExecutionPhase.EXECUTION_CANCELLED)),
-      terminate: (req) => (agentControl.push({ verb: "terminate", id: req.id, reason: req.reason }), controlResult(ExecutionPhase.EXECUTION_TERMINATED)),
-      pause: (req) => (agentControl.push({ verb: "pause", id: req.id, reason: req.reason }), controlResult(ExecutionPhase.EXECUTION_PAUSED)),
-      resume: (req) => (agentControl.push({ verb: "resume", id: req.id, reason: "" }), controlResult(ExecutionPhase.EXECUTION_IN_PROGRESS)),
+    router.service(AgentRunCommandController, {
+      cancel: (req) => (agentControl.push({ verb: "cancel", id: req.id, reason: req.reason }), controlResult(RunPhase.RUN_CANCELLED)),
+      terminate: (req) => (agentControl.push({ verb: "terminate", id: req.id, reason: req.reason }), controlResult(RunPhase.RUN_TERMINATED)),
+      pause: (req) => (agentControl.push({ verb: "pause", id: req.id, reason: req.reason }), controlResult(RunPhase.RUN_PAUSED)),
+      resume: (req) => (agentControl.push({ verb: "resume", id: req.id, reason: "" }), controlResult(RunPhase.RUN_IN_PROGRESS)),
       submitApproval: (req) => (agentApproval.push(req), agentExec),
     });
 
-    router.service(WorkflowExecutionQueryController, {
+    router.service(WorkflowRunQueryController, {
       get: () => workflowExec,
       getEventLog: () =>
         create(GetEventLogResponseSchema, {
           hasMore: true,
           events: [
-            create(WorkflowExecutionEventSchema, {
-              eventType: WorkflowEventType.execution_started,
+            create(WorkflowRunEventSchema, {
+              eventType: WorkflowEventType.run_started,
               occurredAt: "2026-06-12T10:00:00Z",
-              payload: { case: "executionStarted", value: {} as never },
+              payload: { case: "runStarted", value: {} as never },
             }),
           ],
         }),
       subscribeEvents: async function* () {
-        yield create(WorkflowExecutionEventSchema, {
+        yield create(WorkflowRunEventSchema, {
           eventType: WorkflowEventType.task_started,
           occurredAt: "2026-06-12T10:00:01Z",
           taskName: "build",
           payload: { case: "taskStarted", value: {} as never },
         });
-        yield create(WorkflowExecutionEventSchema, {
+        yield create(WorkflowRunEventSchema, {
           eventType: WorkflowEventType.task_completed,
           occurredAt: "2026-06-12T10:00:05Z",
           taskName: "other",
@@ -146,11 +146,11 @@ beforeAll(async () => {
         });
       },
     });
-    router.service(WorkflowExecutionCommandController, {
-      cancel: (req) => (workflowControl.push({ verb: "cancel", id: req.id, reason: req.reason }), workflowControlResult(WorkflowExecutionPhase.EXECUTION_CANCELLED)),
-      terminate: (req) => (workflowControl.push({ verb: "terminate", id: req.id, reason: req.reason }), workflowControlResult(WorkflowExecutionPhase.EXECUTION_TERMINATED)),
-      pause: (req) => (workflowControl.push({ verb: "pause", id: req.id, reason: req.reason }), workflowControlResult(WorkflowExecutionPhase.EXECUTION_PAUSED)),
-      resume: (req) => (workflowControl.push({ verb: "resume", id: req.id, reason: "" }), workflowControlResult(WorkflowExecutionPhase.EXECUTION_IN_PROGRESS)),
+    router.service(WorkflowRunCommandController, {
+      cancel: (req) => (workflowControl.push({ verb: "cancel", id: req.id, reason: req.reason }), workflowControlResult(WorkflowExecutionPhase.RUN_CANCELLED)),
+      terminate: (req) => (workflowControl.push({ verb: "terminate", id: req.id, reason: req.reason }), workflowControlResult(WorkflowExecutionPhase.RUN_TERMINATED)),
+      pause: (req) => (workflowControl.push({ verb: "pause", id: req.id, reason: req.reason }), workflowControlResult(WorkflowExecutionPhase.RUN_PAUSED)),
+      resume: (req) => (workflowControl.push({ verb: "resume", id: req.id, reason: "" }), workflowControlResult(WorkflowExecutionPhase.RUN_IN_PROGRESS)),
       submitWorkflowTaskApproval: (req) => (workflowApproval.push(req), workflowExec),
     });
   };

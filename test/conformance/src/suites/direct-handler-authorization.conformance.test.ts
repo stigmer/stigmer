@@ -291,7 +291,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
         "workflowExecution.getEventLog",
         () =>
           outsider.workflowExecutionQuery.getEventLog({
-            executionId: missingWorkflowExecution,
+            runId: missingWorkflowExecution,
           }),
       ],
       [
@@ -299,7 +299,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
         () =>
           collectStream((signal) =>
             outsider.workflowExecutionQuery.subscribe(
-              { executionId: missingWorkflowExecution },
+              { runId: missingWorkflowExecution },
               { signal },
             ),
           ),
@@ -309,7 +309,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
         () =>
           collectStream((signal) =>
             outsider.workflowExecutionQuery.subscribeEvents(
-              { executionId: missingWorkflowExecution },
+              { runId: missingWorkflowExecution },
               { signal },
             ),
           ),
@@ -328,7 +328,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
         "agentExecution.getArtifactDownloadUrl",
         () =>
           outsider.agentExecutionQuery.getArtifactDownloadUrl({
-            executionId: missingAgentExecution,
+            runId: missingAgentExecution,
             storageKey: missingArtifactKey,
           }),
       ],
@@ -336,7 +336,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
         "agentExecution.getArtifactContent",
         () =>
           outsider.agentExecutionQuery.getArtifactContent({
-            executionId: missingAgentExecution,
+            runId: missingAgentExecution,
             storageKey: missingArtifactKey,
           }),
       ],

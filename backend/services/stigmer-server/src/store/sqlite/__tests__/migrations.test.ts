@@ -54,10 +54,10 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import {
   ApprovalMode,
   InteractionMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import {
@@ -65,7 +65,7 @@ import {
   CONTRACT_STORE_OPTIONS,
 } from "../../__tests__/store-contract.js";
 import { sessionListIndex } from "../../../domain/session/list-index.js";
-import { workflowExecutionListIndex } from "../../../domain/workflowexecution/list-index.js";
+import { workflowExecutionListIndex } from "../../../domain/workflowrun/list-index.js";
 import { SqliteStore } from "../store.js";
 import {
   CURRENT_SCHEMA_VERSION,
@@ -1722,7 +1722,7 @@ describe("v17: workflow runs name their workflow and the workflow instance rows 
       .all() as Array<{ data: Uint8Array }>;
     expect(rows).toHaveLength(total);
     for (const r of rows) {
-      const spec = fromBinary(WorkflowExecutionSchema, r.data).spec;
+      const spec = fromBinary(WorkflowRunSchema, r.data).spec;
       expect(spec?.workflowId).toBe("wfl_1");
       expect(spec?.$unknown).toBeUndefined();
     }

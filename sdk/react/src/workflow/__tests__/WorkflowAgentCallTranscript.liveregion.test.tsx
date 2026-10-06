@@ -20,16 +20,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, within, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../execution/useLiveAgentExecution", () => ({
   useLiveAgentExecution: vi.fn(),
@@ -40,11 +40,11 @@ import { WorkflowAgentCallTranscript } from "../WorkflowAgentCallTranscript";
 
 const mockUseLiveAgentExecution = vi.mocked(useLiveAgentExecution);
 
-function executionWithMessage(id: string, text: string): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+function executionWithMessage(id: string, text: string): AgentRun {
+  const exec = create(AgentRunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.status = create(AgentExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_COMPLETED,
+  exec.status = create(AgentRunStatusSchema, {
+    phase: RunPhase.RUN_COMPLETED,
     messages: [
       create(AgentMessageSchema, {
         type: MessageType.MESSAGE_AI,
@@ -83,7 +83,7 @@ describe("WorkflowAgentCallTranscript — stacked live regions (a11y)", () => {
   it("scopes each transcript's polite log region to its own child's content, under the viewer-style announcer", () => {
     mockUseLiveAgentExecution.mockImplementation((id) => ({
       execution: executionWithMessage(id!, `report from ${id}`),
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       isLoading: false,
       isStreaming: false,
       isReconnecting: false,

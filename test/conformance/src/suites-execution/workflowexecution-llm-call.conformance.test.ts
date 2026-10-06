@@ -17,8 +17,8 @@
 // - the registry id the task names (LLM_TASK_MODEL) reaches the provider as
 //   the registry's apiModelId — asserted against the document the runner read
 //   (target.modelRegistryDocument()), never a pinned string.
-import { ExecutionPhase, WorkflowTaskStatus, WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { RunPhase, WorkflowTaskStatus, WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -61,7 +61,7 @@ afterAll(async () => {
 // Provision an llm_call workflow and run one execution of it to a terminal phase.
 async function runLlmCallWorkflow(
   opts: Omit<LlmCallWorkflowOptions, "org" | "name">,
-): Promise<WorkflowExecution> {
+): Promise<WorkflowRun> {
   const { org } = await target.provisionTenancy();
   const workflow = await clients.workflowCommand.create(makeLlmCallWorkflow({ org, name: uniqueName("wf-llm"), ...opts }));
   fixtures.defer(() => clients.workflowCommand.delete({ value: workflow.metadata!.id }));
@@ -74,12 +74,12 @@ async function runLlmCallWorkflow(
   return awaitTerminal(clients, executionId);
 }
 
-function expectCompleted(final: WorkflowExecution): void {
+function expectCompleted(final: WorkflowRun): void {
   expect(
     final.status?.phase,
-    `the workflow should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]} ` +
+    `the workflow should complete; reached ${RunPhase[final.status?.phase ?? 0]} ` +
       `(status.error: ${JSON.stringify(final.status?.error ?? "")})`,
-  ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  ).toBe(RunPhase.RUN_COMPLETED);
 }
 
 describe("WorkflowExecution llm_call — completion", () => {

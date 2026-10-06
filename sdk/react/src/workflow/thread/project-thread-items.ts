@@ -18,7 +18,7 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import type {
   ApprovalRequestedPayload,
   ApprovalResolvedPayload,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 import { kindToDisplayName } from "../kind-metadata.js";
 import { taskKindToString } from "../workflow-graph-conversions.js";

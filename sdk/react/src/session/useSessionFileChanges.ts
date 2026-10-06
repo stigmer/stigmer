@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { deriveExecutionFileChanges } from "../execution/deriveExecutionFileChanges.js";
 
 /** Return value of {@link useSessionFileChanges}. */
@@ -53,7 +53,7 @@ export interface UseSessionFileChangesReturn {
  * @see FileChangesView — component that renders this data
  */
 export function useSessionFileChanges(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
 ): UseSessionFileChangesReturn {
   return useMemo(() => {
     const fileChanges = deriveExecutionFileChanges(executions);

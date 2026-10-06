@@ -58,8 +58,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -134,8 +134,8 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
 
     // ── Assert: what the control plane holds ─────────────────────────────────
     expect(record.persistedPhases, "the TERMINATED terminal is persisted").toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_TERMINATED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_TERMINATED,
     ]);
     const persisted = record.lastFullStatus!;
     expect(String(persisted.error).startsWith(TOOL_CALL_LIMIT_ERROR_PREFIX), "the persisted error carries the prefix").toBe(true);
@@ -157,7 +157,7 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, persisted), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, persisted), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/recursion-limit.persisted.status.json");
   });
 
@@ -171,7 +171,7 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
       script: () => ({ turns: readingRounds() }),
     });
     await runDeepAgentTurn(first);
-    expect(first.record.lastFullStatus!.phase).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+    expect(first.record.lastFullStatus!.phase).toBe(RunPhase.RUN_TERMINATED);
     expect(first.record.toolCalls()).toHaveLength(MIN_TOOL_ROUNDS);
 
     // The follow-up's script is indexed by the rounds its transcript holds: a
@@ -198,7 +198,7 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
     // ── Assert ───────────────────────────────────────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
     expect(roundsSeen, "the follow-up's one model turn saw the ten rounds the stop checkpointed").toEqual([MIN_TOOL_ROUNDS]);
-    expect(record.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_COMPLETED]);
+    expect(record.persistedPhases).toEqual([RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_COMPLETED]);
     const persisted = record.lastFullStatus!;
     expect(persisted.error).toBe("");
     const answer = persisted.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1);

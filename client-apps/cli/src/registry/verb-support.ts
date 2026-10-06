@@ -70,7 +70,7 @@ export const VERB_SUPPORT: ReadonlyMap<
   // agent_execution is special — uses dedicated AgentExecutionQueryController
   // RPCs, not the unified SearchService. delete maps to cancel.
   [
-    ApiResourceKind.agent_execution,
+    ApiResourceKind.agent_run,
     new Set<Verb>([Verb.Get, Verb.List, Verb.Delete, Verb.Download]),
   ],
   // IAM apps are configured declaratively; read/ops verbs are deliberately

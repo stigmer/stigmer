@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import { ConnectError, Code } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionControlSignal, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunControlSignal, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../status.js";
 
 describe("utcTimestamp", () => {
@@ -24,8 +24,8 @@ describe("utcTimestamp", () => {
 
 describe("slimStatus", () => {
   it("preserves phase, error, timestamps, and pendingApprovals", () => {
-    const full = create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+    const full = create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_COMPLETED,
       error: "test error",
       startedAt: "2026-01-01T00:00:00Z",
       completedAt: "2026-01-01T00:01:00Z",
@@ -38,8 +38,8 @@ describe("slimStatus", () => {
   });
 
   it("excludes heavy fields like messages", () => {
-    const full = create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    const full = create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_IN_PROGRESS,
     });
     const result = slimStatus(full) as Record<string, unknown>;
     expect(result).not.toHaveProperty("messages");
@@ -47,8 +47,8 @@ describe("slimStatus", () => {
   });
 
   it("returns a plain JSON-serializable object (not a protobuf Message)", () => {
-    const full = create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_FAILED,
+    const full = create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_FAILED,
     });
     const result = slimStatus(full);
     const json = JSON.stringify(result);
@@ -57,8 +57,8 @@ describe("slimStatus", () => {
   });
 
   it("preserves structuredOutput when present on the full status", () => {
-    const full = create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+    const full = create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_COMPLETED,
       structuredOutput: {
         executive_summary: "DAU stable at 7175",
         dau: 7175,
@@ -77,16 +77,16 @@ describe("slimStatus", () => {
   });
 
   it("omits structuredOutput when not present on full status", () => {
-    const full = create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+    const full = create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_COMPLETED,
     });
     const result = slimStatus(full) as Record<string, unknown>;
     expect(result).not.toHaveProperty("structuredOutput");
   });
 
   it("activity return contains structuredOutput accessible by Go buildCallbackResult", () => {
-    const full = create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+    const full = create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_COMPLETED,
       structuredOutput: {
         cohorts: [{ name: "D1", size: 500 }],
       },
@@ -101,14 +101,14 @@ describe("persistStatus", () => {
   it("returns the control signal from the backend", async () => {
     const mockClient = {
       updateStatus: vi.fn().mockResolvedValue({
-        signal: ExecutionControlSignal.STOP,
+        signal: RunControlSignal.STOP,
       }),
     } as any;
-    const status = create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    const status = create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_IN_PROGRESS,
     });
     const signal = await persistStatus(mockClient, "exec-1", status);
-    expect(signal).toBe(ExecutionControlSignal.STOP);
+    expect(signal).toBe(RunControlSignal.STOP);
     expect(mockClient.updateStatus).toHaveBeenCalledWith("exec-1", status);
   });
 
@@ -117,11 +117,11 @@ describe("persistStatus", () => {
       updateStatus: vi.fn().mockRejectedValue(new Error("network")),
     } as any;
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const status = create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    const status = create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_IN_PROGRESS,
     });
     const signal = await persistStatus(mockClient, "exec-2", status);
-    expect(signal).toBe(ExecutionControlSignal.UNSPECIFIED);
+    expect(signal).toBe(RunControlSignal.UNSPECIFIED);
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
@@ -131,14 +131,14 @@ describe("persistStatus", () => {
     const updateStatus = vi
       .fn()
       .mockRejectedValueOnce({ code: 8, message: "resource_exhausted: exceeds maximum size" })
-      .mockResolvedValueOnce({ signal: ExecutionControlSignal.STOP });
+      .mockResolvedValueOnce({ signal: RunControlSignal.STOP });
     const mockClient = { updateStatus } as any;
-    const status = create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    const status = create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_IN_PROGRESS,
     });
 
     const signal = await persistStatus(mockClient, "exec-too-big", status);
-    expect(signal).toBe(ExecutionControlSignal.STOP);
+    expect(signal).toBe(RunControlSignal.STOP);
     expect(updateStatus).toHaveBeenCalledTimes(2);
     consoleSpy.mockRestore();
   });
@@ -153,13 +153,13 @@ describe("persistStatus", () => {
       maxInlineBytes: 256,
     };
     const mockClient = {
-      updateStatus: vi.fn().mockResolvedValue({ signal: ExecutionControlSignal.UNSPECIFIED }),
+      updateStatus: vi.fn().mockResolvedValue({ signal: RunControlSignal.UNSPECIFIED }),
     } as any;
     const { AgentMessageSchema, ToolCallSchema } = await import(
-      "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb"
+      "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb"
     );
-    const status = create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    const status = create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [
         create(AgentMessageSchema, {
           toolCalls: [create(ToolCallSchema, { id: "t", name: "Shell", result: "X".repeat(5000) })],
@@ -181,17 +181,17 @@ describe("persistStatus", () => {
 // one chokepoint that bounds size AND retries transient transport errors.
 describe("persistStatus — transient retry", () => {
   const noDelay = async () => {};
-  const emptyStatus = () => create(AgentExecutionStatusSchema, {});
-  function retryClient(impl: () => Promise<{ signal: ExecutionControlSignal }>) {
+  const emptyStatus = () => create(AgentRunStatusSchema, {});
+  function retryClient(impl: () => Promise<{ signal: RunControlSignal }>) {
     return { updateStatus: vi.fn(impl) } as any;
   }
 
   it("returns the signal on the first successful attempt", async () => {
-    const client = retryClient(async () => ({ signal: ExecutionControlSignal.STOP }));
+    const client = retryClient(async () => ({ signal: RunControlSignal.STOP }));
     const signal = await persistStatus(client, "exec-1", emptyStatus(), {
       retry: { delayFn: noDelay },
     });
-    expect(signal).toBe(ExecutionControlSignal.STOP);
+    expect(signal).toBe(RunControlSignal.STOP);
     expect(client.updateStatus).toHaveBeenCalledOnce();
   });
 
@@ -200,12 +200,12 @@ describe("persistStatus — transient retry", () => {
     const client = retryClient(async () => {
       attempt++;
       if (attempt === 1) throw new ConnectError("down", Code.Unavailable);
-      return { signal: ExecutionControlSignal.UNSPECIFIED };
+      return { signal: RunControlSignal.UNSPECIFIED };
     });
     const signal = await persistStatus(client, "exec-2", emptyStatus(), {
       retry: { delayFn: noDelay },
     });
-    expect(signal).toBe(ExecutionControlSignal.UNSPECIFIED);
+    expect(signal).toBe(RunControlSignal.UNSPECIFIED);
     expect(attempt).toBe(2);
   });
 
@@ -220,7 +220,7 @@ describe("persistStatus — transient retry", () => {
       retry: { delayFn: noDelay },
     });
     errorSpy.mockRestore();
-    expect(signal).toBe(ExecutionControlSignal.UNSPECIFIED);
+    expect(signal).toBe(RunControlSignal.UNSPECIFIED);
     expect(attempt).toBe(1);
   });
 
@@ -256,7 +256,7 @@ describe("persistStatus — transient retry", () => {
     warnSpy.mockRestore();
     errorSpy.mockRestore();
     expect(delays).toEqual([100, 200, 400]);
-    expect(signal).toBe(ExecutionControlSignal.UNSPECIFIED);
+    expect(signal).toBe(RunControlSignal.UNSPECIFIED);
   });
 
   it("respects a custom backoff factor", async () => {
@@ -308,7 +308,7 @@ describe("persistStatus — transient retry", () => {
     warnSpy.mockRestore();
     errorSpy.mockRestore();
     expect(attempt).toBe(2);
-    expect(signal).toBe(ExecutionControlSignal.UNSPECIFIED);
+    expect(signal).toBe(RunControlSignal.UNSPECIFIED);
   });
 
   it("never throws regardless of error type", async () => {
@@ -318,7 +318,7 @@ describe("persistStatus — transient retry", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     await expect(
       persistStatus(client, "exec-7", emptyStatus(), { retry: { delayFn: noDelay } }),
-    ).resolves.toBe(ExecutionControlSignal.UNSPECIFIED);
+    ).resolves.toBe(RunControlSignal.UNSPECIFIED);
     errorSpy.mockRestore();
   });
 });
@@ -327,7 +327,7 @@ describe("reportSetupProgress", () => {
   it("persists the label WITHOUT forcing a phase transition", async () => {
     const mockClient = {
       updateStatus: vi.fn().mockResolvedValue({
-        signal: ExecutionControlSignal.UNSPECIFIED,
+        signal: RunControlSignal.UNSPECIFIED,
       }),
     } as any;
     await reportSetupProgress(mockClient, "exec-3", "Resolving MCP servers");
@@ -339,7 +339,7 @@ describe("reportSetupProgress", () => {
     // setup report must never flip the phase itself — sending IN_PROGRESS
     // here made every setup label (and the workspace-lock waiting state)
     // self-destruct on arrival.
-    expect(status.phase).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
+    expect(status.phase).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
     expect(status.setupProgress?.currentPhase).toBe("Resolving MCP servers");
   });
 });

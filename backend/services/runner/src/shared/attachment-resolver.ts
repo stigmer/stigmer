@@ -59,7 +59,7 @@
 
 import { mkdir, copyFile, readFile, stat, writeFile } from "node:fs/promises";
 import { join, basename, dirname, posix } from "node:path";
-import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 import { mintAttachmentDownloadUrl } from "./attachment-download-urls.js";
 import { allocateUniqueName } from "./attachment-naming.js";

@@ -22,7 +22,7 @@
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -249,7 +249,7 @@ const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.organization,
   ApiResourceKind.agent,
   ApiResourceKind.workflow,
-  ApiResourceKind.workflow_execution,
+  ApiResourceKind.workflow_run,
   ApiResourceKind.identity_account,
   ApiResourceKind.team,
 ];
@@ -661,7 +661,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           visibility: ApiResourceVisibility.visibility_private,
           createdBy: "ida_carol",
           spec: {
-            executionVisibility: WorkflowExecutionVisibility.organization,
+            executionVisibility: WorkflowRunVisibility.organization,
           },
         });
         await opened.store.saveResource(
@@ -915,8 +915,8 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           createdBy: ROOT.accountId,
         });
         for (const [id, executionVisibility] of [
-          ["wfl_shared", WorkflowExecutionVisibility.organization],
-          ["wfl_private", WorkflowExecutionVisibility.private],
+          ["wfl_shared", WorkflowRunVisibility.organization],
+          ["wfl_private", WorkflowRunVisibility.private],
         ] as const) {
           await seed("workflow", id, {
             org: "acme",

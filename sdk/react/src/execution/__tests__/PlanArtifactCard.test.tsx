@@ -9,14 +9,14 @@ import {
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { PlanArtifactCard } from "../PlanArtifactCard";
 
-const planArtifact = create(ExecutionArtifactSchema, {
+const planArtifact = create(RunArtifactSchema, {
   name: "plan.md",
-  kind: ExecutionArtifactKind.FILE,
+  kind: RunArtifactKind.FILE,
   sizeBytes: 4500n,
   storageKey: "artifacts/aex_1/plan.md",
 });

@@ -6,8 +6,8 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { UseSessionUsageReturn } from "../useSessionUsage.js";
 
 // UsageTab's render contract is what this suite pins; the aggregation
@@ -55,7 +55,7 @@ function usageWith(overrides: Partial<UseSessionUsageReturn>): UseSessionUsageRe
 }
 
 function executionWithTier(id: string, tier?: ServiceTier) {
-  return create(AgentExecutionSchema, {
+  return create(AgentRunSchema, {
     metadata: { id },
     spec: { target: { case: "sessionId", value: "ses_1" } },
     status: {

@@ -64,8 +64,8 @@ describe("registry — alias resolution", () => {
   // stigmer/stigmer#469 class (see the alias-shadowing suite below).
   it("does not register the runtime execution kinds as addressable types", () => {
     for (const kind of [
-      ApiResourceKind.agent_execution,
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.agent_run,
+      ApiResourceKind.workflow_run,
     ]) {
       expect(registry.getByKind(kind)).toBeUndefined();
     }

@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   useContextWindow,
   type ContextHealth,
@@ -13,7 +13,7 @@ export interface ContextGaugeProps {
    * The execution snapshot from the active stream, or `null`.
    * The gauge extracts `context_info` from the execution status.
    */
-  readonly execution: AgentExecution | null;
+  readonly execution: AgentRun | null;
 }
 
 const BAR_WIDTH = 20;

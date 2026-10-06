@@ -11,9 +11,9 @@
 // returned edit failure is `not_found` or `not_unique` in both backends'
 // words; the final to-do list is counted by state.
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { MessageType, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { MessageType, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { describe, expect, it } from "vitest";
 import type { TimingLine } from "../report";
 import { COMMAND_TARGET_CHARS, outcomeOf, targetOf, todoCounts, toolCallFacts } from "../tool-call-facts";
@@ -25,7 +25,7 @@ function row({ name, startedAt, args = {}, result = "ok", status = ToolCallStatu
 }
 
 function execution(messages: RowInit[][]) {
-  return create(AgentExecutionSchema, {
+  return create(AgentRunSchema, {
     status: {
       messages: messages.map((rows, index) => ({
         type: MessageType.MESSAGE_AI,
@@ -144,7 +144,7 @@ describe("targetOf", () => {
 
 describe("todoCounts", () => {
   it("counts the final list by state, an unset state as pending", () => {
-    const turn = create(AgentExecutionSchema, {
+    const turn = create(AgentRunSchema, {
       status: {
         todos: {
           a: { content: "one", status: TodoStatus.TODO_COMPLETED },
@@ -158,6 +158,6 @@ describe("todoCounts", () => {
   });
 
   it("reads an execution with no list as all zeros", () => {
-    expect(todoCounts(create(AgentExecutionSchema, {}))).toEqual({ pending: 0, in_progress: 0, completed: 0, cancelled: 0 });
+    expect(todoCounts(create(AgentRunSchema, {}))).toEqual({ pending: 0, in_progress: 0, completed: 0, cancelled: 0 });
   });
 });

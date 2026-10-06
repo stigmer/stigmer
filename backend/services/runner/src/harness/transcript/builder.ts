@@ -113,15 +113,15 @@
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
 import {
   ApprovalAction,
   MessageType,
@@ -129,7 +129,7 @@ import {
   ToolCallStatus,
   ToolCallStreamingSource,
   ToolKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { POLICY_ENGINE_VERSION, toProtoPolicySource, type PolicySource } from "../../shared/approval-policy.js";
 import { SALIENT_ARG_FIELDS, buildElidedArgsPreview, redactSensitiveArgs } from "../../shared/args-preview.js";
 import { classifyTool } from "../../shared/tool-kind.js";
@@ -178,7 +178,7 @@ export class TranscriptBuilder {
    * header's rule). The runtime passes its turn timeline; the contract kit
    * and the test doubles pass nothing.
    */
-  constructor(executionId: string, status: AgentExecutionStatus, observer?: TranscriptObserver) {
+  constructor(executionId: string, status: AgentRunStatus, observer?: TranscriptObserver) {
     this.executionId = executionId;
     this.state = new TranscriptState(status);
     this.observer = observer;
@@ -353,7 +353,7 @@ export class TranscriptBuilder {
 
   // ── Artifact & WriteBack ───────────────────────────────────────────
 
-  addArtifact(artifact: ExecutionArtifact): void {
+  addArtifact(artifact: RunArtifact): void {
     const artifacts = this.state.proto.artifacts;
     const idx = artifacts.findIndex(a => a.sandboxPath === artifact.sandboxPath);
 
@@ -388,7 +388,7 @@ export class TranscriptBuilder {
     // re-drives the whole graph): the row and its transcript already exist.
     if (this.state.subAgent(event.subAgentId)) return;
 
-    const row = create(SubAgentExecutionSchema, {
+    const row = create(SubAgentRunSchema, {
       id: event.subAgentId,
       name: event.name,
       subject: event.subject,

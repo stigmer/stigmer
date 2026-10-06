@@ -261,7 +261,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
         after = await usageReport(org);
       }
       expect(after.llmCallCount).toBe(before.llmCallCount + 3);
-      expect(after.executionCount).toBe(1);
+      expect(after.runCount).toBe(1);
     });
 
     it("[proxy.llm.usage.mcp-scope-authorized-not-metered] an MCP-server scope is authorized but records no usage", async () => {

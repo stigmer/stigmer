@@ -8,16 +8,16 @@ import {
   FileContentSchema,
   ToolCallOutputRefSchema,
   AgentMessageSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   FileChangeSetSchema,
   CapturedFileChangeSchema,
   FileDecisionSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   FileChangeKind,
   FileChangeSetStatus,
@@ -27,7 +27,7 @@ import {
   DiffCompleteness,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ToolCallItem } from "../components/ToolCallItem.js";
 import { ToolCallGroup } from "../components/ToolCallGroup.js";
 import { FileReviewPrompt } from "../components/FileReviewPrompt.js";
@@ -476,7 +476,7 @@ describe("MessageThread — file-review integration", () => {
       content: "Editing notes",
       toolCalls: [stampedTool("notes.md", "cs-1")],
     });
-    return create(AgentExecutionSchema, {
+    return create(AgentRunSchema, {
       metadata: { id: "aex-1" },
       status: {
         phase: undefined,

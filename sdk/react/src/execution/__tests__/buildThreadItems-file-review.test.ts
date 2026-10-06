@@ -12,11 +12,11 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
@@ -24,20 +24,20 @@ import {
   ToolCallSchema,
   type AgentMessage,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
   DiffCompleteness,
-  ExecutionPhase,
+  RunPhase,
   FileChangeKind,
   FileChangeSetStatus,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
 
 // ---------------------------------------------------------------------------
@@ -86,14 +86,14 @@ function changeSet(id: string, paths: string[], status = FileChangeSetStatus.REC
 
 function execution(opts: {
   id: string;
-  phase: ExecutionPhase;
+  phase: RunPhase;
   messages: AgentMessage[];
   changeSets?: FileChangeSet[];
-}): AgentExecution {
-  return create(AgentExecutionSchema, {
+}): AgentRun {
+  return create(AgentRunSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: opts.id }),
-    spec: create(AgentExecutionSpecSchema, { message: "go" }),
-    status: create(AgentExecutionStatusSchema, {
+    spec: create(AgentRunSpecSchema, { message: "go" }),
+    status: create(AgentRunStatusSchema, {
       phase: opts.phase,
       messages: opts.messages,
       fileChangeSets: opts.changeSets ?? [],
@@ -102,7 +102,7 @@ function execution(opts: {
 }
 
 /** buildThreadItems with file-review records enabled (positional args, approvals off). */
-function build(executions: AgentExecution[]): ThreadItem[] {
+function build(executions: AgentRun[]): ThreadItem[] {
   return buildThreadItems(
     executions,
     null,
@@ -135,7 +135,7 @@ describe("buildThreadItems — file-review record positioning", () => {
     const setId = "aex-1:0";
     const exec = execution({
       id: "aex-1",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [
         aiMessage("Let me edit.", [editCall("tc-1", "notes.md", setId)]),
         aiMessage("Running tests.", [
@@ -170,7 +170,7 @@ describe("buildThreadItems — file-review record positioning", () => {
     const setId = "aex-1:0";
     const exec = execution({
       id: "aex-1",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [
         aiMessage("Shell only.", [
           create(ToolCallSchema, { id: "tc-shell", name: "shell", status: ToolCallStatus.TOOL_CALL_COMPLETED, args: { command: "echo x > f.txt" } }),
@@ -187,7 +187,7 @@ describe("buildThreadItems — file-review record positioning", () => {
   it("never emits a PENDING set — the composer dock owns the decision surface", () => {
     const exec = execution({
       id: "aex-1",
-      phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
       messages: [aiMessage("Edited.", [editCall("tc-1", "a.ts", "aex-1:0")])],
       changeSets: [changeSet("aex-1:0", ["a.ts"], FileChangeSetStatus.AWAITING_REVIEW)],
     });
@@ -202,7 +202,7 @@ describe("buildThreadItems — file-review record positioning", () => {
     const setId = "aex-1:0";
     const exec = execution({
       id: "aex-1",
-      phase: ExecutionPhase.EXECUTION_FAILED,
+      phase: RunPhase.RUN_FAILED,
       messages: [aiMessage("Edited.", [editCall("tc-1", "a.ts", setId)])],
       changeSets: [changeSet(setId, ["a.ts"], FileChangeSetStatus.AWAITING_REVIEW)],
     });
@@ -213,13 +213,13 @@ describe("buildThreadItems — file-review record positioning", () => {
   it("keeps every settled turn's record in its own segment across executions, and skips the live pending one", () => {
     const historical = execution({
       id: "aex-1",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       messages: [aiMessage("Turn one edit.", [editCall("tc-old", "a.ts", "aex-1:0")])],
       changeSets: [changeSet("aex-1:0", ["a.ts"], FileChangeSetStatus.RECONCILED)],
     });
     const live = execution({
       id: "aex-2",
-      phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
       messages: [aiMessage("Turn two edit.", [editCall("tc-new", "b.ts", "aex-2:0")])],
       changeSets: [changeSet("aex-2:0", ["b.ts"], FileChangeSetStatus.AWAITING_REVIEW)],
     });
@@ -244,7 +244,7 @@ describe("buildThreadItems — file-review record positioning", () => {
     // after ITS last stamped row, in transcript order.
     const exec = execution({
       id: "aex-1",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [
         aiMessage("Turn one.", [editCall("tc-t1", "a.ts", "aex-1:0")]),
         aiMessage("Turn two.", [editCall("tc-t2", "b.ts", "aex-1:1")]),
@@ -275,7 +275,7 @@ describe("buildThreadItems — file-review record positioning", () => {
   it("skips a CAPTURING set (no changes yet) and emits nothing when records are disabled", () => {
     const exec = execution({
       id: "aex-1",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [aiMessage("Working.", [editCall("tc-1", "a.ts", "aex-1:0")])],
       changeSets: [changeSet("aex-1:0", [], FileChangeSetStatus.CAPTURING)],
     });
@@ -287,7 +287,7 @@ describe("buildThreadItems — file-review record positioning", () => {
     // regardless of change sets.
     const withChanges = execution({
       id: "aex-2",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [aiMessage("Edit.", [editCall("tc-2", "b.ts", "aex-2:0")])],
       changeSets: [changeSet("aex-2:0", ["b.ts"])],
     });
@@ -317,7 +317,7 @@ describe("buildThreadItems — file-review record positioning", () => {
     });
     const exec = execution({
       id: "aex-legacy",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [aiMessage("Edited.", [hidden])],
       changeSets: [changeSet(setId, ["a.ts"])],
     });

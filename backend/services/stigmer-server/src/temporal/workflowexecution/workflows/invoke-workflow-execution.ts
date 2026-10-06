@@ -65,9 +65,9 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 
-import { WorkflowExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { WorkflowExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import type { WorkflowRunStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 
 import { DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME } from "../../../domain/executioncontext/temporal/delete-execution-context.js";
 import {
@@ -273,7 +273,7 @@ function startSignalForwarders(executionId: string): void {
         log.info("Pause signal received", { executionId, reason });
         await persistPhase(
           executionId,
-          ExecutionPhase.EXECUTION_PAUSED,
+          RunPhase.RUN_PAUSED,
           "Failed to update execution status to PAUSED",
         );
         await relaySignalToChild(executionId, PAUSE_SIGNAL_NAME, reason);
@@ -282,7 +282,7 @@ function startSignalForwarders(executionId: string): void {
         log.info("Resume signal received", { executionId });
         await persistPhase(
           executionId,
-          ExecutionPhase.EXECUTION_IN_PROGRESS,
+          RunPhase.RUN_IN_PROGRESS,
           "Failed to update execution status to IN_PROGRESS",
         );
         await relaySignalToChild(executionId, RESUME_SIGNAL_NAME, null);
@@ -401,10 +401,10 @@ function getRunnerTaskQueue(): string {
  */
 async function persistPhase(
   executionId: string,
-  phase: ExecutionPhase,
+  phase: RunPhase,
   warnMessage: string,
 ): Promise<void> {
-  const status = create(WorkflowExecutionStatusSchema, { phase });
+  const status = create(WorkflowRunStatusSchema, { phase });
   try {
     await signalPathActivities[UPDATE_WORKFLOW_EXECUTION_STATUS_ACTIVITY_NAME](
       executionId,
@@ -412,7 +412,7 @@ async function persistPhase(
     );
     log.info("Updated execution status", {
       executionId,
-      phase: ExecutionPhase[phase],
+      phase: RunPhase[phase],
     });
   } catch (error) {
     log.warn(warnMessage, { executionId, error: errorMessage(error) });
@@ -441,8 +441,8 @@ async function updateStatusOnFailure(
     ? WORKER_SHUTDOWN_STATUS_ERROR
     : `Workflow execution failed: ${errorChainMessage(originalError)}`;
 
-  const failedStatus = create(WorkflowExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_FAILED,
+  const failedStatus = create(WorkflowRunStatusSchema, {
+    phase: RunPhase.RUN_FAILED,
     error: statusError,
   });
 
@@ -475,8 +475,8 @@ async function handleCancellation(executionId: string): Promise<void> {
  * state.
  */
 async function updateStatusOnCancellation(executionId: string): Promise<void> {
-  const cancelledStatus = create(WorkflowExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_CANCELLED,
+  const cancelledStatus = create(WorkflowRunStatusSchema, {
+    phase: RunPhase.RUN_CANCELLED,
   });
   try {
     await cleanupActivities[UPDATE_WORKFLOW_EXECUTION_STATUS_ACTIVITY_NAME](
@@ -530,8 +530,8 @@ async function deleteExecutionContext(executionId: string): Promise<void> {
  * int64 fields. Server-internal:
  * this worker's workflow is the only caller.
  */
-function statusToJson(status: WorkflowExecutionStatus): JsonValue {
-  return toJson(WorkflowExecutionStatusSchema, status);
+function statusToJson(status: WorkflowRunStatus): JsonValue {
+  return toJson(WorkflowRunStatusSchema, status);
 }
 
 function findInCauseChain<T extends Error>(

@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { ExecutionPhase, MessageType, ToolCallStatus, ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase, MessageType, ToolCallStatus, RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { formatDuration } from "../../execution/ToolCallDetail";
 import { samples, SAMPLE_INSTANT, sampleInstant, sampleDate } from "../samples";
@@ -42,7 +42,7 @@ describe("samples", () => {
     it("creates a completed execution with default messages", () => {
       const ex = samples.agentExecution();
       expect(ex.kind).toBe("AgentExecution");
-      expect(ex.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      expect(ex.status?.phase).toBe(RunPhase.RUN_COMPLETED);
       expect(ex.status?.messages.length).toBeGreaterThanOrEqual(2);
     });
 
@@ -52,10 +52,10 @@ describe("samples", () => {
         samples.aiMessage("test response"),
       ];
       const ex = samples.agentExecution({
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         messages: msgs,
       });
-      expect(ex.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+      expect(ex.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
       expect(ex.status?.messages).toHaveLength(2);
       expect(ex.status?.messages[0].content).toBe("test input");
     });
@@ -116,7 +116,7 @@ describe("samples", () => {
     it("artifact defaults to FILE kind", () => {
       const a = samples.artifact("report.md");
       expect(a.name).toBe("report.md");
-      expect(a.kind).toBe(ExecutionArtifactKind.FILE);
+      expect(a.kind).toBe(RunArtifactKind.FILE);
       expect(a.storageKey).toContain("demo-artifact-");
     });
   });

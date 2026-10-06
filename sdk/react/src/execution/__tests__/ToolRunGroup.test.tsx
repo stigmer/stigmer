@@ -4,12 +4,12 @@ import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   ToolCallSchema,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   PendingApprovalSchema,
   type PendingApproval,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ToolRunGroup } from "../ToolRunGroup";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 

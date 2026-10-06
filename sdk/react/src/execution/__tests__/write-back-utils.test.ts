@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
+import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
 import {
   parseDiffStatSummary,
   trailingDiffStatLine,

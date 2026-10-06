@@ -3,25 +3,25 @@ import { render, screen, fireEvent, cleanup, act } from "@testing-library/react"
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   ApprovalAction,
   DiffCompleteness,
-  ExecutionPhase,
+  RunPhase,
   FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import type { Stigmer } from "@stigmer/sdk";
 
 vi.mock("../../execution/useLiveAgentExecution", () => ({
@@ -71,12 +71,12 @@ function fireIO(isIntersecting: boolean) {
 
 function executionFixture(
   id: string,
-  phase: ExecutionPhase,
+  phase: RunPhase,
   fileChangeSets: readonly FileChangeSet[] = [],
-): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+): AgentRun {
+  const exec = create(AgentRunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.status = create(AgentExecutionStatusSchema, {
+  exec.status = create(AgentRunStatusSchema, {
     phase,
     fileChangeSets: [...fileChangeSets],
   });
@@ -126,7 +126,7 @@ function hookState(
 ): ReturnType<typeof useLiveAgentExecution> {
   return {
     execution: null,
-    phase: ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+    phase: RunPhase.RUN_PHASE_UNSPECIFIED,
     isLoading: false,
     isStreaming: false,
     isReconnecting: false,
@@ -167,11 +167,11 @@ afterEach(() => {
 
 describe("WorkflowAgentCallTranscript", () => {
   it("renders the child transcript with the streamed execution", () => {
-    const running = executionFixture("aex_1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const running = executionFixture("aex_1", RunPhase.RUN_IN_PROGRESS);
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
         execution: running,
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
@@ -191,8 +191,8 @@ describe("WorkflowAgentCallTranscript", () => {
   it("is bounded: the root carries the height cap, never full-height", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_1", ExecutionPhase.EXECUTION_COMPLETED),
-        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        execution: executionFixture("aex_1", RunPhase.RUN_COMPLETED),
+        phase: RunPhase.RUN_COMPLETED,
       }),
     );
 
@@ -208,10 +208,10 @@ describe("WorkflowAgentCallTranscript", () => {
       hookState({
         execution: executionFixture(
           "aex_1",
-          ExecutionPhase.EXECUTION_IN_PROGRESS,
+          RunPhase.RUN_IN_PROGRESS,
           [pendingChangeSet("cs-1")],
         ),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
@@ -230,8 +230,8 @@ describe("WorkflowAgentCallTranscript", () => {
   it("shows a Reconnecting affordance during a transient stream drop", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_3", ExecutionPhase.EXECUTION_IN_PROGRESS),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        execution: executionFixture("aex_3", RunPhase.RUN_IN_PROGRESS),
+        phase: RunPhase.RUN_IN_PROGRESS,
         isReconnecting: true,
       }),
     );
@@ -282,8 +282,8 @@ describe("WorkflowAgentCallTranscript", () => {
     const navigate = vi.fn();
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_7", ExecutionPhase.EXECUTION_COMPLETED),
-        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        execution: executionFixture("aex_7", RunPhase.RUN_COMPLETED),
+        phase: RunPhase.RUN_COMPLETED,
       }),
     );
 
@@ -301,8 +301,8 @@ describe("WorkflowAgentCallTranscript", () => {
   it("omits the chrome bar entirely when there is nothing to show", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_8", ExecutionPhase.EXECUTION_COMPLETED),
-        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        execution: executionFixture("aex_8", RunPhase.RUN_COMPLETED),
+        phase: RunPhase.RUN_COMPLETED,
       }),
     );
 
@@ -321,8 +321,8 @@ describe("WorkflowAgentCallTranscript — viewport gate", () => {
   it("passes live: false while off-screen and live: true once visible", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_1", ExecutionPhase.EXECUTION_IN_PROGRESS),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        execution: executionFixture("aex_1", RunPhase.RUN_IN_PROGRESS),
+        phase: RunPhase.RUN_IN_PROGRESS,
       }),
     );
 
@@ -366,8 +366,8 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
     const hitl = hitlStub();
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_1", ExecutionPhase.EXECUTION_IN_PROGRESS),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        execution: executionFixture("aex_1", RunPhase.RUN_IN_PROGRESS),
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
@@ -390,10 +390,10 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
       hookState({
         execution: executionFixture(
           "aex_1",
-          ExecutionPhase.EXECUTION_IN_PROGRESS,
+          RunPhase.RUN_IN_PROGRESS,
           [pendingChangeSet("cs-1")],
         ),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
@@ -422,10 +422,10 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
       hookState({
         execution: executionFixture(
           "aex_1",
-          ExecutionPhase.EXECUTION_FAILED,
+          RunPhase.RUN_FAILED,
           [pendingChangeSet("cs-1")],
         ),
-        phase: ExecutionPhase.EXECUTION_FAILED,
+        phase: RunPhase.RUN_FAILED,
       }),
     );
 
@@ -455,10 +455,10 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
       hookState({
         execution: executionFixture(
           "aex_1",
-          ExecutionPhase.EXECUTION_IN_PROGRESS,
+          RunPhase.RUN_IN_PROGRESS,
           [settled, empty],
         ),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
@@ -476,8 +476,8 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
     const hitl = hitlStub();
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_1", ExecutionPhase.EXECUTION_IN_PROGRESS),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        execution: executionFixture("aex_1", RunPhase.RUN_IN_PROGRESS),
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
@@ -509,10 +509,10 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
       hookState({
         execution: executionFixture(
           "aex_1",
-          ExecutionPhase.EXECUTION_IN_PROGRESS,
+          RunPhase.RUN_IN_PROGRESS,
           [pendingChangeSet("cs-1")],
         ),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
@@ -579,10 +579,10 @@ describe("WorkflowAgentCallTranscript — workflow-RPC routing", () => {
       hookState({
         execution: executionFixture(
           "aex_1",
-          ExecutionPhase.EXECUTION_IN_PROGRESS,
+          RunPhase.RUN_IN_PROGRESS,
           [pendingChangeSet("cs-1")],
         ),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
@@ -639,8 +639,8 @@ describe("WorkflowAgentCallTranscript — workflow-RPC routing", () => {
   it("delivers a failed submit to the thread as a keyed in-card error, and a retry clears it", async () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_1", ExecutionPhase.EXECUTION_IN_PROGRESS),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        execution: executionFixture("aex_1", RunPhase.RUN_IN_PROGRESS),
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );

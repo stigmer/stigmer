@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  AgentRunSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
 
 // ---------------------------------------------------------------------------
@@ -17,11 +17,11 @@ import { buildThreadItems, type ThreadItem } from "../MessageThread";
 // label function the thread is unchanged.
 // ---------------------------------------------------------------------------
 
-function turn(id: string, versionHash: string): AgentExecution {
-  return create(AgentExecutionSchema, {
+function turn(id: string, versionHash: string): AgentRun {
+  return create(AgentRunSchema, {
     metadata: { id },
     spec: { target: { case: "sessionId", value: "ses_1" }, message: `message ${id}` },
-    status: { phase: ExecutionPhase.EXECUTION_COMPLETED, agentVersionHash: versionHash },
+    status: { phase: RunPhase.RUN_COMPLETED, agentVersionHash: versionHash },
   });
 }
 
@@ -33,7 +33,7 @@ function markers(items: readonly ThreadItem[]) {
   );
 }
 
-function build(executions: AgentExecution[], withLabel: boolean) {
+function build(executions: AgentRun[], withLabel: boolean) {
   return buildThreadItems(
     executions, null, null, false, undefined, undefined,
     false, false, false, false, undefined,

@@ -207,7 +207,7 @@ describe("useTriggerSchedule", () => {
   it("resolves a STARTED result and toasts success", async () => {
     const started = create(ScheduleTriggerResultSchema, {
       outcome: ScheduleRunOutcome.STARTED,
-      executionId: "aex_01run",
+      runId: "aex_01run",
       schedule: SCHEDULE,
     });
     const trigger = vi.fn().mockResolvedValue(started);
@@ -221,7 +221,7 @@ describe("useTriggerSchedule", () => {
 
     expect(trigger).toHaveBeenCalledWith("sch_01example");
     expect(res.outcome).toBe(ScheduleRunOutcome.STARTED);
-    expect(res.executionId).toBe("aex_01run");
+    expect(res.runId).toBe("aex_01run");
     expect(toast.success).toHaveBeenCalledWith("Run started");
   });
 
@@ -282,7 +282,7 @@ describe("useScheduleRuns", () => {
             scheduleId: "sch_01example",
             origin: ScheduleRunOrigin.MANUAL,
             outcome: ScheduleRunOutcome.STARTED,
-            executionId: "aex_01run",
+            runId: "aex_01run",
           }),
           create(ScheduleRunSchema, {
             scheduleId: "sch_01example",

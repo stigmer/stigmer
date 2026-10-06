@@ -15,11 +15,11 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -101,16 +101,16 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
 describe("executionAudienceShapes (a workflow's run audience)", () => {
   it("ORGANIZATION names the organization's viewers", () => {
     expect([
-      ...executionAudienceShapes(WorkflowExecutionVisibility.organization),
+      ...executionAudienceShapes(WorkflowRunVisibility.organization),
     ]).toEqual(["org-viewer"]);
   });
 
   it("PRIVATE and the unset level name nobody, so each run stays its triggerer's", () => {
     expect([
-      ...executionAudienceShapes(WorkflowExecutionVisibility.private),
+      ...executionAudienceShapes(WorkflowRunVisibility.private),
     ]).toEqual([]);
     expect([
-      ...executionAudienceShapes(WorkflowExecutionVisibility.unspecified),
+      ...executionAudienceShapes(WorkflowRunVisibility.unspecified),
     ]).toEqual([]);
   });
 });
@@ -232,12 +232,12 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
   });
 
   it("agent_execution: PARENT scope resolves the session link from spec.session_id, owner INHERITED", () => {
-    const execution = create(AgentExecutionSchema, {
+    const execution = create(AgentRunSchema, {
       metadata: { id: "aexec_1", org: "acme" },
       spec: { target: { case: "sessionId", value: "ses_parent" } },
     });
     const event = resolveResourceCreatedEvent(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
       execution,
       caller,
       logger,
@@ -253,12 +253,12 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
   });
 
   it("agent_execution with no session id fails the request (Java's missing-parent arm)", () => {
-    const execution = create(AgentExecutionSchema, {
+    const execution = create(AgentRunSchema, {
       metadata: { id: "aexec_2", org: "acme" },
     });
     expect(() =>
       resolveResourceCreatedEvent(
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         execution,
         caller,
         logger,
@@ -267,12 +267,12 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
   });
 
   it("workflow_execution: org scope link PLUS the additional workflow parent from spec.workflow_id", () => {
-    const run = create(WorkflowExecutionSchema, {
+    const run = create(WorkflowRunSchema, {
       metadata: { id: "wex_1", org: "acme" },
       spec: { workflowId: "wfl_parent" },
     });
     const event = resolveResourceCreatedEvent(
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
       run,
       caller,
       logger,
@@ -336,7 +336,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
 
 describe("cleanUpDeletedResource (the delete cleanup every chain and cascade shares)", () => {
   const event: ResourceDeletedEvent = {
-    kind: ApiResourceKind.workflow_execution,
+    kind: ApiResourceKind.workflow_run,
     resourceId: "wex_cleanup_subject",
     orgId: "acme",
     caller,

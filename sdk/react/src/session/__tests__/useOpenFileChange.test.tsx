@@ -4,9 +4,9 @@ import { create } from "@bufbuild/protobuf";
 import {
   FileChangeSchema,
   type FileChange,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 
 // ---------------------------------------------------------------------------
 // useOpenFileChange correlates the open file with the ONE session change that
@@ -35,7 +35,7 @@ const gitEntry = {
   gitBranch: "main",
 };
 const entries = [gitEntry] as never;
-const allExecutions = [{} as AgentExecution];
+const allExecutions = [{} as AgentRun];
 const root = "/home/daytona/workspace";
 
 function modifyChange(path: string): FileChange {

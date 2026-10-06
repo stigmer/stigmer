@@ -39,7 +39,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { judge } from "../benchmark/quality";
@@ -126,7 +126,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
 
     const watched = await watchExecution(subscribeTo(clients, executionId), { startedAtMs, timeoutMs: 60_000 });
     expect(watched.outcome, "the subscribe stream reached the terminal phase").toBe("until");
-    expect(watched.final?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(watched.final?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     expect(watched.client_first_visible_token_ms, "the watcher saw the assistant's text arrive").not.toBeNull();
     expect(watched.end_to_end_ms, "the watcher stamped the terminal message").not.toBeNull();
     expect(visibleRows(watched.final!).text, "the terminal snapshot carries the AI row").toBe(true);

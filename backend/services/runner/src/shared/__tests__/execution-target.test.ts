@@ -8,26 +8,26 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { sessionIdOf } from "../execution-target.js";
 
 describe("sessionIdOf", () => {
   it("reads the session_id arm", () => {
-    const spec = create(AgentExecutionSpecSchema, {
+    const spec = create(AgentRunSpecSchema, {
       target: { case: "sessionId", value: "ses_1" },
     });
     expect(sessionIdOf(spec)).toBe("ses_1");
   });
 
   it("reads '' for a new conversation's session_spec arm", () => {
-    const spec = create(AgentExecutionSpecSchema, {
+    const spec = create(AgentRunSpecSchema, {
       target: { case: "sessionSpec", value: {} },
     });
     expect(sessionIdOf(spec)).toBe("");
   });
 
   it("reads '' for an unset target and for no spec", () => {
-    expect(sessionIdOf(create(AgentExecutionSpecSchema, {}))).toBe("");
+    expect(sessionIdOf(create(AgentRunSpecSchema, {}))).toBe("");
     expect(sessionIdOf(undefined)).toBe("");
   });
 });

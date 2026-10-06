@@ -85,8 +85,8 @@ export async function triggerSchedule(stigmer: Stigmer, ref: string, org: string
   if (triggered.outcome === ScheduleRunOutcome.STARTED) {
     const result = CommandResult.success(`Schedule '${name}' fired — run started`);
     const section = result.addSection();
-    section.field("Execution", triggered.executionId);
-    section.field("Watch it", `stigmer get agentexecution ${triggered.executionId}`);
+    section.field("Execution", triggered.runId);
+    section.field("Watch it", `stigmer get agentexecution ${triggered.runId}`);
     if (schedule.status?.nextFireAt !== undefined) {
       section.field("Next cron fire", timestampDate(schedule.status.nextFireAt).toISOString());
     }

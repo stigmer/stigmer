@@ -67,13 +67,13 @@
 // reviewer at all. Left unasserted: form_data (no form here) and responded_at
 // (a clock).
 import { Code } from "@connectrpc/connect";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { ApprovalResolvedPayload } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import type { ApprovalResolvedPayload } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   WorkflowTaskStatus,
   WorkflowTaskType,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -133,7 +133,7 @@ async function provisionHumanInputWorkflow(
 async function runToGate(
   org: string,
   workflowId: string,
-): Promise<{ executionId: string; gated: WorkflowExecution }> {
+): Promise<{ executionId: string; gated: WorkflowRun }> {
   const execution = await clients.workflowExecutionCommand.create(
     makeWorkflowExecution({ org, name: uniqueName("wfx-hitl"), workflowId }),
   );
@@ -173,7 +173,7 @@ interface GateOutput {
 
 // The gate task's output, asserted present: a gate that resolved with no output
 // would leave a workflow nothing to branch on.
-function gateOutputOf(exec: WorkflowExecution): GateOutput {
+function gateOutputOf(exec: WorkflowRun): GateOutput {
   const output = taskByName(exec, HUMAN_INPUT_TASK_NAME)?.output;
   expect(output, `execution ${exec.metadata?.id}: the gate task records an output`).toBeDefined();
   return output as GateOutput;
@@ -195,7 +195,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     // The key contract: there is no execution-level waiting phase — the gate is
     // expressed entirely at the task level.
     expect(gated.status?.phase, "the execution itself stays IN_PROGRESS at the gate").toBe(
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      RunPhase.RUN_IN_PROGRESS,
     );
 
     // The gate is also the listPendingApprovals populated arm: the
@@ -205,12 +205,12 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     const pending = await clients.workflowExecutionQuery.listPendingApprovals({ org });
     expect(pending.totalCount).toBe(1);
     expect(pending.entries).toHaveLength(1);
-    expect(pending.entries[0]?.executionId).toBe(executionId);
+    expect(pending.entries[0]?.runId).toBe(executionId);
     expect(pending.entries[0]?.taskName).toBe(HUMAN_INPUT_TASK_NAME);
 
     // Settle so the run terminates cleanly.
     await clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-      executionId,
+      runId: executionId,
       taskName: HUMAN_INPUT_TASK_NAME,
       outcome: "approve",
       reviewer: "conformance",
@@ -231,7 +231,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     // The comment reaches the approval_resolved event. The reviewer sent here is
     // ignored: the server records the authorized caller instead, asserted below.
     await clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-      executionId,
+      runId: executionId,
       taskName: HUMAN_INPUT_TASK_NAME,
       outcome: "approve",
       reviewer: "conformance",
@@ -241,8 +241,8 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `approved execution should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `approved execution should COMPLETE; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
     expect(taskByName(final, HUMAN_INPUT_TASK_NAME)?.status, "the gate task completes").toBe(
       WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED,
     );
@@ -285,7 +285,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     const { executionId } = await runToGate(org, workflowId);
 
     await clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-      executionId,
+      runId: executionId,
       taskName: HUMAN_INPUT_TASK_NAME,
       outcome: "deny",
       reviewer: "conformance",
@@ -296,7 +296,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     // describes only the implicit no-outcomes binary form).
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "a declared deny outcome still COMPLETES the run").toBe(
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_COMPLETED,
     );
     // The event records the outcome that was submitted, not a fixed value.
     const resolved = await soleResolutionOf(executionId);
@@ -312,7 +312,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     const { executionId } = await runToGate(org, workflowId);
 
     await clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-      executionId,
+      runId: executionId,
       taskName: HUMAN_INPUT_TASK_NAME,
       outcome: "revise",
       reviewer: "conformance",
@@ -321,7 +321,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     // Reaching reviseTask COMPLETED proves the submitted outcome drove the jump:
     // a different outcome would have continued to the in-order afterApproval task.
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase, "the routed run completes").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase, "the routed run completes").toBe(RunPhase.RUN_COMPLETED);
     expect(taskByName(final, "reviseTask")?.status, "the routed-to task runs").toBe(
       WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED,
     );
@@ -346,8 +346,8 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `timed-out gate should FAIL; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_FAILED);
+      `timed-out gate should FAIL; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_FAILED);
     // The approval still ends in the log: auto-resolved, with no outcome.
     await expectTimeoutResolution(executionId, "");
   });
@@ -374,8 +374,8 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `auto-approved gate should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `auto-approved gate should COMPLETE; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
     expect(
       taskByName(final, HUMAN_INPUT_AFTER_TASK_NAME)?.status,
       "the downstream task runs after auto-approval",
@@ -413,8 +413,8 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `auto-denied gate with a declared deny outcome should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `auto-denied gate with a declared deny outcome should COMPLETE; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
     await expectTimeoutResolution(executionId, "deny");
   });
 
@@ -439,8 +439,8 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `routed auto-approval should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `routed auto-approval should COMPLETE; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
     expect(
       taskByName(final, "fastPath")?.status,
       "the first outcome's `then` target runs",
@@ -477,8 +477,8 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `escalated gate should COMPLETE via the escalation branch; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `escalated gate should COMPLETE via the escalation branch; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
     expect(
       taskByName(final, "escalationPath")?.status,
       "the escalate outcome's `then` target runs",
@@ -492,7 +492,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-          executionId: "",
+          runId: "",
           taskName: HUMAN_INPUT_TASK_NAME,
           outcome: "approve",
         }),
@@ -504,7 +504,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-          executionId: "wex_whatever",
+          runId: "wex_whatever",
           taskName: "",
           outcome: "approve",
         }),
@@ -516,7 +516,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-          executionId: "wex_whatever",
+          runId: "wex_whatever",
           taskName: HUMAN_INPUT_TASK_NAME,
           outcome: "",
         }),
@@ -528,7 +528,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-          executionId: "wex_doesnotexist",
+          runId: "wex_doesnotexist",
           taskName: HUMAN_INPUT_TASK_NAME,
           outcome: "approve",
         }),
@@ -544,7 +544,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-          executionId,
+          runId: executionId,
           taskName: "noSuchTask",
           outcome: "approve",
         }),
@@ -554,7 +554,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
 
     // Settle the real gate so the run terminates cleanly.
     await clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-      executionId,
+      runId: executionId,
       taskName: HUMAN_INPUT_TASK_NAME,
       outcome: "approve",
       reviewer: "conformance",
@@ -579,13 +579,13 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.workflowExecutionCommand.delete({ value: executionId }));
 
-    await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, executionId, RunPhase.RUN_IN_PROGRESS);
     await awaitTaskStatus(clients, executionId, "waitTask", WorkflowTaskStatus.WORKFLOW_TASK_IN_PROGRESS);
 
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-          executionId,
+          runId: executionId,
           taskName: "waitTask",
           outcome: "approve",
         }),
@@ -604,7 +604,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
 
     // Drive the run to COMPLETED, then submit against the now-terminal execution.
     await clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-      executionId,
+      runId: executionId,
       taskName: HUMAN_INPUT_TASK_NAME,
       outcome: "approve",
       reviewer: "conformance",
@@ -614,7 +614,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitWorkflowTaskApproval({
-          executionId,
+          runId: executionId,
           taskName: HUMAN_INPUT_TASK_NAME,
           outcome: "approve",
         }),

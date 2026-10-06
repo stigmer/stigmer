@@ -58,15 +58,15 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import {
-  AgentExecutionStatusSchema,
-  type AgentExecutionStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunStatusSchema,
+  type AgentRunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   ApprovalAction,
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -97,8 +97,8 @@ import {
 const USER_MESSAGE = "Run the command for me.";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
 
-function statusJson(status: AgentExecutionStatus): string {
-  return JSON.stringify(toJson(AgentExecutionStatusSchema, status), null, 2) + "\n";
+function statusJson(status: AgentRunStatus): string {
+  return JSON.stringify(toJson(AgentRunStatusSchema, status), null, 2) + "\n";
 }
 
 describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
@@ -144,8 +144,8 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
         "EXECUTION_WAITING_FOR_APPROVAL",
       );
       expect(record.persistedPhases).toEqual([
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
-        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        RunPhase.RUN_IN_PROGRESS,
+        RunPhase.RUN_WAITING_FOR_APPROVAL,
       ]);
       const waiting = record.waitingToolCalls();
       expect(waiting).toHaveLength(1);
@@ -168,7 +168,7 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
       // ── Assert 2: COMPLETED, the row terminal, one copy, run 1 preserved ───
       expect(turn2.outcome.kind).toBe("returned");
       expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
-      expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
       const final = record.lastFullStatus!;
       const rows = final.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === EXECUTE_CALL_A.id);

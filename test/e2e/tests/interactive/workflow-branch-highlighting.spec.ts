@@ -159,7 +159,7 @@ test.describe("Branch and parallel execution highlighting", () => {
 
     try {
       const execName = `e2e-sw-exec-${Date.now()}`;
-      const execution = await stigmerClient.workflowExecution.create({
+      const execution = await stigmerClient.workflowRun.create({
         name: execName,
         org: DEFAULT_ORG,
         workflowId: workflow.id,
@@ -191,7 +191,7 @@ test.describe("Branch and parallel execution highlighting", () => {
         const notTakenCount = await notTakenEdges.count();
         expect(notTakenCount).toBeGreaterThanOrEqual(1);
       } finally {
-        await stigmerClient.workflowExecution.delete(execution.metadata!.id).catch(() => {});
+        await stigmerClient.workflowRun.delete(execution.metadata!.id).catch(() => {});
       }
     } finally {
       await workflow.cleanup();
@@ -217,7 +217,7 @@ test.describe("Branch and parallel execution highlighting", () => {
     const wfId = workflow.metadata!.id;
 
     try {
-      const execution = await stigmerClient.workflowExecution.create({
+      const execution = await stigmerClient.workflowRun.create({
         name: `e2e-lin-exec-${Date.now()}`,
         org: DEFAULT_ORG,
         workflowId: wfId,
@@ -239,7 +239,7 @@ test.describe("Branch and parallel execution highlighting", () => {
         const count = await takenEdges.count();
         expect(count).toBeGreaterThanOrEqual(2);
       } finally {
-        await stigmerClient.workflowExecution.delete(execution.metadata!.id).catch(() => {});
+        await stigmerClient.workflowRun.delete(execution.metadata!.id).catch(() => {});
       }
     } finally {
       await stigmerClient.workflow.delete(wfId).catch(() => {});
@@ -253,7 +253,7 @@ test.describe("Branch and parallel execution highlighting", () => {
     const workflow = await createForkWorkflow(stigmerClient);
 
     try {
-      const execution = await stigmerClient.workflowExecution.create({
+      const execution = await stigmerClient.workflowRun.create({
         name: `e2e-fork-exec-${Date.now()}`,
         org: DEFAULT_ORG,
         workflowId: workflow.id,
@@ -272,7 +272,7 @@ test.describe("Branch and parallel execution highlighting", () => {
         );
         await expect(forkNode).toBeVisible({ timeout: 10_000 });
       } finally {
-        await stigmerClient.workflowExecution.delete(execution.metadata!.id).catch(() => {});
+        await stigmerClient.workflowRun.delete(execution.metadata!.id).catch(() => {});
       }
     } finally {
       await workflow.cleanup();

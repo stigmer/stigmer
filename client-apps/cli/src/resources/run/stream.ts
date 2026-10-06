@@ -11,9 +11,9 @@
 // CLI-local port of Go's streamToEvents + handleJSONEvent.
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { runEpilogue } from "./epilogue.js";
 import { renderSessionHeader, type SessionHeaderInfo } from "./header.js";
@@ -42,7 +42,7 @@ export interface StreamDeps {
  * Stream the execution to a terminal phase, then run the epilogue. Returns the
  * authoritative final execution (for artifact download).
  */
-export async function streamAgentExecution(deps: StreamDeps): Promise<AgentExecution> {
+export async function streamAgentExecution(deps: StreamDeps): Promise<AgentRun> {
   if (deps.outputMode === "json") {
     renderSessionHeader(process.stderr, deps.header);
     const result = await runHeadless(deps, jsonRenderer(deps));
@@ -79,10 +79,10 @@ async function runHeadless(deps: StreamDeps, renderer: HeadlessRenderer): Promis
 
   try {
     return await runHeadlessStream({
-      subscribe: (signal) => deps.client.agentExecution.subscribe(deps.executionId, signal),
+      subscribe: (signal) => deps.client.agentRun.subscribe(deps.executionId, signal),
       submitApproval: async (toolCallId, action) => {
-        await deps.client.agentExecution.submitApproval(
-          create(SubmitApprovalInputSchema, { agentExecutionId: deps.executionId, toolCallId, action }),
+        await deps.client.agentRun.submitApproval(
+          create(SubmitApprovalInputSchema, { agentRunId: deps.executionId, toolCallId, action }),
         );
       },
       renderer,

@@ -24,7 +24,7 @@ import {
   type SeededGatedExecution,
 } from "../../helpers/approval";
 import { isFileGateStack } from "../../helpers/mock-llm-control";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 const mockUrl = getMockControlUrl();
 const fileGates = isFileGateStack();
@@ -68,7 +68,7 @@ test.describe("file-review card (deterministic mock LLM)", () => {
       await awaitExecutionPhase(
         stigmerClient,
         seeded.executionId,
-        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        RunPhase.RUN_WAITING_FOR_APPROVAL,
       );
 
       await page.emulateMedia({ colorScheme: scheme });

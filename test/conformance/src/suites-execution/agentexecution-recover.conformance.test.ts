@@ -28,7 +28,7 @@
 // Already covered in the main AgentExecution suite (not re-asserted here):
 // - recover of a non-FAILED terminal execution -> FailedPrecondition.
 // - recover with empty id -> InvalidArgument; missing execution -> NotFound.
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -91,7 +91,7 @@ describe("AgentExecution recover — happy path", () => {
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
 
-    const failed = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_FAILED);
+    const failed = await awaitPhase(clients, executionId, RunPhase.RUN_FAILED);
     expect(failed.status?.error, "a FAILED execution carries an error message").toBeTruthy();
     expect(mock.consumed(), "the failure turn should be consumed").toBe(1);
     expect(mock.remaining(), "the recovery turn should still be queued").toBe(1);
@@ -99,13 +99,13 @@ describe("AgentExecution recover — happy path", () => {
     const recovered = await clients.agentExecutionCommand.recover({ id: executionId });
     expect(
       recovered.status?.phase,
-      `recover should move the execution out of FAILED; got ${ExecutionPhase[recovered.status?.phase ?? 0]}`,
-    ).not.toBe(ExecutionPhase.EXECUTION_FAILED);
+      `recover should move the execution out of FAILED; got ${RunPhase[recovered.status?.phase ?? 0]}`,
+    ).not.toBe(RunPhase.RUN_FAILED);
 
-    const running = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const running = await awaitPhase(clients, executionId, RunPhase.RUN_IN_PROGRESS);
     expect(running.status?.error, "recover clears the prior failure's error").toBeFalsy();
 
-    const completed = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_COMPLETED);
+    const completed = await awaitPhase(clients, executionId, RunPhase.RUN_COMPLETED);
     expect(completed.status?.error, "a completed run carries no error").toBeFalsy();
     // Recover runs the turn again with the settings it was created with.
     expect(completed.status?.runConfig?.maxCostUsd, "recover keeps the resolved settings").toBe(3);
@@ -132,17 +132,17 @@ describe("AgentExecution recover — idempotency", () => {
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
 
-    await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, executionId, RunPhase.RUN_IN_PROGRESS);
 
     // recover on a running execution is a no-op: it succeeds and stays IN_PROGRESS.
     const recovered = await clients.agentExecutionCommand.recover({ id: executionId });
     expect(recovered.status?.phase, "recover on a running execution stays IN_PROGRESS").toBe(
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      RunPhase.RUN_IN_PROGRESS,
     );
 
     // Settle the run.
     await clients.agentExecutionCommand.cancel({ id: executionId });
-    await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_CANCELLED);
+    await awaitPhase(clients, executionId, RunPhase.RUN_CANCELLED);
   });
 });
 
@@ -162,7 +162,7 @@ describe("AgentExecution recover — concurrency", () => {
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
 
-    await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_FAILED);
+    await awaitPhase(clients, executionId, RunPhase.RUN_FAILED);
     expect(mock.consumed(), "the failure turn should be consumed").toBe(1);
 
     const answers = await Promise.allSettled([
@@ -176,12 +176,12 @@ describe("AgentExecution recover — concurrency", () => {
       }
       expect(
         answer.value.status?.phase,
-        `${label} should answer IN_PROGRESS; got ${ExecutionPhase[answer.value.status?.phase ?? 0]}`,
-      ).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+        `${label} should answer IN_PROGRESS; got ${RunPhase[answer.value.status?.phase ?? 0]}`,
+      ).toBe(RunPhase.RUN_IN_PROGRESS);
     }
 
     mock.releaseHolds();
-    const completed = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_COMPLETED);
+    const completed = await awaitPhase(clients, executionId, RunPhase.RUN_COMPLETED);
     expect(completed.status?.error, "a completed run carries no error").toBeFalsy();
     // One re-dispatch: the failure turn plus the one recovery turn. A second
     // recover that raced the first would dispatch the runner again or fail

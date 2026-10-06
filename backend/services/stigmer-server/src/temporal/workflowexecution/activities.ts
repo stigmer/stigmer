@@ -34,13 +34,13 @@ import { create, fromJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
 
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
-  WorkflowExecutionSchema,
-  WorkflowExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { WorkflowExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+  WorkflowRunSchema,
+  WorkflowRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import type { WorkflowRunStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
   ApiResourceAuditInfoSchema,
   ApiResourceAuditSchema,
@@ -48,7 +48,7 @@ import {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import type { StreamBroker } from "../../domain/workflowexecution/stream-broker.js";
+import type { StreamBroker } from "../../domain/workflowrun/stream-broker.js";
 import { deleteExecutionContextForExecution } from "../../domain/executioncontext/internal-delete.js";
 import type { ExecutionContextDeleter } from "../../domain/executioncontext/internal-delete.js";
 import { DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME } from "../../domain/executioncontext/temporal/delete-execution-context.js";
@@ -98,21 +98,21 @@ export function createWorkflowExecutionActivities(
       executionId: string,
       statusJson: JsonValue,
     ): Promise<void> => {
-      const statusUpdates = fromJson(WorkflowExecutionStatusSchema, statusJson);
+      const statusUpdates = fromJson(WorkflowRunStatusSchema, statusJson);
 
-      let updated: WorkflowExecution;
+      let updated: WorkflowRun;
       // The phase BEFORE this merge, read under the write lock — the
       // sandbox observer below keys on the transition.
-      let previousPhase = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+      let previousPhase = RunPhase.RUN_PHASE_UNSPECIFIED;
       try {
         updated = await store.updateResource(
-          ApiResourceKind.workflow_execution,
+          ApiResourceKind.workflow_run,
           executionId,
-          WorkflowExecutionSchema,
+          WorkflowRunSchema,
           (execution) => {
             previousPhase =
               execution.status?.phase ??
-              ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+              RunPhase.RUN_PHASE_UNSPECIFIED;
             applyActivityStatusMerge(execution, statusUpdates);
           },
         );
@@ -129,8 +129,8 @@ export function createWorkflowExecutionActivities(
       logger.info("Activity updated workflow execution status", {
         execution_id: executionId,
         phase:
-          ExecutionPhase[
-            updated.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED
+          RunPhase[
+            updated.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED
           ],
         tasks: updated.status?.tasks.length ?? 0,
       });
@@ -144,7 +144,7 @@ export function createWorkflowExecutionActivities(
       sandboxTerminalObserver(
         executionId,
         previousPhase,
-        updated.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+        updated.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
       );
     },
 
@@ -169,11 +169,11 @@ export function createWorkflowExecutionActivities(
  * the co-located unit tests.
  */
 export function applyActivityStatusMerge(
-  execution: WorkflowExecution,
-  statusUpdates: WorkflowExecutionStatus,
+  execution: WorkflowRun,
+  statusUpdates: WorkflowRunStatus,
 ): void {
   if (execution.status === undefined) {
-    execution.status = create(WorkflowExecutionStatusSchema);
+    execution.status = create(WorkflowRunStatusSchema);
   }
   const status = execution.status;
 
@@ -181,7 +181,7 @@ export function applyActivityStatusMerge(
   if (statusUpdates.tasks.length > 0) {
     status.tasks = statusUpdates.tasks;
   }
-  if (statusUpdates.phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) {
+  if (statusUpdates.phase !== RunPhase.RUN_PHASE_UNSPECIFIED) {
     status.phase = statusUpdates.phase;
   }
   if (statusUpdates.error !== "") {

@@ -13,7 +13,7 @@
 // presentation seam.
 
 import { useMemo } from "react";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { ToolKind, resolveToolKind, normalizeToolResult } from "@stigmer/sdk";
 import type { ToolResultView } from "@stigmer/sdk";
 import {

@@ -361,7 +361,7 @@ export type { VisitorClassifier } from "./extensions/visitor-classifier.js";
 // server's one settings resolution; and that resolution's rule, for an
 // edition's own tests.
 export type { RunLane, RunLanes } from "./extensions/run-lanes.js";
-export { resolveRunConfig } from "./domain/agentexecution/resolve-run-config.js";
+export { resolveRunConfig } from "./domain/agentrun/resolve-run-config.js";
 // The tuple lifecycle's resolution, for a kind a composition serves outside
 // the generic chains (a cloud-served create): `resolveResourceCreatedEvent`
 // derives the creation event from the kind's `kind_meta` exactly as the
@@ -685,12 +685,12 @@ export {
   AgentExecutionTemporalConfig,
   ROUTING_SESSION,
   newConfigFromEnv as newAgentExecutionTemporalConfigFromEnv,
-} from "./domain/agentexecution/temporal/config.js";
+} from "./domain/agentrun/temporal/config.js";
 export {
   WORKFLOW_ROUTING_EXECUTION,
   WorkflowExecutionTemporalConfig,
   newWorkflowExecutionConfigFromEnv,
-} from "./domain/workflowexecution/temporal/config.js";
+} from "./domain/workflowrun/temporal/config.js";
 export { LOADED_EXECUTION_KEY } from "./pipeline/request-context.js";
 
 // The channel driver seam: the channel

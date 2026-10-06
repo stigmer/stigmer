@@ -10,13 +10,13 @@
 // aggregates a workflow's AGENT_CALL children).
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   FileChangeCaptureLevel,
   FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { displayFileChangeSets, toDisplayFileChange } from "@stigmer/sdk";
 import { computeDiff } from "../version-history/computeDiff.js";
 import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
@@ -55,7 +55,7 @@ import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
  * contract the SDK `tool-view` established.
  */
 export function deriveExecutionFileChanges(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
 ): readonly FileChange[] {
   // Path -> chronological list of raw changes to that path.
   const groups = new Map<string, FileChange[]>();

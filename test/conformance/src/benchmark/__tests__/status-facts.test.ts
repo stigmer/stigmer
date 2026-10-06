@@ -10,18 +10,18 @@
 // with content.
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { finalReply, outcomeOf, statusFacts, visibleRows } from "../status-facts";
 
 describe("statusFacts", () => {
   it("reads tokens, the cost estimate in micros, the priced model and the server's stamps", () => {
-    const execution = create(AgentExecutionSchema, {
+    const execution = create(AgentRunSchema, {
       metadata: { id: "aex_1" },
       spec: { target: { case: "sessionId", value: "ses_1" } },
       status: {
-        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        phase: RunPhase.RUN_COMPLETED,
         startedAt: "2026-09-19T18:00:01Z",
         completedAt: "2026-09-19T18:00:05Z",
         audit: { specAudit: { createdAt: timestampFromDate(new Date("2026-09-19T18:00:00.000Z")) } },
@@ -56,9 +56,9 @@ describe("statusFacts", () => {
 
   it("keeps the platform's error on a failed turn and counts memory on the status as one attachment", () => {
     const facts = statusFacts(
-      create(AgentExecutionSchema, {
+      create(AgentRunSchema, {
         status: {
-          phase: ExecutionPhase.EXECUTION_FAILED,
+          phase: RunPhase.RUN_FAILED,
           error: "provider returned 529 overloaded",
           recalledMemories: { enabled: true },
         },
@@ -69,7 +69,7 @@ describe("statusFacts", () => {
   });
 
   it("reads zeros and an empty model when the runner reported no usage", () => {
-    const facts = statusFacts(create(AgentExecutionSchema, { status: { phase: ExecutionPhase.EXECUTION_FAILED } }));
+    const facts = statusFacts(create(AgentRunSchema, { status: { phase: RunPhase.RUN_FAILED } }));
     expect(facts.tokens.total).toBe(0);
     expect(facts.model_reported).toBe("");
     expect(facts.outcome).toBe("failed");
@@ -78,17 +78,17 @@ describe("statusFacts", () => {
 
 describe("outcomeOf", () => {
   it("maps each terminal phase to the sample's outcome", () => {
-    expect(outcomeOf(ExecutionPhase.EXECUTION_COMPLETED)).toBe("completed");
-    expect(outcomeOf(ExecutionPhase.EXECUTION_FAILED)).toBe("failed");
-    expect(outcomeOf(ExecutionPhase.EXECUTION_CANCELLED)).toBe("cancelled");
-    expect(outcomeOf(ExecutionPhase.EXECUTION_TERMINATED)).toBe("cancelled");
+    expect(outcomeOf(RunPhase.RUN_COMPLETED)).toBe("completed");
+    expect(outcomeOf(RunPhase.RUN_FAILED)).toBe("failed");
+    expect(outcomeOf(RunPhase.RUN_CANCELLED)).toBe("cancelled");
+    expect(outcomeOf(RunPhase.RUN_TERMINATED)).toBe("cancelled");
     expect(outcomeOf(undefined)).toBe("failed");
   });
 });
 
 describe("finalReply", () => {
   it("is the last root AI row with content, never a sub-agent's or an empty row", () => {
-    const execution = create(AgentExecutionSchema, {
+    const execution = create(AgentRunSchema, {
       status: {
         messages: [
           { type: MessageType.MESSAGE_HUMAN, content: "fix it" },
@@ -96,31 +96,31 @@ describe("finalReply", () => {
           { type: MessageType.MESSAGE_AI, content: "Fixed: 90s is now 1 minute." },
           { type: MessageType.MESSAGE_AI, content: "" },
         ],
-        subAgentExecutions: [{ messages: [{ type: MessageType.MESSAGE_AI, content: "sub-agent text" }] }],
+        subAgentRuns: [{ messages: [{ type: MessageType.MESSAGE_AI, content: "sub-agent text" }] }],
       },
     });
     expect(finalReply(execution)).toBe("Fixed: 90s is now 1 minute.");
-    expect(finalReply(create(AgentExecutionSchema, {}))).toBe("");
+    expect(finalReply(create(AgentRunSchema, {}))).toBe("");
   });
 });
 
 describe("visibleRows", () => {
   it("a THINKING row with content is visible but not text; an AI row is both", () => {
-    const thinking = create(AgentExecutionSchema, {
+    const thinking = create(AgentRunSchema, {
       status: { messages: [{ type: MessageType.MESSAGE_THINKING, content: "hmm" }] },
     });
     expect(visibleRows(thinking)).toEqual({ visible: true, text: false });
-    const ai = create(AgentExecutionSchema, {
+    const ai = create(AgentRunSchema, {
       status: { messages: [{ type: MessageType.MESSAGE_HUMAN, content: "hi" }, { type: MessageType.MESSAGE_AI, content: "Hello." }] },
     });
     expect(visibleRows(ai)).toEqual({ visible: true, text: true });
   });
 
   it("an empty AI row and a sub-agent's row are not visible", () => {
-    const execution = create(AgentExecutionSchema, {
+    const execution = create(AgentRunSchema, {
       status: {
         messages: [{ type: MessageType.MESSAGE_AI, content: "" }],
-        subAgentExecutions: [{ messages: [{ type: MessageType.MESSAGE_AI, content: "sub-agent text" }] }],
+        subAgentRuns: [{ messages: [{ type: MessageType.MESSAGE_AI, content: "sub-agent text" }] }],
       },
     });
     expect(visibleRows(execution)).toEqual({ visible: false, text: false });

@@ -10,17 +10,17 @@
 // success/no-op distinction comes from authoritative state.
 
 import { createClient } from "@connectrpc/connect";
-import { type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { ExecutionPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { RunPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
 import {
-  WorkflowExecutionSchema,
-  type WorkflowExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
-import { ExecutionPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+  WorkflowRunSchema,
+  type WorkflowRun,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
+import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 
 import { compactExecution, DEFAULT_MESSAGE_LIMIT } from "../agentexecutions/fetch.js";
 import { withTransport } from "../client.js";
@@ -31,17 +31,17 @@ import { rpcError } from "../rpcerr.js";
 // proto packages with different numeric values (agent TERMINATED is 8,
 // workflow TERMINATED is 6), so these are deliberately separate sets.
 const TERMINAL_AGENT_PHASES: ReadonlySet<AgentExecutionPhase> = new Set([
-  AgentExecutionPhase.EXECUTION_COMPLETED,
-  AgentExecutionPhase.EXECUTION_FAILED,
-  AgentExecutionPhase.EXECUTION_CANCELLED,
-  AgentExecutionPhase.EXECUTION_TERMINATED,
+  AgentExecutionPhase.RUN_COMPLETED,
+  AgentExecutionPhase.RUN_FAILED,
+  AgentExecutionPhase.RUN_CANCELLED,
+  AgentExecutionPhase.RUN_TERMINATED,
 ]);
 
 const TERMINAL_WORKFLOW_PHASES: ReadonlySet<WorkflowExecutionPhase> = new Set([
-  WorkflowExecutionPhase.EXECUTION_COMPLETED,
-  WorkflowExecutionPhase.EXECUTION_FAILED,
-  WorkflowExecutionPhase.EXECUTION_CANCELLED,
-  WorkflowExecutionPhase.EXECUTION_TERMINATED,
+  WorkflowExecutionPhase.RUN_COMPLETED,
+  WorkflowExecutionPhase.RUN_FAILED,
+  WorkflowExecutionPhase.RUN_CANCELLED,
+  WorkflowExecutionPhase.RUN_TERMINATED,
 ]);
 
 /**
@@ -88,13 +88,13 @@ async function cancelAgentExecution(
   const desc = `agent execution "${id}"`;
   return withTransport(serverAddress, token, async (transport, callOptions) => {
     try {
-      const query = createClient(AgentExecutionQueryController, transport);
+      const query = createClient(AgentRunQueryController, transport);
       const current = await query.get({ value: id }, callOptions);
-      const phase = current.status?.phase ?? AgentExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+      const phase = current.status?.phase ?? AgentExecutionPhase.RUN_PHASE_UNSPECIFIED;
       if (TERMINAL_AGENT_PHASES.has(phase)) {
         return wrapAgent(current, true);
       }
-      const command = createClient(AgentExecutionCommandController, transport);
+      const command = createClient(AgentRunCommandController, transport);
       const cancelled = await command.cancel({ id, reason }, callOptions);
       return wrapAgent(cancelled, false);
     } catch (err) {
@@ -112,13 +112,13 @@ async function cancelWorkflowExecution(
   const desc = `workflow execution "${id}"`;
   return withTransport(serverAddress, token, async (transport, callOptions) => {
     try {
-      const query = createClient(WorkflowExecutionQueryController, transport);
+      const query = createClient(WorkflowRunQueryController, transport);
       const current = await query.get({ value: id }, callOptions);
-      const phase = current.status?.phase ?? WorkflowExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+      const phase = current.status?.phase ?? WorkflowExecutionPhase.RUN_PHASE_UNSPECIFIED;
       if (TERMINAL_WORKFLOW_PHASES.has(phase)) {
         return wrapWorkflow(current, true);
       }
-      const command = createClient(WorkflowExecutionCommandController, transport);
+      const command = createClient(WorkflowRunCommandController, transport);
       const cancelled = await command.cancel({ id, reason }, callOptions);
       return wrapWorkflow(cancelled, false);
     } catch (err) {
@@ -127,7 +127,7 @@ async function cancelWorkflowExecution(
   });
 }
 
-function wrapAgent(execution: AgentExecution, alreadyTerminal: boolean): string {
+function wrapAgent(execution: AgentRun, alreadyTerminal: boolean): string {
   const { totalMessages, data } = compactExecution(execution, DEFAULT_MESSAGE_LIMIT);
   return JSON.stringify(
     { already_terminal: alreadyTerminal, view: "compact", total_messages: totalMessages, execution: data },
@@ -136,11 +136,11 @@ function wrapAgent(execution: AgentExecution, alreadyTerminal: boolean): string 
   );
 }
 
-function wrapWorkflow(execution: WorkflowExecution, alreadyTerminal: boolean): string {
+function wrapWorkflow(execution: WorkflowRun, alreadyTerminal: boolean): string {
   return JSON.stringify(
     {
       already_terminal: alreadyTerminal,
-      execution: JSON.parse(toProtoJson(WorkflowExecutionSchema, execution)),
+      execution: JSON.parse(toProtoJson(WorkflowRunSchema, execution)),
     },
     null,
     2,

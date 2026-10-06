@@ -20,8 +20,8 @@
  * never reach these functions (proto validation and strict task-config
  * unmarshaling refuse them first).
  */
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 
 import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 import {

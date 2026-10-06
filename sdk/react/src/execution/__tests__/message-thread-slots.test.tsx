@@ -3,28 +3,28 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import React, { memo } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
+  AgentRunSchema,
+  AgentRunStatusSchema,
   RecalledMemoriesReportSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  AgentExecutionSpecSchema,
+  AgentRunSpecSchema,
   RecalledMemoriesSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import {
   ApprovalAction,
-  ExecutionArtifactKind,
-  ExecutionPhase,
+  RunArtifactKind,
+  RunPhase,
   InteractionMode,
   MessageType,
   TodoStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { MessageThread, type MessageThreadSlots } from "../MessageThread";
 import type { MessageEntryProps } from "../MessageEntry";
@@ -108,29 +108,29 @@ afterEach(() => {
 function makeExecution(opts: {
   id: string;
   specMessage?: string;
-  phase?: ExecutionPhase;
+  phase?: RunPhase;
   interactionMode?: InteractionMode;
   aiContent?: string;
   todos?: Record<string, { content: string; status: TodoStatus }>;
   pendingApprovalToolCallId?: string;
   planArtifactName?: string;
   error?: string;
-}): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+}): AgentRun {
+  const exec = create(AgentRunSchema);
 
   const meta = create(ApiResourceMetadataSchema);
   meta.id = opts.id;
   exec.metadata = meta;
 
-  const spec = create(AgentExecutionSpecSchema);
+  const spec = create(AgentRunSpecSchema);
   spec.message = opts.specMessage ?? "Hello";
   if (opts.interactionMode !== undefined) {
     spec.interactionMode = opts.interactionMode;
   }
   exec.spec = spec;
 
-  const status = create(AgentExecutionStatusSchema);
-  status.phase = opts.phase ?? ExecutionPhase.EXECUTION_COMPLETED;
+  const status = create(AgentRunStatusSchema);
+  status.phase = opts.phase ?? RunPhase.RUN_COMPLETED;
   if (opts.error) {
     status.error = opts.error;
   }
@@ -162,9 +162,9 @@ function makeExecution(opts: {
 
   if (opts.planArtifactName) {
     status.artifacts = [
-      create(ExecutionArtifactSchema, {
+      create(RunArtifactSchema, {
         name: opts.planArtifactName,
-        kind: ExecutionArtifactKind.FILE,
+        kind: RunArtifactKind.FILE,
       }),
     ];
   }
@@ -221,7 +221,7 @@ describe("MessageThread slots", () => {
         executions={[
           makeExecution({
             id: "e1",
-            phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+            phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
             pendingApprovalToolCallId: "tc-1",
           }),
         ]}
@@ -302,7 +302,7 @@ describe("MessageThread slots", () => {
 
     const exec = makeExecution({
       id: "e-live",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
     });
     // No renderable response yet: the setup-progress item is emitted.
     exec.status!.messages = [];
@@ -358,7 +358,7 @@ describe("MessageThread slots", () => {
 
     const exec = makeExecution({
       id: "e-live",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       aiContent: "thinking about it",
     });
 
@@ -386,7 +386,7 @@ describe("MessageThread slots", () => {
         executions={[
           makeExecution({
             id: "e-plan",
-            phase: ExecutionPhase.EXECUTION_COMPLETED,
+            phase: RunPhase.RUN_COMPLETED,
             interactionMode: InteractionMode.PLAN,
           }),
         ]}
@@ -411,7 +411,7 @@ describe("MessageThread slots", () => {
         executions={[
           makeExecution({
             id: "e-plan",
-            phase: ExecutionPhase.EXECUTION_COMPLETED,
+            phase: RunPhase.RUN_COMPLETED,
             interactionMode: InteractionMode.PLAN,
             aiContent: "# Rollout Plan\n\n1. First step",
             planArtifactName: "rollout_abc123.plan.md",
@@ -437,7 +437,7 @@ describe("MessageThread slots", () => {
         executions={[]}
         activeStreamExecution={makeExecution({
           id: "e-live",
-          phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+          phase: RunPhase.RUN_IN_PROGRESS,
           interactionMode: InteractionMode.PLAN,
           aiContent: "# Rollout Plan\n\n1. First step",
         })}
@@ -470,7 +470,7 @@ describe("MessageThread slots", () => {
           makeExecution({
             id: "e-failed",
             specMessage: "prompt text",
-            phase: ExecutionPhase.EXECUTION_FAILED,
+            phase: RunPhase.RUN_FAILED,
             error: "model capacity exhausted",
           }),
         ]}
@@ -499,7 +499,7 @@ describe("MessageThread slots", () => {
           makeExecution({
             id: "e-failed",
             specMessage: "prompt text",
-            phase: ExecutionPhase.EXECUTION_FAILED,
+            phase: RunPhase.RUN_FAILED,
             error: "model capacity exhausted",
           }),
         ]}
@@ -525,7 +525,7 @@ describe("MessageThread slots", () => {
         executions={[
           makeExecution({
             id: "e1",
-            phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+            phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
             todos: { t1: { content: "write tests", status: TodoStatus.TODO_IN_PROGRESS } },
             pendingApprovalToolCallId: "tc-1",
           }),

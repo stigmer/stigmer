@@ -14,8 +14,8 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
 import {
@@ -132,7 +132,7 @@ async function toProtoRun(
     origin: runOriginFromLabel(record.origin),
     outcome: runOutcomeFromLabel(record.outcome),
     reason: record.reason,
-    executionId: record.executionId,
+    runId: record.executionId,
   });
   const nominal = parseTime(record.nominalFireTime);
   if (nominal !== undefined) {
@@ -154,26 +154,26 @@ async function toProtoRun(
   if (record.executionId === "") {
     return run;
   }
-  let phase: ExecutionPhase;
+  let phase: RunPhase;
   try {
     const execution = await store.getResource(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
       record.executionId,
-      AgentExecutionSchema,
+      AgentRunSchema,
     );
-    phase = execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    phase = execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   } catch {
     // Execution deleted (or unreadable): the ledger row stands as
     // recorded — deleting a run must not rewrite its history.
     return run;
   }
   switch (phase) {
-    case ExecutionPhase.EXECUTION_COMPLETED:
+    case RunPhase.RUN_COMPLETED:
       run.outcome = ScheduleRunOutcome.COMPLETED;
       break;
-    case ExecutionPhase.EXECUTION_FAILED:
-    case ExecutionPhase.EXECUTION_CANCELLED:
-    case ExecutionPhase.EXECUTION_TERMINATED:
+    case RunPhase.RUN_FAILED:
+    case RunPhase.RUN_CANCELLED:
+    case RunPhase.RUN_TERMINATED:
       run.outcome = ScheduleRunOutcome.FAILED;
       run.reason = `run ${record.executionId} ended ${executionPhaseWord(phase)}`;
       break;
@@ -188,13 +188,13 @@ async function toProtoRun(
  * Lowers an ExecutionPhase to the reason vocabulary the tick's verdict
  * writer uses ("run X ended failed") — Go executionPhaseWord.
  */
-function executionPhaseWord(phase: ExecutionPhase): string {
+function executionPhaseWord(phase: RunPhase): string {
   switch (phase) {
-    case ExecutionPhase.EXECUTION_FAILED:
+    case RunPhase.RUN_FAILED:
       return "failed";
-    case ExecutionPhase.EXECUTION_CANCELLED:
+    case RunPhase.RUN_CANCELLED:
       return "cancelled";
-    case ExecutionPhase.EXECUTION_TERMINATED:
+    case RunPhase.RUN_TERMINATED:
       return "terminated";
     default:
       return "unknown";

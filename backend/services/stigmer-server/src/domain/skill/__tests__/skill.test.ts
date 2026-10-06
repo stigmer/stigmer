@@ -599,7 +599,7 @@ describe("pushFromExecutionArtifact — validation surface (the happy path is th
     ];
     for (const [request, message] of cases) {
       const err = await expectCode(
-        command.pushFromExecutionArtifact(request),
+        command.pushFromRunArtifact(request),
         Code.InvalidArgument,
         message,
       );
@@ -609,9 +609,9 @@ describe("pushFromExecutionArtifact — validation surface (the happy path is th
 
   it("rejects a storage key outside the execution's namespace (traversal guard)", async () => {
     const err = await expectCode(
-      command.pushFromExecutionArtifact({
+      command.pushFromRunArtifact({
         org: ORG,
-        executionId: "aex_example",
+        runId: "aex_example",
         storageKey: "artifacts/aex_other/skill.zip",
       }),
       Code.InvalidArgument,

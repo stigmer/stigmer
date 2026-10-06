@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, type ComponentType } from "react";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 

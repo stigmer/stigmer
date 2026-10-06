@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import {
   FileChangeSetStatus,
   type FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { WorkflowPendingFileReview } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { WorkflowPendingFileReview } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { displayFileChangeSets } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { FileReviewCard } from "../execution/FileReviewCard.js";
@@ -74,7 +74,7 @@ export function WorkflowFileReviewList({
     <div className={cn("stgm stg:space-y-3", className)}>
       {pendingFileReviews.map((ref) => (
         <WorkflowChildFileReview
-          key={ref.childAgentExecutionId}
+          key={ref.childAgentRunId}
           reference={ref}
           onSubmitFileDecision={onSubmitFileDecision}
           submittingDecisionKeys={submittingDecisionKeys}
@@ -106,7 +106,7 @@ function WorkflowChildFileReview({
   decisionErrors,
   onNavigateToAgentExecution,
 }: WorkflowChildFileReviewProps): React.ReactElement | null {
-  const childId = reference.childAgentExecutionId;
+  const childId = reference.childAgentRunId;
   const { execution } = useExecutionStream(childId);
 
   const changeSets = useMemo(() => {

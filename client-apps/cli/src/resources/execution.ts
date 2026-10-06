@@ -11,19 +11,19 @@
 // `download`.
 
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema, type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
-  AgentExecutionListSchema,
-  CancelAgentExecutionInputSchema,
-  ListAgentExecutionsRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+  AgentRunListSchema,
+  CancelAgentRunInputSchema,
+  ListAgentRunsRequestSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
-  ListWorkflowExecutionsRequestSchema,
-  WorkflowExecutionListSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+  ListWorkflowRunsRequestSchema,
+  WorkflowRunListSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import type { OutputFormat } from "../output/index.js";
@@ -53,20 +53,20 @@ function hasKindPrefix(ref: string, prefix: string): boolean {
 }
 
 // Terminal phases cannot be cancelled; mirrors Go's isTerminalAgentPhase.
-const TERMINAL_AGENT_PHASES: ReadonlySet<ExecutionPhase> = new Set([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
+const TERMINAL_AGENT_PHASES: ReadonlySet<RunPhase> = new Set([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
 ]);
 
 /** True when an agent phase is terminal (no further transitions). Mirrors Go's isTerminalAgentPhase. */
-export function isTerminalAgentPhase(phase: ExecutionPhase): boolean {
+export function isTerminalAgentPhase(phase: RunPhase): boolean {
   return TERMINAL_AGENT_PHASES.has(phase);
 }
 
 export interface CancelExecutionResult {
-  readonly execution: AgentExecution;
+  readonly execution: AgentRun;
   /** True when the execution was already terminal, so no cancel was issued. */
   readonly wasAlreadyTerminal: boolean;
 }
@@ -79,12 +79,12 @@ export interface CancelExecutionResult {
  * authoritative state rather than from the cancel RPC's response alone.
  */
 export async function cancelAgentExecution(client: Stigmer, id: string): Promise<CancelExecutionResult> {
-  const current = await client.agentExecution.get(id);
-  const phase = current.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  const current = await client.agentRun.get(id);
+  const phase = current.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   if (TERMINAL_AGENT_PHASES.has(phase)) {
     return { execution: current, wasAlreadyTerminal: true };
   }
-  const cancelled = await client.agentExecution.cancel(create(CancelAgentExecutionInputSchema, { id }));
+  const cancelled = await client.agentRun.cancel(create(CancelAgentRunInputSchema, { id }));
   return { execution: cancelled, wasAlreadyTerminal: false };
 }
 
@@ -120,9 +120,9 @@ export function resolveExecutionType(id: string): ExecutionType {
 /** Fetch a single execution (agent or workflow) by ID, with its schema. */
 export async function getExecution(client: Stigmer, id: string): Promise<ResourceResult> {
   if (resolveExecutionType(id) === "agent") {
-    return { schema: AgentExecutionSchema, message: await client.agentExecution.get(id) };
+    return { schema: AgentRunSchema, message: await client.agentRun.get(id) };
   }
-  return { schema: WorkflowExecutionSchema, message: await client.workflowExecution.get(id) };
+  return { schema: WorkflowRunSchema, message: await client.workflowRun.get(id) };
 }
 
 /**
@@ -134,9 +134,9 @@ export async function getExecution(client: Stigmer, id: string): Promise<Resourc
  */
 export async function listAgentExecutions(client: Stigmer, limit: number, org = ""): Promise<ResourceResult> {
   const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-    client.agentExecution.list(create(ListAgentExecutionsRequestSchema, { pageSize, pageToken, org })),
+    client.agentRun.list(create(ListAgentRunsRequestSchema, { pageSize, pageToken, org })),
   );
-  return { schema: AgentExecutionListSchema, message: create(AgentExecutionListSchema, { entries, totalPages: 1 }) };
+  return { schema: AgentRunListSchema, message: create(AgentRunListSchema, { entries, totalPages: 1 }) };
 }
 
 /**
@@ -148,11 +148,11 @@ export async function listAgentExecutions(client: Stigmer, limit: number, org = 
  */
 export async function listWorkflowExecutions(client: Stigmer, limit: number, org = ""): Promise<ResourceResult> {
   const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-    client.workflowExecution.list(create(ListWorkflowExecutionsRequestSchema, { pageSize, pageToken, org })),
+    client.workflowRun.list(create(ListWorkflowRunsRequestSchema, { pageSize, pageToken, org })),
   );
   return {
-    schema: WorkflowExecutionListSchema,
-    message: create(WorkflowExecutionListSchema, { entries, totalPages: 1 }),
+    schema: WorkflowRunListSchema,
+    message: create(WorkflowRunListSchema, { entries, totalPages: 1 }),
   };
 }
 
@@ -196,23 +196,23 @@ function dash(value: string): string {
 }
 
 /** Human-readable agent-execution phase, matching Go's execution.FormatPhase. */
-export function formatAgentPhase(phase: ExecutionPhase): string {
+export function formatAgentPhase(phase: RunPhase): string {
   switch (phase) {
-    case ExecutionPhase.EXECUTION_PENDING:
+    case RunPhase.RUN_PENDING:
       return "pending";
-    case ExecutionPhase.EXECUTION_IN_PROGRESS:
+    case RunPhase.RUN_IN_PROGRESS:
       return "running";
-    case ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
+    case RunPhase.RUN_WAITING_FOR_APPROVAL:
       return "awaiting-approval";
-    case ExecutionPhase.EXECUTION_PAUSED:
+    case RunPhase.RUN_PAUSED:
       return "paused";
-    case ExecutionPhase.EXECUTION_COMPLETED:
+    case RunPhase.RUN_COMPLETED:
       return "completed";
-    case ExecutionPhase.EXECUTION_FAILED:
+    case RunPhase.RUN_FAILED:
       return "failed";
-    case ExecutionPhase.EXECUTION_CANCELLED:
+    case RunPhase.RUN_CANCELLED:
       return "cancelled";
-    case ExecutionPhase.EXECUTION_TERMINATED:
+    case RunPhase.RUN_TERMINATED:
       return "terminated";
     default:
       return "unknown";
@@ -229,19 +229,19 @@ export function formatAgentPhase(phase: ExecutionPhase): string {
  */
 export function formatWorkflowPhase(phase: WorkflowExecutionPhase): string {
   switch (phase) {
-    case WorkflowExecutionPhase.EXECUTION_PENDING:
+    case WorkflowExecutionPhase.RUN_PENDING:
       return "pending";
-    case WorkflowExecutionPhase.EXECUTION_IN_PROGRESS:
+    case WorkflowExecutionPhase.RUN_IN_PROGRESS:
       return "running";
-    case WorkflowExecutionPhase.EXECUTION_COMPLETED:
+    case WorkflowExecutionPhase.RUN_COMPLETED:
       return "completed";
-    case WorkflowExecutionPhase.EXECUTION_FAILED:
+    case WorkflowExecutionPhase.RUN_FAILED:
       return "failed";
-    case WorkflowExecutionPhase.EXECUTION_CANCELLED:
+    case WorkflowExecutionPhase.RUN_CANCELLED:
       return "cancelled";
-    case WorkflowExecutionPhase.EXECUTION_TERMINATED:
+    case WorkflowExecutionPhase.RUN_TERMINATED:
       return "terminated";
-    case WorkflowExecutionPhase.EXECUTION_PAUSED:
+    case WorkflowExecutionPhase.RUN_PAUSED:
       return "paused";
     default:
       return "unknown";

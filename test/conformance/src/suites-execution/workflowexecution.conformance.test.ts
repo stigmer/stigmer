@@ -25,10 +25,10 @@
 //   that shape, outside this file.
 // - updateStatus is the runner's internal status-merge RPC, exercised implicitly
 //   by every completion rather than as a user-facing contract.
-import { FileDecisionAction, FileDecisionScope } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { WorkflowEventType, type WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import { FileDecisionAction, FileDecisionScope } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { WorkflowEventType, type WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -100,7 +100,7 @@ describe("WorkflowExecution conformance — CRUD & identity", () => {
     expect(created.metadata?.org).toBe(org);
     expect(created.spec?.workflowId).toBe(workflowId);
     // create persists before starting Temporal, so the returned phase is PENDING.
-    expect(created.status?.phase).toBe(ExecutionPhase.EXECUTION_PENDING);
+    expect(created.status?.phase).toBe(RunPhase.RUN_PENDING);
   });
 
   it("[rpc:WorkflowExecutionCommandController.create] a run named by its workflow alone pins the workflow's head version; a later save moves only later runs", async () => {
@@ -154,7 +154,7 @@ describe("WorkflowExecution conformance — CRUD & identity", () => {
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
     // Status advances as the run progresses, so parity (which ignores status,
     // id, and version) is the right equivalence here.
-    assertResourceParity(WorkflowExecutionSchema, created, fetched, "create vs get");
+    assertResourceParity(WorkflowRunSchema, created, fetched, "create vs get");
   });
 
   it("[rpc:WorkflowExecutionCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
@@ -190,7 +190,7 @@ describe("WorkflowExecution conformance — completion", () => {
 
     const final = await awaitTerminal(clients, created.metadata!.id);
 
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     // These are written by the runner via updateStatus as the run progresses.
     expect(final.status?.startedAt, "started_at is set when the run begins").toBeDefined();
     expect(final.status?.completedAt, "completed_at is set on completion").toBeDefined();
@@ -246,7 +246,7 @@ describe("WorkflowExecution conformance — queries", () => {
 
   it("[rpc:WorkflowExecutionQueryController.getEventLog] getEventLog rejects an empty execution_id with InvalidArgument", () =>
     expectGrpcCode(
-      () => clients.workflowExecutionQuery.getEventLog({ executionId: "" }),
+      () => clients.workflowExecutionQuery.getEventLog({ runId: "" }),
       Code.InvalidArgument,
       "getEventLog empty execution_id",
     ));
@@ -258,7 +258,7 @@ describe("WorkflowExecution conformance — queries", () => {
     // single-user editions reach the empty-page contract.
     if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     // Unlike get/subscribe, getEventLog does not 404 — it returns no events.
-    const log = await clients.workflowExecutionQuery.getEventLog({ executionId: "wex_doesnotexist" });
+    const log = await clients.workflowExecutionQuery.getEventLog({ runId: "wex_doesnotexist" });
     expect(log.events).toHaveLength(0);
   });
 });
@@ -269,8 +269,8 @@ describe("WorkflowExecution conformance — lifecycle (running execution)", () =
     const workflowId = await provisionWaitWorkflow(org);
     const created = await createExecution(org, workflowId);
 
-    const running = await awaitPhase(clients, created.metadata!.id, ExecutionPhase.EXECUTION_IN_PROGRESS);
-    expect(running.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const running = await awaitPhase(clients, created.metadata!.id, RunPhase.RUN_IN_PROGRESS);
+    expect(running.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
 
     // Stop the timer; cancel of a running execution is the next test's subject.
     await clients.workflowExecutionCommand.cancel({ id: created.metadata!.id });
@@ -280,11 +280,11 @@ describe("WorkflowExecution conformance — lifecycle (running execution)", () =
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWaitWorkflow(org);
     const created = await createExecution(org, workflowId);
-    await awaitPhase(clients, created.metadata!.id, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, created.metadata!.id, RunPhase.RUN_IN_PROGRESS);
 
     await clients.workflowExecutionCommand.cancel({ id: created.metadata!.id, reason: "conformance" });
 
-    const cancelled = await awaitPhase(clients, created.metadata!.id, ExecutionPhase.EXECUTION_CANCELLED);
+    const cancelled = await awaitPhase(clients, created.metadata!.id, RunPhase.RUN_CANCELLED);
     expect(cancelled.status?.completedAt, "cancel records completed_at").toBeDefined();
   });
 
@@ -292,12 +292,12 @@ describe("WorkflowExecution conformance — lifecycle (running execution)", () =
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWaitWorkflow(org);
     const created = await createExecution(org, workflowId);
-    await awaitPhase(clients, created.metadata!.id, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, created.metadata!.id, RunPhase.RUN_IN_PROGRESS);
 
     await clients.workflowExecutionCommand.terminate({ id: created.metadata!.id, reason: "conformance" });
 
-    const terminated = await awaitPhase(clients, created.metadata!.id, ExecutionPhase.EXECUTION_TERMINATED);
-    expect(terminated.status?.phase).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+    const terminated = await awaitPhase(clients, created.metadata!.id, RunPhase.RUN_TERMINATED);
+    expect(terminated.status?.phase).toBe(RunPhase.RUN_TERMINATED);
   });
 
   it("[rpc:WorkflowExecutionCommandController.pause] [rpc:WorkflowExecutionCommandController.resume] pause then resume moves a running execution PAUSED -> IN_PROGRESS", async () => {
@@ -305,13 +305,13 @@ describe("WorkflowExecution conformance — lifecycle (running execution)", () =
     const workflowId = await provisionWaitWorkflow(org);
     const created = await createExecution(org, workflowId);
     const id = created.metadata!.id;
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
 
     await clients.workflowExecutionCommand.pause({ id, reason: "conformance" });
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_PAUSED);
+    await awaitPhase(clients, id, RunPhase.RUN_PAUSED);
 
     await clients.workflowExecutionCommand.resume({ id });
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
 
     await clients.workflowExecutionCommand.cancel({ id });
   });
@@ -380,14 +380,14 @@ describe("WorkflowExecution conformance — lifecycle preconditions & negatives"
 
   it("[rpc:WorkflowExecutionCommandController.sendSignal] sendSignal rejects an empty execution_id with InvalidArgument", () =>
     expectGrpcCode(
-      () => clients.workflowExecutionCommand.sendSignal({ executionId: "", signalName: "go" }),
+      () => clients.workflowExecutionCommand.sendSignal({ runId: "", signalName: "go" }),
       Code.InvalidArgument,
       "sendSignal empty execution_id",
     ));
 
   it("[rpc:WorkflowExecutionCommandController.sendSignal] sendSignal to a missing execution returns NotFound", () =>
     expectGrpcCode(
-      () => clients.workflowExecutionCommand.sendSignal({ executionId: "wex_doesnotexist", signalName: "go" }),
+      () => clients.workflowExecutionCommand.sendSignal({ runId: "wex_doesnotexist", signalName: "go" }),
       Code.NotFound,
       "sendSignal missing execution",
     ));
@@ -532,11 +532,11 @@ describe("WorkflowExecution conformance — event log pagination & streaming", (
 
     // Walk the whole log one event at a time — real cursor semantics, no
     // manufactured event floods.
-    const walked: WorkflowExecutionEvent[] = [];
+    const walked: WorkflowRunEvent[] = [];
     let afterSequence = 0n;
     for (;;) {
       const page = await clients.workflowExecutionQuery.getEventLog({
-        executionId,
+        runId: executionId,
         afterSequence,
         pageSize: 1,
       });
@@ -554,11 +554,11 @@ describe("WorkflowExecution conformance — event log pagination & streaming", (
     // The four-event shape of a single-task run, sequences dense from 1.
     expect(walked).toHaveLength(4);
     expect(walked.map((e) => e.sequenceNumber)).toEqual([1n, 2n, 3n, 4n]);
-    expect(walked[0]?.eventType).toBe(WorkflowEventType.execution_started);
-    expect(walked[3]?.eventType).toBe(WorkflowEventType.execution_completed);
+    expect(walked[0]?.eventType).toBe(WorkflowEventType.run_started);
+    expect(walked[3]?.eventType).toBe(WorkflowEventType.run_completed);
 
     // One unpaginated read returns the same log with has_more exhausted.
-    const full = await clients.workflowExecutionQuery.getEventLog({ executionId });
+    const full = await clients.workflowExecutionQuery.getEventLog({ runId: executionId });
     expect(full.events.map((e) => e.eventId)).toEqual(walked.map((e) => e.eventId));
     expect(full.hasMore).toBe(false);
     expect(full.latestSequence).toBe(4n);
@@ -575,13 +575,13 @@ describe("WorkflowExecution conformance — event log pagination & streaming", (
     // prove the lane without racing a live run.
     const stream = await collectStream((signal) =>
       clients.workflowExecutionQuery.subscribeEvents(
-        { executionId: created.metadata!.id },
+        { runId: created.metadata!.id },
         { signal },
       ),
     );
     expect(stream.outcome, "the server closes after draining a terminal run").toBe("closed");
     expect(stream.messages.map((e) => e.sequenceNumber)).toEqual([1n, 2n, 3n, 4n]);
-    expect(stream.messages[3]?.eventType).toBe(WorkflowEventType.execution_completed);
+    expect(stream.messages[3]?.eventType).toBe(WorkflowEventType.run_completed);
   });
 
   it("[rpc:WorkflowExecutionQueryController.subscribe] subscribe sends the snapshot but never closes on an already-terminal run (the pinned idle-forever quirk)", async () => {
@@ -596,7 +596,7 @@ describe("WorkflowExecution conformance — event log pagination & streaming", (
     // it consciously, or fixes it in both editions.
     const stream = await collectStream(
       (signal) =>
-        clients.workflowExecutionQuery.subscribe({ executionId: created.metadata!.id }, { signal }),
+        clients.workflowExecutionQuery.subscribe({ runId: created.metadata!.id }, { signal }),
       { timeoutMs: 3_000 },
     );
     // The store serializes the runner's terminal write and the workflow's
@@ -604,7 +604,7 @@ describe("WorkflowExecution conformance — event log pagination & streaming", (
     // to trip the close check — exactly one message, and the reader aborts.
     expect(stream.outcome, "no server close — the bounded reader had to abort").toBe("timeout");
     expect(stream.messages).toHaveLength(1);
-    expect(stream.messages[0]?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(stream.messages[0]?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
   it("[rpc:WorkflowExecutionCommandController.submitFileDecision] submitFileDecision refuses an execution with no pending file reviews (FailedPrecondition)", async () => {
@@ -619,8 +619,8 @@ describe("WorkflowExecution conformance — event log pagination & streaming", (
     const err = await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitFileDecision({
-          executionId: created.metadata!.id,
-          childAgentExecutionId: "aexec_x",
+          runId: created.metadata!.id,
+          childAgentRunId: "aexec_x",
           changeSetId: "cs_x",
           expectedDigest: "digest",
           scope: FileDecisionScope.CHANGE_SET,

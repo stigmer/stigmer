@@ -1,17 +1,17 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  AgentExecutionSpecSchema,
+  AgentRunSpecSchema,
   AttachmentSchema,
   type Attachment,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
 
 // ---------------------------------------------------------------------------
@@ -36,15 +36,15 @@ function makeExecution(opts: {
   id: string;
   specMessage: string;
   attachments?: Attachment[];
-}): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+}): AgentRun {
+  const exec = create(AgentRunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id: opts.id });
-  const spec = create(AgentExecutionSpecSchema);
+  const spec = create(AgentRunSpecSchema);
   spec.message = opts.specMessage;
   if (opts.attachments) spec.attachments = opts.attachments;
   exec.spec = spec;
-  const status = create(AgentExecutionStatusSchema);
-  status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+  const status = create(AgentRunStatusSchema);
+  status.phase = RunPhase.RUN_COMPLETED;
   exec.status = status;
   return exec;
 }

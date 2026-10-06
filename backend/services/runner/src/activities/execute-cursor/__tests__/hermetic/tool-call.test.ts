@@ -22,8 +22,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -111,8 +111,8 @@ describe("ExecuteCursor hermetic — ungated tool call", () => {
     expect(slim.phase).toBe("EXECUTION_COMPLETED");
     expect(slim.final_text).toBe(ASSISTANT_TEXT);
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_COMPLETED,
     ]);
 
     // ── Assert: the one tool-call row ────────────────────────────────────────
@@ -134,7 +134,7 @@ describe("ExecuteCursor hermetic — ungated tool call", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const finalStatus = record.lastFullStatus;
     expect(finalStatus).toBeDefined();
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, finalStatus!), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, finalStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/tool-call.status.json");
   });
 });

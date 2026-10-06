@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useRef, useSyncExternalStore } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ConversationStore, type StreamState } from "./conversation-store.js";
 import {
   WorkspaceFileSelectionStore,
@@ -85,7 +85,7 @@ export function useConversationStoreRef(): ConversationStore {
  */
 export function useStoreExecution(
   store: ConversationStore,
-): AgentExecution | null {
+): AgentRun | null {
   return useSyncExternalStore(store.subscribe, store.getExecution);
 }
 

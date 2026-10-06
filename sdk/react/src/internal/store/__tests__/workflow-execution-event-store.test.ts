@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
 import {
-  WorkflowExecutionEventSchema,
+  WorkflowRunEventSchema,
   WorkflowEventType,
   TaskStartedPayloadSchema,
   TaskCompletedPayloadSchema,
@@ -11,10 +11,10 @@ import {
   AgentCallProgressPayloadSchema,
   ApprovalRequestedPayloadSchema,
   ApprovalResolvedPayloadSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { ExecutionPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { WorkflowExecutionEventStore } from "../workflow-execution-event-store";
 
 // ---------------------------------------------------------------------------
@@ -29,8 +29,8 @@ function makeTaskStartedEvent(
     attemptNumber?: number;
     inputSummary?: JsonObject;
   } = {},
-): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-05-22T00:00:00Z",
@@ -56,8 +56,8 @@ function makeTaskCompletedEvent(
     tokensUsed?: bigint;
     outputSummary?: JsonObject;
   } = {},
-): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-05-22T00:00:00Z",
@@ -80,8 +80,8 @@ function makeApprovalRequestedEvent(
   seq: number,
   taskName: string,
   prompt = "Please review",
-): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-05-22T00:00:00Z",
@@ -98,8 +98,8 @@ function makeApprovalResolvedEvent(
   seq: number,
   taskName: string,
   opts: { resolvedBy?: string; waitDurationMs?: bigint } = {},
-): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-05-22T00:00:00Z",
@@ -119,8 +119,8 @@ function makeTaskFailedEvent(
   seq: number,
   taskName: string,
   opts: { willRetry?: boolean; attemptNumber?: number; error?: string } = {},
-): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-05-22T00:00:00Z",
@@ -143,8 +143,8 @@ function makeAgentCallStartedEvent(
   seq: number,
   taskName: string,
   opts: { childExecutionId?: string; agentSlug?: string } = {},
-): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-05-22T00:00:00Z",
@@ -153,7 +153,7 @@ function makeAgentCallStartedEvent(
     payload: {
       case: "agentCallStarted",
       value: create(AgentCallStartedPayloadSchema, {
-        childExecutionId: opts.childExecutionId ?? "aex_child_1",
+        childRunId: opts.childExecutionId ?? "aex_child_1",
         agentSlug: opts.agentSlug ?? "helper",
         messageSummary: "do the thing",
       }),
@@ -172,8 +172,8 @@ function makeAgentCallProgressEvent(
   taskName: string,
   agentPhase: AgentExecutionPhase,
   opts: { childExecutionId?: string; currentToolName?: string } = {},
-): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-05-22T00:00:00Z",
@@ -182,7 +182,7 @@ function makeAgentCallProgressEvent(
     payload: {
       case: "agentCallProgress",
       value: create(AgentCallProgressPayloadSchema, {
-        childExecutionId: opts.childExecutionId ?? "aex_child_1",
+        childRunId: opts.childExecutionId ?? "aex_child_1",
         agentPhase,
         currentToolName: opts.currentToolName ?? "",
         tokensConsumed: BigInt(0),
@@ -418,7 +418,7 @@ describe("WorkflowExecutionEventStore", () => {
       const store = new WorkflowExecutionEventStore();
       runningAgentCall(store);
       store.appendEvents([
-        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.RUN_WAITING_FOR_APPROVAL),
       ]);
 
       const task = store.getTaskStates().get("call-helper")!;
@@ -432,8 +432,8 @@ describe("WorkflowExecutionEventStore", () => {
       const store = new WorkflowExecutionEventStore();
       runningAgentCall(store);
       store.appendEvents([
-        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
-        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.RUN_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.RUN_IN_PROGRESS),
       ]);
 
       expect(store.getTaskStates().get("call-helper")!.status).toBe("running");
@@ -443,8 +443,8 @@ describe("WorkflowExecutionEventStore", () => {
       const store = new WorkflowExecutionEventStore();
       runningAgentCall(store);
       store.appendEvents([
-        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
-        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_PHASE_UNSPECIFIED),
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.RUN_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.RUN_PHASE_UNSPECIFIED),
       ]);
 
       expect(store.getTaskStates().get("call-helper")!.status).toBe("waiting_approval");
@@ -454,9 +454,9 @@ describe("WorkflowExecutionEventStore", () => {
       const store = new WorkflowExecutionEventStore();
       runningAgentCall(store);
       store.appendEvents([
-        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_PHASE_UNSPECIFIED),
-        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_PENDING),
-        makeAgentCallProgressEvent(5, "call-helper", AgentExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.RUN_PHASE_UNSPECIFIED),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.RUN_PENDING),
+        makeAgentCallProgressEvent(5, "call-helper", AgentExecutionPhase.RUN_IN_PROGRESS),
       ]);
 
       expect(store.getTaskStates().get("call-helper")!.status).toBe("running");
@@ -466,7 +466,7 @@ describe("WorkflowExecutionEventStore", () => {
       const store = new WorkflowExecutionEventStore();
       runningAgentCall(store);
       store.appendEvents([
-        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.RUN_WAITING_FOR_APPROVAL),
         makeTaskCompletedEvent(4, "call-helper"),
       ]);
 
@@ -478,7 +478,7 @@ describe("WorkflowExecutionEventStore", () => {
       runningAgentCall(store);
       store.appendEvents([
         makeTaskCompletedEvent(3, "call-helper"),
-        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.RUN_WAITING_FOR_APPROVAL),
       ]);
 
       expect(store.getTaskStates().get("call-helper")!.status).toBe("completed");
@@ -489,7 +489,7 @@ describe("WorkflowExecutionEventStore", () => {
       runningAgentCall(store);
       store.appendEvents([
         makeTaskFailedEvent(3, "call-helper", { willRetry: true }),
-        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.RUN_WAITING_FOR_APPROVAL),
       ]);
 
       expect(store.getTaskStates().get("call-helper")!.status).toBe("retrying");
@@ -499,8 +499,8 @@ describe("WorkflowExecutionEventStore", () => {
       const store = new WorkflowExecutionEventStore();
       runningAgentCall(store);
       store.appendEvents([
-        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
-        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_COMPLETED),
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.RUN_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.RUN_COMPLETED),
       ]);
       expect(store.getTaskStates().get("call-helper")!.status).toBe("running");
 
@@ -513,8 +513,8 @@ describe("WorkflowExecutionEventStore", () => {
       store.appendEvents([
         makeTaskStartedEvent(1, "call-helper", AGENT_CALL),
         makeAgentCallStartedEvent(2, "call-helper"),
-        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
-        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.RUN_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.RUN_IN_PROGRESS),
         makeTaskCompletedEvent(5, "call-helper"),
       ]);
 
@@ -524,7 +524,7 @@ describe("WorkflowExecutionEventStore", () => {
     it("a progress event without a prior taskStarted is a no-op (prev is undefined)", () => {
       const store = new WorkflowExecutionEventStore();
       store.appendEvents([
-        makeAgentCallProgressEvent(1, "ghost", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(1, "ghost", AgentExecutionPhase.RUN_WAITING_FOR_APPROVAL),
       ]);
 
       expect(store.getTaskStates().has("ghost")).toBe(false);

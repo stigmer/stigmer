@@ -1,23 +1,23 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { toolCallGroupPropsEqual, type ToolCallGroupProps } from "../ToolCallGroup";
 import { buildThreadItems } from "../MessageThread";
 import { structuralShare } from "../../internal/store";
@@ -48,7 +48,7 @@ function makeToolCall(name: string, id: string) {
 }
 
 function makeSubAgent(id: string) {
-  const sa = create(SubAgentExecutionSchema);
+  const sa = create(SubAgentRunSchema);
   sa.id = id;
   sa.name = "test-agent";
   return sa;
@@ -57,23 +57,23 @@ function makeSubAgent(id: string) {
 function makeExecution(opts: {
   id: string;
   specMessage?: string;
-  phase?: ExecutionPhase;
+  phase?: RunPhase;
   messages?: ReturnType<typeof makeMessage>[];
   subAgents?: ReturnType<typeof makeSubAgent>[];
-}): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+}): AgentRun {
+  const exec = create(AgentRunSchema);
   const meta = create(ApiResourceMetadataSchema);
   meta.id = opts.id;
   exec.metadata = meta;
   if (opts.specMessage) {
-    const spec = create(AgentExecutionSpecSchema);
+    const spec = create(AgentRunSpecSchema);
     spec.message = opts.specMessage;
     exec.spec = spec;
   }
-  const status = create(AgentExecutionStatusSchema);
-  status.phase = opts.phase ?? ExecutionPhase.EXECUTION_COMPLETED;
+  const status = create(AgentRunStatusSchema);
+  status.phase = opts.phase ?? RunPhase.RUN_COMPLETED;
   if (opts.messages) status.messages = opts.messages;
-  if (opts.subAgents) status.subAgentExecutions = opts.subAgents;
+  if (opts.subAgents) status.subAgentRuns = opts.subAgents;
   exec.status = status;
   return exec;
 }
@@ -207,7 +207,7 @@ describe("structural sharing preserves references for memo boundaries", () => {
 
     const prev = makeExecution({
       id: "exec-1",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [
         humanMsg,
         completedAi,
@@ -217,7 +217,7 @@ describe("structural sharing preserves references for memo boundaries", () => {
 
     const next = makeExecution({
       id: "exec-1",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [
         makeMessage(MessageType.MESSAGE_HUMAN, "Hello"),
         makeMessage(MessageType.MESSAGE_AI, "Full response"),
@@ -243,7 +243,7 @@ describe("structural sharing preserves references for memo boundaries", () => {
 
     const prev = makeExecution({
       id: "exec-1",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [
         aiMsg,
         makeMessage(MessageType.MESSAGE_AI, "now streaming", { isStreaming: true }),
@@ -252,7 +252,7 @@ describe("structural sharing preserves references for memo boundaries", () => {
 
     const next = makeExecution({
       id: "exec-1",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [
         makeMessage(MessageType.MESSAGE_AI, "tools done", {
           toolCalls: [
@@ -281,7 +281,7 @@ describe("structural sharing preserves references for memo boundaries", () => {
 
     const prev = makeExecution({
       id: "exec-1",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [
         completedMsg,
         makeMessage(MessageType.MESSAGE_AI, "stream", { isStreaming: true }),
@@ -290,7 +290,7 @@ describe("structural sharing preserves references for memo boundaries", () => {
 
     const next = makeExecution({
       id: "exec-1",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [
         makeMessage(MessageType.MESSAGE_AI, "used tools", {
           toolCalls: [makeToolCall("shell", "tc-1")],

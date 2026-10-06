@@ -17,7 +17,7 @@
  * plane's real registry (`real-model-registry.ts`).
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ExecutionPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../client/stigmer-client.js", async () =>
   (await import("../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -69,7 +69,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a b
     const rows = record.toolCalls();
     const seen = rows.map((r) => `${r.name}:${ToolCallStatus[r.status]}`).join(", ");
 
-    expect(record.persistedPhases.at(-1), `${final?.error ?? ""} rows: [${seen}]`).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1), `${final?.error ?? ""} rows: [${seen}]`).toBe(RunPhase.RUN_COMPLETED);
     const todoRows = rows.filter((r) => r.name === TOOL);
     expect(todoRows.length, `the model called ${TOOL} exactly once; rows: [${seen}]`).toBe(1);
     expect(todoRows[0]?.status, `rows: [${seen}]`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);

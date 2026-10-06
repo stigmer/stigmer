@@ -9,9 +9,9 @@
 import { createClient } from "@connectrpc/connect";
 import { create as createMessage } from "@bufbuild/protobuf";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
-import { WorkflowExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/spec_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
+import { WorkflowRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/spec_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -68,11 +68,11 @@ export async function runWorkflow(
       });
     }
 
-    const execution = createMessage(WorkflowExecutionSchema, {
+    const execution = createMessage(WorkflowRunSchema, {
       apiVersion: API_VERSION,
       kind: "WorkflowExecution",
       metadata: createMessage(ApiResourceMetadataSchema, { name: executionName(), org: args.org }),
-      spec: createMessage(WorkflowExecutionSpecSchema, {
+      spec: createMessage(WorkflowRunSpecSchema, {
         workflowId,
         // Empty message means "just run" — the CLI applies the same default.
         triggerMessage: (args.message ?? "") === "" ? "execute" : args.message,
@@ -80,10 +80,10 @@ export async function runWorkflow(
       }),
     });
 
-    const command = createClient(WorkflowExecutionCommandController, transport);
+    const command = createClient(WorkflowRunCommandController, transport);
     try {
       const created = await command.create(execution, callOptions);
-      return toProtoJson(WorkflowExecutionSchema, created);
+      return toProtoJson(WorkflowRunSchema, created);
     } catch (err) {
       throw rpcError(err, `execution of ${desc}`);
     }

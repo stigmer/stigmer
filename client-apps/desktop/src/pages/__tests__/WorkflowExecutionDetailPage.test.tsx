@@ -87,7 +87,7 @@ describe("desktop WorkflowExecutionDetailPage", () => {
 
     expect(page.viewer.at(-1)).toMatchObject({ executionId: "wfe_1", org: "acme", nodesDraggable: true });
     expect(page.access.at(-1)?.resource).toEqual({
-      kind: ApiResourceKind.workflow_execution,
+      kind: ApiResourceKind.workflow_run,
       kindString: "workflow_execution",
       id: "wfe_1",
       org: "org_acme",

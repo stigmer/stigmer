@@ -20,8 +20,8 @@
 // The judge model on the grade is the one the eval reports it used, not the
 // one the benchmark asked for.
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
 import { awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowexecutions";
@@ -83,7 +83,7 @@ export async function judge(
 }
 
 /** The verdict on a terminal judge workflow, refused unless its criteria are exactly `rubric`'s. */
-export function verdictOf(execution: WorkflowExecution, rubric: readonly QualityCriterion[]): Verdict {
+export function verdictOf(execution: WorkflowRun, rubric: readonly QualityCriterion[]): Verdict {
   const outcome = workflowOutcome(execution.status?.phase);
   if (outcome !== "completed") {
     return refused(execution.status?.error || `the judge workflow ended ${outcome}`, outcome);
@@ -131,12 +131,12 @@ function refused(message: string, outcome: SampleOutcome): Verdict {
   return { score: null, criteria: [], reasoning: "", judge_model: "", outcome, failure: { stage: "judge", message } };
 }
 
-function workflowOutcome(phase: ExecutionPhase | undefined): SampleOutcome {
+function workflowOutcome(phase: RunPhase | undefined): SampleOutcome {
   switch (phase) {
-    case ExecutionPhase.EXECUTION_COMPLETED:
+    case RunPhase.RUN_COMPLETED:
       return "completed";
-    case ExecutionPhase.EXECUTION_CANCELLED:
-    case ExecutionPhase.EXECUTION_TERMINATED:
+    case RunPhase.RUN_CANCELLED:
+    case RunPhase.RUN_TERMINATED:
       return "cancelled";
     default:
       return "failed";

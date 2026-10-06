@@ -17,31 +17,31 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   FileContentSchema,
   type AgentMessage,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
-  SubAgentExecutionSchema,
-  type SubAgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+  SubAgentRunSchema,
+  type SubAgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   FileDecisionSchema,
   type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
   DiffCompleteness,
-  ExecutionPhase,
+  RunPhase,
   FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
@@ -49,7 +49,7 @@ import {
   MessageType,
   SubAgentStatus,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SubAgentSection } from "../SubAgentSection";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { FileReviewContext } from "../FileReviewContext";
@@ -71,8 +71,8 @@ function subAgentWithStampedEdit(
   status: SubAgentStatus,
   fileChangeSetId: string,
   rowPath = ROW_PATH,
-): SubAgentExecution {
-  return create(SubAgentExecutionSchema, {
+): SubAgentRun {
+  return create(SubAgentRunSchema, {
     id: "sa-1",
     name: "code_editor",
     status,
@@ -125,7 +125,7 @@ function reviewSet(
   });
 }
 
-function renderSubAgentRow(sub: SubAgentExecution, set: FileChangeSet | null) {
+function renderSubAgentRow(sub: SubAgentRun, set: FileChangeSet | null) {
   const map = set ? new Map([[set.id, set]]) : new Map<string, FileChangeSet>();
   return render(
     <ApprovalContext.Provider value={emptyApprovalCtx}>
@@ -232,13 +232,13 @@ describe("sub-agent row badges (MessageThread integration)", () => {
    * id) and the change set on `status.fileChangeSets`; the sub-agent (running,
    * so its card auto-opens) carries the stamped edit row.
    */
-  function makeExecWithSubAgentEdit(): AgentExecution {
-    const exec = create(AgentExecutionSchema);
+  function makeExecWithSubAgentEdit(): AgentRun {
+    const exec = create(AgentRunSchema);
     exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-1" });
-    exec.spec = create(AgentExecutionSpecSchema, { message: "Delegate an edit" });
+    exec.spec = create(AgentRunSpecSchema, { message: "Delegate an edit" });
 
-    const status = create(AgentExecutionStatusSchema);
-    status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
+    const status = create(AgentRunStatusSchema);
+    status.phase = RunPhase.RUN_IN_PROGRESS;
     const aiMsg: AgentMessage = create(AgentMessageSchema, {
       type: MessageType.MESSAGE_AI,
       content: "Delegating.",
@@ -251,7 +251,7 @@ describe("sub-agent row badges (MessageThread integration)", () => {
       ],
     });
     status.messages = [aiMsg];
-    status.subAgentExecutions = [
+    status.subAgentRuns = [
       subAgentWithStampedEdit(SubAgentStatus.SUB_AGENT_IN_PROGRESS, SET_ID),
     ];
     status.fileChangeSets = [reviewSet(FileChangeSetStatus.AWAITING_REVIEW)];

@@ -35,9 +35,9 @@ import {
   RunConfigSchema,
   type AgentInvocation,
   type RunConfig,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import {
   cadenceToCron,
@@ -315,10 +315,10 @@ export function ScheduleDetailView({
     setRunsVersion((v) => v + 1);
     if (
       result.outcome === ScheduleRunOutcome.STARTED &&
-      result.executionId &&
+      result.runId &&
       onNavigateToExecution
     ) {
-      onNavigateToExecution(result.executionId);
+      onNavigateToExecution(result.runId);
     }
   };
 
@@ -668,13 +668,13 @@ export function ScheduleDetailView({
             </span>
           </DetailRow>
           <DetailRow label="Last execution">
-            {status?.lastExecutionId ? (
+            {status?.lastRunId ? (
               <ReferenceLink
-                label={status.lastExecutionId}
+                label={status.lastRunId}
                 mono
                 onNavigate={
                   onNavigateToExecution
-                    ? () => onNavigateToExecution(status.lastExecutionId)
+                    ? () => onNavigateToExecution(status.lastRunId)
                     : undefined
                 }
               />

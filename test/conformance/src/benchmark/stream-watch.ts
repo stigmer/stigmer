@@ -21,9 +21,9 @@
 // runner's `turn_phases` line carries the precise activity-relative instants
 // beside it. The stamps are quantised to the runner's persist cadence, which
 // is what the console sees too.
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { ConformanceClients } from "../harness/clients";
-import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { isTerminalPhase } from "../support/agentexecutions";
 import { collectStream, type CollectedStream } from "../support/collect-stream";
 import { findChangeSet } from "../support/file-review";
@@ -51,12 +51,12 @@ export interface WatchedExecution {
   /** `true` when the watch stopped at review: `final` carries the set AWAITING_REVIEW. */
   awaiting_review: boolean;
   /** The last snapshot received: terminal, or offering review, when `outcome` is `until`. */
-  final: AgentExecution | undefined;
-  outcome: CollectedStream<AgentExecution>["outcome"];
+  final: AgentRun | undefined;
+  outcome: CollectedStream<AgentRun>["outcome"];
 }
 
 /** The stream factory a watch consumes; the clients' subscribe by default, injectable for tests. */
-export type SubscribeFactory = (signal: AbortSignal) => AsyncIterable<AgentExecution>;
+export type SubscribeFactory = (signal: AbortSignal) => AsyncIterable<AgentRun>;
 
 export function subscribeTo(clients: ConformanceClients, executionId: string): SubscribeFactory {
   return (signal) => clients.agentExecutionQuery.subscribe({ value: executionId }, { signal });

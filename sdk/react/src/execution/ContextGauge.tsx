@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import {
   useContextWindow,
@@ -16,7 +16,7 @@ export interface ContextGaugeProps {
    * The execution snapshot from `useExecutionStream`, or `null`.
    * The gauge extracts `context_info` from the execution status.
    */
-  readonly execution: AgentExecution | null;
+  readonly execution: AgentRun | null;
   /**
    * When `true`, renders a minimal bar without labels.
    * Use in tight layouts (e.g., inline status indicators).

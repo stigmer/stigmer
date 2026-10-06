@@ -19,7 +19,7 @@
 import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { getUserMessage } from "@stigmer/sdk";
 import { useUpdateWorkflowExecutionVisibility } from "./useUpdateWorkflowExecutionVisibility.js";
 
@@ -28,26 +28,26 @@ export interface RunVisibilityControlProps {
   /** Id of the workflow whose run visibility is edited. */
   readonly workflowId: string;
   /** Current `execution_visibility` from the workflow spec. */
-  readonly executionVisibility: WorkflowExecutionVisibility;
+  readonly executionVisibility: WorkflowRunVisibility;
   /** Called with the updated workflow after a successful change, so the host can refresh its copy. */
   readonly onChanged?: (workflow: Workflow) => void;
 }
 
 interface RunVisibilityOption {
-  readonly value: WorkflowExecutionVisibility;
+  readonly value: WorkflowRunVisibility;
   readonly label: string;
   readonly description: string;
 }
 
 const RUN_VISIBILITY_OPTIONS: readonly RunVisibilityOption[] = [
   {
-    value: WorkflowExecutionVisibility.private,
+    value: WorkflowRunVisibility.private,
     label: "Only the person who runs it",
     description:
       "Each run, past and future, is visible only to whoever started it (and anyone it is shared with).",
   },
   {
-    value: WorkflowExecutionVisibility.organization,
+    value: WorkflowRunVisibility.organization,
     label: "All organization members",
     description:
       "Everyone in the organization can see every run of this workflow, past runs included, with its input and output.",
@@ -76,12 +76,12 @@ export function RunVisibilityControl({
     useUpdateWorkflowExecutionVisibility();
 
   const current =
-    executionVisibility === WorkflowExecutionVisibility.unspecified
-      ? WorkflowExecutionVisibility.private
+    executionVisibility === WorkflowRunVisibility.unspecified
+      ? WorkflowRunVisibility.private
       : executionVisibility;
 
   const handleSelect = useCallback(
-    async (value: WorkflowExecutionVisibility) => {
+    async (value: WorkflowRunVisibility) => {
       if (value === current || isUpdating) return;
       try {
         const updated = await updateExecutionVisibility(workflowId, value);

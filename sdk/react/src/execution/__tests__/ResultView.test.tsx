@@ -2,11 +2,11 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   ToolCallStatus,
   ToolKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { normalizeToolResult } from "@stigmer/sdk";
 import type { ToolResultView } from "@stigmer/sdk";
 import type { Stigmer } from "@stigmer/sdk";

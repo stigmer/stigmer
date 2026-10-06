@@ -14,7 +14,7 @@
  * Bundle-safe (pure proto enum import) — the workflow reads phases from
  * every activity result.
  */
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 /** Go activities.RunnerActivityResult (map[string]interface{}). */
 export type RunnerActivityResult = Record<string, unknown>;
@@ -25,25 +25,25 @@ export type RunnerActivityResult = Record<string, unknown>;
  */
 export function getPhaseFromResult(
   result: RunnerActivityResult | null | undefined,
-): ExecutionPhase {
+): RunPhase {
   if (result === null || result === undefined) {
-    return ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    return RunPhase.RUN_PHASE_UNSPECIFIED;
   }
   const phase = result["phase"];
   if (typeof phase === "string") {
     // Proto-JSON uses string enum names; the generated TS enum keys ARE
     // the proto value names, so this lookup is Go's ExecutionPhase_value
     // map exactly.
-    const value = (ExecutionPhase as Record<string, unknown>)[phase];
+    const value = (RunPhase as Record<string, unknown>)[phase];
     if (typeof value === "number") {
-      return value as ExecutionPhase;
+      return value as RunPhase;
     }
-    return ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    return RunPhase.RUN_PHASE_UNSPECIFIED;
   }
   if (typeof phase === "number") {
-    return phase as ExecutionPhase;
+    return phase as RunPhase;
   }
-  return ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  return RunPhase.RUN_PHASE_UNSPECIFIED;
 }
 
 /** Extracts the error string from a runner activity result (Go GetErrorFromResult). */

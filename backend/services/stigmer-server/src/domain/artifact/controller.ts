@@ -48,7 +48,7 @@ import type {
   CreateArtifactInput,
   GetArtifactContentRequest,
   GetArtifactContentResponse,
-  ListArtifactsByExecutionRequest,
+  ListArtifactsByRunRequest,
 } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
 import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import type { ArtifactSource } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/spec_pb";
@@ -120,7 +120,7 @@ export function registerArtifactServices(
   });
   router.service(ArtifactQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
-    listByExecution: (req, ctx) => listByExecution(deps, req, ctx),
+    listByRun: (req, ctx) => listByExecution(deps, req, ctx),
     getDownloadUrl: (id, ctx) =>
       getDownloadUrl(deps, id, callerIdentityOf(ctx)),
     getContent: (req, ctx) => getContent(deps, req, callerIdentityOf(ctx)),
@@ -189,7 +189,7 @@ async function createArtifact(
   const source = spec.source;
   if (
     source === undefined ||
-    (source.workflowExecutionId === "" && source.agentExecutionId === "")
+    (source.workflowRunId === "" && source.agentRunId === "")
   ) {
     throw invalidArgumentError(
       "spec.source must include workflow_execution_id or agent_execution_id",
@@ -302,10 +302,10 @@ async function deriveOrgFromSource(
 ): Promise<string> {
   const lookups: Array<{ id: string; kind: ApiResourceKind }> = [
     {
-      id: source.workflowExecutionId,
-      kind: ApiResourceKind.workflow_execution,
+      id: source.workflowRunId,
+      kind: ApiResourceKind.workflow_run,
     },
-    { id: source.agentExecutionId, kind: ApiResourceKind.agent_execution },
+    { id: source.agentRunId, kind: ApiResourceKind.agent_run },
   ];
   for (const lookup of lookups) {
     if (lookup.id === "") {
@@ -477,21 +477,21 @@ const ARTIFACT_LIST_KEY = "artifactList";
  */
 async function listByExecution(
   deps: ArtifactControllerDeps,
-  req: ListArtifactsByExecutionRequest,
+  req: ListArtifactsByRunRequest,
   ctx: HandlerContext,
 ): Promise<ArtifactList> {
   const reqCtx = new RequestContext(
-    ArtifactQueryController.method.listByExecution.input,
+    ArtifactQueryController.method.listByRun.input,
     req,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<
-    typeof ArtifactQueryController.method.listByExecution.input
+    typeof ArtifactQueryController.method.listByRun.input
   >("artifact-list-by-execution", deps.logger)
     .addStep(
       newAuthorizeStep(
-        ArtifactQueryController.method.listByExecution,
+        ArtifactQueryController.method.listByRun,
         deps.authorizer,
       ),
     )
@@ -499,7 +499,7 @@ async function listByExecution(
       name: "ValidateListByExecutionRequest",
       execute(stepCtx): void {
         const input = stepCtx.input;
-        if (input.workflowExecutionId === "" && input.agentExecutionId === "") {
+        if (input.workflowRunId === "" && input.agentRunId === "") {
           throw invalidArgumentError(
             "workflow_execution_id or agent_execution_id is required",
           );
@@ -521,13 +521,13 @@ async function listByExecution(
           {
             permission: IamPermission.can_view,
             resourceKind:
-              input.workflowExecutionId !== ""
-                ? ApiResourceKind.workflow_execution
-                : ApiResourceKind.agent_execution,
+              input.workflowRunId !== ""
+                ? ApiResourceKind.workflow_run
+                : ApiResourceKind.agent_run,
             resourceId:
-              input.workflowExecutionId !== ""
-                ? input.workflowExecutionId
-                : input.agentExecutionId,
+              input.workflowRunId !== ""
+                ? input.workflowRunId
+                : input.agentRunId,
             deniedMessage: "unauthorized to list artifacts for this execution",
           },
         ],
@@ -545,20 +545,20 @@ async function listByExecution(
         try {
           rows = await deps.store.queryResources(artifactListIndex, {
             anyKey: [
-              ...(input.workflowExecutionId === ""
+              ...(input.workflowRunId === ""
                 ? []
                 : [
                     {
                       name: "workflow_execution" as const,
-                      value: input.workflowExecutionId,
+                      value: input.workflowRunId,
                     },
                   ]),
-              ...(input.agentExecutionId === ""
+              ...(input.agentRunId === ""
                 ? []
                 : [
                     {
                       name: "agent_execution" as const,
-                      value: input.agentExecutionId,
+                      value: input.agentRunId,
                     },
                   ]),
             ],

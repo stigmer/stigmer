@@ -46,21 +46,21 @@ import type { AgentCallConfig, AgentCallRunConfig } from "../workflow-engine/typ
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSpecSchema,
+  AgentRunSpecSchema,
   WorkflowParentSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
   GitRepoSourceSchema,
   type WorkspaceEntry,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -298,11 +298,11 @@ export async function callAgentAction(
     `wfExecId=${wfExecId}`,
   );
 
-  const executionSpec = create(AgentExecutionSpecSchema, {
+  const executionSpec = create(AgentRunSpecSchema, {
     target: { case: "sessionId", value: sessionId },
     message: resolved.message,
     parent: create(WorkflowParentSchema, {
-      workflowExecutionId: wfExecId,
+      workflowRunId: wfExecId,
       signalWorkflowId: parentWorkflowId,
       callbackToken: taskToken,
     }),
@@ -324,7 +324,7 @@ export async function callAgentAction(
   }
 
   await client.createAgentExecution(
-    create(AgentExecutionSchema, {
+    create(AgentRunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "AgentExecution",
       metadata: create(ApiResourceMetadataSchema, {

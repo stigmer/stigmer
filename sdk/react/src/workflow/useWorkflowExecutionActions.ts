@@ -1,20 +1,20 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { ApprovalAction, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { FileDecisionScope } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import type { ApprovalAction, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { FileDecisionScope } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
-  CancelWorkflowExecutionInputSchema,
-  TerminateWorkflowExecutionInputSchema,
-  PauseWorkflowExecutionInputSchema,
-  ResumeWorkflowExecutionInputSchema,
-  RecoverWorkflowExecutionInputSchema,
+  CancelWorkflowRunInputSchema,
+  TerminateWorkflowRunInputSchema,
+  PauseWorkflowRunInputSchema,
+  ResumeWorkflowRunInputSchema,
+  RecoverWorkflowRunInputSchema,
   SubmitWorkflowApprovalInputSchema,
   SubmitWorkflowTaskApprovalInputSchema,
   SubmitWorkflowFileDecisionInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { useKeyedSubmission } from "../internal/useKeyedSubmission.js";
@@ -31,19 +31,19 @@ export interface UseWorkflowExecutionActionsOptions {
    * Not called for approval submissions — those are background operations
    * whose effects arrive via the event stream.
    */
-  readonly onSuccess?: (execution: WorkflowExecution) => void;
+  readonly onSuccess?: (execution: WorkflowRun) => void;
 }
 
 /** Return value of {@link useWorkflowExecutionActions}. */
 export interface UseWorkflowExecutionActionsReturn {
   /** Cancel a running execution gracefully. */
-  readonly cancel: (reason?: string) => Promise<WorkflowExecution | null>;
+  readonly cancel: (reason?: string) => Promise<WorkflowRun | null>;
   /** Terminate a running execution immediately. */
-  readonly terminate: (reason?: string) => Promise<WorkflowExecution | null>;
+  readonly terminate: (reason?: string) => Promise<WorkflowRun | null>;
   /** Pause a running execution. */
-  readonly pause: (reason?: string) => Promise<WorkflowExecution | null>;
+  readonly pause: (reason?: string) => Promise<WorkflowRun | null>;
   /** Resume a paused execution. */
-  readonly resume: () => Promise<WorkflowExecution | null>;
+  readonly resume: () => Promise<WorkflowRun | null>;
   /**
    * Recover a failed execution with task-level resume.
    *
@@ -55,13 +55,13 @@ export interface UseWorkflowExecutionActionsReturn {
    * @param reason - Optional audit trail message explaining why recovery
    *   was triggered (e.g., "Rotated API key").
    */
-  readonly recover: (reason?: string) => Promise<WorkflowExecution | null>;
+  readonly recover: (reason?: string) => Promise<WorkflowRun | null>;
   /** Submit an approval decision for a child agent's tool execution. */
   readonly submitApproval: (
     toolCallId: string,
     action: ApprovalAction,
     comment?: string,
-  ) => Promise<WorkflowExecution | null>;
+  ) => Promise<WorkflowRun | null>;
   /**
    * Submit a reviewer's decision for a workflow-level human_input task.
    *
@@ -74,7 +74,7 @@ export interface UseWorkflowExecutionActionsReturn {
     outcome: string,
     formData?: Record<string, unknown>,
     comment?: string,
-  ) => Promise<WorkflowExecution | null>;
+  ) => Promise<WorkflowRun | null>;
   /**
    * Submit a keep/discard decision for a child agent's file review, surfaced on
    * this workflow via `status.pending_file_reviews`. The file-review sibling of
@@ -91,7 +91,7 @@ export interface UseWorkflowExecutionActionsReturn {
     changeSetId: string,
     action: FileDecisionAction,
     options?: FileDecisionOptions,
-  ) => Promise<WorkflowExecution | null>;
+  ) => Promise<WorkflowRun | null>;
   /**
    * `true` while a **lifecycle** action (cancel/terminate/pause/resume/recover)
    * is in flight. Approvals are excluded — they are per-gate, so read their
@@ -178,9 +178,9 @@ export function useWorkflowExecutionActions(
   // its own keyed in-flight + error state — keyed by tool-call id for agent-tool
   // approvals and by task name for human_input task approvals. The lifecycle
   // actions below stay on the shared scalar (they are header singletons).
-  const approvals = useKeyedSubmission<WorkflowExecution>();
-  const taskApprovals = useKeyedSubmission<WorkflowExecution>();
-  const fileDecisions = useKeyedSubmission<WorkflowExecution>();
+  const approvals = useKeyedSubmission<WorkflowRun>();
+  const taskApprovals = useKeyedSubmission<WorkflowRun>();
+  const fileDecisions = useKeyedSubmission<WorkflowRun>();
 
   const executionIdRef = useRef(executionId);
   executionIdRef.current = executionId;
@@ -193,9 +193,9 @@ export function useWorkflowExecutionActions(
 
   const wrap = useCallback(
     async (
-      fn: () => Promise<WorkflowExecution>,
+      fn: () => Promise<WorkflowRun>,
       fireOnSuccess = true,
-    ): Promise<WorkflowExecution | null> => {
+    ): Promise<WorkflowRun | null> => {
       if (!executionIdRef.current) return null;
       setIsSubmitting(true);
       setError(null);
@@ -216,8 +216,8 @@ export function useWorkflowExecutionActions(
   const cancel = useCallback(
     (reason?: string) =>
       wrap(() =>
-        stigmerRef.current.workflowExecution.cancel(
-          create(CancelWorkflowExecutionInputSchema, {
+        stigmerRef.current.workflowRun.cancel(
+          create(CancelWorkflowRunInputSchema, {
             id: executionIdRef.current!,
             reason: reason ?? "",
           }),
@@ -229,8 +229,8 @@ export function useWorkflowExecutionActions(
   const terminate = useCallback(
     (reason?: string) =>
       wrap(() =>
-        stigmerRef.current.workflowExecution.terminate(
-          create(TerminateWorkflowExecutionInputSchema, {
+        stigmerRef.current.workflowRun.terminate(
+          create(TerminateWorkflowRunInputSchema, {
             id: executionIdRef.current!,
             reason: reason ?? "",
           }),
@@ -242,8 +242,8 @@ export function useWorkflowExecutionActions(
   const pause = useCallback(
     (reason?: string) =>
       wrap(() =>
-        stigmerRef.current.workflowExecution.pause(
-          create(PauseWorkflowExecutionInputSchema, {
+        stigmerRef.current.workflowRun.pause(
+          create(PauseWorkflowRunInputSchema, {
             id: executionIdRef.current!,
             reason: reason ?? "",
           }),
@@ -255,8 +255,8 @@ export function useWorkflowExecutionActions(
   const resume = useCallback(
     () =>
       wrap(() =>
-        stigmerRef.current.workflowExecution.resume(
-          create(ResumeWorkflowExecutionInputSchema, {
+        stigmerRef.current.workflowRun.resume(
+          create(ResumeWorkflowRunInputSchema, {
             id: executionIdRef.current!,
           }),
         ),
@@ -267,8 +267,8 @@ export function useWorkflowExecutionActions(
   const recover = useCallback(
     (reason?: string) =>
       wrap(() =>
-        stigmerRef.current.workflowExecution.recover(
-          create(RecoverWorkflowExecutionInputSchema, {
+        stigmerRef.current.workflowRun.recover(
+          create(RecoverWorkflowRunInputSchema, {
             id: executionIdRef.current!,
             reason: reason ?? "",
           }),
@@ -286,9 +286,9 @@ export function useWorkflowExecutionActions(
       if (!executionIdRef.current) return Promise.resolve(null);
       return approvals
         .run(toolCallId, () =>
-          stigmerRef.current.workflowExecution.submitApproval(
+          stigmerRef.current.workflowRun.submitApproval(
             create(SubmitWorkflowApprovalInputSchema, {
-              executionId: executionIdRef.current!,
+              runId: executionIdRef.current!,
               toolCallId,
               action,
               comment: comment ?? "",
@@ -305,9 +305,9 @@ export function useWorkflowExecutionActions(
       if (!executionIdRef.current) return Promise.resolve(null);
       return taskApprovals
         .run(taskName, () =>
-          stigmerRef.current.workflowExecution.submitWorkflowTaskApproval(
+          stigmerRef.current.workflowRun.submitWorkflowTaskApproval(
             create(SubmitWorkflowTaskApprovalInputSchema, {
-              executionId: executionIdRef.current!,
+              runId: executionIdRef.current!,
               taskName,
               outcome,
               formData: formData as JsonObject | undefined,
@@ -340,10 +340,10 @@ export function useWorkflowExecutionActions(
       const key = fileDecisionKey(changeSetId, fileChangeId || undefined);
       return fileDecisions
         .run(key, () =>
-          stigmerRef.current.workflowExecution.submitFileDecision(
+          stigmerRef.current.workflowRun.submitFileDecision(
             create(SubmitWorkflowFileDecisionInputSchema, {
-              executionId: executionIdRef.current!,
-              childAgentExecutionId,
+              runId: executionIdRef.current!,
+              childAgentRunId: childAgentExecutionId,
               changeSetId,
               scope,
               fileChangeId,

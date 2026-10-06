@@ -1,6 +1,6 @@
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { deriveExecutionRow } from "../execution-history/derive-execution-row.js";
 import type { TaskComparison, ExecutionComparison } from "./types.js";
 
@@ -46,8 +46,8 @@ function indexTasksByName(
  * reported in `tasksOnlyInBase` and `tasksOnlyInCompare`.
  */
 export function deriveExecutionComparison(
-  base: WorkflowExecution,
-  compare: WorkflowExecution,
+  base: WorkflowRun,
+  compare: WorkflowRun,
 ): ExecutionComparison {
   const baseRow = deriveExecutionRow(base);
   const compareRow = deriveExecutionRow(compare);

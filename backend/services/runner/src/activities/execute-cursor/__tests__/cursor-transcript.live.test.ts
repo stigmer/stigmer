@@ -79,8 +79,8 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 
 vi.mock("../../../client/stigmer-client.js", async () =>
   (await import("../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -189,7 +189,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("ExecuteCursor live — the trans
     const final = record.lastFullStatus;
     recordLiveSpend("cursor transcript (composer-2.5)", final?.streamingUsage?.estimatedCostUsd);
     const rows = record.toolCalls();
-    console.log(`[transcript-live] outcome: ${invocation.outcome.kind}; phases persisted: ${record.persistedPhases.map((p) => ExecutionPhase[p]).join(" → ")}`);
+    console.log(`[transcript-live] outcome: ${invocation.outcome.kind}; phases persisted: ${record.persistedPhases.map((p) => RunPhase[p]).join(" → ")}`);
     for (const m of final?.messages ?? []) {
       console.log(`[transcript-live] message type=${MessageType[m.type]} isStreaming=${m.isStreaming} rows=${m.toolCalls.length} content=${JSON.stringify(m.content.slice(0, 80))}`);
     }
@@ -228,8 +228,8 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("ExecuteCursor live — the trans
     // The runner writes the file-review EVENT STREAM (the ledger); `file_change_sets`
     // is the server's projection of it and is never written from here.
     const reviewEvents = (final!.fileReviewEventStream?.events ?? []).map((e) => e.payload.case);
-    console.log(`[transcript-live] ending: phase=${lastPhase === undefined ? "-" : ExecutionPhase[lastPhase]} reviewEvents=[${reviewEvents.join(", ")}] waitingRows=${waitingRows.length}`);
-    if (lastPhase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL) {
+    console.log(`[transcript-live] ending: phase=${lastPhase === undefined ? "-" : RunPhase[lastPhase]} reviewEvents=[${reviewEvents.join(", ")}] waitingRows=${waitingRows.length}`);
+    if (lastPhase === RunPhase.RUN_WAITING_FOR_APPROVAL) {
       expect(
         waitingRows.map((r) => r.name),
         "the turn waits on a TOOL row under auto_approve_all — the gate did not bypass; the transcript (or the gate) is wrong",
@@ -242,7 +242,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("ExecuteCursor live — the trans
       expect(
         lastPhase,
         "the last persisted phase is neither COMPLETED nor the file review's WAITING — read the phases above",
-      ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      ).toBe(RunPhase.RUN_COMPLETED);
     }
 
     // ── Assert: fact 1 — every row settled ───────────────────────────────────

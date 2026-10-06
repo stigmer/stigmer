@@ -20,7 +20,7 @@ import { fromBinary } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { describe, expect, it } from "vitest";
 
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 
 import {
   migrateWorkflowExecutionRow,
@@ -107,7 +107,7 @@ describe("migrateWorkflowExecutionRow", () => {
       }),
     );
     expect(
-      fromBinary(WorkflowExecutionSchema, migrated!.data).spec?.$unknown,
+      fromBinary(WorkflowRunSchema, migrated!.data).spec?.$unknown,
     ).toBeUndefined();
   });
 
@@ -187,7 +187,7 @@ describe("migrateWorkflowExecutionRow", () => {
       row,
       workflows({ win_1: "wfl_1" }),
     );
-    const unknown = fromBinary(WorkflowExecutionSchema, migrated!.data).spec
+    const unknown = fromBinary(WorkflowRunSchema, migrated!.data).spec
       ?.$unknown;
     expect(unknown?.map((f) => f.no)).toEqual([40]);
   });

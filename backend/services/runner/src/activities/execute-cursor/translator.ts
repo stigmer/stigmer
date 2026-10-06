@@ -86,8 +86,8 @@
  */
 
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { ToolStartedEvent, TranscriptEvent } from "../../harness/transcript/events.js";
 import { resolveApprovalProvenance, type McpApprovalDefault, type PolicySource } from "../../shared/approval-policy.js";
 import { utcTimestamp } from "../../shared/status.js";

@@ -1,6 +1,6 @@
 "use client";
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useSessionWriteBacks } from "../session/useSessionWriteBacks.js";
@@ -17,7 +17,7 @@ export interface WriteBacksWidgetProps {
    * Renders nothing when the list is empty or no execution has
    * write-backs.
    */
-  readonly executions: readonly AgentExecution[];
+  readonly executions: readonly AgentRun[];
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }

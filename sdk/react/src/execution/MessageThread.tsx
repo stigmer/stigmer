@@ -2,24 +2,24 @@
 
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecution, RecalledMemoriesReport } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { RecalledMemoryFact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
+import type { AgentRun, RecalledMemoriesReport } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { RecalledMemoryFact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
 import {
   ApprovalAction,
-  ExecutionPhase,
+  RunPhase,
   FileChangeSetStatus,
   InteractionMode,
   MessageType,
   SubAgentStatus,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { displayFileChangeSets, syntheticUserPrompt } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
@@ -139,13 +139,13 @@ export interface MessageThreadSlots {
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
   /** Completed executions in chronological order. */
-  readonly executions: readonly AgentExecution[];
+  readonly executions: readonly AgentRun[];
   /**
    * The currently streaming execution. Appended after `executions` to
    * form a continuous thread. Pass `null` or `undefined` when no
    * execution is actively streaming.
    */
-  readonly activeStreamExecution?: AgentExecution | null;
+  readonly activeStreamExecution?: AgentRun | null;
   /**
    * Optimistic user message shown at the end of the thread before the
    * stream delivers the real message. Rendered as a human message with
@@ -406,9 +406,9 @@ export function threadContentColumnClass(
  */
 export type ThreadItem =
   | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly attachments?: readonly MessageAttachmentView[]; readonly executionId?: string }
-  | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
-  | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
-  | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
+  | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentRun[]; readonly key: string }
+  | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentRun; readonly key: string }
+  | { readonly kind: "phase-badge"; readonly phase: RunPhase; readonly key: string }
   | { readonly kind: "execution-error"; readonly error: string; readonly retryMessage?: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
   | { readonly kind: "file-review-record"; readonly fileChangeSet: FileChangeSet; readonly key: string }
@@ -426,7 +426,7 @@ export type ThreadItem =
       readonly kind: "plan-completion";
       readonly key: string;
       readonly executionId: string;
-      readonly planArtifact?: ExecutionArtifact;
+      readonly planArtifact?: RunArtifact;
       /**
        * The plan's title (its leading `# H1`), lifted from the plan message at
        * build time — no fetch. Present only when the turn published an
@@ -478,7 +478,7 @@ export type ThreadItem =
  * moment any of these stream in, otherwise it would render *alongside* the real
  * ThinkingMessage / ToolCallGroup cards (the GitHub #179 duplicate-spinner).
  */
-function hasStartedResponding(execution: AgentExecution): boolean {
+function hasStartedResponding(execution: AgentRun): boolean {
   const messages = execution.status?.messages;
   if (!messages || messages.length === 0) return false;
   return messages.some((m) => {
@@ -500,8 +500,8 @@ function hasStartedResponding(execution: AgentExecution): boolean {
  * Suppresses the bottom liveness line: one ambient signal at a time, riding
  * the words closest to the actual activity.
  */
-function hasVisiblyRunningActivity(execution: AgentExecution): boolean {
-  for (const sub of execution.status?.subAgentExecutions ?? []) {
+function hasVisiblyRunningActivity(execution: AgentRun): boolean {
+  for (const sub of execution.status?.subAgentRuns ?? []) {
     if (
       sub.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS ||
       sub.status === SubAgentStatus.SUB_AGENT_PENDING
@@ -522,9 +522,9 @@ function hasVisiblyRunningActivity(execution: AgentExecution): boolean {
  * execution that has a reviewable plan (streaming/failed/terminated Plan turns
  * have nothing final to review or build from).
  */
-function isCompletedPlanExecution(execution: AgentExecution): boolean {
+function isCompletedPlanExecution(execution: AgentRun): boolean {
   return (
-    execution.status?.phase === ExecutionPhase.EXECUTION_COMPLETED &&
+    execution.status?.phase === RunPhase.RUN_COMPLETED &&
     execution.spec?.interactionMode === InteractionMode.PLAN
   );
 }
@@ -562,7 +562,7 @@ function extractPlanTitle(content: string): string | undefined {
  * so their approvals are treated as inline and skip the bottom backstop.
  */
 function collectSubAgentInlineToolCallIds(
-  sub: SubAgentExecution,
+  sub: SubAgentRun,
   target: Set<string>,
 ): void {
   for (const msg of sub.messages) {
@@ -649,8 +649,8 @@ function insertFileReviewItems(
  * @internal Exported for testing — not part of the public API.
  */
 export function buildThreadItems(
-  executions: readonly AgentExecution[],
-  activeStreamExecution: AgentExecution | null | undefined,
+  executions: readonly AgentRun[],
+  activeStreamExecution: AgentRun | null | undefined,
   pendingUserMessage: string | null | undefined,
   includeApprovals: boolean,
   workspaceEntries: readonly WorkspaceEntry[] | undefined,
@@ -734,7 +734,7 @@ export function buildThreadItems(
     const execId = exec.metadata?.id ?? `_e${ei}`;
     const isActiveStreamExec = ei === activeStreamIndex;
     const messages = exec.status?.messages ?? [];
-    const subAgents = exec.status?.subAgentExecutions ?? [];
+    const subAgents = exec.status?.subAgentRuns ?? [];
 
     // A completed Plan turn collapses its plan message into the compact plan
     // card (the plan-completion item): the document lives in the panel's plan
@@ -946,7 +946,7 @@ export function buildThreadItems(
 
         if (needsSplit) {
           const regularTools: ToolCall[] = [];
-          const matchedSubAgents: SubAgentExecution[] = [];
+          const matchedSubAgents: SubAgentRun[] = [];
           for (const tc of renderableToolCalls) {
             if (tc.name === "task") {
               const matched = subAgents.find((sa) => sa.id === tc.id);
@@ -1036,7 +1036,7 @@ export function buildThreadItems(
         items,
         execChangeSets,
         fileReviewAnchors,
-        isTerminalPhase(exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED),
+        isTerminalPhase(exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED),
       );
     }
   }
@@ -1054,14 +1054,14 @@ export function buildThreadItems(
 
   const lastExec = allExecutions[allExecutions.length - 1];
   const lastPhase =
-    lastExec?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    lastExec?.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
 
   if (activeStreamExecution && !hasStartedResponding(activeStreamExecution)) {
     const isPending =
-      lastPhase === ExecutionPhase.EXECUTION_PENDING ||
-      lastPhase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+      lastPhase === RunPhase.RUN_PENDING ||
+      lastPhase === RunPhase.RUN_PHASE_UNSPECIFIED;
     const isInProgressNoMessages =
-      lastPhase === ExecutionPhase.EXECUTION_IN_PROGRESS;
+      lastPhase === RunPhase.RUN_IN_PROGRESS;
 
     if (isPending) {
       const serverPhase =
@@ -1084,7 +1084,7 @@ export function buildThreadItems(
 
   if (
     isTerminalPhase(lastPhase) &&
-    lastPhase !== ExecutionPhase.EXECUTION_COMPLETED
+    lastPhase !== RunPhase.RUN_COMPLETED
   ) {
     items.push({
       kind: "phase-badge",
@@ -1105,7 +1105,7 @@ export function buildThreadItems(
     // phase, not the error field, decides whether to render the loud banner.
     // The muted Cancelled phase badge above remains the visible state.
     const reason = lastExec?.status?.error;
-    if (reason && lastPhase !== ExecutionPhase.EXECUTION_CANCELLED) {
+    if (reason && lastPhase !== RunPhase.RUN_CANCELLED) {
       const specMessage = lastExec?.spec?.message;
       // A failed build turn offers no inline Retry: resending its label as an
       // ordinary message would drop the buildFromPlan flag (no runner
@@ -1166,7 +1166,7 @@ export function buildThreadItems(
   if (
     activeStreamExecution &&
     hasStartedResponding(activeStreamExecution) &&
-    activeStreamExecution.status?.phase === ExecutionPhase.EXECUTION_IN_PROGRESS &&
+    activeStreamExecution.status?.phase === RunPhase.RUN_IN_PROGRESS &&
     (activeStreamExecution.status.pendingApprovals?.length ?? 0) === 0 &&
     !hasVisiblyRunningActivity(activeStreamExecution)
   ) {

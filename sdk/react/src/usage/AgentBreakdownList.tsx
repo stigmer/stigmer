@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { AgentUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { AgentUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { formatCost } from "../execution/UsageWidget.js";
 
 /** Props for {@link AgentBreakdownList}. */
@@ -97,7 +97,7 @@ export function AgentBreakdownList({
                   role="cell"
                   className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
                 >
-                  {agent.executionCount}
+                  {agent.runCount}
                 </span>
                 <span
                   role="cell"

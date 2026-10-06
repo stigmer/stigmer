@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
@@ -10,16 +10,16 @@ import { useRunnerAdapter } from "../runner-adapter.js";
 import { useExecutionTarget } from "../execution-target-context.js";
 
 const TERMINAL_EXECUTION_PHASES = new Set([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
 ]);
 
 /** Return value of {@link useWorkflowExecution}. */
 export interface UseWorkflowExecutionReturn {
   /** The resolved execution, or `null` while loading, on error, or when not found. */
-  readonly execution: WorkflowExecution | null;
+  readonly execution: WorkflowRun | null;
   /** `true` while the initial fetch is in flight. */
   readonly isLoading: boolean;
   /** `true` while a background refetch is in flight and stale data is shown. */
@@ -62,7 +62,7 @@ export function useWorkflowExecution(
   const fetchFn = executionId
     ? async () => {
         try {
-          return await stigmer.workflowExecution.get(executionId);
+          return await stigmer.workflowRun.get(executionId);
         } catch (err) {
           if (isNotFound(err)) return null;
           throw err;

@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -9,7 +9,7 @@ import { formatRelativeTime } from "../activity/format-relative-time.js";
 
 export interface FailedRunsWidgetProps {
   /** Recent failed executions to display. */
-  readonly executions: readonly WorkflowExecution[];
+  readonly executions: readonly WorkflowRun[];
   readonly isLoading: boolean;
   /** Called when the user clicks "View" on a failed execution. */
   readonly onViewClick?: (executionId: string) => void;

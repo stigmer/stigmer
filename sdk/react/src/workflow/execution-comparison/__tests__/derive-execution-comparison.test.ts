@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   WorkflowTaskStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { deriveExecutionComparison } from "../derive-execution-comparison";
 
 function makeTask(overrides: Partial<WorkflowTask>): WorkflowTask {
@@ -28,7 +28,7 @@ function makeTask(overrides: Partial<WorkflowTask>): WorkflowTask {
 
 function makeExecution(overrides: {
   id?: string;
-  phase?: ExecutionPhase;
+  phase?: RunPhase;
   startedAt?: string;
   completedAt?: string;
   tasks?: WorkflowTask[];
@@ -36,7 +36,7 @@ function makeExecution(overrides: {
   totalInputTokens?: bigint | number;
   totalOutputTokens?: bigint | number;
   error?: string;
-}): WorkflowExecution {
+}): WorkflowRun {
   return {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "WorkflowExecution",
@@ -50,7 +50,7 @@ function makeExecution(overrides: {
       $typeName: "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec",
     },
     status: {
-      phase: overrides.phase ?? ExecutionPhase.EXECUTION_COMPLETED,
+      phase: overrides.phase ?? RunPhase.RUN_COMPLETED,
       tasks: overrides.tasks ?? [],
       startedAt: overrides.startedAt ?? "2026-05-24T10:00:00Z",
       completedAt: overrides.completedAt ?? "2026-05-24T10:01:00Z",
@@ -62,7 +62,7 @@ function makeExecution(overrides: {
     },
     $typeName: "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
     $unknown: undefined,
-  } as unknown as WorkflowExecution;
+  } as unknown as WorkflowRun;
 }
 
 describe("deriveExecutionComparison", () => {
@@ -149,7 +149,7 @@ describe("deriveExecutionComparison", () => {
 
     const base = makeExecution({
       id: "failed-run",
-      phase: ExecutionPhase.EXECUTION_FAILED,
+      phase: RunPhase.RUN_FAILED,
       tasks: baseTasks,
       completedAt: "2026-05-24T10:00:15Z",
     });
@@ -261,7 +261,7 @@ describe("deriveExecutionComparison", () => {
 
     const base = makeExecution({
       id: "in-progress",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       tasks: baseTasks,
       completedAt: "",
     });

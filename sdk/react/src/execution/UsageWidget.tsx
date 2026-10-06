@@ -1,6 +1,6 @@
 "use client";
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import {
   useSessionUsage,
@@ -18,7 +18,7 @@ export interface UsageWidgetProps {
    * Renders nothing when the list is empty or no execution has
    * usage data.
    */
-  readonly executions: readonly AgentExecution[];
+  readonly executions: readonly AgentRun[];
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }

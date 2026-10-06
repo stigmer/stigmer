@@ -12,10 +12,10 @@ import { connectNodeAdapter } from "@connectrpc/connect-node";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
@@ -80,17 +80,17 @@ const knownSchedule = create(ScheduleSchema, {
 });
 
 // Pending execution (cancellable) vs. an already-terminal one.
-const pendingExecution = create(AgentExecutionSchema, {
+const pendingExecution = create(AgentRunSchema, {
   metadata: { id: "aex_run" },
-  status: { phase: ExecutionPhase.EXECUTION_PENDING },
+  status: { phase: RunPhase.RUN_PENDING },
 });
-const cancelledExecution = create(AgentExecutionSchema, {
+const cancelledExecution = create(AgentRunSchema, {
   metadata: { id: "aex_run" },
-  status: { phase: ExecutionPhase.EXECUTION_CANCELLED },
+  status: { phase: RunPhase.RUN_CANCELLED },
 });
-const completedExecution = create(AgentExecutionSchema, {
+const completedExecution = create(AgentRunSchema, {
   metadata: { id: "aex_done" },
-  status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
+  status: { phase: RunPhase.RUN_COMPLETED },
 });
 
 let backend: Http2Server;
@@ -231,14 +231,14 @@ beforeAll(async () => {
       },
     });
 
-    router.service(AgentExecutionQueryController, {
+    router.service(AgentRunQueryController, {
       get: (req) => {
         if (req.value === "aex_done") return completedExecution;
         if (req.value === "aex_run") return pendingExecution;
         throw new ConnectError("execution not found", Code.NotFound);
       },
     });
-    router.service(AgentExecutionCommandController, {
+    router.service(AgentRunCommandController, {
       cancel: (req) => {
         cancelCalls.push(req.id);
         return cancelledExecution;

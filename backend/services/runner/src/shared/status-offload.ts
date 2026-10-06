@@ -44,13 +44,13 @@
 import { createHash } from "node:crypto";
 import { create, toBinary } from "@bufbuild/protobuf";
 import {
-  AgentExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AgentMessage, FileContent, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { FileReviewBlockReason } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  AgentRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { AgentMessage, FileContent, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { FileReviewBlockReason } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 import { deriveDiffCompleteness } from "./filereview/events.js";
 
@@ -137,12 +137,12 @@ function formatBytes(n: number): string {
  * offload but not elision (or vice versa) would be a hole in the persist
  * boundary's bounded-payload guarantee.
  */
-function allMessageLists(status: AgentExecutionStatus): readonly (readonly AgentMessage[])[] {
-  return [status.messages, ...status.subAgentExecutions.map((sa) => sa.messages)];
+function allMessageLists(status: AgentRunStatus): readonly (readonly AgentMessage[])[] {
+  return [status.messages, ...status.subAgentRuns.map((sa) => sa.messages)];
 }
 
 /** Every tool call in the status, across the parent and all sub-agents. */
-function allToolCalls(status: AgentExecutionStatus): ToolCall[] {
+function allToolCalls(status: AgentRunStatus): ToolCall[] {
   const out: ToolCall[] = [];
   for (const messages of allMessageLists(status)) {
     for (const msg of messages) {
@@ -429,7 +429,7 @@ async function maybeOffloadFileContent(
  * cover this location too — otherwise a large captured file silently pushes the
  * status past the gRPC cap (the freeze this module exists to prevent).
  */
-function candidateChanges(status: AgentExecutionStatus): CapturedFileChange[] {
+function candidateChanges(status: AgentRunStatus): CapturedFileChange[] {
   const out: CapturedFileChange[] = [];
   for (const ev of status.fileReviewEventStream?.events ?? []) {
     if (ev.payload.case === "candidateCaptured") {
@@ -441,7 +441,7 @@ function candidateChanges(status: AgentExecutionStatus): CapturedFileChange[] {
 
 /** Offload oversized before/after bodies of every captured file-review change. */
 async function maybeOffloadCandidateChanges(
-  status: AgentExecutionStatus,
+  status: AgentRunStatus,
   ctx: ToolOutputOffloadContext,
   maxBytes: number,
 ): Promise<void> {
@@ -465,7 +465,7 @@ async function maybeOffloadCandidateChanges(
  * inline and the aggregate backstop (enforceStatusSizeLimit) drops it if needed.
  */
 export async function offloadOversizedToolOutputs(
-  status: AgentExecutionStatus,
+  status: AgentRunStatus,
   ctx: ToolOutputOffloadContext,
 ): Promise<void> {
   const maxBytes = ctx.maxInlineBytes ?? INLINE_TOOL_OUTPUT_MAX_BYTES;
@@ -526,7 +526,7 @@ export async function offloadOversizedToolOutputs(
  * (single encode) when the status already fits.
  */
 export async function offloadCandidateChangesToFit(
-  status: AgentExecutionStatus,
+  status: AgentRunStatus,
   ctx: ToolOutputOffloadContext,
   softLimitBytes: number = STATUS_PAYLOAD_SOFT_LIMIT_BYTES,
 ): Promise<boolean> {
@@ -576,8 +576,8 @@ export async function offloadCandidateChangesToFit(
   return offloadedAny;
 }
 
-function encodedSize(status: AgentExecutionStatus): number {
-  return toBinary(AgentExecutionStatusSchema, status).length;
+function encodedSize(status: AgentRunStatus): number {
+  return toBinary(AgentRunStatusSchema, status).length;
 }
 
 /**
@@ -608,7 +608,7 @@ function dropInlineBodiesIfLarge(change: CapturedFileChange): boolean {
  * (e.g. offload disabled) or when many medium results sum past the limit.
  */
 export function enforceStatusSizeLimit(
-  status: AgentExecutionStatus,
+  status: AgentRunStatus,
   softLimitBytes: number = STATUS_PAYLOAD_SOFT_LIMIT_BYTES,
 ): boolean {
   if (encodedSize(status) <= softLimitBytes) return false;

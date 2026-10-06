@@ -33,7 +33,7 @@ import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/ap
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import type {
-  UpdateWorkflowExecutionVisibilityInput,
+  UpdateWorkflowRunVisibilityInput,
   WorkflowId,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import {
@@ -199,7 +199,7 @@ export function registerWorkflowServices(
     create: (workflow, ctx) => createWorkflow(deps, workflow, ctx),
     update: (workflow, ctx) => update(deps, workflow, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
-    updateExecutionVisibility: (input, ctx) =>
+    updateRunVisibility: (input, ctx) =>
       updateExecutionVisibility(deps, input, ctx),
     delete: (id, ctx) => deleteWorkflow(deps, id, ctx),
     // validateSpec deliberately evaluates NO authorization despite its
@@ -628,15 +628,15 @@ function newIndexWorkflowAfterVisibilityUpdateStep(
 // ---------------------------------------------------------------------------
 
 type UpdateExecutionVisibilityDesc =
-  typeof WorkflowCommandController.method.updateExecutionVisibility.input;
+  typeof WorkflowCommandController.method.updateRunVisibility.input;
 
 async function updateExecutionVisibility(
   deps: WorkflowControllerDeps,
-  input: UpdateWorkflowExecutionVisibilityInput,
+  input: UpdateWorkflowRunVisibilityInput,
   ctx: HandlerContext,
 ): Promise<Workflow> {
   const reqCtx = new RequestContext(
-    WorkflowCommandController.method.updateExecutionVisibility.input,
+    WorkflowCommandController.method.updateRunVisibility.input,
     input,
     callerIdentityOf(ctx),
     kindOf(ctx),
@@ -647,7 +647,7 @@ async function updateExecutionVisibility(
   )
     .addStep(
       newAuthorizeStep(
-        WorkflowCommandController.method.updateExecutionVisibility,
+        WorkflowCommandController.method.updateRunVisibility,
         deps.authorizer,
       ),
     )
@@ -660,7 +660,7 @@ async function updateExecutionVisibility(
     )
     .addStep(
       newSetWorkflowExecutionVisibilityStep<UpdateExecutionVisibilityDesc>(
-        (c) => c.input.executionVisibility,
+        (c) => c.input.runVisibility,
       ),
     )
     .addStep(

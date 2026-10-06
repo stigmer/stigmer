@@ -29,7 +29,7 @@ import type { DescMessage } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
@@ -42,7 +42,7 @@ import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/a
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -93,7 +93,7 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.agent_channel, { schema: AgentChannelSchema }],
   [ApiResourceKind.agent_share, { schema: AgentShareSchema }],
   [ApiResourceKind.channel_app, { schema: ChannelAppSchema }],
-  [ApiResourceKind.agent_execution, { schema: AgentExecutionSchema }],
+  [ApiResourceKind.agent_run, { schema: AgentRunSchema }],
   [ApiResourceKind.artifact, { schema: ArtifactSchema }],
   [ApiResourceKind.environment, { schema: EnvironmentSchema }],
   [ApiResourceKind.execution_context, { schema: ExecutionContextSchema }],
@@ -107,5 +107,5 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
     ApiResourceKind.workflow,
     { schema: WorkflowSchema, derived: { execution_viewer: executionViewer } },
   ],
-  [ApiResourceKind.workflow_execution, { schema: WorkflowExecutionSchema }],
+  [ApiResourceKind.workflow_run, { schema: WorkflowRunSchema }],
 ]);

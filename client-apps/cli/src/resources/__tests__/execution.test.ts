@@ -1,8 +1,8 @@
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentExecutionListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { ExecutionPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { AgentRunListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/index.js";
 import {
@@ -66,20 +66,20 @@ describe("resolveExecutionType", () => {
 });
 
 describe("renderExecutionList", () => {
-  const list = create(AgentExecutionListSchema, {
+  const list = create(AgentRunListSchema, {
     totalPages: 1,
     entries: [
-      create(AgentExecutionSchema, {
+      create(AgentRunSchema, {
         metadata: { id: "aex_1" },
         status: {
           agentId: "agt_1",
-          phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+          phase: RunPhase.RUN_IN_PROGRESS,
           startedAt: "2026-03-01T10:00:00Z",
         },
       }),
     ],
   });
-  const result = { schema: AgentExecutionListSchema, message: list };
+  const result = { schema: AgentRunListSchema, message: list };
 
   it("renders the full list envelope as protojson for json", () => {
     const json = JSON.parse(renderExecutionList(result, "json", "agent"));
@@ -99,15 +99,15 @@ describe("renderExecutionList", () => {
 
 describe("formatAgentPhase", () => {
   it.each([
-    [ExecutionPhase.EXECUTION_PENDING, "pending"],
-    [ExecutionPhase.EXECUTION_IN_PROGRESS, "running"],
-    [ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, "awaiting-approval"],
-    [ExecutionPhase.EXECUTION_PAUSED, "paused"],
-    [ExecutionPhase.EXECUTION_COMPLETED, "completed"],
-    [ExecutionPhase.EXECUTION_FAILED, "failed"],
-    [ExecutionPhase.EXECUTION_CANCELLED, "cancelled"],
-    [ExecutionPhase.EXECUTION_TERMINATED, "terminated"],
-    [ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED, "unknown"],
+    [RunPhase.RUN_PENDING, "pending"],
+    [RunPhase.RUN_IN_PROGRESS, "running"],
+    [RunPhase.RUN_WAITING_FOR_APPROVAL, "awaiting-approval"],
+    [RunPhase.RUN_PAUSED, "paused"],
+    [RunPhase.RUN_COMPLETED, "completed"],
+    [RunPhase.RUN_FAILED, "failed"],
+    [RunPhase.RUN_CANCELLED, "cancelled"],
+    [RunPhase.RUN_TERMINATED, "terminated"],
+    [RunPhase.RUN_PHASE_UNSPECIFIED, "unknown"],
   ])("%s -> %s", (phase, expected) => {
     expect(formatAgentPhase(phase)).toBe(expected);
   });
@@ -115,14 +115,14 @@ describe("formatAgentPhase", () => {
 
 describe("formatWorkflowPhase", () => {
   it.each([
-    [WorkflowExecutionPhase.EXECUTION_PENDING, "pending"],
-    [WorkflowExecutionPhase.EXECUTION_IN_PROGRESS, "running"],
-    [WorkflowExecutionPhase.EXECUTION_COMPLETED, "completed"],
-    [WorkflowExecutionPhase.EXECUTION_FAILED, "failed"],
-    [WorkflowExecutionPhase.EXECUTION_CANCELLED, "cancelled"],
-    [WorkflowExecutionPhase.EXECUTION_TERMINATED, "terminated"],
-    [WorkflowExecutionPhase.EXECUTION_PAUSED, "paused"],
-    [WorkflowExecutionPhase.EXECUTION_PHASE_UNSPECIFIED, "unknown"],
+    [WorkflowExecutionPhase.RUN_PENDING, "pending"],
+    [WorkflowExecutionPhase.RUN_IN_PROGRESS, "running"],
+    [WorkflowExecutionPhase.RUN_COMPLETED, "completed"],
+    [WorkflowExecutionPhase.RUN_FAILED, "failed"],
+    [WorkflowExecutionPhase.RUN_CANCELLED, "cancelled"],
+    [WorkflowExecutionPhase.RUN_TERMINATED, "terminated"],
+    [WorkflowExecutionPhase.RUN_PAUSED, "paused"],
+    [WorkflowExecutionPhase.RUN_PHASE_UNSPECIFIED, "unknown"],
   ])("%s -> %s", (phase, expected) => {
     expect(formatWorkflowPhase(phase)).toBe(expected);
   });
@@ -130,13 +130,13 @@ describe("formatWorkflowPhase", () => {
 
 describe("isTerminalAgentPhase", () => {
   it.each([
-    [ExecutionPhase.EXECUTION_COMPLETED, true],
-    [ExecutionPhase.EXECUTION_FAILED, true],
-    [ExecutionPhase.EXECUTION_CANCELLED, true],
-    [ExecutionPhase.EXECUTION_TERMINATED, true],
-    [ExecutionPhase.EXECUTION_IN_PROGRESS, false],
-    [ExecutionPhase.EXECUTION_PAUSED, false],
-    [ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, false],
+    [RunPhase.RUN_COMPLETED, true],
+    [RunPhase.RUN_FAILED, true],
+    [RunPhase.RUN_CANCELLED, true],
+    [RunPhase.RUN_TERMINATED, true],
+    [RunPhase.RUN_IN_PROGRESS, false],
+    [RunPhase.RUN_PAUSED, false],
+    [RunPhase.RUN_WAITING_FOR_APPROVAL, false],
   ])("%s -> %s", (phase, expected) => {
     expect(isTerminalAgentPhase(phase)).toBe(expected);
   });

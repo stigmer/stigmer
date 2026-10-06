@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@stigmer/theme";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import {
   Tooltip,

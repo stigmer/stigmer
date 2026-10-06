@@ -21,7 +21,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ScheduleDetailView } from "../ScheduleDetailView";
@@ -95,7 +95,7 @@ function makeSchedule(overrides?: {
     status: {
       nextFireAt: timestampFromDate(new Date(NOW.getTime() + 3 * 3_600_000)),
       lastFireAt: timestampFromDate(new Date(NOW.getTime() - 5 * 60_000)),
-      lastExecutionId: overrides?.lastExecutionId ?? "aex_01run",
+      lastRunId: overrides?.lastExecutionId ?? "aex_01run",
       consecutiveFailures:
         overrides?.consecutiveFailures ?? (overrides?.pausedReason ? 5 : 0),
       pausedReason: overrides?.pausedReason ?? "",
@@ -126,7 +126,7 @@ function makeClient(schedule: Schedule): MockClient {
       trigger: vi.fn().mockResolvedValue(
         create(ScheduleTriggerResultSchema, {
           outcome: ScheduleRunOutcome.STARTED,
-          executionId: "aex_01triggered",
+          runId: "aex_01triggered",
           schedule,
         }),
       ),

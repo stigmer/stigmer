@@ -2,12 +2,12 @@ import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
@@ -16,15 +16,15 @@ import {
   FileReviewEventSchema,
   FileReviewEventStreamSchema,
   type CapturedFileChange,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   FileChangeCaptureLevel,
   FileChangeKind,
   FileChangeSetStatus,
   FileChangeType,
   FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { useSessionFileChanges } from "../useSessionFileChanges";
 
 // ---------------------------------------------------------------------------
@@ -62,15 +62,15 @@ function captured(opts: {
   });
 }
 
-function execWith(id: string): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+function execWith(id: string): AgentRun {
+  const exec = create(AgentRunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.status = create(AgentExecutionStatusSchema);
+  exec.status = create(AgentRunStatusSchema);
   return exec;
 }
 
 /** An execution carrying a live server projection of one change set. */
-function execWithProjection(id: string, changes: CapturedFileChange[]): AgentExecution {
+function execWithProjection(id: string, changes: CapturedFileChange[]): AgentRun {
   const exec = execWith(id);
   exec.status!.fileChangeSets = [
     create(FileChangeSetSchema, {
@@ -83,13 +83,13 @@ function execWithProjection(id: string, changes: CapturedFileChange[]): AgentExe
 }
 
 /** A terminal execution: empty projection, changes only in the durable ledger. */
-function execWithLedger(id: string, changes: CapturedFileChange[]): AgentExecution {
+function execWithLedger(id: string, changes: CapturedFileChange[]): AgentRun {
   const exec = execWith(id);
-  exec.status!.phase = ExecutionPhase.EXECUTION_COMPLETED;
+  exec.status!.phase = RunPhase.RUN_COMPLETED;
   exec.status!.fileChangeSets = [];
   const changeSetId = `${id}:0`;
   exec.status!.fileReviewEventStream = create(FileReviewEventStreamSchema, {
-    executionId: id,
+    runId: id,
     events: [
       create(FileReviewEventSchema, {
         changeSetId,
@@ -112,7 +112,7 @@ function execWithLedger(id: string, changes: CapturedFileChange[]): AgentExecuti
   return exec;
 }
 
-function run(executions: readonly AgentExecution[]) {
+function run(executions: readonly AgentRun[]) {
   return renderHook(() => useSessionFileChanges(executions)).result.current;
 }
 
@@ -293,7 +293,7 @@ describe("useSessionFileChanges", () => {
       ]),
     ];
     const { result, rerender } = renderHook(
-      (e: readonly AgentExecution[]) => useSessionFileChanges(e),
+      (e: readonly AgentRun[]) => useSessionFileChanges(e),
       { initialProps: executions },
     );
     const first = result.current;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { downloadTextFile } from "../internal/download.js";
 
 /** Export format for the CSV download. */
@@ -60,7 +60,7 @@ function buildDailySummaryCSV(
   const header = "Date,Executions,Tokens,Cost (USD)";
   const rows = report.dailyCosts.map((entry) => {
     const cost = (Number(entry.billableCostMicros) / 1_000_000).toFixed(6);
-    return `${entry.date},${entry.executionCount},${entry.totalTokens},${cost}`;
+    return `${entry.date},${entry.runCount},${entry.totalTokens},${cost}`;
   });
 
   return {

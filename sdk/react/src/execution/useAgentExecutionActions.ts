@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import {
-  CancelAgentExecutionInputSchema,
-  TerminateAgentExecutionInputSchema,
-  PauseAgentExecutionInputSchema,
-  ResumeAgentExecutionInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+  CancelAgentRunInputSchema,
+  TerminateAgentRunInputSchema,
+  PauseAgentRunInputSchema,
+  ResumeAgentRunInputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -19,19 +19,19 @@ export interface UseAgentExecutionActionsOptions {
    * succeeds. Receives the updated execution returned by the server.
    * Useful for triggering a refetch so the UI reflects the new phase.
    */
-  readonly onSuccess?: (execution: AgentExecution) => void;
+  readonly onSuccess?: (execution: AgentRun) => void;
 }
 
 /** Return value of {@link useAgentExecutionActions}. */
 export interface UseAgentExecutionActionsReturn {
   /** Cancel a running execution gracefully (PENDING or IN_PROGRESS only). */
-  readonly cancel: (reason?: string) => Promise<AgentExecution | null>;
+  readonly cancel: (reason?: string) => Promise<AgentRun | null>;
   /** Terminate a running execution immediately (PENDING or IN_PROGRESS only). */
-  readonly terminate: (reason?: string) => Promise<AgentExecution | null>;
+  readonly terminate: (reason?: string) => Promise<AgentRun | null>;
   /** Pause a running execution (PENDING or IN_PROGRESS only). */
-  readonly pause: (reason?: string) => Promise<AgentExecution | null>;
+  readonly pause: (reason?: string) => Promise<AgentRun | null>;
   /** Resume a paused execution. */
-  readonly resume: () => Promise<AgentExecution | null>;
+  readonly resume: () => Promise<AgentRun | null>;
   /**
    * Stop a running execution with progressive escalation.
    *
@@ -43,7 +43,7 @@ export interface UseAgentExecutionActionsReturn {
    *
    * @param reason - Optional audit message recorded with the cancel/terminate.
    */
-  readonly stop: (reason?: string) => Promise<AgentExecution | null>;
+  readonly stop: (reason?: string) => Promise<AgentRun | null>;
   /** `true` while any action is in flight. */
   readonly isSubmitting: boolean;
   /** Error from the last failed action, or `null`. */
@@ -97,8 +97,8 @@ export function useAgentExecutionActions(
 
   const wrap = useCallback(
     async (
-      fn: () => Promise<AgentExecution>,
-    ): Promise<AgentExecution | null> => {
+      fn: () => Promise<AgentRun>,
+    ): Promise<AgentRun | null> => {
       if (!executionIdRef.current) return null;
       setIsSubmitting(true);
       setError(null);
@@ -119,8 +119,8 @@ export function useAgentExecutionActions(
   const cancel = useCallback(
     (reason?: string) =>
       wrap(() =>
-        stigmerRef.current.agentExecution.cancel(
-          create(CancelAgentExecutionInputSchema, {
+        stigmerRef.current.agentRun.cancel(
+          create(CancelAgentRunInputSchema, {
             id: executionIdRef.current!,
             reason: reason ?? "",
           }),
@@ -132,8 +132,8 @@ export function useAgentExecutionActions(
   const terminate = useCallback(
     (reason?: string) =>
       wrap(() =>
-        stigmerRef.current.agentExecution.terminate(
-          create(TerminateAgentExecutionInputSchema, {
+        stigmerRef.current.agentRun.terminate(
+          create(TerminateAgentRunInputSchema, {
             id: executionIdRef.current!,
             reason: reason ?? "",
           }),
@@ -145,8 +145,8 @@ export function useAgentExecutionActions(
   const pause = useCallback(
     (reason?: string) =>
       wrap(() =>
-        stigmerRef.current.agentExecution.pause(
-          create(PauseAgentExecutionInputSchema, {
+        stigmerRef.current.agentRun.pause(
+          create(PauseAgentRunInputSchema, {
             id: executionIdRef.current!,
             reason: reason ?? "",
           }),
@@ -158,8 +158,8 @@ export function useAgentExecutionActions(
   const resume = useCallback(
     () =>
       wrap(() =>
-        stigmerRef.current.agentExecution.resume(
-          create(ResumeAgentExecutionInputSchema, {
+        stigmerRef.current.agentRun.resume(
+          create(ResumeAgentRunInputSchema, {
             id: executionIdRef.current!,
           }),
         ),
@@ -175,7 +175,7 @@ export function useAgentExecutionActions(
   );
 
   const stop = useCallback(
-    (reason?: string): Promise<AgentExecution | null> => {
+    (reason?: string): Promise<AgentRun | null> => {
       const id = executionIdRef.current;
       if (!id) return Promise.resolve(null);
 

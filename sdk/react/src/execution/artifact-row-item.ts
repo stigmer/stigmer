@@ -1,8 +1,8 @@
 // Type-agnostic view-model for artifact list rows, with adapters from both
 // artifact data models. Domain: execution (shared by session + workflow).
 
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 
 /**
@@ -41,7 +41,7 @@ export interface ArtifactRowItem {
  *   from `SessionArtifactEntry.hasNameCollision`.
  */
 export function fromExecutionArtifact(
-  artifact: ExecutionArtifact,
+  artifact: RunArtifact,
   hasNameCollision = false,
 ): ArtifactRowItem {
   return {
@@ -52,7 +52,7 @@ export function fromExecutionArtifact(
         ? parentDirectory(artifact.sandboxPath)
         : null,
     sizeBytes: artifact.sizeBytes,
-    isDirectory: artifact.kind === ExecutionArtifactKind.DIRECTORY,
+    isDirectory: artifact.kind === RunArtifactKind.DIRECTORY,
   };
 }
 

@@ -52,7 +52,7 @@ import {
   ApprovalPolicySource,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   FIXTURE,
   SDK_CATALOG,
@@ -252,7 +252,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
     expect(phase, "a refused call never fails the turn").toBe("EXECUTION_COMPLETED");
     const expected = outOfScopeMessage("GenerateImage", ToolScope.of("The agent", lists));
     const rootRow = final.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === "gen-1")!;
-    const subRows = final.subAgentExecutions.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
+    const subRows = final.subAgentRuns.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
     expect(subRows.map((tc) => tc.id)).toEqual(["sub-gen-1"]);
     for (const row of [rootRow, subRows[0]]) {
       expect(row.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);

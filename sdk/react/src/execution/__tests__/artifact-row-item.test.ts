@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import {
   fromExecutionArtifact,
@@ -15,9 +15,9 @@ import {
 
 describe("fromExecutionArtifact", () => {
   it("maps name, size, and sandbox-path tooltip", () => {
-    const artifact = create(ExecutionArtifactSchema, {
+    const artifact = create(RunArtifactSchema, {
       name: "notes.md",
-      kind: ExecutionArtifactKind.FILE,
+      kind: RunArtifactKind.FILE,
       sizeBytes: 2048n,
       sandboxPath: "/workspace/docs/notes.md",
     });
@@ -30,20 +30,20 @@ describe("fromExecutionArtifact", () => {
   });
 
   it("falls back to the name as tooltip when there is no sandbox path", () => {
-    const artifact = create(ExecutionArtifactSchema, { name: "out.txt" });
+    const artifact = create(RunArtifactSchema, { name: "out.txt" });
     expect(fromExecutionArtifact(artifact).tooltip).toBe("out.txt");
   });
 
   it("marks DIRECTORY artifacts as directories", () => {
-    const artifact = create(ExecutionArtifactSchema, {
+    const artifact = create(RunArtifactSchema, {
       name: "skill-pack",
-      kind: ExecutionArtifactKind.DIRECTORY,
+      kind: RunArtifactKind.DIRECTORY,
     });
     expect(fromExecutionArtifact(artifact).isDirectory).toBe(true);
   });
 
   it("carries the parent directory as subtitle only on a name collision", () => {
-    const artifact = create(ExecutionArtifactSchema, {
+    const artifact = create(RunArtifactSchema, {
       name: "agent.yaml",
       sandboxPath: "/workspace/configs/agent.yaml",
     });
@@ -52,7 +52,7 @@ describe("fromExecutionArtifact", () => {
   });
 
   it("omits the subtitle on collision when there is no sandbox path to derive from", () => {
-    const artifact = create(ExecutionArtifactSchema, { name: "agent.yaml" });
+    const artifact = create(RunArtifactSchema, { name: "agent.yaml" });
     expect(fromExecutionArtifact(artifact, true).subtitlePath).toBeNull();
   });
 });
@@ -95,7 +95,7 @@ describe("fromArtifact", () => {
     const artifact = create(ArtifactSchema, {
       spec: {
         displayName: "output.json",
-        source: { workflowExecutionId: "wex_1", taskName: "analyze_code" },
+        source: { workflowRunId: "wex_1", taskName: "analyze_code" },
       },
     });
     expect(fromArtifact(artifact, true).subtitlePath).toBe("analyze_code");

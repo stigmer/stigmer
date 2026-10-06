@@ -17,9 +17,9 @@ import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   ToolCallSchema,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import { ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   extractShellIntent,
   extractShellIntentFromPreview,

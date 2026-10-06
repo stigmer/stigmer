@@ -27,7 +27,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
 import { makeHttpMcpServer } from "../support/mcpservers";
@@ -228,8 +228,8 @@ describe("envmerge conformance — the agent's shell", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `execution ${executionId} should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `execution ${executionId} should complete; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
 
     const scripted = mock.scriptedRequests();
     expect(scripted.length, "the tool round and the answer").toBeGreaterThanOrEqual(2);

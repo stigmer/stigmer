@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { extractWorkflowYaml } from "../extract-workflow-yaml";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 function makeExecution(messages: Array<{ type: number; content: string }>) {
   return { status: { messages } } as any;

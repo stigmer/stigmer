@@ -9,9 +9,9 @@
 // todo snapshot. Only the last execution emits `done` (so the Ink composer
 // activates for follow-ups; headless renderers ignore intermediate dones).
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   collectToolCallsFromMessages,
   convertProtoTodos,
@@ -29,7 +29,7 @@ import { SubAgentTracking } from "./subagent.js";
  * Convert stored executions (chronological, oldest first) into a flat event
  * sequence. Only the final execution emits a `done` event.
  */
-export function snapshotToEvents(executions: readonly AgentExecution[]): StreamEvent[] {
+export function snapshotToEvents(executions: readonly AgentRun[]): StreamEvent[] {
   const out: StreamEvent[] = [];
   executions.forEach((exec, i) => {
     emitSnapshotEvents(out, exec, i === executions.length - 1);
@@ -40,7 +40,7 @@ export function snapshotToEvents(executions: readonly AgentExecution[]): StreamE
 // Project one stored execution's final state into events. Mirrors Go's
 // emitSnapshotEvents: spec message → interleaved messages + tools → trailing
 // non-message tools → sub-agents → todos → (optional) done.
-function emitSnapshotEvents(out: StreamEvent[], exec: AgentExecution, emitDone: boolean): void {
+function emitSnapshotEvents(out: StreamEvent[], exec: AgentRun, emitDone: boolean): void {
   const status = exec.status;
   const messages = status?.messages ?? [];
 
@@ -88,7 +88,7 @@ function emitSnapshotEvents(out: StreamEvent[], exec: AgentExecution, emitDone: 
     }
   }
 
-  const subAgents = status?.subAgentExecutions ?? [];
+  const subAgents = status?.subAgentRuns ?? [];
   if (subAgents.length > 0) out.push(...new SubAgentTracking().emit(subAgents));
 
   const todos = convertProtoTodos(status?.todos ?? {});

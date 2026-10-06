@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { redactSecretArgs } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { TruncatedText } from "../internal/truncated-text.js";

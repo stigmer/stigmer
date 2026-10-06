@@ -1,22 +1,22 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  AgentExecutionSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+  AgentRunSpecSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
-  ExecutionArtifactKind,
-  ExecutionPhase,
+  RunArtifactKind,
+  RunPhase,
   InteractionMode,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
 
 function makeMessage(type: MessageType, content: string) {
@@ -27,9 +27,9 @@ function makeMessage(type: MessageType, content: string) {
 }
 
 function makePlanArtifact(executionId: string) {
-  const artifact = create(ExecutionArtifactSchema);
+  const artifact = create(RunArtifactSchema);
   artifact.name = "plan.md";
-  artifact.kind = ExecutionArtifactKind.FILE;
+  artifact.kind = RunArtifactKind.FILE;
   artifact.storageKey = `artifacts/${executionId}/plan.md`;
   return artifact;
 }
@@ -37,19 +37,19 @@ function makePlanArtifact(executionId: string) {
 function makeExecution(opts: {
   id: string;
   specMessage?: string;
-  phase?: ExecutionPhase;
+  phase?: RunPhase;
   interactionMode?: InteractionMode;
   buildFromPlan?: boolean;
   messages?: ReturnType<typeof makeMessage>[];
   withPlanArtifact?: boolean;
-}): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+}): AgentRun {
+  const exec = create(AgentRunSchema);
 
   const meta = create(ApiResourceMetadataSchema);
   meta.id = opts.id;
   exec.metadata = meta;
 
-  const spec = create(AgentExecutionSpecSchema);
+  const spec = create(AgentRunSpecSchema);
   spec.message = opts.specMessage ?? "test message";
   if (opts.interactionMode !== undefined) {
     spec.interactionMode = opts.interactionMode;
@@ -59,8 +59,8 @@ function makeExecution(opts: {
   }
   exec.spec = spec;
 
-  const status = create(AgentExecutionStatusSchema);
-  status.phase = opts.phase ?? ExecutionPhase.EXECUTION_COMPLETED;
+  const status = create(AgentRunStatusSchema);
+  status.phase = opts.phase ?? RunPhase.RUN_COMPLETED;
   if (opts.messages) {
     status.messages = opts.messages;
   }
@@ -83,7 +83,7 @@ describe("buildThreadItems plan-completion variant", () => {
   it("emits plan-completion for COMPLETED Plan-mode execution", () => {
     const exec = makeExecution({
       id: "exec-plan",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Here is the plan")],
     });
@@ -99,7 +99,7 @@ describe("buildThreadItems plan-completion variant", () => {
   it("does NOT emit plan-completion for COMPLETED Agent-mode execution", () => {
     const exec = makeExecution({
       id: "exec-agent",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.AGENT,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Done")],
     });
@@ -112,7 +112,7 @@ describe("buildThreadItems plan-completion variant", () => {
   it("does NOT emit plan-completion for COMPLETED execution with no interactionMode", () => {
     const exec = makeExecution({
       id: "exec-default",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Done")],
     });
 
@@ -124,7 +124,7 @@ describe("buildThreadItems plan-completion variant", () => {
   it("does NOT emit plan-completion for FAILED Plan-mode execution", () => {
     const exec = makeExecution({
       id: "exec-fail",
-      phase: ExecutionPhase.EXECUTION_FAILED,
+      phase: RunPhase.RUN_FAILED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Error")],
     });
@@ -137,7 +137,7 @@ describe("buildThreadItems plan-completion variant", () => {
   it("does NOT emit plan-completion for TERMINATED Plan-mode execution", () => {
     const exec = makeExecution({
       id: "exec-term",
-      phase: ExecutionPhase.EXECUTION_TERMINATED,
+      phase: RunPhase.RUN_TERMINATED,
       interactionMode: InteractionMode.PLAN,
     });
 
@@ -149,7 +149,7 @@ describe("buildThreadItems plan-completion variant", () => {
   it("does NOT emit plan-completion when a Plan execution is actively streaming", () => {
     const exec = makeExecution({
       id: "exec-streaming",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Analyzing...")],
     });
@@ -162,14 +162,14 @@ describe("buildThreadItems plan-completion variant", () => {
   it("emits one card, attached to the plan segment, for [agent, plan]", () => {
     const agentExec = makeExecution({
       id: "exec-1",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.AGENT,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Built it")],
     });
 
     const planExec = makeExecution({
       id: "exec-2",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Here is the plan")],
     });
@@ -192,7 +192,7 @@ describe("buildThreadItems plan-completion variant", () => {
     // must not strip the review card or its Build action.
     const planExec = makeExecution({
       id: "exec-plan",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Here is the plan")],
       withPlanArtifact: true,
@@ -200,7 +200,7 @@ describe("buildThreadItems plan-completion variant", () => {
 
     const agentExec = makeExecution({
       id: "exec-impl",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.AGENT,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Implemented")],
     });
@@ -226,14 +226,14 @@ describe("buildThreadItems plan-completion variant", () => {
   it("emits a card per plan; only the newest carries isLatestPlan", () => {
     const planA = makeExecution({
       id: "exec-plan-a",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Plan A")],
       withPlanArtifact: true,
     });
     const planB = makeExecution({
       id: "exec-plan-b",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Plan B")],
       withPlanArtifact: true,
@@ -253,14 +253,14 @@ describe("buildThreadItems plan-completion variant", () => {
     // No artifact and no build authority → the card would be an empty shell.
     const planA = makeExecution({
       id: "exec-plan-a",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Plan A")],
       withPlanArtifact: false,
     });
     const planB = makeExecution({
       id: "exec-plan-b",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Plan B")],
       withPlanArtifact: false,
@@ -279,7 +279,7 @@ describe("buildThreadItems plan-completion variant", () => {
   it("carries the plan artifact on the item when published", () => {
     const exec = makeExecution({
       id: "exec-plan",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Here is the plan")],
       withPlanArtifact: true,
@@ -303,7 +303,7 @@ describe("buildThreadItems plan-message collapse (artifact published)", () => {
   it("removes the plan message from the thread — the card is the turn's sole plan representation", () => {
     const exec = makeExecution({
       id: "exec-plan",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [
         makeMessage(MessageType.MESSAGE_AI, "Let me look around first."),
@@ -324,7 +324,7 @@ describe("buildThreadItems plan-message collapse (artifact published)", () => {
   it("lifts the plan's leading H1 onto the card as its title", () => {
     const exec = makeExecution({
       id: "exec-plan",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [
         makeMessage(MessageType.MESSAGE_AI, "# Refactor auth\n\nSteps…"),
@@ -340,7 +340,7 @@ describe("buildThreadItems plan-message collapse (artifact published)", () => {
     // Same unwrap the document renderers apply, so card and plan tab agree.
     const exec = makeExecution({
       id: "exec-plan",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [
         makeMessage(MessageType.MESSAGE_AI, "```\n# Fenced Plan\n\nBody\n```"),
@@ -355,7 +355,7 @@ describe("buildThreadItems plan-message collapse (artifact published)", () => {
   it("leaves the title undefined when the plan has no leading H1", () => {
     const exec = makeExecution({
       id: "exec-plan",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Just prose, no title")],
       withPlanArtifact: true,
@@ -368,7 +368,7 @@ describe("buildThreadItems plan-message collapse (artifact published)", () => {
   it("never stamps isPlanDocument when the message collapsed into the card", () => {
     const exec = makeExecution({
       id: "exec-plan",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "# The Plan")],
       withPlanArtifact: true,
@@ -383,7 +383,7 @@ describe("buildThreadItems plan-message collapse (artifact published)", () => {
   it("keeps the plan message inline while streaming (no artifact yet)", () => {
     const exec = makeExecution({
       id: "exec-live",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "# Draft so far")],
     });
@@ -404,7 +404,7 @@ describe("buildThreadItems plan-document stamping (no-artifact fallback)", () =>
   it("stamps the last AI message with content of a completed Plan execution", () => {
     const exec = makeExecution({
       id: "exec-plan",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [
         makeMessage(MessageType.MESSAGE_AI, "Let me look around first."),
@@ -422,7 +422,7 @@ describe("buildThreadItems plan-document stamping (no-artifact fallback)", () =>
   it("does not stamp any message on an Agent-mode execution", () => {
     const exec = makeExecution({
       id: "exec-agent",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.AGENT,
       messages: [makeMessage(MessageType.MESSAGE_AI, "# Not a plan")],
     });
@@ -435,7 +435,7 @@ describe("buildThreadItems plan-document stamping (no-artifact fallback)", () =>
   it("does not stamp while the Plan execution is still streaming", () => {
     const exec = makeExecution({
       id: "exec-live",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Draft so far...")],
     });
@@ -450,7 +450,7 @@ describe("buildThreadItems plan-document stamping (no-artifact fallback)", () =>
     // message WITH content, not merely the last AI message.
     const exec = makeExecution({
       id: "exec-plan",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [
         makeMessage(MessageType.MESSAGE_AI, "# The Plan"),
@@ -483,8 +483,8 @@ describe("buildThreadItems plan-writing (live streaming collapse)", () => {
 
   /** buildThreadItems with the collapseStreamingPlan opt-in enabled. */
   function buildWithLiveCollapse(
-    executions: AgentExecution[],
-    activeStreamExecution: AgentExecution | null,
+    executions: AgentRun[],
+    activeStreamExecution: AgentRun | null,
   ) {
     return buildThreadItems(
       executions,
@@ -503,7 +503,7 @@ describe("buildThreadItems plan-writing (live streaming collapse)", () => {
   const streamingPlanExec = () =>
     makeExecution({
       id: "exec-live",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       interactionMode: InteractionMode.PLAN,
       messages: [
         makeMessage(MessageType.MESSAGE_AI, "Let me look around first."),
@@ -530,7 +530,7 @@ describe("buildThreadItems plan-writing (live streaming collapse)", () => {
 
     const completedExec = makeExecution({
       id: "exec-live",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "# Live Plan\n\nDraft body")],
       withPlanArtifact: true,
@@ -561,7 +561,7 @@ describe("buildThreadItems plan-writing (live streaming collapse)", () => {
   it("does not collapse streaming narration (no leading H1)", () => {
     const exec = makeExecution({
       id: "exec-live",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Exploring the repo…")],
     });
@@ -575,7 +575,7 @@ describe("buildThreadItems plan-writing (live streaming collapse)", () => {
   it("does not collapse an Agent-mode streaming turn, even with a plan-shaped message", () => {
     const exec = makeExecution({
       id: "exec-agent",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       interactionMode: InteractionMode.AGENT,
       messages: [makeMessage(MessageType.MESSAGE_AI, "# Looks like a plan")],
     });
@@ -590,7 +590,7 @@ describe("buildThreadItems plan-writing (live streaming collapse)", () => {
     // (not COMPLETED) — the partial plan renders inline, an honest record.
     const exec = makeExecution({
       id: "exec-live",
-      phase: ExecutionPhase.EXECUTION_CANCELLED,
+      phase: RunPhase.RUN_CANCELLED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "# Live Plan\n\nPartial")],
     });
@@ -605,7 +605,7 @@ describe("buildThreadItems plan-writing (live streaming collapse)", () => {
   it("extracts the live title through an unterminated plan fence", () => {
     const exec = makeExecution({
       id: "exec-live",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       interactionMode: InteractionMode.PLAN,
       messages: [
         makeMessage(MessageType.MESSAGE_AI, "```markdown\n# Fenced Live Plan\n\nBody"),
@@ -619,7 +619,7 @@ describe("buildThreadItems plan-writing (live streaming collapse)", () => {
   it("leaves the title undefined while only the H1's first characters have streamed", () => {
     const exec = makeExecution({
       id: "exec-live",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "# Re")],
     });
@@ -679,7 +679,7 @@ describe("buildThreadItems build-from-plan prompt suppression", () => {
     const exec = makeExecution({
       id: "exec-build-fail",
       specMessage: "Build from plan",
-      phase: ExecutionPhase.EXECUTION_FAILED,
+      phase: RunPhase.RUN_FAILED,
       interactionMode: InteractionMode.AGENT,
       buildFromPlan: true,
     });
@@ -699,7 +699,7 @@ describe("buildThreadItems build-from-plan prompt suppression", () => {
     const exec = makeExecution({
       id: "exec-fail",
       specMessage: "do the thing",
-      phase: ExecutionPhase.EXECUTION_FAILED,
+      phase: RunPhase.RUN_FAILED,
       interactionMode: InteractionMode.AGENT,
     });
     exec.status!.error = "runner crashed";

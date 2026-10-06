@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
 import type { Node } from "@xyflow/react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
@@ -100,13 +100,13 @@ function dataOf(nodes: Node[], taskName: string): CanvasTaskNodeData {
 }
 
 describe("useWorkflowExecutionGraph — execution state merged into nodes", () => {
-  const execution = create(WorkflowExecutionSchema, {
+  const execution = create(WorkflowRunSchema, {
     metadata: { id: "wex-merge", org: "org-1" },
     spec: { workflowId: "wfl-merge" },
     status: {
       workflowVersionHash: "v-hash",
       pendingApprovals: [
-        { childAgentExecutionId: "aex-child", approval: { toolName: "refund_order" } },
+        { childAgentRunId: "aex-child", approval: { toolName: "refund_order" } },
       ],
     },
   });

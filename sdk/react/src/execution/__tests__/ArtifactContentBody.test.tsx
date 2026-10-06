@@ -1,25 +1,25 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ArtifactContentBody } from "../ArtifactContentBody";
 import type { SkillPackageDetection } from "../../library/detect-skill-package";
 
 const NOT_SKILL: SkillPackageDetection = { detected: false };
 
 function fileArtifact(name: string) {
-  return create(ExecutionArtifactSchema, {
+  return create(RunArtifactSchema, {
     name,
-    kind: ExecutionArtifactKind.FILE,
+    kind: RunArtifactKind.FILE,
     sizeBytes: 64n,
   });
 }
 
 function dirArtifact(name: string, entries: string[]) {
-  return create(ExecutionArtifactSchema, {
+  return create(RunArtifactSchema, {
     name,
-    kind: ExecutionArtifactKind.DIRECTORY,
+    kind: RunArtifactKind.DIRECTORY,
     sizeBytes: 512n,
     entries,
   });

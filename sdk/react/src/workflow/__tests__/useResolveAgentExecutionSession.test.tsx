@@ -10,10 +10,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecutionSpec } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  AgentRunSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRunSpec } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 
 vi.mock("../../hooks", () => ({
@@ -23,15 +23,15 @@ vi.mock("../../hooks", () => ({
 import { useStigmer } from "../../hooks";
 import { useResolveAgentExecutionSession } from "../useResolveAgentExecutionSession";
 
-function turn(target: AgentExecutionSpec["target"]): AgentExecution {
-  return create(AgentExecutionSchema, {
+function turn(target: AgentRunSpec["target"]): AgentRun {
+  return create(AgentRunSchema, {
     metadata: { id: "aex_1" },
     spec: { target, message: "go" },
   });
 }
 
 describe("useResolveAgentExecutionSession", () => {
-  const mockGet = vi.fn<(id: string) => Promise<AgentExecution>>();
+  const mockGet = vi.fn<(id: string) => Promise<AgentRun>>();
 
   beforeEach(() => {
     mockGet.mockReset();

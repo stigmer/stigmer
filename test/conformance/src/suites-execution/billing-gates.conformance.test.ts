@@ -19,8 +19,8 @@
 //   recover unfunded  → FAILED_PRECONDITION "Insufficient credits to recover
 //                       this execution: Insufficient credits to start execution"
 import { Code } from "@connectrpc/connect";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -174,7 +174,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
 
     const final = await awaitTerminal(clients, created.metadata!.id);
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
 
     const after = await awaitSettled(org);
     expect(after.availableMicros, "the run cost at most what it used; the hold itself is not spent").toBeLessThanOrEqual(before.availableMicros);
@@ -189,13 +189,13 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     const created = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-gate"), agentRef }));
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
-    const gated = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, { label: "WAITING_FOR_APPROVAL" });
+    const gated = await awaitPhase(clients, executionId, RunPhase.RUN_WAITING_FOR_APPROVAL, { label: "WAITING_FOR_APPROVAL" });
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
 
     const held = (await balance(org)).reservedMicros;
     await drainPast(org, held + 1n);
     const refused = await expectGrpcCode(
-      () => clients.agentExecutionCommand.submitApproval({ agentExecutionId: executionId, toolCallId, action: ApprovalAction.APPROVE }),
+      () => clients.agentExecutionCommand.submitApproval({ agentRunId: executionId, toolCallId, action: ApprovalAction.APPROVE }),
       Code.FailedPrecondition,
       "approval while the billing signal is STOP",
     );
@@ -205,10 +205,10 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     await submitApprovalPerContract({
       expectedRemaining: 0,
       label: "the approve clears the gate once funded",
-      submit: () => clients.agentExecutionCommand.submitApproval({ agentExecutionId: executionId, toolCallId, action: ApprovalAction.APPROVE }),
+      submit: () => clients.agentExecutionCommand.submitApproval({ agentRunId: executionId, toolCallId, action: ApprovalAction.APPROVE }),
     });
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
   it("[billing.gate.rearm.recover-refused-when-unfunded] recovering a failed run is refused with the re-arm copy while unfunded, and re-arms once funded", async () => {
@@ -220,7 +220,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     const created = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-rearm"), agentRef }));
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
-    await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_FAILED);
+    await awaitPhase(clients, executionId, RunPhase.RUN_FAILED);
     // The row is about a SETTLED failed run: wait for the hold to return
     // before draining, or the release lands after the drain and re-funds the
     // org under the arm's feet.
@@ -236,8 +236,8 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
 
     await refund(org);
     const recovered = await clients.agentExecutionCommand.recover({ id: executionId });
-    expect(recovered.status?.phase).not.toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(recovered.status?.phase).not.toBe(RunPhase.RUN_FAILED);
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 });

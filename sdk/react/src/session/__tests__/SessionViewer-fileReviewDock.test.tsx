@@ -6,14 +6,14 @@ import {
   FileChangeProgressSchema,
   FileChangeProgressEntrySchema,
   FileChangeSetSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   DiffCompleteness,
   FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 // ---------------------------------------------------------------------------
 // Wiring-contract tests for the file-review surfaces on SessionViewer:

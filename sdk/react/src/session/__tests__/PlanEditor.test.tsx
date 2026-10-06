@@ -2,8 +2,8 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import type { SessionPlan } from "../../library/detect-plan-artifact";
 import type { PlanDraftController } from "../usePlanDraft";
@@ -15,9 +15,9 @@ const PLAN_TEXT = "# Rollout Plan\n\n## Phase 1\n\nDo the first thing.";
 
 const plan: SessionPlan = {
   executionId: "aex_1",
-  artifact: create(ExecutionArtifactSchema, {
+  artifact: create(RunArtifactSchema, {
     name: "plan.md",
-    kind: ExecutionArtifactKind.FILE,
+    kind: RunArtifactKind.FILE,
     sizeBytes: 128n,
     storageKey: "artifacts/aex_1/plan.md",
     contentHash: "hash-a",

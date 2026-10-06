@@ -44,8 +44,8 @@ import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
@@ -446,14 +446,14 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
     const RUN_ID = "aex_run_credential";
 
     async function seedRun(
-      phase: ExecutionPhase,
+      phase: RunPhase,
       completedAt = "",
     ): Promise<void> {
       await ts.server.store.saveResource(
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         RUN_ID,
-        AgentExecutionSchema,
-        create(AgentExecutionSchema, {
+        AgentRunSchema,
+        create(AgentRunSchema, {
           metadata: { id: RUN_ID, name: RUN_ID, org: "test-org" },
           status: { phase, completedAt },
         }),
@@ -474,7 +474,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
     }
 
     it("decrypts while the run is live", async () => {
-      await seedRun(ExecutionPhase.EXECUTION_IN_PROGRESS);
+      await seedRun(RunPhase.RUN_IN_PROGRESS);
       expect((await readRun()).spec!.data["API_TOKEN"]!.value).toBe(
         "super-secret-token",
       );
@@ -482,7 +482,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
 
     it("still decrypts just after the run ended — the grace covers the writes that trail the terminal stamp", async () => {
       await seedRun(
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         new Date().toISOString(),
       );
       expect((await readRun()).spec!.data["API_TOKEN"]!.value).toBe(
@@ -492,7 +492,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
 
     it("redacts once the run is over past the grace — a token in Temporal history cannot decrypt a finished run's secrets", async () => {
       await seedRun(
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         new Date(Date.now() - 60 * 60 * 1000).toISOString(),
       );
       expect((await readRun()).spec!.data["API_TOKEN"]!.value).toBe(
@@ -501,7 +501,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
     });
 
     it("redacts for a terminal run that does not say when it ended — no grace without a timestamp", async () => {
-      await seedRun(ExecutionPhase.EXECUTION_FAILED);
+      await seedRun(RunPhase.RUN_FAILED);
       expect((await readRun()).spec!.data["API_TOKEN"]!.value).toBe(
         REDACTED_MARKER,
       );
@@ -545,12 +545,12 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
     /** Seeds an agent execution row, as a run the server started. */
     async function seedAgentRun(id: string): Promise<void> {
       await ts.server.store.saveResource(
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         id,
-        AgentExecutionSchema,
-        create(AgentExecutionSchema, {
+        AgentRunSchema,
+        create(AgentRunSchema, {
           metadata: { id, name: id, org: ORG },
-          status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+          status: { phase: RunPhase.RUN_IN_PROGRESS },
         }),
       );
     }

@@ -13,8 +13,8 @@
  */
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -333,14 +333,14 @@ async function pollExecutionPhase(
   deps: ScheduleTickActivityDeps,
   executionId: string,
 ): Promise<RunPhase> {
-  let phase: ExecutionPhase;
+  let phase: RunPhase;
   try {
     const execution = await deps.store.getResource(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
       executionId,
-      AgentExecutionSchema,
+      AgentRunSchema,
     );
-    phase = execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    phase = execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
       return PHASE_GONE;
@@ -351,13 +351,13 @@ async function pollExecutionPhase(
   }
 
   switch (phase) {
-    case ExecutionPhase.EXECUTION_COMPLETED:
+    case RunPhase.RUN_COMPLETED:
       return PHASE_COMPLETED;
-    case ExecutionPhase.EXECUTION_CANCELLED:
+    case RunPhase.RUN_CANCELLED:
       return PHASE_CANCELLED;
-    case ExecutionPhase.EXECUTION_TERMINATED:
+    case RunPhase.RUN_TERMINATED:
       return PHASE_TERMINATED;
-    case ExecutionPhase.EXECUTION_FAILED:
+    case RunPhase.RUN_FAILED:
       return PHASE_FAILED;
     default:
       // PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED, and any future

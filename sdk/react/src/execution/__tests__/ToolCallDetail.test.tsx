@@ -4,19 +4,19 @@ import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   ToolCallSchema,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
   ApprovalPolicySource,
   FileChangeKind,
   FileReviewBlockReason,
   ToolCallStatus,
   ToolKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { UseFileChangeContentReturn } from "../useFileChangeContent";
 
 // Mock the diff-body content resolver (the seam FileChangesView.test.tsx also

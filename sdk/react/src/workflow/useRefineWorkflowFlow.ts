@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { getUserMessage } from "@stigmer/sdk";
 import { useCreateSession } from "../session/useCreateSession.js";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
@@ -50,9 +50,9 @@ export interface UseRefineWorkflowFlowReturn {
   /** Current lifecycle phase. */
   readonly phase: RefinePhase;
   /** Completed execution snapshots for MessageThread (chronological). */
-  readonly completedExecutions: readonly AgentExecution[];
+  readonly completedExecutions: readonly AgentRun[];
   /** Currently streaming execution, or null when idle/between turns. */
-  readonly activeExecution: AgentExecution | null;
+  readonly activeExecution: AgentRun | null;
   /** `true` while the agent execution is actively streaming. */
   readonly isStreaming: boolean;
   /** Extracted YAML from the latest turn (null unless phase is `complete`). */
@@ -107,7 +107,7 @@ export function useRefineWorkflowFlow(
   const [phase, setPhase] = useState<RefinePhase>("idle");
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [completedExecutions, setCompletedExecutions] = useState<
-    AgentExecution[]
+    AgentRun[]
   >([]);
   const [extracted, setExtracted] = useState<ExtractedWorkflowYaml | null>(
     null,
@@ -145,7 +145,7 @@ export function useRefineWorkflowFlow(
     if (phase !== "streaming") return;
 
     const isTerminal =
-      stream.phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED &&
+      stream.phase !== RunPhase.RUN_PHASE_UNSPECIFIED &&
       isTerminalPhase(stream.phase);
 
     if (isTerminal && !prevTerminalRef.current) {

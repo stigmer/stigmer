@@ -1,8 +1,8 @@
 import { create } from "@bufbuild/protobuf";
-import { ApprovalPolicySource, ExecutionPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { ApprovalPolicySource, RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
 import { snapshot } from "../../fixtures";
@@ -13,8 +13,8 @@ import { snapshot } from "../../fixtures";
 
 export type ApprovalFlowStep =
   | { view: "composer-typing"; message: string }
-  | { view: "conversation"; execution: AgentExecution }
-  | { view: "approval-pending"; execution: AgentExecution };
+  | { view: "conversation"; execution: AgentRun }
+  | { view: "approval-pending"; execution: AgentRun };
 
 // ---------------------------------------------------------------------------
 // Fixture data
@@ -70,10 +70,10 @@ const aiSummaryMsg = samples.aiMessage(
     "Is there anything else I can help with?",
 );
 
-function buildWaitingExecution(): AgentExecution {
+function buildWaitingExecution(): AgentRun {
   const exec = snapshot(
     [user1, samples.aiMessage("", [pendingToolCall])],
-    ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+    RunPhase.RUN_WAITING_FOR_APPROVAL,
   );
   exec.status!.pendingApprovals = [pendingApproval];
   return exec;
@@ -87,7 +87,7 @@ export const waitingExecution = buildWaitingExecution();
 
 export const completedExecution = snapshot(
   [user1, aiToolCallMsg, aiSummaryMsg],
-  ExecutionPhase.EXECUTION_COMPLETED,
+  RunPhase.RUN_COMPLETED,
 );
 
 export const receivedExecution = snapshot([user1]);

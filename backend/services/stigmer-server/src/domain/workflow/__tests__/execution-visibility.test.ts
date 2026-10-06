@@ -22,7 +22,7 @@ import { describe, expect, it } from "vitest";
 
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type {
@@ -75,7 +75,7 @@ async function errorOfStep(run: () => unknown): Promise<unknown> {
 }
 
 function workflow(
-  level: WorkflowExecutionVisibility,
+  level: WorkflowRunVisibility,
   env: Record<string, { isSecret: boolean }> = {
     SLACK_WEBHOOK: { isSecret: true },
   },
@@ -85,7 +85,7 @@ function workflow(
     spec: {
       description: "nightly triage",
       env,
-      executionVisibility: level,
+      runVisibility: level,
       tasks: [{ name: "seed", kind: 1, taskConfig: { variables: { a: "1" } } }],
     },
   });
@@ -122,11 +122,11 @@ function workflowCtx(row: Workflow): RequestContext<typeof WorkflowSchema> {
 
 describe("workflowVersionHash", () => {
   it("ignores the run audience, and only it", () => {
-    const privateRuns = workflow(WorkflowExecutionVisibility.private).spec!;
-    const orgRuns = workflow(WorkflowExecutionVisibility.organization).spec!;
+    const privateRuns = workflow(WorkflowRunVisibility.private).spec!;
+    const orgRuns = workflow(WorkflowRunVisibility.organization).spec!;
     expect(workflowVersionHash(orgRuns)).toBe(workflowVersionHash(privateRuns));
 
-    const edited = workflow(WorkflowExecutionVisibility.private, {
+    const edited = workflow(WorkflowRunVisibility.private, {
       SLACK_WEBHOOK: { isSecret: true },
       API_TOKEN: { isSecret: true },
     }).spec!;
@@ -136,10 +136,10 @@ describe("workflowVersionHash", () => {
   });
 
   it("never mutates the spec it hashes", () => {
-    const spec = workflow(WorkflowExecutionVisibility.organization).spec!;
+    const spec = workflow(WorkflowRunVisibility.organization).spec!;
     workflowVersionHash(spec);
-    expect(spec.executionVisibility).toBe(
-      WorkflowExecutionVisibility.organization,
+    expect(spec.runVisibility).toBe(
+      WorkflowRunVisibility.organization,
     );
   });
 });
@@ -148,7 +148,7 @@ describe("CreateExecutionVisibilityTuples", () => {
   it("tells the driver an ORGANIZATION audience as the workflow's event", async () => {
     const { lifecycle, events } = recordingLifecycle();
     await newCreateExecutionVisibilityTuplesStep(lifecycle).execute(
-      workflowCtx(workflow(WorkflowExecutionVisibility.organization)),
+      workflowCtx(workflow(WorkflowRunVisibility.organization)),
     );
     expect(events).toEqual([
       { workflowId: "wfl_nightly", orgId: ORG, shapes: ["org-viewer"] },
@@ -158,8 +158,8 @@ describe("CreateExecutionVisibilityTuples", () => {
   it("fires nothing for a private or unset level", async () => {
     const { lifecycle, events } = recordingLifecycle();
     for (const level of [
-      WorkflowExecutionVisibility.private,
-      WorkflowExecutionVisibility.unspecified,
+      WorkflowRunVisibility.private,
+      WorkflowRunVisibility.unspecified,
     ]) {
       await newCreateExecutionVisibilityTuplesStep(lifecycle).execute(
         workflowCtx(workflow(level)),
@@ -172,7 +172,7 @@ describe("CreateExecutionVisibilityTuples", () => {
     const { lifecycle } = recordingLifecycle(true);
     const error = await Promise.resolve(
       newCreateExecutionVisibilityTuplesStep(lifecycle).execute(
-        workflowCtx(workflow(WorkflowExecutionVisibility.organization)),
+        workflowCtx(workflow(WorkflowRunVisibility.organization)),
       ),
     )
       .then(() => undefined)
@@ -189,8 +189,8 @@ describe("UpdateExecutionVisibilityTuples", () => {
   it("tells the driver the target audience every time, the empty one included", async () => {
     const { lifecycle, events } = recordingLifecycle();
     for (const level of [
-      WorkflowExecutionVisibility.organization,
-      WorkflowExecutionVisibility.private,
+      WorkflowRunVisibility.organization,
+      WorkflowRunVisibility.private,
     ]) {
       const ctx = workflowCtx(workflow(level));
       ctx.set(UPDATE_EXECUTION_VISIBILITY_WORKFLOW_KEY, workflow(level));
@@ -207,7 +207,7 @@ describe("UpdateExecutionVisibilityTuples with no workflow stashed", () => {
     const { lifecycle, events } = recordingLifecycle();
     await newUpdateExecutionVisibilityTuplesStep<typeof WorkflowSchema>(
       lifecycle,
-    ).execute(workflowCtx(workflow(WorkflowExecutionVisibility.organization)));
+    ).execute(workflowCtx(workflow(WorkflowRunVisibility.organization)));
     expect(events).toEqual([]);
   });
 });
@@ -224,7 +224,7 @@ describe("the targeted update's persist and reindex", () => {
     const error = await errorOfStep(() =>
       newPersistWorkflowForExecutionVisibilityUpdateStep<typeof WorkflowSchema>(
         store,
-      ).execute(stashed(workflow(WorkflowExecutionVisibility.organization))),
+      ).execute(stashed(workflow(WorkflowRunVisibility.organization))),
     );
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.Internal);
@@ -236,14 +236,14 @@ describe("the targeted update's persist and reindex", () => {
     await newIndexWorkflowAfterExecutionVisibilityUpdateStep<
       typeof WorkflowSchema
     >(store, silentLogger).execute(
-      stashed(workflow(WorkflowExecutionVisibility.organization)),
+      stashed(workflow(WorkflowRunVisibility.organization)),
     );
     expect(calls).toEqual(["upsertSearchIndex"]);
   });
 
   it("a row the extractor cannot index is skipped without a write", async () => {
     const { store, calls } = writeFailingStore("upsertSearchIndex");
-    const row = workflow(WorkflowExecutionVisibility.organization);
+    const row = workflow(WorkflowRunVisibility.organization);
     row.metadata = undefined;
     await newIndexWorkflowAfterExecutionVisibilityUpdateStep<
       typeof WorkflowSchema
@@ -256,7 +256,7 @@ describe("PreserveExecutionVisibility", () => {
   it("a chain that reaches it with no stored row is a wiring fault (Internal)", async () => {
     const error = await errorOfStep(() =>
       newPreserveExecutionVisibilityStep().execute(
-        workflowCtx(workflow(WorkflowExecutionVisibility.private)),
+        workflowCtx(workflow(WorkflowRunVisibility.private)),
       ),
     );
     expect(error).toBeInstanceOf(ConnectError);
@@ -264,14 +264,14 @@ describe("PreserveExecutionVisibility", () => {
   });
 
   it("keeps the stored level over whatever the request carried", () => {
-    const ctx = workflowCtx(workflow(WorkflowExecutionVisibility.private));
+    const ctx = workflowCtx(workflow(WorkflowRunVisibility.private));
     ctx.set(
       EXISTING_RESOURCE_KEY,
-      workflow(WorkflowExecutionVisibility.organization),
+      workflow(WorkflowRunVisibility.organization),
     );
     newPreserveExecutionVisibilityStep().execute(ctx);
-    expect(ctx.newState.spec?.executionVisibility).toBe(
-      WorkflowExecutionVisibility.organization,
+    expect(ctx.newState.spec?.runVisibility).toBe(
+      WorkflowRunVisibility.organization,
     );
   });
 });

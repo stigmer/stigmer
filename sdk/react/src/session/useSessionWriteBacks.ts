@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
 
 /**
  * A single write-back entry enriched with the execution context that
@@ -61,7 +61,7 @@ export interface UseSessionWriteBacksReturn {
  * @see WriteBackCard — component that renders a single write-back
  */
 export function useSessionWriteBacks(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
 ): UseSessionWriteBacksReturn {
   return useMemo(() => {
     const entryMap = new Map<string, SessionWriteBackEntry>();

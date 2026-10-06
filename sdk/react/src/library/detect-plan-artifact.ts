@@ -1,6 +1,6 @@
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 /**
  * The session's current plan: the published plan artifact (a `*.plan.md` FILE)
@@ -11,7 +11,7 @@ export interface SessionPlan {
   /** ID of the execution that published the plan. */
   readonly executionId: string;
   /** The published plan artifact (`*.plan.md`). */
-  readonly artifact: ExecutionArtifact;
+  readonly artifact: RunArtifact;
 }
 
 /**
@@ -51,9 +51,9 @@ export function isPlanArtifactName(name: string): boolean {
  * RPC to know a plan exists. The plan's text is fetched on demand via
  * {@link useArtifactContent} only when the user expands the Plan card.
  */
-export function isPlanArtifact(artifact: ExecutionArtifact): boolean {
+export function isPlanArtifact(artifact: RunArtifact): boolean {
   return (
-    artifact.kind === ExecutionArtifactKind.FILE &&
+    artifact.kind === RunArtifactKind.FILE &&
     isPlanArtifactName(artifact.name)
   );
 }
@@ -66,8 +66,8 @@ export function isPlanArtifact(artifact: ExecutionArtifact): boolean {
  * replaces rather than appends, so this is defensive.
  */
 export function findPlanArtifact(
-  execution: AgentExecution | null | undefined,
-): ExecutionArtifact | undefined {
+  execution: AgentRun | null | undefined,
+): RunArtifact | undefined {
   const artifacts = execution?.status?.artifacts;
   if (!artifacts || artifacts.length === 0) return undefined;
   for (let i = artifacts.length - 1; i >= 0; i--) {
@@ -86,7 +86,7 @@ export function findPlanArtifact(
  * Returns `undefined` when no execution in the session published a plan.
  */
 export function findLatestSessionPlan(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
 ): SessionPlan | undefined {
   for (let i = executions.length - 1; i >= 0; i--) {
     const execution = executions[i];

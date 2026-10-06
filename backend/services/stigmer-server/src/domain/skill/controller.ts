@@ -50,7 +50,7 @@ import type {
   GetArtifactResponse,
   ListSkillVersionsInput,
   ListSkillVersionsResponse,
-  PushSkillFromExecutionArtifactRequest,
+  PushSkillFromRunArtifactRequest,
   PushSkillRequest,
   SkillArtifactDownloadUrl,
   SkillArtifactUploadUrl,
@@ -183,7 +183,7 @@ export function registerSkillServices(
       push(deps, req, ctx, SkillCommandController.method.push),
     createArtifactUploadUrl: (req, ctx) =>
       createArtifactUploadUrl(deps, req, ctx),
-    pushFromExecutionArtifact: (req, ctx) =>
+    pushFromRunArtifact: (req, ctx) =>
       pushFromExecutionArtifact(deps, req, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (id, ctx) => deleteSkill(deps, id, ctx),
@@ -338,7 +338,7 @@ async function createArtifactUploadUrl(
  */
 async function pushFromExecutionArtifact(
   deps: SkillControllerDeps,
-  req: PushSkillFromExecutionArtifactRequest,
+  req: PushSkillFromRunArtifactRequest,
   ctx: HandlerContext,
 ): Promise<Skill> {
   if (deps.executionArtifactStorage === undefined) {
@@ -351,7 +351,7 @@ async function pushFromExecutionArtifact(
     );
   }
 
-  if (req.executionId === "") {
+  if (req.runId === "") {
     throw invalidArgumentError("execution_id is required");
   }
   if (req.storageKey === "") {
@@ -361,12 +361,12 @@ async function pushFromExecutionArtifact(
     throw invalidArgumentError("org is required");
   }
 
-  const expectedPrefix = `artifacts/${req.executionId}/`;
+  const expectedPrefix = `artifacts/${req.runId}/`;
   if (!req.storageKey.startsWith(expectedPrefix)) {
     deps.logger.warn(
       "Storage key does not belong to execution - potential path traversal attempt",
       {
-        executionId: req.executionId,
+        executionId: req.runId,
         storageKey: req.storageKey,
         expectedPrefix,
       },
@@ -375,7 +375,7 @@ async function pushFromExecutionArtifact(
   }
 
   deps.logger.info("Pushing skill from execution artifact", {
-    executionId: req.executionId,
+    executionId: req.runId,
     storageKey: req.storageKey,
     org: req.org,
     tag: req.tag,
@@ -389,7 +389,7 @@ async function pushFromExecutionArtifact(
     );
   } catch (error) {
     deps.logger.error("Failed to download execution artifact", {
-      executionId: req.executionId,
+      executionId: req.runId,
       storageKey: req.storageKey,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -404,11 +404,11 @@ async function pushFromExecutionArtifact(
       tag: req.tag,
     }),
     ctx,
-    SkillCommandController.method.pushFromExecutionArtifact,
+    SkillCommandController.method.pushFromRunArtifact,
   );
 
   deps.logger.info("Successfully pushed skill from execution artifact", {
-    executionId: req.executionId,
+    executionId: req.runId,
     storageKey: req.storageKey,
     skillId: skill.metadata?.id ?? "",
     skillName: skill.metadata?.name ?? "",

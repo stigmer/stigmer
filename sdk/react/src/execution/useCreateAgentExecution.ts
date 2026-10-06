@@ -380,7 +380,7 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
             }
           : undefined;
 
-        const execution = await stigmer.agentExecution.create({
+        const execution = await stigmer.agentRun.create({
           name: `execution-${Date.now()}`,
           org: input.org,
           sessionId: input.sessionId,
@@ -396,7 +396,7 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
           runtimeEnv: input.runtimeEnv,
           attachments: input.attachments,
           workspaceFileRefs: input.workspaceFileRefs,
-          supersedesExecutionId: input.supersedesExecutionId,
+          supersedesRunId: input.supersedesExecutionId,
         });
 
         // On the bootstrap path the server assigns the session and points

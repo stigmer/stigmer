@@ -5,7 +5,7 @@
 // from any RPC code, so both `execution trace` and the `run workflow` epilogue
 // format durations and task types identically without duplicating the logic.
 
-import { WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 
 /**
  * Human duration between two ISO 8601 timestamps. Mirrors Go's calculateDuration:

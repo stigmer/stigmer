@@ -15,10 +15,10 @@
  */
 import { fromJson, type JsonValue } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 
-export function decodeLoadedExecution(raw: JsonValue): AgentExecution {
-  return fromJson(AgentExecutionSchema, raw, { ignoreUnknownFields: true });
+export function decodeLoadedExecution(raw: JsonValue): AgentRun {
+  return fromJson(AgentRunSchema, raw, { ignoreUnknownFields: true });
 }

@@ -2,15 +2,15 @@ import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   WorkspaceWriteBackSchema,
   WorkspaceWriteBackPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
 import type { WorkspaceEntry } from "../../workspace/useWorkspaceEntries";
 import { useWorkspaceReadRefs } from "../useWorkspaceReadRefs";
 
@@ -45,10 +45,10 @@ function execWithWriteBacks(
     commitSha: string;
     phase?: WorkspaceWriteBackPhase;
   }>,
-): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+): AgentRun {
+  const exec = create(AgentRunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.status = create(AgentExecutionStatusSchema);
+  exec.status = create(AgentRunStatusSchema);
   exec.status.workspaceWriteBacks = writeBacks.map((wb) =>
     create(WorkspaceWriteBackSchema, {
       workspaceEntryName: wb.entryName,
@@ -211,13 +211,13 @@ describe("useWorkspaceReadRefs", () => {
   it("returns a stable array across streaming frames that change no SHA", () => {
     const entries = [gitEntry({ name: "acme/api" })];
     const { result, rerender } = renderHook(
-      (props: { executions: readonly AgentExecution[] }) =>
+      (props: { executions: readonly AgentRun[] }) =>
         useWorkspaceReadRefs(props.executions, entries),
       {
         initialProps: {
           executions: [
             execWithWriteBacks("e1", [{ entryName: "acme/api", commitSha: "sha-1" }]),
-          ] as readonly AgentExecution[],
+          ] as readonly AgentRun[],
         },
       },
     );

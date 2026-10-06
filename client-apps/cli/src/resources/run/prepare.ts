@@ -8,9 +8,9 @@
 // can address the caller's org without the user wiring it manually.
 
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../../errors/index.js";
@@ -195,7 +195,7 @@ export async function prepareAgentExec(
   }
 
   const { attachments, workspaceFileRefs } = await processAttachments(
-    client.agentExecution,
+    client.agentRun,
     flags.attach,
     localWorkspaceRoots(workspaceEntries),
     progress,

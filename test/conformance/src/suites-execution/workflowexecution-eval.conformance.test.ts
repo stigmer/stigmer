@@ -22,8 +22,8 @@
 //   run: the eval task completes, the next task runs, the run completes. (The
 //   RAISE policy on a failing score is the raise_error contract the recover
 //   suite already carries; it is not duplicated here.)
-import { ExecutionPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { RunPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -64,7 +64,7 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-async function runEvalWorkflow(opts: Omit<EvalWorkflowOptions, "org" | "name">): Promise<WorkflowExecution> {
+async function runEvalWorkflow(opts: Omit<EvalWorkflowOptions, "org" | "name">): Promise<WorkflowRun> {
   const { org } = await target.provisionTenancy();
   const workflow = await clients.workflowCommand.create(makeEvalWorkflow({ org, name: uniqueName("wf-eval"), ...opts }));
   fixtures.defer(() => clients.workflowCommand.delete({ value: workflow.metadata!.id }));
@@ -77,15 +77,15 @@ async function runEvalWorkflow(opts: Omit<EvalWorkflowOptions, "org" | "name">):
   return awaitTerminal(clients, executionId);
 }
 
-function expectCompleted(final: WorkflowExecution): void {
+function expectCompleted(final: WorkflowRun): void {
   expect(
     final.status?.phase,
-    `the workflow should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]} ` +
+    `the workflow should complete; reached ${RunPhase[final.status?.phase ?? 0]} ` +
       `(status.error: ${JSON.stringify(final.status?.error ?? "")})`,
-  ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  ).toBe(RunPhase.RUN_COMPLETED);
 }
 
-function expectTaskCompleted(final: WorkflowExecution, taskName: string): void {
+function expectTaskCompleted(final: WorkflowRun, taskName: string): void {
   expect(taskByName(final, taskName)?.status, `${taskName} completed`).toBe(WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED);
 }
 

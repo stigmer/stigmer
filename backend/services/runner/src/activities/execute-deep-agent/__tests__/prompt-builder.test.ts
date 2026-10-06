@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { buildEnhancedSystemPrompt, composeUserMessage, type TurnMessageInput } from "../prompt-builder.js";
 import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
 import type { ProvisionResult } from "../../../shared/workspace/types.js";

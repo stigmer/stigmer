@@ -40,14 +40,14 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   TodoStatus,
   ToolCallStatus,
   ToolKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -120,7 +120,7 @@ describe("ExecuteDeepAgent hermetic — write_todos", () => {
     // ── Assert: outcome ──────────────────────────────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
     // ── Assert: the row stays in the transcript, classified TODO ─────────────
     const rows = record.toolCalls();
@@ -154,7 +154,7 @@ describe("ExecuteDeepAgent hermetic — write_todos", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/write-todos.status.json");
   });
 });

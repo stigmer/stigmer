@@ -6,7 +6,7 @@ import type { Stigmer } from "@stigmer/sdk";
 import {
   ToolCallSchema,
   ToolCallOutputRefSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { StigmerContext } from "../../context";
 import { McpToolDetail } from "../McpToolDetail";
 

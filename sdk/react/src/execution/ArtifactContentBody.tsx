@@ -1,7 +1,7 @@
 "use client";
 
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { ArtifactFileContent } from "./ArtifactFileContent.js";
 import type { SkillPackageDetection } from "../library/detect-skill-package.js";
@@ -9,7 +9,7 @@ import type { SkillPackageDetection } from "../library/detect-skill-package.js";
 /** Props for {@link ArtifactContentBody}. */
 export interface ArtifactContentBodyProps {
   /** The artifact whose body is rendered. */
-  readonly artifact: ExecutionArtifact;
+  readonly artifact: RunArtifact;
   /** Decoded text content, or `null` (directory / binary / loading / error). */
   readonly content: string | null;
   /** Server-detected content type (rendering-strategy fallback). */
@@ -49,7 +49,7 @@ export function ArtifactContentBody({
   skillDetection,
   className,
 }: ArtifactContentBodyProps) {
-  const isDirectory = artifact.kind === ExecutionArtifactKind.DIRECTORY;
+  const isDirectory = artifact.kind === RunArtifactKind.DIRECTORY;
 
   return (
     <div className={className}>
@@ -79,7 +79,7 @@ function DirectoryContentView({
   artifact,
   skillDetection,
 }: {
-  readonly artifact: ExecutionArtifact;
+  readonly artifact: RunArtifact;
   readonly skillDetection: SkillPackageDetection;
 }) {
   const entries = artifact.entries;

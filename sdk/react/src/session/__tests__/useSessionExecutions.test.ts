@@ -1,21 +1,21 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { sortChronologically } from "../useSessionExecutions";
 
-function exec(id: string): AgentExecution {
-  const e = create(AgentExecutionSchema);
+function exec(id: string): AgentRun {
+  const e = create(AgentRunSchema);
   const metadata = create(ApiResourceMetadataSchema);
   metadata.id = id;
   e.metadata = metadata;
   return e;
 }
 
-function ids(list: readonly AgentExecution[]): string[] {
+function ids(list: readonly AgentRun[]): string[] {
   return list.map((e) => e.metadata?.id ?? "");
 }
 

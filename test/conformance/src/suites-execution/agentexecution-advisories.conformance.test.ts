@@ -31,7 +31,7 @@
 // asserted nowhere on the wire), the Cursor harness (it carries none of these
 // middlewares), and which threshold fires when (pinned beside each middleware
 // in the runner's unit suites).
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -131,8 +131,8 @@ describe("AgentExecution advisories to the model", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `execution ${executionId} should COMPLETE past the warning; reached ${ExecutionPhase[final.status?.phase ?? 0]} (error: ${final.status?.error ?? ""})`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `execution ${executionId} should COMPLETE past the warning; reached ${RunPhase[final.status?.phase ?? 0]} (error: ${final.status?.error ?? ""})`,
+    ).toBe(RunPhase.RUN_COMPLETED);
     expect(
       mcp.capturedRequests().filter((request) => request.method === "tools/call"),
       `execution ${executionId}: every scripted call reached the tool`,

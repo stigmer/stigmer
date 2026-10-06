@@ -11,8 +11,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
@@ -60,10 +60,10 @@ function makePrepared(overrides: Partial<PreparedRun> = {}): PreparedRun {
 // A BackendClient double whose controller records every create call and
 // emulates the server stamping the bootstrapped session id onto the returned
 // execution spec.
-function fakeBackend(): { client: BackendClient; creates: () => AgentExecution[] } {
-  const captured: AgentExecution[] = [];
+function fakeBackend(): { client: BackendClient; creates: () => AgentRun[] } {
+  const captured: AgentRun[] = [];
   const controller = () => ({
-    create: async (msg: AgentExecution) => {
+    create: async (msg: AgentRun) => {
       captured.push(msg);
       // Echo with the server-owned session id filled in, like the real backend.
       return {

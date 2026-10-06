@@ -1,22 +1,22 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   SubAgentStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { buildThreadItems } from "../MessageThread";
 
 /**
@@ -43,8 +43,8 @@ function makeAiWithTaskCall(taskCallId: string): ReturnType<typeof create<typeof
   return msg;
 }
 
-function makeSubAgent(id: string, status: SubAgentStatus): ReturnType<typeof create<typeof SubAgentExecutionSchema>> {
-  const sa = create(SubAgentExecutionSchema);
+function makeSubAgent(id: string, status: SubAgentStatus): ReturnType<typeof create<typeof SubAgentRunSchema>> {
+  const sa = create(SubAgentRunSchema);
   sa.id = id;
   sa.name = "Research renewable energy";
   sa.subject = "Research renewable energy";
@@ -54,25 +54,25 @@ function makeSubAgent(id: string, status: SubAgentStatus): ReturnType<typeof cre
 
 function makeExecution(opts: {
   id: string;
-  phase: ExecutionPhase;
+  phase: RunPhase;
   messages: ReturnType<typeof create<typeof AgentMessageSchema>>[];
-  subAgents?: ReturnType<typeof create<typeof SubAgentExecutionSchema>>[];
-}): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+  subAgents?: ReturnType<typeof create<typeof SubAgentRunSchema>>[];
+}): AgentRun {
+  const exec = create(AgentRunSchema);
 
   const meta = create(ApiResourceMetadataSchema);
   meta.id = opts.id;
   exec.metadata = meta;
 
-  const spec = create(AgentExecutionSpecSchema);
+  const spec = create(AgentRunSpecSchema);
   spec.message = "Please delegate to the researcher.";
   exec.spec = spec;
 
-  const status = create(AgentExecutionStatusSchema);
+  const status = create(AgentRunStatusSchema);
   status.phase = opts.phase;
   status.messages = opts.messages;
   if (opts.subAgents) {
-    status.subAgentExecutions = opts.subAgents;
+    status.subAgentRuns = opts.subAgents;
   }
   exec.status = status;
 
@@ -84,7 +84,7 @@ describe("buildThreadItems sub-agent correlation", () => {
     const taskId = "tool_live_1";
     const exec = makeExecution({
       id: "exec-live",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [makeAiWithTaskCall(taskId)],
       subAgents: [makeSubAgent(taskId, SubAgentStatus.SUB_AGENT_IN_PROGRESS)],
     });
@@ -113,7 +113,7 @@ describe("buildThreadItems sub-agent correlation", () => {
     const taskId = "tool_done_1";
     const exec = makeExecution({
       id: "exec-done",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       messages: [makeAiWithTaskCall(taskId)],
       subAgents: [makeSubAgent(taskId, SubAgentStatus.SUB_AGENT_COMPLETED)],
     });
@@ -136,7 +136,7 @@ describe("buildThreadItems sub-agent correlation", () => {
     const taskId = "tool_orphan_1";
     const exec = makeExecution({
       id: "exec-orphan",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [makeAiWithTaskCall(taskId)],
       subAgents: [],
     });

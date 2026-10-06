@@ -4,9 +4,9 @@ import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { create } from "@bufbuild/protobuf";
-import { type AgentExecutionStatus, AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import { type AgentRunStatus, AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import { InlinePublisher } from "../inline-publisher.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.js";
@@ -17,8 +17,8 @@ import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 // The publisher registers artifacts on the transcript builder (`addArtifact`);
 // the one builder since #1096.
 /** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
-function makeStatusBuilder(): { sb: TranscriptBuilder; status: AgentExecutionStatus } {
-  const status = create(AgentExecutionStatusSchema, {});
+function makeStatusBuilder(): { sb: TranscriptBuilder; status: AgentRunStatus } {
+  const status = create(AgentRunStatusSchema, {});
   return { sb: new TranscriptBuilder("exec-test", status), status };
 }
 
@@ -59,7 +59,7 @@ function sha256(content: string): string {
 
 describe("InlinePublisher", () => {
   let sb: TranscriptBuilder;
-  let status: AgentExecutionStatus;
+  let status: AgentRunStatus;
   let storage: ReturnType<typeof mockArtifactStorage>;
   let backend: WorkspaceBackend;
   let publisher: InlinePublisher;
@@ -86,7 +86,7 @@ describe("InlinePublisher", () => {
     const artifact = status.artifacts[0];
     expect(artifact.name).toBe("main.ts");
     expect(artifact.sandboxPath).toBe("src/main.ts");
-    expect(artifact.kind).toBe(ExecutionArtifactKind.FILE);
+    expect(artifact.kind).toBe(RunArtifactKind.FILE);
     expect(artifact.storageKey).toBe("artifacts/exec-123/main.ts");
     expect(artifact.contentHash).toBe(sha256("console.log('hello');"));
     expect(Number(artifact.sizeBytes)).toBeGreaterThan(0);
@@ -149,10 +149,10 @@ describe("InlinePublisher", () => {
   // turn's publisher exists; the safety net then asks for those paths again.
   describe("against rows the status already lists (stigmer/stigmer#1448)", () => {
     function seedRow(sandboxPath: string, content: string): void {
-      status.artifacts.push(create(ExecutionArtifactSchema, {
+      status.artifacts.push(create(RunArtifactSchema, {
         name: sandboxPath.split("/").at(-1) ?? sandboxPath,
         sandboxPath,
-        kind: ExecutionArtifactKind.FILE,
+        kind: RunArtifactKind.FILE,
         storageKey: `artifacts/exec-123/${sandboxPath.split("/").at(-1)}`,
         contentHash: sha256(content),
       }));
@@ -294,7 +294,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     await mkdir(join(dir, "src"), { recursive: true });
     await writeFile(join(dir, "src/app.ts"), "export const x = 42;", "utf-8");
 
-    const status = create(AgentExecutionStatusSchema, {});
+    const status = create(AgentRunStatusSchema, {});
     const sb = new TranscriptBuilder("exec-disk", status);
     const storage = mockArtifactStorage();
     const backend = new LocalWorkspaceBackend(dir);
@@ -313,7 +313,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     const artifact = status.artifacts[0];
     expect(artifact.name).toBe("app.ts");
     expect(artifact.sandboxPath).toBe("src/app.ts");
-    expect(artifact.kind).toBe(ExecutionArtifactKind.FILE);
+    expect(artifact.kind).toBe(RunArtifactKind.FILE);
     expect(artifact.contentHash).toBe(sha256("export const x = 42;"));
     expect(Number(artifact.sizeBytes)).toBe(20);
     expect(storage.uploadedKeys).toEqual(["artifacts/exec-disk/app.ts"]);
@@ -324,7 +324,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     const dir = join(tmpdir(), `stigmer-publisher-test-${Date.now()}`);
     await mkdir(dir, { recursive: true });
 
-    const status = create(AgentExecutionStatusSchema, {});
+    const status = create(AgentRunStatusSchema, {});
     const sb = new TranscriptBuilder("exec-miss", status);
     const storage = mockArtifactStorage();
     const backend = new LocalWorkspaceBackend(dir);

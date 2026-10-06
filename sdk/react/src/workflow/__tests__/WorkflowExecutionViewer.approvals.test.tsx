@@ -17,25 +17,25 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, cleanup, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   WorkflowTaskStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
-  WorkflowExecutionEventSchema,
+  WorkflowRunEventSchema,
   WorkflowEventType,
   TaskStartedPayloadSchema,
   AgentCallStartedPayloadSchema,
   AgentCallProgressPayloadSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import {
   ApprovalAction,
-  ExecutionPhase as AgentExecutionPhase,
+  RunPhase as AgentExecutionPhase,
   FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { DerivedCostSummary } from "../../internal/store/workflow-execution-event-store";
 import { WorkflowExecutionEventStore } from "../../internal/store/workflow-execution-event-store";
 import { useWorkflowExecution } from "../useWorkflowExecution";
@@ -121,9 +121,9 @@ function storeEvent(
   seq: number,
   taskName: string,
   eventType: WorkflowEventType,
-  payload: WorkflowExecutionEvent["payload"],
-): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+  payload: WorkflowRunEvent["payload"],
+): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-07-16T00:00:00Z",
@@ -154,7 +154,7 @@ function buildGatedStore(): WorkflowExecutionEventStore {
     storeEvent(seq, task, WorkflowEventType.agent_call_started, {
       case: "agentCallStarted",
       value: create(AgentCallStartedPayloadSchema, {
-        childExecutionId: childId,
+        childRunId: childId,
         agentSlug: "helper",
         messageSummary: "run the task",
       }),
@@ -163,8 +163,8 @@ function buildGatedStore(): WorkflowExecutionEventStore {
     storeEvent(seq, task, WorkflowEventType.agent_call_progress, {
       case: "agentCallProgress",
       value: create(AgentCallProgressPayloadSchema, {
-        childExecutionId: childId,
-        agentPhase: AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        childRunId: childId,
+        agentPhase: AgentExecutionPhase.RUN_WAITING_FOR_APPROVAL,
         currentToolName: "",
         tokensConsumed: BigInt(0),
         messagesCount: 1,
@@ -185,11 +185,11 @@ function buildGatedStore(): WorkflowExecutionEventStore {
 
 /** The parent snapshot both gated children surfaced onto. */
 function makeExecutionWithGates() {
-  return create(WorkflowExecutionSchema, {
+  return create(WorkflowRunSchema, {
     metadata: { id: "wex_1", name: "nightly-report" },
     spec: { workflowId: "wf_1" },
     status: {
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       startedAt: "2026-07-15T00:00:00Z",
       tasks: [
         {

@@ -31,7 +31,7 @@
 //   turn in it).
 // What the model received is the observable: each version's instructions
 // are distinct, and the system prompt of the turn's request names one.
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -83,7 +83,7 @@ describe("AgentExecution — the agent version a turn runs", () => {
 
     expect(created.status?.agentId).toBe(agent.metadata!.id);
     expect(created.status?.agentVersionHash).toBe(agent.status!.versionHash);
-    const completed = await awaitPhase(clients, created.metadata!.id, ExecutionPhase.EXECUTION_COMPLETED);
+    const completed = await awaitPhase(clients, created.metadata!.id, RunPhase.RUN_COMPLETED);
     expect(completed.status?.agentId, "the runner's status writes leave the record as it was").toBe(agent.metadata!.id);
     expect(completed.status?.agentVersionHash).toBe(agent.status!.versionHash);
   });
@@ -100,14 +100,14 @@ describe("AgentExecution — the agent version a turn runs", () => {
     );
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
-    await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_FAILED);
+    await awaitPhase(clients, executionId, RunPhase.RUN_FAILED);
 
     const v2 = await clients.agentCommand.apply(makeAgent({ org, name, instructions: SAVED_LATER }));
     expect(v2.status?.versionHash, "the author's save is a new version").not.toBe(v1.status?.versionHash);
 
     mock.enqueue(anthropicText("Recovered."));
     await clients.agentExecutionCommand.recover({ id: executionId });
-    const completed = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_COMPLETED);
+    const completed = await awaitPhase(clients, executionId, RunPhase.RUN_COMPLETED);
 
     expect(completed.status?.agentVersionHash).toBe(v1.status?.versionHash);
     const system = JSON.stringify((mock.scriptedRequests().at(-1)?.body as { system?: unknown } | undefined)?.system ?? "");
@@ -133,7 +133,7 @@ async function completedTurn(
     makeAgentExecution({ org, name: uniqueName(label), ...on }),
   );
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
-  return awaitPhase(clients, created.metadata!.id, ExecutionPhase.EXECUTION_COMPLETED);
+  return awaitPhase(clients, created.metadata!.id, RunPhase.RUN_COMPLETED);
 }
 
 // An agent saved twice under one name: v1 (RECORDED) then v2 (SAVED_LATER).

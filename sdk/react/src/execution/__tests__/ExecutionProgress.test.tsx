@@ -2,11 +2,11 @@ import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { ExecutionProgress } from "../ExecutionProgress";
 
@@ -14,9 +14,9 @@ afterEach(() => {
   cleanup();
 });
 
-function makeExecution(phase: ExecutionPhase, error?: string): AgentExecution {
-  const exec = create(AgentExecutionSchema);
-  const status = create(AgentExecutionStatusSchema);
+function makeExecution(phase: RunPhase, error?: string): AgentRun {
+  const exec = create(AgentRunSchema);
+  const status = create(AgentRunStatusSchema);
   status.phase = phase;
   if (error !== undefined) {
     status.error = error;
@@ -35,7 +35,7 @@ describe("ExecutionProgress", () => {
     render(
       <ExecutionProgress
         execution={makeExecution(
-          ExecutionPhase.EXECUTION_FAILED,
+          RunPhase.RUN_FAILED,
           "Activity task timed out",
         )}
       />,
@@ -54,7 +54,7 @@ describe("ExecutionProgress", () => {
     render(
       <ExecutionProgress
         execution={makeExecution(
-          ExecutionPhase.EXECUTION_CANCELLED,
+          RunPhase.RUN_CANCELLED,
           "Execution cancelled",
         )}
       />,

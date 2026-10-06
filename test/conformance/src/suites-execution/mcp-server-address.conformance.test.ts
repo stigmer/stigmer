@@ -31,7 +31,7 @@
 // the chart, the desktop), pinned per launcher beside its code. An unresolved `${STIGMER_SERVER_ADDRESS}` makes the runner
 // skip the server, so a fixture that receives the call has already shown no
 // placeholder failed.
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -140,8 +140,8 @@ describe("platform STIGMER_SERVER_ADDRESS (personal environment â†’ execution â†
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `execution ${executionId} should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `execution ${executionId} should complete; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
 
     const toolCalls = mcp.capturedRequests().filter((r) => r.method === "tools/call");
     expect(toolCalls.length, "the echo dispatch reaches the fixture as a tools/call").toBeGreaterThan(0);
@@ -192,8 +192,8 @@ describe("platform STIGMER_SERVER_ADDRESS (personal environment â†’ execution â†
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `execution ${executionId} should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `execution ${executionId} should complete; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
 
     const toolCalls = mcp.capturedRequests().filter((r) => r.method === "tools/call");
     expect(

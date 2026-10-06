@@ -5,8 +5,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   FileDecisionAction,
   FileDecisionScope,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { SubmitFileDecisionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { SubmitFileDecisionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -157,7 +157,7 @@ export function useFileReview(): UseFileReviewReturn {
 
       try {
         const input = create(SubmitFileDecisionInputSchema, {
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           changeSetId,
           scope,
           fileChangeId,
@@ -166,7 +166,7 @@ export function useFileReview(): UseFileReviewReturn {
           reason: options?.reason ?? "",
           acknowledgeUnreviewable: options?.acknowledgeUnreviewable ?? false,
         });
-        await stigmer.agentExecution.submitFileDecision(input);
+        await stigmer.agentRun.submitFileDecision(input);
       } catch (err) {
         const e = toError(err);
         setDecisionErrors((prev) => new Map(prev).set(key, e));

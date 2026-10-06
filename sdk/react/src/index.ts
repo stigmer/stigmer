@@ -507,8 +507,8 @@ export type {
 } from "./execution/index.js";
 
 // Execution — proto type re-exports for artifact consumers
-export type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-export { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+export type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+export { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 // Attachment — file upload behavior hook, styled chip list, clipboard paste,
 // vision-resolution image preparation, and vision preflight warnings
@@ -2375,7 +2375,7 @@ export {
   type DashboardFailedRun,
   // Data Hooks
   useAgentExecutionSummary,
-  AgentExecutionSummaryTimeWindow,
+  AgentRunSummaryTimeWindow,
   type UseAgentExecutionSummaryOptions,
   type UseAgentExecutionSummaryReturn,
   useDashboardSummary,

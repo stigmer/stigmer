@@ -10,8 +10,8 @@
 // number; a judge workflow that failed refuses the grade with the platform's
 // error.
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { EVAL_TASK_NAME } from "../../support/workflows";
 import { verdictOf } from "../quality";
@@ -22,8 +22,8 @@ const RUBRIC: QualityCriterion[] = [
   { name: "meaningful_test", description: "d", weight: 2 },
 ];
 
-function judged(output: JsonObject, phase = ExecutionPhase.EXECUTION_COMPLETED, error = "") {
-  return create(WorkflowExecutionSchema, {
+function judged(output: JsonObject, phase = RunPhase.RUN_COMPLETED, error = "") {
+  return create(WorkflowRunSchema, {
     status: { phase, error, tasks: [{ taskName: EVAL_TASK_NAME, output }] },
   });
 }
@@ -84,7 +84,7 @@ describe("verdictOf", () => {
   });
 
   it("a judge workflow that failed refuses the grade with the platform's error", () => {
-    const verdict = verdictOf(judged({}, ExecutionPhase.EXECUTION_FAILED, "judge model not in registry"), RUBRIC);
+    const verdict = verdictOf(judged({}, RunPhase.RUN_FAILED, "judge model not in registry"), RUBRIC);
     expect(verdict).toEqual({
       score: null,
       criteria: [],

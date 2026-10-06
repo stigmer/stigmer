@@ -1,10 +1,10 @@
 import { create, toJson } from "@bufbuild/protobuf";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   GetAgentUsageReportOutputSchema,
   GetOrgUsageReportOutputSchema,
   GetSessionUsageReportOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { describe, expect, it } from "vitest";
 import type { Stigmer } from "@stigmer/sdk";
 import {
@@ -17,21 +17,21 @@ import {
 
 const sessionReport = create(GetSessionUsageReportOutputSchema, {
   sessionId: "ses_1",
-  executionCount: 1,
-  firstExecutionAt: "2026-03-01T10:00:00Z",
-  lastExecutionAt: "2026-03-01T11:00:00Z",
+  runCount: 1,
+  firstRunAt: "2026-03-01T10:00:00Z",
+  lastRunAt: "2026-03-01T11:00:00Z",
   totalUsage: { inputTokens: 12500n, cacheReadInputTokens: 5000n },
   modelBreakdown: [
     { model: "claude-sonnet-4", inputTokens: 12500n, outputTokens: 1800n, cacheReadInputTokens: 5000n, billableCostMicros: 74000n },
   ],
-  executions: [
+  runs: [
     {
       startedAt: "2026-03-01T10:00:00Z",
       inputTokens: 12500n,
       outputTokens: 1800n,
       billableCostMicros: 74000n,
       primaryModel: "claude-sonnet-4",
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
     },
   ],
 });
@@ -57,10 +57,10 @@ const agentReport = create(GetAgentUsageReportOutputSchema, {
   agentId: "agt_1",
   agentName: "Reviewer",
   totalSessions: 2,
-  totalExecutions: 4,
+  totalRuns: 4,
   totalBillableCostMicros: 4_000_000n,
   modelBreakdown: [{ model: "claude-sonnet-4", inputTokens: 1000n, outputTokens: 200n, billableCostMicros: 4_000_000n }],
-  sessions: [{ sessionId: "ses_1", executionCount: 4, billableCostMicros: 4_000_000n, firstExecutionAt: "2026-03-01T10:00:00Z", lastExecutionAt: "2026-03-02T10:00:00Z" }],
+  sessions: [{ sessionId: "ses_1", runCount: 4, billableCostMicros: 4_000_000n, firstRunAt: "2026-03-01T10:00:00Z", lastRunAt: "2026-03-02T10:00:00Z" }],
 });
 
 describe("renderAgentUsage", () => {
@@ -82,11 +82,11 @@ describe("renderAgentUsage", () => {
 const orgReport = create(GetOrgUsageReportOutputSchema, {
   totalAgents: 3,
   totalSessions: 5,
-  totalExecutions: 10,
+  totalRuns: 10,
   totalBillableCostMicros: 10_000_000n,
   modelBreakdown: [{ model: "claude-sonnet-4", inputTokens: 1000n, billableCostMicros: 10_000_000n }],
-  topAgentsByCost: [{ agentId: "agt_1", agentName: "Reviewer", executionCount: 6, billableCostMicros: 6_000_000n }],
-  dailyCosts: [{ date: "2026-03-01", executionCount: 4, billableCostMicros: 4_000_000n }],
+  topAgentsByCost: [{ agentId: "agt_1", agentName: "Reviewer", runCount: 6, billableCostMicros: 6_000_000n }],
+  dailyCosts: [{ date: "2026-03-01", runCount: 4, billableCostMicros: 4_000_000n }],
 });
 
 describe("renderOrgUsage", () => {

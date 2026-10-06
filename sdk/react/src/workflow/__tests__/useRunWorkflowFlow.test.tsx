@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerError } from "@stigmer/sdk";
 import { Code } from "@connectrpc/connect";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { useRunWorkflowFlow } from "../useRunWorkflowFlow";
 import type { UseRunWorkflowFlowOptions } from "../useRunWorkflowFlow";
@@ -513,7 +513,7 @@ describe("useRunWorkflowFlow", () => {
     it("is true when the workflow's runs are visible to its organization", () => {
       const opts = defaultOptions({
         workflow: makeWorkflow({
-          spec: { executionVisibility: WorkflowExecutionVisibility.organization },
+          spec: { executionVisibility: WorkflowRunVisibility.organization },
         }),
       });
       const { result } = renderWithClient(opts);
@@ -521,8 +521,8 @@ describe("useRunWorkflowFlow", () => {
     });
 
     it.each([
-      WorkflowExecutionVisibility.private,
-      WorkflowExecutionVisibility.unspecified,
+      WorkflowRunVisibility.private,
+      WorkflowRunVisibility.unspecified,
     ])("is false for run visibility %s", (executionVisibility) => {
       const opts = defaultOptions({
         workflow: makeWorkflow({ spec: { executionVisibility } }),

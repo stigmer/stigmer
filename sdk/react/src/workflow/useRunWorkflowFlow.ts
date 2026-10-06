@@ -19,8 +19,8 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { getUserMessage } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
@@ -187,8 +187,8 @@ export function useRunWorkflowFlow(
     useRunEnvKeySources(workflow, org, runtimeEnv);
 
   const runsVisibleToOrganization =
-    workflow.spec?.executionVisibility ===
-    WorkflowExecutionVisibility.organization;
+    workflow.spec?.runVisibility ===
+    WorkflowRunVisibility.organization;
 
   const setEnvVar = useCallback((key: string, value: string) => {
     setRuntimeEnv((prev) => ({ ...prev, [key]: value }));
@@ -231,8 +231,8 @@ export function useRunWorkflowFlow(
         }
       }
 
-      const execution: WorkflowExecution =
-        await stigmerRef.current.workflowExecution.create({
+      const execution: WorkflowRun =
+        await stigmerRef.current.workflowRun.create({
           name: `${workflowName} ${new Date().toISOString().slice(0, 19).replace("T", " ")}`,
           org,
           workflowId: workflow.metadata?.id,

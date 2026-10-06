@@ -28,7 +28,7 @@ import {
   FileDecisionScope,
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -359,7 +359,7 @@ describe("AgentExecution conformance — the workflow parent link", () => {
           makeAgentExecution({
             org,
             name: uniqueName("aex-parent-mismatch"),
-            parent: { workflowExecutionId: "wfx_linked" },
+            parent: { workflowRunId: "wfx_linked" },
             labels: { "stigmer.ai/workflow-execution-id": "wfx_labelled" },
           }),
         ),
@@ -383,7 +383,7 @@ describe("AgentExecution conformance — the workflow parent link", () => {
           makeAgentExecution({
             org,
             name: uniqueName("aex-parent-local"),
-            parent: { workflowExecutionId: "wfx_trustedlocal" },
+            parent: { workflowRunId: "wfx_trustedlocal" },
           }),
         ),
       Code.Unavailable,
@@ -420,7 +420,7 @@ describe("AgentExecution conformance — the engine gate", () => {
 describe("AgentExecution conformance — zero-record read surfaces", () => {
   it("[rpc:AgentExecutionQueryController.getExecutionSummary] getExecutionSummary answers the pinned zero shape — no cost fields by design", async () => {
     const { org } = await target.provisionTenancy();
-    const summary = await clients.agentExecutionQuery.getExecutionSummary({ org });
+    const summary = await clients.agentExecutionQuery.getRunSummary({ org });
 
     expect(summary.activeCount).toBe(0);
     expect(summary.phaseCounts).toEqual({});
@@ -432,7 +432,7 @@ describe("AgentExecution conformance — zero-record read surfaces", () => {
 
   it("[rpc:AgentExecutionQueryController.getExecutionUsageReport] the execution-scoped usage report validates and checks existence (the ONE report that 404s)", async () => {
     await expectGrpcCode(
-      () => clients.agentExecutionQuery.getExecutionUsageReport({ executionId: "" }),
+      () => clients.agentExecutionQuery.getRunUsageReport({ runId: "" }),
       Code.InvalidArgument,
       "execution usage report without an id",
     );
@@ -441,8 +441,8 @@ describe("AgentExecution conformance — zero-record read surfaces", () => {
     if (target.capabilities.enforcingAuthorizer) return;
     const err = await expectGrpcCode(
       () =>
-        clients.agentExecutionQuery.getExecutionUsageReport({
-          executionId: "aexec_01conformancemissing",
+        clients.agentExecutionQuery.getRunUsageReport({
+          runId: "aexec_01conformancemissing",
         }),
       Code.NotFound,
       "execution usage report for an unknown execution",
@@ -466,12 +466,12 @@ describe("AgentExecution conformance — zero-record read surfaces", () => {
       sessionId: "ses_01conformancemissing",
     });
     expect(session.sessionId).toBe("ses_01conformancemissing");
-    expect(session.executionCount).toBe(0);
+    expect(session.runCount).toBe(0);
     expect(session.totalUsage, "the aggregate is always present, zero-valued").toBeDefined();
-    expect(session.executions).toHaveLength(0);
+    expect(session.runs).toHaveLength(0);
     expect(session.modelBreakdown).toHaveLength(0);
-    expect(session.firstExecutionAt).toBe("");
-    expect(session.lastExecutionAt).toBe("");
+    expect(session.firstRunAt).toBe("");
+    expect(session.lastRunAt).toBe("");
 
     const agent = await clients.agentExecutionQuery.getAgentUsageReport({
       agentId: "agt_01conformancemissing",
@@ -483,7 +483,7 @@ describe("AgentExecution conformance — zero-record read surfaces", () => {
     expect(agent.totalUsage).toBeDefined();
     expect(agent.sessions).toHaveLength(0);
     expect(agent.totalSessions).toBe(0);
-    expect(agent.totalExecutions).toBe(0);
+    expect(agent.totalRuns).toBe(0);
 
     const orgReport = await clients.agentExecutionQuery.getOrgUsageReport({
       org,
@@ -493,7 +493,7 @@ describe("AgentExecution conformance — zero-record read surfaces", () => {
     expect(orgReport.org).toBe(org);
     expect(orgReport.totalAgents).toBe(0);
     expect(orgReport.totalSessions).toBe(0);
-    expect(orgReport.totalExecutions).toBe(0);
+    expect(orgReport.totalRuns).toBe(0);
     expect(orgReport.modelBreakdown).toHaveLength(0);
     expect(orgReport.topAgentsByCost).toHaveLength(0);
     expect(orgReport.dailyCosts).toHaveLength(0);
@@ -566,7 +566,7 @@ describe("AgentExecution conformance — submitFileDecision negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({
-          agentExecutionId: "",
+          agentRunId: "",
           changeSetId: "cs_x",
           expectedDigest: "digest",
           scope: FileDecisionScope.CHANGE_SET,
@@ -578,7 +578,7 @@ describe("AgentExecution conformance — submitFileDecision negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({
-          agentExecutionId: "aexec_x",
+          agentRunId: "aexec_x",
           changeSetId: "cs_x",
           expectedDigest: "digest",
           scope: FileDecisionScope.CHANGE_SET,
@@ -594,7 +594,7 @@ describe("AgentExecution conformance — submitFileDecision negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({
-          agentExecutionId: "aexec_01conformancemissing",
+          agentRunId: "aexec_01conformancemissing",
           changeSetId: "cs_x",
           expectedDigest: "digest",
           scope: FileDecisionScope.CHANGE_SET,

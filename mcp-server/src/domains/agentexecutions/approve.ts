@@ -8,8 +8,8 @@
 // projection: the returned AgentExecution embeds the full message history,
 // which the approval loop doesn't need.
 
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
 
 import { withClient } from "../client.js";
 import { rpcError } from "../rpcerr.js";
@@ -44,14 +44,14 @@ export async function submitAgentApproval(
     throw new Error(`unknown action "${args.action}"; valid actions: approve, skip, reject`);
   }
   return withClient(
-    AgentExecutionCommandController,
+    AgentRunCommandController,
     serverAddress,
     token,
     async (client, callOptions) => {
       try {
         const execution = await client.submitApproval(
           {
-            agentExecutionId: args.executionId,
+            agentRunId: args.executionId,
             toolCallId: args.toolCallId,
             action,
             comment: args.comment ?? "",

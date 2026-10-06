@@ -15,10 +15,10 @@ import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { GetArtifactDownloadUrlResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { GetArtifactDownloadUrlResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
@@ -45,10 +45,10 @@ beforeEach(() => {
   pushedTags = [];
 });
 
-const execution = create(AgentExecutionSchema, {
+const execution = create(AgentRunSchema, {
   metadata: { id: "aex_done" },
   status: {
-    phase: ExecutionPhase.EXECUTION_COMPLETED,
+    phase: RunPhase.RUN_COMPLETED,
     artifacts: [
       { name: "report.txt", storageKey: "store/report.txt", sizeBytes: 23n },
       { name: "broken.txt", storageKey: "store/missing.txt", sizeBytes: 5n },
@@ -82,7 +82,7 @@ beforeAll(async () => {
         });
       },
     });
-    router.service(AgentExecutionQueryController, {
+    router.service(AgentRunQueryController, {
       get: (req) => {
         if (req.value !== "aex_done") throw new ConnectError("not found", Code.NotFound);
         return execution;

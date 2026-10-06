@@ -2,20 +2,20 @@
 
 import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import type { ExecutionClientFilters } from "./derive-execution-row.js";
 
 // ---------------------------------------------------------------------------
 // Phase chip config
 // ---------------------------------------------------------------------------
 
-const PHASE_CHIPS: ReadonlyArray<{ phase: ExecutionPhase; label: string }> = [
-  { phase: ExecutionPhase.EXECUTION_COMPLETED, label: "Completed" },
-  { phase: ExecutionPhase.EXECUTION_FAILED, label: "Failed" },
-  { phase: ExecutionPhase.EXECUTION_IN_PROGRESS, label: "Running" },
-  { phase: ExecutionPhase.EXECUTION_PENDING, label: "Pending" },
-  { phase: ExecutionPhase.EXECUTION_CANCELLED, label: "Cancelled" },
-  { phase: ExecutionPhase.EXECUTION_PAUSED, label: "Paused" },
+const PHASE_CHIPS: ReadonlyArray<{ phase: RunPhase; label: string }> = [
+  { phase: RunPhase.RUN_COMPLETED, label: "Completed" },
+  { phase: RunPhase.RUN_FAILED, label: "Failed" },
+  { phase: RunPhase.RUN_IN_PROGRESS, label: "Running" },
+  { phase: RunPhase.RUN_PENDING, label: "Pending" },
+  { phase: RunPhase.RUN_CANCELLED, label: "Cancelled" },
+  { phase: RunPhase.RUN_PAUSED, label: "Paused" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -96,7 +96,7 @@ export const ExecutionFilterBar = memo(function ExecutionFilterBar({
   );
 
   const togglePhase = useCallback(
-    (phase: ExecutionPhase) => {
+    (phase: RunPhase) => {
       const next = new Set(activePhases);
       if (next.has(phase)) {
         next.delete(phase);

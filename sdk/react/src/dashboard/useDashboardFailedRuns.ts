@@ -3,12 +3,12 @@
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { ExecutionPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { ListAgentExecutionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { ListWorkflowExecutionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { RunPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { ListAgentRunsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { ListWorkflowRunsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import type { DashboardFailedRun } from "./types.js";
@@ -42,14 +42,14 @@ export function useDashboardFailedRuns(
     () =>
       orgVal
         ? async () => {
-            const resp = await stigmer.agentExecution.list(
-              create(ListAgentExecutionsRequestSchema, {
+            const resp = await stigmer.agentRun.list(
+              create(ListAgentRunsRequestSchema, {
                 pageSize: PAGE_SIZE,
-                phase: AgentPhase.EXECUTION_FAILED,
+                phase: AgentPhase.RUN_FAILED,
                 org: orgVal,
               }),
             );
-            return [...resp.entries] as readonly AgentExecution[];
+            return [...resp.entries] as readonly AgentRun[];
           }
         : null,
     [stigmer, orgVal],
@@ -59,26 +59,26 @@ export function useDashboardFailedRuns(
     () =>
       orgVal
         ? async () => {
-            const resp = await stigmer.workflowExecution.list(
-              create(ListWorkflowExecutionsRequestSchema, {
+            const resp = await stigmer.workflowRun.list(
+              create(ListWorkflowRunsRequestSchema, {
                 pageSize: PAGE_SIZE,
-                phase: WorkflowPhase.EXECUTION_FAILED,
+                phase: WorkflowPhase.RUN_FAILED,
                 org: orgVal,
               }),
             );
-            return [...resp.entries] as readonly WorkflowExecution[];
+            return [...resp.entries] as readonly WorkflowRun[];
           }
         : null,
     [stigmer, orgVal],
   );
 
   const { data: agentFailed, isLoading: agLoading, error: agError } =
-    useFetch<readonly AgentExecution[]>(agentFetchFn, [stigmer, orgVal], [], {
+    useFetch<readonly AgentRun[]>(agentFetchFn, [stigmer, orgVal], [], {
       refetchInterval: 60_000,
     });
 
   const { data: workflowFailed, isLoading: wfLoading, error: wfError } =
-    useFetch<readonly WorkflowExecution[]>(workflowFetchFn, [stigmer, orgVal], [], {
+    useFetch<readonly WorkflowRun[]>(workflowFetchFn, [stigmer, orgVal], [], {
       refetchInterval: 60_000,
     });
 
