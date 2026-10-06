@@ -801,13 +801,13 @@
           "can_create_agent_share": {},
           "can_create_channel_app": {},
           "can_create_environment": {},
-          "can_create_execution_in": {},
           "can_create_identity_account": {},
           "can_create_idp": {},
           "can_create_mcp_server": {},
           "can_create_oauth_app": {},
           "can_create_platform_client": {},
           "can_create_plugin": {},
+          "can_create_run_in": {},
           "can_create_session": {},
           "can_create_skill": {},
           "can_create_team": {},
@@ -924,22 +924,6 @@
             "relation": "member"
           }
         },
-        "can_create_execution_in": {
-          "union": {
-            "child": [
-              {
-                "computedUserset": {
-                  "relation": "member"
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "guest"
-                }
-              }
-            ]
-          }
-        },
         "can_create_identity_account": {
           "computedUserset": {
             "relation": "admin"
@@ -968,6 +952,22 @@
         "can_create_plugin": {
           "computedUserset": {
             "relation": "admin"
+          }
+        },
+        "can_create_run_in": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "member"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "guest"
+                }
+              }
+            ]
           }
         },
         "can_create_session": {
@@ -1822,7 +1822,7 @@
           "viewer": {}
         },
         "source_info": {
-          "file": "agentic/agent_execution.fga"
+          "file": "agentic/agent_run.fga"
         }
       },
       "relations": {
@@ -1887,7 +1887,7 @@
           }
         }
       },
-      "type": "agent_execution"
+      "type": "agent_run"
     },
     {
       "metadata": {
@@ -2790,7 +2790,7 @@
       "metadata": {
         "module": "agentic",
         "relations": {
-          "can_create_execution_in": {},
+          "can_create_run_in": {},
           "can_delete": {},
           "can_edit": {},
           "can_grant_access": {},
@@ -2837,7 +2837,7 @@
         }
       },
       "relations": {
-        "can_create_execution_in": {
+        "can_create_run_in": {
           "computedUserset": {
             "relation": "viewer"
           }
@@ -3146,17 +3146,6 @@
               }
             ]
           },
-          "execution_viewer": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              },
-              {
-                "relation": "viewer",
-                "type": "organization"
-              }
-            ]
-          },
           "organization": {
             "directly_related_user_types": [
               {
@@ -3168,6 +3157,17 @@
             "directly_related_user_types": [
               {
                 "type": "identity_account"
+              }
+            ]
+          },
+          "run_viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
               }
             ]
           },
@@ -3260,25 +3260,6 @@
             ]
           }
         },
-        "execution_viewer": {
-          "intersection": {
-            "child": [
-              {
-                "this": {}
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "affiliated"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
-                }
-              }
-            ]
-          }
-        },
         "organization": {
           "this": {}
         },
@@ -3308,6 +3289,25 @@
                 "tupleToUserset": {
                   "computedUserset": {
                     "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "run_viewer": {
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
                   },
                   "tupleset": {
                     "relation": "organization"
@@ -3402,7 +3402,7 @@
           }
         },
         "source_info": {
-          "file": "agentic/workflow_execution.fga"
+          "file": "agentic/workflow_run.fga"
         }
       },
       "relations": {
@@ -3478,7 +3478,7 @@
               {
                 "tupleToUserset": {
                   "computedUserset": {
-                    "relation": "execution_viewer"
+                    "relation": "run_viewer"
                   },
                   "tupleset": {
                     "relation": "workflow"
@@ -3492,7 +3492,7 @@
           "this": {}
         }
       },
-      "type": "workflow_execution"
+      "type": "workflow_run"
     }
   ]
 }

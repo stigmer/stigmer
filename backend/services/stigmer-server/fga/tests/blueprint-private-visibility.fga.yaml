@@ -13,7 +13,7 @@
 # Read vs spend: an org viewer-role user READS org-visible blueprints (and, at
 # the model level, satisfies can_execute — run-what-you-can-read), but every
 # spend path is gated in Java on the org-level can_create_session /
-# can_create_execution_in permissions, which require member-or-guest. The
+# can_create_run_in permissions, which require member-or-guest. The
 # vera assertions pin both halves of that contract.
 #
 # The ORG tuple rides along on CHILD_ORGS (the "org floor") so a shared
@@ -270,12 +270,12 @@ tests:
         assertions:
           can_view: true
           can_create_session: false
-          can_create_execution_in: false
+          can_create_run_in: false
       - user: identity_account:dave
         object: organization:acme
         assertions:
           can_create_session: true
-          can_create_execution_in: true
+          can_create_run_in: true
 
   - name: org viewer's listable agents are exactly the viewer-shaped org-visible ones
     list_objects:

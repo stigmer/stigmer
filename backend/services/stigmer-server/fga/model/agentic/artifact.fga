@@ -3,7 +3,7 @@ module agentic
 # ========================================
 # ARTIFACT TYPE (Organization-scoped, System-created)
 # ========================================
-# Persisted blobs produced during workflow or agent execution.
+# Persisted blobs produced during workflow or agent run.
 # Created by runners (system-level RPC, authorization skipped on create).
 # Every artifact belongs to an organization, derived from its source
 # execution at creation time.

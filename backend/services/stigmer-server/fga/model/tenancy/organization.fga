@@ -130,7 +130,7 @@ type organization
     # Channel apps hold org-wide webhook + OAuth credentials — admin-gated
     # like can_create_oauth_app.
     define can_create_channel_app: admin
-    define can_create_execution_in: member or guest
+    define can_create_run_in: member or guest
     # Asked on every agent share create, beside can_manage_audience on the
     # shared agent: a share spends THIS org's credits on the open internet, an
     # admin-level act, whichever agent it offers. A share's agent lives in

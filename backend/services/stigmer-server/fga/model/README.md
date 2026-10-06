@@ -23,7 +23,7 @@ Each tier has independent but composable visibility:
 | Tier | Default Visibility | Supports Child Orgs | Inheritance |
 |------|-------------------|-------------------|-------------|
 | **Blueprint** | Org members | Yes (`child_org_viewer`) | — |
-| **Execution** | Owner only, widened by its parent | No (inherited) | Workflow: the workflow's opt-in `execution_viewer`. Agent: from session |
+| **Execution** | Owner only, widened by its parent | No (inherited) | Workflow: the workflow's opt-in `run_viewer`. Agent: from session |
 
 ## The Visibility Spectrum
 
@@ -56,14 +56,14 @@ Agent Path:     Agent → Session (personal) → AgentExecution
 Workflow Path:  Workflow → WorkflowExecution
 ```
 
-- **Agent executions** inherit from sessions. Sessions are always personal — even if the agent is org-visible, conversations remain private. Sharing a session requires explicit viewer grants. The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
-- **Workflow executions** are private to the person who started each one, and inherit the workflow's opt-in `execution_viewer`: a workflow whose run visibility is ORGANIZATION shows every run, past runs included, to the whole organization. Zero per-execution tuples needed. A workflow's own visibility never exposes its runs.
+- **Agent runs** inherit from sessions. Sessions are always personal — even if the agent is org-visible, conversations remain private. Sharing a session requires explicit viewer grants. The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
+- **Workflow runs** are private to the person who started each one, and inherit the workflow's opt-in `run_viewer`: a workflow whose run visibility is ORGANIZATION shows every run, past runs included, to the whole organization. Zero per-execution tuples needed. A workflow's own visibility never exposes its runs.
 
 This asymmetry is intentional: agents are conversational (privacy always), workflows are operational (observability is the workflow owner's opt-in).
 
 ## What the model deliberately cannot say: the runtime lanes' blueprint reads
 
-Guest, channel and schedule sessions run as per-org system accounts that hold exactly `organization#guest` (`can_create_session`, `can_create_execution_in`) and are no agent's viewer, by design: a viewer tuple for the guest account on a shared agent would let every guest token in the org read that agent's full blueprint (see `agent_share.fga`). Yet the runner serving such a session must read the session's agent. The model answers `deny`, and the hosted edition's composition refines that denial app-level: its blueprint-read admission admits a session-scoped sandbox credential to exactly its session's graph while the surface that created the session (the share, the channel, the schedule) is still serving the agent, each surface answering through a port its own domain owns. The schedule lane's port reads the `session#schedule` link this model composes for observability, so that link is load-bearing for a scheduled run. This is the read-side twin of the run-gate lane admission (`src/authorizer/lane-admission.ts`); the chain's order lives in `src/authorizer/cloud-authorizer.ts`. An assertion suite cannot pin it — it is not a tuple — so `src/authorizer/__tests__/blueprint-read-admission.openfga.test.ts` runs the composed chain against this model on a real engine instead.
+Guest, channel and schedule sessions run as per-org system accounts that hold exactly `organization#guest` (`can_create_session`, `can_create_run_in`) and are no agent's viewer, by design: a viewer tuple for the guest account on a shared agent would let every guest token in the org read that agent's full blueprint (see `agent_share.fga`). Yet the runner serving such a session must read the session's agent. The model answers `deny`, and the hosted edition's composition refines that denial app-level: its blueprint-read admission admits a session-scoped sandbox credential to exactly its session's graph while the surface that created the session (the share, the channel, the schedule) is still serving the agent, each surface answering through a port its own domain owns. The schedule lane's port reads the `session#schedule` link this model composes for observability, so that link is load-bearing for a scheduled run. This is the read-side twin of the run-gate lane admission (`src/authorizer/lane-admission.ts`); the chain's order lives in `src/authorizer/cloud-authorizer.ts`. An assertion suite cannot pin it — it is not a tuple — so `src/authorizer/__tests__/blueprint-read-admission.openfga.test.ts` runs the composed chain against this model on a real engine instead.
 
 ## Access Patterns
 
@@ -103,16 +103,16 @@ Resources: `environment`. It is personal by default and shared with the organiza
 Permissions inherited from parent resource:
 
 ```fga
-# Workflow execution inherits the workflow's opt-in run audience
-define viewer: ([identity_account, team#member] and affiliated from organization) or owner or execution_viewer from workflow
+# Workflow run inherits the workflow's opt-in run audience
+define viewer: ([identity_account, team#member] and affiliated from organization) or owner or run_viewer from workflow
 
-# Agent execution inherits from session
+# Agent run inherits from session
 define viewer: viewer from session or owner
 ```
 
-Resources: `workflow_execution`, `agent_execution`
+Resources: `workflow_run`, `agent_run`
 
-An agent execution holds nothing of its own: its one direct relation is the `session` link, every other relation is read through it, and its `can_view` answers exactly what the session's does. That is what lets a list ask about the session in the execution's place, and `src/authorization/model/__tests__/registry.test.ts` holds it for every kind whose `kind_meta` makes its authorization its parent's. A relation that would give an execution something of its own is a design change of the list read scope first. A workflow execution is not such a kind, because its opt-in `execution_viewer` is its own.
+An agent run holds nothing of its own: its one direct relation is the `session` link, every other relation is read through it, and its `can_view` answers exactly what the session's does. That is what lets a list ask about the session in the execution's place, and `src/authorization/model/__tests__/registry.test.ts` holds it for every kind whose `kind_meta` makes its authorization its parent's. A relation that would give an execution something of its own is a design change of the list read scope first. A workflow run is not such a kind, because its opt-in `run_viewer` is its own.
 
 ### Bounded by the Organization (every direct grant)
 
@@ -159,14 +159,14 @@ Permission checks reference the bottom of the hierarchy:
 - `can_edit: owner` (`owner or editor` on the blueprints an editor can be granted)
 - `can_delete: owner`
 
-Authority to spend or create comes from an explicit permission checked at the door (`can_create_execution_in` on the organization, `can_create_<kind>`), never from the accidental shape of a read tuple: a read userset that happens to imply membership must not become the thing that lets a read-only viewer spend the organization's credits.
+Authority to spend or create comes from an explicit permission checked at the door (`can_create_run_in` on the organization, `can_create_<kind>`), never from the accidental shape of a read tuple: a read userset that happens to imply membership must not become the thing that lets a read-only viewer spend the organization's credits.
 
 Platform capabilities live on `platform:stigmer`: one `operator` role, narrow roles for machine lanes that must never hold the whole platform (`credit_issuer`), and one explicit `can_*` per platform-level act. Operator access does not propagate to organizations or resources, and no resource type carries an `operator` relation; a support path is an explicit platform permission checked at the door, never an implicit owner.
 
 ## Shapes to Avoid
 
 - A relation used as a tupleset (`admin from organization` reads `organization`) must be direct: only `[type]` references, no `or`, `from` or `and`. Put a computed arm on each permission instead. OpenFGA refuses the model otherwise.
-- A tuple-to-userset (`execution_viewer from workflow`) works only if the parent type defines that relation; read the parent's file first.
+- A tuple-to-userset (`run_viewer from workflow`) works only if the parent type defines that relation; read the parent's file first.
 - A mid-chain role in a read grant is wrong, and no type admits one: `resource#viewer@organization:acme#member` would exclude every viewer-role user, and single sign-on provisions the viewer role by default. A read grant names the widest audience, `organization#viewer`.
 - A new file must be listed in `fga.mod`, in dependency order; the generator refuses a `.fga` file that `fga.mod` does not list.
 - A suite holds `check` and `list_objects` assertions only: the built-in evaluator's kit refuses any other key (`list_users` included), and an assertion it cannot run would be proven on one engine only.
@@ -221,22 +221,22 @@ Both edges are written once, when the child is created; a child has no `owner` t
 workflow:support-triage#organization@organization:acme
 workflow:support-triage#owner@identity_account:alice
 workflow:support-triage#viewer@organization:acme#viewer            ← ORG visibility
-workflow:support-triage#execution_viewer@organization:acme#viewer  ← ORG run visibility
+workflow:support-triage#run_viewer@organization:acme#viewer  ← ORG run visibility
 ```
 
 ### Execution (Inherits the Workflow's Run Visibility)
 
 ```
-workflow_execution:ticket-4567#organization@organization:acme
-workflow_execution:ticket-4567#workflow@workflow:support-triage
-workflow_execution:ticket-4567#owner@identity_account:support-agent-1
+workflow_run:ticket-4567#organization@organization:acme
+workflow_run:ticket-4567#workflow@workflow:support-triage
+workflow_run:ticket-4567#owner@identity_account:support-agent-1
 ```
 
 Everyone in the Acme org can view — IF the workflow opted into org run
-observability (`execution_viewer@organization:acme#viewer`; workflow
+observability (`run_viewer@organization:acme#viewer`; workflow
 visibility alone never exposes run history):
 ```
-can_view → viewer → execution_viewer from workflow → organization:acme#viewer
+can_view → viewer → run_viewer from workflow → organization:acme#viewer
 ```
 
 ### Session (Personal)
@@ -299,7 +299,7 @@ fga/
 │       ├── agent_channel.fga       # An agent's distribution channels (owner-scoped)
 │       ├── agent_share.fga         # An agent's shared pages (owner-scoped)
 │       ├── channel_app.fga         # Bring-your-own channel provider apps (restricted)
-│       ├── agent_execution.fga     # Agent runs (inherits from session)
+│       ├── agent_run.fga     # Agent runs (inherits from session)
 │       ├── artifact.fga            # Files a run produces (org and owner)
 │       ├── environment.fga         # Config and secrets (personal, shareable with the org)
 │       ├── execution_context.fga   # Ephemeral runtime contexts (owner-only)
@@ -310,7 +310,7 @@ fga/
 │       ├── session.fga             # Conversations (personal)
 │       ├── skill.fga               # Knowledge bases (open access)
 │       ├── workflow.fga            # Workflow blueprints (open access)
-│       └── workflow_execution.fga  # Workflow runs (private; the workflow's opt-in run visibility)
+│       └── workflow_run.fga  # Workflow runs (private; the workflow's opt-in run visibility)
 └── tests/                          # The suites: `fga model test` documents, one per behaviour
 ```
 
