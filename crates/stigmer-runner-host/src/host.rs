@@ -613,8 +613,17 @@ mod tests {
 
     #[test]
     fn ready_with_current_version_is_accepted() {
-        let version = negotiate_ready(r#"{"type":"ready","protocolVersion":1}"#).unwrap();
+        let version = negotiate_ready(r#"{"type":"ready","protocolVersion":2}"#).unwrap();
         assert_eq!(version, IPC_PROTOCOL_VERSION);
+    }
+
+    #[test]
+    fn older_runner_is_accepted() {
+        let version = negotiate_ready(r#"{"type":"ready","protocolVersion":1}"#).unwrap();
+        assert_eq!(
+            version, 1,
+            "a runner older than the host speaks a subset the host understands"
+        );
     }
 
     #[test]
@@ -626,11 +635,11 @@ mod tests {
     #[test]
     fn newer_runner_is_rejected_as_mismatch() {
         // This is the negotiation guard: removing it would let a newer runner through.
-        let err = negotiate_ready(r#"{"type":"ready","protocolVersion":2}"#).unwrap_err();
+        let err = negotiate_ready(r#"{"type":"ready","protocolVersion":3}"#).unwrap_err();
         match err {
             RunnerHostError::ProtocolVersionMismatch { host, runner } => {
                 assert_eq!(host, IPC_PROTOCOL_VERSION);
-                assert_eq!(runner, 2);
+                assert_eq!(runner, 3);
             }
             other => panic!("expected ProtocolVersionMismatch, got {other:?}"),
         }

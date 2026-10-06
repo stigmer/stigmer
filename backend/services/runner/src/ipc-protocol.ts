@@ -10,7 +10,7 @@
 // breaking change (removed/renamed message, changed field type, changed lifecycle
 // guarantee) — additive fields never bump it. Hosts read this to decide compatibility;
 // the runner never reads a version from the host (one-way advertisement).
-export const IPC_PROTOCOL_VERSION = 1;
+export const IPC_PROTOCOL_VERSION = 2;
 
 // ─── Commands (host → runner) ───────────────────────────────────────────────
 

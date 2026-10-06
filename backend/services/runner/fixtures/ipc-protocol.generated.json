@@ -1,5 +1,5 @@
 {
-  "ipcProtocolVersion": 1,
+  "ipcProtocolVersion": 2,
   "commands": {
     "addSession": {
       "type": "addSession",
@@ -24,7 +24,7 @@
   "responses": {
     "ready": {
       "type": "ready",
-      "protocolVersion": 1
+      "protocolVersion": 2
     },
     "readyLegacy": {
       "type": "ready"

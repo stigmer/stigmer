@@ -49,10 +49,11 @@ Framing rules:
 The runner advertises a protocol version in its [`ready`](#ready) message:
 
 ```json
-{ "type": "ready", "protocolVersion": 1 }
+{ "type": "ready", "protocolVersion": 2 }
 ```
 
-- `protocolVersion` is an **integer**. The current version is `1`.
+- `protocolVersion` is an **integer**. The current version is `2`; version 2
+  removed the workflow execution commands and their responses.
 - The number increments **only on a breaking change** — a removed or renamed
   message, a changed field type, or a changed lifecycle guarantee. Adding a new
   optional field or a new message type does **not** bump it, because those
@@ -87,7 +88,7 @@ sequenceDiagram
     Runner->>Host: {"type":"error","message":"...","fatal":true}
     Runner-->>Host: exit(1)
   else initialization succeeds
-    Runner->>Host: {"type":"ready","protocolVersion":1}
+    Runner->>Host: {"type":"ready","protocolVersion":2}
   end
   loop while stdin is open
     Host->>Runner: command (one JSON object per line)
@@ -196,7 +197,7 @@ The runner replies with [`shutdownComplete`](#shutdowncomplete) and then exits.
 Sent once at startup, after the manager is initialized.
 
 ```json
-{ "type": "ready", "protocolVersion": 1 }
+{ "type": "ready", "protocolVersion": 2 }
 ```
 
 | Field             | Type    | Description                                                                        |

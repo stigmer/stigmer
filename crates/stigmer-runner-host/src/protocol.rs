@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 /// renamed message, changed field type, changed lifecycle guarantee); additive fields never
 /// bump it. Hosts compare this against the runner's advertised version to decide
 /// compatibility — see [`crate::host`] negotiation.
-pub const IPC_PROTOCOL_VERSION: u32 = 1;
+pub const IPC_PROTOCOL_VERSION: u32 = 2;
 
 /// Commands the host writes to the runner's stdin (newline-delimited JSON).
 #[derive(Debug, Serialize)]
@@ -112,9 +112,9 @@ mod tests {
     }
 
     #[test]
-    fn protocol_version_is_one() {
+    fn protocol_version_is_two() {
         assert_eq!(
-            IPC_PROTOCOL_VERSION, 1,
+            IPC_PROTOCOL_VERSION, 2,
             "bump only on a breaking IPC change"
         );
     }
@@ -181,7 +181,7 @@ mod tests {
         assert!(matches!(
             from("ready"),
             IpcResponse::Ready {
-                protocol_version: Some(1)
+                protocol_version: Some(2)
             }
         ));
         assert!(matches!(

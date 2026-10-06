@@ -9,7 +9,7 @@ import { IPC_PROTOCOL_VERSION, buildReadyMessage } from "../ipc-protocol.js";
  */
 describe("ipc-protocol ready handshake", () => {
   it("advertises an integer protocol version", () => {
-    expect(IPC_PROTOCOL_VERSION).toBe(1);
+    expect(IPC_PROTOCOL_VERSION).toBe(2);
     expect(Number.isInteger(IPC_PROTOCOL_VERSION)).toBe(true);
   });
 
