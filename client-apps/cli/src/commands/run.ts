@@ -28,9 +28,13 @@ interface RunFlags extends AgentExecOptions {
 }
 
 export function registerRun(program: Command): void {
+  // One argument: the agent. A second is refused rather than ignored, so the
+  // old `run <type> <reference>` form fails loudly instead of resolving an
+  // agent named by its first word.
   const run = program
     .command("run [agent]")
-    .description("run an agent by reference");
+    .description("run an agent by reference")
+    .allowExcessArguments(false);
   addAgentExecFlags(run)
     .option("--json", "stream events as newline-delimited JSON")
     .option("--download <dir>", "download artifacts to directory when complete")

@@ -61,13 +61,23 @@ export function useRecentActivity(
     () =>
       stigmer.activity
         .listRecentActivity({ pageSize, org })
-        .then((resp) => resp.entries.map(normalizeRecentActivityEntry)),
+        .then((resp) =>
+          resp.entries.filter(isSessionEntry).map(normalizeRecentActivityEntry),
+        ),
     [stigmer, pageSize, org],
     [] as RecentActivityEntry[],
     { cacheKey: `recent-activity:${org}` },
   );
 
   return { entries: data, isLoading, error, refetch };
+}
+
+/**
+ * Recents are sessions: the sidebar opens every entry at `/sessions/<id>`,
+ * so an entry the server reports under any other type is not shown.
+ */
+function isSessionEntry(entry: ProtoEntry): boolean {
+  return entry.type === "session";
 }
 
 /**

@@ -1,9 +1,11 @@
 /**
  * Pins the recents hook's one request and its projection: it asks the
  * activity RPC for the active organization's most recent sessions with the
- * page size it was given (30 by default) and returns the entries in the
- * server's order, each normalized (an empty subject reads "Untitled
- * session"). The client and the active organization are stubbed.
+ * page size it was given (30 by default) and returns the session entries in
+ * the server's order, each normalized (an empty subject reads "Untitled
+ * session"); an entry of any other type is left out, since the sidebar
+ * opens every entry as a session. The client and the active organization
+ * are stubbed.
  */
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -35,16 +37,18 @@ function clientWith(listRecentActivity: ReturnType<typeof vi.fn>) {
 }
 
 describe("useRecentActivity", () => {
-  it("asks for the active organization's sessions and normalizes each entry", async () => {
+  it("asks for the active organization's sessions and keeps only session entries, normalized", async () => {
     const listRecentActivity = vi.fn().mockResolvedValue(
       create(ListRecentActivityResponseSchema, {
         entries: [
           create(RecentActivityEntrySchema, {
             id: "ses_1",
+            type: "session",
             subject: "Triage the inbox",
             updatedAt: timestampFromDate(UPDATED),
           }),
-          create(RecentActivityEntrySchema, { id: "ses_2", subject: "" }),
+          create(RecentActivityEntrySchema, { id: "wex_1", type: "workflow_run", subject: "Nightly" }),
+          create(RecentActivityEntrySchema, { id: "ses_2", type: "session", subject: "" }),
         ],
       }),
     );
