@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/cli",
   "version": "0.0.0-dev",
-  "description": "Stigmer command-line interface — manage agents, workflows, MCP servers, skills, and executions from the terminal",
+  "description": "Stigmer command-line interface — manage agents, workflows, MCP servers, skills, and runs from the terminal",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {

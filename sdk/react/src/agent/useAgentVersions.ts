@@ -144,7 +144,7 @@ const SHORT_HASH_LENGTH = 12;
  * @example
  * ```tsx
  * const { versions } = useAgentVersions(org, slug);
- * agentVersionLabel(versions, execution.status?.agentVersionHash ?? ""); // "v2" or "3f2a9c1e0b7d"
+ * agentVersionLabel(versions, run.status?.agentVersionHash ?? ""); // "v2" or "3f2a9c1e0b7d"
  * ```
  */
 export function agentVersionLabel(

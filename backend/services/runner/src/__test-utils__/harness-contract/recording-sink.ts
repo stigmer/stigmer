@@ -18,7 +18,7 @@
  * back, so nothing survives between turns by object identity.
  */
 
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 
 import { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { TurnSink, UsageDelta } from "../../harness/types.js";
@@ -41,7 +41,7 @@ export interface RecordingTurnSinkOptions {
    * reinvocation's clone arrives already carrying last turn's rows, and the
    * builder indexes them as the runtime's would after its seed.
    */
-  readonly status?: AgentExecutionStatus;
+  readonly status?: AgentRunStatus;
   /** The execution the builder names in its log lines; the kit's driver passes its own. */
   readonly executionId?: string;
   /** When set, `bindHarnessState` rejects with this error (a failed session write). */
@@ -49,7 +49,7 @@ export interface RecordingTurnSinkOptions {
 }
 
 export class RecordingTurnSink implements TurnSink {
-  readonly status: AgentExecutionStatus;
+  readonly status: AgentRunStatus;
   /** The one builder over `status`, as the runtime hands every adapter; the fake creates its rows through it. */
   readonly transcript: TranscriptBuilder;
   readonly stopSignal: AbortSignal;

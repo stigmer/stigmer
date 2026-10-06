@@ -27,8 +27,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -128,11 +128,11 @@ describe("ExecuteCursor hermetic — poisoned-handle recovery on a fresh agent",
     // ── Assert: outcome ──────────────────────────────────────────────────────
     expect(invocation.outcome.kind, "a recovered turn RETURNS like any completion").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     expect(slim.final_text).toBe(FINAL_TEXT);
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_COMPLETED,
     ]);
 
     // ── Assert: the recovery spine ───────────────────────────────────────────
@@ -153,7 +153,7 @@ describe("ExecuteCursor hermetic — poisoned-handle recovery on a fresh agent",
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, record.lastFullStatus!), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/recovery-fresh-agent.status.json");
   });
 });

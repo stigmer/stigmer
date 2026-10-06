@@ -10,7 +10,7 @@
  * wall clock), and one fixed deflate level.
  *
  * fflate is the server's chosen dependency for ZIP work (see
- * domain/agentexecution/artifacts.ts); this module is its one write site.
+ * domain/agentrun/artifacts.ts); this module is its one write site.
  *
  * Proven by __tests__/write.test.ts: two writes of the same files are
  * byte-equal, entry order does not matter, and the result round-trips

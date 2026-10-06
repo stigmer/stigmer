@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/v1/credit.proto.
  */
 export const file_ai_stigmer_billing_v1_credit: GenFile = /*@__PURE__*/
-  fileDesc("CiJhaS9zdGlnbWVyL2JpbGxpbmcvdjEvY3JlZGl0LnByb3RvEhVhaS5zdGlnbWVyLmJpbGxpbmcudjEi3AIKEUNyZWRpdExlZGdlckVudHJ5EhAKCGVudHJ5X2lkGAEgASgJEgsKA29yZxgCIAEoCRI0CgR0eXBlGAMgASgOMiYuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkxlZGdlckVudHJ5VHlwZRIVCg1hbW91bnRfbWljcm9zGAQgASgDEhwKFGJhbGFuY2VfYWZ0ZXJfbWljcm9zGAUgASgDEhcKD2lkZW1wb3RlbmN5X2tleRgGIAEoCRI5CgZyYXRpbmcYByABKAsyKS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQmlsbGluZ1VzYWdlUmF0aW5nEjkKBnNvdXJjZRgIIAEoCzIpLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRMZWRnZXJTb3VyY2USLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAi6QEKEkNyZWRpdExlZGdlclNvdXJjZRIUCgxleGVjdXRpb25faWQYASABKAkSEgoKc2Vzc2lvbl9pZBgCIAEoCRIQCghhZ2VudF9pZBgDIAEoCRIZChFsbG1fY2FsbF9zZXF1ZW5jZRgEIAEoBRITCgtsbG1fY2FsbF9pZBgKIAEoCRITCgtwdXJjaGFzZV9pZBgFIAEoCRIQCghncmFudF9pZBgGIAEoCRIWCg5yZXNlcnZhdGlvbl9pZBgHIAEoCRITCgthZGp1c3RlZF9ieRgIIAEoCRITCgtkZXNjcmlwdGlvbhgJIAEoCSKVAgoLQ3JlZGl0R3JhbnQSEAoIZ3JhbnRfaWQYASABKAkSCwoDb3JnGAIgASgJEjQKBGtpbmQYAyABKA4yJi5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlZGl0R3JhbnRLaW5kEh4KFm9yaWdpbmFsX2Ftb3VudF9taWNyb3MYBCABKAMSHwoXcmVtYWluaW5nX2Ftb3VudF9taWNyb3MYBSABKAMSLgoKZXhwaXJlc19hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIcHJpb3JpdHkYByABKAUSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAicQoKQ3JlZGl0UGFjaxIPCgdwYWNrX2lkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIUCgxwcmljZV9taWNyb3MYAyABKAMSFgoOY3JlZGl0c19taWNyb3MYBCABKAMSDgoGYWN0aXZlGAUgASgIIp0CChRFeGVjdXRpb25SZXNlcnZhdGlvbhIWCg5yZXNlcnZhdGlvbl9pZBgBIAEoCRILCgNvcmcYAiABKAkSFAoMZXhlY3V0aW9uX2lkGAMgASgJEhcKD3Jlc2VydmVkX21pY3JvcxgEIAEoAxIXCg9jb25zdW1lZF9taWNyb3MYBSABKAMSOAoGc3RhdHVzGAYgASgOMiguYWkuc3RpZ21lci5iaWxsaW5nLnYxLlJlc2VydmF0aW9uU3RhdHVzEi4KCmNyZWF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIvACCg5DcmVkaXRQdXJjaGFzZRITCgtwdXJjaGFzZV9pZBgBIAEoCRILCgNvcmcYAiABKAkSDwoHcGFja19pZBgDIAEoCRIaChJhbW91bnRfcGFpZF9taWNyb3MYBCABKAMSHgoWY3JlZGl0c19ncmFudGVkX21pY3JvcxgFIAEoAxI7CgZzdGF0dXMYBiABKA4yKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlZGl0UHVyY2hhc2VTdGF0dXMSGgoSc3RyaXBlX2N1c3RvbWVyX2lkGAcgASgJEhsKE2NoZWNrb3V0X3Nlc3Npb25faWQYCCABKAkSGQoRcGF5bWVudF9pbnRlbnRfaWQYCSABKAkSLgoKY3JlYXRlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAi6wIKEUF1dG9SZWNoYXJnZUV2ZW50EhAKCGV2ZW50X2lkGAEgASgJEgsKA29yZxgCIAEoCRIVCg1hbW91bnRfbWljcm9zGAMgASgDEhYKDmNyZWRpdHNfbWljcm9zGAQgASgDEhkKEXBheW1lbnRfaW50ZW50X2lkGAUgASgJEj4KBnN0YXR1cxgGIAEoDjIuLmFpLnN0aWdtZXIuYmlsbGluZy52MS5BdXRvUmVjaGFyZ2VFdmVudFN0YXR1cxIWCg5mYWlsdXJlX3JlYXNvbhgHIAEoCRIXCg9pZGVtcG90ZW5jeV9rZXkYCCABKAkSGgoSc3RyaXBlX2N1c3RvbWVyX2lkGAkgASgJEi4KCmNyZWF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGNvbXBsZXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBiBnByb3RvMw", [file_ai_stigmer_billing_v1_enum, file_ai_stigmer_billing_v1_policy, file_google_protobuf_timestamp]);
+  fileDesc("CiJhaS9zdGlnbWVyL2JpbGxpbmcvdjEvY3JlZGl0LnByb3RvEhVhaS5zdGlnbWVyLmJpbGxpbmcudjEi3AIKEUNyZWRpdExlZGdlckVudHJ5EhAKCGVudHJ5X2lkGAEgASgJEgsKA29yZxgCIAEoCRI0CgR0eXBlGAMgASgOMiYuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkxlZGdlckVudHJ5VHlwZRIVCg1hbW91bnRfbWljcm9zGAQgASgDEhwKFGJhbGFuY2VfYWZ0ZXJfbWljcm9zGAUgASgDEhcKD2lkZW1wb3RlbmN5X2tleRgGIAEoCRI5CgZyYXRpbmcYByABKAsyKS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQmlsbGluZ1VzYWdlUmF0aW5nEjkKBnNvdXJjZRgIIAEoCzIpLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRMZWRnZXJTb3VyY2USLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAi4wEKEkNyZWRpdExlZGdlclNvdXJjZRIOCgZydW5faWQYASABKAkSEgoKc2Vzc2lvbl9pZBgCIAEoCRIQCghhZ2VudF9pZBgDIAEoCRIZChFsbG1fY2FsbF9zZXF1ZW5jZRgEIAEoBRITCgtsbG1fY2FsbF9pZBgKIAEoCRITCgtwdXJjaGFzZV9pZBgFIAEoCRIQCghncmFudF9pZBgGIAEoCRIWCg5yZXNlcnZhdGlvbl9pZBgHIAEoCRITCgthZGp1c3RlZF9ieRgIIAEoCRITCgtkZXNjcmlwdGlvbhgJIAEoCSKVAgoLQ3JlZGl0R3JhbnQSEAoIZ3JhbnRfaWQYASABKAkSCwoDb3JnGAIgASgJEjQKBGtpbmQYAyABKA4yJi5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlZGl0R3JhbnRLaW5kEh4KFm9yaWdpbmFsX2Ftb3VudF9taWNyb3MYBCABKAMSHwoXcmVtYWluaW5nX2Ftb3VudF9taWNyb3MYBSABKAMSLgoKZXhwaXJlc19hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIcHJpb3JpdHkYByABKAUSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAicQoKQ3JlZGl0UGFjaxIPCgdwYWNrX2lkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIUCgxwcmljZV9taWNyb3MYAyABKAMSFgoOY3JlZGl0c19taWNyb3MYBCABKAMSDgoGYWN0aXZlGAUgASgIIpECCg5SdW5SZXNlcnZhdGlvbhIWCg5yZXNlcnZhdGlvbl9pZBgBIAEoCRILCgNvcmcYAiABKAkSDgoGcnVuX2lkGAMgASgJEhcKD3Jlc2VydmVkX21pY3JvcxgEIAEoAxIXCg9jb25zdW1lZF9taWNyb3MYBSABKAMSOAoGc3RhdHVzGAYgASgOMiguYWkuc3RpZ21lci5iaWxsaW5nLnYxLlJlc2VydmF0aW9uU3RhdHVzEi4KCmNyZWF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIvACCg5DcmVkaXRQdXJjaGFzZRITCgtwdXJjaGFzZV9pZBgBIAEoCRILCgNvcmcYAiABKAkSDwoHcGFja19pZBgDIAEoCRIaChJhbW91bnRfcGFpZF9taWNyb3MYBCABKAMSHgoWY3JlZGl0c19ncmFudGVkX21pY3JvcxgFIAEoAxI7CgZzdGF0dXMYBiABKA4yKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlZGl0UHVyY2hhc2VTdGF0dXMSGgoSc3RyaXBlX2N1c3RvbWVyX2lkGAcgASgJEhsKE2NoZWNrb3V0X3Nlc3Npb25faWQYCCABKAkSGQoRcGF5bWVudF9pbnRlbnRfaWQYCSABKAkSLgoKY3JlYXRlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAi6wIKEUF1dG9SZWNoYXJnZUV2ZW50EhAKCGV2ZW50X2lkGAEgASgJEgsKA29yZxgCIAEoCRIVCg1hbW91bnRfbWljcm9zGAMgASgDEhYKDmNyZWRpdHNfbWljcm9zGAQgASgDEhkKEXBheW1lbnRfaW50ZW50X2lkGAUgASgJEj4KBnN0YXR1cxgGIAEoDjIuLmFpLnN0aWdtZXIuYmlsbGluZy52MS5BdXRvUmVjaGFyZ2VFdmVudFN0YXR1cxIWCg5mYWlsdXJlX3JlYXNvbhgHIAEoCRIXCg9pZGVtcG90ZW5jeV9rZXkYCCABKAkSGgoSc3RyaXBlX2N1c3RvbWVyX2lkGAkgASgJEi4KCmNyZWF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGNvbXBsZXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBiBnByb3RvMw", [file_ai_stigmer_billing_v1_enum, file_ai_stigmer_billing_v1_policy, file_google_protobuf_timestamp]);
 
 /**
  * CreditLedgerEntry is an immutable, append-only record of a balance-affecting event.
@@ -104,23 +104,23 @@ export const CreditLedgerEntrySchema: GenMessage<CreditLedgerEntry> = /*@__PURE_
  * and drill-down purposes.
  *
  * Fields are populated based on the entry type:
- * - usage_debit: execution_id, session_id, agent_id, llm_call_sequence, llm_call_id
+ * - usage_debit: run_id, session_id, agent_id, llm_call_sequence, llm_call_id
  * - purchase_credit / auto_recharge_credit: purchase_id
  * - adjustment_credit / adjustment_debit: adjusted_by, description
- * - reservation_hold / reservation_release: execution_id, reservation_id
+ * - reservation_hold / reservation_release: run_id, reservation_id
  *
  * @generated from message ai.stigmer.billing.v1.CreditLedgerSource
  */
 export type CreditLedgerSource = Message<"ai.stigmer.billing.v1.CreditLedgerSource"> & {
   /**
-   * Agent execution that generated this debit.
+   * Agent run that generated this debit.
    *
-   * @generated from field: string execution_id = 1;
+   * @generated from field: string run_id = 1;
    */
-  executionId: string;
+  runId: string;
 
   /**
-   * Session containing the execution.
+   * Session containing the run.
    *
    * @generated from field: string session_id = 2;
    */
@@ -134,10 +134,10 @@ export type CreditLedgerSource = Message<"ai.stigmer.billing.v1.CreditLedgerSour
   agentId: string;
 
   /**
-   * Sequence number of the LLM call within the execution (1-based), as the
+   * Sequence number of the LLM call within the run (1-based), as the
    * reporting proxy counted it. Display and ordering; the locator of the
    * debited usage record is llm_call_id, because a proxy restart makes two
-   * calls of one execution share a sequence.
+   * calls of one run share a sequence.
    *
    * @generated from field: int32 llm_call_sequence = 4;
    */
@@ -147,7 +147,7 @@ export type CreditLedgerSource = Message<"ai.stigmer.billing.v1.CreditLedgerSour
    * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
    * drill-down from this debit to the exact record it paid for. Empty for
    * debits of records whose reporter sent no call id (they are located by
-   * execution_id + llm_call_sequence, as before).
+   * run_id + llm_call_sequence, as before).
    *
    * @generated from field: string llm_call_id = 10;
    */
@@ -324,15 +324,15 @@ export const CreditPackSchema: GenMessage<CreditPack> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_billing_v1_credit, 3);
 
 /**
- * ExecutionReservation tracks credits held for an active agent execution.
+ * RunReservation tracks credits held for an active agent run.
  *
- * Created at execution start (AuthorizeExecution), consumed incrementally
+ * Created at run start (AuthorizeRun), consumed incrementally
  * by per-LLM-call debits (via proxy-observed usage metering), and settled
- * at execution end (FinalizeExecution) to release any unused hold.
+ * at run end (FinalizeRun) to release any unused hold.
  *
- * @generated from message ai.stigmer.billing.v1.ExecutionReservation
+ * @generated from message ai.stigmer.billing.v1.RunReservation
  */
-export type ExecutionReservation = Message<"ai.stigmer.billing.v1.ExecutionReservation"> & {
+export type RunReservation = Message<"ai.stigmer.billing.v1.RunReservation"> & {
   /**
    * Unique identifier for this reservation.
    *
@@ -348,14 +348,14 @@ export type ExecutionReservation = Message<"ai.stigmer.billing.v1.ExecutionReser
   org: string;
 
   /**
-   * Agent execution this reservation is for.
+   * Agent run this reservation is for.
    *
-   * @generated from field: string execution_id = 3;
+   * @generated from field: string run_id = 3;
    */
-  executionId: string;
+  runId: string;
 
   /**
-   * Total micro-USD reserved at execution start.
+   * Total micro-USD reserved at run start.
    *
    * @generated from field: int64 reserved_micros = 4;
    */
@@ -389,10 +389,10 @@ export type ExecutionReservation = Message<"ai.stigmer.billing.v1.ExecutionReser
 };
 
 /**
- * Describes the message ai.stigmer.billing.v1.ExecutionReservation.
- * Use `create(ExecutionReservationSchema)` to create a new message.
+ * Describes the message ai.stigmer.billing.v1.RunReservation.
+ * Use `create(RunReservationSchema)` to create a new message.
  */
-export const ExecutionReservationSchema: GenMessage<ExecutionReservation> = /*@__PURE__*/
+export const RunReservationSchema: GenMessage<RunReservation> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_billing_v1_credit, 4);
 
 /**

@@ -6,14 +6,14 @@ import {
   FileChangeProgressSchema,
   FileChangeProgressEntrySchema,
   FileChangeSetSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   DiffCompleteness,
   FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 // ---------------------------------------------------------------------------
 // Wiring-contract tests for the file-review surfaces on SessionViewer:
@@ -26,7 +26,7 @@ import {
 type CapturedProps = Record<string, unknown>;
 
 const threadProps: CapturedProps[] = [];
-vi.mock("../../execution/MessageThread", () => ({
+vi.mock("../../run/MessageThread", () => ({
   MessageThread: (props: CapturedProps) => {
     threadProps.push(props);
     return <div data-testid="thread-probe" />;
@@ -102,8 +102,8 @@ const stubConv = {
   session: { spec: {} },
   isLoading: false,
   loadError: null,
-  completedExecutions: [],
-  activeStreamExecution: null,
+  completedRuns: [],
+  activeStreamRun: null,
   activePhase: null,
   isStreaming: false,
   isConnecting: false,
@@ -160,8 +160,8 @@ const stubSessionPageFlow = {
   submitApproval: vi.fn(),
   handleSubmit: vi.fn(),
   submitError: null as Error | null,
-  displayExecution: null,
-  allExecutions: [],
+  displayRun: null,
+  allRuns: [],
   sandboxWorkspaceRoot: undefined,
 };
 vi.mock("../useSessionPageFlow", () => ({
@@ -170,7 +170,7 @@ vi.mock("../useSessionPageFlow", () => ({
 
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
-    agentExecution: {
+    agentRun: {
       uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
     },

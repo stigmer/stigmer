@@ -15,12 +15,12 @@
 // Pure: hand-built resources, no target.
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { describe, expect, it } from "vitest";
 import { makeSlackAgentChannel } from "../agentchannels";
-import { makeAgentExecution, sessionIdOf } from "../agentexecutions";
+import { makeAgentExecution, sessionIdOf } from "../agentruns";
 import { agentRefOf, makeAgentRef } from "../agents";
 import { makeAgentShare } from "../agentshares";
 import { makeSessionSpec } from "../sessions";
@@ -121,21 +121,21 @@ describe("makeAgentExecution's target", () => {
     const execution = makeAgentExecution({
       ...base,
       labels: { "stigmer.ai/lineage": "wfx_unit" },
-      parent: { workflowExecutionId: "wfx_unit" },
+      parent: { workflowRunId: "wfx_unit" },
     });
     expect(execution.metadata?.labels).toEqual({ "stigmer.ai/lineage": "wfx_unit" });
-    expect(execution.spec?.parent).toEqual({ workflowExecutionId: "wfx_unit" });
+    expect(execution.spec?.parent).toEqual({ workflowRunId: "wfx_unit" });
     expect(makeAgentExecution(base).metadata).not.toHaveProperty("labels");
   });
 });
 
 describe("sessionIdOf", () => {
   it("reads the session a stored turn belongs to through the session_id arm alone", () => {
-    expect(sessionIdOf(create(AgentExecutionSchema, { spec: { target: { case: "sessionId", value: "ses_unit" } } }))).toBe(
+    expect(sessionIdOf(create(AgentRunSchema, { spec: { target: { case: "sessionId", value: "ses_unit" } } }))).toBe(
       "ses_unit",
     );
-    expect(sessionIdOf(create(AgentExecutionSchema, { spec: { target: { case: "sessionSpec", value: {} } } }))).toBe("");
-    expect(sessionIdOf(create(AgentExecutionSchema, {}))).toBe("");
+    expect(sessionIdOf(create(AgentRunSchema, { spec: { target: { case: "sessionSpec", value: {} } } }))).toBe("");
+    expect(sessionIdOf(create(AgentRunSchema, {}))).toBe("");
     expect(sessionIdOf(undefined)).toBe("");
   });
 });

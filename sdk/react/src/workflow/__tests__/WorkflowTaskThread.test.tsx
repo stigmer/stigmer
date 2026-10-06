@@ -5,7 +5,7 @@
 // in-thread HITL section (the in-card human_input review gate).
 //
 // GUARDRAIL: the entire file renders WITHOUT a StigmerProvider.
-// Any component reaching for a client hook (the child's agentExecution.*
+// Any component reaching for a client hook (the child's agentRun.*
 // submit path) would throw — so a passing render plus the hitl spies
 // receiving decisions proves in-card gates route through the WORKFLOW-level
 // wiring only. (WorkflowAgentCallTranscript streams its child itself and
@@ -19,12 +19,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
   ApprovalRequestedPayloadSchema,
   ApprovalResolvedPayloadSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { DerivedTaskState } from "../../internal/store/workflow-run-event-store";
 import type { WorkflowAgentCallTranscriptProps } from "../WorkflowAgentCallTranscript";
 import { formatMetaChips } from "../format-utils";
 import { WorkflowTaskThread, type WorkflowThreadHitl } from "../thread/WorkflowTaskThread";
@@ -36,23 +36,23 @@ import { WorkflowTaskThread, type WorkflowThreadHitl } from "../thread/WorkflowT
 vi.mock("../WorkflowAgentCallTranscript", () => ({
   WorkflowAgentCallTranscript: vi.fn(
     ({
-      childExecutionId,
+      childRunId,
       agentSlug,
       hitl,
-      onNavigateToAgentExecution,
+      onNavigateToAgentRun,
     }: WorkflowAgentCallTranscriptProps) => (
       <div
         data-testid="agent-call-transcript-probe"
-        data-child-id={childExecutionId}
+        data-child-id={childRunId}
         data-agent-slug={agentSlug ?? ""}
         data-interactive={hitl ? "true" : "false"}
       >
-        {onNavigateToAgentExecution && (
+        {onNavigateToAgentRun && (
           <button
             type="button"
-            onClick={() => onNavigateToAgentExecution(childExecutionId)}
+            onClick={() => onNavigateToAgentRun(childRunId)}
           >
-            probe-pop-out-{childExecutionId}
+            probe-pop-out-{childRunId}
           </button>
         )}
       </div>
@@ -99,7 +99,7 @@ function taskState(overrides: Partial<DerivedTaskState> & { taskName: string }):
     tokensUsed: 0n,
     attemptNumber: 1,
     error: "",
-    childExecutionId: "",
+    childRunId: "",
     agentSlug: "",
     currentToolName: "",
     messagesCount: 0,
@@ -155,7 +155,7 @@ describe("WorkflowTaskThread", () => {
       />,
     );
     expect(
-      screen.getByText("No task activity was recorded for this execution."),
+      screen.getByText("No task activity was recorded for this run."),
     ).toBeTruthy();
   });
 
@@ -273,7 +273,7 @@ describe("WorkflowTaskThread", () => {
   });
 
   it("renders the child's inline transcript as an AGENT_CALL card's body — no button, no I/O summary", () => {
-    const onNavigateToAgentExecution = vi.fn();
+    const onNavigateToAgentRun = vi.fn();
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -282,14 +282,14 @@ describe("WorkflowTaskThread", () => {
             taskKind: WorkflowTaskKind.agent_call,
             status: "completed",
             agentSlug: "blog-writer",
-            childExecutionId: "aex_child_1",
+            childRunId: "aex_child_1",
             costMicros: 120_000n,
             tokensUsed: 4_200n,
           }),
         )}
         totalTasks={1}
         isRunning={false}
-        onNavigateToAgentExecution={onNavigateToAgentExecution}
+        onNavigateToAgentRun={onNavigateToAgentRun}
         taskSnapshotsByName={
           new Map([
             [
@@ -298,7 +298,7 @@ describe("WorkflowTaskThread", () => {
                 taskName: "call-writer",
                 // The old summary body's source — must NOT render:
                 // the transcript IS the body.
-                output: { agent_execution_id: "aex_child_1", final_text: "done" },
+                output: { agent_run_id: "aex_child_1", final_text: "done" },
                 artifactIds: [],
               } as unknown as WorkflowTask,
             ],
@@ -320,7 +320,7 @@ describe("WorkflowTaskThread", () => {
 
     // The deep-dive pop-out routes through the host's navigation.
     fireEvent.click(screen.getByText("probe-pop-out-aex_child_1"));
-    expect(onNavigateToAgentExecution).toHaveBeenCalledWith("aex_child_1");
+    expect(onNavigateToAgentRun).toHaveBeenCalledWith("aex_child_1");
   });
 
   it("falls back to the generic error body for an AGENT_CALL that failed before spawning a child", () => {
@@ -331,7 +331,7 @@ describe("WorkflowTaskThread", () => {
             taskName: "call-broken",
             taskKind: WorkflowTaskKind.agent_call,
             status: "failed",
-            childExecutionId: "", // never spawned — agent resolution failed
+            childRunId: "", // never spawned — agent resolution failed
             error: "agent not found: org/missing-agent\nresolution trace",
           }),
         )}
@@ -693,14 +693,14 @@ function makeHitl(overrides: Partial<WorkflowThreadHitl> = {}): WorkflowThreadHi
   };
 }
 
-/** A gating AGENT_CALL task bound to its child execution. */
+/** A gating AGENT_CALL task bound to its child run. */
 function gatedAgentCall(taskName: string, childId: string): DerivedTaskState {
   return taskState({
     taskName,
     taskKind: WorkflowTaskKind.agent_call,
     status: "waiting_approval",
     durationMs: 0,
-    childExecutionId: childId,
+    childRunId: childId,
     agentSlug: "helper",
   });
 }
@@ -759,7 +759,7 @@ describe("WorkflowTaskThread — in-thread HITL", () => {
             taskName: "call-writer",
             taskKind: WorkflowTaskKind.agent_call,
             status: "running",
-            childExecutionId: "aex_2",
+            childRunId: "aex_2",
           }),
         )}
         totalTasks={1}

@@ -38,7 +38,7 @@ export interface SidebarLinkRenderProps {
   /**
    * The recent-activity entry behind this row. Present only for recents
    * rows in the workspace sidebar — consumers use it to pick the right
-   * navigation flow (session viewer vs. execution viewer) without
+   * navigation flow (session viewer vs. run viewer) without
    * parsing `href`.
    */
   readonly entry?: RecentActivityEntry;

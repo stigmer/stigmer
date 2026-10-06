@@ -7,7 +7,7 @@
  * them) survives any save that leaves it alone.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { clone, create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -21,10 +21,11 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ScheduleDetailView } from "../ScheduleDetailView";
+import { openMenu } from "../../__tests__/helpers/open-menu";
 
 vi.mock("../../feedback/toast", () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
@@ -48,7 +49,7 @@ const NOW = new Date("2026-08-04T10:00:00Z");
 function makeSchedule(overrides?: {
   enabled?: boolean;
   pausedReason?: string;
-  lastExecutionId?: string;
+  lastRunId?: string;
   cron?: string;
   consecutiveFailures?: number;
   environmentRefs?: readonly { org: string; slug: string }[];
@@ -95,7 +96,7 @@ function makeSchedule(overrides?: {
     status: {
       nextFireAt: timestampFromDate(new Date(NOW.getTime() + 3 * 3_600_000)),
       lastFireAt: timestampFromDate(new Date(NOW.getTime() - 5 * 60_000)),
-      lastExecutionId: overrides?.lastExecutionId ?? "aex_01run",
+      lastRunId: overrides?.lastRunId ?? "aex_01run",
       consecutiveFailures:
         overrides?.consecutiveFailures ?? (overrides?.pausedReason ? 5 : 0),
       pausedReason: overrides?.pausedReason ?? "",
@@ -126,7 +127,7 @@ function makeClient(schedule: Schedule): MockClient {
       trigger: vi.fn().mockResolvedValue(
         create(ScheduleTriggerResultSchema, {
           outcome: ScheduleRunOutcome.STARTED,
-          executionId: "aex_01triggered",
+          runId: "aex_01triggered",
           schedule,
         }),
       ),
@@ -255,7 +256,7 @@ describe("ScheduleDetailView", () => {
     await waitFor(() =>
       expect(client.schedule.trigger).toHaveBeenCalledWith("sch_01example"),
     );
-    // Refetch picks up the new last_execution_id.
+    // Refetch picks up the new last_run_id.
     await waitFor(() =>
       expect(client.schedule.getByReference.mock.calls.length).toBeGreaterThan(1),
     );
@@ -286,9 +287,9 @@ describe("ScheduleDetailView", () => {
   });
 
   it("navigates to the execution on a started run", async () => {
-    const onNavigateToExecution = vi.fn();
+    const onNavigateToRun = vi.fn();
     const client = makeClient(makeSchedule());
-    renderView(client, { onNavigateToExecution });
+    renderView(client, { onNavigateToRun });
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(screen.getByRole("button", { name: "Run now" }));
@@ -296,7 +297,7 @@ describe("ScheduleDetailView", () => {
     fireEvent.click(screen.getByText("Start run"));
 
     await waitFor(() =>
-      expect(onNavigateToExecution).toHaveBeenCalledWith("aex_01triggered"),
+      expect(onNavigateToRun).toHaveBeenCalledWith("aex_01triggered"),
     );
   });
 
@@ -327,10 +328,10 @@ describe("ScheduleDetailView", () => {
 
   it("navigates through the callback seams", async () => {
     const onNavigateToAgent = vi.fn();
-    const onNavigateToExecution = vi.fn();
+    const onNavigateToRun = vi.fn();
     renderView(makeClient(makeSchedule()), {
       onNavigateToAgent,
-      onNavigateToExecution,
+      onNavigateToRun,
     });
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
@@ -338,7 +339,58 @@ describe("ScheduleDetailView", () => {
     expect(onNavigateToAgent).toHaveBeenCalledWith("isc", "fee-reminder");
 
     fireEvent.click(screen.getByRole("button", { name: "aex_01run" }));
-    expect(onNavigateToExecution).toHaveBeenCalledWith("aex_01run");
+    expect(onNavigateToRun).toHaveBeenCalledWith("aex_01run");
+  });
+
+  it("navigates to a ledger row's run from the recent-runs strip and the Runs table", async () => {
+    const onNavigateToRun = vi.fn();
+    const client = makeClient(makeSchedule({ lastRunId: "aex_01last" }));
+    client.schedule.listRuns.mockResolvedValue(
+      create(ScheduleRunListSchema, {
+        totalCount: 1,
+        items: [
+          create(ScheduleRunSchema, {
+            scheduleId: "sch_01example",
+            origin: ScheduleRunOrigin.MANUAL,
+            outcome: ScheduleRunOutcome.COMPLETED,
+            runId: "aex_01ledger",
+            nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
+          }),
+        ],
+      }),
+    );
+    renderView(client, { onNavigateToRun });
+
+    fireEvent.click(await screen.findByRole("button", { name: "aex_01ledger" }));
+    expect(onNavigateToRun).toHaveBeenLastCalledWith("aex_01ledger");
+
+    fireEvent.click(screen.getByRole("tab", { name: /Runs/ }));
+    const table = await screen.findByRole("table", { name: "Run history" });
+    fireEvent.click(within(table).getByRole("button", { name: "aex_01ledger" }));
+    expect(onNavigateToRun).toHaveBeenCalledTimes(2);
+    expect(onNavigateToRun).toHaveBeenLastCalledWith("aex_01ledger");
+  });
+
+  it("deletes behind a confirmation that says past runs are kept, then reports it", async () => {
+    const onDeleted = vi.fn();
+    const client = makeClient(makeSchedule());
+    renderView(client, { onDeleted });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    await openMenu(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+
+    await screen.findByText("Delete this schedule?");
+    expect(
+      screen.getByText(
+        '"daily-fee-reminders" will stop firing and be permanently removed. Past runs are not affected. This cannot be undone.',
+      ),
+    ).toBeTruthy();
+    expect(client.schedule.delete).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(client.schedule.delete).toHaveBeenCalledWith("sch_01example"));
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledOnce());
   });
 
   it("renders references as plain text without navigation callbacks", async () => {

@@ -25,8 +25,8 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import {
@@ -184,7 +184,7 @@ describe("cursor image flows through the persist-time offload", () => {
     } as unknown as Extract<SDKMessage, { type: "tool_call" }>;
 
     const tc = foldCursorEvents([event]).rows()[0];
-    const status = create(AgentExecutionStatusSchema, {
+    const status = create(AgentRunStatusSchema, {
       messages: [create(AgentMessageSchema, { toolCalls: [tc] })],
     });
 
@@ -243,7 +243,7 @@ describe("sub-agent image normalization (sub-agent-steps)", () => {
       },
     } as unknown as Extract<SDKMessage, { type: "tool_call" }>;
 
-    const sub = foldCursorEvents([running, completed]).status.subAgentExecutions[0];
+    const sub = foldCursorEvents([running, completed]).status.subAgentRuns[0];
     const subToolResult = sub.messages[0].toolCalls[0].result;
     const img = detectImagePayload(subToolResult);
     expect(img?.base64).toBe(PNG_BASE64);

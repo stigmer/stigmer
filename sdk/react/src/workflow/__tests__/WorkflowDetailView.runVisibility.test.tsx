@@ -2,7 +2,7 @@
  * Pins where a workflow's run visibility lives on the workflow page: it
  * rides into the Manage access dialog as the workflow's own section,
  * offered only when the viewer holds `can_manage_audience` on the workflow
- * (the server's bar on `updateExecutionVisibility`), and reads the level
+ * (the server's bar on `updateRunVisibility`), and reads the level
  * from the workflow's spec. A change hands the host the updated workflow
  * (`onResourceUpdated`), so a host's own copy — the run dialog's — follows
  * it. Also pins the page's tabs: no tab lists
@@ -15,7 +15,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { AccessExtraSection } from "../../access/types";
 import type { TabItem } from "../../tabs/Tabs";
 import { WorkflowDetailView } from "../WorkflowDetailView";
@@ -25,15 +25,15 @@ const state = vi.hoisted(() => ({
   permissionAsks: [] as Array<{ resource: unknown; relation: string }>,
   extraSections: [] as Array<AccessExtraSection | undefined>,
   tabs: [] as readonly TabItem[],
-  // WorkflowExecutionVisibility.private; the enum is not reachable from a hoisted block.
-  executionVisibility: 1,
+  // WorkflowRunVisibility.private; the enum is not reachable from a hoisted block.
+  runVisibility: 1,
 }));
 
 vi.mock("../useWorkflow", () => ({
   useWorkflow: () => ({
     workflow: {
       metadata: { id: "wf_1", name: "Nightly triage", slug: "nightly-triage", org: "org_acme" },
-      spec: { executionVisibility: state.executionVisibility, tasks: [] },
+      spec: { runVisibility: state.runVisibility, tasks: [] },
       status: {},
     },
     isLoading: false,
@@ -72,7 +72,7 @@ afterEach(() => {
   state.permissionAsks = [];
   state.extraSections = [];
   state.tabs = [];
-  state.executionVisibility = WorkflowExecutionVisibility.private;
+  state.runVisibility = WorkflowRunVisibility.private;
 });
 
 function lastSection(): AccessExtraSection | undefined {
@@ -91,7 +91,7 @@ describe("WorkflowDetailView run visibility", () => {
 
   it("offers the run visibility section to someone who may change the workflow's audience", () => {
     state.canManageAudience = true;
-    state.executionVisibility = WorkflowExecutionVisibility.organization;
+    state.runVisibility = WorkflowRunVisibility.organization;
     render(<WorkflowDetailView org="org_acme" slug="nightly-triage" />);
 
     const section = lastSection();
@@ -99,8 +99,8 @@ describe("WorkflowDetailView run visibility", () => {
     expect(section?.description).toContain("past runs included");
     const control = section?.content as { props: Record<string, unknown> };
     expect(control.props.workflowId).toBe("wf_1");
-    expect(control.props.executionVisibility).toBe(
-      WorkflowExecutionVisibility.organization,
+    expect(control.props.runVisibility).toBe(
+      WorkflowRunVisibility.organization,
     );
   });
 
@@ -133,6 +133,6 @@ describe("WorkflowDetailView run visibility", () => {
   it("shows the overview, executions and versions tabs only", () => {
     render(<WorkflowDetailView org="org_acme" slug="nightly-triage" />);
 
-    expect(state.tabs.map((t) => t.id)).toEqual(["overview", "executions", "versions"]);
+    expect(state.tabs.map((t) => t.id)).toEqual(["overview", "runs", "versions"]);
   });
 });

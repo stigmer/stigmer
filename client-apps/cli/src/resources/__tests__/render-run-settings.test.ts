@@ -6,11 +6,11 @@
 
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { renderResource } from "../render.js";
@@ -43,7 +43,7 @@ describe("renderResource — run settings in the human view", () => {
   });
 
   it("names the settings a turn ran with, not only what its message asked", () => {
-    const execution = create(AgentExecutionSchema, {
+    const execution = create(AgentRunSchema, {
       metadata: { id: "aex_1", name: "aex_1" },
       spec: { message: "hi", runConfig: { maxCostUsd: 1 } },
       status: {
@@ -51,7 +51,7 @@ describe("renderResource — run settings in the human view", () => {
       },
     });
 
-    const out = renderResource(AgentExecutionSchema, execution, "table", { hideOrg: true });
+    const out = renderResource(AgentRunSchema, execution, "table", { hideOrg: true });
     expect(out).toMatch(/Model:\s+claude-sonnet-4-6/);
     expect(out).toMatch(/Thinking:\s+enabled/);
     expect(out).toMatch(/Cost cap:\s+\$1 per message/);

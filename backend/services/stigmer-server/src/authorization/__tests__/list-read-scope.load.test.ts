@@ -54,7 +54,7 @@
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -247,7 +247,7 @@ const SHAPES: ReadonlyArray<Shape> = [
   },
   {
     name: "restrict: executions in TEN sessions (the parent hop, dense)",
-    kind: "agent_execution",
+    kind: "agent_run",
     caller: FOUNDER,
     verb: "restrict",
     parents: Array.from({ length: 10 }, (_, i) => ({
@@ -264,7 +264,7 @@ const SHAPES: ReadonlyArray<Shape> = [
   },
   {
     name: "restrict: executions in a THOUSAND sessions (the parent hop, sparse)",
-    kind: "agent_execution",
+    kind: "agent_run",
     caller: FOUNDER,
     verb: "restrict",
     parents: Array.from({ length: 1_000 }, (_, i) => ({
@@ -281,7 +281,7 @@ const SHAPES: ReadonlyArray<Shape> = [
   },
   {
     name: "restrict: runs in ten workflows for a viewer (the `derived` rule reads each workflow's row)",
-    kind: "workflow_execution",
+    kind: "workflow_run",
     caller: VIEWER,
     verb: "restrict",
     parents: Array.from({ length: RUN_WORKFLOWS }, (_, i) => ({
@@ -292,9 +292,9 @@ const SHAPES: ReadonlyArray<Shape> = [
         visibility: ApiResourceVisibility.visibility_private,
         createdBy: FOUNDER,
         spec: {
-          executionVisibility: observableWorkflow(i)
-            ? WorkflowExecutionVisibility.organization
-            : WorkflowExecutionVisibility.private,
+          runVisibility: observableWorkflow(i)
+            ? WorkflowRunVisibility.organization
+            : WorkflowRunVisibility.private,
         },
       },
     })),
@@ -306,7 +306,7 @@ const SHAPES: ReadonlyArray<Shape> = [
       spec: { workflowId: `wfl_${i % RUN_WORKFLOWS}` },
     }),
     // The viewer reaches a run only through its workflow's
-    // `execution_viewer`; the cost measured is the rule's read of the
+    // `run_viewer`; the cost measured is the rule's read of the
     // workflow row behind every candidate.
     kept: (n) => {
       let kept = 0;
@@ -460,9 +460,9 @@ describe.each(
     ApiResourceKind.team,
     ApiResourceKind.agent,
     ApiResourceKind.session,
-    ApiResourceKind.agent_execution,
+    ApiResourceKind.agent_run,
     ApiResourceKind.workflow,
-    ApiResourceKind.workflow_execution,
+    ApiResourceKind.workflow_run,
   ]),
 )("the built-in evaluator's cost on $name", (fixture) => {
   describe.skipIf(fixture.skip)("measured", () => {

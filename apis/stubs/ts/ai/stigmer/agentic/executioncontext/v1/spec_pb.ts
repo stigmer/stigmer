@@ -14,13 +14,13 @@ export const file_ai_stigmer_agentic_executioncontext_v1_spec: GenFile = /*@__PU
   fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvZXhlY3V0aW9uY29udGV4dC92MS9zcGVjLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MSLwAQoURXhlY3V0aW9uQ29udGV4dFNwZWMSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABElQKBGRhdGEYAiADKAsyRi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25Db250ZXh0U3BlYy5EYXRhRW50cnkaYwoJRGF0YUVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASIyCg5FeGVjdXRpb25WYWx1ZRINCgV2YWx1ZRgBIAEoCRIRCglpc19zZWNyZXQYAiABKAhiBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
- * Runtime configuration and secrets for a single execution.
+ * Runtime configuration and secrets for a single run.
  *
  * @generated from message ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec
  */
 export type ExecutionContextSpec = Message<"ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec"> & {
   /**
-   * ID of the parent AgentExecution or WorkflowExecution.
+   * ID of the parent AgentRun or WorkflowRun.
    *
    * @generated from field: string execution_id = 1;
    */

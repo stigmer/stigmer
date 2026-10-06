@@ -8,11 +8,11 @@ package ai.stigmer.sdk;
  * the appropriate lifecycle points so it never manages runner processes
  * directly — the adapter handles it transparently.
  *
- * <p>Sessions and workflow executions have different lifecycles. A session is
+ * <p>Sessions and workflow runs have different lifecycles. A session is
  * a long-lived, multi-turn conversation with no terminal phase, so its worker
  * is tied to whether the session is open (in use): {@code onSessionOpened}
  * when the session is opened, {@code onSessionClosed} when it is closed. A
- * workflow execution runs to a terminal phase, so its worker is tied to
+ * workflow run reaches a terminal phase, so its worker is tied to
  * creation and completion.
  *
  * <p>Each environment provides its own implementation:
@@ -35,7 +35,7 @@ package ai.stigmer.sdk;
  * try (StigmerClient client = StigmerClient.builder("sk_live_...")
  *         .runnerAdapter(adapter)
  *         .build()) {
- *     // adapter drives the runner lifecycle for local sessions/executions
+ *     // adapter drives the runner lifecycle for local sessions/runs
  * }
  * }</pre>
  */
@@ -62,20 +62,20 @@ public interface RunnerAdapter {
     void onSessionClosed(String sessionId) throws Exception;
 
     /**
-     * Called after a workflow execution is created with executionTarget=LOCAL.
-     * The adapter should ensure a runner worker is active for the given execution.
+     * Called after a workflow run is created with executionTarget=LOCAL.
+     * The adapter should ensure a runner worker is active for the given run.
      *
-     * @param executionId the server-assigned execution identifier
+     * @param runId the server-assigned run identifier
      * @throws Exception if the runner cannot be started
      */
-    void onWorkflowExecutionCreated(String executionId) throws Exception;
+    void onWorkflowRunCreated(String runId) throws Exception;
 
     /**
-     * Called when a workflow execution reaches a terminal phase.
-     * The adapter should clean up any runner resources allocated for the execution.
+     * Called when a workflow run reaches a terminal phase.
+     * The adapter should clean up any runner resources allocated for the run.
      *
-     * @param executionId the execution identifier to terminate
+     * @param runId the run identifier to terminate
      * @throws Exception if cleanup fails
      */
-    void onWorkflowExecutionTerminated(String executionId) throws Exception;
+    void onWorkflowRunTerminated(String runId) throws Exception;
 }

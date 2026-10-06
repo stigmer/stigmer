@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeAll } from "vitest";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { CursorUsagePricer } from "../usage-pricing.js";
 

@@ -19,7 +19,7 @@ export function UsageSection() {
         Usage
       </h2>
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Monitor token consumption, cost, and execution activity across
+        Monitor token consumption, cost, and run activity across
         your organization.
       </p>
 

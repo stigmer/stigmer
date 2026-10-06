@@ -43,11 +43,11 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
@@ -113,8 +113,8 @@ afterAll(dropPostgresFixture);
 
 describe.each(
   driverFixtures([
-    ApiResourceKind.agent_execution,
-    ApiResourceKind.workflow_execution,
+    ApiResourceKind.agent_run,
+    ApiResourceKind.workflow_run,
     ApiResourceKind.execution_context,
     ApiResourceKind.identity_account,
   ]),
@@ -147,13 +147,13 @@ describe.each(
     async function agentExecution(
       id: string,
       createdBy: string,
-      phase: ExecutionPhase = ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase = RunPhase.RUN_IN_PROGRESS,
     ): Promise<void> {
       await opened.store.saveResource(
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         id,
-        AgentExecutionSchema,
-        create(AgentExecutionSchema, {
+        AgentRunSchema,
+        create(AgentRunSchema, {
           metadata: { id, name: id, org: "acme" },
           status: {
             phase,
@@ -166,13 +166,13 @@ describe.each(
     async function workflowExecution(
       id: string,
       createdBy: string,
-      phase: WorkflowExecutionPhase = WorkflowExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: WorkflowExecutionPhase = WorkflowExecutionPhase.RUN_IN_PROGRESS,
     ): Promise<void> {
       await opened.store.saveResource(
-        ApiResourceKind.workflow_execution,
+        ApiResourceKind.workflow_run,
         id,
-        WorkflowExecutionSchema,
-        create(WorkflowExecutionSchema, {
+        WorkflowRunSchema,
+        create(WorkflowRunSchema, {
           metadata: { id, name: id, org: "acme" },
           status: {
             phase,
@@ -290,7 +290,7 @@ describe.each(
         await agentExecution(
           "aex_pending",
           CAROL,
-          ExecutionPhase.EXECUTION_PENDING,
+          RunPhase.RUN_PENDING,
         );
         expect(
           (await verifier().verify(service.mintRunCredential("aex_pending")))
@@ -349,9 +349,9 @@ describe.each(
 
     describe("validity is the row's, not a clock's", () => {
       it.each([
-        ["COMPLETED", ExecutionPhase.EXECUTION_COMPLETED],
-        ["FAILED", ExecutionPhase.EXECUTION_FAILED],
-        ["CANCELLED", ExecutionPhase.EXECUTION_CANCELLED],
+        ["COMPLETED", RunPhase.RUN_COMPLETED],
+        ["FAILED", RunPhase.RUN_FAILED],
+        ["CANCELLED", RunPhase.RUN_CANCELLED],
       ])(
         "a %s execution's credential is refused with the liveness sentence",
         async (_label, phase) => {
@@ -365,17 +365,17 @@ describe.each(
 
       it("a run that ended moments ago still admits — the grace covers the writes that trail the terminal stamp", async () => {
         await opened.store.saveResource(
-          ApiResourceKind.agent_execution,
+          ApiResourceKind.agent_run,
           "aex_just_over",
-          AgentExecutionSchema,
-          create(AgentExecutionSchema, {
+          AgentRunSchema,
+          create(AgentRunSchema, {
             metadata: {
               id: "aex_just_over",
               name: "aex_just_over",
               org: "acme",
             },
             status: {
-              phase: ExecutionPhase.EXECUTION_COMPLETED,
+              phase: RunPhase.RUN_COMPLETED,
               completedAt: new Date().toISOString(),
               audit: { specAudit: { createdBy: { id: CAROL } } },
             },
@@ -389,17 +389,17 @@ describe.each(
 
       it("a run that ended past the grace is refused — the grace is a constant, not a second clock", async () => {
         await opened.store.saveResource(
-          ApiResourceKind.agent_execution,
+          ApiResourceKind.agent_run,
           "aex_long_over",
-          AgentExecutionSchema,
-          create(AgentExecutionSchema, {
+          AgentRunSchema,
+          create(AgentRunSchema, {
             metadata: {
               id: "aex_long_over",
               name: "aex_long_over",
               org: "acme",
             },
             status: {
-              phase: ExecutionPhase.EXECUTION_COMPLETED,
+              phase: RunPhase.RUN_COMPLETED,
               completedAt: new Date(
                 Date.now() - RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS - 1000,
               ).toISOString(),
@@ -419,7 +419,7 @@ describe.each(
         await workflowExecution(
           "wex_over",
           CAROL,
-          WorkflowExecutionPhase.EXECUTION_COMPLETED,
+          WorkflowExecutionPhase.RUN_COMPLETED,
         );
         const failure = await rejectionOf(
           verifier().verify(service.mintRunCredential("wex_over")),
@@ -504,7 +504,7 @@ describe.each(
 
 describe("the person admitted is the person the model lets report", () => {
   it("open source grants nobody a role on a session, so a run's creator is its session's owner — the fact the verifier's header rests on", () => {
-    // `agent_execution.can_edit` is `owner from session`; this verifier
+    // `agent_run.can_edit` is `owner from session`; this verifier
     // admits the execution's CREATOR. They are one person only while a
     // session's viewers are its owner alone. The contract lists `viewer`
     // as grantable on a session; open source's grant scope refuses it.

@@ -38,7 +38,7 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -66,8 +66,8 @@ import { triple } from "../../iampolicy/__tests__/support.js";
 
 const API_VERSION = "agentic.stigmer.ai/v1";
 
-/** EXECUTION_COMPLETED, the same number in both execution kinds' phase enums. */
-const FINISHED_PHASE = ExecutionPhase.EXECUTION_COMPLETED;
+/** RUN_COMPLETED, the same number in both execution kinds' phase enums. */
+const FINISHED_PHASE = RunPhase.RUN_COMPLETED;
 
 /** How the suite reaches the database the composed server writes. */
 export interface PurgeSuiteDatabase {
@@ -263,8 +263,8 @@ export function describeOrganizationPurge(
         // A run stored here has finished: a server with no engine holds no
         // live run, and the purge needs the engine only for one that may be.
         const finished =
-          kind === ApiResourceKind.agent_execution ||
-          kind === ApiResourceKind.workflow_execution
+          kind === ApiResourceKind.agent_run ||
+          kind === ApiResourceKind.workflow_run
             ? { status: { phase: FINISHED_PHASE } }
             : {};
         const row = create(schema, {

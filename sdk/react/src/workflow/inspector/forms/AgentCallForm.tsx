@@ -407,7 +407,7 @@ interface EnvironmentRefRow {
  * Edits `environment_refs` as slug rows (org optional — empty means the
  * workflow's own org). These are how a tool-using agent becomes callable
  * from a workflow: the task binds the credentials its child runs need
- * without touching the agent. Resolved server-side at execution create;
+ * without touching the agent. Resolved server-side at run create;
  * an unresolvable ref fails the run closed.
  */
 function EnvironmentRefsSection({

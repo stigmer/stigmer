@@ -160,7 +160,7 @@ java.lang.String defaultValue);
    * defaults (RunConfig has the rule).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
    * @return Whether the runConfig field is set.
    */
   boolean hasRunConfig();
@@ -170,19 +170,19 @@ java.lang.String defaultValue);
    * defaults (RunConfig has the rule).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
    * @return The runConfig.
    */
-  ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig();
+  ai.stigmer.agentic.agentrun.v1.RunConfig getRunConfig();
   /**
    * <pre>
    * Per-call model choice and run bounds. Unset fields fall to the agent's
    * defaults (RunConfig has the rule).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
    */
-  ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder();
+  ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder getRunConfigOrBuilder();
 
   /**
    * <pre>
@@ -241,7 +241,7 @@ java.lang.String defaultValue);
    * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
    *
    * The runner creates a Session with this harness before creating
-   * the AgentExecution. The harness is a session-level concern — it determines
+   * the AgentRun. The harness is a session-level concern — it determines
    * tool availability, state management, model access, and billing tier.
    *
    * When unspecified: native when run_config names a model (the engine the
@@ -270,7 +270,7 @@ java.lang.String defaultValue);
    * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
    *
    * The runner creates a Session with this harness before creating
-   * the AgentExecution. The harness is a session-level concern — it determines
+   * the AgentRun. The harness is a session-level concern — it determines
    * tool availability, state management, model access, and billing tier.
    *
    * When unspecified: native when run_config names a model (the engine the

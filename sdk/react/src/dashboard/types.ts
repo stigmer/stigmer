@@ -1,20 +1,20 @@
-import type { AgentExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { ExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import type { AgentRunSummary } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { RunSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 
 /**
  * Unified dashboard summary combining operational metrics from both
- * agent and workflow execution domains.
+ * agent and workflow run domains.
  *
- * Execution counts (active, completed, failed) are safe to add because
- * agent executions and workflow executions are distinct resources.
+ * Run counts (active, completed, failed) are safe to add because
+ * agent runs and workflow runs are distinct resources.
  *
  * Cost comes from {@link GetOrgUsageReportOutput} (billing source of truth),
  * NOT from summing agent + workflow costs. This prevents double-counting
  * when workflows delegate to agents. See AD-DASH-005.
  */
 export interface DashboardSummary {
-  /** Combined agent + workflow active execution count. */
+  /** Combined agent + workflow active run count. */
   readonly activeCount: number;
   /** Combined agent + workflow completed count. */
   readonly completedCount: number;
@@ -25,26 +25,26 @@ export interface DashboardSummary {
    * Sourced from `getOrgUsageReport.total_billable_cost_micros`.
    */
   readonly totalCostUsd: number;
-  /** Agent-side execution summary for per-source breakdown in tooltips. */
-  readonly agent: AgentExecutionSummary | null;
-  /** Workflow-side execution summary for per-source breakdown in tooltips. */
-  readonly workflow: ExecutionSummary | null;
+  /** Agent-side run summary for per-source breakdown in tooltips. */
+  readonly agent: AgentRunSummary | null;
+  /** Workflow-side run summary for per-source breakdown in tooltips. */
+  readonly workflow: RunSummary | null;
   /** Org-level usage report for cost details. */
   readonly orgUsage: GetOrgUsageReportOutput | null;
 }
 
-/** A normalized entry representing a failed execution from either domain. */
+/** A normalized entry representing a failed run from either domain. */
 export interface DashboardFailedRun {
-  /** Execution ID (`aex_*` or `wex_*`). */
+  /** Run ID (`aex_*` or `wex_*`). */
   readonly id: string;
   /** Discriminator for routing navigation. */
-  readonly type: "agent_execution" | "workflow_execution";
-  /** Execution name or subject. */
+  readonly type: "agent_run" | "workflow_run";
+  /** Run name or subject. */
   readonly name: string;
-  /** Error message from the failed execution. */
+  /** Error message from the failed run. */
   readonly error: string;
-  /** When the execution failed. */
+  /** When the run failed. */
   readonly failedAt: Date;
-  /** The agent or workflow name associated with this execution. */
+  /** The agent or workflow name associated with this run. */
   readonly resourceName: string;
 }

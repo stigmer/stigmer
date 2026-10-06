@@ -53,7 +53,7 @@ type SessionSpec struct {
 	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
 	// Harness-specific state identifier for conversation continuity.
 	//
-	// Populated after the first execution completes; empty until then.
+	// Populated after the first run completes; empty until then.
 	// Each harness uses this field differently:
 	//
 	//   - NATIVE: LangGraph thread ID, derived deterministically as
@@ -62,7 +62,7 @@ type SessionSpec struct {
 	//
 	//   - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
 	//     returned by Agent.create(). Used for Agent.resume() on
-	//     subsequent executions.
+	//     subsequent runs.
 	HarnessStateId string `protobuf:"bytes,3,opt,name=harness_state_id,json=harnessStateId,proto3" json:"harness_state_id,omitempty"`
 	// Prior harness state identifiers this session has owned, oldest first.
 	//
@@ -75,8 +75,8 @@ type SessionSpec struct {
 	// Workspace entries for this session.
 	//
 	// Each entry pairs a name with a source (git repo or local path), forming
-	// a multi-root workspace. Entries are provisioned on the first execution;
-	// subsequent executions reuse the same workspace.
+	// a multi-root workspace. Entries are provisioned on the first run;
+	// subsequent runs reuse the same workspace.
 	//
 	// When empty, the session uses an empty workspace directory.
 	WorkspaceEntries []*WorkspaceEntry `protobuf:"bytes,6,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
@@ -96,12 +96,12 @@ type SessionSpec struct {
 	// Execution harness for this session.
 	//
 	// Determines which Temporal activity type is dispatched when an
-	// AgentExecution is created in this session:
+	// AgentRun is created in this session:
 	// - NATIVE (default): ExecuteDeepAgent activity -> Stigmer unified runner
 	// - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
 	//
 	// The harness affects which tools the agent has, how conversation state
-	// is managed, available models, and billing tier. Once set and an execution
+	// is managed, available models, and billing tier. Once set and a run
 	// has run, the harness is immutable — changing it would break conversation
 	// continuity since each harness owns its own state.
 	//
@@ -128,7 +128,7 @@ type SessionSpec struct {
 	// - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
 	// - Customer SDK sets whatever fits their architecture
 	//
-	// Immutable once an execution has run — workspace state may not be
+	// Immutable once a run has started — workspace state may not be
 	// portable between local and cloud environments.
 	ExecutionTarget ExecutionTarget `protobuf:"varint,12,opt,name=execution_target,json=executionTarget,proto3,enum=ai.stigmer.agentic.session.v1.ExecutionTarget" json:"execution_target,omitempty"`
 	unknownFields   protoimpl.UnknownFields

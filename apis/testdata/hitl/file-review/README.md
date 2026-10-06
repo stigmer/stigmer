@@ -17,8 +17,8 @@ fails one of the two suites.
 {
   "name": "...",
   "description": "...",
-  "execution_id": "aex_...",
-  "phase": "EXECUTION_IN_PROGRESS",
+  "run_id": "aex_...",
+  "phase": "RUN_IN_PROGRESS",
   "events": [ <FileReviewEvent protojson>, ... ],
   "expected": [
     {

@@ -138,7 +138,7 @@ only when you own the open-state.
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
     resource: { type: "AccessResource", description: "The resource whose access is managed.", required: true, typeDescriptionLink: "#accessresource" },
-    visibility: { type: "AccessVisibility", description: "General access (visibility) axis. Omit for resources without visibility (e.g. sessions, workflow executions).", typeDescriptionLink: "#accessvisibility" },
+    visibility: { type: "AccessVisibility", description: "General access (visibility) axis. Omit for resources without visibility (e.g. sessions, workflow runs).", typeDescriptionLink: "#accessvisibility" },
   }}
 />
 
@@ -183,7 +183,7 @@ the owning org (drives the org-member typeahead).
   type={{
     id: { type: "string", description: "Resource id.", required: true },
     kind: { type: "ApiResourceKind", description: "ApiResourceKind enum — drives grantable-role lookup and capability.", required: true },
-    kindString: { type: "string", description: "FGA/API kind string (e.g. \"mcp_server\", \"session\", \"workflow_execution\").", required: true },
+    kindString: { type: "string", description: "FGA/API kind string (e.g. \"mcp_server\", \"session\", \"workflow_run\").", required: true },
     name: { type: "string", description: "Optional display name, shown as the dialog subtitle for context." },
     org: { type: "string", description: "Slug of the owning organization (`metadata.org`).", required: true },
   }}
@@ -194,7 +194,7 @@ the owning org (drives the org-member typeahead).
 
 Describes the "General access" (visibility) axis for the Manage access
 dialog. Optional because not every resource has visibility (e.g. sessions
-and workflow executions do not). When present, the dialog renders the
+and workflow runs do not). When present, the dialog renders the
 shared `ResourceVisibilityControl`, which owns level selection and
 the `can_manage_audience` gate.
 

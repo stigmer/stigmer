@@ -33,7 +33,7 @@ function useAccountExecutionDefaults(): AccountExecutionDefaults | undefined
 
 The defaults are a SEED, not an override: an explicit device-local pick
 outranks them (the layered precedence in `useNewSessionFlow`), and the
-chosen values ride the execution spec explicitly. Rides
+chosen values ride the run spec explicitly. Rides
 `useMyIdentityAccount`'s cross-mount cache, so the seed is available
 synchronously on every visit after the first.
 ```
@@ -209,7 +209,7 @@ execution defaults (default harness, per-harness default models, and
 the auto-approve default).
 
 The declared text is snapshotted into the user's own eligible agent
-executions and delivered to the agent as background context.
+runs and delivered to the agent as background context.
 Self-service: the account is resolved via `whoAmI()` and updated
 through the caller's self-ownership permission — no explicit
 permission check is needed. On save, calls `identityAccount.update()`

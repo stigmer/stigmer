@@ -21,7 +21,7 @@ import { MAX_ATTACHMENT_BYTES } from "../../attachment/attachment-utils";
 
 function createMinimalStigmerMock(): Stigmer {
   return {
-    agentExecution: {
+    agentRun: {
       uploadAttachment: vi
         .fn()
         .mockResolvedValue({ storageKey: "attachments/test-ulid/file" }),
@@ -121,8 +121,8 @@ describe("SessionComposer — clipboard paste", () => {
 
     await waitFor(() => {
       expect(
-        (client as unknown as { agentExecution: { uploadAttachment: ReturnType<typeof vi.fn> } })
-          .agentExecution.uploadAttachment,
+        (client as unknown as { agentRun: { uploadAttachment: ReturnType<typeof vi.fn> } })
+          .agentRun.uploadAttachment,
       ).toHaveBeenCalledTimes(1);
     });
   });

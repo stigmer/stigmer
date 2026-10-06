@@ -1,10 +1,10 @@
 // The e2e control layer over test/support's mock LLM proxy.
 // Domain: e2e harness (web console against a live backend stack).
 //
-// An AgentExecution runs a real LLM loop inside the runner, so the console can
+// An AgentRun runs a real LLM loop inside the runner, so the console can
 // reach an approval gate without a live model only if something stands in for
 // the provider. That stand-in is test/support's MockLlmProxy, the one the
-// conformance execution suites script: the runner is pointed at it through
+// conformance run suites script: the runner is pointed at it through
 // STIGMER_PROXY_ENDPOINT, it replays canned Anthropic turns from one FIFO,
 // answers the background session-title call out of band by its signature, and
 // refuses any other provider's path loudly.

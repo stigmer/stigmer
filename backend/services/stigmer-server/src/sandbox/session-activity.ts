@@ -25,14 +25,14 @@
  *
  * An idle sweep asks every awake session on every pass, and a session's
  * full history is the store's fattest rows
- * (domain/agentexecution/list-index.ts), so the reader keeps one entry
+ * (domain/agentrun/list-index.ts), so the reader keeps one entry
  * per session it has read and offers a second, cheap read beside the
  * full one (stigmer#1803). `recentActivity` reads only the session's
  * executions created since its previous read, less RECENT_LOOKBACK_MS,
  * and re-reads by id the ones that were active and the one holding the
  * latest stamp. Every other execution had already ended when it was
  * folded, and an ended execution changes only through Recover
- * (domain/agentexecution/lifecycle.ts), a late status report that
+ * (domain/agentrun/lifecycle.ts), a late status report that
  * rewrites its completion (update-status.ts), or a delete. Any of those
  * can only lower the full read's latest stamp when it befalls the
  * execution holding it, which is why that one is re-read: when its
@@ -57,13 +57,13 @@
 import { fromBinary } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../boot/logger.js";
-import { agentExecutionListIndex } from "../domain/agentexecution/list-index.js";
-import { isActiveExecutionPhase } from "../domain/agentexecution/phases.js";
+import { agentExecutionListIndex } from "../domain/agentrun/list-index.js";
+import { isActiveExecutionPhase } from "../domain/agentrun/phases.js";
 import { ResourceNotFoundError, type Store } from "../store/interface.js";
 import {
   listIndexInstantOfMillis,
@@ -137,9 +137,9 @@ export function newStoreSessionActivityReader(
   const decode = (
     sessionId: string,
     row: ListIndexRow,
-  ): AgentExecution | undefined => {
+  ): AgentRun | undefined => {
     try {
-      return fromBinary(AgentExecutionSchema, row.data);
+      return fromBinary(AgentRunSchema, row.data);
     } catch (error) {
       logger.warn("Failed to unmarshal execution, skipping", {
         sessionId,
@@ -153,7 +153,7 @@ export function newStoreSessionActivityReader(
   const foldRow = (
     entry: SessionEntry,
     row: ListIndexRow,
-    execution: AgentExecution,
+    execution: AgentRun,
     nowMs: number,
     nextBound: string,
   ): void => {
@@ -195,12 +195,12 @@ export function newStoreSessionActivityReader(
   const reread = async (
     sessionId: string,
     id: string,
-  ): Promise<AgentExecution | undefined> => {
+  ): Promise<AgentRun | undefined> => {
     try {
       return await store.getResource(
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         id,
-        AgentExecutionSchema,
+        AgentRunSchema,
       );
     } catch (error) {
       if (error instanceof ResourceNotFoundError) {
@@ -234,7 +234,7 @@ export function newStoreSessionActivityReader(
     // completion can make the full read's latest stamp earlier.
     const latest = entry.lastActiveId;
     const latestMs = entry.lastActiveMs;
-    let latestNow: AgentExecution | undefined;
+    let latestNow: AgentRun | undefined;
     let latestRead = false;
     // An execution the entry holds (active, or holding the latest stamp)
     // that cannot be read now is one only the full read answers for: it
@@ -364,7 +364,7 @@ export function newStoreSessionActivityReader(
 
 /** Busy and the latest trusted stamp over one session's executions (module header). */
 export function sessionActivityOf(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
   nowMs: number,
 ): SessionActivity {
   const entry = newEntry(nowMs);
@@ -389,7 +389,7 @@ export function sessionActivityOf(
 function foldExecution(
   entry: SessionEntry,
   id: string,
-  execution: AgentExecution,
+  execution: AgentRun,
   nowMs: number,
 ): void {
   const status = execution.status;
@@ -426,7 +426,7 @@ function removeAheadStamps(entry: SessionEntry, id: string): void {
 }
 
 /** An execution's creation and completion, each when it has a parsable one. */
-function stampsOf(execution: AgentExecution): number[] {
+function stampsOf(execution: AgentRun): number[] {
   const stamps: number[] = [];
   const createdAt = execution.status?.audit?.specAudit?.createdAt;
   if (createdAt !== undefined) {
@@ -444,7 +444,7 @@ function stampsOf(execution: AgentExecution): number[] {
 
 /** An execution's latest stamp that counts at `nowMs`, undefined when none does. */
 function latestStampOf(
-  execution: AgentExecution,
+  execution: AgentRun,
   nowMs: number,
 ): number | undefined {
   let latest: number | undefined;

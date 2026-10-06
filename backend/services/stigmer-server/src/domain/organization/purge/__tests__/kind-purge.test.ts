@@ -28,7 +28,7 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
@@ -44,7 +44,7 @@ import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { newApiKeyPurge } from "../../../apikey/purge.js";
 import { newArtifactPurge } from "../../../artifact/purge.js";
 import { sessionListIndex } from "../../../session/list-index.js";
-import { newWorkflowExecutionPurge } from "../../../workflowexecution/purge.js";
+import { newWorkflowExecutionPurge } from "../../../workflowrun/purge.js";
 import { newKindPurge } from "../kind-purge.js";
 import type { KindPurgeDeps } from "../kind-purge.js";
 
@@ -329,10 +329,10 @@ describe("the artifact purge", () => {
 describe("the workflow execution purge", () => {
   it("removes the execution's event log with the row", async () => {
     await fx.store.saveResource(
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
       "wfe_a1",
-      WorkflowExecutionSchema,
-      create(WorkflowExecutionSchema, {
+      WorkflowRunSchema,
+      create(WorkflowRunSchema, {
         metadata: { id: "wfe_a1", org: ORG.id },
       }),
     );
@@ -351,22 +351,22 @@ describe("the workflow execution purge", () => {
       authorizationLifecycle: undefined,
     });
     expect(await purge.purge(ORG, CALLER)).toEqual({ more: false });
-    expect(await ids(ApiResourceKind.workflow_execution)).toEqual([]);
+    expect(await ids(ApiResourceKind.workflow_run)).toEqual([]);
     expect(await fx.store.getMaxEventSequence("wfe_a1")).toBe(0);
   });
 
   it("keeps the row when the event log cannot be removed, so the retry finds it", async () => {
     await fx.store.saveResource(
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
       "wfe_a2",
-      WorkflowExecutionSchema,
-      create(WorkflowExecutionSchema, { metadata: { id: "wfe_a2", org: ORG.id } }),
+      WorkflowRunSchema,
+      create(WorkflowRunSchema, { metadata: { id: "wfe_a2", org: ORG.id } }),
     );
     const failing = Object.create(fx.store) as typeof fx.store;
     failing.deleteWorkflowExecutionEvents = () => Promise.reject(new Error("events down"));
     await expect(
       newWorkflowExecutionPurge({ ...deps, store: failing, authorizationLifecycle: undefined }).purge(ORG, CALLER),
     ).rejects.toThrow("internal server error");
-    expect(await ids(ApiResourceKind.workflow_execution)).toEqual(["wfe_a2"]);
+    expect(await ids(ApiResourceKind.workflow_run)).toEqual(["wfe_a2"]);
   });
 });

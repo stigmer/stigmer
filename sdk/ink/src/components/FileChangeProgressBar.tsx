@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { FileChangeProgress } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import type { FileChangeProgress } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import { kindLetter, progressEntryDisplayPath } from "../file-review.js";
 import { FileLineStats } from "./FileReviewAtoms.js";
 

@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/memory/v1/spec.proto\x12\x1c\x61i.stigmer.agentic.memory.v1\x1a\x1b\x62uf/validate/validate.proto\"\xc1\x01\n\nMemorySpec\x12$\n\x07\x63ontent\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\xf4\x03R\x07\x63ontent\x12=\n\x1bsubject_identity_account_id\x18\x02 \x01(\tR\x18subjectIdentityAccountId\x12N\n\nprovenance\x18\x03 \x01(\x0b\x32..ai.stigmer.agentic.memory.v1.MemoryProvenanceR\nprovenance\"\x9c\x01\n\x10MemoryProvenance\x12\x19\n\x08\x61gent_id\x18\x01 \x01(\tR\x07\x61gentId\x12\x1d\n\nsession_id\x18\x02 \x01(\tR\tsessionId\x12,\n\x12\x61gent_execution_id\x18\x03 \x01(\tR\x10\x61gentExecutionId\x12 \n\x0ctool_call_id\x18\x04 \x01(\tR\ntoolCallIdB\xc2\x01\n com.ai.stigmer.agentic.memory.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1c\x41i.Stigmer.Agentic.Memory.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/memory/v1/spec.proto\x12\x1c\x61i.stigmer.agentic.memory.v1\x1a\x1b\x62uf/validate/validate.proto\"\xc1\x01\n\nMemorySpec\x12$\n\x07\x63ontent\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\xf4\x03R\x07\x63ontent\x12=\n\x1bsubject_identity_account_id\x18\x02 \x01(\tR\x18subjectIdentityAccountId\x12N\n\nprovenance\x18\x03 \x01(\x0b\x32..ai.stigmer.agentic.memory.v1.MemoryProvenanceR\nprovenance\"\x90\x01\n\x10MemoryProvenance\x12\x19\n\x08\x61gent_id\x18\x01 \x01(\tR\x07\x61gentId\x12\x1d\n\nsession_id\x18\x02 \x01(\tR\tsessionId\x12 \n\x0c\x61gent_run_id\x18\x03 \x01(\tR\nagentRunId\x12 \n\x0ctool_call_id\x18\x04 \x01(\tR\ntoolCallIdB\xc2\x01\n com.ai.stigmer.agentic.memory.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1c\x41i.Stigmer.Agentic.Memory.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,5 +38,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_MEMORYSPEC']._serialized_start=103
   _globals['_MEMORYSPEC']._serialized_end=296
   _globals['_MEMORYPROVENANCE']._serialized_start=299
-  _globals['_MEMORYPROVENANCE']._serialized_end=455
+  _globals['_MEMORYPROVENANCE']._serialized_end=443
 # @@protoc_insertion_point(module_scope)

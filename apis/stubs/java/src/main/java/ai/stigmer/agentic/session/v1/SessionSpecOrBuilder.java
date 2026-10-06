@@ -121,7 +121,7 @@ public interface SessionSpecOrBuilder extends
    * <pre>
    * Harness-specific state identifier for conversation continuity.
    *
-   * Populated after the first execution completes; empty until then.
+   * Populated after the first run completes; empty until then.
    * Each harness uses this field differently:
    *
    * - NATIVE: LangGraph thread ID, derived deterministically as
@@ -130,7 +130,7 @@ public interface SessionSpecOrBuilder extends
    *
    * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
    * returned by Agent.create(). Used for Agent.resume() on
-   * subsequent executions.
+   * subsequent runs.
    * </pre>
    *
    * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
@@ -141,7 +141,7 @@ public interface SessionSpecOrBuilder extends
    * <pre>
    * Harness-specific state identifier for conversation continuity.
    *
-   * Populated after the first execution completes; empty until then.
+   * Populated after the first run completes; empty until then.
    * Each harness uses this field differently:
    *
    * - NATIVE: LangGraph thread ID, derived deterministically as
@@ -150,7 +150,7 @@ public interface SessionSpecOrBuilder extends
    *
    * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
    * returned by Agent.create(). Used for Agent.resume() on
-   * subsequent executions.
+   * subsequent runs.
    * </pre>
    *
    * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
@@ -275,8 +275,8 @@ java.lang.String defaultValue);
    * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first execution;
-   * subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first run;
+   * subsequent runs reuse the same workspace.
    *
    * When empty, the session uses an empty workspace directory.
    * </pre>
@@ -290,8 +290,8 @@ java.lang.String defaultValue);
    * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first execution;
-   * subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first run;
+   * subsequent runs reuse the same workspace.
    *
    * When empty, the session uses an empty workspace directory.
    * </pre>
@@ -304,8 +304,8 @@ java.lang.String defaultValue);
    * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first execution;
-   * subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first run;
+   * subsequent runs reuse the same workspace.
    *
    * When empty, the session uses an empty workspace directory.
    * </pre>
@@ -318,8 +318,8 @@ java.lang.String defaultValue);
    * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first execution;
-   * subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first run;
+   * subsequent runs reuse the same workspace.
    *
    * When empty, the session uses an empty workspace directory.
    * </pre>
@@ -333,8 +333,8 @@ java.lang.String defaultValue);
    * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first execution;
-   * subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first run;
+   * subsequent runs reuse the same workspace.
    *
    * When empty, the session uses an empty workspace directory.
    * </pre>
@@ -482,12 +482,12 @@ java.lang.String defaultValue);
    * Execution harness for this session.
    *
    * Determines which Temporal activity type is dispatched when an
-   * AgentExecution is created in this session:
+   * AgentRun is created in this session:
    * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
    * The harness affects which tools the agent has, how conversation state
-   * is managed, available models, and billing tier. Once set and an execution
+   * is managed, available models, and billing tier. Once set and a run
    * has run, the harness is immutable — changing it would break conversation
    * continuity since each harness owns its own state.
    *
@@ -503,12 +503,12 @@ java.lang.String defaultValue);
    * Execution harness for this session.
    *
    * Determines which Temporal activity type is dispatched when an
-   * AgentExecution is created in this session:
+   * AgentRun is created in this session:
    * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
    * The harness affects which tools the agent has, how conversation state
-   * is managed, available models, and billing tier. Once set and an execution
+   * is managed, available models, and billing tier. Once set and a run
    * has run, the harness is immutable — changing it would break conversation
    * continuity since each harness owns its own state.
    *
@@ -568,7 +568,7 @@ java.lang.String defaultValue);
    * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
    * - Customer SDK sets whatever fits their architecture
    *
-   * Immutable once an execution has run — workspace state may not be
+   * Immutable once a run has started — workspace state may not be
    * portable between local and cloud environments.
    * </pre>
    *
@@ -589,7 +589,7 @@ java.lang.String defaultValue);
    * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
    * - Customer SDK sets whatever fits their architecture
    *
-   * Immutable once an execution has run — workspace state may not be
+   * Immutable once a run has started — workspace state may not be
    * portable between local and cloud environments.
    * </pre>
    *

@@ -94,19 +94,19 @@ task references, and records the definition as the Workflow's first version.
 
 ## Run it
 
-Execute the Workflow, passing the `TOPIC` environment variable:
+Run the Workflow, passing the `TOPIC` environment variable:
 
 ```bash
 stigmer run workflow summarize --env TOPIC="the history of the internet"
 ```
 
-The CLI creates a Workflow Execution, streams progress as each task completes,
-and prints the final output.
+The CLI creates a Workflow Run, streams progress as each task completes, and
+prints the final output.
 
 You should see output like:
 
 ```
-Workflow execution created: wex_01j5q3k7m8...
+Workflow run created: wex_01j5q3k7m8...
   [1/2] generate_summary ... completed (2.3s)
   [2/2] format_output    ... completed (0.1s)
 
@@ -123,8 +123,8 @@ Output:
 
 ## Stream from code (optional)
 
-You can also run and monitor Workflows programmatically using the SDK. Create an
-execution and subscribe to real-time updates:
+You can also run and monitor Workflows programmatically using the SDK. Create a
+run and subscribe to real-time updates:
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -142,7 +142,7 @@ const workflow = await stigmer.workflow.getByReference({
   slug: "summarize",
 });
 
-const execution = await stigmer.workflowExecution.create({
+const run = await stigmer.workflowRun.create({
   name: `run-${Date.now()}`,
   org: "my-org",
   workflowId: workflow.metadata!.id,
@@ -151,8 +151,8 @@ const execution = await stigmer.workflowExecution.create({
   },
 });
 
-for await (const snapshot of stigmer.workflowExecution.subscribe({
-  executionId: execution.metadata!.id,
+for await (const snapshot of stigmer.workflowRun.subscribe({
+  runId: run.metadata!.id,
 })) {
   const tasks = snapshot.status?.tasks ?? [];
   for (const task of tasks) {
@@ -160,7 +160,7 @@ for await (const snapshot of stigmer.workflowExecution.subscribe({
   }
 
   const phase = snapshot.status?.phase;
-  if (phase === "EXECUTION_COMPLETED" || phase === "EXECUTION_FAILED") {
+  if (phase === "RUN_COMPLETED" || phase === "RUN_FAILED") {
     console.log("Output:", snapshot.status?.output);
     break;
   }
@@ -177,8 +177,8 @@ if err != nil {
     log.Fatal(err)
 }
 
-exec, err := client.WorkflowExecution.Create(ctx,
-    &stigmer.WorkflowExecutionInput{
+run, err := client.WorkflowRun.Create(ctx,
+    &stigmer.WorkflowRunInput{
         Name:       "run-" + ts,
         Org:        "my-org",
         WorkflowId: workflow.GetMetadata().GetId(),
@@ -190,9 +190,9 @@ if err != nil {
     log.Fatal(err)
 }
 
-stream, err := client.WorkflowExecution.Subscribe(ctx,
-    &stigmer.SubscribeWorkflowExecutionRequest{
-        ExecutionId: exec.GetMetadata().GetId(),
+stream, err := client.WorkflowRun.Subscribe(ctx,
+    &stigmer.SubscribeWorkflowRunRequest{
+        RunId: run.GetMetadata().GetId(),
     })
 if err != nil {
     log.Fatal(err)
@@ -224,8 +224,8 @@ for {
 
 ```python
 from stigmer import (
-    StigmerClient, WorkflowExecutionInput, EnvVarInput, ResourceRef,
-    SubscribeWorkflowExecutionRequest,
+    StigmerClient, WorkflowRunInput, EnvVarInput, ResourceRef,
+    SubscribeWorkflowRunRequest,
 )
 
 client = StigmerClient(os.environ["STIGMER_API_KEY"])
@@ -234,23 +234,23 @@ workflow = client.workflows.get_by_reference(
     ResourceRef(org="my-org", slug="summarize"),
 )
 
-execution = client.workflow_executions.create(WorkflowExecutionInput(
+run = client.workflow_runs.create(WorkflowRunInput(
     name=f"run-{int(time.time() * 1000)}",
     org="my-org",
     workflow_id=workflow.metadata.id,
     runtime_env={"TOPIC": EnvVarInput(value="the history of the internet")},
 ))
 
-for snapshot in client.workflow_executions.subscribe(
-    SubscribeWorkflowExecutionRequest(
-        execution_id=execution.metadata.id,
+for snapshot in client.workflow_runs.subscribe(
+    SubscribeWorkflowRunRequest(
+        run_id=run.metadata.id,
     ),
 ):
     for task in snapshot.status.tasks:
         print(f"{task.task_name}: {task.status}")
 
     if snapshot.status.phase in (
-        "EXECUTION_COMPLETED", "EXECUTION_FAILED"
+        "RUN_COMPLETED", "RUN_FAILED"
     ):
         print("Output:", snapshot.status.output)
         break
@@ -260,7 +260,7 @@ for snapshot in client.workflow_executions.subscribe(
 </SDKTabs>
 
 For the complete streaming reference, see the
-[Streaming guide](/docs/sdk/streaming#subscribe-to-a-workflow-execution).
+[Streaming guide](/docs/sdk/streaming#subscribe-to-a-workflow-run).
 
 </Step>
 </Steps>
@@ -272,9 +272,9 @@ transform — and ran it as a durable execution. Behind the scenes:
 
 1. `stigmer apply` registered the Workflow blueprint and recorded its first
    version
-2. `stigmer run` created a Workflow Execution of that version, passing your
-   `TOPIC` as a runtime environment variable
-3. The workflow runner picked up the execution and ran each task in sequence
+2. `stigmer run` created a Workflow Run of that version, passing your `TOPIC` as
+   a runtime environment variable
+3. The workflow runner picked up the run and ran each task in sequence
 4. Task outputs flowed through the context — `generate_summary` produced text
    that `format_output` consumed via `${ $context.generate_summary.text }`
 5. The final output was the result of the last task's `export`

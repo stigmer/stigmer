@@ -33,11 +33,11 @@ import path from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
@@ -49,17 +49,17 @@ import { serverActingFor } from "../../../../pipeline/interceptors/auth.js";
 import type { SandboxLane } from "../../../../sandbox/lane.js";
 import type { SandboxProvisioner } from "../../../../sandbox/provisioner.js";
 import { SqliteStore } from "../../../../store/sqlite/store.js";
-import type { ConnectedExecutionEngine } from "../../../agentexecution/engine.js";
+import type { ConnectedExecutionEngine } from "../../../agentrun/engine.js";
 import {
   ENGINE_DISCONNECTED,
   EngineWorkflowNotFoundError,
-} from "../../../agentexecution/engine.js";
-import type { ConnectedWorkflowExecutionEngine } from "../../../workflowexecution/engine.js";
+} from "../../../agentrun/engine.js";
+import type { ConnectedWorkflowExecutionEngine } from "../../../workflowrun/engine.js";
 import {
   ENGINE_DISCONNECTED as WORKFLOW_ENGINE_DISCONNECTED,
   EngineWorkflowNotFoundError as WorkflowNotFoundError,
-} from "../../../workflowexecution/engine.js";
-import { childWorkflowId, orchestratorWorkflowId } from "../../../workflowexecution/constants.js";
+} from "../../../workflowrun/engine.js";
+import { childWorkflowId, orchestratorWorkflowId } from "../../../workflowrun/constants.js";
 import type { IamPolicyGrantPath } from "../../../iampolicy/grant-path.js";
 import { ORGANIZATION_NAME_KIND } from "../../names.js";
 import {
@@ -113,12 +113,12 @@ function kindPurge(
   };
 }
 
-async function saveExecution(id: string, org: string, phase: ExecutionPhase) {
+async function saveExecution(id: string, org: string, phase: RunPhase) {
   await store.saveResource(
-    ApiResourceKind.agent_execution,
+    ApiResourceKind.agent_run,
     id,
-    AgentExecutionSchema,
-    create(AgentExecutionSchema, {
+    AgentRunSchema,
+    create(AgentRunSchema, {
       metadata: { id, org, name: id },
       status: { phase },
     }),
@@ -143,7 +143,7 @@ const noSandboxes: SandboxLane = { enabled: false };
 
 describe("the quiesce stage", () => {
   it("passes with no engine when nothing may still be running, and ends a call while schedules are left", async () => {
-    await saveExecution("aex_done", ORG, ExecutionPhase.EXECUTION_COMPLETED);
+    await saveExecution("aex_done", ORG, RunPhase.RUN_COMPLETED);
     const calls: string[] = [];
     const stage = newQuiesceStage({
       store,
@@ -159,9 +159,9 @@ describe("the quiesce stage", () => {
   });
 
   it("terminates a run that may still be live, tolerates one the engine no longer holds, and faults with the engine unreachable", async () => {
-    await saveExecution("aex_live", ORG, ExecutionPhase.EXECUTION_IN_PROGRESS);
-    await saveExecution("aex_gone", ORG, ExecutionPhase.EXECUTION_PENDING);
-    await saveExecution("aex_other", OTHER, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await saveExecution("aex_live", ORG, RunPhase.RUN_IN_PROGRESS);
+    await saveExecution("aex_gone", ORG, RunPhase.RUN_PENDING);
+    await saveExecution("aex_other", OTHER, RunPhase.RUN_IN_PROGRESS);
     const terminated: string[] = [];
     const deps = {
       store,
@@ -222,10 +222,10 @@ describe("the quiesce stage", () => {
 describe("the quiesce stage's other runs", () => {
   async function saveWorkflowRun(id: string, phase: WorkflowPhase) {
     await store.saveResource(
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
       id,
-      WorkflowExecutionSchema,
-      create(WorkflowExecutionSchema, {
+      WorkflowRunSchema,
+      create(WorkflowRunSchema, {
         metadata: { id, org: ORG, name: id },
         status: { phase },
       }),
@@ -257,10 +257,10 @@ describe("the quiesce stage's other runs", () => {
 
   it("reads every page of the organization's runs", async () => {
     for (let i = 0; i < 201; i++) {
-      await saveExecution(`aex_${String(i).padStart(3, "0")}`, ORG, ExecutionPhase.EXECUTION_COMPLETED);
+      await saveExecution(`aex_${String(i).padStart(3, "0")}`, ORG, RunPhase.RUN_COMPLETED);
     }
     const terminated: string[] = [];
-    await saveExecution("aex_zlive", ORG, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await saveExecution("aex_zlive", ORG, RunPhase.RUN_IN_PROGRESS);
     await newQuiesceStage({
       ...base(),
       agentEngine: recordingEngine(terminated),
@@ -270,7 +270,7 @@ describe("the quiesce stage's other runs", () => {
   });
 
   it("fails the stage on an agent engine fault that is not a missing workflow", async () => {
-    await saveExecution("aex_live", ORG, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await saveExecution("aex_live", ORG, RunPhase.RUN_IN_PROGRESS);
     await expect(
       newQuiesceStage({
         ...base(),
@@ -286,8 +286,8 @@ describe("the quiesce stage's other runs", () => {
   });
 
   it("terminates both workflows of a workflow run that may still be live, and faults without the engine", async () => {
-    await saveWorkflowRun("wfx_done", WorkflowPhase.EXECUTION_COMPLETED);
-    await saveWorkflowRun("wfx_live", WorkflowPhase.EXECUTION_IN_PROGRESS);
+    await saveWorkflowRun("wfx_done", WorkflowPhase.RUN_COMPLETED);
+    await saveWorkflowRun("wfx_live", WorkflowPhase.RUN_IN_PROGRESS);
     const terminated: string[] = [];
     await newQuiesceStage({
       ...base(),
@@ -305,7 +305,7 @@ describe("the quiesce stage's other runs", () => {
   });
 
   it("tears down every workflow run's sandbox", async () => {
-    await saveWorkflowRun("wfx_done", WorkflowPhase.EXECUTION_COMPLETED);
+    await saveWorkflowRun("wfx_done", WorkflowPhase.RUN_COMPLETED);
     const torn: string[] = [];
     await newQuiesceStage({
       ...base(),

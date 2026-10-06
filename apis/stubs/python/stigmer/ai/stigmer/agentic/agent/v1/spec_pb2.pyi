@@ -1,4 +1,4 @@
-from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as _invocation_pb2
+from ai.stigmer.agentic.agentrun.v1 import invocation_pb2 as _invocation_pb2
 from ai.stigmer.agentic.environment.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.agentic.mcpserver.v1 import usage_pb2 as _usage_pb2
 from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as _hooks_pb2

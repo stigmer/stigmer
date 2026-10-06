@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { type AgentExecFlags, parseApprovalAction, prepareAgentExec, validateHarness, validateMode, validateServiceTier, validateThinking } from "../prepare.js";
 
@@ -102,9 +102,9 @@ const BASE_FLAGS: AgentExecFlags = {
   harness: "",
 };
 
-// prepareAgentExec only touches client.agentExecution for attachment uploads;
+// prepareAgentExec only touches client.agentRun for attachment uploads;
 // with no attachments a bare stub suffices.
-const STUB_CLIENT = { agentExecution: {} } as unknown as Stigmer;
+const STUB_CLIENT = { agentRun: {} } as unknown as Stigmer;
 
 /** The shape of IdentityAccountPreferences the stubs below expose. */
 interface StubPreferences {
@@ -116,7 +116,7 @@ interface StubPreferences {
 /** Stub whose whoAmI resolves an account carrying the given preferences. */
 function clientWithPreferences(preferences: StubPreferences): Stigmer {
   return {
-    agentExecution: {},
+    agentRun: {},
     identityAccount: {
       whoAmI: () => Promise.resolve({ spec: { preferences } }),
     },
@@ -131,7 +131,7 @@ function clientWithPreference(defaultNativeModel: string): Stigmer {
 /** Stub whose whoAmI rejects (auth failure, backend without the RPC, ...). */
 function clientWithFailingWhoAmI(): Stigmer {
   return {
-    agentExecution: {},
+    agentRun: {},
     identityAccount: {
       whoAmI: () => Promise.reject(new Error("unimplemented")),
     },
@@ -142,7 +142,7 @@ function clientWithFailingWhoAmI(): Stigmer {
 function countingClient(preferences: StubPreferences): { client: Stigmer; calls: () => number } {
   let calls = 0;
   const client = {
-    agentExecution: {},
+    agentRun: {},
     identityAccount: {
       whoAmI: () => {
         calls += 1;

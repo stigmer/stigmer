@@ -8,8 +8,8 @@
 // (with retry) before the loop blocks on the next snapshot — which is safe
 // because the backend withholds further updates until the approval lands.
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SnapshotDiffer } from "./diff.js";
 import type { ApprovalNeededEvent, StreamEvent } from "./events.js";
 import {
@@ -45,9 +45,9 @@ export interface HeadlessResult {
 
 /** Dependencies for {@link runHeadlessStream}. */
 export interface HeadlessStreamDeps {
-  /** The execution snapshot source (the SDK's agentExecution.subscribe). */
-  readonly subscribe: (signal: AbortSignal) => AsyncIterable<AgentExecution>;
-  /** Submit one approval decision. The caller binds the execution + RPC. */
+  /** The run snapshot source (the SDK's agentRun.subscribe). */
+  readonly subscribe: (signal: AbortSignal) => AsyncIterable<AgentRun>;
+  /** Submit one approval decision. The caller binds the run + RPC. */
   readonly submitApproval: (toolCallId: string, action: ApprovalAction) => Promise<void>;
   readonly renderer: HeadlessRenderer;
   readonly sessionId: string;

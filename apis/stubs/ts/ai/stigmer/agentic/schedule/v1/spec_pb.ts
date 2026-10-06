@@ -4,8 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { AgentInvocation } from "../../agentexecution/v1/invocation_pb.js";
-import { file_ai_stigmer_agentic_agentexecution_v1_invocation } from "../../agentexecution/v1/invocation_pb.js";
+import type { AgentInvocation } from "../../agentrun/v1/invocation_pb.js";
+import { file_ai_stigmer_agentic_agentrun_v1_invocation } from "../../agentrun/v1/invocation_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/schedule/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_schedule_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxIqsBCgxTY2hlZHVsZVNwZWMSFQoEY3JvbhgBIAEoCUIHukgEcgIQARIaCgl0aW1lX3pvbmUYAiABKAlCB7pIBHICEAESDwoHZW5hYmxlZBgDIAEoCBJGCgVhZ2VudBgEIAEoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BZ2VudEludm9jYXRpb25IAEIPCgZ0YXJnZXQSBbpIAggBYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_invocation, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxIqUBCgxTY2hlZHVsZVNwZWMSFQoEY3JvbhgBIAEoCUIHukgEcgIQARIaCgl0aW1lX3pvbmUYAiABKAlCB7pIBHICEAESDwoHZW5hYmxlZBgDIAEoCBJACgVhZ2VudBgEIAEoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5BZ2VudEludm9jYXRpb25IAEIPCgZ0YXJnZXQSBbpIAggBYgZwcm90bzM", [file_ai_stigmer_agentic_agentrun_v1_invocation, file_buf_validate_validate]);
 
 /**
  * ScheduleSpec defines when a schedule fires and what it runs.
@@ -62,7 +62,7 @@ export type ScheduleSpec = Message<"ai.stigmer.agentic.schedule.v1.ScheduleSpec"
     /**
      * Run an agent with a configured prompt at each fire.
      *
-     * @generated from field: ai.stigmer.agentic.agentexecution.v1.AgentInvocation agent = 4;
+     * @generated from field: ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4;
      */
     value: AgentInvocation;
     case: "agent";

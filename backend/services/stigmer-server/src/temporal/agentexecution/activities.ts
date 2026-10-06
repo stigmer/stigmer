@@ -47,19 +47,19 @@
  * TS lane works; the divergence is disclosed.
  */
 import { Buffer } from "node:buffer";
-import { create, fromJson, toJson } from "@bufbuild/protobuf";
+import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 import type { Client } from "@temporalio/client";
 
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type {
-  AgentExecutionUpdateStatusInput,
+  AgentRunUpdateStatusInput,
   UpdateStatusResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { AgentExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { AgentRunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -74,6 +74,7 @@ import {
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "./names.js";
+import { decodeRunStatusJson } from "./execution-json.js";
 
 /**
  * The worker's own-behalf status edge — the agentexecution UpdateStatus
@@ -84,7 +85,7 @@ import {
  */
 export interface ExecutionStatusWriter {
   updateStatus(
-    input: AgentExecutionUpdateStatusInput,
+    input: AgentRunUpdateStatusInput,
   ): Promise<UpdateStatusResponse>;
 }
 
@@ -147,10 +148,10 @@ export function createAgentExecutionActivities(
       executionId: string,
       statusJson: JsonValue,
     ): Promise<void> => {
-      const status = fromJson(AgentExecutionStatusSchema, statusJson);
+      const status = decodeRunStatusJson(AgentRunStatusSchema, statusJson);
       await deps.statusWriter().updateStatus(
-        create(AgentExecutionUpdateStatusInputSchema, {
-          executionId,
+        create(AgentRunUpdateStatusInputSchema, {
+          runId: executionId,
           status,
         }),
       );
@@ -167,9 +168,9 @@ export function createAgentExecutionActivities(
       let execution;
       try {
         execution = await store.getResource(
-          ApiResourceKind.agent_execution,
+          ApiResourceKind.agent_run,
           executionId,
-          AgentExecutionSchema,
+          AgentRunSchema,
         );
       } catch (error) {
         // Go load_execution.go wraps with this exact text — keeps the
@@ -179,7 +180,7 @@ export function createAgentExecutionActivities(
           { cause: error },
         );
       }
-      return toJson(AgentExecutionSchema, execution);
+      return toJson(AgentRunSchema, execution);
     },
 
     /**

@@ -12,11 +12,11 @@
  * the adapter at the appropriate lifecycle points. The consumer never
  * needs to manage runner processes directly.
  *
- * Sessions and workflow executions have different lifecycles. A session
+ * Sessions and workflow runs have different lifecycles. A session
  * is a long-lived, multi-turn conversation with no terminal phase, so its
  * worker is tied to whether the session is open (in use): `onSessionOpened`
  * when the session is opened, `onSessionClosed` when it is closed. A
- * workflow execution runs to a terminal phase, so its worker is tied to
+ * workflow run runs to a terminal phase, so its worker is tied to
  * creation and completion.
  */
 export interface RunnerAdapter {
@@ -31,10 +31,10 @@ export interface RunnerAdapter {
    * should tear down the session's runner worker.
    */
   onSessionClosed(sessionId: string): Promise<void>;
-  /** Called after a workflow execution is created with executionTarget=LOCAL. */
-  onWorkflowExecutionCreated(executionId: string): Promise<void>;
-  /** Called when a workflow execution reaches a terminal phase. */
-  onWorkflowExecutionTerminated(executionId: string): Promise<void>;
+  /** Called after a workflow run is created with executionTarget=LOCAL. */
+  onWorkflowRunCreated(runId: string): Promise<void>;
+  /** Called when a workflow run reaches a terminal phase. */
+  onWorkflowRunTerminated(runId: string): Promise<void>;
 }
 
 /**
@@ -68,7 +68,7 @@ export interface RunnerWorkerHost {
  */
 export function createRunnerAdapter(host: RunnerWorkerHost): RunnerAdapter {
   // The mapping is deliberate and asymmetric: sessions attach/detach on
-  // open/close, workflow executions on create/terminate. Keep it here so no
+  // open/close, workflow runs on create/terminate. Keep it here so no
   // embedder re-derives (and mis-wires) it.
   return {
     onSessionOpened: async (sessionId) => {
@@ -77,11 +77,11 @@ export function createRunnerAdapter(host: RunnerWorkerHost): RunnerAdapter {
     onSessionClosed: async (sessionId) => {
       await host.removeSession(sessionId);
     },
-    onWorkflowExecutionCreated: async (executionId) => {
-      await host.addWorkflowExecution(executionId);
+    onWorkflowRunCreated: async (runId) => {
+      await host.addWorkflowExecution(runId);
     },
-    onWorkflowExecutionTerminated: async (executionId) => {
-      await host.removeWorkflowExecution(executionId);
+    onWorkflowRunTerminated: async (runId) => {
+      await host.removeWorkflowExecution(runId);
     },
   };
 }

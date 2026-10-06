@@ -2,7 +2,7 @@ import type { ServiceTierOption } from "../models/service-tier.js";
 import type { ThinkingModeOption } from "../models/thinking-mode.js";
 
 /**
- * Owner-pinned execution config for a session surface
+ * Owner-pinned run config for a session surface
  * (stigmer/stigmer#664) — the client-side subset of the platform
  * `RunConfig` that AgentShare and AgentChannel specs pin server-side
  * (stigmer/stigmer#360). Budget clamps (`max_cost_usd`,
@@ -11,37 +11,37 @@ import type { ThinkingModeOption } from "../models/thinking-mode.js";
  *
  * Passed to `SessionViewer` / `NewSessionViewer` (or the underlying
  * flow hooks) by embedders whose product — not the end user — decides
- * what serves the conversation: every execution on the surface (first
+ * what serves the conversation: every run on the surface (first
  * message, follow-ups, retries) carries the pinned values, and the
  * model picker hides automatically (a control that has no effect must
  * not render).
  *
  * This is presentation-level pinning for product-embedded sessions,
  * not a security boundary — a caller with the session's credentials
- * can still create executions directly. Share/channel surfaces, where
+ * can still create runs directly. Share/channel surfaces, where
  * the audience is untrusted, get the server-enforced `RunConfig` on
  * their specs instead.
  *
- * Ignored entirely for the `"guest"` audience: guest execution config
+ * Ignored entirely for the `"guest"` audience: guest run config
  * is owned by the server-side share policy, and guest sends carrying
  * no `modelName` is a pinned invariant.
  */
 export interface SessionRunConfig {
   /**
-   * Model every execution runs, as a plain `modelId` from the model
+   * Model every run runs, as a plain `modelId` from the model
    * registry. Wins over the composer's selection, the persisted
    * Console preference, and the last execution's model.
    */
   readonly modelName?: string;
   /**
-   * Service tier for every execution. `"fast"` requires
+   * Service tier for every run. `"fast"` requires
    * {@link modelName}: the fast tier is a per-model price (the server
    * refuses it fail-closed for Auto), so a tier pin without a model
    * pin is a host configuration error and throws at submit.
    */
   readonly serviceTier?: ServiceTierOption;
   /**
-   * Thinking mode for every execution (stigmer/stigmer#772).
+   * Thinking mode for every run (stigmer/stigmer#772).
    * `"enabled"` requires {@link modelName} under the same contract as
    * {@link serviceTier}: thinking is a per-model capability (the server
    * refuses it fail-closed for Auto), so a mode pin without a model pin

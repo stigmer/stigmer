@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { Transport } from "@connectrpc/connect";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { Stigmer } from "../stigmer";
 
 /** The new-conversation arm of an execution's `target` oneof, if set. */
-function sessionSpecOf(execution: AgentExecution): SessionSpec | undefined {
+function sessionSpecOf(execution: AgentRun): SessionSpec | undefined {
   const target = execution.spec?.target;
   return target?.case === "sessionSpec" ? target.value : undefined;
 }
@@ -97,19 +97,19 @@ describe("Stigmer execution target defaults", () => {
       expect(proto.spec?.executionTarget).toBe(ExecutionTarget.LOCAL);
     });
 
-    it("injects LOCAL into agentExecution.create's sessionSpec (one-call bootstrap)", async () => {
-      await stigmer.agentExecution.create({
+    it("injects LOCAL into agentRun.create's sessionSpec (one-call bootstrap)", async () => {
+      await stigmer.agentRun.create({
         name: "test",
         org: "test-org",
         message: "hi",
         sessionSpec: { agentRef: { org: "test-org", slug: "helper" } },
       });
-      const proto = captured[0].message as AgentExecution;
+      const proto = captured[0].message as AgentRun;
       expect(sessionSpecOf(proto)?.executionTarget).toBe(ExecutionTarget.LOCAL);
     });
 
     it("preserves a per-call sessionSpec.executionTarget override", async () => {
-      await stigmer.agentExecution.create({
+      await stigmer.agentRun.create({
         name: "test",
         org: "test-org",
         message: "hi",
@@ -118,18 +118,18 @@ describe("Stigmer execution target defaults", () => {
           executionTarget: ExecutionTarget.CLOUD,
         },
       });
-      const proto = captured[0].message as AgentExecution;
+      const proto = captured[0].message as AgentRun;
       expect(sessionSpecOf(proto)?.executionTarget).toBe(ExecutionTarget.CLOUD);
     });
 
-    it("does not synthesize a sessionSpec on agentExecution.create without one", async () => {
-      await stigmer.agentExecution.create({
+    it("does not synthesize a sessionSpec on agentRun.create without one", async () => {
+      await stigmer.agentRun.create({
         name: "test",
         org: "test-org",
         message: "hi",
         sessionId: "ses_1",
       });
-      const proto = captured[0].message as AgentExecution;
+      const proto = captured[0].message as AgentRun;
       expect(sessionSpecOf(proto)).toBeUndefined();
       expect(proto.spec?.target).toEqual({ case: "sessionId", value: "ses_1" });
     });

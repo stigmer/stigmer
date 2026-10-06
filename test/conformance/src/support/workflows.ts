@@ -110,7 +110,7 @@ export interface WaitWorkflowOptions {
 }
 
 // A valid single-task Workflow whose only task is a `wait` (Temporal sleep).
-// It keeps an execution in EXECUTION_IN_PROGRESS for a controllable duration —
+// It keeps an execution in RUN_IN_PROGRESS for a controllable duration —
 // the lever the lifecycle tests pull to act on a genuinely running execution
 // (vs. set_vars, which completes sub-second and would make those tests racy).
 // The taskConfig shape mirrors WaitTaskConfig: { duration: { seconds } }.
@@ -283,7 +283,7 @@ export interface RaiseErrorWorkflowOptions {
 }
 
 // A valid single-task Workflow whose only task is a `raise_error`. It always
-// reaches EXECUTION_FAILED sub-second with zero external dependencies (no LLM,
+// reaches RUN_FAILED sub-second with zero external dependencies (no LLM,
 // MCP, HTTP, or timer) — the deterministic, hermetic lever for the recover
 // happy-path, where re-failure on a fresh orchestrator is the proof recovery
 // dispatched a new run. The taskConfig is the typed RaiseTaskConfig
@@ -325,7 +325,7 @@ export interface ListenWorkflowOptions {
 
 // A valid Workflow whose first task is a `listen` (signal mode "one") followed by
 // a downstream `set_vars`. The listen task blocks on a Temporal signal channel
-// keyed by `signalName` until WorkflowExecution.sendSignal delivers a matching
+// keyed by `signalName` until WorkflowRun.sendSignal delivers a matching
 // signal; the gate then resolves and the downstream `afterSignal` set_vars proves
 // the run continued. Fully hermetic: a listen task needs only Temporal + the TS
 // runner, exactly like makeWaitWorkflow. The listen taskConfig is the typed
@@ -542,7 +542,7 @@ export interface AgentCallWorkflowOptions {
   // The agent_call task's `agent` string: usually a bare Agent.metadata.slug,
   // or any form the contract allows ("org/slug", a runtime expression). The
   // server converts it to the CNCF `with.agent` ref and the runner creates a
-  // child AgentExecution in the organization the execution runs in.
+  // child AgentRun in the organization the execution runs in.
   agentSlug: string;
   // The message handed to the child agent. agent_call.message is an expression
   // (is_expression), and a constant string is a valid expression; the default
@@ -554,7 +554,7 @@ export interface AgentCallWorkflowOptions {
 // followed by a downstream `afterAgent` set_vars. When the child agent gates on a
 // tool approval, the gate surfaces at THIS workflow's status.pending_approvals
 // (carrying child_agent_execution_id) on editions that emit the
-// child_approval_required signal; WorkflowExecution.submitApproval then forwards
+// child_approval_required signal; WorkflowRun.submitApproval then forwards
 // the decision to the child. The downstream set_vars completing is the proof the
 // child resumed and the workflow continued.
 //

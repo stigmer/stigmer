@@ -12,7 +12,7 @@
  * from, so the two lines subtract without a join) to the adapter's return;
  * the completion epilogue and the terminal persist that follow are the
  * client's own end-to-end, read at `subscribe`. Its counterpart is the cloud
- * proxy's `ProxyTiming` (`agentexecution/v1/usage.proto`): per model CALL,
+ * proxy's `ProxyTiming` (`agentrun/v1/usage.proto`): per model CALL,
  * server-side, what the provider did. Neither restates the other; a report
  * that wants both joins them by `execution_id`.
  *

@@ -13,8 +13,8 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionSchema, AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema, RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentRunSchema, AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema, RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -34,7 +34,7 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 const EXECUTION_ID = "aex_mcp_1";
 
 function deps(options: { readonly channels: boolean }): ResolutionDeps {
-  const status = create(AgentExecutionStatusSchema, {});
+  const status = create(AgentRunStatusSchema, {});
   return {
     input: { executionId: EXECUTION_ID, threadId: "", turnSeq: 0 },
     client: mockStigmerClient({
@@ -76,12 +76,12 @@ function args(options: { readonly agentLists?: { tools: string[]; disallowedTool
     mergedSkillRefs: [],
     cloudRepos: [],
   };
-  const execution = create(AgentExecutionSchema, {
+  const execution = create(AgentRunSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: EXECUTION_ID }),
-    spec: create(AgentExecutionSpecSchema, {
+    spec: create(AgentRunSpecSchema, {
       target: { case: "sessionId", value: "ses_1" },
     }),
-    status: create(AgentExecutionStatusSchema, {
+    status: create(AgentRunStatusSchema, {
       recalledMemories: options.attachments ? create(RecalledMemoriesSchema, { enabled: true }) : undefined,
     }),
   });

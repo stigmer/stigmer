@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { WorkflowRepairCard } from "../WorkflowRepairCard";
-import { useDiagnoseExecutionFlow } from "../useDiagnoseExecutionFlow";
+import { useDiagnoseRunFlow } from "../useDiagnoseRunFlow";
 
-vi.mock("../useDiagnoseExecutionFlow", () => ({
-  useDiagnoseExecutionFlow: vi.fn(),
+vi.mock("../useDiagnoseRunFlow", () => ({
+  useDiagnoseRunFlow: vi.fn(),
 }));
 
-vi.mock("../../execution/MessageThread", () => ({
+vi.mock("../../run/MessageThread", () => ({
   MessageThread: () => <div data-testid="message-thread" />,
 }));
 
@@ -18,12 +18,12 @@ vi.mock("../workflow-yaml-diff", () => ({
   ],
 }));
 
-const mockedUseDiagnoseExecutionFlow = vi.mocked(useDiagnoseExecutionFlow);
+const mockedUseDiagnoseExecutionFlow = vi.mocked(useDiagnoseRunFlow);
 
 const defaultFlow = {
   phase: "idle" as const,
-  completedExecutions: [] as unknown[],
-  activeExecution: null,
+  completedRuns: [] as unknown[],
+  activeRun: null,
   isStreaming: false,
   extractedYaml: null,
   explanation: null,
@@ -36,7 +36,7 @@ const defaultFlow = {
 };
 
 const defaultProps = {
-  executionId: "exec-123",
+  runId: "exec-123",
   org: "test-org",
   currentWorkflowYaml: "name: test",
   onApplyFix: vi.fn(),
@@ -45,7 +45,7 @@ const defaultProps = {
 
 describe("WorkflowRepairCard", () => {
   beforeEach(() => {
-    mockedUseDiagnoseExecutionFlow.mockReturnValue(defaultFlow as ReturnType<typeof useDiagnoseExecutionFlow>);
+    mockedUseDiagnoseExecutionFlow.mockReturnValue(defaultFlow as ReturnType<typeof useDiagnoseRunFlow>);
   });
 
   afterEach(cleanup);
@@ -54,7 +54,7 @@ describe("WorkflowRepairCard", () => {
     mockedUseDiagnoseExecutionFlow.mockReturnValue({
       ...defaultFlow,
       phase: "starting",
-    } as ReturnType<typeof useDiagnoseExecutionFlow>);
+    } as ReturnType<typeof useDiagnoseRunFlow>);
 
     render(<WorkflowRepairCard {...defaultProps} />);
 
@@ -66,9 +66,9 @@ describe("WorkflowRepairCard", () => {
       ...defaultFlow,
       phase: "streaming",
       isStreaming: true,
-      activeExecution: { id: "exec-1" } as any,
-      completedExecutions: [{ id: "exec-0" }] as any,
-    } as ReturnType<typeof useDiagnoseExecutionFlow>);
+      activeRun: { id: "exec-1" } as any,
+      completedRuns: [{ id: "exec-0" }] as any,
+    } as ReturnType<typeof useDiagnoseRunFlow>);
 
     render(<WorkflowRepairCard {...defaultProps} />);
 
@@ -82,8 +82,8 @@ describe("WorkflowRepairCard", () => {
       phase: "complete",
       extractedYaml: "name: fixed",
       explanation: "Fixed the retry config",
-      completedExecutions: [{ id: "exec-0" }] as any,
-    } as ReturnType<typeof useDiagnoseExecutionFlow>);
+      completedRuns: [{ id: "exec-0" }] as any,
+    } as ReturnType<typeof useDiagnoseRunFlow>);
 
     render(<WorkflowRepairCard {...defaultProps} />);
 
@@ -96,9 +96,9 @@ describe("WorkflowRepairCard", () => {
     mockedUseDiagnoseExecutionFlow.mockReturnValue({
       ...defaultFlow,
       phase: "ready",
-      completedExecutions: [{ id: "exec-0" }] as any,
+      completedRuns: [{ id: "exec-0" }] as any,
       extractedYaml: null,
-    } as ReturnType<typeof useDiagnoseExecutionFlow>);
+    } as ReturnType<typeof useDiagnoseRunFlow>);
 
     render(<WorkflowRepairCard {...defaultProps} />);
 
@@ -110,7 +110,7 @@ describe("WorkflowRepairCard", () => {
       ...defaultFlow,
       phase: "error",
       error: "Stream failed",
-    } as ReturnType<typeof useDiagnoseExecutionFlow>);
+    } as ReturnType<typeof useDiagnoseRunFlow>);
 
     render(<WorkflowRepairCard {...defaultProps} />);
 
@@ -128,9 +128,9 @@ describe("WorkflowRepairCard", () => {
       phase: "complete",
       extractedYaml: "fixed: yaml",
       explanation: "Applied a fix",
-      completedExecutions: [{ id: "exec-0" }] as any,
+      completedRuns: [{ id: "exec-0" }] as any,
       acceptFix,
-    } as ReturnType<typeof useDiagnoseExecutionFlow>);
+    } as ReturnType<typeof useDiagnoseRunFlow>);
 
     render(<WorkflowRepairCard {...defaultProps} onApplyFix={onApplyFix} />);
 
@@ -148,9 +148,9 @@ describe("WorkflowRepairCard", () => {
       phase: "complete",
       extractedYaml: "name: fixed",
       explanation: "Fixed it",
-      completedExecutions: [{ id: "exec-0" }] as any,
+      completedRuns: [{ id: "exec-0" }] as any,
       discardFix,
-    } as ReturnType<typeof useDiagnoseExecutionFlow>);
+    } as ReturnType<typeof useDiagnoseRunFlow>);
 
     render(<WorkflowRepairCard {...defaultProps} />);
 
@@ -163,8 +163,8 @@ describe("WorkflowRepairCard", () => {
     mockedUseDiagnoseExecutionFlow.mockReturnValue({
       ...defaultFlow,
       phase: "ready",
-      completedExecutions: [{ id: "exec-0" }] as any,
-    } as ReturnType<typeof useDiagnoseExecutionFlow>);
+      completedRuns: [{ id: "exec-0" }] as any,
+    } as ReturnType<typeof useDiagnoseRunFlow>);
 
     render(<WorkflowRepairCard {...defaultProps} />);
 
@@ -177,8 +177,8 @@ describe("WorkflowRepairCard", () => {
       ...defaultFlow,
       phase: "streaming",
       isStreaming: true,
-      activeExecution: { id: "exec-1" } as any,
-    } as ReturnType<typeof useDiagnoseExecutionFlow>);
+      activeRun: { id: "exec-1" } as any,
+    } as ReturnType<typeof useDiagnoseRunFlow>);
 
     render(<WorkflowRepairCard {...defaultProps} />);
 

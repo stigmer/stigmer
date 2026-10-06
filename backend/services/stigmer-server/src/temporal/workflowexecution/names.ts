@@ -24,7 +24,7 @@ export {
   PAUSE_SIGNAL_NAME,
   RESUME_SIGNAL_NAME,
   RELAY_SIGNAL_CHANNEL_NAME,
-} from "../../domain/workflowexecution/constants.js";
+} from "../../domain/workflowrun/constants.js";
 
 /**
  * The TS unified runner's child workflow type

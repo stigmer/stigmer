@@ -11,16 +11,16 @@ import {
   type KeyboardEvent,
 } from "react";
 import { cn } from "@stigmer/theme";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   FileChangeCaptureLevel,
   FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
 import { useObjectUrl } from "../attachment/useObjectUrl.js";
-import { ArtifactContentRenderer } from "../execution/ArtifactContentRenderer.js";
-import { FileChangeDiff } from "../execution/FileChangesView.js";
-import { useFileChangeContent } from "../execution/useFileChangeContent.js";
+import { ArtifactContentRenderer } from "../run/ArtifactContentRenderer.js";
+import { FileChangeDiff } from "../run/FileChangesView.js";
+import { useFileChangeContent } from "../run/useFileChangeContent.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import type { RevealTarget } from "../internal/useRevealLine.js";
@@ -105,7 +105,7 @@ export interface FileViewerHandle {
  * the shared {@link ArtifactContentRenderer} (markdown / YAML / JSON /
  * line-numbered text). Its state body deliberately mirrors
  * `ArtifactFileContent` in `execution/` (same skeleton, error, and
- * delegation), extended with the three states an execution artifact never
+ * delegation), extended with the three states a run artifact never
  * has — binary, too-large, and unsupported-substrate. The two are **not**
  * merged into one shared component: their surrounding chrome (an artifact's
  * copy/download/apply bar vs. this viewer's header) differs enough that a

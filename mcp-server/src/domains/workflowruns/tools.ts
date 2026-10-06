@@ -1,0 +1,259 @@
+// MCP tools for the WorkflowRun domain: start a run (run_workflow), observe
+// it (get_workflow_run, get_workflow_run_events — backed by
+// WorkflowRunQueryController.get/getEventLog), and answer its human_input
+// tasks (list_pending_approvals, submit_workflow_task_approval). The
+// observation tools predate the rest; they began as a port of the Go MCP
+// server and took the product's word, run, when the platform renamed
+// executions to runs.
+
+import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import {
+  type GetEventLogRequestSchema,
+  GetEventLogResponseSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
+import { z } from "zod";
+
+import { resolveToken, withClient, type BackendTarget } from "../client.js";
+import { toProtoJson } from "../marshal.js";
+import { rpcError } from "../rpcerr.js";
+import { textOrError } from "../toolresult.js";
+import { listPendingApprovals, submitWorkflowTaskApproval } from "./approvals.js";
+import { runWorkflow } from "./run.js";
+
+/** Register the workflow-run tools; returns the registered tool names. */
+export function registerWorkflowRunTools(server: McpServer, target: BackendTarget): string[] {
+  server.registerTool(
+    "run_workflow",
+    {
+      description:
+        "Start a workflow run (asynchronous). Returns immediately with the created run " +
+        "(wex_* ID) while the run continues in the background — poll get_workflow_run and " +
+        "get_workflow_run_events to observe progress and diagnose failures.",
+      inputSchema: {
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the workflow (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
+        workflow: z
+          .string()
+          .describe("Workflow slug — the unique identifier within the org (e.g. release-notes)."),
+        message: z
+          .string()
+          .optional()
+          .describe("Trigger message passed to the workflow. Omit to run with the default trigger."),
+        runtime_env: z
+          .record(z.string())
+          .optional()
+          .describe(
+            "Non-secret runtime environment values (name → value) injected into the run; only keys the workflow " +
+              "declares reach it. Every declared key not passed here is read from the personal Environment of the " +
+              "caller (the person the run belongs to), when the workflow is in the run's organization; a secret " +
+              "belongs there, never in this tool.",
+          ),
+      },
+    },
+    (args, extra) =>
+      textOrError(() =>
+        runWorkflow(target.serverAddress, resolveToken(extra, target.apiKey), {
+          org: args.org,
+          workflow: args.workflow,
+          message: args.message,
+          runtimeEnv: args.runtime_env,
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "get_workflow_run",
+    {
+      description:
+        "Get a workflow run's full status including phase, tasks, errors, cost, and timing. Use for diagnosing failed or running runs.",
+      inputSchema: {
+        run_id: z.string().describe("Workflow run ID (wex_* format)."),
+      },
+    },
+    (args, extra) =>
+      textOrError(() =>
+        getWorkflowRun(
+          target.serverAddress,
+          resolveToken(extra, target.apiKey),
+          args.run_id,
+        ),
+      ),
+  );
+
+  server.registerTool(
+    "get_workflow_run_events",
+    {
+      description:
+        "Get the event log for a workflow run. " +
+        "Returns task transitions, errors, cost checkpoints, and approval events. " +
+        "Use for deep diagnosis of run failures.",
+      inputSchema: {
+        run_id: z.string().describe("Workflow run ID (wex_* format)."),
+        task_name: z.string().optional().describe("Filter events by task name."),
+        page_size: z
+          .number()
+          .int()
+          .optional()
+          .describe("Number of events per page (default 100, max 500)."),
+      },
+    },
+    (args, extra) =>
+      textOrError(() =>
+        getWorkflowRunEvents(target.serverAddress, resolveToken(extra, target.apiKey), {
+          runId: args.run_id,
+          taskName: args.task_name,
+          pageSize: args.page_size,
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "list_pending_approvals",
+    {
+      description:
+        "List workflow tasks waiting for a human decision across an organization — an approvals " +
+        "inbox. Each entry carries the run ID, task name, requester, timeout, and the form " +
+        "schema when the task defines one; respond with submit_workflow_task_approval. " +
+        "(Agent-run approvals are not listed here — they surface in get_agent_run's " +
+        "status.pending_approvals.)",
+      inputSchema: {
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug to scope the query (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
+        page_size: z
+          .number()
+          .int()
+          .optional()
+          .describe("Maximum entries per page (default 20, max 100)."),
+        page_token: z
+          .string()
+          .optional()
+          .describe("Pagination token from a previous response's next_page_token."),
+      },
+    },
+    (args, extra) =>
+      textOrError(() =>
+        listPendingApprovals(target.serverAddress, resolveToken(extra, target.apiKey), {
+          org: args.org,
+          pageSize: args.page_size,
+          pageToken: args.page_token,
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "submit_workflow_task_approval",
+    {
+      description:
+        "Submit a reviewer decision for a workflow human_input task that is waiting for a signal. " +
+        "outcome must match one of the task's configured outcome names (default: approve or deny). " +
+        "When the task defines a form_schema (see list_pending_approvals), provide matching " +
+        "form_data. Returns the updated workflow run.",
+      inputSchema: {
+        run_id: z.string().describe("Workflow run ID (wex_* format)."),
+        task_name: z.string().describe("Name of the waiting human_input task."),
+        outcome: z
+          .string()
+          .describe(
+            "Decision outcome. Must match a configured outcome name of the task " +
+              "(e.g. approve, deny, needs_revision); approve/deny when none are configured.",
+          ),
+        comment: z.string().optional().describe("Reviewer comment, stored in the audit trail."),
+        form_data: z
+          .record(z.unknown())
+          .optional()
+          .describe("Response form data conforming to the task's form_schema, when it defines one."),
+      },
+    },
+    (args, extra) =>
+      textOrError(() =>
+        submitWorkflowTaskApproval(target.serverAddress, resolveToken(extra, target.apiKey), {
+          runId: args.run_id,
+          taskName: args.task_name,
+          outcome: args.outcome,
+          comment: args.comment,
+          formData: args.form_data,
+        }),
+      ),
+  );
+
+  return [
+    "run_workflow",
+    "get_workflow_run",
+    "get_workflow_run_events",
+    "list_pending_approvals",
+    "submit_workflow_task_approval",
+  ];
+}
+
+/** Fetch a single workflow run by id. */
+async function getWorkflowRun(
+  serverAddress: string,
+  token: string,
+  runId: string,
+): Promise<string> {
+  if (runId === "") {
+    throw new Error("run_id is required");
+  }
+  return withClient(
+    WorkflowRunQueryController,
+    serverAddress,
+    token,
+    async (client, callOptions) => {
+      try {
+        const run = await client.get({ value: runId }, callOptions);
+        return toProtoJson(WorkflowRunSchema, run);
+      } catch (err) {
+        throw rpcError(err, `workflow run "${runId}"`);
+      }
+    },
+  );
+}
+
+interface EventLogArgs {
+  readonly runId: string;
+  readonly taskName?: string;
+  readonly pageSize?: number;
+}
+
+/** Fetch the event log for a run, optionally filtered and paginated. */
+async function getWorkflowRunEvents(
+  serverAddress: string,
+  token: string,
+  args: EventLogArgs,
+): Promise<string> {
+  if (args.runId === "") {
+    throw new Error("run_id is required");
+  }
+  return withClient(
+    WorkflowRunQueryController,
+    serverAddress,
+    token,
+    async (client, callOptions) => {
+      const req: MessageInitShape<typeof GetEventLogRequestSchema> = {
+        runId: args.runId,
+        taskName: args.taskName ?? "",
+      };
+      // Forward page_size only when set, letting the server apply its default.
+      if ((args.pageSize ?? 0) > 0) {
+        req.pageSize = args.pageSize;
+      }
+      try {
+        const resp = await client.getEventLog(req, callOptions);
+        return toProtoJson(GetEventLogResponseSchema, resp);
+      } catch (err) {
+        throw rpcError(err, `event log for run "${args.runId}"`);
+      }
+    },
+  );
+}

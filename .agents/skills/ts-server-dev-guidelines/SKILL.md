@@ -98,8 +98,8 @@ extends a chain only through the registered points; it never patches a step.
   keeps its vitest shape because no other package runs it.
 - Status-transition hooks fire from every phase-transition persist site, not
   from one chokepoint. The exhaustive list of sites is the header of
-  `backend/services/stigmer-server/src/domain/agentexecution/status-observers.ts`;
-  a new phase write calls `notifyStatusObservers` and extends that list in the
+  `backend/services/stigmer-server/src/domain/agentrun/status-observers.ts`; a
+  new phase write calls `notifyStatusObservers` and extends that list in the
   same change. Observers fire only on an actual phase change, after the persist
   and before any broadcast; an observer's failure is logged, never a failed
   transition.

@@ -1,6 +1,6 @@
 An ExecutionContext holds ephemeral runtime configuration and secrets for a
-single AgentExecution or WorkflowExecution. The execution engine creates it at
-start and deletes it when the execution completes.
+single AgentRun or WorkflowRun. The execution engine creates it at
+start and deletes it when the run completes.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1

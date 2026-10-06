@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -74,14 +74,14 @@ export const PendingApprovalsWidget = memo(function PendingApprovalsWidget({
 
             return (
               <li
-                key={`${approval.executionId}-${approval.taskName}`}
+                key={`${approval.runId}-${approval.taskName}`}
                 className="stg:rounded-lg stg:border stg:border-border stg:px-3 stg:py-2.5"
               >
                 <div className="stg:flex stg:items-start stg:justify-between stg:gap-2">
                   <div className="stg:min-w-0 stg:flex-1">
                     <div className="stg:flex stg:items-center stg:gap-1.5">
                       <p className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
-                        {approval.workflowName || approval.executionId}
+                        {approval.workflowName || approval.runId}
                       </p>
                       {approval.uiHint && (
                         <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
@@ -99,7 +99,7 @@ export const PendingApprovalsWidget = memo(function PendingApprovalsWidget({
                   {onReviewClick && (
                     <button
                       type="button"
-                      onClick={() => onReviewClick(approval.executionId)}
+                      onClick={() => onReviewClick(approval.runId)}
                       className="stg:shrink-0 stg:rounded-md stg:bg-primary stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
                     >
                       Review

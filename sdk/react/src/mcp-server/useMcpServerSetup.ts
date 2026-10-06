@@ -37,7 +37,7 @@ export interface SubmitMcpEnvVarsOptions {
    *
    * When `false`, the values are collected as `pendingRuntimeEnv` for
    * this session only — no data is persisted and no network calls are
-   * made. The runtime env is passed to execution creation.
+   * made. The runtime env is passed to run creation.
    *
    * @default true
    */
@@ -119,7 +119,7 @@ export interface UseMcpServerSetupReturn {
    * submitted with `saveForFuture: false`.
    *
    * Consumed imperatively at session creation time and merged into
-   * the execution's `runtimeEnv`. Cleared on {@link reset}.
+   * the run's `runtimeEnv`. Cleared on {@link reset}.
    */
   readonly pendingRuntimeEnv: Record<string, EnvVarInput>;
 
@@ -150,7 +150,7 @@ export interface UseMcpServerSetupReturn {
  * - **Saved** — secrets are persisted to the personal environment for
  *   reuse across sessions.
  * - **One-time** — secrets are collected as `pendingRuntimeEnv` for a
- *   single execution, with no data persisted.
+ *   single run, with no data persisted.
  *
  * State is managed by `useReducer(mcpServerSetupReducer)` — a per-server
  * state machine with four phases:

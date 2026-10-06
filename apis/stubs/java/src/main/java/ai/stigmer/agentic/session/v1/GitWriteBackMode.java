@@ -25,7 +25,7 @@ public enum GitWriteBackMode
   GIT_WRITE_BACK_MODE_UNSPECIFIED(0),
   /**
    * <pre>
-   * Create a branch and pull request from the agent's file changes after execution completes.
+   * Create a branch and pull request from the agent's file changes after the run completes.
    * </pre>
    *
    * <code>GIT_WRITE_BACK_BRANCH_AND_PR = 1;</code>
@@ -53,7 +53,7 @@ public enum GitWriteBackMode
   public static final int GIT_WRITE_BACK_MODE_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Create a branch and pull request from the agent's file changes after execution completes.
+   * Create a branch and pull request from the agent's file changes after the run completes.
    * </pre>
    *
    * <code>GIT_WRITE_BACK_BRANCH_AND_PR = 1;</code>

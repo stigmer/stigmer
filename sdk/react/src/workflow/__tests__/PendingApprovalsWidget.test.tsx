@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import { PendingApprovalsWidget } from "../PendingApprovalsWidget";
 
 function makeApproval(
   overrides: MessageInitShape<typeof PendingApprovalSchema> = {},
 ): PendingApproval {
   return create(PendingApprovalSchema, {
-    executionId: "wfx-1",
+    runId: "wfx-1",
     workflowName: "Article Pipeline",
     taskName: "reviewDraft",
     requester: "usr-alice",

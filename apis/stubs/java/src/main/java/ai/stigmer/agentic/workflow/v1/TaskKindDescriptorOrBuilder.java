@@ -254,7 +254,7 @@ public interface TaskKindDescriptorOrBuilder extends
   /**
    * <pre>
    * JSON Schema describing the task's output shape.
-   * Serialized as a JSON string. Used by the execution viewer to
+   * Serialized as a JSON string. Used by the run viewer to
    * render typed output inspection panels.
    * </pre>
    *
@@ -265,7 +265,7 @@ public interface TaskKindDescriptorOrBuilder extends
   /**
    * <pre>
    * JSON Schema describing the task's output shape.
-   * Serialized as a JSON string. Used by the execution viewer to
+   * Serialized as a JSON string. Used by the run viewer to
    * render typed output inspection panels.
    * </pre>
    *

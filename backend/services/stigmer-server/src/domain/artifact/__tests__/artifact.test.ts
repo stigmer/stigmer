@@ -110,10 +110,10 @@ function artifactInput(overrides?: {
     overrides?.agentExecutionId !== undefined ||
     overrides?.workflowExecutionId !== undefined
       ? {
-          agentExecutionId: overrides.agentExecutionId ?? "",
-          workflowExecutionId: overrides.workflowExecutionId ?? "",
+          agentRunId: overrides.agentExecutionId ?? "",
+          workflowRunId: overrides.workflowExecutionId ?? "",
         }
-      : { agentExecutionId: `aexec_01test${counter}` };
+      : { agentRunId: `aexec_01test${counter}` };
   return {
     spec: {
       displayName: `artifact-${counter}.txt`,
@@ -175,12 +175,12 @@ describe("artifact domain — create & content addressing", () => {
   });
 
   it("derives the org from a REAL stored source execution (the proxy trick)", async () => {
-    // Seed a workflow_execution row carrying an org. The row is written
+    // Seed a workflow_run row carrying an org. The row is written
     // through the Artifact schema — the SAME wire-layout proxy the reader
     // uses (all resources share metadata at field 3).
     const executionId = "wexec_01orgproxy";
     await server.store.saveResource(
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
       executionId,
       ArtifactSchema,
       create(ArtifactSchema, {
@@ -199,6 +199,18 @@ describe("artifact domain — create & content addressing", () => {
       artifactInput({ agentExecutionId: "aexec_01neverexisted" }),
     );
     expect(created.metadata?.org).toBe("");
+  });
+
+  it("refuses a source naming neither a workflow run nor an agent run", async () => {
+    // The source message is present (its field-level `required` holds), so
+    // the refusal is the domain's own: an artifact must link to its run.
+    const err = await grpcError(() =>
+      command.create(artifactInput({ agentExecutionId: "", workflowExecutionId: "" })),
+    );
+    expect(err.code).toBe(Code.InvalidArgument);
+    expect(err.rawMessage).toBe(
+      "spec.source must include workflow_run_id or agent_run_id",
+    );
   });
 
   it("rejects content over the 50MB domain cap with ResourceExhausted (unit-level arm)", async () => {
@@ -250,7 +262,7 @@ describe("artifact domain — create & content addressing", () => {
 });
 
 describe("artifact domain — read surfaces", () => {
-  it("get resolves by id; listByExecution filters on the matching source arm", async () => {
+  it("get resolves by id; listByRun filters on the matching source arm", async () => {
     const executionId = `wexec_01list${++counter}`;
     const created = await command.create(
       artifactInput({ workflowExecutionId: executionId }),
@@ -259,24 +271,24 @@ describe("artifact domain — read surfaces", () => {
     const fetched = await query.get({ value: created.metadata!.id });
     expect(fetched.status?.contentHash).toBe(created.status?.contentHash);
 
-    const listed = await query.listByExecution({
-      workflowExecutionId: executionId,
+    const listed = await query.listByRun({
+      workflowRunId: executionId,
     });
     expect(listed.totalPages).toBe(1);
     expect(listed.entries).toHaveLength(1);
 
     // The OTHER source arm must not match the same id.
-    const other = await query.listByExecution({
-      agentExecutionId: executionId,
+    const other = await query.listByRun({
+      agentRunId: executionId,
     });
     expect(other.entries).toHaveLength(0);
   });
 
-  it("listByExecution without any filter answers InvalidArgument", async () => {
-    const err = await grpcError(() => query.listByExecution({}));
+  it("listByRun without any filter answers InvalidArgument", async () => {
+    const err = await grpcError(() => query.listByRun({}));
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toBe(
-      "workflow_execution_id or agent_execution_id is required",
+      "workflow_run_id or agent_run_id is required",
     );
   });
 

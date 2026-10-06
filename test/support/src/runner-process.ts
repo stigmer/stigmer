@@ -31,11 +31,11 @@
 //   substrate never reads the user's gitconfig — it authors its snapshot
 //   objects with an explicit identity — so a bare HOME is safe for file review.
 //
-// For a data-only set_vars WorkflowExecution this needs no LLM, MCP, API key,
+// For a data-only set_vars WorkflowRun this needs no LLM, MCP, API key,
 // proxy, or object storage: jq runs in-process and the only egress is gRPC
 // back to the server. So the bare env is the default.
 //
-// An AgentExecution, by contrast, runs an LLM loop. When `proxy` is supplied the
+// An AgentRun, by contrast, runs an LLM loop. When `proxy` is supplied the
 // runner is pointed at the mock LLM proxy (a base-URL override via
 // STIGMER_PROXY_ENDPOINT). Configuring a proxy flips one runner default —
 // artifact storage would default to `proxy` against the mock (which serves no
@@ -99,7 +99,7 @@ export function runnerHomeEnv(homeDir: string): Record<string, string> {
 }
 
 // Hermetic LLM wiring for agent executions. Omit it entirely for the data-only
-// WorkflowExecution path, which must stay LLM-free.
+// WorkflowRun path, which must stay LLM-free.
 export interface RunnerProxyOptions {
   // Base URL of the mock LLM proxy (becomes STIGMER_PROXY_ENDPOINT). The runner
   // appends the provider path; the proxy serves canned Anthropic SSE.
@@ -255,7 +255,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
       // Avoid a boot-time MCP backfill network call (hermetic test detail).
       SKIP_MCP_CONNECT_BACKFILL: "true",
       // Hermetic LLM wiring, only when an agent execution needs it. Absent for the
-      // data-only WorkflowExecution path, which stays fully offline. When present:
+      // data-only WorkflowRun path, which stays fully offline. When present:
       // - STIGMER_PROXY_ENDPOINT/STIGMER_TOKEN route LLM calls to the mock proxy;
       // - artifacts go to a local on-disk store (a configured proxy would
       //   otherwise default artifacts to presign calls against the mock and

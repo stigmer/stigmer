@@ -4,8 +4,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   GetOrgUsageReportInputSchema,
   type GetOrgUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import type { DateRange } from "./date-range.js";
@@ -35,7 +35,7 @@ export interface UseOrgUsageReportReturn {
 /**
  * Data hook that fetches the organization-level usage report.
  *
- * Calls `stigmer.agentExecution.getOrgUsageReport` with the provided
+ * Calls `stigmer.agentRun.getOrgUsageReport` with the provided
  * org ID and date range. The server returns aggregated totals, a
  * per-model breakdown, the top agents by cost, and a daily cost trend.
  *
@@ -67,7 +67,7 @@ export function useOrgUsageReport(
   const { data: report, isLoading, isRefetching, error, refetch } = useFetch(
     org
       ? () =>
-          stigmer.agentExecution.getOrgUsageReport(
+          stigmer.agentRun.getOrgUsageReport(
             create(GetOrgUsageReportInputSchema, {
               org,
               fromDate: dateRange.from,

@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/schedule/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_schedule_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvc3RhdHVzLnByb3RvEh5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEihQIKDlNjaGVkdWxlU3RhdHVzEjAKDG5leHRfZmlyZV9hdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMbGFzdF9maXJlX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIZChFsYXN0X2V4ZWN1dGlvbl9pZBgDIAEoCRIcChRjb25zZWN1dGl2ZV9mYWlsdXJlcxgEIAEoBRIVCg1wYXVzZWRfcmVhc29uGAUgASgJEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvc3RhdHVzLnByb3RvEh5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEi/wEKDlNjaGVkdWxlU3RhdHVzEjAKDG5leHRfZmlyZV9hdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMbGFzdF9maXJlX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtsYXN0X3J1bl9pZBgDIAEoCRIcChRjb25zZWN1dGl2ZV9mYWlsdXJlcxgEIAEoBRIVCg1wYXVzZWRfcmVhc29uGAUgASgJEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
 
 /**
  * ScheduleStatus contains system-managed state for a schedule.
@@ -38,11 +38,11 @@ export type ScheduleStatus = Message<"ai.stigmer.agentic.schedule.v1.ScheduleSta
   lastFireAt?: Timestamp;
 
   /**
-   * ID of the agent execution created by the most recent fire.
+   * ID of the agent run created by the most recent fire.
    *
-   * @generated from field: string last_execution_id = 3;
+   * @generated from field: string last_run_id = 3;
    */
-  lastExecutionId: string;
+  lastRunId: string;
 
   /**
    * Number of consecutive failed runs. A successful run resets it.

@@ -23,7 +23,7 @@ export async function navigateToWorkflowDetail(
  * Click the Run button in the detail action bar and wait for the dialog.
  * Assumes the page is already on a workflow detail view with a loaded workflow.
  *
- * `exact` matters: once the workflow has executions, the header also
+ * `exact` matters: once the workflow has runs, the header also
  * renders a "View latest run" button, and getByRole's default substring
  * name matching would strict-mode-collide on "Run".
  */
@@ -56,11 +56,11 @@ export async function fillRunDialog(
 }
 
 /**
- * Submit the Run dialog and wait for navigation to the execution page.
- * The console calls `router.push(/executions/${id})` on success —
+ * Submit the Run dialog and wait for navigation to the run page.
+ * The console calls `router.push(/runs/${id})` on success —
  * this is a full Next.js navigation (page remount), not pushState.
  */
-export async function submitRunAndWaitForExecution(page: Page): Promise<void> {
+export async function submitRunAndWaitForRunPage(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Run Workflow" }).click();
-  await page.waitForURL(/\/executions\/wex_/, { timeout: 15_000 });
+  await page.waitForURL(/\/runs\/wex_/, { timeout: 15_000 });
 }

@@ -75,7 +75,7 @@ This is a Layer 1 building-block hook for the **Environment Flow**
 — persistent credential storage via Environment resources. For the
 managed "personal environment" convenience, see
 [`usePersonalEnvironment`](#usepersonalenvironment). For ephemeral per-execution secrets,
-see the Execution Flow via [`useCreateAgentExecution`](/docs/sdk/react/execution#usecreateagentexecution) with
+see the Run Flow via [`useCreateAgentRun`](/docs/sdk/react/run#usecreateagentrun) with
 `runtimeEnv`.
 
 **Signature**
@@ -682,7 +682,7 @@ all fields are non-empty before allowing submission.
 
 A "Save for future runs" toggle (on by default) lets the user
 choose between persisting secrets to their personal environment
-or using them for a single execution only. The toggle state is
+or using them for a single run only. The toggle state is
 reported via `onSubmit` so the caller can route to the
 appropriate codepath.
 
@@ -833,7 +833,7 @@ extend their own `poolKeys`.
 ### ToolCredentialsReadiness
 
 Readiness of a connection's tool credentials for its visitors'
-executions. Shared vocabulary for every connection kind that binds
+runs. Shared vocabulary for every connection kind that binds
 `environment_refs` (shares, channels):
 
 - `na` — nothing to check: the caller decided the check does not

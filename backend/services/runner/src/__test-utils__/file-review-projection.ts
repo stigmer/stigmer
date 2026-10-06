@@ -5,7 +5,7 @@
  *
  * Production: the runner authors BASELINE_CAPTURED and CANDIDATE_CAPTURED
  * onto `status.file_review_event_stream`; the server folds the stream into
- * `status.file_change_sets` (`stigmer-server/src/domain/agentexecution/
+ * `status.file_change_sets` (`stigmer-server/src/domain/agentrun/
  * filereview/project.ts` `applyEvent` and `deriveStatusAfterCandidate`);
  * `SubmitFileDecision` appends FILE_DECIDED events and re-folds; the runtime's
  * reinvocation reads the DECIDED sets back and reconciles the tree
@@ -22,20 +22,20 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionOrigin,
   FileDecisionScope,
   FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   FileChangeSetSchema,
   FileDecisionSchema,
   type FileChangeSet,
   type FileReviewEvent,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 
 /** Fold the ledger into change sets, in first-seen order (`project.ts` `projectFileChangeSets`). */
 export function projectFileChangeSets(events: readonly FileReviewEvent[]): FileChangeSet[] {
@@ -120,7 +120,7 @@ export interface FileReviewVerdicts {
  * the mistake). Returns the number of decisions written.
  */
 export function decideCapturedFileChanges(
-  status: AgentExecutionStatus,
+  status: AgentRunStatus,
   verdicts: FileReviewVerdicts,
   decidedAt: string,
 ): number {

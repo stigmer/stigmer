@@ -354,7 +354,7 @@ Generic reference to any API resource by org and slug.
 | `organization`         |             |
 | `platform`             |             |
 | `agent`                |             |
-| `agent_execution`      |             |
+| `agent_run`            |             |
 | `session`              |             |
 | `skill`                |             |
 | `mcp_server`           |             |
@@ -362,7 +362,7 @@ Generic reference to any API resource by org and slug.
 | `agent_channel`        |             |
 | `channel_app`          |             |
 | `workflow`             |             |
-| `workflow_execution`   |             |
+| `workflow_run`         |             |
 | `environment`          |             |
 | `artifact`             |             |
 | `execution_context`    |             |
@@ -377,10 +377,10 @@ Generic reference to any API resource by org and slug.
 
 ```json
 {
-  "description": "Agent execution result with dual-channel output.",
+  "description": "Agent run result with dual-channel output.",
   "properties": {
-    "agent_execution_id": {
-      "description": "Execution ID for drill-down into agent trace.",
+    "agent_run_id": {
+      "description": "Agent run ID for drill-down into the agent trace.",
       "type": "string"
     },
     "final_text": {

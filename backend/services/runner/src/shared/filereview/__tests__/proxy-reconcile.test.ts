@@ -22,21 +22,21 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { clone, create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   FileDecisionSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
   FileCaptureClass,
   FileDecisionAction,
   FileDecisionScope,
   FileChangeSetStatus,
   FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ProxyArtifactStorage } from "../../artifact-storage.js";
 import { casBlobReader, casManifestKey } from "../cas-substrate.js";
 import {
@@ -142,15 +142,15 @@ async function startMockProxy(): Promise<MockProxy> {
 
 // ─── Change-set helpers (mirror the server projection: DECIDED set + snapshot) ─
 
-function eventsOfType(status: AgentExecutionStatus, type: FileReviewEventType) {
+function eventsOfType(status: AgentRunStatus, type: FileReviewEventType) {
   return (status.fileReviewEventStream?.events ?? []).filter((e) => e.eventType === type);
 }
-function candidateChanges(status: AgentExecutionStatus): CapturedFileChange[] {
+function candidateChanges(status: AgentRunStatus): CapturedFileChange[] {
   const ev = eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)[0];
   return ev?.payload.case === "candidateCaptured" ? ev.payload.value.changes : [];
 }
 function decidedChangeSet(
-  status: AgentExecutionStatus,
+  status: AgentRunStatus,
   decisionByPath: Record<string, FileDecisionAction>,
 ) {
   const changes = candidateChanges(status).map((c) => clone(CapturedFileChangeSchema, c));
@@ -203,7 +203,7 @@ describe("proxy-mode file-review reconcile (real ProxyArtifactStorage)", () => {
       await git(["add", "-A"]);
       await git(["commit", "-q", "-m", "initial"]);
 
-      const status = create(AgentExecutionStatusSchema, {});
+      const status = create(AgentRunStatusSchema, {});
       const baseline = await captureBaselineToLedger({
         status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
       });
@@ -237,7 +237,7 @@ describe("proxy-mode file-review reconcile (real ProxyArtifactStorage)", () => {
     const ws = await mkdtemp(join(tmpdir(), "stigmer-proxy-cas-"));
     try {
       const enc = (s: string) => new TextEncoder().encode(s);
-      const status = create(AgentExecutionStatusSchema, {});
+      const status = create(AgentRunStatusSchema, {});
       const baseline = await captureBaselineToLedger({
         status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
         harnessId: HARNESS, gitWorkspace: false,

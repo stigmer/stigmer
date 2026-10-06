@@ -10,7 +10,7 @@
 // snake_case keys).
 
 import { create } from "@bufbuild/protobuf";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   GetAgentUsageReportInputSchema,
   GetAgentUsageReportOutputSchema,
@@ -21,8 +21,8 @@ import {
   type GetAgentUsageReportOutput,
   type GetOrgUsageReportOutput,
   type GetSessionUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { UsageReportAggregate } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { UsageReportAggregate } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import type { OutputFormat } from "../output/index.js";
 import { renderProtoJson, renderProtoYaml, renderTable } from "../output/index.js";
@@ -35,7 +35,7 @@ export interface DateRange {
 // --- Fetch ---
 
 export async function getSessionUsageReport(client: Stigmer, sessionId: string): Promise<GetSessionUsageReportOutput> {
-  return client.agentExecution.getSessionUsageReport(create(GetSessionUsageReportInputSchema, { sessionId }));
+  return client.agentRun.getSessionUsageReport(create(GetSessionUsageReportInputSchema, { sessionId }));
 }
 
 export async function getAgentUsageReport(
@@ -44,7 +44,7 @@ export async function getAgentUsageReport(
   org: string,
   range: DateRange,
 ): Promise<GetAgentUsageReportOutput> {
-  return client.agentExecution.getAgentUsageReport(
+  return client.agentRun.getAgentUsageReport(
     create(GetAgentUsageReportInputSchema, { agentId, org, fromDate: range.from, toDate: range.to }),
   );
 }
@@ -54,7 +54,7 @@ export async function getOrgUsageReport(
   org: string,
   range: DateRange,
 ): Promise<GetOrgUsageReportOutput> {
-  return client.agentExecution.getOrgUsageReport(
+  return client.agentRun.getOrgUsageReport(
     create(GetOrgUsageReportInputSchema, { org, fromDate: range.from, toDate: range.to }),
   );
 }
@@ -66,11 +66,11 @@ export function renderSessionUsage(report: GetSessionUsageReportOutput, format: 
   if (format === "yaml") return renderProtoYaml(GetSessionUsageReportOutputSchema, report);
 
   const lines: string[] = ["", `Session: ${report.sessionId}`];
-  const period = formatDateRange(report.firstExecutionAt, report.lastExecutionAt);
+  const period = formatDateRange(report.firstRunAt, report.lastRunAt);
   if (period !== "") {
-    lines.push(`Period:  ${period} (${report.executionCount} executions)`);
+    lines.push(`Period:  ${period} (${report.runCount} runs)`);
   } else {
-    lines.push(`Executions: ${report.executionCount}`);
+    lines.push(`Runs: ${report.runCount}`);
   }
   lines.push("");
 
@@ -107,9 +107,9 @@ export function renderSessionUsage(report: GetSessionUsageReportOutput, format: 
   const cacheRate = formatCacheHitRate(report.totalUsage);
   if (cacheRate !== "") lines.push(`Cache hit rate: ${cacheRate}`);
 
-  if (report.executions.length > 0) {
+  if (report.runs.length > 0) {
     lines.push("");
-    const rows = report.executions.map((exec, i) => [
+    const rows = report.runs.map((exec, i) => [
       String(i + 1),
       formatDate(exec.startedAt),
       formatTokenCount(exec.inputTokens + exec.outputTokens),
@@ -141,11 +141,11 @@ export function renderAgentUsage(
   }
   lines.push("");
   lines.push(`  Sessions:     ${report.totalSessions}`);
-  lines.push(`  Executions:   ${report.totalExecutions}`);
+  lines.push(`  Runs:         ${report.totalRuns}`);
   lines.push(`  Total cost:   ${formatCost(report.totalBillableCostMicros)}`);
-  if (report.totalExecutions > 0) {
-    const avg = report.totalBillableCostMicros / BigInt(report.totalExecutions);
-    lines.push(`  Avg/exec:     ${formatCost(avg)}`);
+  if (report.totalRuns > 0) {
+    const avg = report.totalBillableCostMicros / BigInt(report.totalRuns);
+    lines.push(`  Avg/run:      ${formatCost(avg)}`);
   }
   lines.push("");
 
@@ -163,11 +163,11 @@ export function renderAgentUsage(
   if (report.sessions.length > 0) {
     const rows = report.sessions.map((sess, i) => [
       String(i + 1),
-      formatDateRange(sess.firstExecutionAt, sess.lastExecutionAt),
-      String(sess.executionCount),
+      formatDateRange(sess.firstRunAt, sess.lastRunAt),
+      String(sess.runCount),
       formatCost(sess.billableCostMicros),
     ]);
-    lines.push(renderTable(["#", "PERIOD", "EXECUTIONS", "COST"], rows));
+    lines.push(renderTable(["#", "PERIOD", "RUNS", "COST"], rows));
   }
 
   lines.push("");
@@ -187,7 +187,7 @@ export function renderOrgUsage(
   const lines: string[] = ["", "Organization Usage Report", `Period: ${formatInputDateRange(range.from, range.to)}`, ""];
   lines.push(`  Agents:       ${report.totalAgents}`);
   lines.push(`  Sessions:     ${report.totalSessions}`);
-  lines.push(`  Executions:   ${report.totalExecutions}`);
+  lines.push(`  Runs:         ${report.totalRuns}`);
   lines.push(`  Total cost:   ${formatCost(report.totalBillableCostMicros)}`);
   lines.push("");
 
@@ -205,20 +205,20 @@ export function renderOrgUsage(
   if (report.topAgentsByCost.length > 0) {
     const rows = report.topAgentsByCost.map((a) => [
       a.agentName === "" ? a.agentId : a.agentName,
-      String(a.executionCount),
+      String(a.runCount),
       formatCost(a.billableCostMicros),
       formatShare(a.billableCostMicros, totalCost),
     ]);
-    lines.push(renderTable(["AGENT", "EXECUTIONS", "COST", "SHARE"], rows), "");
+    lines.push(renderTable(["AGENT", "RUNS", "COST", "SHARE"], rows), "");
   }
 
   if (report.dailyCosts.length > 0) {
     const rows = report.dailyCosts.map((day) => [
       day.date,
-      String(day.executionCount),
+      String(day.runCount),
       formatCost(day.billableCostMicros),
     ]);
-    lines.push(renderTable(["DATE", "EXECUTIONS", "COST"], rows));
+    lines.push(renderTable(["DATE", "RUNS", "COST"], rows));
   }
 
   lines.push("");
@@ -280,21 +280,21 @@ function formatInputDateRange(from: string, to: string): string {
 }
 
 // Matches Go's mapPhaseToString (snake_case phase labels for the usage table).
-function mapPhaseToString(phase: ExecutionPhase): string {
+function mapPhaseToString(phase: RunPhase): string {
   switch (phase) {
-    case ExecutionPhase.EXECUTION_PENDING:
+    case RunPhase.RUN_PENDING:
       return "pending";
-    case ExecutionPhase.EXECUTION_IN_PROGRESS:
+    case RunPhase.RUN_IN_PROGRESS:
       return "in_progress";
-    case ExecutionPhase.EXECUTION_COMPLETED:
+    case RunPhase.RUN_COMPLETED:
       return "completed";
-    case ExecutionPhase.EXECUTION_FAILED:
+    case RunPhase.RUN_FAILED:
       return "failed";
-    case ExecutionPhase.EXECUTION_CANCELLED:
+    case RunPhase.RUN_CANCELLED:
       return "cancelled";
-    case ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
+    case RunPhase.RUN_WAITING_FOR_APPROVAL:
       return "waiting_for_approval";
-    case ExecutionPhase.EXECUTION_TERMINATED:
+    case RunPhase.RUN_TERMINATED:
       return "terminated";
     default:
       return "unknown";

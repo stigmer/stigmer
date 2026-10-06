@@ -24,7 +24,7 @@ export interface SharedSessionFields {
   readonly subject?: string;
   /** MCP server configurations to include for tool access. */
   readonly mcpServerUsages?: McpServerUsageInput[];
-  /** Skill references to enable for executions in this session. */
+  /** Skill references to enable for runs in this session. */
   readonly skillRefs?: ResourceRef[];
   /**
    * Custom key-value pairs stored on `SessionSpec.metadata`.
@@ -55,10 +55,10 @@ export interface SharedSessionFields {
    */
   readonly sessionContext?: string;
   /**
-   * Execution harness for this session.
+   * Run harness for this session.
    *
    * Determines which execution engine processes agent activities.
-   * Immutable after the first execution runs. Defaults to `"native"`.
+   * Immutable after the first run runs. Defaults to `"native"`.
    */
   readonly harness?: HarnessOption;
   /**
@@ -70,7 +70,7 @@ export interface SharedSessionFields {
    * - `undefined` — Server decides based on deployment context
    *   (LOCAL for OSS, CLOUD for managed).
    *
-   * Immutable after the first execution runs.
+   * Immutable after the first run runs.
    */
   readonly executionTarget?: ExecutionTargetOption;
 }
@@ -119,7 +119,7 @@ export interface UseCreateSessionReturn {
  * resolves it and pins the version on `status`.
  *
  * This hook maps 1:1 to the Session aggregate. To start the first
- * execution within the session, compose with {@link useCreateAgentExecution}.
+ * run within the session, compose with {@link useCreateAgentRun}.
  *
  * @example
  * ```tsx
@@ -165,7 +165,7 @@ export function useCreateSession(): UseCreateSessionReturn {
 
         // Worker lifecycle is owned by the session view (useSessionConversation
         // attaches on open / detaches on close). The new-session flow attaches
-        // eagerly for the first execution; creation alone needs no worker.
+        // eagerly for the first run; creation alone needs no worker.
         return { sessionId };
       } catch (err) {
         setError(toError(err));

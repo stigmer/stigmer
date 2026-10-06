@@ -34,8 +34,8 @@ describe("useTauriRunnerAdapter", () => {
 
     expect(adapter.onSessionOpened).toBeInstanceOf(Function);
     expect(adapter.onSessionClosed).toBeInstanceOf(Function);
-    expect(adapter.onWorkflowExecutionCreated).toBeInstanceOf(Function);
-    expect(adapter.onWorkflowExecutionTerminated).toBeInstanceOf(Function);
+    expect(adapter.onWorkflowRunCreated).toBeInstanceOf(Function);
+    expect(adapter.onWorkflowRunTerminated).toBeInstanceOf(Function);
   });
 
   it("onSessionOpened delegates to addSession", async () => {
@@ -54,17 +54,17 @@ describe("useTauriRunnerAdapter", () => {
     expect(mockRemoveSession).toHaveBeenCalledWith("ses-123");
   });
 
-  it("onWorkflowExecutionCreated delegates to addWorkflowExecution", async () => {
+  it("onWorkflowRunCreated delegates to addWorkflowExecution", async () => {
     const { result } = renderHook(() => useTauriRunnerAdapter());
-    await result.current.onWorkflowExecutionCreated("wfexec-456");
+    await result.current.onWorkflowRunCreated("wfexec-456");
 
     expect(mockAddWorkflowExecution).toHaveBeenCalledTimes(1);
     expect(mockAddWorkflowExecution).toHaveBeenCalledWith("wfexec-456");
   });
 
-  it("onWorkflowExecutionTerminated delegates to removeWorkflowExecution", async () => {
+  it("onWorkflowRunTerminated delegates to removeWorkflowExecution", async () => {
     const { result } = renderHook(() => useTauriRunnerAdapter());
-    await result.current.onWorkflowExecutionTerminated("wfexec-456");
+    await result.current.onWorkflowRunTerminated("wfexec-456");
 
     expect(mockRemoveWorkflowExecution).toHaveBeenCalledTimes(1);
     expect(mockRemoveWorkflowExecution).toHaveBeenCalledWith("wfexec-456");

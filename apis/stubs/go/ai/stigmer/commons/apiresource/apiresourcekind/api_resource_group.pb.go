@@ -27,7 +27,7 @@ type ApiResourceGroup int32
 
 const (
 	ApiResourceGroup_api_resource_group_unspecified ApiResourceGroup = 0
-	// Agentic - AI agents, workflows, executions, sessions, skills, and orchestration
+	// Agentic - AI agents, workflows, runs, sessions, skills, and orchestration
 	ApiResourceGroup_agentic ApiResourceGroup = 1
 	// Identity and Access Management - IAM policies, identity accounts, and credentials
 	ApiResourceGroup_iam ApiResourceGroup = 2

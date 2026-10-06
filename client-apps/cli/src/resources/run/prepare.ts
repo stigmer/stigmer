@@ -1,4 +1,4 @@
-// The agent-execution prelude: validate flags and resolve every input the
+// The agent-run prelude: validate flags and resolve every input the
 // create step needs. Ports the Go CLI's prepareAgentExec (run_agent_exec.go).
 //
 // Order matters and mirrors Go: validate cheap flags first (mode, approve
@@ -8,9 +8,9 @@
 // can address the caller's org without the user wiring it manually.
 
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../../errors/index.js";
@@ -120,7 +120,7 @@ export interface PrepareAgentExecOptions {
 }
 
 /**
- * Validate flags and resolve all execution inputs. The `org` is used to inject
+ * Validate flags and resolve all run inputs. The `org` is used to inject
  * STIGMER_ORG and the `client` to upload non-workspace attachments.
  */
 export async function prepareAgentExec(
@@ -195,7 +195,7 @@ export async function prepareAgentExec(
   }
 
   const { attachments, workspaceFileRefs } = await processAttachments(
-    client.agentExecution,
+    client.agentRun,
     flags.attach,
     localWorkspaceRoots(workspaceEntries),
     progress,

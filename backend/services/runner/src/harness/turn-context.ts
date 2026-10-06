@@ -63,10 +63,10 @@
 
 import { CancelledFailure } from "@temporalio/activity";
 import { clone } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema, type AgentExecution, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecutionSpec } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
-import { ApprovalAction, FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema, type AgentRun, type AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRunSpec } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+import { ApprovalAction, FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
 import type { Config } from "../config.js";
@@ -165,7 +165,7 @@ export interface ResolutionDeps {
    * reconcile's events, the memory-selection report, the seeded singletons);
    * nothing else does.
    */
-  readonly status: AgentExecutionStatus;
+  readonly status: AgentRunStatus;
   /**
    * The one transcript builder over `status`, the caller's, born with the
    * status. Two phases hand it on: the seed appends a reinvocation's prior
@@ -290,7 +290,7 @@ export type ReinvocationOutcome =
 export function isReinvocation(
   stateIdSource: StateIdSource,
   input: NormalizedActivityInput,
-  execution: AgentExecution,
+  execution: AgentRun,
 ): boolean {
   switch (stateIdSource) {
     case "engine-minted":
@@ -362,7 +362,7 @@ export function decideReinvocation(
  * seeded-row match; the native builder's by-id flip).
  *
  * Why the OTHER collections must be seeded too — the server's merge rule
- * (`stigmer-server/src/domain/agentexecution/update-status.ts`): every list
+ * (`stigmer-server/src/domain/agentrun/update-status.ts`): every list
  * and singleton the runner owns is PRESENCE-GUARDED and then REPLACED
  * wholesale — `subAgentExecutions`, `todos`, `artifacts`,
  * `workspaceWriteBacks` when non-empty (L327-345); `streamingUsage`,
@@ -399,13 +399,13 @@ export function decideReinvocation(
  * enforced; the seed through the builder makes it a non-question.
  */
 export function seedFromPersistedStatus(
-  status: AgentExecutionStatus,
+  status: AgentRunStatus,
   transcript: TranscriptBuilder,
-  execution: AgentExecution,
+  execution: AgentRun,
 ): void {
   const persisted = execution.status;
   if (!persisted || persisted.messages.length === 0) return;
-  const seed = clone(AgentExecutionStatusSchema, persisted);
+  const seed = clone(AgentRunStatusSchema, persisted);
   transcript.seed(seed);
   if (seed.streamingUsage !== undefined) status.streamingUsage = seed.streamingUsage;
   if (seed.recalledMemoriesReport !== undefined) status.recalledMemoriesReport = seed.recalledMemoriesReport;
@@ -418,9 +418,9 @@ export function seedFromPersistedStatus(
 
 /** Phase 1: hydrate the execution from the control plane. */
 export async function fetchExecution(deps: ResolutionDeps): Promise<{
-  readonly execution: AgentExecution;
+  readonly execution: AgentRun;
   /** `execution.spec`, asserted once here: the control plane never dispatches an execution without one. */
-  readonly spec: AgentExecutionSpec;
+  readonly spec: AgentRunSpec;
   readonly sessionId: string;
 }> {
   deps.enterPhase("fetch_execution");
@@ -438,7 +438,7 @@ export async function fetchExecution(deps: ResolutionDeps): Promise<{
  */
 export async function resolveAgentBlueprint(
   deps: ResolutionDeps,
-  execution: AgentExecution,
+  execution: AgentRun,
   sessionId: string,
 ): Promise<{ readonly session: Session; readonly blueprint: ResolvedBlueprint }> {
   deps.enterPhase("resolve_blueprint");
@@ -604,7 +604,7 @@ export async function reconcileReinvocation(
   deps: ResolutionDeps,
   args: {
     readonly stateIdSource: StateIdSource;
-    readonly execution: AgentExecution;
+    readonly execution: AgentRun;
     readonly workspace: TurnWorkspace;
     readonly fileReview: FileReviewIdentity;
   },
@@ -703,7 +703,7 @@ export async function reconcileReinvocation(
 export async function resolveMcpServersAndPolicies(
   deps: ResolutionDeps,
   args: {
-    readonly execution: AgentExecution;
+    readonly execution: AgentRun;
     readonly session: Session;
     readonly sessionId: string;
     readonly blueprint: ResolvedBlueprint;
@@ -1020,7 +1020,7 @@ function errorText(err: unknown): string {
 export async function resolveTurnAttachments(
   deps: ResolutionDeps,
   args: {
-    readonly spec: AgentExecutionSpec;
+    readonly spec: AgentRunSpec;
     /** The settings the turn runs with (`execution.status.run_config`); never the request's. */
     readonly runConfig: RunConfig | undefined;
     readonly sessionId: string;
@@ -1154,7 +1154,7 @@ export function resolveModelPreferences(runConfig: RunConfig | undefined): TurnM
 }
 
 /** Phase 9b: the structured-output schema this message asks for, if any (a per-message intent on the spec). */
-export function structuredOutputSchemaOf(spec: AgentExecutionSpec): Record<string, unknown> | undefined {
+export function structuredOutputSchemaOf(spec: AgentRunSpec): Record<string, unknown> | undefined {
   return spec.structuredOutputSchema;
 }
 
@@ -1174,7 +1174,7 @@ export function structuredOutputSchemaOf(spec: AgentExecutionSpec): Record<strin
  */
 export function resolveStandingContext(
   deps: ResolutionDeps,
-  args: { readonly execution: AgentExecution; readonly spec: AgentExecutionSpec; readonly blueprint: ResolvedBlueprint },
+  args: { readonly execution: AgentRun; readonly spec: AgentRunSpec; readonly blueprint: ResolvedBlueprint },
 ): TurnStandingContext {
   const { execution, spec, blueprint } = args;
   let memorySelection: Promise<RecalledMemoriesContent | undefined> | undefined;

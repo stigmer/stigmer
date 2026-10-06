@@ -15,7 +15,7 @@
  *     re-invokes) — Go's CancellationScope pattern;
  *   - bounded auto-recovery on worker-shutdown shapes (#776: IN_PROGRESS
  *     persisted, honest status copy on exhaustion);
- *   - EXECUTION_FAILED propagation with the fallback persist;
+ *   - RUN_FAILED propagation with the fallback persist;
  *   - the stop and failure copy each has one writer (stigmer#980): the
  *     pause persist carries the pause row, a runner-reported failure's
  *     write carries no lines (the runner explained it), and only a broken
@@ -47,21 +47,21 @@ import type { JsonValue } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   FileChangeSetStatus,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import {
   CANCEL_STOP_ROW,
   PAUSE_STOP_ROW,
-} from "../../../domain/agentexecution/platform-rows.js";
+} from "../../../domain/agentrun/platform-rows.js";
 
 import {
   INVOKE_AGENT_EXECUTION_WORKFLOW_NAME,
@@ -97,7 +97,7 @@ let envReady = false;
 
 interface RecordedStatus {
   readonly executionId: string;
-  readonly status: AgentExecutionStatus;
+  readonly status: AgentRunStatus;
 }
 
 interface RecordedCompletion {
@@ -180,50 +180,50 @@ resetScript();
 function blockedInvocation(): Promise<Record<string, unknown>> {
   return new Promise<Record<string, unknown>>((resolve) => {
     script.releaseBlocked.push(() =>
-      resolve(slimResult(ExecutionPhase.EXECUTION_COMPLETED)),
+      resolve(slimResult(RunPhase.RUN_COMPLETED)),
     );
   });
 }
 
 function slimResult(
-  phase: ExecutionPhase,
+  phase: RunPhase,
   error?: string,
 ): Record<string, unknown> {
-  const status = create(AgentExecutionStatusSchema, {
+  const status = create(AgentRunStatusSchema, {
     phase,
     ...(error !== undefined ? { error } : {}),
   });
-  return toJson(AgentExecutionStatusSchema, status) as Record<string, unknown>;
+  return toJson(AgentRunStatusSchema, status) as Record<string, unknown>;
 }
 
 /** An execution snapshot with the given status, as the load activity returns it. */
-function executionJson(status: AgentExecutionStatus): JsonValue {
+function executionJson(status: AgentRunStatus): JsonValue {
   return toJson(
-    AgentExecutionSchema,
-    create(AgentExecutionSchema, {
+    AgentRunSchema,
+    create(AgentRunSchema, {
       metadata: { id: currentExecutionId },
       status,
     }),
   );
 }
 
-function statusWithPendingApproval(): AgentExecutionStatus {
-  return create(AgentExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+function statusWithPendingApproval(): AgentRunStatus {
+  return create(AgentRunStatusSchema, {
+    phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
     pendingApprovals: [{ toolCallId: "tc-1", toolName: "echo" }],
   });
 }
 
-function statusWithEmptyGate(): AgentExecutionStatus {
-  return create(AgentExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+function statusWithEmptyGate(): AgentRunStatus {
+  return create(AgentRunStatusSchema, {
+    phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
   });
 }
 
 /** A change set already DECIDED (verdicts in) but not yet reconciled. */
-function statusDecidedAwaitingReconcile(): AgentExecutionStatus {
-  return create(AgentExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+function statusDecidedAwaitingReconcile(): AgentRunStatus {
+  return create(AgentRunStatusSchema, {
+    phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
     fileChangeSets: [
       {
         id: `${currentExecutionId}:1`,
@@ -269,7 +269,7 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
     ): Promise<void> => {
       script.persistedStatuses.push({
         executionId,
-        status: fromJson(AgentExecutionStatusSchema, statusJson),
+        status: fromJson(AgentRunStatusSchema, statusJson),
       });
     },
     LoadAgentExecution: async (): Promise<JsonValue> => {
@@ -379,7 +379,7 @@ async function externalSignalsSent(
 
 /** Polls the recorder until a status with the given phase lands. */
 async function waitForPersistedPhase(
-  phase: ExecutionPhase,
+  phase: RunPhase,
   timeoutMs = 15_000,
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
@@ -390,8 +390,8 @@ async function waitForPersistedPhase(
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   throw new Error(
-    `no persisted status reached phase ${ExecutionPhase[phase]} within ${timeoutMs}ms; ` +
-      `saw [${script.persistedStatuses.map((entry) => ExecutionPhase[entry.status.phase]).join(", ")}]`,
+    `no persisted status reached phase ${RunPhase[phase]} within ${timeoutMs}ms; ` +
+      `saw [${script.persistedStatuses.map((entry) => RunPhase[entry.status.phase]).join(", ")}]`,
   );
 }
 
@@ -467,7 +467,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("completes the deep-agent happy path and cleans up the ExecutionContext", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
 
     const handle = await startWorkflow(workflowInput());
@@ -480,13 +480,13 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("re-invokes after approvalGateResolved with TurnSeq = approvalCycle", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
     script.loadResults = [executionJson(statusWithPendingApproval())];
 
     const handle = await startWorkflow(workflowInput());
-    await waitForPersistedPhase(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
     await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
     await handle.result();
 
@@ -499,7 +499,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expect(
       script.persistedStatuses.some(
         (entry) =>
-          entry.status.phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+          entry.status.phase === RunPhase.RUN_WAITING_FOR_APPROVAL,
       ),
     ).toBe(true);
     expectExecutionContextDeleted();
@@ -507,8 +507,8 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("re-invokes immediately without a signal when the gate is decided-awaiting-reconcile", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
     script.loadResults = [executionJson(statusDecidedAwaitingReconcile())];
 
@@ -523,7 +523,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     // Every invocation reports WAITING; every load shows an empty gate
     // with nothing awaiting reconcile → 3 tolerated cycles, then fail.
     script.executeBehaviors = Array.from({ length: 8 }, () => async () =>
-      slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+      slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
     );
     script.loadResults = [executionJson(statusWithEmptyGate())];
 
@@ -533,7 +533,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     // 1 first invoke + 3 tolerated zero-gate re-invokes, then fail-fast.
     expect(script.executeCalls).toHaveLength(4);
     const failed = script.persistedStatuses.filter(
-      (entry) => entry.status.phase === ExecutionPhase.EXECUTION_FAILED,
+      (entry) => entry.status.phase === RunPhase.RUN_FAILED,
     );
     expect(failed.length).toBeGreaterThan(0);
     expect(failed.at(-1)!.status.error).toContain(
@@ -549,20 +549,20 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
           // Blocks until the pause cancels it (released in afterEach).
           return blockedInvocation();
         },
-        async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+        async () => slimResult(RunPhase.RUN_COMPLETED),
       ];
     });
 
     const handle = await startWorkflow(workflowInput());
     await firstStarted;
     await handle.signal(SIGNAL_PAUSE, "Paused by user");
-    await waitForPersistedPhase(ExecutionPhase.EXECUTION_PAUSED);
+    await waitForPersistedPhase(RunPhase.RUN_PAUSED);
     await handle.signal(SIGNAL_RESUME);
     await handle.result();
 
     expect(script.executeCalls.map((call) => call.turn_seq)).toEqual([0, 0]);
     const phases = script.persistedStatuses.map((entry) => entry.status.phase);
-    const pausedAt = phases.indexOf(ExecutionPhase.EXECUTION_PAUSED);
+    const pausedAt = phases.indexOf(RunPhase.RUN_PAUSED);
     expect(pausedAt, "the pause branch persists PAUSED").toBeGreaterThanOrEqual(0);
     // The resume path re-asserts IN_PROGRESS AFTER the PAUSED persist —
     // the oss#869 healing write (a deliberate TS addition): the PAUSED
@@ -572,7 +572,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expect(
       phases
         .slice(pausedAt + 1)
-        .includes(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        .includes(RunPhase.RUN_IN_PROGRESS),
       "resume re-asserts IN_PROGRESS after the PAUSED persist",
     ).toBe(true);
     // The workflow is the pause row's one writer: the runner cannot tell
@@ -594,7 +594,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
           nonRetryable: true,
         });
       },
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
 
     const handle = await startWorkflow(workflowInput());
@@ -603,7 +603,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expect(script.executeCalls).toHaveLength(2);
     expect(
       script.persistedStatuses.some(
-        (entry) => entry.status.phase === ExecutionPhase.EXECUTION_IN_PROGRESS,
+        (entry) => entry.status.phase === RunPhase.RUN_IN_PROGRESS,
       ),
     ).toBe(true);
   }, 60_000);
@@ -614,16 +614,16 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
   // honest-copy mapping it feeds are pinned by runner-failure.test.ts;
   // the recovery loop mechanics are pinned by the single-cycle test above.
 
-  it("propagates EXECUTION_FAILED results with the fallback persist", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("propagates RUN_FAILED results with the fallback persist", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_FAILED, "agent blew up"),
+      async () => slimResult(RunPhase.RUN_FAILED, "agent blew up"),
     ];
 
     const handle = await startWorkflow(workflowInput());
     await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
 
     const failed = script.persistedStatuses.filter(
-      (entry) => entry.status.phase === ExecutionPhase.EXECUTION_FAILED,
+      (entry) => entry.status.phase === RunPhase.RUN_FAILED,
     );
     expect(failed.length).toBeGreaterThan(0);
     expect(failed[0]!.status.error).toBe("agent blew up");
@@ -650,7 +650,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
 
     const failed = script.persistedStatuses.filter(
-      (entry) => entry.status.phase === ExecutionPhase.EXECUTION_FAILED,
+      (entry) => entry.status.phase === RunPhase.RUN_FAILED,
     );
     expect(failed.length).toBeGreaterThan(0);
     const lines = failed.at(-1)!.status.messages;
@@ -680,9 +680,9 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.cancel();
     await expect(handle.result()).rejects.toThrow();
 
-    await waitForPersistedPhase(ExecutionPhase.EXECUTION_CANCELLED);
+    await waitForPersistedPhase(RunPhase.RUN_CANCELLED);
     const cancelled = script.persistedStatuses.find(
-      (entry) => entry.status.phase === ExecutionPhase.EXECUTION_CANCELLED,
+      (entry) => entry.status.phase === RunPhase.RUN_CANCELLED,
     )!;
     // Cancel is a QUIET terminal state: no status.error, the muted
     // system message is the durable marker.
@@ -696,18 +696,18 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
   it("completes the callback token with the result on success", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => ({
-        ...slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+        ...slimResult(RunPhase.RUN_COMPLETED),
         structuredOutput: { verdict: "ok" },
         final_text: "done",
       }),
     ];
     script.loadResults = [
       toJson(
-        AgentExecutionSchema,
-        create(AgentExecutionSchema, {
+        AgentRunSchema,
+        create(AgentRunSchema, {
           metadata: { id: currentExecutionId },
           status: {
-            phase: ExecutionPhase.EXECUTION_COMPLETED,
+            phase: RunPhase.RUN_COMPLETED,
             streamingUsage: { totalTokens: 1234n, estimatedCostUsd: 0.05 },
           },
         }),
@@ -735,7 +735,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
   it("FAILS the workflow when the callback-result load fails (never a wedged task-retry loop)", async (testCtx) => {
     if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
     // No loadResults scripted: every LoadAgentExecution attempt throws.
     // The success-path boundary must convert the exhausted retries into a
@@ -760,7 +760,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("completes the callback token with the error on failure (the lane Go cannot deliver, oss#861)", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_FAILED, "agent blew up"),
+      async () => slimResult(RunPhase.RUN_FAILED, "agent blew up"),
     ];
 
     const handle = await startWorkflow(
@@ -776,8 +776,8 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("cursor flow re-reads harness_state_id before each re-invocation", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
     script.loadResults = [executionJson(statusWithPendingApproval())];
     // First read: empty (the activity creates the Cursor agent); the
@@ -787,7 +787,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     const handle = await startWorkflow(
       workflowInput({ harness: Harness.CURSOR }),
     );
-    await waitForPersistedPhase(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
     await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
     await handle.result();
 
@@ -799,15 +799,15 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("hands the run credential to every deep-agent invocation — the first turn and the re-invocation alike", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
     script.loadResults = [executionJson(statusWithPendingApproval())];
 
     const handle = await startWorkflow(
       workflowInput({ execution_context_token: "run-credential-1" }),
     );
-    await waitForPersistedPhase(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
     await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
     await handle.result();
 
@@ -819,7 +819,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("hands the run credential to the cursor invocation too", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
     script.harnessStateIds = [""];
 
@@ -836,7 +836,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("omits the credential key when the dispatch carried none — the omitempty shape an in-flight history has", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
 
     const handle = await startWorkflow(workflowInput());
@@ -847,7 +847,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("calls GenerateSessionSubject with the typed object carrying the run credential when the dispatch has one", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
 
     const handle = await startWorkflow(
@@ -865,7 +865,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("calls GenerateSessionSubject with the positional execution id when the dispatch carried no credential — the shape every earlier runner accepts", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
 
     const handle = await startWorkflow(workflowInput());
@@ -876,7 +876,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("survives a missing parent workflow for child_execution_started (non-fatal)", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
 
     const handle = await startWorkflow(
@@ -896,9 +896,9 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("emits child_approval_required to the parent on every HITL cycle, including the zero-gate reconcile cycle", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
-      async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
     // Cycle 1: a real pending-approval gate (signal, then wait). Cycle 2:
     // decided-awaiting-reconcile — the zero-gate immediate re-invoke, which
@@ -915,7 +915,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     const handle = await startWorkflow(
       workflowInput({ parent_workflow_id: "parent-probe" }),
     );
-    await waitForPersistedPhase(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
     await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
     await handle.result();
 
@@ -955,7 +955,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("does not emit child_approval_required when the run never gates", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
 
     const handle = await startWorkflow(
@@ -981,13 +981,13 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   it("does not signal any parent when invoked directly (no parent_workflow_id)", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
-      async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
-      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
     script.loadResults = [executionJson(statusWithPendingApproval())];
 
     const handle = await startWorkflow(workflowInput());
-    await waitForPersistedPhase(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
     await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
     await handle.result();
 

@@ -62,23 +62,23 @@ public interface ScheduleTriggerResultOrBuilder extends
 
   /**
    * <pre>
-   * ID of the created execution. Set only when outcome is STARTED.
+   * ID of the created run. Set only when outcome is STARTED.
    * </pre>
    *
-   * <code>string execution_id = 3 [json_name = "executionId"];</code>
-   * @return The executionId.
+   * <code>string run_id = 3 [json_name = "runId"];</code>
+   * @return The runId.
    */
-  java.lang.String getExecutionId();
+  java.lang.String getRunId();
   /**
    * <pre>
-   * ID of the created execution. Set only when outcome is STARTED.
+   * ID of the created run. Set only when outcome is STARTED.
    * </pre>
    *
-   * <code>string execution_id = 3 [json_name = "executionId"];</code>
-   * @return The bytes for executionId.
+   * <code>string run_id = 3 [json_name = "runId"];</code>
+   * @return The bytes for runId.
    */
   com.google.protobuf.ByteString
-      getExecutionIdBytes();
+      getRunIdBytes();
 
   /**
    * <pre>

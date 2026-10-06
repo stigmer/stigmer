@@ -6,7 +6,7 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { EnvVarDeclaration } from "../../environment/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_environment_v1_spec } from "../../environment/v1/spec_pb.js";
-import type { BudgetExceededPolicy, WorkflowExecutionVisibility, WorkflowTaskKind } from "./enum_pb.js";
+import type { BudgetExceededPolicy, WorkflowRunVisibility, WorkflowTaskKind } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_enum } from "./enum_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
@@ -17,7 +17,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxIoEECgxXb3JrZmxvd1NwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSSgoIZG9jdW1lbnQYAiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dEb2N1bWVudEIGukgDyAEBEkUKBXRhc2tzGAMgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESQgoDZW52GAQgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93U3BlYy5FbnZFbnRyeRI+CgZidWRnZXQYBSABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dCdWRnZXQSYwoUZXhlY3V0aW9uX3Zpc2liaWxpdHkYBiABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dFeGVjdXRpb25WaXNpYmlsaXR5Qgi6SAWCAQIQARpgCghFbnZFbnRyeRILCgNrZXkYASABKAkSQwoFdmFsdWUYAiABKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBIqwBCg5Xb3JrZmxvd0J1ZGdldBIXCg9tYXhfY29zdF9taWNyb3MYASABKAMSGAoQbWF4X3RvdGFsX3Rva2VucxgCIAEoAxIcChRtYXhfZHVyYXRpb25fc2Vjb25kcxgDIAEoBRJJCgtvbl9leGNlZWRlZBgEIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5CdWRnZXRFeGNlZWRlZFBvbGljeSKQAQoQV29ya2Zsb3dEb2N1bWVudBIdCgNkc2wYASABKAlCELpIDXILMgleMVwuMFwuMCQSGQoJbmFtZXNwYWNlGAIgASgJQga6SAPIAQESFAoEbmFtZRgDIAEoCUIGukgDyAEBEhcKB3ZlcnNpb24YBCABKAlCBrpIA8gBARITCgtkZXNjcmlwdGlvbhgFIAEoCSL6AgoMV29ya2Zsb3dUYXNrEi8KBG5hbWUYASABKAlCIbpIHnIcEAEyGF5bYS16QS1aX11bYS16QS1aMC05X10qJBJGCgRraW5kGAIgASgOMjAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0tpbmRCBrpIA8gBARI8Cgt0YXNrX2NvbmZpZxgDIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCDrpIA8gBAeqFLARraW5kEjYKBmV4cG9ydBgEIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5FeHBvcnQSOQoEZmxvdxgFIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5GbG93Q29udHJvbBJACgpjb21wZW5zYXRlGAYgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFzayIdCgZFeHBvcnQSEwoCYXMYASABKAlCB7pIBHICEAEiGwoLRmxvd0NvbnRyb2wSDAoEdGhlbhgBIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_agentic_workflow_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxIvUDCgxXb3JrZmxvd1NwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSSgoIZG9jdW1lbnQYAiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dEb2N1bWVudEIGukgDyAEBEkUKBXRhc2tzGAMgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESQgoDZW52GAQgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93U3BlYy5FbnZFbnRyeRI+CgZidWRnZXQYBSABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dCdWRnZXQSVwoOcnVuX3Zpc2liaWxpdHkYBiABKA4yNS5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dSdW5WaXNpYmlsaXR5Qgi6SAWCAQIQARpgCghFbnZFbnRyeRILCgNrZXkYASABKAkSQwoFdmFsdWUYAiABKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBIqwBCg5Xb3JrZmxvd0J1ZGdldBIXCg9tYXhfY29zdF9taWNyb3MYASABKAMSGAoQbWF4X3RvdGFsX3Rva2VucxgCIAEoAxIcChRtYXhfZHVyYXRpb25fc2Vjb25kcxgDIAEoBRJJCgtvbl9leGNlZWRlZBgEIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5CdWRnZXRFeGNlZWRlZFBvbGljeSKQAQoQV29ya2Zsb3dEb2N1bWVudBIdCgNkc2wYASABKAlCELpIDXILMgleMVwuMFwuMCQSGQoJbmFtZXNwYWNlGAIgASgJQga6SAPIAQESFAoEbmFtZRgDIAEoCUIGukgDyAEBEhcKB3ZlcnNpb24YBCABKAlCBrpIA8gBARITCgtkZXNjcmlwdGlvbhgFIAEoCSL6AgoMV29ya2Zsb3dUYXNrEi8KBG5hbWUYASABKAlCIbpIHnIcEAEyGF5bYS16QS1aX11bYS16QS1aMC05X10qJBJGCgRraW5kGAIgASgOMjAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0tpbmRCBrpIA8gBARI8Cgt0YXNrX2NvbmZpZxgDIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCDrpIA8gBAeqFLARraW5kEjYKBmV4cG9ydBgEIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5FeHBvcnQSOQoEZmxvdxgFIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5GbG93Q29udHJvbBJACgpjb21wZW5zYXRlGAYgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFzayIdCgZFeHBvcnQSEwoCYXMYASABKAlCB7pIBHICEAEiGwoLRmxvd0NvbnRyb2wSDAoEdGhlbhgBIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_agentic_workflow_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * WorkflowSpec defines the configurable properties of a workflow.
@@ -56,10 +56,10 @@ export type WorkflowSpec = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSpec"
   env: { [key: string]: EnvVarDeclaration };
 
   /**
-   * Budget limits for this workflow execution.
+   * Budget limits for this workflow run.
    * When set, the runtime enforces cost, token, and duration limits
    * across all tasks. The existing org-level billing reservation system
-   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * (AuthorizeRun / RunBillingSignal) remains the safety net
    * for overall credit exhaustion; workflow budgets prevent individual
    * workflows from consuming more than intended.
    * Optional — when not set, no workflow-level budget is enforced.
@@ -69,7 +69,7 @@ export type WorkflowSpec = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSpec"
   budget?: WorkflowBudget;
 
   /**
-   * Who can observe the runs (executions) of this workflow.
+   * Who can observe the runs of this workflow.
    *
    * Independent of the workflow's own visibility: making a workflow
    * org-visible lets teammates see and run it, but does NOT expose each
@@ -77,12 +77,12 @@ export type WorkflowSpec = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSpec"
    *
    * Defaults to PRIVATE (unspecified is treated as private): each run is
    * visible only to the person who started it. Set at create; afterwards it
-   * changes only through WorkflowCommandController.updateExecutionVisibility,
+   * changes only through WorkflowCommandController.updateRunVisibility,
    * and update and apply keep the stored level.
    *
-   * @generated from field: ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 6;
+   * @generated from field: ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 6;
    */
-  executionVisibility: WorkflowExecutionVisibility;
+  runVisibility: WorkflowRunVisibility;
 };
 
 /**
@@ -93,14 +93,14 @@ export const WorkflowSpecSchema: GenMessage<WorkflowSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 0);
 
 /**
- * WorkflowBudget declares cost, token, and duration limits for a workflow execution.
+ * WorkflowBudget declares cost, token, and duration limits for a workflow run.
  *
  * All cost fields use micro-USD (int64): 1 USD = 1,000,000 micros.
  * This matches the billing domain convention (CostStamp.provider_cost_micros,
- * CreditLedgerEntry.amount_micros, ExecutionReservation.reserved_micros).
+ * CreditLedgerEntry.amount_micros, RunReservation.reserved_micros).
  *
  * The runtime checks accumulated costs between task boundaries. Per-task
- * limits (on LlmCallTaskConfig and AgentExecutionConfig) are checked first;
+ * limits (on LlmCallTaskConfig and RunConfig) are checked first;
  * then the remaining workflow budget is verified before the next task starts.
  *
  * Example YAML:
@@ -114,7 +114,7 @@ export const WorkflowSpecSchema: GenMessage<WorkflowSpec> = /*@__PURE__*/
  */
 export type WorkflowBudget = Message<"ai.stigmer.agentic.workflow.v1.WorkflowBudget"> & {
   /**
-   * Maximum total cost for this workflow execution in micro-USD.
+   * Maximum total cost for this workflow run in micro-USD.
    * 1 USD = 1,000,000 micros. Example: 2000000 = $2.00.
    * When exceeded, the on_exceeded policy is applied.
    * Optional — when 0, no cost limit is enforced.
@@ -132,9 +132,9 @@ export type WorkflowBudget = Message<"ai.stigmer.agentic.workflow.v1.WorkflowBud
   maxTotalTokens: bigint;
 
   /**
-   * Maximum wall-clock duration for the entire workflow execution in seconds.
+   * Maximum wall-clock duration for the entire workflow run in seconds.
    * Optional — when 0, no duration limit is enforced (Temporal's own
-   * workflow execution timeout still applies).
+   * workflow run timeout still applies).
    *
    * @generated from field: int32 max_duration_seconds = 3;
    */

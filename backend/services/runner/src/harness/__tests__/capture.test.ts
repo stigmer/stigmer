@@ -26,10 +26,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { ApprovalAction, FileChangeKind, MessageType, SnapshotKind, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema, type AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { ApprovalAction, FileChangeKind, MessageType, SnapshotKind, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import { initGitWorkspace } from "../../__test-utils__/git-workspace-fixture.js";
@@ -69,12 +69,12 @@ function messageWith(...toolCalls: ToolCall[]) {
 
 describe("harness/capture over a git work tree", () => {
   let root: string;
-  let status: AgentExecutionStatus;
+  let status: AgentRunStatus;
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), "stigmer-capture-unit-"));
     initGitWorkspace(root, { "notes.md": "one\n", "keep.md": "keep\n" });
-    status = create(AgentExecutionStatusSchema, {});
+    status = create(AgentRunStatusSchema, {});
   });
 
   afterEach(() => {
@@ -172,7 +172,7 @@ describe("harness/capture over a git work tree", () => {
     try {
       const casWorkspace: TurnWorkspace = { ...workspaceOver(casRoot), gitWorkspace: false };
       const cas = (await pinCaptureBaseline({
-        status: create(AgentExecutionStatusSchema, {}),
+        status: create(AgentRunStatusSchema, {}),
         executionId: EXECUTION_ID,
         workspace: casWorkspace,
         fileReview: FILE_REVIEW,
@@ -208,19 +208,19 @@ describe("harness/capture over a git work tree", () => {
   it("scopes the stamp to this turn: a seeded prior-turn row keeps its change set, a sub-agent row created this turn takes the parent's", async () => {
     // The seed a reinvocation carries: a prior turn's flowed row and a prior sub-agent row.
     status.messages.push(messageWith(row("tc-prior", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED, { fileChangeSetId: `${EXECUTION_ID}:0` })));
-    status.subAgentExecutions.push(
-      create(SubAgentExecutionSchema, { id: "sa-prior", name: "editor", messages: [messageWith(row("sa-tc-prior", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED))] }),
+    status.subAgentRuns.push(
+      create(SubAgentRunSchema, { id: "sa-prior", name: "editor", messages: [messageWith(row("sa-tc-prior", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED))] }),
     );
     const workspace = workspaceOver(root, 1);
     const capture = (await pinCaptureBaseline({ status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
 
     writeFileSync(join(root, "keep.md"), "kept and changed\n");
-    status.subAgentExecutions[0]!.messages.push(messageWith(row("sa-tc-new", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED)));
+    status.subAgentRuns[0]!.messages.push(messageWith(row("sa-tc-new", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED)));
 
     await captureCandidate({ status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, capture, globalBypass: false });
 
     expect(status.messages[0]!.toolCalls[0]!.fileChangeSetId, "the prior turn's row is untouched").toBe(`${EXECUTION_ID}:0`);
-    const sub = status.subAgentExecutions[0]!.messages.flatMap((m) => m.toolCalls);
+    const sub = status.subAgentRuns[0]!.messages.flatMap((m) => m.toolCalls);
     expect(sub.find((tc) => tc.id === "sa-tc-prior")!.fileChangeSetId, "the prior sub-agent row is untouched").toBe("");
     expect(sub.find((tc) => tc.id === "sa-tc-new")!.fileChangeSetId, "this turn's sub-agent row takes the parent set").toBe(`${EXECUTION_ID}:1`);
   });
@@ -234,7 +234,7 @@ describe("deriveCommandProvenance — one rule for both engines", () => {
     // Turn 1 left the gate row WAITING at message 0; the reinvocation
     // reconciled the re-attempt onto it: same id, same position, COMPLETED,
     // the server's APPROVE preserved. It had NOT settled before this turn.
-    const status = create(AgentExecutionStatusSchema, {
+    const status = create(AgentRunStatusSchema, {
       messages: [
         messageWith(seededShell(ToolCallStatus.TOOL_CALL_COMPLETED, ApprovalAction.APPROVE)),
         create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Generated." }),
@@ -246,14 +246,14 @@ describe("deriveCommandProvenance — one rule for both engines", () => {
   });
 
   it("the gate turn itself does not qualify: the proposed command is WAITING, not executed", () => {
-    const status = create(AgentExecutionStatusSchema, {
+    const status = create(AgentRunStatusSchema, {
       messages: [messageWith(seededShell(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, ApprovalAction.UNSPECIFIED))],
     });
     expect(deriveCommandProvenance(status, { priorSettledToolCallIds: new Set(), priorSubAgentToolCallIds: new Set() }, false)).toBeUndefined();
   });
 
   it("a command settled before this turn is prior history and cannot qualify or disqualify it", () => {
-    const status = create(AgentExecutionStatusSchema, {
+    const status = create(AgentRunStatusSchema, {
       messages: [
         messageWith(seededShell(ToolCallStatus.TOOL_CALL_COMPLETED, ApprovalAction.APPROVE)),
         messageWith(row("tc-read", "read_file", ToolCallStatus.TOOL_CALL_COMPLETED)),
@@ -266,15 +266,15 @@ describe("deriveCommandProvenance — one rule for both engines", () => {
   });
 
   it("any sub-agent activity this turn fails closed", () => {
-    const status = create(AgentExecutionStatusSchema, {
+    const status = create(AgentRunStatusSchema, {
       messages: [messageWith(seededShell(ToolCallStatus.TOOL_CALL_COMPLETED, ApprovalAction.APPROVE))],
-      subAgentExecutions: [create(SubAgentExecutionSchema, { id: "sa", messages: [messageWith(row("sa-tc", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED))] })],
+      subAgentRuns: [create(SubAgentRunSchema, { id: "sa", messages: [messageWith(row("sa-tc", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED))] })],
     });
     expect(deriveCommandProvenance(status, { priorSettledToolCallIds: new Set(), priorSubAgentToolCallIds: new Set() }, false)).toBeUndefined();
   });
 
   it("under the global bypass an executed unconsented command is attributed to auto_approve_all", () => {
-    const status = create(AgentExecutionStatusSchema, {
+    const status = create(AgentRunStatusSchema, {
       messages: [messageWith(row("tc-shell", "shell", ToolCallStatus.TOOL_CALL_COMPLETED, { args: { command: "make" } }))],
     });
     const provenance = deriveCommandProvenance(status, { priorSettledToolCallIds: new Set(), priorSubAgentToolCallIds: new Set() }, true);

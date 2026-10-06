@@ -1,0 +1,618 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentrun.v1;
+
+import "ai/stigmer/agentic/agentrun/v1/enum.proto";
+import "google/protobuf/timestamp.proto";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// USAGE METERING ENUMS
+//
+// Trust and lifecycle classification for usage records.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Identifies who wrote the usage record and under what conditions.
+enum UsageMeteringSource {
+  USAGE_METERING_SOURCE_UNSPECIFIED = 0;
+
+  // Cloud mode: Stigmer proxy observed provider-reported final usage from SSE stream.
+  USAGE_METERING_SOURCE_PROXY_PROVIDER_REPORTED = 1;
+
+  // OSS/BYOK mode: runner reports provider response usage directly.
+  USAGE_METERING_SOURCE_RUNNER_PROVIDER_REPORTED_OSS = 2;
+
+  // Estimate from tokenizer/preflight/local accounting. Never billing-authoritative in cloud mode.
+  USAGE_METERING_SOURCE_ESTIMATED = 3;
+
+  // Reconciliation from provider admin usage/cost reports.
+  USAGE_METERING_SOURCE_PROVIDER_ADMIN_RECONCILED = 4;
+
+  // Human/system manual adjustment.
+  USAGE_METERING_SOURCE_MANUAL_ADJUSTMENT = 5;
+}
+
+// Declares what the record can be used for.
+enum UsageTrustLevel {
+  USAGE_TRUST_LEVEL_UNSPECIFIED = 0;
+
+  // Billing-authoritative: safe to debit credits from.
+  USAGE_TRUST_LEVEL_BILLING_AUTHORITY = 1;
+
+  // Server-observed but not billing (e.g., proxy timing).
+  USAGE_TRUST_LEVEL_SERVER_OBSERVED = 2;
+
+  // Display-only: runner-reported, never used for billing.
+  USAGE_TRUST_LEVEL_DISPLAY_ONLY = 3;
+}
+
+// Status of provider-reported token usage extraction.
+enum UsageCompletionStatus {
+  USAGE_COMPLETION_STATUS_UNSPECIFIED = 0;
+
+  // Provider reported complete final usage (normal case).
+  USAGE_COMPLETION_STATUS_COMPLETE = 1;
+
+  // Stream ended without final usage event (e.g., connection interrupted).
+  USAGE_COMPLETION_STATUS_STREAM_INTERRUPTED = 2;
+
+  // Provider returned error but included partial usage data.
+  USAGE_COMPLETION_STATUS_PROVIDER_ERROR_WITH_USAGE = 3;
+
+  // Provider returned error with no usage data.
+  USAGE_COMPLETION_STATUS_PROVIDER_ERROR_NO_USAGE = 4;
+
+  // Usage is estimated (tokenizer/preflight), not provider-reported.
+  USAGE_COMPLETION_STATUS_ESTIMATED_ONLY = 5;
+
+  // Reconciled against provider admin reports.
+  USAGE_COMPLETION_STATUS_RECONCILED = 6;
+
+  // Conflict: retry with different payload detected.
+  USAGE_COMPLETION_STATUS_CONFLICT = 7;
+}
+
+// Status of the billing debit for a usage record.
+enum BillingDebitStatus {
+  BILLING_DEBIT_STATUS_UNSPECIFIED = 0;
+
+  // No billing applicable (e.g., OSS mode, $0 cost, incomplete usage).
+  BILLING_DEBIT_STATUS_NOT_APPLICABLE = 1;
+
+  // Debit pending (usage written, billing not yet attempted).
+  BILLING_DEBIT_STATUS_PENDING = 2;
+
+  // Credits successfully debited.
+  BILLING_DEBIT_STATUS_DEBITED = 3;
+
+  // Debit failed but retryable (transient error).
+  BILLING_DEBIT_STATUS_FAILED_RETRYABLE = 4;
+
+  // Debit failed terminally (e.g., no reservation found).
+  BILLING_DEBIT_STATUS_FAILED_TERMINAL = 5;
+
+  // Conflict detected (duplicate with different payload).
+  BILLING_DEBIT_STATUS_CONFLICT = 6;
+}
+
+// Status of cost calculation for a usage record.
+enum CostCalculationStatus {
+  COST_CALCULATION_STATUS_UNSPECIFIED = 0;
+
+  // Cost computed from pricing registry at write time.
+  COST_CALCULATION_STATUS_COMPUTED = 1;
+
+  // Cost is an estimate (model not found in registry).
+  COST_CALCULATION_STATUS_ESTIMATED = 2;
+
+  // Model pricing not found; cost is zero.
+  COST_CALCULATION_STATUS_PRICE_NOT_FOUND = 3;
+
+  // Cost was reconciled against provider reports.
+  COST_CALCULATION_STATUS_RECONCILED = 4;
+
+  // Cost was manually adjusted.
+  COST_CALCULATION_STATUS_MANUAL_ADJUSTED = 5;
+}
+
+// Which credential actually served a cursor-harness LLM call.
+//
+// Recorded so per-call attribution states a fact about the traffic, not an
+// inference from surrounding state. The proxy resolves the key, injects it
+// upstream, and reports the same identity with the usage payload — the
+// record can therefore never disagree with what was sent on the wire. The
+// CursorAccount store is the only credential source, so MANAGED_KEY is the
+// only source a current proxy can report.
+//
+// @internal
+// UNSPECIFIED doubles as the legacy marker: records written before the
+// serving identity was threaded through the proxy payload (when the
+// billing handler re-read the session's key pin at stamp time) carry no
+// source and must not be re-interpreted.
+enum CursorKeySource {
+  CURSOR_KEY_SOURCE_UNSPECIFIED = 0;
+
+  // A managed CursorAccount member key served the call. The
+  // cursor_account_id / cursor_key_id fields identify it.
+  CURSOR_KEY_SOURCE_MANAGED_KEY = 1;
+}
+
+// Whose provider credential served a proxied LLM call.
+//
+// The proxy picks the key, injects it upstream, and reports the same source
+// with the usage payload, so the record never disagrees with what was sent
+// on the wire.
+//
+// @internal
+// UNSPECIFIED is the legacy marker: records written before this field
+// existed were all served on the platform's credentials. Billing reads only
+// ORGANIZATION: such a call is priced for visibility and never debited, and
+// it is outside the plan's usage share and the platform's provider
+// reconciliation.
+enum ProviderKeySource {
+  PROVIDER_KEY_SOURCE_UNSPECIFIED = 0;
+
+  // The platform's provider account served the call; it is billed.
+  PROVIDER_KEY_SOURCE_PLATFORM = 1;
+
+  // The organization's own provider key served the call (bring-your-own
+  // provider keys): the provider bills the organization directly.
+  PROVIDER_KEY_SOURCE_ORGANIZATION = 2;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TOKEN USAGE
+//
+// Normalized token buckets. Covers all known provider token categories.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Normalized token usage from a single LLM call.
+// Disjoint buckets: every token falls into exactly one category for cost calculation.
+message TokenUsage {
+  // Regular input tokens (non-cached, non-tool, billed at standard input rate).
+  int64 input_tokens = 1;
+
+  // Output/completion tokens generated by the model.
+  int64 output_tokens = 2;
+
+  // Provider-reported total tokens. May differ from sum of other fields
+  // because providers include reasoning/overhead differently.
+  int64 total_tokens = 3;
+
+  // Tokens written to prompt cache (Anthropic cache_creation_input_tokens).
+  int64 cache_creation_input_tokens = 4;
+
+  // Tokens read from prompt cache (cache hits).
+  int64 cache_read_input_tokens = 5;
+
+  // Reasoning/thinking tokens (OpenAI reasoning_tokens, Vertex thoughtsTokenCount).
+  int64 reasoning_tokens = 6;
+
+  // Tool-use prompt tokens (Vertex toolUsePromptTokenCount).
+  int64 tool_use_prompt_tokens = 7;
+
+  // Audio tokens (future multimodal billing).
+  int64 audio_input_tokens = 8;
+  int64 audio_output_tokens = 9;
+
+  // Provider-specific token details not yet normalized.
+  map<string, int64> provider_token_details = 20;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRICING AND COST
+//
+// Stamped at write time for historical accuracy and reproducibility.
+// All amounts in integer micro-USD (1 USD = 1,000,000 micros).
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Pricing rates snapshot at the time of the LLM call.
+message PricingSnapshot {
+  // Version of the model pricing registry used.
+  string pricing_registry_version = 1;
+
+  // When this pricing became effective.
+  google.protobuf.Timestamp pricing_effective_at = 2;
+
+  // Currency (always "USD" for now).
+  string currency = 3;
+
+  // Provider cost rates (micro-USD per million tokens).
+  int64 input_price_micros_per_million = 10;
+  int64 output_price_micros_per_million = 11;
+  int64 cache_creation_price_micros_per_million = 12;
+  int64 cache_read_price_micros_per_million = 13;
+  int64 reasoning_price_micros_per_million = 14;
+
+  // Cursor Token Rate applied to every billable token on non-Auto Cursor
+  // Teams requests (micro-USD per million tokens). Charged by Cursor on top
+  // of model API pricing; folded into provider_cost_micros for cursor-harness
+  // calls. Zero for native harness and for exempt cursor models (Auto/Composer).
+  int64 cursor_token_rate_micros_per_million = 15;
+
+  // Customer billing policy applied.
+  string markup_policy_version = 30;
+  string cost_tier = 31;
+}
+
+// Cost computation result stamped on each usage record.
+message CostStamp {
+  // Currency (always "USD").
+  string currency = 1;
+
+  // Raw provider cost computed server-side from pricing registry.
+  // For cursor-harness calls this includes the Cursor Token Rate fee
+  // (see cursor_platform_fee_micros for the explicit sub-component).
+  int64 provider_cost_micros = 2;
+
+  // Amount debited from customer credits (after markup policy).
+  int64 customer_billable_amount_micros = 3;
+
+  // How cost was computed.
+  CostCalculationStatus calculation_status = 4;
+
+  // Full pricing snapshot for historical reproducibility.
+  PricingSnapshot pricing = 5;
+
+  // Cursor Token Rate fee charged by Cursor on top of model API pricing,
+  // already included in provider_cost_micros. Surfaced explicitly for audit
+  // and per-call transparency. Zero for native harness and exempt cursor models.
+  int64 cursor_platform_fee_micros = 6;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROXY TIMING
+//
+// Trusted server-side timing observations. Observability, not billing.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Proxy-observed timing for a single LLM call.
+// These are server-side measurements, not client-perceived latency.
+message ProxyTiming {
+  // When the proxy received the runner's request.
+  google.protobuf.Timestamp proxy_received_at = 1;
+
+  // When the proxy sent the request to the upstream provider.
+  google.protobuf.Timestamp upstream_request_started_at = 2;
+
+  // When the first response byte arrived from the provider.
+  google.protobuf.Timestamp first_response_byte_at = 3;
+
+  // When the last response byte arrived from the provider.
+  google.protobuf.Timestamp last_response_byte_at = 4;
+
+  // When the proxy completed its handling.
+  google.protobuf.Timestamp proxy_completed_at = 5;
+
+  // Derived durations in milliseconds.
+  int64 upstream_ttfb_ms = 10;
+  int64 upstream_ttlb_ms = 11;
+  int64 stream_duration_ms = 12;
+  int64 proxy_total_duration_ms = 13;
+
+  // Transfer sizes.
+  int64 request_bytes = 20;
+  int64 response_bytes = 21;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BILLING LINK
+//
+// Ties the usage record to the billing ledger for audit.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Links a usage record to its billing debit in the credit ledger.
+message BillingLink {
+  // Current debit status.
+  BillingDebitStatus debit_status = 1;
+
+  // Run reservation ID (from authorizeRun).
+  string reservation_id = 2;
+
+  // Billing ledger debit ID (from reportLlmCallUsage).
+  string billing_debit_id = 3;
+
+  // When the debit was applied.
+  google.protobuf.Timestamp debited_at = 4;
+
+  // Operational visibility.
+  int32 billing_attempt_count = 5;
+  string last_billing_error = 6;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LLM CALL USAGE RECORD (Per-Call Authoritative)
+//
+// Immutable metering record for a single LLM provider call. Written by the
+// proxy (cloud) or runner (OSS). Stored in a dedicated MongoDB collection.
+// This is the billing source of truth.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Immutable, billing-authoritative record for a single LLM API call.
+//
+// Written by the proxy after each SSE stream completes (cloud mode) or by
+// the runner directly (OSS mode). Stored in the `llm_call_usage_record`
+// MongoDB collection, never embedded in the run document.
+//
+// ## Lifecycle
+// 1. Proxy observes SSE stream completion and extracts final usage
+// 2. Server inserts LlmCallUsageRecord (idempotent by idempotency_key)
+// 3. Server computes cost and triggers billing debit
+// 4. billing_link.debit_status transitions to DEBITED
+//
+// ## Idempotency
+// Unique on idempotency_key: run_id + the call's identity + metering_source,
+// where the identity is call_id when the reporter supplied one, else sequence.
+// Insert-only; never mutated except for billing_link status transitions and
+// repricing.
+message LlmCallUsageRecord {
+  // ─── Identity ───────────────────────────────────────────────────────────────
+  // Stable unique ID for this record (ULID).
+  string usage_record_id = 1;
+
+  // Run this call belongs to.
+  string run_id = 2;
+
+  // For sub-agent rollups: root run of the tree.
+  string root_run_id = 3;
+
+  // 1-based call ordering within the run, as the reporting proxy
+  // counted it. An ordering hint, not an identity: a proxy that restarts
+  // mid-run counts from 1 again, so two records of one run may
+  // share a sequence. Order by observed_at, then sequence.
+  int32 sequence = 4;
+
+  // Deduplication key: run_id + (call_id, else sequence) + metering_source.
+  string idempotency_key = 5;
+
+  // Hash of normalized payload for conflict detection on retries.
+  string canonical_payload_hash = 6;
+
+  // The call's identity as the reporting proxy minted it (RecordLlmCallUsageInput.call_id),
+  // stamped verbatim. The durable link from a ledger usage_debit
+  // (CreditLedgerSource.llm_call_id) back to this record, and what every later
+  // debit of this record — the live one and the repricing sweep's — keys on.
+  // Empty for records whose reporter sent no call id; those key on sequence.
+  string call_id = 9;
+
+  // ─── Timestamps ─────────────────────────────────────────────────────────────
+  // When the proxy observed stream completion.
+  google.protobuf.Timestamp observed_at = 10;
+
+  // When this record was created in the database.
+  google.protobuf.Timestamp created_at = 11;
+
+  // ─── Trust / Source ─────────────────────────────────────────────────────────
+  // Who wrote this record and at what trust level.
+  UsageMeteringSource metering_source = 20;
+  UsageTrustLevel trust_level = 21;
+  UsageCompletionStatus usage_status = 22;
+
+  // Whether this record should produce a billing debit.
+  bool is_billable = 23;
+
+  // ─── Provider / Request Metadata ────────────────────────────────────────────
+  string provider = 30;
+  string requested_model = 31;
+  string resolved_model = 32;
+  string endpoint = 33;
+  bool streaming = 34;
+  string service_tier = 35;
+  string provider_request_id = 36;
+  string harness = 37;
+
+  // ─── Cursor Account Attribution (cursor harness only) ─────────────────────
+  // Which managed CursorAccount / member key actually served this call,
+  // threaded through the proxy payload from the key resolution that
+  // injected the upstream credential (RecordLlmCallUsageInput carries the
+  // same identity — the record states what was sent on the wire, never an
+  // after-the-fact pin lookup). Identifiers only, never key material.
+  // Empty for the native harness and for records written before the
+  // serving identity was threaded through. Lets provider reconciliation
+  // attribute conversations across per-account Cursor ledgers.
+  string cursor_account_id = 38;
+  string cursor_key_id = 39;
+
+  int32 http_status_code = 40;
+  string finish_reason = 41;
+  string error_code = 42;
+
+  // Which credential class served this call (cursor harness only).
+  // UNSPECIFIED on native-harness records and on records written before
+  // this field existed (their cursor_account_id semantics are the legacy
+  // pin-derived stamp).
+  CursorKeySource cursor_key_source = 43;
+
+  // Whose provider credential served this call. ORGANIZATION marks a call on
+  // the organization's own key, which is metered and never charged.
+  // UNSPECIFIED on records written before this field existed.
+  ProviderKeySource provider_key_source = 45;
+
+  // Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
+  // mirroring service_tier's convention: cursor harness derives it from the
+  // resolved wire id's variant suffix; empty when the wire carries no
+  // evidence — never guessed. Thinking is per-token price-neutral
+  // (ledger-verified, stigmer/stigmer#772), so this field feeds the
+  // requested-vs-billed consumption-drift reconciliation, not pricing.
+  string thinking = 44;
+
+  // ─── Token Usage ────────────────────────────────────────────────────────────
+  TokenUsage tokens = 50;
+
+  // ─── Cost ───────────────────────────────────────────────────────────────────
+  CostStamp cost = 51;
+
+  // ─── Proxy Timing ──────────────────────────────────────────────────────────
+  // Present when metering_source is PROXY_PROVIDER_REPORTED.
+  ProxyTiming proxy_timing = 60;
+
+  // ─── Raw Provider Usage ─────────────────────────────────────────────────────
+  // Compact JSON of provider's raw usage object for audit/debug.
+  string provider_usage_json = 70;
+
+  // ─── Billing Handoff ────────────────────────────────────────────────────────
+  BillingLink billing = 80;
+
+  // ─── Scope ──────────────────────────────────────────────────────────────────
+  // Denormalized from the run for direct queries by org and session.
+  // Populated at write time by the billing handler.
+
+  // Organization that owns this run.
+  string org = 7;
+
+  // Session this run belongs to.
+  string session_id = 8;
+
+  // ─── Labels ─────────────────────────────────────────────────────────────────
+  // Custom metadata for filtering (e.g., agent_path, node_path).
+  map<string, string> labels = 90;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// USAGE REPORT TYPES
+//
+// Aggregate types used by usage report RPC responses. All token counts are
+// int64 and all cost amounts are int64 micro-USD (1 USD = 1,000,000 micros).
+//
+// Data is sourced from LlmCallUsageRecord in the llm_call_usage_record
+// collection. In OSS mode (no proxy), the collection is empty and reports
+// return zeroes.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Aggregated usage across a scope (run, session, agent, or org).
+//
+// Used as the `total_usage` field in session and agent usage report responses.
+// All token fields are int64 to support large aggregates (org-wide, multi-day).
+// Cost fields are int64 micro-USD for precision.
+message UsageReportAggregate {
+  // Non-cached input tokens (disjoint from the cache buckets below).
+  int64 input_tokens = 1;
+  // Output/completion tokens.
+  int64 output_tokens = 2;
+  // Total tokens across all calls: the sum of each call's provider-reported
+  // total (cache-inclusive). This is NOT input_tokens + output_tokens —
+  // input_tokens excludes cached tokens, which are tracked in the buckets
+  // below, so total_tokens = input + output + cache_creation + cache_read.
+  int64 total_tokens = 3;
+  int64 cache_creation_input_tokens = 4;
+  int64 cache_read_input_tokens = 5;
+  int64 reasoning_tokens = 6;
+
+  // Number of LLM API calls in this aggregate.
+  int32 llm_call_count = 10;
+
+  // Cost in micro-USD (1 USD = 1,000,000 micros).
+  // billable = what the customer pays (with markup).
+  // provider = what Stigmer pays the LLM provider (raw).
+  int64 billable_cost_micros = 20;
+  int64 provider_cost_micros = 21;
+
+  // Primary model and provider (most-used by call count).
+  string primary_model = 30;
+  string primary_provider = 31;
+}
+
+// Per-model usage breakdown within a report scope.
+//
+// Groups token counts and cost by (model, provider) pair. Used in
+// model_breakdown repeated fields on report responses.
+message ModelUsage {
+  // Model identifier as resolved by the provider.
+  string model = 1;
+
+  // LLM provider (e.g., "openai", "anthropic", "cursor").
+  string provider = 2;
+
+  // Token counts for this model.
+  int64 input_tokens = 3;
+  int64 output_tokens = 4;
+  int64 cache_creation_input_tokens = 5;
+  int64 cache_read_input_tokens = 6;
+
+  // Number of LLM API calls to this model.
+  int32 call_count = 7;
+
+  // Cost in micro-USD for this model.
+  int64 billable_cost_micros = 8;
+  int64 provider_cost_micros = 9;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RUN USAGE SUMMARY
+//
+// Provisional usage captured from the execution worker's onDelta callbacks
+// during streaming. Updated progressively as turn-ended events arrive.
+//
+// Trust level: DISPLAY_ONLY. This data is reported by the execution worker
+// (which may run on untrusted user machines) and is NOT billing-authoritative.
+// Use for real-time UX (session sidebar cost display) only.
+//
+// Billing settlement uses LlmCallUsageRecord from the proxy (native harness)
+// or future Cursor Admin API reconciliation (Cursor harness).
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Accumulated token usage from execution worker turn-ended events.
+// Carried on AgentRunStatus.streaming_usage for real-time streaming UX.
+message StreamingUsageSummary {
+  // Accumulated input tokens across all turns.
+  int64 input_tokens = 1;
+
+  // Accumulated output tokens across all turns.
+  int64 output_tokens = 2;
+
+  // Accumulated cache-read tokens across all turns.
+  int64 cache_read_tokens = 3;
+
+  // Accumulated cache-write tokens across all turns.
+  int64 cache_write_tokens = 4;
+
+  // Total tokens across all turns: input_tokens + output_tokens. The Cursor
+  // SDK reports input_tokens cache-inclusive (cache_read/cache_write are
+  // subsets of it), so the cache buckets are NOT added again here.
+  int64 total_tokens = 5;
+
+  // Number of completed turns observed.
+  int32 turn_count = 6;
+
+  // Estimated cost in USD computed from runner-side rate card.
+  // Labeled "Estimated" in the UI — not provider-verified.
+  double estimated_cost_usd = 7;
+
+  // Model identifier the runner requested for this run's turns.
+  //
+  // @internal
+  // This is the validated REQUESTED model (UsageAccumulator constructor
+  // argument), not a provider-reported resolved id — the Cursor SDK echoes
+  // the requested selection and never reports the served variant, so the
+  // authoritative resolved model lives on billing's LlmCallUsageRecord
+  // (requested_model / resolved_model / service_tier), not here.
+  string model = 8;
+
+  // ISO 8601 timestamp of the last turn-ended event observed.
+  string observed_at = 9;
+
+  // Service tier the runner requested for this run's model calls.
+  //
+  // Always explicit once the runner has translated the turn's settings
+  // (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
+  // record that the account default was never left in control.
+  ServiceTier requested_service_tier = 10;
+
+  // JSON-encoded provider variant parameters the runner sent with the model
+  // selection (Cursor ModelSelection.params, e.g.
+  // [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+  //
+  // @internal
+  // Recorded verbatim for audit: tier→params translation depends on the
+  // provider catalog at send time, so the derivation is not reproducible
+  // later from the tier alone. Mirrors the Cursor SDK's own analytics
+  // convention (SdkRunCreatedProps.model_params).
+  string requested_model_params = 11;
+
+  // Thinking mode the runner requested for this run's model calls.
+  //
+  // Always explicit once the runner has translated the turn's settings
+  // (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit
+  // record that the account default was never left in control
+  // (stigmer/stigmer#772; several catalog defaults are thinking=true).
+  ThinkingMode requested_thinking_mode = 12;
+}

@@ -37,7 +37,7 @@ function renderViews(
 ) {
   return renderHook(() =>
     useSessionRailViews({
-      allExecutions: [],
+      allRuns: [],
       org: "acme",
       sessionConfig,
       ...overrides,

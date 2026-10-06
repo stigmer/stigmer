@@ -18,7 +18,7 @@ import { usePathname } from "next/navigation";
 interface AppNavigationValue {
   /**
    * The current in-app path. This is the single source of truth for
-   * client-side navigation across the app shell — session zone, execution
+   * client-side navigation across the app shell — session zone, run
    * zone, and any future dynamic detail route derive their state from it.
    */
   currentPath: string;
@@ -46,12 +46,12 @@ function initialPath(): string {
  * current in-app path under static export.
  *
  * In static-export mode, Next.js cannot soft-navigate to dynamic routes that
- * were not pre-rendered (e.g. `/sessions/<id>`, `/executions/<id>`). Rather
+ * were not pre-rendered (e.g. `/sessions/<id>`, `/runs/<id>`). Rather
  * than reload the document on every such transition, this provider tracks the
  * current path entirely via React state + `history.pushState`.
  *
  * Domain-specific navigation concerns layer on top of this primitive as thin
- * consumers (`useSessionNavigation`, `useExecutionNavigation`). Keeping a
+ * consumers (`useSessionNavigation`, `useRunNavigation`). Keeping a
  * single `currentPath` here — rather than one `pushState` provider per zone —
  * is a correctness requirement: `usePathname()` does not fire on manual
  * `pushState`, so independent providers could not observe each other's

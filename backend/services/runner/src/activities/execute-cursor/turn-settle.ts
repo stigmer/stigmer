@@ -34,7 +34,7 @@
 import { create } from "@bufbuild/protobuf";
 import type { Run } from "@cursor/sdk";
 import type { ConversationTurn } from "@cursor/sdk";
-import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
 
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
@@ -191,11 +191,11 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
     // IN_PROGRESS "zombie" in the final snapshot, through the one shared act
     // (parity with the native settle).
     if (sink.stopSignal.aborted) {
-      cancelInProgressSubAgentProtos(status.subAgentExecutions);
+      cancelInProgressSubAgentProtos(status.subAgentRuns);
     }
     await eventRecorder?.flush();
     console.log(
-      `ExecuteCursor stream ended: execution=${executionId}, events=${streamState.eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
+      `ExecuteCursor stream ended: execution=${executionId}, events=${streamState.eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentRuns.length}`,
     );
     // Persist immediately after finalize so the UI sees correct tool-call
     // statuses before the boundary / run.wait() / the runtime's epilogue.

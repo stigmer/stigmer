@@ -1,0 +1,453 @@
+---
+title: Workflow Runs
+description:
+  How to create, monitor, approve, signal, cancel, and recover Workflow Runs
+  using the SDK and CLI.
+---
+
+A Workflow Run is a single run of a Workflow, at the version the Workflow had
+when the run started. This guide covers the full lifecycle — from triggering a
+run through monitoring, interacting with human gates and signals, to
+cancellation and recovery.
+
+For the subscribe streaming pattern, see the
+[Streaming guide](/docs/sdk/streaming#subscribe-to-a-workflow-run). For the
+complete API reference, see [Workflow Run](/docs/sdk/resources/workflow-run).
+
+## Creating a run
+
+### CLI
+
+```bash
+stigmer run workflow my-workflow --env TOPIC="AI safety" --env DEPTH="thorough"
+```
+
+The CLI creates a Workflow Run, streams task progress, and prints the final
+output. The console's run form and the MCP server's `run_workflow` tool start
+the same kind of run.
+
+### SDK
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const workflow = await stigmer.workflow.getByReference({
+  org: "my-org",
+  slug: "my-workflow",
+});
+const run = await stigmer.workflowRun.create({
+  name: `run-${Date.now()}`,
+  org: "my-org",
+  workflowId: workflow.metadata!.id,
+  runtimeEnv: {
+    TOPIC: { value: "AI safety" },
+    DEPTH: { value: "thorough" },
+  },
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+run, err := client.WorkflowRun.Create(ctx,
+    &stigmer.WorkflowRunInput{
+        Name:       "run-" + ts,
+        Org:        "my-org",
+        WorkflowId: workflowID,
+        RuntimeEnv: map[string]stigmer.EnvVarInput{
+            "TOPIC": {Value: "AI safety"},
+            "DEPTH": {Value: "thorough"},
+        },
+    })
+```
+</Tab>
+<Tab value="Python">
+```python
+run = client.workflow_runs.create(WorkflowRunInput(
+    name=f"run-{int(time.time() * 1000)}",
+    org="my-org",
+    workflow_id=workflow_id,
+    runtime_env={
+        "TOPIC": EnvVarInput(value="AI safety"),
+        "DEPTH": EnvVarInput(value="thorough"),
+    },
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+var run = client.workflowRun.create(
+    WorkflowRunInput.builder()
+        .name("run-" + ts)
+        .org("my-org")
+        .workflowId(workflowId)
+        .runtimeEnv(Map.of(
+            "TOPIC", EnvVarInput.builder().value("AI safety").build(),
+            "DEPTH", EnvVarInput.builder().value("thorough").build()
+        ))
+        .build());
+```
+</Tab>
+</SDKTabs>
+
+`workflowId` names the Workflow to run; it is required. The run is pinned to the
+Workflow's current version, and every step reads that version, so a later edit
+to the Workflow never changes a run already in progress.
+
+The `runtimeEnv` map supplies values for the keys declared in the Workflow's
+`spec.env`. A declared key the run does not pass is read from the personal
+Environment of the person who starts the run, when the Workflow belongs to the
+run's Organization. See
+[where a run gets its values](/docs/concepts/workflows#where-a-run-gets-its-values).
+
+Who else can see the run is a setting on the Workflow, not on the run:
+[who can see the runs](/docs/concepts/workflows#who-can-see-the-runs).
+
+## Run phases
+
+Every run moves through phases:
+
+**Non-terminal** — the run is active or paused:
+
+| Phase                      | Meaning                               |
+| -------------------------- | ------------------------------------- |
+| `RUN_PENDING`              | Queued, waiting for a workflow runner |
+| `RUN_IN_PROGRESS`          | Tasks are executing                   |
+| `RUN_WAITING_FOR_APPROVAL` | Blocked on a `human_input` task       |
+| `RUN_PAUSED`               | Paused by a user, can be resumed      |
+
+**Terminal** — the run is finished:
+
+| Phase            | Meaning                                                |
+| ---------------- | ------------------------------------------------------ |
+| `RUN_COMPLETED`  | All tasks finished successfully                        |
+| `RUN_FAILED`     | A task failed and no error handler caught it           |
+| `RUN_CANCELLED`  | User cancelled gracefully                              |
+| `RUN_TERMINATED` | Platform stopped the run (timeout, budget, force-kill) |
+
+## Monitoring with subscribe
+
+Subscribe to real-time updates as each task completes:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+for await (const snapshot of stigmer.workflowRun.subscribe({
+  runId: run.metadata!.id,
+})) {
+  for (const task of snapshot.status?.tasks ?? []) {
+    console.log(`${task.taskName}: ${task.status}`);
+  }
+
+const phase = snapshot.status?.phase; if (phase === "RUN_COMPLETED") {
+console.log("Output:", snapshot.status?.output); break; } if (phase ===
+"RUN_FAILED") { console.error("Error:", snapshot.status?.error); break; } }
+
+````
+</Tab>
+<Tab value="Go">
+```go
+stream, err := client.WorkflowRun.Subscribe(ctx,
+    &stigmer.SubscribeWorkflowRunRequest{
+        RunId: run.GetMetadata().GetId(),
+    })
+
+for {
+    snapshot, err := stream.Recv()
+    if err == io.EOF {
+        break
+    }
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    status := snapshot.GetStatus()
+    for _, task := range status.GetTasks() {
+        fmt.Printf("%s: %s\n", task.GetTaskName(), task.GetStatus())
+    }
+
+    if isTerminal(status.GetPhase()) {
+        break
+    }
+}
+````
+
+</Tab>
+<Tab value="Python">
+```python
+for snapshot in client.workflow_runs.subscribe(
+    SubscribeWorkflowRunRequest(
+        run_id=run.metadata.id,
+    ),
+):
+    for task in snapshot.status.tasks:
+        print(f"{task.task_name}: {task.status}")
+
+    if snapshot.status.phase in (
+        "RUN_COMPLETED", "RUN_FAILED",
+    ):
+        print("Output:", snapshot.status.output)
+        break
+
+````
+</Tab>
+</SDKTabs>
+
+For error handling, cancellation, and retry patterns, see the
+[Streaming guide](/docs/sdk/streaming).
+
+## Responding to human_input tasks
+
+When a `human_input` task is reached, the run enters
+`RUN_WAITING_FOR_APPROVAL`. Submit a reviewer decision to unblock it:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+await stigmer.workflowRun.submitWorkflowTaskApproval({
+  runId: run.metadata!.id,
+  taskName: "review_content",
+  outcome: "approve",
+  formData: {
+    notes: "Looks good, publish it.",
+  },
+});
+````
+
+</Tab>
+<Tab value="Go">
+```go
+_, err := client.WorkflowRun.SubmitWorkflowTaskApproval(ctx,
+    &stigmer.SubmitWorkflowTaskApprovalRequest{
+        RunId:    runID,
+        TaskName:    "review_content",
+        Outcome:     "approve",
+        FormData: map[string]any{
+            "notes": "Looks good, publish it.",
+        },
+    })
+```
+</Tab>
+<Tab value="Python">
+```python
+client.workflow_runs.submit_workflow_task_approval(
+    SubmitWorkflowTaskApprovalRequest(
+        run_id=run_id,
+        task_name="review_content",
+        outcome="approve",
+        form_data={"notes": "Looks good, publish it."},
+    )
+)
+```
+</Tab>
+</SDKTabs>
+
+The `outcome` must match one of the `outcomes[].name` values defined in the
+`human_input` task. The `formData` is validated against the task's `form_schema`
+if one is set.
+
+<Callout type="info">
+  This is different from **agent tool approvals**
+  ([`submitApproval`](/docs/sdk/resources/workflow-run#submitapproval)), which
+  approve or deny individual tool calls made by an Agent inside an `agent_call`
+  task. Use `submitWorkflowTaskApproval` for workflow-level `human_input` gates.
+</Callout>
+
+### Listing pending approvals
+
+To find all runs waiting for human input:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const pending = await stigmer.workflowRun.listPendingApprovals({
+  org: "my-org",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+pending, err := client.WorkflowRun.ListPendingApprovals(ctx,
+    &stigmer.ListPendingApprovalsRequest{Org: "my-org"})
+```
+</Tab>
+</SDKTabs>
+
+## Sending signals to listen tasks
+
+When a `listen` task is waiting for an external signal, send it with
+`sendSignal`:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+await stigmer.workflowRun.sendSignal({
+  runId: run.metadata!.id,
+  signalId: "payment_confirmed",
+  payload: { transactionId: "txn-123", amount: 99.99 },
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+_, err := client.WorkflowRun.SendSignal(ctx,
+    &stigmer.SendSignalRequest{
+        RunId:    runID,
+        SignalId:    "payment_confirmed",
+        Payload: map[string]any{
+            "transactionId": "txn-123",
+            "amount":        99.99,
+        },
+    })
+```
+</Tab>
+<Tab value="Python">
+```python
+client.workflow_runs.send_signal(
+    SendSignalRequest(
+        run_id=run_id,
+        signal_id="payment_confirmed",
+        payload={"transactionId": "txn-123", "amount": 99.99},
+    )
+)
+```
+</Tab>
+</SDKTabs>
+
+The `signalId` must match the `signal.id` defined in the `listen` task's
+`listen_to` configuration.
+
+## Cancel, terminate, and recover
+
+### Cancel
+
+Gracefully stop a run in progress. In-progress tasks are allowed to complete:
+
+<SDKTabs>
+  <Tab value="TypeScript">
+    ```typescript await stigmer.workflowRun.cancel(runId); ```
+  </Tab>
+  <Tab value="Go">
+    ```go _, err := client.WorkflowRun.Cancel(ctx, runID) ```
+  </Tab>
+</SDKTabs>
+
+### Terminate
+
+Force-stop immediately without waiting for in-progress tasks:
+
+<SDKTabs>
+  <Tab value="TypeScript">
+    ```typescript await stigmer.workflowRun.terminate(runId); ```
+  </Tab>
+  <Tab value="Go">
+    ```go _, err := client.WorkflowRun.Terminate(ctx, runID) ```
+  </Tab>
+</SDKTabs>
+
+### Pause and resume
+
+Pause a run in progress and resume it later:
+
+<SDKTabs>
+  <Tab value="TypeScript">
+    ```typescript await stigmer.workflowRun.pause(runId); // Later... await
+    stigmer.workflowRun.resume(runId); ```
+  </Tab>
+  <Tab value="Go">
+    ```go _, err := client.WorkflowRun.Pause(ctx, runID) // Later... _, err =
+    client.WorkflowRun.Resume(ctx, runID) ```
+  </Tab>
+</SDKTabs>
+
+### Recover
+
+Recover a failed run from its last checkpoint. The workflow resumes from the
+task that failed:
+
+<SDKTabs>
+  <Tab value="TypeScript">
+    ```typescript await stigmer.workflowRun.recover(runId); ```
+  </Tab>
+  <Tab value="Go">
+    ```go _, err := client.WorkflowRun.Recover(ctx, runID) ```
+  </Tab>
+</SDKTabs>
+
+## Run summary and event log
+
+### Run summary
+
+Get aggregated statistics for an organization's Workflow Runs:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const summary = await stigmer.workflowRun.getRunSummary({
+  org: "my-org",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+summary, err := client.WorkflowRun.GetRunSummary(ctx,
+    &stigmer.GetRunSummaryRequest{Org: "my-org"})
+```
+</Tab>
+</SDKTabs>
+
+### Event log
+
+Fetch the paginated event log for a specific run — useful for debugging and
+auditing:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const log = await stigmer.workflowRun.getEventLog({
+  runId: runId,
+  pageSize: 50,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+log, err := client.WorkflowRun.GetEventLog(ctx,
+    &stigmer.GetEventLogRequest{
+        RunId:    runID,
+        PageSize: 50,
+    })
+```
+</Tab>
+</SDKTabs>
+
+## Cost and token tracking
+
+Workflow budgets are enforced between tasks. Cost and token usage are tracked
+per-task and aggregated at the run level. Access them through the run status:
+
+- `status.tasks[].cost` — per-task cost information
+- `status.tasks[].tokenUsage` — per-task token counts
+- Budget violations surface as run events in the event log
+
+For details on defining budgets, see the
+[Authoring Guide](/docs/guides/workflows/authoring#budgets).
+
+## What's next
+
+<Cards>
+  <Card
+    title="Streaming"
+    description="Deep dive into subscribe patterns, error handling, and cancellation."
+    href="/docs/sdk/streaming"
+  />
+  <Card
+    title="API Reference"
+    description="Complete method and type reference for Workflow Runs."
+    href="/docs/sdk/resources/workflow-run"
+  />
+  <Card
+    title="Workflow Patterns"
+    description="Production-ready patterns for common scenarios."
+    href="/docs/guides/workflows/patterns"
+  />
+</Cards>

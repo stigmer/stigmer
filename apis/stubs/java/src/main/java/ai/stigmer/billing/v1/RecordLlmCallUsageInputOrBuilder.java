@@ -11,20 +11,20 @@ public interface RecordLlmCallUsageInputOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-   * @return The executionId.
+   * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+   * @return The runId.
    */
-  java.lang.String getExecutionId();
+  java.lang.String getRunId();
   /**
-   * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for executionId.
+   * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for runId.
    */
   com.google.protobuf.ByteString
-      getExecutionIdBytes();
+      getRunIdBytes();
 
   /**
    * <pre>
-   * 1-based call ordering within the execution, as the reporting proxy
+   * 1-based call ordering within the run, as the reporting proxy
    * counted it. An ordering hint: a proxy counts in process memory, so the
    * numbering restarts when the proxy does. Dedup identity only for callers
    * that send no call_id.
@@ -128,7 +128,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * Token usage extracted from the provider's SSE stream.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
    * @return Whether the tokens field is set.
    */
   boolean hasTokens();
@@ -137,25 +137,25 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * Token usage extracted from the provider's SSE stream.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
    * @return The tokens.
    */
-  ai.stigmer.agentic.agentexecution.v1.TokenUsage getTokens();
+  ai.stigmer.agentic.agentrun.v1.TokenUsage getTokens();
   /**
    * <pre>
    * Token usage extracted from the provider's SSE stream.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
    */
-  ai.stigmer.agentic.agentexecution.v1.TokenUsageOrBuilder getTokensOrBuilder();
+  ai.stigmer.agentic.agentrun.v1.TokenUsageOrBuilder getTokensOrBuilder();
 
   /**
    * <pre>
    * Status of usage extraction.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
    * @return The enum numeric value on the wire for usageStatus.
    */
   int getUsageStatusValue();
@@ -164,10 +164,10 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * Status of usage extraction.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
    * @return The usageStatus.
    */
-  ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus getUsageStatus();
+  ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus getUsageStatus();
 
   /**
    * <pre>
@@ -234,7 +234,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * Proxy-observed timing for this call.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
    * @return Whether the proxyTiming field is set.
    */
   boolean hasProxyTiming();
@@ -243,18 +243,18 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * Proxy-observed timing for this call.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
    * @return The proxyTiming.
    */
-  ai.stigmer.agentic.agentexecution.v1.ProxyTiming getProxyTiming();
+  ai.stigmer.agentic.agentrun.v1.ProxyTiming getProxyTiming();
   /**
    * <pre>
    * Proxy-observed timing for this call.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
    */
-  ai.stigmer.agentic.agentexecution.v1.ProxyTimingOrBuilder getProxyTimingOrBuilder();
+  ai.stigmer.agentic.agentrun.v1.ProxyTimingOrBuilder getProxyTimingOrBuilder();
 
   /**
    * <pre>
@@ -350,7 +350,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * caller.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
    * @return The enum numeric value on the wire for cursorKeySource.
    */
   int getCursorKeySourceValue();
@@ -362,10 +362,10 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * caller.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
    * @return The cursorKeySource.
    */
-  ai.stigmer.agentic.agentexecution.v1.CursorKeySource getCursorKeySource();
+  ai.stigmer.agentic.agentrun.v1.CursorKeySource getCursorKeySource();
 
   /**
    * <pre>
@@ -374,7 +374,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * response usage ("standard" | "priority" | "batch"), OpenAI at the
    * response top level ("default" | "flex" | "priority"). Reported
    * verbatim by the proxy from the SSE stream — the wire truth billing
-   * reconciles against the execution's REQUESTED tier (the
+   * reconciles against the run's REQUESTED tier (the
    * service_tier.mismatch counter). Empty when the provider reported
    * none, and for cursor-harness calls, whose billed variant arrives
    * through the cursor path's pricing-variant resolution instead.
@@ -391,7 +391,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * response usage ("standard" | "priority" | "batch"), OpenAI at the
    * response top level ("default" | "flex" | "priority"). Reported
    * verbatim by the proxy from the SSE stream — the wire truth billing
-   * reconciles against the execution's REQUESTED tier (the
+   * reconciles against the run's REQUESTED tier (the
    * service_tier.mismatch counter). Empty when the provider reported
    * none, and for cursor-harness calls, whose billed variant arrives
    * through the cursor path's pricing-variant resolution instead.
@@ -405,60 +405,60 @@ public interface RecordLlmCallUsageInputOrBuilder extends
 
   /**
    * <pre>
-   * The agent execution this call is metered under, as the proxy resolved
-   * it from the execution's system of record — on the caller's own
+   * The agent run this call is metered under, as the proxy resolved
+   * it from the run's system of record — on the caller's own
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
-   * mode against what the wire served; it performs NO execution lookup of
+   * mode against what the wire served; it performs NO run lookup of
    * its own (the same rule as cursor_account_id above: the proxy holds the
    * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the execution — a workflow-execution scope,
-   * or an execution found in neither store — in which case the record
+   * proxy could not resolve the run — a workflow-run scope,
+   * or a run found in neither store — in which case the record
    * carries an empty session and the requested-vs-billed reconciliation
    * is skipped.
    * </pre>
    *
-   * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
-   * @return Whether the meteredExecution field is set.
+   * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
+   * @return Whether the meteredRun field is set.
    */
-  boolean hasMeteredExecution();
+  boolean hasMeteredRun();
   /**
    * <pre>
-   * The agent execution this call is metered under, as the proxy resolved
-   * it from the execution's system of record — on the caller's own
+   * The agent run this call is metered under, as the proxy resolved
+   * it from the run's system of record — on the caller's own
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
-   * mode against what the wire served; it performs NO execution lookup of
+   * mode against what the wire served; it performs NO run lookup of
    * its own (the same rule as cursor_account_id above: the proxy holds the
    * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the execution — a workflow-execution scope,
-   * or an execution found in neither store — in which case the record
+   * proxy could not resolve the run — a workflow-run scope,
+   * or a run found in neither store — in which case the record
    * carries an empty session and the requested-vs-billed reconciliation
    * is skipped.
    * </pre>
    *
-   * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
-   * @return The meteredExecution.
+   * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
+   * @return The meteredRun.
    */
-  ai.stigmer.billing.v1.MeteredExecution getMeteredExecution();
+  ai.stigmer.billing.v1.MeteredRun getMeteredRun();
   /**
    * <pre>
-   * The agent execution this call is metered under, as the proxy resolved
-   * it from the execution's system of record — on the caller's own
+   * The agent run this call is metered under, as the proxy resolved
+   * it from the run's system of record — on the caller's own
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
-   * mode against what the wire served; it performs NO execution lookup of
+   * mode against what the wire served; it performs NO run lookup of
    * its own (the same rule as cursor_account_id above: the proxy holds the
    * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the execution — a workflow-execution scope,
-   * or an execution found in neither store — in which case the record
+   * proxy could not resolve the run — a workflow-run scope,
+   * or a run found in neither store — in which case the record
    * carries an empty session and the requested-vs-billed reconciliation
    * is skipped.
    * </pre>
    *
-   * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+   * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
    */
-  ai.stigmer.billing.v1.MeteredExecutionOrBuilder getMeteredExecutionOrBuilder();
+  ai.stigmer.billing.v1.MeteredRunOrBuilder getMeteredRunOrBuilder();
 
   /**
    * <pre>
@@ -470,7 +470,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * that predates the field, read as the platform's key.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
    * @return The enum numeric value on the wire for providerKeySource.
    */
   int getProviderKeySourceValue();
@@ -484,8 +484,8 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * that predates the field, read as the platform's key.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
    * @return The providerKeySource.
    */
-  ai.stigmer.agentic.agentexecution.v1.ProviderKeySource getProviderKeySource();
+  ai.stigmer.agentic.agentrun.v1.ProviderKeySource getProviderKeySource();
 }

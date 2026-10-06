@@ -62,10 +62,10 @@
  * BASELINE for the same change set. Both predate the lift on both harnesses.
  */
 
-import { ApprovalAction, FileCaptureClass, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import { ApprovalAction, FileCaptureClass, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import { captureBaselineToLedger, captureCandidateToLedger } from "../shared/filereview/capture.js";
@@ -133,7 +133,7 @@ const NOTHING_OBSERVED: CasTouchedSnapshot = { before: new Map(), blockedSecretP
  * capture, the classic deny-gate governs writes.
  */
 export async function pinCaptureBaseline(args: {
-  readonly status: AgentExecutionStatus;
+  readonly status: AgentRunStatus;
   readonly executionId: string;
   readonly workspace: TurnWorkspace;
   readonly fileReview: FileReviewIdentity;
@@ -144,7 +144,7 @@ export async function pinCaptureBaseline(args: {
   const { primaryDir, gitWorkspace, changeSetId } = workspace;
 
   const priorSettledToolCallIds = collectSettledToolCallIds(status.messages);
-  const priorSubAgentToolCallIds = collectSubAgentToolCallIds(status.subAgentExecutions);
+  const priorSubAgentToolCallIds = collectSubAgentToolCallIds(status.subAgentRuns);
 
   const baselineTree = await captureBaselineToLedger({
     status,
@@ -242,7 +242,7 @@ function buildShapedProgressSubstrate(args: {
  * (`reconcileReinvocation`). Returns whether a review is now pending.
  */
 export async function captureCandidate(args: {
-  readonly status: AgentExecutionStatus;
+  readonly status: AgentRunStatus;
   readonly executionId: string;
   readonly workspace: TurnWorkspace;
   readonly fileReview: FileReviewIdentity;
@@ -289,7 +289,7 @@ export async function captureCandidate(args: {
     // A row must never reference a change set that does not exist, so the
     // stamp is gated on the authored candidate.
     stampFlowedFileEditRows(status.messages, changeSetId, { flowed: isCompletedRow });
-    stampFlowedSubAgentFileEditRows(status.subAgentExecutions, changeSetId, capture.priorSubAgentToolCallIds, isCompletedRow);
+    stampFlowedSubAgentFileEditRows(status.subAgentRuns, changeSetId, capture.priorSubAgentToolCallIds, isCompletedRow);
     console.log(`capture: change set ${changeSetId} authored to the file_review ledger; working tree left applied for review (execution=${executionId})`);
   }
   return pending;
@@ -306,14 +306,14 @@ function isCompletedRow(tc: ToolCall): boolean {
  * over the status and the pre-turn snapshots; exported for its own tests.
  */
 export function deriveCommandProvenance(
-  status: AgentExecutionStatus,
+  status: AgentRunStatus,
   capture: Pick<TurnCapture, "priorSettledToolCallIds" | "priorSubAgentToolCallIds">,
   globalBypass: boolean,
 ): TurnCommandProvenance | undefined {
   // Any sub-agent activity this turn disqualifies — a sub-agent
   // that ran contributes at least one row id absent from the pre-turn set,
   // and its writes fold into this change set without a consented command.
-  for (const id of collectSubAgentToolCallIds(status.subAgentExecutions)) {
+  for (const id of collectSubAgentToolCallIds(status.subAgentRuns)) {
     if (!capture.priorSubAgentToolCallIds.has(id)) return undefined;
   }
   const turnToolCalls = status.messages.flatMap((m) => m.toolCalls).filter((tc) => !capture.priorSettledToolCallIds.has(tc.id));

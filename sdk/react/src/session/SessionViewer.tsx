@@ -7,7 +7,7 @@ import { getUserMessage, type AttachmentInput, type ResourceRef } from "@stigmer
 import {
   GetArtifactContentRequestSchema,
   UploadAttachmentRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
@@ -22,15 +22,15 @@ import type { AccountExecutionDefaults } from "../identity-account/useAccountExe
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { SessionViewerLayout } from "./SessionViewerLayout.js";
 import { useWorkspaceEditors, isVirtualEntryId } from "../internal/store/index.js";
-import { isTerminalPhase } from "../execution/execution-phases.js";
-import { MessageThread, type MessageThreadSlots } from "../execution/MessageThread.js";
-import { FileChangeProgressBar } from "../execution/FileChangeProgressBar.js";
-import { FileReviewDock } from "../execution/FileReviewDock.js";
+import { isTerminalPhase } from "../run/run-phases.js";
+import { MessageThread, type MessageThreadSlots } from "../run/MessageThread.js";
+import { FileChangeProgressBar } from "../run/FileChangeProgressBar.js";
+import { FileReviewDock } from "../run/FileReviewDock.js";
 import {
   FilePathContext,
   type FilePathContextValue,
-} from "../execution/FilePathContext.js";
-import { ThreadSkeleton } from "../execution/ThreadSkeleton.js";
+} from "../run/FilePathContext.js";
+import { ThreadSkeleton } from "../run/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
 import { useStigmer } from "../hooks.js";
@@ -48,8 +48,8 @@ import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanD
 import { PlanEditor } from "./PlanEditor.js";
 import { PlanStreamingDocument } from "./PlanStreamingDocument.js";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../execution/artifact-document.js";
-import { ArtifactDocument } from "../execution/ArtifactDocument.js";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../run/artifact-document.js";
+import { ArtifactDocument } from "../run/ArtifactDocument.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
@@ -65,13 +65,13 @@ import {
   type SessionArtifactEntry,
 } from "./useSessionArtifacts.js";
 import type { SetupTabProps } from "./facets/SetupTab.js";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
 
 /**
- * Where the approved plan mounts in the implement execution's workspace —
+ * Where the approved plan mounts in the implement run's workspace —
  * the harnesses' standard attachment inputs directory, where the runner's
  * implement-plan directive points the agent (shared/implement-plan-prompt.ts).
  * Attaching under the plan's own filename (e.g. `feature-x_a1b2c3d4.plan.md`) is what
@@ -88,20 +88,20 @@ function approvedPlanMountPath(planFileName: string): string {
  * implement instruction. The agent-facing instruction is runner-injected
  * (keyed off `spec.buildFromPlan`). The thread hides the turn
  * entirely from the same flag (the plan card above it is the visible cause);
- * this label exists for surfaces without that treatment (the CLI, execution
+ * this label exists for surfaces without that treatment (the CLI, run
  * history, older clients), which show it as-is.
  */
 const BUILD_FROM_PLAN_MESSAGE = "Build from plan";
 
 /**
- * A plan the active execution is writing right now, resolved at the viewer
+ * A plan the active run is writing right now, resolved at the viewer
  * level (from `findStreamingPlan`) so the panel's plan tab can render it
  * live. The streaming sibling of {@link SessionPlan}: `executionId` keys the
  * document (a new turn's stream resets the tab's view state) and forms the
  * `<executionId>:streaming` identity for the plan-tab auto-open trigger.
  */
 interface SessionStreamingPlan {
-  /** ID of the execution writing the plan. */
+  /** ID of the run writing the plan. */
   readonly executionId: string;
   /** The live plan text (fence-stripped display projection). */
   readonly displayText: string;
@@ -117,9 +117,9 @@ async function fetchPlanText(
   stigmer: ReturnType<typeof useStigmer>,
   plan: SessionPlan,
 ): Promise<string> {
-  const result = await stigmer.agentExecution.getArtifactContent(
+  const result = await stigmer.agentRun.getArtifactContent(
     create(GetArtifactContentRequestSchema, {
-      executionId: plan.executionId,
+      runId: plan.runId,
       storageKey: plan.artifact.storageKey,
     }),
   );
@@ -208,7 +208,7 @@ export interface SessionViewerProps {
   readonly workspaceContentSearcher?: WorkspaceContentSearcher;
   /**
    * Supplies host-app environment variables for every follow-up
-   * execution (e.g. short-lived credentials for MCP tools, minted as
+   * run (e.g. short-lived credentials for MCP tools, minted as
    * the signed-in user). Evaluated fresh at each send; host values win
    * over composer-collected env on key collisions. If the provider
    * throws, the send is blocked and an error banner is shown — see
@@ -241,14 +241,14 @@ export interface SessionViewerProps {
    */
   readonly audience?: SessionAudience;
   /**
-   * Owner-pinned model/tier for every execution sent from this viewer
+   * Owner-pinned model/tier for every run sent from this viewer
    * (stigmer/stigmer#664) — for product-embedded conversations where
    * the platform, not the end user, decides what serves the session
    * (pair with `audience="endUser"`). A pinned model wins over the
    * composer, the persisted Console preference, and the last
    * execution's model — follow-ups and retries included — and hides
    * the model picker (a control that has no effect must not render).
-   * Ignored for the `"guest"` audience, whose execution config the
+   * Ignored for the `"guest"` audience, whose run config the
    * server-side share policy owns. See {@link SessionRunConfig}.
    */
   readonly runConfig?: SessionRunConfig;
@@ -354,7 +354,7 @@ export interface SessionViewerProps {
 
 /**
  * Full-featured agent session viewer — the graph-less analog of
- * `WorkflowExecutionViewer`.
+ * `WorkflowRunViewer`.
  *
  * Owns `useSessionPageFlow` internally and composes:
  * - **Conversation column** (primary): `MessageThread` + error
@@ -373,7 +373,7 @@ export interface SessionViewerProps {
  *
  * @example
  * ```tsx
- * // Web (cloud execution)
+ * // Web (cloud run)
  * <SessionViewer
  *   sessionId={id}
  *   org={org}
@@ -382,7 +382,7 @@ export interface SessionViewerProps {
  *   headerActions={<ShareButton sessionId={id} />}
  * />
  *
- * // Desktop (local execution with native picker)
+ * // Desktop (local run with native picker)
  * <SessionViewer
  *   sessionId={id}
  *   org={org}
@@ -440,7 +440,7 @@ export function SessionViewer({
     showModelSelector && !isGuest && runConfig?.modelName === undefined;
   // Channel-originated sessions (Slack/WhatsApp conversations owned by the
   // channel runtime) are read-only for every console caller — the server
-  // grants channel viewers can_view without can_create_execution_in — so the
+  // grants channel viewers can_view without can_create_run_in — so the
   // viewer self-selects the observer presentation regardless of the host's
   // audience. Every entry point (a conversations list, a pasted URL) renders
   // read-only without host wiring.
@@ -461,23 +461,23 @@ export function SessionViewer({
   const composerRef = useRef<SessionComposerHandle>(null);
 
   const phase =
-    flow.displayExecution?.status?.phase ??
-    ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-  const hasPhase = phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    flow.displayRun?.status?.phase ??
+    RunPhase.RUN_PHASE_UNSPECIFIED;
+  const hasPhase = phase !== RunPhase.RUN_PHASE_UNSPECIFIED;
 
   // Facet arrival counts: rail badges inside the panel, the chip's dot-count
   // while collapsed. Arrivals never auto-open the panel (badge-only signal).
-  const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(flow.allExecutions);
-  const { artifactCount } = useSessionArtifacts(flow.allExecutions);
+  const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(flow.allRuns);
+  const { artifactCount } = useSessionArtifacts(flow.allRuns);
 
-  // The session's current plan (latest published plan.md across executions)
+  // The session's current plan (latest published plan.md across runs)
   // and its viewer-owned draft. Ownership at this level is deliberate: the
   // panel unmounts facet content on every view switch, so a facet-local
   // draft would silently lose the user's edits (see usePlanDraft).
   const stigmer = useStigmer();
   const sessionPlan = useMemo(
-    () => findLatestSessionPlan(flow.allExecutions),
-    [flow.allExecutions],
+    () => findLatestSessionPlan(flow.allRuns),
+    [flow.allRuns],
   );
   const planDraft = usePlanDraft(sessionPlan);
 
@@ -487,18 +487,18 @@ export function SessionViewer({
   // commit by design — this component already re-renders on every commit
   // (it reads `flow`), and the scan touches only the last AI message.
   const streamingPlan = useMemo<SessionStreamingPlan | undefined>(() => {
-    const activeExec = conv.activeStreamExecution;
+    const activeExec = conv.activeStreamRun;
     const live = findStreamingPlan(activeExec);
     const executionId = activeExec?.metadata?.id;
     return live && executionId
       ? { executionId, displayText: live.displayText }
       : undefined;
-  }, [conv.activeStreamExecution]);
+  }, [conv.activeStreamRun]);
   const [isBuildingFromPlan, setIsBuildingFromPlan] = useState(false);
   const [planAttachFailed, setPlanAttachFailed] = useState(false);
 
   // WHICH plan the panel's plan document tab shows. `null` means the session's
-  // current (latest) plan — the editable, buildable one; an execution id
+  // current (latest) plan — the editable, buildable one; a run id
   // selects that turn's historical plan, rendered read-only. One tab, host-
   // controlled content.
   const [openPlanExecutionId, setOpenPlanExecutionId] = useState<string | null>(null);
@@ -573,7 +573,7 @@ export function SessionViewer({
 
     // Deterministic handoff: upload the APPROVED plan (draft if edited, else
     // the artifact text — one uniform path) and attach it to the implement
-    // execution. The published artifact itself stays immutable; the approved
+    // run. The published artifact itself stays immutable; the approved
     // copy is a new input on the build turn (edit-as-input provenance).
     setIsBuildingFromPlan(true);
     // The approved copy keeps the published plan's filename, so the mounted
@@ -583,7 +583,7 @@ export function SessionViewer({
       try {
         const approvedText =
           planDraft.readDraft() ?? (await fetchPlanText(stigmer, sessionPlan));
-        const response = await stigmer.agentExecution.uploadAttachment(
+        const response = await stigmer.agentRun.uploadAttachment(
           create(UploadAttachmentRequestSchema, {
             filename: planFileName,
             content: new TextEncoder().encode(approvedText),
@@ -611,12 +611,12 @@ export function SessionViewer({
 
   // "Open plan" (a thread plan card, or the Artifacts facet's plan.md) → the
   // panel's plan document tab. Opening the LATEST plan clears the historical
-  // selection (the tab shows the editable current plan); any other execution
+  // selection (the tab shows the editable current plan); any other run
   // id opens that turn's plan read-only in the same tab.
   const handleOpenPlan = useCallback(
     (executionId: string) => {
       setOpenPlanExecutionId(
-        sessionPlan && executionId === sessionPlan.executionId
+        sessionPlan && executionId === sessionPlan.runId
           ? null
           : executionId,
       );
@@ -693,7 +693,7 @@ export function SessionViewer({
       className={className}
       // Top-right controls: host actions + the panel chip. The chip is the
       // panel's always-mounted toggle; while collapsed it carries only the
-      // pending-item count. Execution status is never surfaced as header
+      // pending-item count. Run status is never surfaced as header
       // chrome — the thread itself communicates run state. A viewer without
       // a panel (guests — session configuration is not a visitor's business —
       // or a host's panel="none") has no toggle: it is simply absent.
@@ -758,8 +758,8 @@ export function SessionViewer({
             // withheld rather than left to fail server-side.
             accessSlot={isObserver ? undefined : accessSlot}
             onApplied={onApplied}
-            // Implementing a plan submits an execution — a write an
-            // observer cannot make (can_create_execution_in is
+            // Implementing a plan submits a run — a write an
+            // observer cannot make (can_create_run_in is
             // owner/viewer-only).
             onImplementPlan={isObserver ? undefined : handleBuildFromPlan}
             implementPlanDisabled={
@@ -877,7 +877,7 @@ const ConversationColumn = memo(function ConversationColumn({
   // the person's personal environment are named. Guests and observers
   // never send on their own agent choice.
   const hasTurns =
-    conv.completedExecutions.length > 0 || conv.activeStreamExecution !== null;
+    conv.completedRuns.length > 0 || conv.activeStreamRun !== null;
   const runsSessionAgent = isSameAgent(flow.agentRef, agentRefOfSession(conv.session));
   const disclosePersonalKeys = !isGuest && !isObserver && (!hasTurns || !runsSessionAgent);
   // On the session's own agent the next message runs the session's pin,
@@ -886,9 +886,9 @@ const ConversationColumn = memo(function ConversationColumn({
     ? conv.session?.status?.agentVersionHash || undefined
     : undefined;
 
-  // Retry a terminal-failed execution by resending its originating message
+  // Retry a terminal-failed run by resending its originating message
   // through the full submit pipeline (agent override, runtime-env, workspace).
-  const onRetryExecution = useCallback(
+  const onRetryRun = useCallback(
     (message: string) => {
       void flow.handleSubmit(message);
     },
@@ -896,15 +896,15 @@ const ConversationColumn = memo(function ConversationColumn({
   );
 
   // Stop the in-flight turn (graceful cancel, escalating to terminate on a
-  // repeat press). Only wired while the active execution is stoppable.
+  // repeat press). Only wired while the active run is stoppable.
   const handleStop = useCallback(() => {
     void conv.stop();
   }, [conv.stop]);
 
   // Edit-and-resubmit: stop the in-flight turn, pre-fill the composer with
-  // the original text, and remember which execution is being edited. The
-  // append-only execution log is never rewritten — submitting while editing
-  // creates a NEW execution that carries `supersedesExecutionId`, and the
+  // the original text, and remember which run is being edited. The
+  // append-only run log is never rewritten — submitting while editing
+  // creates a NEW run that carries `supersedesRunId`, and the
   // conversation read model hides the superseded turn so the edited message
   // replaces the original in place (Cursor-style, stigmer/stigmer#181).
   //
@@ -915,16 +915,16 @@ const ConversationColumn = memo(function ConversationColumn({
   const [editingExecutionId, setEditingExecutionId] = useState<string | null>(
     null,
   );
-  const activeExecutionId = conv.activeStreamExecution?.metadata?.id ?? null;
+  const activeRunId = conv.activeStreamRun?.metadata?.id ?? null;
 
   const handleEditMessage = useCallback(
     (text: string) => {
       void conv.stop();
-      setEditingExecutionId(activeExecutionId);
+      setEditingExecutionId(activeRunId);
       composerRef.current?.setMessage(text);
       composerRef.current?.focus();
     },
-    [conv.stop, activeExecutionId, composerRef],
+    [conv.stop, activeRunId, composerRef],
   );
 
   const handleCancelEdit = useCallback(() => {
@@ -944,7 +944,7 @@ const ConversationColumn = memo(function ConversationColumn({
         message,
         modelName,
         editingExecutionId
-          ? { ...context, supersedesExecutionId: editingExecutionId }
+          ? { ...context, supersedesRunId: editingExecutionId }
           : context,
       );
       setEditingExecutionId(null);
@@ -969,8 +969,8 @@ const ConversationColumn = memo(function ConversationColumn({
   return (
     <div className="stg:flex stg:h-full stg:min-w-0 stg:flex-col">
       <MessageThread
-        executions={conv.completedExecutions}
-        activeStreamExecution={conv.activeStreamExecution}
+        runs={conv.completedRuns}
+        activeStreamRun={conv.activeStreamRun}
         pendingUserMessage={conv.pendingUserMessage}
         pendingAttachments={conv.pendingAttachments}
         pendingMessageFailed={!!conv.sendError && !!conv.pendingUserMessage}
@@ -979,12 +979,12 @@ const ConversationColumn = memo(function ConversationColumn({
         // callback, so passing none removes the controls entirely. Opening
         // a plan read-only in the panel remains — reading is the point.
         onRetrySend={isObserver ? undefined : conv.retryLastSend}
-        onRetryExecution={isObserver ? undefined : onRetryExecution}
+        onRetryRun={isObserver ? undefined : onRetryRun}
         // Approval mechanics are an OPERATOR surface, never a guest's:
         // the HITL gate protects the org's tools, and an anonymous
-        // visitor is not its trustee. Guest executions run unattended
+        // visitor is not its trustee. Guest runs run unattended
         // (gated tools auto-skip server-side), so nothing is ever pending on
-        // a new execution — withholding the callback is the belt-and-braces
+        // a new run — withholding the callback is the belt-and-braces
         // for pre-existing sessions and embedders composing the SDK directly.
         onApprovalSubmit={isObserver || isGuest ? undefined : flow.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
@@ -1068,7 +1068,7 @@ const ConversationColumn = memo(function ConversationColumn({
           )}
         </FilePathContext.Provider>
         {/* Observers never get a composer: the server denies them
-            can_create_execution_in, so the send surface simply is not
+            can_create_run_in, so the send surface simply is not
             offered — read-only by construction, not by a disabled state. */}
         {!isObserver && (
           <SessionComposer
@@ -1151,7 +1151,7 @@ interface SessionPanelRegionProps {
   readonly planDraft: PlanDraftController;
   /**
    * Which plan the plan document tab shows: `null` for the latest (editable),
-   * or an execution id whose historical plan renders read-only.
+   * or a run id whose historical plan renders read-only.
    */
   readonly openPlanExecutionId: string | null;
   /** Opens a plan in the plan tab (routed to the Artifacts facet's plan.md). */
@@ -1209,7 +1209,7 @@ function SessionPanelRegion({
   );
   // Session artifacts, deduped by identity — the source both the Artifacts
   // rail-view badge and the open artifact document tabs resolve against.
-  const { artifacts: sessionArtifacts } = useSessionArtifacts(flow.allExecutions);
+  const { artifacts: sessionArtifacts } = useSessionArtifacts(flow.allRuns);
 
   // Honor a pending jump-to-line reveal only while it targets the active editor
   // (an EditorReveal is structurally a RevealTarget). Switching tabs changes
@@ -1224,30 +1224,30 @@ function SessionPanelRegion({
   // relying on the correlation harmlessly missing the sentinel id.
   const openFileChange = useOpenFileChange(
     activeFile && !isVirtualEntryId(activeFile.entryId) ? activeFile : null,
-    flow.allExecutions,
+    flow.allRuns,
     flow.workspace.entries,
     flow.sandboxWorkspaceRoot,
   );
 
   // Resolve WHICH plan the plan document tab shows: the latest (editable,
-  // buildable, draft-backed) unless a historical execution id was opened —
-  // that plan renders read-only. A stale id (execution gone, or its plan
+  // buildable, draft-backed) unless a historical run id was opened —
+  // that plan renders read-only. A stale id (run gone, or its plan
   // artifact missing) degrades to the latest rather than an empty tab.
   const openPlan = useMemo<SessionPlan | undefined>(() => {
     if (
       openPlanExecutionId === null ||
-      openPlanExecutionId === sessionPlan?.executionId
+      openPlanExecutionId === sessionPlan?.runId
     ) {
       return sessionPlan;
     }
-    const execution = flow.allExecutions.find(
+    const execution = flow.allRuns.find(
       (e) => e.metadata?.id === openPlanExecutionId,
     );
     const artifact = findPlanArtifact(execution);
     return artifact
-      ? { executionId: openPlanExecutionId, artifact }
+      ? { runId: openPlanExecutionId, artifact }
       : sessionPlan;
-  }, [openPlanExecutionId, sessionPlan, flow.allExecutions]);
+  }, [openPlanExecutionId, sessionPlan, flow.allRuns]);
 
   // The plan document tab (SurfaceVirtualDocument): the panel's editor-area
   // rendering of the session's plan. Three states, in precedence order:
@@ -1257,7 +1257,7 @@ function SessionPanelRegion({
   // notice — reachable only when a streaming plan auto-opened the
   // tab and its turn then ended without publishing, with no earlier plan to
   // fall back to.
-  const openPlanIsLatest = openPlan?.executionId === sessionPlan?.executionId;
+  const openPlanIsLatest = openPlan?.runId === sessionPlan?.runId;
   const planVirtualDocument = useMemo<SurfaceVirtualDocument>(() => {
     return {
       entryId: PLAN_DOCUMENT_ENTRY_ID,
@@ -1297,7 +1297,7 @@ function SessionPanelRegion({
   // it (single source of truth for artifact identity). Only the ACTIVE doc's
   // `content` is mounted by the surface, so building these elements is cheap;
   // keying on `contentHash` remounts a tab whose artifact was overwritten by a
-  // later execution. A tab whose artifact no longer exists degrades to an
+  // later run. A tab whose artifact no longer exists degrades to an
   // honest notice rather than vanishing.
   const artifactByKey = useMemo(
     () =>
@@ -1316,7 +1316,7 @@ function SessionPanelRegion({
             <ArtifactDocument
               key={entry.artifact.contentHash || editor.path}
               artifact={entry.artifact}
-              executionId={entry.executionId}
+              runId={entry.runId}
               org={org}
               isTerminal={entry.isTerminal}
               onApplied={onApplied}
@@ -1419,13 +1419,13 @@ function SessionPanelRegion({
     flow.executionTarget === "cloud" &&
     flow.workspace.entries.some((entry) => entry.type === "git");
   const displayPhase =
-    flow.displayExecution?.status?.phase ??
-    ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    flow.displayRun?.status?.phase ??
+    RunPhase.RUN_PHASE_UNSPECIFIED;
 
   // The session facets (Config / Changes / Artifacts / Usage) as
   // injected rail views — the full inspector feature set inside one panel.
   const railViews = useSessionRailViews({
-    allExecutions: flow.allExecutions,
+    allRuns: flow.allRuns,
     org,
     sessionConfig,
     onApplied,
@@ -1451,7 +1451,7 @@ function SessionPanelRegion({
   // read-side projection only: `flow.workspace.entries` stays undecorated for
   // setup and session input.
   const surfaceEntries = useWorkspaceReadRefs(
-    flow.allExecutions,
+    flow.allRuns,
     flow.workspace.entries,
   );
 
@@ -1544,7 +1544,7 @@ function PlanUnavailableNotice() {
 
 /**
  * Shown in an artifact document tab whose artifact is no longer among the
- * session's outputs (an edge only reachable if the executions backing the tab
+ * session's outputs (an edge only reachable if the runs backing the tab
  * changed underneath it). The tab stays closable; the content is honest rather
  * than blank.
  */

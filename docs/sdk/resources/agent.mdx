@@ -174,7 +174,7 @@ Agent agent = client.agents().getByReference(ApiResourceReference.builder()
 
 Get a specific version of an agent by its content hash.
 
-Used by the runner and the server to run a turn on the version it recorded (AgentExecutionStatus.agent_version_hash), and by clients to show what a past version said.
+Used by the runner and the server to run a turn on the version it recorded (AgentRunStatus.agent_version_hash), and by clients to show what a past version said.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -959,7 +959,7 @@ HookFormat is the hook format a plugin's hooks are written in.
 
 ### ServiceTier
 
-ServiceTier selects the provider-side speed/service tier for an execution's model calls.
+ServiceTier selects the provider-side speed/service tier for a run's model calls.
 
 | Value | Description |
 |-------|-------------|
@@ -968,7 +968,7 @@ ServiceTier selects the provider-side speed/service tier for an execution's mode
 
 ### ThinkingMode
 
-ThinkingMode selects the model's extended-reasoning ("thinking") variant for an execution's model calls — the second variant dimension alongside ServiceTier (stigmer/stigmer#772).
+ThinkingMode selects the model's extended-reasoning ("thinking") variant for a run's model calls — the second variant dimension alongside ServiceTier (stigmer/stigmer#772).
 
 | Value | Description |
 |-------|-------------|

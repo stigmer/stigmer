@@ -442,11 +442,11 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_;
   /**
    * <pre>
-   * Environments whose values are delivered to every agent execution a
+   * Environments whose values are delivered to every agent run a
    * user signed in through this PlatformClient creates. This is how an
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user executions receive its values at
+   * API secret), and minted-user runs receive its values at
    * runtime, at the lowest priority, so the request's runtime values win on
    * a key conflict. The agent stays untouched.
    * </pre>
@@ -459,11 +459,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Environments whose values are delivered to every agent execution a
+   * Environments whose values are delivered to every agent run a
    * user signed in through this PlatformClient creates. This is how an
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user executions receive its values at
+   * API secret), and minted-user runs receive its values at
    * runtime, at the lowest priority, so the request's runtime values win on
    * a key conflict. The agent stays untouched.
    * </pre>
@@ -477,11 +477,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Environments whose values are delivered to every agent execution a
+   * Environments whose values are delivered to every agent run a
    * user signed in through this PlatformClient creates. This is how an
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user executions receive its values at
+   * API secret), and minted-user runs receive its values at
    * runtime, at the lowest priority, so the request's runtime values win on
    * a key conflict. The agent stays untouched.
    * </pre>
@@ -494,11 +494,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Environments whose values are delivered to every agent execution a
+   * Environments whose values are delivered to every agent run a
    * user signed in through this PlatformClient creates. This is how an
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user executions receive its values at
+   * API secret), and minted-user runs receive its values at
    * runtime, at the lowest priority, so the request's runtime values win on
    * a key conflict. The agent stays untouched.
    * </pre>
@@ -511,11 +511,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Environments whose values are delivered to every agent execution a
+   * Environments whose values are delivered to every agent run a
    * user signed in through this PlatformClient creates. This is how an
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user executions receive its values at
+   * API secret), and minted-user runs receive its values at
    * runtime, at the lowest priority, so the request's runtime values win on
    * a key conflict. The agent stays untouched.
    * </pre>
@@ -2059,11 +2059,11 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2079,11 +2079,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2099,11 +2099,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2119,11 +2119,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2146,11 +2146,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2170,11 +2170,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2196,11 +2196,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2223,11 +2223,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2247,11 +2247,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2271,11 +2271,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2296,11 +2296,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2319,11 +2319,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2342,11 +2342,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2359,11 +2359,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2379,11 +2379,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2400,11 +2400,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2417,11 +2417,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>
@@ -2435,11 +2435,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every agent execution a
+     * Environments whose values are delivered to every agent run a
      * user signed in through this PlatformClient creates. This is how an
      * embedded assistant reaches secret-gated MCP servers: the client — the
      * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user executions receive its values at
+     * API secret), and minted-user runs receive its values at
      * runtime, at the lowest priority, so the request's runtime values win on
      * a key conflict. The agent stays untouched.
      * </pre>

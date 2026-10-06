@@ -30,9 +30,9 @@ import { fromJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { WorkflowExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { WorkflowExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import type { WorkflowRunStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 
 import {
   INVOKE_WORKFLOW_EXECUTION_WORKFLOW_NAME,
@@ -66,7 +66,7 @@ let envReady = false;
 
 interface RecordedStatus {
   readonly executionId: string;
-  readonly status: WorkflowExecutionStatus;
+  readonly status: WorkflowRunStatus;
 }
 
 let persistedStatuses: RecordedStatus[] = [];
@@ -87,7 +87,7 @@ function recorderActivities(): Record<string, (...args: never[]) => Promise<unkn
     ): Promise<void> => {
       persistedStatuses.push({
         executionId,
-        status: fromJson(WorkflowExecutionStatusSchema, statusJson),
+        status: fromJson(WorkflowRunStatusSchema, statusJson),
       });
     },
     [DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: async (
@@ -137,12 +137,12 @@ async function waitFor(
   }
   throw new Error(
     `timed out waiting for ${label}; ` +
-      `persisted=[${persistedStatuses.map((entry) => ExecutionPhase[entry.status.phase]).join(", ")}] ` +
+      `persisted=[${persistedStatuses.map((entry) => RunPhase[entry.status.phase]).join(", ")}] ` +
       `childEvents=[${childEvents.join(", ")}]`,
   );
 }
 
-function persistedPhases(): ExecutionPhase[] {
+function persistedPhases(): RunPhase[] {
   return persistedStatuses.map((entry) => entry.status.phase);
 }
 
@@ -236,7 +236,7 @@ describe("invoke-workflow-execution workflow (TestWorkflowEnvironment)", () => {
       /Workflow execution failed/,
     );
 
-    expect(persistedPhases()).toEqual([ExecutionPhase.EXECUTION_FAILED]);
+    expect(persistedPhases()).toEqual([RunPhase.RUN_FAILED]);
     const failed = persistedStatuses[0]!;
     expect(failed.executionId).toBe("wfe-fail");
     // Go: "Workflow execution failed: %s" over the child's error text.
@@ -253,7 +253,7 @@ describe("invoke-workflow-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.cancel();
     await expect(handle.result()).rejects.toThrowError();
 
-    expect(persistedPhases()).toEqual([ExecutionPhase.EXECUTION_CANCELLED]);
+    expect(persistedPhases()).toEqual([RunPhase.RUN_CANCELLED]);
     // stigmer#282: a user cancel is a quiet terminal state — display
     // layers key error styling on status.error.
     expect(persistedStatuses[0]!.status.error).toBe("");
@@ -273,7 +273,7 @@ describe("invoke-workflow-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.signal(RESUME_SIGNAL_NAME);
 
     await waitFor(
-      () => persistedPhases().includes(ExecutionPhase.EXECUTION_IN_PROGRESS),
+      () => persistedPhases().includes(RunPhase.RUN_IN_PROGRESS),
       "IN_PROGRESS persist",
     );
     await waitFor(
@@ -288,8 +288,8 @@ describe("invoke-workflow-execution workflow (TestWorkflowEnvironment)", () => {
     // relay guarantee (a resume overtaking its pause would wedge the
     // production child).
     expect(persistedPhases()).toEqual([
-      ExecutionPhase.EXECUTION_PAUSED,
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      RunPhase.RUN_PAUSED,
+      RunPhase.RUN_IN_PROGRESS,
     ]);
     expect(childEvents.filter((event) => event !== "started")).toEqual([
       "pause:take a break",

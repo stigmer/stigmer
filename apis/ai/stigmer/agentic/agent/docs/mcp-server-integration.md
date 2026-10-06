@@ -100,8 +100,8 @@ call by call: a hook can refuse any tool, ask about it, or let it run without
 the approval it would otherwise need (see [Hooks](agent-resource-guide.md#hooks)).
 To keep an agent away from a tool, leave it out with the tool lists.
 
-`AgentExecution.auto_approve_all` bypasses approval for one execution. It is set
-at execution time (not in the Agent YAML) and is typically used for trusted
+`AgentRun.auto_approve_all` bypasses approval for one run. It is set
+at run time (not in the Agent YAML) and is typically used for trusted
 automation where human-in-the-loop approval is not needed. It never widens the
 tool lists.
 
@@ -118,7 +118,7 @@ At runtime, the Agent does not connect to MCP servers directly. The flow is:
 3. **Agent Runner** resolves each McpServer reference, passes each server the
    keys it declares, and starts the actual MCP server process
 4. The running MCP server's tools become available to the agent during the
-   AgentExecution
+   AgentRun
 
 This separation means the Agent YAML is portable and contains no secrets.
 Different schedules or workflow tasks can bind the same Agent to different

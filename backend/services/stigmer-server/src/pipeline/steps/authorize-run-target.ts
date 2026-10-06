@@ -66,7 +66,7 @@ export interface RunGateCheck {
  * The run-gate check set — exactly the pairs a resolver can produce. Each
  * is the FGA model's own relation for "may run this": `can_execute` on the
  * blueprints (`agent.fga` and `workflow.fga`, `can_execute: viewer`), and
- * `can_create_execution_in` on a session (`session.fga`: adding a turn to a
+ * `can_create_run_in` on a session (`session.fga`: adding a turn to a
  * conversation is the session's own permission, not the agent's).
  */
 export const RUN_GATE_CHECKS = {
@@ -75,7 +75,7 @@ export const RUN_GATE_CHECKS = {
     resourceKind: ApiResourceKind.agent,
   },
   session: {
-    permission: IamPermission.can_create_execution_in,
+    permission: IamPermission.can_create_run_in,
     resourceKind: ApiResourceKind.session,
   },
   workflow: {

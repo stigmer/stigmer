@@ -241,7 +241,7 @@ public final class ChannelConversationQueryControllerGrpc {
      * Get one conversation's timeline, newest first, cursor-paged.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
-     * delivered agent replies, and operator or platform sends. Execution
+     * delivered agent replies, and operator or platform sends. Run
      * internals never appear.
      * </pre>
      */
@@ -336,7 +336,7 @@ public final class ChannelConversationQueryControllerGrpc {
      * Get one conversation's timeline, newest first, cursor-paged.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
-     * delivered agent replies, and operator or platform sends. Execution
+     * delivered agent replies, and operator or platform sends. Run
      * internals never appear.
      * </pre>
      */
@@ -415,7 +415,7 @@ public final class ChannelConversationQueryControllerGrpc {
      * Get one conversation's timeline, newest first, cursor-paged.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
-     * delivered agent replies, and operator or platform sends. Execution
+     * delivered agent replies, and operator or platform sends. Run
      * internals never appear.
      * </pre>
      */
@@ -492,7 +492,7 @@ public final class ChannelConversationQueryControllerGrpc {
      * Get one conversation's timeline, newest first, cursor-paged.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
-     * delivered agent replies, and operator or platform sends. Execution
+     * delivered agent replies, and operator or platform sends. Run
      * internals never appear.
      * </pre>
      */
@@ -571,7 +571,7 @@ public final class ChannelConversationQueryControllerGrpc {
      * Get one conversation's timeline, newest first, cursor-paged.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
-     * delivered agent replies, and operator or platform sends. Execution
+     * delivered agent replies, and operator or platform sends. Run
      * internals never appear.
      * </pre>
      */

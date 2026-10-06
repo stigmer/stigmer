@@ -42,8 +42,8 @@ export function EmbeddedRunnerProvider({
 
   // While the runner is up, periodically reconcile activeSessions with its
   // truth. This is what lets the sidebar's "running in background" dot appear
-  // for a session whose worker is kept alive by an in-flight execution and
-  // disappear once that execution drains. Idle when the runner isn't running.
+  // for a session whose worker is kept alive by an in-flight run and
+  // disappear once that run drains. Idle when the runner isn't running.
   useEffect(() => {
     if (!isRunning) return;
     const id = setInterval(() => {

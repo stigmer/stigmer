@@ -19,7 +19,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ToolScope, outOfScopeMessage, type ToolLists } from "../../../shared/tool-lists.js";
 import type { McpApprovalDefault } from "../../../shared/approval-policy.js";
 import { grantToken, readDenialLedger } from "../approval-state.js";
@@ -68,7 +68,7 @@ d("tool-list refusals on the timeline", () => {
     expect(fold.row("m1").approvalPolicySource).toBe(ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN);
 
     const ledger = await readDenialLedger(h.hitlDir);
-    const { messages, subAgentExecutions } = fold.status;
+    const { messages, subAgentRuns: subAgentExecutions } = fold.status;
     expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0, h.root)).toBe(2);
 
     const scope = ToolScope.of(OWNER, lists);
@@ -111,7 +111,7 @@ d("tool-list refusals on the timeline", () => {
       ev.toolCall("t1", "task", "running", taskArgs),
       ev.toolCall("t1", "task", "completed", taskArgs, taskResult),
     );
-    const { messages, subAgentExecutions } = fold.status;
+    const { messages, subAgentRuns: subAgentExecutions } = fold.status;
     const ledger = await readDenialLedger(h.hitlDir);
 
     expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0, h.root)).toBe(2);
@@ -135,7 +135,7 @@ d("tool-list refusals on the timeline", () => {
       ev.toolCall("g1", "grep", "error", { pattern: "x" }, HOOK_BLOCK),
     );
     expect(fold.row("s1").completedAt).toBe("");
-    const { messages, subAgentExecutions } = fold.status;
+    const { messages, subAgentRuns: subAgentExecutions } = fold.status;
     const ledger = await readDenialLedger(h.hitlDir);
     expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0, h.root)).toBe(1);
     expect(fold.row("s1").status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
@@ -156,7 +156,7 @@ d("tool-list refusals on the timeline", () => {
       ev.toolCall("t-general", "task", "running", general),
       ev.toolCall("t-general", "task", "error", general, HOOK_BLOCK),
     );
-    const { messages, subAgentExecutions } = fold.status;
+    const { messages, subAgentRuns: subAgentExecutions } = fold.status;
     const ledger = await readDenialLedger(h.hitlDir);
     expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0, h.root)).toBe(1);
     expect(fold.row("t-general").error).toContain("Agent(generalPurpose) is not available to this agent");
@@ -174,7 +174,7 @@ d("tool-list refusals on the timeline", () => {
       ev.toolCall("t-general", "task", "running", general),
       ev.toolCall("t-general", "task", "error", general, HOOK_BLOCK),
     );
-    const { messages, subAgentExecutions } = fold.status;
+    const { messages, subAgentRuns: subAgentExecutions } = fold.status;
     const ledger = await readDenialLedger(h.hitlDir);
     expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0, h.root)).toBe(1);
     expect(fold.row("t-general").error).toContain("Agent(generalPurpose) is not available to this agent");
@@ -191,7 +191,7 @@ d("tool-list refusals on the timeline", () => {
       ev.toolCall("r-out", "read", "error", { path: "src/main.ts" }, HOOK_BLOCK),
       ev.toolCall("r-skill", "read", "running", { path: ".stigmer/skills/a/SKILL.md" }),
     );
-    const { messages, subAgentExecutions } = fold.status;
+    const { messages, subAgentRuns: subAgentExecutions } = fold.status;
     const ledger = await readDenialLedger(h.hitlDir);
     expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0, h.root)).toBe(1);
     expect(fold.row("r-out").error).toContain("Read is not available to this agent");
@@ -224,7 +224,7 @@ d("tool-list refusals on the timeline", () => {
       ev.assistant("This turn."),
       ev.toolCall("new-shell", "shell", "running", { command: "ls" }),
     );
-    const { messages, subAgentExecutions } = fold.status;
+    const { messages, subAgentRuns: subAgentExecutions } = fold.status;
     const turnStart = messages.findIndex((m) => m.content === "This turn.");
     expect(turnStart).toBeGreaterThan(0);
     const ledger = await readDenialLedger(h.hitlDir);
@@ -247,7 +247,7 @@ d("tool-list refusals on the timeline", () => {
       // No newline once decoded: not an identity token at all.
       { toolName: "click", token: "bm90LWEtdG9rZW4=", kind: "disabled", message: "refused" },
     ];
-    const { messages, subAgentExecutions } = fold.status;
+    const { messages, subAgentRuns: subAgentExecutions } = fold.status;
     expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0)).toBe(0);
     expect(fold.row("m1").error).toBe(HOOK_BLOCK);
   });
@@ -261,7 +261,7 @@ d("tool-list refusals on the timeline", () => {
       ev.toolCall("r2", "read", "running", { path: ".stigmer/skills/a/SKILL.md" }),
       ev.toolCall("r2", "read", "error", { path: ".stigmer/skills/a/SKILL.md" }, "ENOENT: no such file"),
     );
-    const { messages, subAgentExecutions } = fold.status;
+    const { messages, subAgentRuns: subAgentExecutions } = fold.status;
     expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, await readDenialLedger(h.hitlDir), 0, h.root)).toBe(1);
     expect(fold.row("r1").error).toContain("Read is not available to this agent");
     expect(fold.row("r2").error).toBe("ENOENT: no such file");

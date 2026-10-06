@@ -653,7 +653,7 @@ function ChannelCard({
 }
 
 /**
- * Serving-readiness warning for tool-using agents: channel executions
+ * Serving-readiness warning for tool-using agents: channel runs
  * receive credentials only from the channel's own bindings, so an
  * installed, enabled channel with none (or with a private binding) will
  * refuse the first workspace message that needs a tool. The card is

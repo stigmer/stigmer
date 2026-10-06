@@ -31,17 +31,17 @@ class CreateArtifactInput(_message.Message):
     content: bytes
     def __init__(self, spec: _Optional[_Union[_spec_pb2.ArtifactSpec, _Mapping]] = ..., content: _Optional[bytes] = ...) -> None: ...
 
-class ListArtifactsByExecutionRequest(_message.Message):
-    __slots__ = ("workflow_execution_id", "agent_execution_id", "page_size", "page_token")
-    WORKFLOW_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
-    AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+class ListArtifactsByRunRequest(_message.Message):
+    __slots__ = ("workflow_run_id", "agent_run_id", "page_size", "page_token")
+    WORKFLOW_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    AGENT_RUN_ID_FIELD_NUMBER: _ClassVar[int]
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    workflow_execution_id: str
-    agent_execution_id: str
+    workflow_run_id: str
+    agent_run_id: str
     page_size: int
     page_token: str
-    def __init__(self, workflow_execution_id: _Optional[str] = ..., agent_execution_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+    def __init__(self, workflow_run_id: _Optional[str] = ..., agent_run_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class GetArtifactContentRequest(_message.Message):
     __slots__ = ("artifact_id", "max_bytes")

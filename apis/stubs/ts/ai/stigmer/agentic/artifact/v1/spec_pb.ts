@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/artifact/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_artifact_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYXJ0aWZhY3QvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxIuQBCgxBcnRpZmFjdFNwZWMSIwoMY29udGVudF90eXBlGAEgASgJQg26SArIAQFyBRABGP8BEiMKDGRpc3BsYXlfbmFtZRgCIAEoCUINukgKyAEBcgUQARj/ARJGCgZzb3VyY2UYAyABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuQXJ0aWZhY3RTb3VyY2VCBrpIA8gBARJCCglyZXRlbnRpb24YBCABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuUmV0ZW50aW9uUG9saWN5Il4KDkFydGlmYWN0U291cmNlEh0KFXdvcmtmbG93X2V4ZWN1dGlvbl9pZBgBIAEoCRIaChJhZ2VudF9leGVjdXRpb25faWQYAiABKAkSEQoJdGFza19uYW1lGAMgASgJIiMKD1JldGVudGlvblBvbGljeRIQCgh0dGxfZGF5cxgBIAEoBWIGcHJvdG8z", [file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYXJ0aWZhY3QvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxIuQBCgxBcnRpZmFjdFNwZWMSIwoMY29udGVudF90eXBlGAEgASgJQg26SArIAQFyBRABGP8BEiMKDGRpc3BsYXlfbmFtZRgCIAEoCUINukgKyAEBcgUQARj/ARJGCgZzb3VyY2UYAyABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuQXJ0aWZhY3RTb3VyY2VCBrpIA8gBARJCCglyZXRlbnRpb24YBCABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuUmV0ZW50aW9uUG9saWN5IlIKDkFydGlmYWN0U291cmNlEhcKD3dvcmtmbG93X3J1bl9pZBgBIAEoCRIUCgxhZ2VudF9ydW5faWQYAiABKAkSEQoJdGFza19uYW1lGAMgASgJIiMKD1JldGVudGlvblBvbGljeRIQCgh0dGxfZGF5cxgBIAEoBWIGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
  * ArtifactSpec defines the properties of an artifact provided at creation time.
@@ -34,7 +34,7 @@ export type ArtifactSpec = Message<"ai.stigmer.agentic.artifact.v1.ArtifactSpec"
   displayName: string;
 
   /**
-   * Provenance: which execution and task produced this artifact.
+   * Provenance: which run and task produced this artifact.
    *
    * @generated from field: ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3;
    */
@@ -56,34 +56,34 @@ export const ArtifactSpecSchema: GenMessage<ArtifactSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_artifact_v1_spec, 0);
 
 /**
- * ArtifactSource identifies the execution context that produced an artifact.
+ * ArtifactSource identifies the run and task that produced an artifact.
  *
  * @generated from message ai.stigmer.agentic.artifact.v1.ArtifactSource
  */
 export type ArtifactSource = Message<"ai.stigmer.agentic.artifact.v1.ArtifactSource"> & {
   /**
-   * WorkflowExecution that produced this artifact.
+   * WorkflowRun that produced this artifact.
    * Format: "wex_{unique-suffix}"
-   * Set when the artifact is produced during workflow execution.
+   * Set when the artifact is produced during workflow run.
    *
-   * @generated from field: string workflow_execution_id = 1;
+   * @generated from field: string workflow_run_id = 1;
    */
-  workflowExecutionId: string;
+  workflowRunId: string;
 
   /**
-   * AgentExecution that produced this artifact.
+   * AgentRun that produced this artifact.
    * Format: "aex_{unique-suffix}"
-   * Set when the artifact is produced during agent execution
+   * Set when the artifact is produced during agent run
    * (either standalone or as a child of a workflow).
    *
-   * @generated from field: string agent_execution_id = 2;
+   * @generated from field: string agent_run_id = 2;
    */
-  agentExecutionId: string;
+  agentRunId: string;
 
   /**
    * Name of the task that produced this artifact.
-   * Matches WorkflowTask.task_name in the execution status.
-   * Empty for execution-level artifacts (e.g., final workflow output).
+   * Matches WorkflowTask.task_name in the run status.
+   * Empty for run-level artifacts (e.g., final workflow output).
    *
    * @generated from field: string task_name = 3;
    */

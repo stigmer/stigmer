@@ -36,7 +36,16 @@
  * run list index's `workflow` key with no instance key left behind; a run,
  * instance or policy row it cannot decode fails the step, naming the row,
  * and leaves the database at v16. The frozen steps replay over workflow
- * instance rows from v9 exactly as they shipped.
+ * instance rows from v9 exactly as they shipped. v18 renames the run
+ * kinds: every table keyed by kind names agent_run and workflow_run, every
+ * run row reads the contract's kind string and its tasks the new child-run
+ * key with its stamp kept, every grant on a run is re-keyed to the id its
+ * new triple derives (its history kept under the old id), and every
+ * workflow head and archived version names runs by the new step keys with
+ * its version hash kept; the store opened on the migrated database finds
+ * each run through its session or workflow and each re-keyed grant through
+ * its principal; a run it cannot decode fails the step, naming the row, and
+ * leaves the database at v17.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -54,18 +63,19 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import {
   ApprovalMode,
   InteractionMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
 import {
   CONTRACT_SESSION_INDEX,
   CONTRACT_STORE_OPTIONS,
 } from "../../__tests__/store-contract.js";
 import { sessionListIndex } from "../../../domain/session/list-index.js";
-import { workflowExecutionListIndex } from "../../../domain/workflowexecution/list-index.js";
+import { workflowExecutionListIndex } from "../../../domain/workflowrun/list-index.js";
 import { SqliteStore } from "../store.js";
 import {
   CURRENT_SCHEMA_VERSION,
@@ -75,6 +85,7 @@ import {
   SCHEMA_VERSION_14,
   SCHEMA_VERSION_15,
   SCHEMA_VERSION_17,
+  SCHEMA_VERSION_18,
   getSchemaVersion,
   runMigrations,
 } from "../migrations.js";
@@ -100,6 +111,19 @@ import {
   workflowExecutionBytes,
 } from "../../__tests__/retired-workflow-instance-rows.js";
 import { materializeGoFixture } from "./support.js";
+import { agentExecutionListIndex } from "../../../domain/agentrun/list-index.js";
+import { iamPolicyListIndex } from "../../../domain/iampolicy/list-index.js";
+import { RUN_RENAME_PAGE_SIZE, renamedWorkflowRow } from "../../run-rename.js";
+import {
+  NEW_RUN_NAMES,
+  OLD_RUN_NAMES,
+  RUN_RENAME_HASH,
+  RUN_RENAME_ORG,
+  agentRunBytes,
+  workflowRunBytes,
+  workflowWithSteps,
+} from "../../__tests__/run-rename-rows.js";
+import { policyIdFor } from "../../../domain/iampolicy/constants.js";
 
 const cleanups: Array<() => void | Promise<void>> = [];
 
@@ -257,7 +281,7 @@ describe("fresh database", () => {
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
     ]);
   });
 
@@ -451,12 +475,14 @@ describe("v7 column reconciliation", () => {
     // A v6 database whose pending_oauth_state was created by an OLD Go
     // build — before pending_state_store.go gained the idempotent ALTERs
     // for `org` and `token_auth_method`. v7 must reconcile the columns
-    // without touching the row.
+    // without touching the row. The event log is v5's, as every v6
+    // database has it.
     setup.exec(`
       CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT (datetime('now')));
       INSERT INTO schema_version (version) VALUES (1),(2),(3),(4),(5),(6);
       CREATE TABLE resources (kind TEXT NOT NULL, id TEXT NOT NULL, data BLOB NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (kind, id)) WITHOUT ROWID;
       CREATE TABLE resource_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, resource_id TEXT NOT NULL, data BLOB NOT NULL, archived_at TEXT NOT NULL DEFAULT (datetime('now')), version_hash TEXT, tag TEXT);
+      CREATE TABLE workflow_execution_events (execution_id TEXT NOT NULL, sequence_number INTEGER NOT NULL, event_type TEXT NOT NULL, task_name TEXT NOT NULL DEFAULT '', data BLOB NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')), PRIMARY KEY (execution_id, sequence_number));
       CREATE TABLE pending_oauth_state (
         state               TEXT PRIMARY KEY,
         code_verifier       TEXT NOT NULL,
@@ -1654,9 +1680,10 @@ describe("v17: workflow runs name their workflow and the workflow instance rows 
     );
     expect(count(db, "resource_audit", "iam_policy")).toBe(1);
 
-    // The store the server opens on the migrated database finds each run
-    // through the key listByWorkflow reads, and the repair at open leaves
-    // no instance key behind.
+    // The store the server opens on the migrated database (which carries
+    // it on to the current version, where the run kind is workflow_run)
+    // finds each run through the key listByWorkflow reads, and the repair
+    // at open leaves no instance key behind.
     const store = SqliteStore.open(dbPath, undefined, {
       listIndexes: [workflowExecutionListIndex],
     });
@@ -1677,7 +1704,7 @@ describe("v17: workflow runs name their workflow and the workflow instance rows 
     expect(
       db
         .prepare(
-          `SELECT DISTINCT key FROM resource_list_keys WHERE kind = 'workflow_execution' ORDER BY key`,
+          `SELECT DISTINCT key FROM resource_list_keys WHERE kind = 'workflow_run' ORDER BY key`,
         )
         .all(),
     ).toEqual([{ key: "workflow" }]);
@@ -1722,7 +1749,7 @@ describe("v17: workflow runs name their workflow and the workflow instance rows 
       .all() as Array<{ data: Uint8Array }>;
     expect(rows).toHaveLength(total);
     for (const r of rows) {
-      const spec = fromBinary(WorkflowExecutionSchema, r.data).spec;
+      const spec = fromBinary(WorkflowRunSchema, r.data).spec;
       expect(spec?.workflowId).toBe("wfl_1");
       expect(spec?.$unknown).toBeUndefined();
     }
@@ -1824,8 +1851,8 @@ describe("v17: workflow runs name their workflow and the workflow instance rows 
         .all(),
     ).toEqual([{ slug: "deleted-org", retired: 1 }]);
 
-    runMigrations(db);
-    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
+    runMigrations(db, SCHEMA_VERSION_17);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_17);
     expect(row(db, "workflow_execution", "wex_1").data).toEqual(
       workflowExecutionBytes({
         metadata: { id: "wex_1", org: "deleted-org", slug: "wex_1" },
@@ -1834,5 +1861,341 @@ describe("v17: workflow runs name their workflow and the workflow instance rows 
     );
     expect(count(db, "resources", "workflow_instance")).toBe(0);
     expect(count(db, "resources", "iam_policy")).toBe(0);
+  });
+});
+
+describe("v18: agent and workflow executions are runs", () => {
+  const SEEDED_AT = "2026-10-01 00:00:00";
+
+  /** A v17 database: the chain replayed up to the step before v18. */
+  function v17Database(): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_18 - 1);
+    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_18 - 1);
+    return { dbPath, db: setup };
+  }
+
+  /** A row as the release before stored it, its list facts proven under revision 1. */
+  function insertIndexed(
+    db: DatabaseSync,
+    kind: string,
+    id: string,
+    data: Uint8Array,
+    keys: Record<string, string>,
+  ): void {
+    db.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at, list_org, list_created_at, list_index_revision, list_indexed_at)
+       VALUES (?, ?, ?, ?, ?, '', 1, ?)`,
+    ).run(kind, id, data, SEEDED_AT, RUN_RENAME_ORG, SEEDED_AT);
+    for (const [key, value] of Object.entries(keys)) {
+      db.prepare(
+        `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES (?, ?, ?, ?, '')`,
+      ).run(kind, id, key, value);
+    }
+  }
+
+  function insertPlain(db: DatabaseSync, kind: string, id: string, data: Uint8Array): void {
+    db.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, ?)`,
+    ).run(kind, id, data, SEEDED_AT);
+  }
+
+  function row(
+    db: DatabaseSync,
+    kind: string,
+    id: string,
+  ): { data: Uint8Array; updated_at: string } | undefined {
+    return db
+      .prepare(`SELECT data, updated_at FROM resources WHERE kind = ? AND id = ?`)
+      .get(kind, id) as { data: Uint8Array; updated_at: string } | undefined;
+  }
+
+  function count(db: DatabaseSync, table: string, kind: string): number {
+    return (
+      db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = ?`).get(kind) as {
+        n: number;
+      }
+    ).n;
+  }
+
+  const runGrant = {
+    id: "iamp_on_run",
+    principal: "identity_account:ida_2",
+    relation: "viewer",
+    resource: "workflow_execution:wex_1",
+  };
+  const keptGrant = {
+    id: "iamp_on_workflow",
+    principal: "identity_account:ida_3",
+    relation: "viewer",
+    resource: "workflow:wfl_1",
+  };
+  const oldWorkflow = toBinary(WorkflowSchema, workflowWithSteps("wfl_1", OLD_RUN_NAMES));
+
+  it("renames the run kinds in every table, rewrites the rows that spell them, re-keys grants on runs and rewrites workflows' run keys", async () => {
+    const { dbPath, db: setup } = v17Database();
+    insertIndexed(setup, "agent_execution", "aex_1", agentRunBytes("aex_1", "ses_1", OLD_RUN_NAMES), {
+      session: "ses_1",
+    });
+    insertIndexed(
+      setup,
+      "workflow_execution",
+      "wex_1",
+      workflowRunBytes("wex_1", "wfl_1", OLD_RUN_NAMES),
+      { workflow: "wfl_1" },
+    );
+    const runAudit = new Uint8Array([0x0a, 0x01, 0x61]);
+    setup
+      .prepare(
+        `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('agent_execution', 'aex_1', ?, '', '')`,
+      )
+      .run(runAudit);
+    setup
+      .prepare(
+        `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('agent_execution', ?, 'aex_1', 'aex_1', 'current', ?)`,
+      )
+      .run(RUN_RENAME_ORG, SEEDED_AT);
+    for (const grant of [runGrant, keptGrant]) {
+      insertPlain(setup, "iam_policy", grant.id, policyRow(grant));
+      setup
+        .prepare(
+          `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', ?, 'principal', ?, '')`,
+        )
+        .run(grant.id, grant.principal.split(":")[1] ?? "");
+    }
+    setup
+      .prepare(
+        `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', ?, ?, '', '')`,
+      )
+      .run(runGrant.id, policyRow(runGrant));
+    insertPlain(setup, "workflow", "wfl_1", oldWorkflow);
+    setup
+      .prepare(
+        `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('workflow', 'wfl_1', ?, ?, 'v1')`,
+      )
+      .run(oldWorkflow, RUN_RENAME_HASH);
+    const currentWorkflow = toBinary(WorkflowSchema, workflowWithSteps("wfl_2", NEW_RUN_NAMES));
+    insertPlain(setup, "workflow", "wfl_2", currentWorkflow);
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_18);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_18);
+
+    for (const table of ["resources", "resource_audit", "resource_list_keys", "resource_names"]) {
+      expect(count(db, table, "agent_execution")).toBe(0);
+      expect(count(db, table, "workflow_execution")).toBe(0);
+    }
+    // Each run reads the contract's kind string under its new kind, and
+    // keeps its stamp: no list key reads what changed.
+    expect(row(db, "agent_run", "aex_1")).toEqual({
+      data: agentRunBytes("aex_1", "ses_1", NEW_RUN_NAMES),
+      updated_at: SEEDED_AT,
+    });
+    expect(row(db, "workflow_run", "wex_1")).toEqual({
+      data: workflowRunBytes("wex_1", "wfl_1", NEW_RUN_NAMES),
+      updated_at: SEEDED_AT,
+    });
+    // A run's history keeps its bytes under the new kind.
+    expect(
+      db
+        .prepare(`SELECT kind, data FROM resource_audit WHERE resource_id = 'aex_1'`)
+        .all(),
+    ).toEqual([{ kind: "agent_run", data: runAudit }]);
+    expect(
+      db.prepare(`SELECT kind, name FROM resource_names WHERE id = 'aex_1'`).all(),
+    ).toEqual([{ kind: "agent_run", name: "aex_1" }]);
+
+    // The grant on the run moves to the id its renamed triple derives; its
+    // history stays under the old id. The grant on the workflow is untouched.
+    const rekeyedId = policyIdFor(
+      fromBinary(
+        IamPolicySchema,
+        policyRow({ ...runGrant, resource: "workflow_run:wex_1" }),
+      ).spec!,
+    );
+    expect(row(db, "iam_policy", runGrant.id)).toBeUndefined();
+    const rekeyed = fromBinary(IamPolicySchema, row(db, "iam_policy", rekeyedId)!.data);
+    expect(rekeyed.metadata?.id).toBe(rekeyedId);
+    expect(rekeyed.spec?.resource).toMatchObject({ kind: "workflow_run", id: "wex_1" });
+    expect(row(db, "iam_policy", keptGrant.id)?.data).toEqual(policyRow(keptGrant));
+    expect(
+      db
+        .prepare(`SELECT resource_id FROM resource_audit WHERE kind = 'iam_policy'`)
+        .all(),
+    ).toEqual([{ resource_id: runGrant.id }]);
+
+    // The workflow and its archived version name runs by the new step keys;
+    // the version keeps its hash and tag. A current workflow is untouched.
+    const migratedWorkflow = renamedWorkflowRow(oldWorkflow)!;
+    expect(row(db, "workflow", "wfl_1")).toEqual({ data: migratedWorkflow, updated_at: SEEDED_AT });
+    expect(
+      db
+        .prepare(
+          `SELECT data, version_hash, tag FROM resource_audit WHERE kind = 'workflow' AND resource_id = 'wfl_1'`,
+        )
+        .all(),
+    ).toEqual([{ data: migratedWorkflow, version_hash: RUN_RENAME_HASH, tag: "v1" }]);
+    expect(
+      fromBinary(WorkflowSchema, migratedWorkflow).spec?.tasks[2]?.taskConfig,
+    ).toEqual(workflowWithSteps("wfl_1", NEW_RUN_NAMES).spec?.tasks[2]?.taskConfig);
+    expect(row(db, "workflow", "wfl_2")?.data).toEqual(currentWorkflow);
+
+    // The store the server opens finds each run through the key its list
+    // reads, and the re-keyed grant through its principal.
+    const store = SqliteStore.open(dbPath, undefined, {
+      listIndexes: [agentExecutionListIndex, workflowExecutionListIndex, iamPolicyListIndex],
+    });
+    cleanups.push(() => store.close());
+    const ids = async (
+      index: Parameters<typeof store.queryResources>[0],
+      name: string,
+      value: string,
+    ): Promise<string[]> =>
+      (await store.queryResources(index, { anyKey: [{ name, value }] })).map((r) => r.id);
+    expect(await ids(agentExecutionListIndex, "session", "ses_1")).toEqual(["aex_1"]);
+    expect(await ids(workflowExecutionListIndex, "workflow", "wfl_1")).toEqual(["wex_1"]);
+    expect(await ids(iamPolicyListIndex, "principal", "ida_2")).toEqual([rekeyedId]);
+    expect(await ids(iamPolicyListIndex, "principal", "ida_3")).toEqual([keptGrant.id]);
+  });
+
+  it("names every run lifecycle event in the event log the new way, the task events and the bytes untouched", () => {
+    const { dbPath, db: setup } = v17Database();
+    const seeded: Array<[sequence: number, eventType: string, taskName: string]> = [
+      [1, "execution_started", ""],
+      [2, "task_started", "triage"],
+      [3, "execution_paused", ""],
+      [4, "execution_resumed", ""],
+      [5, "execution_completed", ""],
+    ];
+    const insert = setup.prepare(
+      `INSERT INTO workflow_execution_events (execution_id, sequence_number, event_type, task_name, data) VALUES (?, ?, ?, ?, ?)`,
+    );
+    for (const [sequence, eventType, taskName] of seeded) {
+      insert.run("wex_1", sequence, eventType, taskName, new Uint8Array([sequence]));
+    }
+    for (const [index, eventType] of ["execution_failed", "execution_cancelled", "execution_terminated"].entries()) {
+      insert.run(`wex_${index + 2}`, 1, eventType, "", new Uint8Array([9]));
+    }
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_18);
+
+    expect(
+      db
+        .prepare(
+          `SELECT execution_id, sequence_number, event_type, task_name, data FROM workflow_execution_events ORDER BY execution_id, sequence_number`,
+        )
+        .all()
+        .map((event) => ({ ...event })),
+    ).toEqual([
+      { execution_id: "wex_1", sequence_number: 1, event_type: "run_started", task_name: "", data: new Uint8Array([1]) },
+      { execution_id: "wex_1", sequence_number: 2, event_type: "task_started", task_name: "triage", data: new Uint8Array([2]) },
+      { execution_id: "wex_1", sequence_number: 3, event_type: "run_paused", task_name: "", data: new Uint8Array([3]) },
+      { execution_id: "wex_1", sequence_number: 4, event_type: "run_resumed", task_name: "", data: new Uint8Array([4]) },
+      { execution_id: "wex_1", sequence_number: 5, event_type: "run_completed", task_name: "", data: new Uint8Array([5]) },
+      { execution_id: "wex_2", sequence_number: 1, event_type: "run_failed", task_name: "", data: new Uint8Array([9]) },
+      { execution_id: "wex_3", sequence_number: 1, event_type: "run_cancelled", task_name: "", data: new Uint8Array([9]) },
+      { execution_id: "wex_4", sequence_number: 1, event_type: "run_terminated", task_name: "", data: new Uint8Array([9]) },
+    ]);
+  });
+
+  it("reads runs across keyset pages, missing none past the first page", () => {
+    const { dbPath, db: setup } = v17Database();
+    for (let i = 0; i <= RUN_RENAME_PAGE_SIZE; i++) {
+      const id = `aex_page_${String(i).padStart(4, "0")}`;
+      insertPlain(setup, "agent_execution", id, agentRunBytes(id, "ses_1", OLD_RUN_NAMES));
+    }
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_18);
+    const last = `aex_page_${String(RUN_RENAME_PAGE_SIZE).padStart(4, "0")}`;
+    expect(count(db, "resources", "agent_run")).toBe(RUN_RENAME_PAGE_SIZE + 1);
+    expect(row(db, "agent_run", last)?.data).toEqual(agentRunBytes(last, "ses_1", NEW_RUN_NAMES));
+  });
+
+  it("a run that does not decode fails the step, names the row, and leaves the database at v17", () => {
+    const { dbPath, db: setup } = v17Database();
+    insertPlain(setup, "agent_execution", "aex_good", agentRunBytes("aex_good", "ses_1", OLD_RUN_NAMES));
+    insertPlain(setup, "agent_execution", "aex_bad", new Uint8Array([0x22, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_18)).toThrow(/agent_execution row aex_bad/);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_17);
+    expect(row(db, "agent_execution", "aex_good")?.data).toEqual(
+      agentRunBytes("aex_good", "ses_1", OLD_RUN_NAMES),
+    );
+  });
+
+  /** Archives a workflow version the way the release before stored it. */
+  function insertVersion(db: DatabaseSync, data: Uint8Array): void {
+    db.prepare(
+      `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('workflow', 'wfl_1', ?, ?, '')`,
+    ).run(data, RUN_RENAME_HASH);
+  }
+
+  it("a grant that does not decode fails the step, names the row, and leaves the database at v17", () => {
+    const { dbPath, db: setup } = v17Database();
+    insertPlain(setup, "iam_policy", runGrant.id, policyRow(runGrant));
+    insertPlain(setup, "iam_policy", "iamp_bad", new Uint8Array([0x22, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_18)).toThrow(
+      /the iam_policy row iamp_bad cannot be read for the rename of executions to runs/,
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_17);
+    expect(row(db, "iam_policy", runGrant.id)?.data).toEqual(policyRow(runGrant));
+  });
+
+  it("an archived workflow version that does not decode fails the step, names the version, and leaves the database at v17", () => {
+    const { dbPath, db: setup } = v17Database();
+    insertVersion(setup, oldWorkflow);
+    insertVersion(setup, new Uint8Array([0x22, 0xff]));
+    const badId = (
+      setup.prepare(`SELECT MAX(id) AS id FROM resource_audit WHERE kind = 'workflow'`).get() as {
+        id: number;
+      }
+    ).id;
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_18)).toThrow(
+      `the workflow version row ${badId} cannot be read for the rename of executions to runs`,
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_17);
+    expect(
+      db.prepare(`SELECT data FROM resource_audit WHERE kind = 'workflow' AND id < ?`).all(badId),
+    ).toEqual([{ data: oldWorkflow }]);
+  });
+
+  it("reads archived workflow versions across keyset pages, missing none past the first page", () => {
+    const { dbPath, db: setup } = v17Database();
+    for (let i = 0; i <= RUN_RENAME_PAGE_SIZE; i++) {
+      insertVersion(setup, oldWorkflow);
+    }
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_18);
+    const versions = db
+      .prepare(`SELECT data FROM resource_audit WHERE kind = 'workflow' ORDER BY id`)
+      .all() as Array<{ data: Uint8Array }>;
+    const migratedWorkflow = renamedWorkflowRow(oldWorkflow)!;
+    expect(versions).toHaveLength(RUN_RENAME_PAGE_SIZE + 1);
+    for (const version of versions) {
+      expect(version.data).toEqual(migratedWorkflow);
+    }
   });
 });

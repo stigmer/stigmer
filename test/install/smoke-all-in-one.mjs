@@ -22,7 +22,7 @@
  *      install needs no default content because a session with no agent runs
  *      the built-in assistant);
  *   5. one end-to-end run — an LLM-free set_vars workflow — reaches
- *      EXECUTION_COMPLETED: only possible if the embedded Temporal, the
+ *      RUN_COMPLETED: only possible if the embedded Temporal, the
  *      server's workers AND the embedded runner all work inside the one
  *      container (this is also the only boot check the EMITTED slim npm
  *      packages get, the shape a laptop's `stigmer up` acquires); then an
@@ -200,10 +200,10 @@ async function main() {
     const restartedBase = aio.baseUrl();
     const after = await connectJson(
       restartedBase,
-      "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get",
+      "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get",
       { value: executionId },
     );
-    if (after.status?.phase !== "EXECUTION_COMPLETED") {
+    if (after.status?.phase !== "RUN_COMPLETED") {
       throw new Error(`execution ${executionId} not found or not completed after restart: ${JSON.stringify(after.status)}`);
     }
     const agentAfter = await readAgentExecution(restartedBase, agentRun.executionId);
@@ -232,10 +232,10 @@ async function main() {
     }
     const stillThere = await connectJson(
       uncleanBase,
-      "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get",
+      "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get",
       { value: executionId },
     );
-    if (stillThere.status?.phase !== "EXECUTION_COMPLETED") {
+    if (stillThere.status?.phase !== "RUN_COMPLETED") {
       throw new Error(`execution ${executionId} lost across the unclean restart`);
     }
     log("unclean restart: recovered; one Temporal, same pid, across three supervisor ticks; state intact");

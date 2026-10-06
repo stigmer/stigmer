@@ -1,22 +1,22 @@
-Download artifacts produced by an agent execution.
+Download artifacts produced by an agent run.
 
-`stigmer download` retrieves files that an agent created during execution.
+`stigmer download` retrieves files that an agent created during a run.
 Artifacts are stored in the Stigmer artifact store and can be downloaded
-after the execution completes.
+after the run completes.
 
 {/* AUTO_USAGE */}
 
 ### Common patterns
 
 ```bash
-# Download all artifacts from an execution
-stigmer download execution aex_01abc123
+# Download all artifacts from a run
+stigmer download run aex_01abc123
 
 # Download to a specific directory
-stigmer download execution aex_01abc123 --output-dir ./results/
+stigmer download run aex_01abc123 --output-dir ./results/
 
 # Download a specific artifact by name
-stigmer download execution aex_01abc123 --artifact report.pdf
+stigmer download run aex_01abc123 --artifact report.pdf
 ```
 
 {/* AUTO_FLAGS */}
@@ -26,7 +26,7 @@ stigmer download execution aex_01abc123 --artifact report.pdf
 ### Download all artifacts
 
 ```bash
-stigmer download execution aex_01abc123
+stigmer download run aex_01abc123
 ```
 
 All artifacts are saved to the current directory.
@@ -34,13 +34,13 @@ All artifacts are saved to the current directory.
 ### Download to a specific location
 
 ```bash
-stigmer download execution aex_01abc123 -o ./output/
+stigmer download run aex_01abc123 -o ./output/
 ```
 
 ### Download a single artifact
 
 ```bash
-stigmer download execution aex_01abc123 --artifact generated-agent.yaml
+stigmer download run aex_01abc123 --artifact generated-agent.yaml
 ```
 
 {/* AUTO_GLOBAL_FLAGS */}
@@ -50,7 +50,7 @@ stigmer download execution aex_01abc123 --artifact generated-agent.yaml
 | Command | Description |
 |---------|-------------|
 | [`stigmer run`](./run) | Execute an agent (use `--download` to auto-download) |
-| [`stigmer get`](./get) | Inspect an execution to see available artifacts |
+| [`stigmer get`](./get) | Inspect a run to see available artifacts |
 | [`stigmer push`](./push) | Push artifacts to the registry |
 
 ## See also

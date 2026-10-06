@@ -298,7 +298,7 @@ let callbackResult: Promise<CallbackResult> | null = null;
  * one-time authorization code a second time — the identity provider
  * rejects that with `invalid_grant` ("Invalid authorization code").
  * Every non-idempotent step (token exchange, SSO session save/clear,
- * redirect-path consumption) lives inside the memoized execution so all
+ * redirect-path consumption) lives inside the memoized run so all
  * callers receive identical, safely reusable values.
  */
 function processSsoOrAuth0Callback(

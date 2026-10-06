@@ -4,9 +4,9 @@ import { create } from "@bufbuild/protobuf";
 import {
   WorkflowPendingApprovalSchema,
   type WorkflowPendingApproval,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ToolKind } from "@stigmer/sdk";
 import { WorkflowApprovalList } from "../WorkflowApprovalList";
 
@@ -18,7 +18,7 @@ import { WorkflowApprovalList } from "../WorkflowApprovalList";
 // The component is purely presentational: no useStigmer, no RPCs — decisions
 // flow only through the supplied `onSubmitApproval` (the workflow-level
 // actions hook). Rendering without a StigmerProvider, as these tests do, is
-// itself the guardrail that no agentExecution.* path can be reached from here.
+// itself the guardrail that no agentRun.* path can be reached from here.
 
 afterEach(cleanup);
 
@@ -27,12 +27,12 @@ const noop = () => {};
 function makeGate(overrides?: {
   toolCallId?: string;
   toolName?: string;
-  childAgentExecutionId?: string;
+  childAgentRunId?: string;
   argsPreview?: string;
   toolKind?: ToolKind;
 }): WorkflowPendingApproval {
   return create(WorkflowPendingApprovalSchema, {
-    childAgentExecutionId: overrides?.childAgentExecutionId ?? "agx_child_1",
+    childAgentRunId: overrides?.childAgentRunId ?? "agx_child_1",
     approval: create(PendingApprovalSchema, {
       toolCallId: overrides?.toolCallId ?? "tc_1",
       toolName: overrides?.toolName ?? "delete_file",
@@ -68,7 +68,7 @@ describe("WorkflowApprovalList rendering", () => {
 
   it("skips a surfaced gate missing its approval payload (nothing to decide)", () => {
     const orphan = create(WorkflowPendingApprovalSchema, {
-      childAgentExecutionId: "agx_orphan",
+      childAgentRunId: "agx_orphan",
       // approval intentionally unset.
     });
     render(
@@ -122,24 +122,24 @@ describe("WorkflowApprovalList rendering", () => {
     expect(screen.getByText("Content")).toBeTruthy();
   });
 
-  it("shows the per-gate 'View agent execution' link only when navigation is wired", () => {
+  it("shows the per-gate 'View agent run' link only when navigation is wired", () => {
     const onNavigate = vi.fn();
     const { rerender } = render(
       <WorkflowApprovalList
-        pendingApprovals={[makeGate({ childAgentExecutionId: "agx_nav" })]}
+        pendingApprovals={[makeGate({ childAgentRunId: "agx_nav" })]}
         onSubmitApproval={noop}
       />,
     );
-    expect(screen.queryByRole("button", { name: "View agent execution" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "View agent run" })).toBeNull();
 
     rerender(
       <WorkflowApprovalList
-        pendingApprovals={[makeGate({ childAgentExecutionId: "agx_nav" })]}
+        pendingApprovals={[makeGate({ childAgentRunId: "agx_nav" })]}
         onSubmitApproval={noop}
-        onNavigateToAgentExecution={onNavigate}
+        onNavigateToAgentRun={onNavigate}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "View agent execution" }));
+    fireEvent.click(screen.getByRole("button", { name: "View agent run" }));
     expect(onNavigate).toHaveBeenCalledWith("agx_nav");
   });
 });
@@ -170,8 +170,8 @@ describe("WorkflowApprovalList decision routing (4-action parity)", () => {
     render(
       <WorkflowApprovalList
         pendingApprovals={[
-          makeGate({ toolCallId: "tc_first", toolName: "delete_file", childAgentExecutionId: "agx_1" }),
-          makeGate({ toolCallId: "tc_second", toolName: "shell", argsPreview: '{"command":"ls"}', childAgentExecutionId: "agx_2" }),
+          makeGate({ toolCallId: "tc_first", toolName: "delete_file", childAgentRunId: "agx_1" }),
+          makeGate({ toolCallId: "tc_second", toolName: "shell", argsPreview: '{"command":"ls"}', childAgentRunId: "agx_2" }),
         ]}
         onSubmitApproval={onSubmitApproval}
       />,
@@ -190,8 +190,8 @@ describe("WorkflowApprovalList per-gate in-flight and error isolation", () => {
     render(
       <WorkflowApprovalList
         pendingApprovals={[
-          makeGate({ toolCallId: "tc_busy", toolName: "delete_file", childAgentExecutionId: "agx_1" }),
-          makeGate({ toolCallId: "tc_idle", toolName: "shell", argsPreview: '{"command":"ls"}', childAgentExecutionId: "agx_2" }),
+          makeGate({ toolCallId: "tc_busy", toolName: "delete_file", childAgentRunId: "agx_1" }),
+          makeGate({ toolCallId: "tc_idle", toolName: "shell", argsPreview: '{"command":"ls"}', childAgentRunId: "agx_2" }),
         ]}
         onSubmitApproval={noop}
         submittingToolCallIds={new Set(["tc_busy"])}
@@ -212,8 +212,8 @@ describe("WorkflowApprovalList per-gate in-flight and error isolation", () => {
     const { container } = render(
       <WorkflowApprovalList
         pendingApprovals={[
-          makeGate({ toolCallId: "tc_failed", toolName: "delete_file", childAgentExecutionId: "agx_1" }),
-          makeGate({ toolCallId: "tc_healthy", toolName: "shell", argsPreview: '{"command":"ls"}', childAgentExecutionId: "agx_2" }),
+          makeGate({ toolCallId: "tc_failed", toolName: "delete_file", childAgentRunId: "agx_1" }),
+          makeGate({ toolCallId: "tc_healthy", toolName: "shell", argsPreview: '{"command":"ls"}', childAgentRunId: "agx_2" }),
         ]}
         onSubmitApproval={noop}
         approvalErrors={new Map([["tc_failed", new Error("gate already resolved")]])}

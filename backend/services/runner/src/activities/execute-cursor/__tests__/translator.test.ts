@@ -16,9 +16,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, ApprovalPolicySource, MessageType, SubAgentStatus, ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalAction, ApprovalPolicySource, MessageType, SubAgentStatus, ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import type { TranscriptEvent } from "../../../harness/transcript/events.js";
 import type { McpApprovalDefault } from "../../../shared/approval-policy.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
@@ -30,7 +30,7 @@ import { CursorTranslator, extractSubagentName } from "../translator.js";
 const RUN = "run-1";
 const ev = sdkEvents("agent-1", RUN);
 
-function translator(seeded = create(AgentExecutionStatusSchema, {})): CursorTranslator {
+function translator(seeded = create(AgentRunStatusSchema, {})): CursorTranslator {
   return new CursorTranslator({ mcpDefault: { destructive: new Set(), leasedServers: new Set() }, leases: { global: false, categories: new Set() }, seeded: seeded.messages });
 }
 
@@ -321,7 +321,7 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
       ev.toolCall("task-1", "task", "completed", TASK_ARGS, STEPS),
     ]).finalize();
     expect(fold.row("task-1").toolKind).toBe(ToolKind.SUBAGENT);
-    const sub = fold.status.subAgentExecutions[0];
+    const sub = fold.status.subAgentRuns[0];
     expect(sub.id).toBe("task-1");
     expect(sub.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
     expect(sub.output).toBe(JSON.stringify(STEPS));
@@ -338,8 +338,8 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
 
   it("a completion with no running before it still opens the sub-agent and delivers its transcript", () => {
     const fold = foldCursorEvents([ev.toolCall("task-1", "task", "completed", TASK_ARGS, STEPS)]);
-    expect(fold.status.subAgentExecutions[0].status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
-    expect(fold.status.subAgentExecutions[0].messages).toHaveLength(2);
+    expect(fold.status.subAgentRuns[0].status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
+    expect(fold.status.subAgentRuns[0].messages).toHaveLength(2);
   });
 
   describe("one stream event is one instant, whatever the clock does between its folds (stigmer#1390)", () => {
@@ -354,7 +354,7 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
     it("a task completion with no running before it: the task row, the sub-agent row and the child's rows and messages share it", () => {
       const fold = new CursorFold({ observer: () => vi.advanceTimersByTime(1) }).event(ev.toolCall("task-1", "task", "completed", TASK_ARGS, STEPS));
       const task = fold.row("task-1");
-      const [sub] = fold.status.subAgentExecutions;
+      const [sub] = fold.status.subAgentRuns;
       const read = sub.messages.flatMap((m) => m.toolCalls)[0];
       expect([
         task.startedAt, task.completedAt,
@@ -393,7 +393,7 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
         },
       }),
     ]).finalize();
-    const sub = fold.status.subAgentExecutions[0];
+    const sub = fold.status.subAgentRuns[0];
     expect(sub.messages.map((m) => [m.type, m.content, m.toolCalls.map((tc) => [tc.id, tc.status, tc.error])])).toEqual([
       [MessageType.MESSAGE_THINKING, "Let me look.", []],
       // Four tool steps with no assistant step before them share one empty message.
@@ -412,7 +412,7 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
   it("a result without conversationSteps, or not an object, yields an empty child transcript", () => {
     for (const result of [undefined, "just text", { status: "success", value: {} }, { status: "success", value: { conversationSteps: [] } }]) {
       const fold = foldCursorEvents([ev.toolCall("task-1", "task", "completed", TASK_ARGS, result)]);
-      expect(fold.status.subAgentExecutions[0].messages).toHaveLength(0);
+      expect(fold.status.subAgentRuns[0].messages).toHaveLength(0);
     }
   });
 
@@ -431,7 +431,7 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
 
 describe("CursorTranslator — a resumed agent's re-run lands on its seeded WAITING row by identity", () => {
   function seededStatus(rows: Array<{ id: string; action?: ApprovalAction; path?: string }>) {
-    return create(AgentExecutionStatusSchema, {
+    return create(AgentRunStatusSchema, {
       messages: [
         create(AgentMessageSchema, {
           type: MessageType.MESSAGE_AI,
@@ -490,7 +490,7 @@ describe("CursorTranslator — a resumed agent's re-run lands on its seeded WAIT
   });
 
   it("the identity is the hook's token space: a seeded shell row matches a re-run of the same command", () => {
-    const status = create(AgentExecutionStatusSchema, {
+    const status = create(AgentRunStatusSchema, {
       messages: [create(AgentMessageSchema, {
         type: MessageType.MESSAGE_AI,
         content: "Building.",
@@ -610,7 +610,7 @@ describe("CursorTranslator — the delta channel is queued, held for unannounced
   });
 
   it("a held completion for a resumed agent's re-run is re-targeted at the seeded row it aliases to", () => {
-    const status = create(AgentExecutionStatusSchema, {
+    const status = create(AgentRunStatusSchema, {
       messages: [create(AgentMessageSchema, {
         type: MessageType.MESSAGE_AI, content: "Building.",
         toolCalls: [create(ToolCallSchema, { id: "sh-seeded", name: "shell", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, args: { command: "make" }, approvalAction: ApprovalAction.APPROVE })],

@@ -21,7 +21,7 @@ const ZENDESK = { org: "acme", slug: "zendesk", kind: ApiResourceKind.mcp_server
 
 function clientWith(getByReference: () => Promise<unknown>): Stigmer {
   return {
-    agentExecution: { uploadAttachment: vi.fn() },
+    agentRun: { uploadAttachment: vi.fn() },
     environment: { getPersonal: vi.fn().mockResolvedValue(null) },
     mcpServer: { getByReference: vi.fn(getByReference) },
     baseUrl: "/",

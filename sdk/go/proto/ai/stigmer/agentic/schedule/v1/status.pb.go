@@ -31,8 +31,8 @@ type ScheduleStatus struct {
 	NextFireAt *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=next_fire_at,json=nextFireAt,proto3" json:"next_fire_at,omitempty"`
 	// When the schedule last fired, in UTC.
 	LastFireAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=last_fire_at,json=lastFireAt,proto3" json:"last_fire_at,omitempty"`
-	// ID of the agent execution created by the most recent fire.
-	LastExecutionId string `protobuf:"bytes,3,opt,name=last_execution_id,json=lastExecutionId,proto3" json:"last_execution_id,omitempty"`
+	// ID of the agent run created by the most recent fire.
+	LastRunId string `protobuf:"bytes,3,opt,name=last_run_id,json=lastRunId,proto3" json:"last_run_id,omitempty"`
 	// Number of consecutive failed runs. A successful run resets it.
 	ConsecutiveFailures int32 `protobuf:"varint,4,opt,name=consecutive_failures,json=consecutiveFailures,proto3" json:"consecutive_failures,omitempty"`
 	// Why the platform paused this schedule; empty when not paused.
@@ -88,9 +88,9 @@ func (x *ScheduleStatus) GetLastFireAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *ScheduleStatus) GetLastExecutionId() string {
+func (x *ScheduleStatus) GetLastRunId() string {
 	if x != nil {
-		return x.LastExecutionId
+		return x.LastRunId
 	}
 	return ""
 }
@@ -120,13 +120,13 @@ var File_ai_stigmer_agentic_schedule_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_schedule_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/schedule/v1/status.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd8\x02\n" +
+	"+ai/stigmer/agentic/schedule/v1/status.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcc\x02\n" +
 	"\x0eScheduleStatus\x12<\n" +
 	"\fnext_fire_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"nextFireAt\x12<\n" +
 	"\flast_fire_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"lastFireAt\x12*\n" +
-	"\x11last_execution_id\x18\x03 \x01(\tR\x0flastExecutionId\x121\n" +
+	"lastFireAt\x12\x1e\n" +
+	"\vlast_run_id\x18\x03 \x01(\tR\tlastRunId\x121\n" +
 	"\x14consecutive_failures\x18\x04 \x01(\x05R\x13consecutiveFailures\x12#\n" +
 	"\rpaused_reason\x18\x05 \x01(\tR\fpausedReason\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\xa4\x02\n" +

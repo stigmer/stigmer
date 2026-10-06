@@ -78,9 +78,9 @@
 import { afterAll, beforeAll, describe, it, expect } from "vitest";
 import { CancelledFailure } from "@temporalio/activity";
 import { clone } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { approvalDecisionsOf, terminalizeNonExecutingDecisions } from "../../harness/approval-decisions.js";
 import type { TurnInput, TurnOutcome, UsageDelta } from "../../harness/types.js";
@@ -141,7 +141,7 @@ export class ExecutionDriver {
   readonly sessionId: string;
   private threadId: string;
   private turnSeq = 0;
-  private persisted: AgentExecutionStatus | undefined;
+  private persisted: AgentRunStatus | undefined;
 
   constructor(private readonly subject: HarnessContractSubject, label: string) {
     this.executionId = `exec-${label}`;
@@ -175,7 +175,7 @@ export class ExecutionDriver {
       turnSeq: this.turnSeq,
       sessionId: this.sessionId,
       approvalDecisions: view.approvalDecisions,
-      persistedStatus: clone(AgentExecutionStatusSchema, sink.status),
+      persistedStatus: clone(AgentRunStatusSchema, sink.status),
     });
     const settled = this.subject.adapter.runTurn(input, sink);
     if (parked && options.stopWhenHanging !== undefined) {
@@ -225,8 +225,8 @@ export class ExecutionDriver {
   }
 
   /** The status a reinvocation is seeded with: a clone of what was persisted. */
-  seedStatus(): AgentExecutionStatus {
-    return this.persisted ? clone(AgentExecutionStatusSchema, this.persisted) : emptyStatus();
+  seedStatus(): AgentRunStatus {
+    return this.persisted ? clone(AgentRunStatusSchema, this.persisted) : emptyStatus();
   }
 }
 

@@ -21,7 +21,7 @@ contents:
   - agentic/agent_channel.fga
   - agentic/agent_share.fga
   - agentic/channel_app.fga
-  - agentic/agent_execution.fga
+  - agentic/agent_run.fga
   - agentic/artifact.fga
   - agentic/environment.fga
   - agentic/execution_context.fga
@@ -32,4 +32,4 @@ contents:
   - agentic/session.fga
   - agentic/skill.fga
   - agentic/workflow.fga
-  - agentic/workflow_execution.fga
+  - agentic/workflow_run.fga

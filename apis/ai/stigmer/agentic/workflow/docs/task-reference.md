@@ -365,7 +365,7 @@ The caught error is accessible in catch tasks via `${.errorName}` where `errorNa
 
 ## listen
 
-Pauses workflow execution and waits for one or more external signals. Backed by Temporal signals/queries/updates. Use this for human-in-the-loop approvals, external event triggers, or integration handoffs.
+Pauses the workflow run and waits for one or more external signals. Backed by Temporal signals/queries/updates. Use this for human-in-the-loop approvals, external event triggers, or integration handoffs.
 
 **Proto**: `ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig`
 
@@ -414,7 +414,7 @@ To wait for all signals in a multi-step approval:
 
 ## wait
 
-Pauses workflow execution for a fixed duration or until a specific timestamp. Backed by Temporal timers — the workflow is durably suspended and resumed without holding resources.
+Pauses the workflow run for a fixed duration or until a specific timestamp. Backed by Temporal timers — the workflow is durably suspended and resumed without holding resources.
 
 **Proto**: `ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig`
 
@@ -511,7 +511,7 @@ Declares a sub-workflow to run as a child of the current workflow.
 
 ## agent_call
 
-Invokes an AI agent as a task, delegating complex reasoning or tool use to a specialized agent. The workflow waits for the agent to complete its execution and exports the agent's response.
+Invokes an AI agent as a task, delegating complex reasoning or tool use to a specialized agent. The workflow waits for the agent to complete its run and exports the agent's response.
 
 **Proto**: `ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig`
 

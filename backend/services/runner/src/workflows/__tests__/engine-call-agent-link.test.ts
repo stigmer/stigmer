@@ -5,7 +5,8 @@
  * execution id is the run's own execution id, even when the workflow's own
  * `set` task has written look-alike keys into its data. The Temporal
  * workflow API and the agent-call orchestrator are mocked; the orchestrator
- * mock records what the engine hands it.
+ * mock records what the engine hands it. The step's output names the
+ * child run `agent_run_id`, and under its retired key until #1966.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -126,5 +127,29 @@ describe("the engine's call:agent link", () => {
     expect(input.workflowExecutionId).toBe("wex_run_own");
     expect(input.taskName).toBe("ask");
     expect(input.runtimeEnv["__stigmer_execution_id"]).toBe("wex_run_own");
+  });
+
+  it("names the child run agent_run_id in the step's output, and under its retired key until #1966", async () => {
+    mockOrchestrateAgentCall.mockResolvedValue({ final_text: "done", agent_execution_id: "aex_child" });
+    const model: WorkflowModel = {
+      document: { dsl: "1.0.0", name: "ask-only" },
+      do: [
+        {
+          key: "ask",
+          task: { kind: "call:agent", call: "agent", with: { agent: "reviewer", message: "Review this" } },
+        },
+      ],
+    };
+
+    const { executeInlineModel } =
+      await import("../../__test-utils__/workflows/inline-model.js");
+    const output = await executeInlineModel({
+      model,
+      workflow_input: null,
+      env: {},
+      metadata: { execution_id: "wex_run_own", org_id: "test-org" },
+    });
+
+    expect(output).toEqual({ final_text: "done", agent_execution_id: "aex_child", agent_run_id: "aex_child" });
   });
 });

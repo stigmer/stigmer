@@ -11,11 +11,11 @@ import { DashboardFailedRuns } from "./DashboardFailedRuns.js";
 import type { DashboardFailedRun } from "./types.js";
 
 export interface OperationalDashboardProps {
-  /** The organization whose executions, approvals and usage the dashboard shows. */
+  /** The organization whose runs, approvals and usage the dashboard shows. */
   readonly org: string | null | undefined;
   /** Called when the user clicks "Review" on a pending approval. */
   readonly onApprovalClick?: (executionId: string) => void;
-  /** Called when the user clicks "View" on a failed execution. */
+  /** Called when the user clicks "View" on a failed run. */
   readonly onFailedRunClick?: (id: string, type: DashboardFailedRun["type"]) => void;
   readonly className?: string;
 }
@@ -35,8 +35,8 @@ export interface OperationalDashboardProps {
  * ```tsx
  * <OperationalDashboard
  *   org="acme"
- *   onApprovalClick={(id) => navigate(`/executions/${id}`)}
- *   onFailedRunClick={(id, type) => navigate(`/executions/${id}`)}
+ *   onApprovalClick={(id) => navigate(`/runs/${id}`)}
+ *   onFailedRunClick={(id, type) => navigate(`/runs/${id}`)}
  * />
  * ```
  */

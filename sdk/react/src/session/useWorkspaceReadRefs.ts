@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
 
 /**
@@ -18,7 +18,7 @@ import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
  * exact, immune to branch eventual-consistency.
  *
  * **Ref selection:** the latest write-back with a non-empty `commitSha` wins
- * per workspace entry, across all executions in chronological order. FAILED
+ * per workspace entry, across all runs in chronological order. FAILED
  * write-back records carry no SHA and never regress the ref.
  *
  * **Entry matching** mirrors the runner's `WriteBackCoordinator.resolveEntry`:
@@ -31,14 +31,14 @@ import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
  * that don't change any write-back SHA return the identical array, so
  * downstream listing/content effects never churn.
  *
- * @param executions - All executions for the session, in chronological order
+ * @param runs - All runs for the session, in chronological order
  *   (same input contract as {@link useSessionWriteBacks}).
  * @param entries - The session's workspace entries. Returned as-is (same
  *   reference) when no entry derives a ref.
  *
  * @example
  * ```tsx
- * const surfaceEntries = useWorkspaceReadRefs(flow.allExecutions, flow.workspace.entries);
+ * const surfaceEntries = useWorkspaceReadRefs(flow.allRuns, flow.workspace.entries);
  * <WorkspaceSurface entries={surfaceEntries} ... />
  * ```
  *
@@ -46,7 +46,7 @@ import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
  * @see WorkspaceEntry.readRef — the field this hook populates
  */
 export function useWorkspaceReadRefs(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
   entries: readonly WorkspaceEntry[],
 ): readonly WorkspaceEntry[] {
   // Cheap per-render pass; memoizing on `executions` would defeat the point —
@@ -78,7 +78,7 @@ export function useWorkspaceReadRefs(
 
 /** Latest non-empty write-back commit SHA per workspace entry name. */
 function collectLatestShas(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
 ): Map<string, string> {
   const refByName = new Map<string, string>();
   for (const execution of executions) {

@@ -2,13 +2,13 @@ import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  ExecutionArtifactKind,
-  ExecutionPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+  RunArtifactKind,
+  RunPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import { useSessionPanel, type UseSessionPanelOptions } from "../useSessionPanel";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "../plan-document";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../execution/artifact-document";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../run/artifact-document";
 import { artifactKey } from "../useSessionArtifacts";
 
 // ---------------------------------------------------------------------------
@@ -95,17 +95,17 @@ describe("useSessionPanel — arrivals and phase", () => {
 
   it("resets the sticky pick on a running→terminal transition", () => {
     const { result, rerender } = renderPanel({
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
     });
     act(() => result.current.openPanel());
     act(() => result.current.setView("usage"));
     rerender({
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       hasChanges: false,
     });
     expect(result.current.view).toBe("files");
     // Unstuck: the next arrival auto-switch takes effect again.
-    rerender({ phase: ExecutionPhase.EXECUTION_COMPLETED, hasChanges: true });
+    rerender({ phase: RunPhase.RUN_COMPLETED, hasChanges: true });
     expect(result.current.view).toBe("changes");
   });
 });
@@ -218,9 +218,9 @@ describe("useSessionPanel — plan document tab", () => {
 
 describe("useSessionPanel — artifact document tabs", () => {
   function artifact(sandboxPath: string, name: string) {
-    return create(ExecutionArtifactSchema, {
+    return create(RunArtifactSchema, {
       name,
-      kind: ExecutionArtifactKind.FILE,
+      kind: RunArtifactKind.FILE,
       sandboxPath,
       storageKey: `artifacts/aex_1/${name}`,
     });
@@ -401,12 +401,12 @@ describe("useSessionPanel — defaultView (home view)", () => {
   it("returns to defaultView (not files) on a running→terminal reset", () => {
     const { result, rerender } = renderPanel({
       defaultView: "configure",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
     });
     act(() => result.current.openPanel());
     act(() => result.current.setView("usage"));
     rerender({
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      phase: RunPhase.RUN_COMPLETED,
       hasChanges: false,
       defaultView: "configure",
     });
@@ -415,12 +415,12 @@ describe("useSessionPanel — defaultView (home view)", () => {
 
   it("defaults the home view to Explorer (files) when omitted", () => {
     const { result, rerender } = renderPanel({
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
     });
     expect(result.current.view).toBe("files");
     act(() => result.current.openPanel());
     act(() => result.current.setView("usage"));
-    rerender({ phase: ExecutionPhase.EXECUTION_COMPLETED, hasChanges: false });
+    rerender({ phase: RunPhase.RUN_COMPLETED, hasChanges: false });
     expect(result.current.view).toBe("files");
   });
 });

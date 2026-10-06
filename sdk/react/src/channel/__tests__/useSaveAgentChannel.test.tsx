@@ -6,7 +6,7 @@ import type { AgentChannelInput } from "@stigmer/sdk";
 import {
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { useSaveAgentChannel, agentChannelToInput } from "../useSaveAgentChannel";
 

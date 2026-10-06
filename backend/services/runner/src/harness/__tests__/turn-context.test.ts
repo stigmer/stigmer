@@ -30,10 +30,10 @@
 
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionSchema, AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema, AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { approvalDecisionsOf } from "../approval-decisions.js";
 import { decideReinvocation, isReinvocation, regeneratesApprovedWrites, type ReinvocationFacts } from "../turn-context.js";
@@ -42,7 +42,7 @@ const INPUT = { executionId: "aex_1", threadId: "", turnSeq: 0 } as const;
 
 /** An execution with no persisted history (a first run) or with `n` persisted AI rows (a continuation). */
 function executionWithTranscript(rows: number) {
-  return create(AgentExecutionSchema, {
+  return create(AgentRunSchema, {
     status: {
       messages: Array.from({ length: rows }, (_, i) =>
         create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: `row ${i}` }),
@@ -113,13 +113,13 @@ function transcriptWithEveryRowShape() {
     status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
     approvalAction: ApprovalAction.APPROVE,
   });
-  return create(AgentExecutionStatusSchema, {
+  return create(AgentRunStatusSchema, {
     messages: [
       create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [waitingApproved, waitingUndecided] }),
       create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [completedWithStaleAction, waitingRejected] }),
     ],
-    subAgentExecutions: [
-      create(SubAgentExecutionSchema, {
+    subAgentRuns: [
+      create(SubAgentRunSchema, {
         messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [subAgentWaiting] })],
       }),
     ],
@@ -143,7 +143,7 @@ describe("approvalDecisionsOf", () => {
   });
 
   it("is empty on a fresh status", () => {
-    expect(approvalDecisionsOf(create(AgentExecutionStatusSchema, {})).size).toBe(0);
+    expect(approvalDecisionsOf(create(AgentRunStatusSchema, {})).size).toBe(0);
   });
 });
 

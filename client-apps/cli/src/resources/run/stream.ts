@@ -1,4 +1,4 @@
-// Renderer dispatch for a created execution (Go's streamAgentExecution in
+// Renderer dispatch for a created run (Go's streamAgentExecution in
 // run_stream.go). One of three paths is selected from the output mode and TTY:
 //
 //   --json            → headless NDJSON differ (stdout), Go's run --json taxonomy
@@ -7,13 +7,13 @@
 //
 // All three converge on the same epilogue (final Get + usage summary). The
 // headless paths share one driver (runHeadlessStream) over the SDK's
-// agentExecution.subscribe / submitApproval; the differ + renderers are the
+// agentRun.subscribe / submitApproval; the differ + renderers are the
 // CLI-local port of Go's streamToEvents + handleJSONEvent.
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { runEpilogue } from "./epilogue.js";
 import { renderSessionHeader, type SessionHeaderInfo } from "./header.js";
@@ -29,8 +29,8 @@ export type RunOutputMode = "inline" | "json";
 export interface StreamDeps {
   readonly client: Stigmer;
   readonly sessionId: string;
-  readonly executionId: string;
-  /** Org slug, for follow-up executions created from the Ink composer. */
+  readonly runId: string;
+  /** Org slug, for follow-up runs created from the Ink composer. */
   readonly org: string;
   readonly mode: RunMode;
   readonly defaultAction: ApprovalAction;
@@ -39,25 +39,25 @@ export interface StreamDeps {
 }
 
 /**
- * Stream the execution to a terminal phase, then run the epilogue. Returns the
- * authoritative final execution (for artifact download).
+ * Stream the run to a terminal phase, then run the epilogue. Returns the
+ * authoritative final run (for artifact download).
  */
-export async function streamAgentExecution(deps: StreamDeps): Promise<AgentExecution> {
+export async function streamAgentRun(deps: StreamDeps): Promise<AgentRun> {
   if (deps.outputMode === "json") {
     renderSessionHeader(process.stderr, deps.header);
     const result = await runHeadless(deps, jsonRenderer(deps));
-    return runEpilogue(deps.client, deps.sessionId, deps.executionId, result);
+    return runEpilogue(deps.client, deps.sessionId, deps.runId, result);
   }
 
   if (isInkSupported(process.stdout)) {
     await runInk(deps);
     // Ink owns the live view; the epilogue still prints the exit summary.
-    return runEpilogue(deps.client, deps.sessionId, deps.executionId, { phase: "", error: "" });
+    return runEpilogue(deps.client, deps.sessionId, deps.runId, { phase: "", error: "" });
   }
 
   renderSessionHeader(process.stderr, deps.header);
   const result = await runHeadless(deps, plaintextRenderer());
-  return runEpilogue(deps.client, deps.sessionId, deps.executionId, result);
+  return runEpilogue(deps.client, deps.sessionId, deps.runId, result);
 }
 
 function jsonRenderer(deps: StreamDeps): HeadlessRenderer {
@@ -79,10 +79,10 @@ async function runHeadless(deps: StreamDeps, renderer: HeadlessRenderer): Promis
 
   try {
     return await runHeadlessStream({
-      subscribe: (signal) => deps.client.agentExecution.subscribe(deps.executionId, signal),
+      subscribe: (signal) => deps.client.agentRun.subscribe(deps.runId, signal),
       submitApproval: async (toolCallId, action) => {
-        await deps.client.agentExecution.submitApproval(
-          create(SubmitApprovalInputSchema, { agentExecutionId: deps.executionId, toolCallId, action }),
+        await deps.client.agentRun.submitApproval(
+          create(SubmitApprovalInputSchema, { agentRunId: deps.runId, toolCallId, action }),
         );
       },
       renderer,

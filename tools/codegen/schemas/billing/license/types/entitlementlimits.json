@@ -55,7 +55,7 @@
       "type": {
         "kind": "int32"
       },
-      "description": "The most workflow-execution sandboxes an organization may hold\n provisioning or running at once. A workflow launch that would need a\n new sandbox past it is refused. Read by a subscription. A license\n ignores it until a self-hosted capacity gate reads it.",
+      "description": "The most workflow-run sandboxes an organization may hold\n provisioning or running at once. A workflow launch that would need a\n new sandbox past it is refused. Read by a subscription. A license\n ignores it until a self-hosted capacity gate reads it.",
       "required": false,
       "oneofGroup": "_max_active_workflow_sandboxes"
     },

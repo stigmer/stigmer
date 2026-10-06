@@ -44,7 +44,7 @@ export function ChannelToolCredentials({
   disabled = false,
   enabled = true,
 }: ChannelToolCredentialsProps) {
-  // Only org-shared environments are usable by channel executions (the
+  // Only org-shared environments are usable by channel runs (the
   // runtime merge skips private ones), so offering others would bind
   // credentials that silently never apply.
   const onlyOrgShared = useCallback(

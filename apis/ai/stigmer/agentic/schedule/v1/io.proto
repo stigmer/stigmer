@@ -79,7 +79,7 @@ enum ScheduleRunOrigin {
 enum ScheduleRunOutcome {
   SCHEDULE_RUN_OUTCOME_UNSPECIFIED = 0;
 
-  // An execution was created (or idempotently re-found) and is running.
+  // A run was created (or idempotently re-found) and is running.
   SCHEDULE_RUN_OUTCOME_STARTED = 1;
 
   // A launch gate refused the run deterministically; reason carries the
@@ -93,7 +93,7 @@ enum ScheduleRunOutcome {
   // the fire being recorded and the run starting.
   SCHEDULE_RUN_OUTCOME_SKIPPED = 4;
 
-  // The tracked run reached EXECUTION_COMPLETED.
+  // The tracked run reached RUN_COMPLETED.
   SCHEDULE_RUN_OUTCOME_COMPLETED = 5;
 
   // The tracked run ended terminal-but-not-completed (failed, cancelled,
@@ -118,8 +118,8 @@ message ScheduleTriggerResult {
   // run start).
   ScheduleRunOutcome outcome = 2;
 
-  // ID of the created execution. Set only when outcome is STARTED.
-  string execution_id = 3;
+  // ID of the created run. Set only when outcome is STARTED.
+  string run_id = 3;
 
   // The refusing launch gate's copy, verbatim. Set only when outcome is
   // REFUSED or TARGET_MISSING.
@@ -130,10 +130,10 @@ message ScheduleTriggerResult {
 //
 // @internal
 // Backed by the fire ledger: every fire leaves a
-// row, INCLUDING fires that created no execution — the ledger is the
+// row, INCLUDING fires that created no run — the ledger is the
 // one place a refused fire's reason survives below the pause threshold.
-// Rows carrying an execution id but no terminal outcome are enriched
-// with the execution's live phase at read time, so outcome never lies
+// Rows carrying a run id but no terminal outcome are enriched
+// with the run's live phase at read time, so outcome never lies
 // while a run is in flight.
 message ScheduleRun {
   // Schedule this fire belongs to.
@@ -156,9 +156,9 @@ message ScheduleRun {
   // healthy outcomes.
   string reason = 6;
 
-  // ID of the created execution. Empty when no execution was created
+  // ID of the created run. Empty when no run was created
   // (refused, target missing, skipped).
-  string execution_id = 7;
+  string run_id = 7;
 
   // When the fire was recorded.
   google.protobuf.Timestamp recorded_at = 8;

@@ -25,8 +25,8 @@ repository is in [references/test-discipline.md](references/test-discipline.md).
   Class A test under `test/conformance/src/suites/`, run by
   `make test-conformance` against the OSS server built from source; the
   `local-postgres` target runs the same files over the Postgres driver.
-- A runner behaviour read through execution status is an execution-class test
-  under `test/conformance/src/suites-execution/`, run by
+- A runner behaviour read through run status is an execution-class test under
+  `test/conformance/src/suites-execution/`, run by
   `make test-conformance-execution` (Temporal, the server and the runner from
   source; every model turn scripted on the mock LLM).
 - A cloud capability is a cloud-class test, connect-only against a
@@ -37,37 +37,37 @@ repository is in [references/test-discipline.md](references/test-discipline.md).
   `test/support/src/__tests__/`.
 
 Extend the existing `<domain>-<facet>.conformance.test.ts` when the facet
-exists; the execution class has one file per facet (`agentexecution-approval`,
-`agentexecution-file-review`, `workflowexecution-signal`, and the rest), and a
-new file is a new facet, opened with an intent header that states the contract
-it pins and what is deliberately out of scope.
+exists; the execution class has one file per facet (`agentrun-approval`,
+`agentrun-file-review`, `workflowrun-signal`, and the rest), and a new file is a
+new facet, opened with an intent header that states the contract it pins and
+what is deliberately out of scope.
 
 ## The three shapes
 
-**A runner behaviour, read through execution status.** Script the model's turns,
-create the execution, await the terminal phase, assert on the phase and on what
-the mock consumed:
+**A runner behaviour, read through run status.** Script the model's turns,
+create the run, await the terminal phase, assert on the phase and on what the
+mock consumed:
 
 ```ts
 mock.enqueue(anthropicToolUse("call_1", ECHO_TOOL_NAME, { text: "ping" }));
 mock.enqueue(anthropicText("Done."));
-const execution = await clients.agentExecutionCommand.create(
+const run = await clients.agentExecutionCommand.create(
   makeAgentExecution({ org, name, agentId, autoApproveAll: true }),
 );
-const final = await awaitTerminal(clients, execution.metadata!.id);
-expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+const final = await awaitTerminal(clients, run.metadata!.id);
+expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
 expect(mock.consumed(), "exactly the scripted turns").toBe(2);
 ```
 
 `anthropicText`, `anthropicToolUse` and the other turn builders live in
 `test/support/src/llm-wire.ts`; `makeAgentExecution` and `awaitTerminal` in
-`test/conformance/src/support/agentexecutions.ts`.
+`test/conformance/src/support/agentruns.ts`.
 
 **An approval gate.** Every submit goes through `submitApprovalPerContract`
-(`test/conformance/src/support/agentexecutions.ts`), which asserts the
-contract's pre- and post-conditions around the call. Never a bare submit
-followed by an expectation on pending approvals: that shape passed while the
-contract was broken, which is why the helper exists.
+(`test/conformance/src/support/agentruns.ts`), which asserts the contract's pre-
+and post-conditions around the call. Never a bare submit followed by an
+expectation on pending approvals: that shape passed while the contract was
+broken, which is why the helper exists.
 
 **A file-review turn.** Attach a `GitWorkspace`
 (`test/conformance/src/harness/git-workspace.ts`) as the session's local
@@ -78,7 +78,7 @@ workspace, script write and edit turns, `awaitFileReview`, decide with
 For workflows: `makeLlmCallWorkflow`, `makeEvalWorkflow`,
 `makeHumanInputWorkflow` and their siblings in
 `test/conformance/src/support/workflows.ts`; `awaitTaskStatus` in
-`test/conformance/src/support/workflowexecutions.ts`.
+`test/conformance/src/support/workflowruns.ts`.
 
 ## Reuse the harness
 
@@ -107,7 +107,7 @@ never a silent return.
 - Assertions on LLM-dependent behaviour read structure and side effects, never
   prose.
 - The assertion message says what went wrong in terms a reader can act on: the
-  execution id, the expected and observed phase, the elapsed time.
+  run id, the expected and observed phase, the elapsed time.
 
 ## Live vendors
 

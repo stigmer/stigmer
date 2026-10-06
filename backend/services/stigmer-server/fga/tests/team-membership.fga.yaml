@@ -59,8 +59,8 @@ tuples:
   - {user: team:sre#member, relation: viewer, object: agent_channel:alerts}
   - {user: organization:acme, relation: organization, object: schedule:nightly}
   - {user: team:sre#member, relation: viewer, object: schedule:nightly}
-  - {user: organization:acme, relation: organization, object: workflow_execution:run1}
-  - {user: team:sre#member, relation: viewer, object: workflow_execution:run1}
+  - {user: organization:acme, relation: organization, object: workflow_run:run1}
+  - {user: team:sre#member, relation: viewer, object: workflow_run:run1}
 tests:
   - name: team members who are org viewers reach the team's grants; nobody else does
     check:
@@ -91,10 +91,10 @@ tests:
         object: schedule:nightly
         assertions: {viewer: false}
       - user: identity_account:vic
-        object: workflow_execution:run1
+        object: workflow_run:run1
         assertions: {viewer: true, can_view: true}
       - user: identity_account:gus
-        object: workflow_execution:run1
+        object: workflow_run:run1
         assertions: {viewer: false}
       - user: identity_account:vic
         object: agent_channel:support

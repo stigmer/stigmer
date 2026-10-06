@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { MessageThread, SessionComposer } from "@stigmer/react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { DEMO_ORG, MOCK_WORKSPACE } from "../fixtures";
 import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 
@@ -11,7 +11,7 @@ const noop = () => {};
 
 interface ComposerViewProps {
   /** When provided, renders the conversation via MessageThread. */
-  execution?: AgentExecution;
+  execution?: AgentRun;
   /**
    * When provided, programmatically fills the SessionComposer textarea
    * with this text (simulating user typing).
@@ -23,7 +23,7 @@ interface ComposerViewProps {
   agentRef?: { org: string; slug: string };
   /**
    * When provided, `MessageThread` renders `ApprovalCard` items for
-   * pending approvals on the active execution. The callback receives
+   * pending approvals on the active run. The callback receives
    * the tool call ID, the chosen action, and an optional comment.
    */
   onApprovalSubmit?: (
@@ -39,7 +39,7 @@ interface ComposerViewProps {
  * Handles three visual states driven by props:
  * 1. **Empty** — `SessionComposer` in its "ready" state
  * 2. **Typing** — `SessionComposer` with pre-filled text
- * 3. **Conversation** — `MessageThread` showing execution messages
+ * 3. **Conversation** — `MessageThread` showing run messages
  */
 export function ComposerView({
   execution,
@@ -54,7 +54,7 @@ export function ComposerView({
         {execution ? (
           <div className="flex h-full flex-col" style={{ zoom: DEMO_CONTENT_ZOOM }}>
             <MessageThread
-              executions={[execution]}
+              runs={[execution]}
               className="max-h-[390px] px-3 py-2"
               onApprovalSubmit={onApprovalSubmit}
             />

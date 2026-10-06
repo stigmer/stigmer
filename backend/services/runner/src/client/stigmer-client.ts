@@ -11,8 +11,8 @@
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { context as otelContext, propagation } from "@opentelemetry/api";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
@@ -28,7 +28,7 @@ import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb
 import type { GetArtifactResponse as GetPluginArtifactResponse, PluginArtifactDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import type { RecordLlmCallUsageInput, RecordLlmCallUsageResponse } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
-import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun, AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ExecutionContextExecutionIdInputSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/io_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -41,12 +41,12 @@ import type { GetArtifactResponse, SkillArtifactDownloadUrl } from "@stigmer/pro
 import { create } from "@bufbuild/protobuf";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
-import { AgentExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
-import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
-import type { WorkflowExecution, WorkflowExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionUpdateStatusInputSchema, GetEventLogRequestSchema, SendSignalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { AgentRunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
+import type { WorkflowRun, WorkflowRunStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunUpdateStatusInputSchema, GetEventLogRequestSchema, SendSignalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
@@ -141,10 +141,10 @@ export type RunnerScopedTokenScope =
  */
 function toRunnerScopedTokenOneof(scope: RunnerScopedTokenScope) {
   if ("agentExecutionId" in scope) {
-    return { case: "agentExecutionId", value: scope.agentExecutionId } as const;
+    return { case: "agentRunId", value: scope.agentExecutionId } as const;
   }
   if ("workflowExecutionId" in scope) {
-    return { case: "workflowExecutionId", value: scope.workflowExecutionId } as const;
+    return { case: "workflowRunId", value: scope.workflowExecutionId } as const;
   }
   if ("poolClaimSessionId" in scope) {
     return { case: "poolClaim", value: { sessionId: scope.poolClaimSessionId } } as const;
@@ -177,8 +177,8 @@ export interface StigmerClientOptions {
 export class StigmerClient {
   readonly transport: Transport;
   private readonly fixedToken: string | null;
-  private readonly executionQuery: Client<typeof AgentExecutionQueryController>;
-  private readonly executionCommand: Client<typeof AgentExecutionCommandController>;
+  private readonly executionQuery: Client<typeof AgentRunQueryController>;
+  private readonly executionCommand: Client<typeof AgentRunCommandController>;
   private readonly executionContextQuery: Client<typeof ExecutionContextQueryController>;
   private readonly sessionQuery: Client<typeof SessionQueryController>;
   private readonly sessionCommand: Client<typeof SessionCommandController>;
@@ -189,8 +189,8 @@ export class StigmerClient {
   private readonly pluginQuery: Client<typeof PluginQueryController>;
   private readonly billingCommand: Client<typeof BillingCommandController>;
   private readonly artifactCommand: Client<typeof ArtifactCommandController>;
-  readonly workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
-  private readonly workflowExecutionQuery: Client<typeof WorkflowExecutionQueryController>;
+  readonly workflowExecutionCommand: Client<typeof WorkflowRunCommandController>;
+  private readonly workflowExecutionQuery: Client<typeof WorkflowRunQueryController>;
   private readonly workflowQuery: Client<typeof WorkflowQueryController>;
   private readonly platformQuery: Client<typeof PlatformQueryController>;
   private readonly channelMessageQuery: Client<typeof ChannelMessageQueryController>;
@@ -268,8 +268,8 @@ export class StigmerClient {
             req.service.typeName === ExecutionContextQueryController.typeName ||
             (req.service.typeName === PlatformQueryController.typeName &&
               req.method.name === PlatformQueryController.method.getRunnerScopedToken.name) ||
-            (req.service.typeName === AgentExecutionCommandController.typeName &&
-              req.method.name === AgentExecutionCommandController.method.create.name);
+            (req.service.typeName === AgentRunCommandController.typeName &&
+              req.method.name === AgentRunCommandController.method.create.name);
           const token =
             (isProcessBound ? undefined : currentRunCredential())
             ?? (usesRunnerCredential ? this.runnerTokenRef?.current : null)
@@ -283,8 +283,8 @@ export class StigmerClient {
       ],
     });
 
-    this.executionQuery = createClient(AgentExecutionQueryController, this.transport);
-    this.executionCommand = createClient(AgentExecutionCommandController, this.transport);
+    this.executionQuery = createClient(AgentRunQueryController, this.transport);
+    this.executionCommand = createClient(AgentRunCommandController, this.transport);
     this.executionContextQuery = createClient(ExecutionContextQueryController, this.transport);
     this.sessionQuery = createClient(SessionQueryController, this.transport);
     this.sessionCommand = createClient(SessionCommandController, this.transport);
@@ -295,8 +295,8 @@ export class StigmerClient {
     this.pluginQuery = createClient(PluginQueryController, this.transport);
     this.billingCommand = createClient(BillingCommandController, this.transport);
     this.artifactCommand = createClient(ArtifactCommandController, this.transport);
-    this.workflowExecutionCommand = createClient(WorkflowExecutionCommandController, this.transport);
-    this.workflowExecutionQuery = createClient(WorkflowExecutionQueryController, this.transport);
+    this.workflowExecutionCommand = createClient(WorkflowRunCommandController, this.transport);
+    this.workflowExecutionQuery = createClient(WorkflowRunQueryController, this.transport);
     this.workflowQuery = createClient(WorkflowQueryController, this.transport);
     this.platformQuery = createClient(PlatformQueryController, this.transport);
     this.channelMessageQuery = createClient(ChannelMessageQueryController, this.transport);
@@ -337,16 +337,16 @@ export class StigmerClient {
     };
   }
 
-  async getExecution(executionId: string): Promise<AgentExecution> {
+  async getExecution(executionId: string): Promise<AgentRun> {
     return this.executionQuery.get({ value: executionId });
   }
 
   async updateStatus(
     executionId: string,
-    status: AgentExecutionStatus,
+    status: AgentRunStatus,
   ): Promise<UpdateStatusResponse> {
-    const input = create(AgentExecutionUpdateStatusInputSchema, {
-      executionId,
+    const input = create(AgentRunUpdateStatusInputSchema, {
+      runId: executionId,
       status,
     });
     return this.executionCommand.updateStatus(input);
@@ -676,14 +676,14 @@ export class StigmerClient {
     return this.sessionCommand.apply(session);
   }
 
-  async createAgentExecution(execution: AgentExecution): Promise<AgentExecution> {
-    assertCreateRequirements(execution, "AgentExecution", "createAgentExecution");
+  async createAgentExecution(execution: AgentRun): Promise<AgentRun> {
+    assertCreateRequirements(execution, "AgentRun", "createAgentExecution");
     return this.executionCommand.create(execution);
   }
 
   async updateWorkflowExecutionStatus(
     executionId: string,
-    status: WorkflowExecutionStatus,
+    status: WorkflowRunStatus,
     options?: {
       updatePendingApprovals?: boolean;
       updatePendingFileReviews?: boolean;
@@ -691,13 +691,13 @@ export class StigmerClient {
       // is set, including the scoped-clear case where the list is empty).
       pendingUpdateChildAgentExecutionId?: string;
     },
-  ): Promise<WorkflowExecution> {
-    const input = create(WorkflowExecutionUpdateStatusInputSchema, {
-      executionId,
+  ): Promise<WorkflowRun> {
+    const input = create(WorkflowRunUpdateStatusInputSchema, {
+      runId: executionId,
       status,
       updatePendingApprovals: options?.updatePendingApprovals ?? false,
       updatePendingFileReviews: options?.updatePendingFileReviews ?? false,
-      pendingUpdateChildAgentExecutionId: options?.pendingUpdateChildAgentExecutionId ?? "",
+      pendingUpdateChildAgentRunId: options?.pendingUpdateChildAgentExecutionId ?? "",
     });
     return this.workflowExecutionCommand.updateStatus(input);
   }
@@ -721,9 +721,9 @@ export class StigmerClient {
     signalName: string,
     payload: JsonObject | undefined,
     options?: { timeoutMs?: number },
-  ): Promise<WorkflowExecution> {
+  ): Promise<WorkflowRun> {
     const input = create(SendSignalInputSchema, {
-      executionId,
+      runId: executionId,
       signalName,
       payload,
     });
@@ -732,7 +732,7 @@ export class StigmerClient {
     });
   }
 
-  async getWorkflowExecution(executionId: string): Promise<WorkflowExecution> {
+  async getWorkflowExecution(executionId: string): Promise<WorkflowRun> {
     return this.workflowExecutionQuery.get({ value: executionId });
   }
 
@@ -752,7 +752,7 @@ export class StigmerClient {
     for (;;) {
       const resp = await this.workflowExecutionQuery.getEventLog(
         create(GetEventLogRequestSchema, {
-          executionId,
+          runId: executionId,
           afterSequence,
           pageSize: 500,
         }),

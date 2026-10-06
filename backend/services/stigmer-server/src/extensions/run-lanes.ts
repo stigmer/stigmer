@@ -4,7 +4,7 @@
  * mode are. Single instance, registered as `drivers.runLanes`.
  *
  * A turn's settings are resolved once, at create, by ResolveRunConfig
- * (domain/agentexecution/resolve-run-config.ts) from three layers: the
+ * (domain/agentrun/resolve-run-config.ts) from three layers: the
  * turn's own (the request, or the surface it came through), the defaults of
  * the agent it runs, and the lane's operator profile. The core knows its own
  * lanes: a schedule's fire (the reserved schedule label), a workflow's step
@@ -32,9 +32,9 @@
  *   - A throw fails the create (the store-fault posture of every create
  *     step); answering nothing means the turn is the core's to place.
  */
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 
 import type { CallerIdentity } from "./identity.js";
 
@@ -61,6 +61,6 @@ export interface RunLanes {
   /** The edition lane `execution` comes through for `caller`, or undefined. */
   laneOf(
     caller: CallerIdentity,
-    execution: AgentExecution,
+    execution: AgentRun,
   ): Promise<RunLane | undefined>;
 }

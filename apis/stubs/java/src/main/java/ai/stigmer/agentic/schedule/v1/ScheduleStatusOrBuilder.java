@@ -69,23 +69,23 @@ public interface ScheduleStatusOrBuilder extends
 
   /**
    * <pre>
-   * ID of the agent execution created by the most recent fire.
+   * ID of the agent run created by the most recent fire.
    * </pre>
    *
-   * <code>string last_execution_id = 3 [json_name = "lastExecutionId"];</code>
-   * @return The lastExecutionId.
+   * <code>string last_run_id = 3 [json_name = "lastRunId"];</code>
+   * @return The lastRunId.
    */
-  java.lang.String getLastExecutionId();
+  java.lang.String getLastRunId();
   /**
    * <pre>
-   * ID of the agent execution created by the most recent fire.
+   * ID of the agent run created by the most recent fire.
    * </pre>
    *
-   * <code>string last_execution_id = 3 [json_name = "lastExecutionId"];</code>
-   * @return The bytes for lastExecutionId.
+   * <code>string last_run_id = 3 [json_name = "lastRunId"];</code>
+   * @return The bytes for lastRunId.
    */
   com.google.protobuf.ByteString
-      getLastExecutionIdBytes();
+      getLastRunIdBytes();
 
   /**
    * <pre>

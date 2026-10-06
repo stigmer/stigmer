@@ -8,14 +8,14 @@ import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import {
-  WorkflowExecutionEventSchema,
+  WorkflowRunEventSchema,
   WorkflowEventType,
   TaskStartedPayloadSchema,
   TaskCompletedPayloadSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
-import { WorkflowExecutionEventStore } from "../../internal/store/workflow-execution-event-store";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { DerivedTaskState } from "../../internal/store/workflow-run-event-store";
+import { WorkflowRunEventStore } from "../../internal/store/workflow-run-event-store";
 import { projectThreadItems } from "../thread/project-thread-items";
 import { threadCardVariant } from "../thread/thread-presentation";
 
@@ -28,7 +28,7 @@ function taskState(overrides: Partial<DerivedTaskState> & { taskName: string }):
     tokensUsed: 0n,
     attemptNumber: 1,
     error: "",
-    childExecutionId: "",
+    childRunId: "",
     agentSlug: "",
     currentToolName: "",
     messagesCount: 0,
@@ -89,7 +89,7 @@ describe("projectThreadItems", () => {
           currentToolName: "web_search",
           messagesCount: 7,
           toolCallsCount: 3,
-          childExecutionId: "aex_child_1",
+          childRunId: "aex_child_1",
           tokensUsed: 1_234n,
         }),
       ),
@@ -102,7 +102,7 @@ describe("projectThreadItems", () => {
       currentToolName: "web_search",
       messagesCount: 7,
       toolCallsCount: 3,
-      childExecutionId: "aex_child_1",
+      childRunId: "aex_child_1",
     });
   });
 
@@ -327,8 +327,8 @@ describe("projectThreadItems", () => {
 //      existing key) never reorder cards mid-run.
 // ---------------------------------------------------------------------------
 
-function startedEvent(seq: number, taskName: string): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+function startedEvent(seq: number, taskName: string): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-07-16T00:00:00Z",
@@ -344,8 +344,8 @@ function startedEvent(seq: number, taskName: string): WorkflowExecutionEvent {
   });
 }
 
-function completedEvent(seq: number, taskName: string): WorkflowExecutionEvent {
-  return create(WorkflowExecutionEventSchema, {
+function completedEvent(seq: number, taskName: string): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
     eventId: `evt-${seq}`,
     sequenceNumber: BigInt(seq),
     occurredAt: "2026-07-16T00:00:00Z",
@@ -365,7 +365,7 @@ function completedEvent(seq: number, taskName: string): WorkflowExecutionEvent {
 
 describe("fan-out ordering through the store derivation", () => {
   it("keeps first-started order while parallel branches complete out of order", () => {
-    const store = new WorkflowExecutionEventStore();
+    const store = new WorkflowRunEventStore();
 
     // prepare settles, then the fan-out burst: four branches start
     // back-to-back before any of them finishes.

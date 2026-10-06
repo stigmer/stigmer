@@ -71,17 +71,17 @@ class SkillArtifactDownloadUrl(_message.Message):
     size_bytes: int
     def __init__(self, url: _Optional[str] = ..., ttl_seconds: _Optional[int] = ..., size_bytes: _Optional[int] = ...) -> None: ...
 
-class PushSkillFromExecutionArtifactRequest(_message.Message):
-    __slots__ = ("org", "execution_id", "storage_key", "tag")
+class PushSkillFromRunArtifactRequest(_message.Message):
+    __slots__ = ("org", "run_id", "storage_key", "tag")
     ORG_FIELD_NUMBER: _ClassVar[int]
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
     STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
     TAG_FIELD_NUMBER: _ClassVar[int]
     org: str
-    execution_id: str
+    run_id: str
     storage_key: str
     tag: str
-    def __init__(self, org: _Optional[str] = ..., execution_id: _Optional[str] = ..., storage_key: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., run_id: _Optional[str] = ..., storage_key: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...
 
 class GetArtifactRequest(_message.Message):
     __slots__ = ("artifact_storage_key",)

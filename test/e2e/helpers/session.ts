@@ -64,14 +64,14 @@ export async function waitForAIResponse(
 
 /**
  * The agent's inline "To-dos" card in the message thread. Present once an
- * execution has written a plan (`status.todos`); collapsed once the plan is
+ * run has written a plan (`status.todos`); collapsed once the plan is
  * fully resolved.
  */
 export function getTodoCard(page: Page): Locator {
   return page.getByRole("region", { name: "Agent to-dos" });
 }
 
-// The sidebar "Execution progress" phase region helpers were removed with
+// The sidebar "Run progress" phase region helpers were removed with
 // the stigmer#743 re-anchor: no console page renders that region anymore —
 // execution state surfaces as the composer lifecycle plus the settled
 // response in the thread (see waitForAIResponse).

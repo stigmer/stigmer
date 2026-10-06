@@ -186,7 +186,7 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext for an execution.
+     * Create a new ExecutionContext for a run.
      * </pre>
      */
     default void create(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request,
@@ -251,7 +251,7 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext for an execution.
+     * Create a new ExecutionContext for a run.
      * </pre>
      */
     public void create(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request,
@@ -303,7 +303,7 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext for an execution.
+     * Create a new ExecutionContext for a run.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext create(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request) throws io.grpc.StatusException {
@@ -353,7 +353,7 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext for an execution.
+     * Create a new ExecutionContext for a run.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext create(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request) {
@@ -404,7 +404,7 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext for an execution.
+     * Create a new ExecutionContext for a run.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> create(

@@ -59,7 +59,7 @@ const (
 	IamPermission_can_create_oauth_app        IamPermission = 23
 	IamPermission_can_create_platform_client  IamPermission = 24
 	// Resource-level create permissions.
-	IamPermission_can_create_execution_in IamPermission = 13
+	IamPermission_can_create_run_in IamPermission = 13
 	// Execution permission.
 	IamPermission_can_execute IamPermission = 15
 	// Secret access permission.
@@ -167,7 +167,7 @@ var (
 		21: "can_create_identity_account",
 		23: "can_create_oauth_app",
 		24: "can_create_platform_client",
-		13: "can_create_execution_in",
+		13: "can_create_run_in",
 		15: "can_execute",
 		16: "can_read_secrets",
 		17: "can_bootstrap_iam",
@@ -209,7 +209,7 @@ var (
 		"can_create_identity_account": 21,
 		"can_create_oauth_app":        23,
 		"can_create_platform_client":  24,
-		"can_create_execution_in":     13,
+		"can_create_run_in":           13,
 		"can_execute":                 15,
 		"can_read_secrets":            16,
 		"can_bootstrap_iam":           17,
@@ -348,7 +348,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xea\t\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xe4\t\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -367,8 +367,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x16can_create_environment\x10\f\x12\x1f\n" +
 	"\x1bcan_create_identity_account\x10\x15\x12\x18\n" +
 	"\x14can_create_oauth_app\x10\x17\x12\x1e\n" +
-	"\x1acan_create_platform_client\x10\x18\x12\x1b\n" +
-	"\x17can_create_execution_in\x10\r\x12\x0f\n" +
+	"\x1acan_create_platform_client\x10\x18\x12\x15\n" +
+	"\x11can_create_run_in\x10\r\x12\x0f\n" +
 	"\vcan_execute\x10\x0f\x12\x14\n" +
 	"\x10can_read_secrets\x10\x10\x12\x15\n" +
 	"\x11can_bootstrap_iam\x10\x11\x12\x0f\n" +

@@ -83,26 +83,26 @@ class ListSchedulesRequest(_message.Message):
     def __init__(self, org: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
 
 class ScheduleTriggerResult(_message.Message):
-    __slots__ = ("schedule", "outcome", "execution_id", "refusal_reason")
+    __slots__ = ("schedule", "outcome", "run_id", "refusal_reason")
     SCHEDULE_FIELD_NUMBER: _ClassVar[int]
     OUTCOME_FIELD_NUMBER: _ClassVar[int]
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
     REFUSAL_REASON_FIELD_NUMBER: _ClassVar[int]
     schedule: _api_pb2.Schedule
     outcome: ScheduleRunOutcome
-    execution_id: str
+    run_id: str
     refusal_reason: str
-    def __init__(self, schedule: _Optional[_Union[_api_pb2.Schedule, _Mapping]] = ..., outcome: _Optional[_Union[ScheduleRunOutcome, str]] = ..., execution_id: _Optional[str] = ..., refusal_reason: _Optional[str] = ...) -> None: ...
+    def __init__(self, schedule: _Optional[_Union[_api_pb2.Schedule, _Mapping]] = ..., outcome: _Optional[_Union[ScheduleRunOutcome, str]] = ..., run_id: _Optional[str] = ..., refusal_reason: _Optional[str] = ...) -> None: ...
 
 class ScheduleRun(_message.Message):
-    __slots__ = ("schedule_id", "org", "nominal_fire_time", "origin", "outcome", "reason", "execution_id", "recorded_at", "completed_at")
+    __slots__ = ("schedule_id", "org", "nominal_fire_time", "origin", "outcome", "reason", "run_id", "recorded_at", "completed_at")
     SCHEDULE_ID_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
     NOMINAL_FIRE_TIME_FIELD_NUMBER: _ClassVar[int]
     ORIGIN_FIELD_NUMBER: _ClassVar[int]
     OUTCOME_FIELD_NUMBER: _ClassVar[int]
     REASON_FIELD_NUMBER: _ClassVar[int]
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
     RECORDED_AT_FIELD_NUMBER: _ClassVar[int]
     COMPLETED_AT_FIELD_NUMBER: _ClassVar[int]
     schedule_id: str
@@ -111,10 +111,10 @@ class ScheduleRun(_message.Message):
     origin: ScheduleRunOrigin
     outcome: ScheduleRunOutcome
     reason: str
-    execution_id: str
+    run_id: str
     recorded_at: _timestamp_pb2.Timestamp
     completed_at: _timestamp_pb2.Timestamp
-    def __init__(self, schedule_id: _Optional[str] = ..., org: _Optional[str] = ..., nominal_fire_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., origin: _Optional[_Union[ScheduleRunOrigin, str]] = ..., outcome: _Optional[_Union[ScheduleRunOutcome, str]] = ..., reason: _Optional[str] = ..., execution_id: _Optional[str] = ..., recorded_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., completed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, schedule_id: _Optional[str] = ..., org: _Optional[str] = ..., nominal_fire_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., origin: _Optional[_Union[ScheduleRunOrigin, str]] = ..., outcome: _Optional[_Union[ScheduleRunOutcome, str]] = ..., reason: _Optional[str] = ..., run_id: _Optional[str] = ..., recorded_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., completed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class ListScheduleRunsRequest(_message.Message):
     __slots__ = ("schedule_id", "page_info")

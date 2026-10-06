@@ -230,7 +230,7 @@ const (
 	// AI assistant with instructions, tools, skills, and a delegation model.
 	ApiResourceKind_agent ApiResourceKind = 40
 	// Single run of an agent within a session, tracking tool calls and responses.
-	ApiResourceKind_agent_execution ApiResourceKind = 41
+	ApiResourceKind_agent_run ApiResourceKind = 41
 	// Conversation thread between a user and an agent.
 	ApiResourceKind_session ApiResourceKind = 42
 	// Knowledge resource that provides domain-specific context to an agent.
@@ -247,10 +247,10 @@ const (
 	// Multi-step orchestration defining how agents collaborate on a task.
 	ApiResourceKind_workflow ApiResourceKind = 50
 	// Single run of a workflow, tracking step progress and outcomes.
-	ApiResourceKind_workflow_execution ApiResourceKind = 52
-	// Named set of variables and secrets for agent and workflow execution.
+	ApiResourceKind_workflow_run ApiResourceKind = 52
+	// Named set of variables and secrets for agent and workflow run.
 	ApiResourceKind_environment ApiResourceKind = 53
-	// Persisted blob produced during workflow or agent execution.
+	// Persisted blob produced during workflow or agent run.
 	ApiResourceKind_artifact ApiResourceKind = 55
 	// User-owned runtime context for managing execution state.
 	ApiResourceKind_execution_context ApiResourceKind = 54
@@ -301,7 +301,7 @@ var (
 		30: "organization",
 		31: "platform",
 		40: "agent",
-		41: "agent_execution",
+		41: "agent_run",
 		42: "session",
 		43: "skill",
 		44: "mcp_server",
@@ -309,7 +309,7 @@ var (
 		47: "agent_channel",
 		48: "channel_app",
 		50: "workflow",
-		52: "workflow_execution",
+		52: "workflow_run",
 		53: "environment",
 		55: "artifact",
 		54: "execution_context",
@@ -334,7 +334,7 @@ var (
 		"organization":              30,
 		"platform":                  31,
 		"agent":                     40,
-		"agent_execution":           41,
+		"agent_run":                 41,
 		"session":                   42,
 		"skill":                     43,
 		"mcp_server":                44,
@@ -342,7 +342,7 @@ var (
 		"agent_channel":             47,
 		"channel_app":               48,
 		"workflow":                  50,
-		"workflow_execution":        52,
+		"workflow_run":              52,
 		"environment":               53,
 		"artifact":                  55,
 		"execution_context":         54,
@@ -544,7 +544,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xb2\x12\n" +
+	"\astigmer\x10\x01*\x8e\x12\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -565,8 +565,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\forganization\x10\x1e\x1a7\xaa\xff+3\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x01J\n" +
 	"\b\x04\x10\x01:\x04\x01\x02\x03\x04\x129\n" +
 	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x03J\x04\b\x05\x10\x04\x12A\n" +
-	"\x05agent\x10(\x1a6\xaa\xff+2\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt0\x01@\x01J\x15\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04\x12k\n" +
-	"\x0fagent_execution\x10)\x1aV\xaa\xff+R\b\x01\x10\x01\x1a\x0eAgentExecution\"\x0fAgent Execution*\x03aex@\x01J$\b\x03\x10\x02\x1a\x1e\n" +
+	"\x05agent\x10(\x1a6\xaa\xff+2\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt0\x01@\x01J\x15\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04\x12Y\n" +
+	"\tagent_run\x10)\x1aJ\xaa\xff+F\b\x01\x10\x01\x1a\bAgentRun\"\tAgent Run*\x03aex@\x01J$\b\x03\x10\x02\x1a\x1e\n" +
 	"\asession\x12\asession\x1a\n" +
 	"session_id\x128\n" +
 	"\asession\x10*\x1a+\xaa\xff+'\b\x01\x10\x01\x1a\aSession\"\aSession*\x03ses@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12?\n" +
@@ -579,8 +579,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\ragent_channel\x10/\x1a=\xaa\xff+9\b\x01\x10\x01\x1a\fAgentChannel\"\rAgent Channel*\x03ach8\x01@\x01J\r\b\x02\x10\x01:\x03\x01\x04\x05B\x02\x04\x05\x12F\n" +
 	"\vchannel_app\x100\x1a5\xaa\xff+1\b\x01\x10\x01\x1a\n" +
 	"ChannelApp\"\vChannel App*\x05chapp8\x01@\x01J\a\b\x02\x10\x04:\x01\x04\x12J\n" +
-	"\bworkflow\x102\x1a<\xaa\xff+8\b\x01\x10\x01\x1a\bWorkflow\"\bWorkflow*\x03wfl0\x01@\x01J\x15\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04\x12~\n" +
-	"\x12workflow_execution\x104\x1af\xaa\xff+b\b\x01\x10\x01\x1a\x11WorkflowExecution\"\x12Workflow Execution*\x03wex@\x01J.\b\x02\x10\x01\"!\n" +
+	"\bworkflow\x102\x1a<\xaa\xff+8\b\x01\x10\x01\x1a\bWorkflow\"\bWorkflow*\x03wfl0\x01@\x01J\x15\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04\x12l\n" +
+	"\fworkflow_run\x104\x1aZ\xaa\xff+V\b\x01\x10\x01\x1a\vWorkflowRun\"\fWorkflow Run*\x03wex@\x01J.\b\x02\x10\x01\"!\n" +
 	"\bworkflow\x12\bworkflow\x1a\vworkflow_id:\x02\x01\x04B\x01\x04\x12J\n" +
 	"\venvironment\x105\x1a9\xaa\xff+5\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\x0e\b\x02\x10\x01*\x02\x18\x010\x01:\x02\x01\x04\x12=\n" +
 	"\bartifact\x107\x1a/\xaa\xff++\b\x01\x10\x01\x1a\bArtifact\"\bArtifact*\x03art8\x01@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12R\n" +

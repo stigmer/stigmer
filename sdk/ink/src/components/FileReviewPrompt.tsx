@@ -3,11 +3,11 @@ import { Box, Text, useInput } from "ink";
 import type {
   CapturedFileChange,
   FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
   FileDecisionAction,
   FileDecisionScope,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   changeSetReviewability,
   fileReviewability,
@@ -30,7 +30,7 @@ export interface FileReviewPromptProps {
   readonly changeSet: FileChangeSet;
   /**
    * Submit a decision for this set (or one file within it). Bound to the active
-   * execution by the caller; the terminal analogue of the web dock's
+   * run by the caller; the terminal analogue of the web dock's
    * `submitFileDecision`.
    */
   readonly onSubmit: (

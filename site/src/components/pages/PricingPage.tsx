@@ -50,7 +50,7 @@ const HOW_IT_WORKS_STEPS = [
     number: "2",
     title: "Run agents, pay per LLM call",
     description:
-      "Each LLM call during agent execution is metered and debited from your balance at transparent per-token rates.",
+      "Each LLM call during a run is metered and debited from your balance at transparent per-token rates.",
   },
   {
     number: "3",
@@ -82,7 +82,7 @@ const FAQ_ITEMS: readonly FaqItem[] = [
   },
   {
     q: "What happens when my balance runs out?",
-    a: "Running executions will finish their current LLM call, then stop gracefully. You will see low-balance warnings before that happens. New executions cannot start until credits are added.",
+    a: "Runs in progress will finish their current LLM call, then stop gracefully. You will see low-balance warnings before that happens. New runs cannot start until credits are added.",
   },
   {
     q: "Can I self-host for free?",

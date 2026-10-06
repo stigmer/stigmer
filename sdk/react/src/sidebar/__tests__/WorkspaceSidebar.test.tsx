@@ -42,7 +42,7 @@ const ENTRIES: readonly RecentActivityEntry[] = [
   },
   {
     id: "wex_yesterday",
-    type: "workflow_execution",
+    type: "workflow_run",
     subject: "Nightly refund sweep",
     updatedAt: hoursAgo(26),
     status: "failed",
@@ -206,7 +206,7 @@ describe("WorkspaceSidebar — recents", () => {
 
     expect(seen).toEqual({
       ses_today: "/sessions/ses_today",
-      wex_yesterday: "/executions/wex_yesterday",
+      wex_yesterday: "/runs/wex_yesterday",
     });
   });
 
@@ -218,7 +218,7 @@ describe("WorkspaceSidebar — recents", () => {
     const active = container.querySelector('[data-row-id="ses_today"]')!;
     expect(active.className).toContain("stg:bg-sidebar-accent");
     expect(active.getAttribute("aria-current")).toBe("page");
-    // The failed execution row explains why it is in the list.
+    // The failed run row explains why it is in the list.
     const failed = container.querySelector('[data-row-id="wex_yesterday"]')!;
     expect(within(failed as HTMLElement).getByText("failed")).toBeTruthy();
   });

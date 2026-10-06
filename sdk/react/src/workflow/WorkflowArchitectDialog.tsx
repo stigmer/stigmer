@@ -7,7 +7,7 @@ import {
   useWorkflowArchitectFlow,
   type ArchitectPhase,
 } from "./useWorkflowArchitectFlow.js";
-import { MessageThread } from "../execution/MessageThread.js";
+import { MessageThread } from "../run/MessageThread.js";
 import { WorkflowDiffGraph } from "./WorkflowDiffGraph.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
@@ -265,8 +265,8 @@ function StreamingPhase({
 
       <div className="stg:h-[55vh] stg:overflow-hidden">
         <MessageThread
-          executions={[]}
-          activeStreamExecution={flow.execution}
+          runs={[]}
+          activeStreamRun={flow.run}
           pendingUserMessage={
             flow.phase === "starting" ? flow.prompt : undefined
           }

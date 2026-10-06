@@ -15,7 +15,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // execution_context (the owner written at creation time, in both editions);
 // getByReference authorizes the loaded row exactly as get does, after the
 // slug lookup; getByExecutionId is the runner's token lane and skips the
-// declarative check for the reason its own comment gives. An execution's
+// declarative check for the reason its own comment gives. A run's
 // context is created by the server acting as itself, so under enforcement
 // only the server reads it; a connect's context is created as the connecting
 // person, who may read it.
@@ -53,15 +53,15 @@ service ExecutionContextQueryController {
   //
   // @internal
   // Primary lookup method used by runners to retrieve the merged environment
-  // variables during workflow/agent execution and MCP discovery.
+  // variables during workflow/agent run and MCP discovery.
   // Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
   //
   // Secret handling (both editions): the decrypt path is gated by caller
   // credential class AND scope, not by permissions — runners authenticate as
-  // the user who owns the execution, so permissions cannot tell them apart.
+  // the user who owns the run, so permissions cannot tell them apart.
   // Callers presenting a platform-minted runner token (token_type of sandbox,
   // workflow_sandbox, or connect_sandbox) whose scope claim binds it to this
-  // very execution receive decrypted secret values. The unscoped
+  // very run receive decrypted secret values. The unscoped
   // embedded_runner bootstrap credential is refused; desktop runners exchange
   // it for a scoped token via getRunnerScopedToken before reading. Every
   // other caller (user JWT, SDK, console) receives the same redaction as

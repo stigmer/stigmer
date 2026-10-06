@@ -2,12 +2,12 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { ExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import type { RunSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 
 /** Props for {@link WorkflowOverviewSummary}. */
 export interface WorkflowOverviewSummaryProps {
   /** Aggregated summary data. `null` while loading or when unavailable. */
-  readonly summary: ExecutionSummary | null;
+  readonly summary: RunSummary | null;
   /** Whether the summary is still loading. */
   readonly isLoading: boolean;
   /** Additional CSS class names for the root container. */
@@ -15,11 +15,11 @@ export interface WorkflowOverviewSummaryProps {
 }
 
 /**
- * Row of 4 stat cards displaying key workflow execution metrics.
+ * Row of 4 stat cards displaying key workflow run metrics.
  *
- * Cards: Total Executions, Success Rate, Avg Duration, Total Cost.
+ * Cards: Total Runs, Success Rate, Avg Duration, Total Cost.
  *
- * Handles loading (skeleton), empty (no executions), and populated states.
+ * Handles loading (skeleton), empty (no runs), and populated states.
  * All visual properties flow through `--stgm-*` design tokens.
  */
 export const WorkflowOverviewSummary = memo(function WorkflowOverviewSummary({
@@ -45,7 +45,7 @@ export const WorkflowOverviewSummary = memo(function WorkflowOverviewSummary({
         "stg:rounded-lg stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:px-4 stg:py-6 stg:text-center stg:text-sm stg:text-[var(--stgm-muted-foreground,#737373)]",
         className,
       )}>
-        No executions yet
+        No runs yet
       </div>
     );
   }
@@ -68,7 +68,7 @@ export const WorkflowOverviewSummary = memo(function WorkflowOverviewSummary({
 
   return (
     <div className={cn("stg:grid stg:grid-cols-2 stg:gap-3 stg:sm:grid-cols-4", className)}>
-      <StatCard label="Total Executions" value={String(totalCount)} />
+      <StatCard label="Total Runs" value={String(totalCount)} />
       <StatCard label="Success Rate" value={successPct} valueClassName={successRate >= 0 ? successColor : undefined} />
       <StatCard label="Avg Duration" value={avgDuration} />
       <StatCard label="Total Cost" value={totalCost} />

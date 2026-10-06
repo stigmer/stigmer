@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   isPlanArtifact,
@@ -15,24 +15,24 @@ import {
   PLAN_ARTIFACT_NAME,
 } from "../detect-plan-artifact";
 
-function artifact(opts: { name: string; kind?: ExecutionArtifactKind; storageKey?: string }) {
-  return create(ExecutionArtifactSchema, {
+function artifact(opts: { name: string; kind?: RunArtifactKind; storageKey?: string }) {
+  return create(RunArtifactSchema, {
     name: opts.name,
-    kind: opts.kind ?? ExecutionArtifactKind.FILE,
+    kind: opts.kind ?? RunArtifactKind.FILE,
     storageKey: opts.storageKey ?? `artifacts/exec/${opts.name}`,
   });
 }
 
 function executionWith(...artifacts: ReturnType<typeof artifact>[]) {
-  return create(AgentExecutionSchema, {
-    status: create(AgentExecutionStatusSchema, { artifacts }),
+  return create(AgentRunSchema, {
+    status: create(AgentRunStatusSchema, { artifacts }),
   });
 }
 
 function executionWithId(id: string, ...artifacts: ReturnType<typeof artifact>[]) {
-  return create(AgentExecutionSchema, {
+  return create(AgentRunSchema, {
     metadata: create(ApiResourceMetadataSchema, { id }),
-    status: create(AgentExecutionStatusSchema, { artifacts }),
+    status: create(AgentRunStatusSchema, { artifacts }),
   });
 }
 
@@ -63,7 +63,7 @@ describe("isPlanArtifact", () => {
 
   it("is false for a directory named plan.md", () => {
     expect(
-      isPlanArtifact(artifact({ name: "plan.md", kind: ExecutionArtifactKind.DIRECTORY })),
+      isPlanArtifact(artifact({ name: "plan.md", kind: RunArtifactKind.DIRECTORY })),
     ).toBe(false);
   });
 
@@ -122,7 +122,7 @@ describe("findLatestSessionPlan", () => {
     ];
 
     const plan = findLatestSessionPlan(execs);
-    expect(plan?.executionId).toBe("e3");
+    expect(plan?.runId).toBe("e3");
     expect(plan?.artifact.storageKey).toBe("artifacts/e3/plan.md");
   });
 
@@ -131,7 +131,7 @@ describe("findLatestSessionPlan", () => {
       executionWithId("e1", artifact({ name: PLAN_ARTIFACT_NAME })),
       executionWithId("e2", artifact({ name: "data.json" })),
     ];
-    expect(findLatestSessionPlan(execs)?.executionId).toBe("e1");
+    expect(findLatestSessionPlan(execs)?.runId).toBe("e1");
   });
 
   it("skips an execution whose plan artifact lacks a usable execution id", () => {
@@ -139,6 +139,6 @@ describe("findLatestSessionPlan", () => {
       executionWithId("e1", artifact({ name: PLAN_ARTIFACT_NAME })),
       executionWith(artifact({ name: PLAN_ARTIFACT_NAME })),
     ];
-    expect(findLatestSessionPlan(execs)?.executionId).toBe("e1");
+    expect(findLatestSessionPlan(execs)?.runId).toBe("e1");
   });
 });

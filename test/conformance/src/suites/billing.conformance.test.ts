@@ -41,12 +41,12 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { LedgerEntryType } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { ModelPricingBaselineStatus } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
-import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
 import { FixtureTracker } from "../harness/fixtures";
 import { FAKE_CARD, postStripeWebhook, signStripePayload, signedEvent, stripeEvent, type CapturedStripeRequest } from "../harness/fake-stripe";
 import { expectGrpcCode } from "../contract/errors";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
-import { pollUntil } from "../support/execution-poll";
+import { pollUntil } from "../support/run-poll";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import type { ConformanceClients } from "../harness/clients";
@@ -281,7 +281,7 @@ async function awaitStripeRequest(predicate: (request: CapturedStripeRequest) =>
 //
 // Why these numbers (Java: CreditLedgerService.determineSignal,
 // ExecutionBillingService.reportLlmCallUsage, AutoRechargeService.evaluateAndTrigger):
-//   fund $3 → authorizeExecution takes the $1 default hold → available $2.
+//   fund $3 → authorizeRun takes the $1 default hold → available $2.
 //   One priced call (claude-sonnet-4-6/native is seeded at $3/$15 per
 //   million; 100k in + 10k out ≈ $0.45 before policy markup) debits the hold,
 //   leaving ~$0.55 of headroom. The post-debit signal is
@@ -324,7 +324,7 @@ async function armRecharge(op: PrivilegedScope): Promise<ArmedRecharge> {
     monthlyCapMicros: RECHARGE.capMicros,
   });
   const executionId = uniqueName("exec-recharge");
-  const authorized = await op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" });
+  const authorized = await op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" });
   expect(authorized.authorized, "the $3 org is admitted").toBe(true);
   await debitOnce(op, executionId, 1);
   const paymentIntent = await awaitStripeRequest((r) => r.method === "POST" && r.path === "/v1/payment_intents", `auto-recharge PaymentIntent for ${org}`);
@@ -337,7 +337,7 @@ async function armRecharge(op: PrivilegedScope): Promise<ArmedRecharge> {
 // the signal. `sequence` must be unique per execution.
 async function debitOnce(op: PrivilegedScope, executionId: string, sequence: number): Promise<void> {
   await op.clients.billingCommand.recordLlmCallUsage({
-    executionId,
+    runId: executionId,
     sequence,
     provider: "anthropic",
     resolvedModel: "claude-sonnet-4-6",
@@ -533,7 +533,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
       endTime: timestampFromDate(new Date(Date.now() + 3600_000)),
     });
     expect(report.llmCallCount).toBe(0);
-    expect(report.executionCount).toBe(0);
+    expect(report.runCount).toBe(0);
     expect(report.totalBillableAmountMicros).toBe(0n);
     expect(report.totalProviderCostMicros).toBe(0n);
   });
@@ -894,16 +894,16 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
 });
 
 describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pricing-admin lanes (platform operator)", () => {
-  it("[billing.rpc.engine-lanes.ordinary-caller-permission-denied] [rpc:BillingCommandController.authorizeExecution] [rpc:BillingCommandController.finalizeExecution] [rpc:BillingCommandController.rearmForRecovery] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingQueryController.getExecutionBillingSignal] an org owner who is not a platform operator is refused on every engine RPC with the proto's copy", async () => {
+  it("[billing.rpc.engine-lanes.ordinary-caller-permission-denied] [rpc:BillingCommandController.authorizeRun] [rpc:BillingCommandController.finalizeRun] [rpc:BillingCommandController.rearmForRecovery] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingQueryController.getRunBillingSignal] an org owner who is not a platform operator is refused on every engine RPC with the proto's copy", async () => {
     const { org } = await fundedOrg();
     const executionId = uniqueName("exec");
     const lanes: Array<[string, () => Promise<unknown>]> = [
-      ["authorizeExecution", () => clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" })],
-      ["finalizeExecution", () => clients.billingCommand.finalizeExecution({ executionId })],
-      ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ executionId })],
-      ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6" })],
+      ["authorizeRun", () => clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" })],
+      ["finalizeRun", () => clients.billingCommand.finalizeRun({ runId: executionId })],
+      ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ runId: executionId })],
+      ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6" })],
       ["previewAuthorization", () => clients.billingQuery.previewAuthorization({ org })],
-      ["getExecutionBillingSignal", () => clients.billingQuery.getExecutionBillingSignal({ executionId })],
+      ["getRunBillingSignal", () => clients.billingQuery.getRunBillingSignal({ runId: executionId })],
     ];
     for (const [name, op] of lanes) {
       const denied = await expectGrpcCode(op, Code.PermissionDenied, `ordinary caller ${name}`);
@@ -942,13 +942,13 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     }
   });
 
-  it("[billing.rpc.preview-authorization.reasons-for-unfunded-and-funded] [billing.rpc.authorize-execution.denied-when-unfunded] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingCommandController.authorizeExecution] the operator's preview and authorize deny an unfunded org with the engine's one denial vocabulary and admit a funded one", async (ctx) => {
+  it("[billing.rpc.preview-authorization.reasons-for-unfunded-and-funded] [billing.rpc.authorize-execution.denied-when-unfunded] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingCommandController.authorizeRun] the operator's preview and authorize deny an unfunded org with the engine's one denial vocabulary and admit a funded one", async (ctx) => {
     const op = await operator();
     const unfunded = op.context.org;
     const preview = await op.clients.billingQuery.previewAuthorization({ org: unfunded });
     expect(preview.authorized).toBe(false);
     expect(preview.denialReason).toBe(COPY.insufficientCredits);
-    const denied = await op.clients.billingCommand.authorizeExecution({ org: unfunded, executionId: uniqueName("exec"), harness: "native" });
+    const denied = await op.clients.billingCommand.authorizeRun({ org: unfunded, runId: uniqueName("exec"), harness: "native" });
     expect(denied.authorized).toBe(false);
     expect(denied.denialReason).toBe(COPY.insufficientCredits);
     expect(denied.reservationId).toBe("");
@@ -958,20 +958,20 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     expect(admitted.authorized, ctx.task.name).toBe(true);
   });
 
-  it("[billing.rpc.authorize-execution.reserves-and-latches] [billing.rpc.authorize-execution.concurrent-reserves-one-hold] [billing.rpc.finalize-execution.settles-and-is-idempotent] [billing.rpc.get-execution-billing-signal.unspecified-when-no-reservation] [rpc:BillingCommandController.authorizeExecution] [rpc:BillingCommandController.finalizeExecution] [rpc:BillingQueryController.getExecutionBillingSignal] a funded execution reserves once under concurrency, settles once, and signals only while reserved", async () => {
+  it("[billing.rpc.authorize-execution.reserves-and-latches] [billing.rpc.authorize-execution.concurrent-reserves-one-hold] [billing.rpc.finalize-execution.settles-and-is-idempotent] [billing.rpc.get-execution-billing-signal.unspecified-when-no-reservation] [rpc:BillingCommandController.authorizeRun] [rpc:BillingCommandController.finalizeRun] [rpc:BillingQueryController.getRunBillingSignal] a funded execution reserves once under concurrency, settles once, and signals only while reserved", async () => {
     const op = await operator();
     const org = op.context.org;
     await fundAs(op.clients, org);
     const before = (await op.clients.billingQuery.getCreditBalance({ org })).availableMicros;
     const executionId = uniqueName("exec");
 
-    const noReservation = await op.clients.billingQuery.getExecutionBillingSignal({ executionId });
+    const noReservation = await op.clients.billingQuery.getRunBillingSignal({ runId: executionId });
     expect(noReservation.reason).toBe("");
 
     const results = await Promise.all([
-      op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" }),
-      op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" }),
-      op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" }),
+      op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" }),
+      op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" }),
+      op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" }),
     ]);
     for (const result of results) expect(result.authorized).toBe(true);
     const reservationIds = new Set(results.map((r) => r.reservationId));
@@ -979,22 +979,22 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const held = (await op.clients.billingQuery.getCreditBalance({ org })).reservedMicros;
     expect(held).toBe(results[0]?.reservedMicros ?? -1n);
 
-    const settled = await op.clients.billingCommand.finalizeExecution({ executionId });
+    const settled = await op.clients.billingCommand.finalizeRun({ runId: executionId });
     expect(settled.releasedReservationMicros).toBe(results[0]?.reservedMicros ?? -1n);
     const afterFirst = await op.clients.billingQuery.getCreditBalance({ org });
     expect(afterFirst.reservedMicros).toBe(0n);
     expect(afterFirst.availableMicros, "no usage was recorded, so settling returns the hold in full").toBe(before);
 
-    await op.clients.billingCommand.finalizeExecution({ executionId }).catch(() => undefined);
+    await op.clients.billingCommand.finalizeRun({ runId: executionId }).catch(() => undefined);
     const afterSecond = await op.clients.billingQuery.getCreditBalance({ org });
     expect(afterSecond.availableMicros).toBe(before);
     expect(afterSecond.reservedMicros).toBe(0n);
   });
 
-  it("[billing.rpc.finalize-execution.unknown-execution-failed-precondition] [rpc:BillingCommandController.finalizeExecution] settling an execution that was never authorized is refused FAILED_PRECONDITION", async () => {
+  it("[billing.rpc.finalize-execution.unknown-execution-failed-precondition] [rpc:BillingCommandController.finalizeRun] settling an execution that was never authorized is refused FAILED_PRECONDITION", async () => {
     const op = await operator();
     await expectGrpcCode(
-      () => op.clients.billingCommand.finalizeExecution({ executionId: uniqueName("never-authorized") }),
+      () => op.clients.billingCommand.finalizeRun({ runId: uniqueName("never-authorized") }),
       Code.FailedPrecondition,
       "finalize unknown execution",
     );
@@ -1005,9 +1005,9 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const org = op.context.org;
     await fundAs(op.clients, org);
     const executionId = uniqueName("exec");
-    const first = await op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" });
-    await op.clients.billingCommand.finalizeExecution({ executionId });
-    const rearmed = await op.clients.billingCommand.rearmForRecovery({ executionId });
+    const first = await op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" });
+    await op.clients.billingCommand.finalizeRun({ runId: executionId });
+    const rearmed = await op.clients.billingCommand.rearmForRecovery({ runId: executionId });
     expect(rearmed.authorized).toBe(true);
     expect(rearmed.reservationId).not.toBe("");
     expect(rearmed.reservationId).not.toBe(first.reservationId);
@@ -1018,16 +1018,16 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const org = op.context.org;
     await fundAs(op.clients, org);
     const executionId = uniqueName("exec");
-    await op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" });
-    await op.clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6", requestedModel: "claude-sonnet-4-6" });
-    await op.clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 2, provider: "anthropic", resolvedModel: "model-nobody-priced", requestedModel: "model-nobody-priced" });
+    await op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" });
+    await op.clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6", requestedModel: "claude-sonnet-4-6" });
+    await op.clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 2, provider: "anthropic", resolvedModel: "model-nobody-priced", requestedModel: "model-nobody-priced" });
     const report = await op.clients.billingQuery.getBillingUsageReport({
       org,
       startTime: timestampFromDate(new Date(Date.now() - 3600_000)),
       endTime: timestampFromDate(new Date(Date.now() + 3600_000)),
     });
     expect(report.llmCallCount).toBe(2);
-    expect(report.executionCount).toBe(1);
+    expect(report.runCount).toBe(1);
   });
 
   // --- the pricing-governance lanes (operator tooling with a console).
@@ -1260,17 +1260,17 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — auto-recharge, th
 });
 
 describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (no billing controllers routed)", () => {
-  it("[billing.rpc.oss-boundary.every-billing-rpc-unimplemented] [rpc:BillingCommandController.getOrCreateBillingAccount] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] [rpc:BillingCommandController.authorizeExecution] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingCommandController.finalizeExecution] [rpc:BillingCommandController.rearmForRecovery] [rpc:BillingCommandController.createCreditCheckoutSession] [rpc:BillingCommandController.createBillingPortalSession] [rpc:BillingCommandController.createPaymentMethodSetupSession] [rpc:BillingCommandController.setAutoRechargeConfig] [rpc:BillingCommandController.decideModelPricingOverride] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingQueryController.getBillingAccount] [rpc:BillingQueryController.getCreditBalance] [rpc:BillingQueryController.getCreditLedger] [rpc:BillingQueryController.getBillingUsageReport] [rpc:BillingQueryController.getCustomerModelPricing] [rpc:BillingQueryController.getModelPricingGovernance] [rpc:BillingQueryController.listModelPricingBaselines] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingQueryController.getExecutionBillingSignal] every billing RPC answers Unimplemented where billingLedger is false", async () => {
+  it("[billing.rpc.oss-boundary.every-billing-rpc-unimplemented] [rpc:BillingCommandController.getOrCreateBillingAccount] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] [rpc:BillingCommandController.authorizeRun] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingCommandController.finalizeRun] [rpc:BillingCommandController.rearmForRecovery] [rpc:BillingCommandController.createCreditCheckoutSession] [rpc:BillingCommandController.createBillingPortalSession] [rpc:BillingCommandController.createPaymentMethodSetupSession] [rpc:BillingCommandController.setAutoRechargeConfig] [rpc:BillingCommandController.decideModelPricingOverride] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingQueryController.getBillingAccount] [rpc:BillingQueryController.getCreditBalance] [rpc:BillingQueryController.getCreditLedger] [rpc:BillingQueryController.getBillingUsageReport] [rpc:BillingQueryController.getCustomerModelPricing] [rpc:BillingQueryController.getModelPricingGovernance] [rpc:BillingQueryController.listModelPricingBaselines] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingQueryController.getRunBillingSignal] every billing RPC answers Unimplemented where billingLedger is false", async () => {
     const org = uniqueName("org");
     const executionId = uniqueName("exec");
     const lanes: Array<[string, () => Promise<unknown>]> = [
       ["getOrCreateBillingAccount", () => clients.billingCommand.getOrCreateBillingAccount({ org })],
       ["adjustCredits", () => clients.billingCommand.adjustCredits({ org, amountMicros: 1n, reason: "x", idempotencyKey: "k" })],
       ["grantCredits", () => clients.billingCommand.grantCredits({ org, amountMicros: 1n, reason: "x", idempotencyKey: "k" })],
-      ["authorizeExecution", () => clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" })],
-      ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 1, provider: "anthropic", resolvedModel: "m" })],
-      ["finalizeExecution", () => clients.billingCommand.finalizeExecution({ executionId })],
-      ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ executionId })],
+      ["authorizeRun", () => clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" })],
+      ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 1, provider: "anthropic", resolvedModel: "m" })],
+      ["finalizeRun", () => clients.billingCommand.finalizeRun({ runId: executionId })],
+      ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ runId: executionId })],
       ["createCreditCheckoutSession", () => clients.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
       ["createBillingPortalSession", () => clients.billingCommand.createBillingPortalSession({ org, returnUrl: "https://x/back" })],
       ["createPaymentMethodSetupSession", () => clients.billingCommand.createPaymentMethodSetupSession({ org, successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
@@ -1286,7 +1286,7 @@ describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (
       ["getModelPricingGovernance", () => clients.billingQuery.getModelPricingGovernance({})],
       ["listModelPricingBaselines", () => clients.billingQuery.listModelPricingBaselines({})],
       ["previewAuthorization", () => clients.billingQuery.previewAuthorization({ org })],
-      ["getExecutionBillingSignal", () => clients.billingQuery.getExecutionBillingSignal({ executionId })],
+      ["getRunBillingSignal", () => clients.billingQuery.getRunBillingSignal({ runId: executionId })],
     ];
     expect(lanes, "the 23 RPCs, no more, no fewer").toHaveLength(23);
     for (const [name, op] of lanes) {

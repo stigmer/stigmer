@@ -1,7 +1,7 @@
 {
   "name": "HumanInputTaskConfig",
   "kind": "HUMAN_INPUT",
-  "description": "HumanInputTaskConfig defines the configuration for human_input tasks that\n pause workflow execution to collect typed input or approval from a human\n reviewer, then resume based on the reviewer's response.",
+  "description": "HumanInputTaskConfig defines the configuration for human_input tasks that\n pause workflow run to collect typed input or approval from a human\n reviewer, then resume based on the reviewer's response.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/human_input.proto",
   "discriminatorValue": "human_input",
@@ -42,7 +42,7 @@
           "messageType": "HumanInputOutcome"
         }
       },
-      "description": "Named outcomes that the reviewer can select.\n\n Each outcome represents a decision the reviewer can make, with optional\n routing to a different downstream task. This enables rich branching\n beyond binary approve/deny.\n\n When empty, the task defaults to binary behavior:\n   - \"approve\": task completes, workflow continues to next task\n   - \"deny\": task fails (enters try_catch or EXECUTION_FAILED)\n\n When custom outcomes are defined, the first outcome is used as the\n default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used\n as the default for HUMAN_INPUT_TIMEOUT_DENY.",
+      "description": "Named outcomes that the reviewer can select.\n\n Each outcome represents a decision the reviewer can make, with optional\n routing to a different downstream task. This enables rich branching\n beyond binary approve/deny.\n\n When empty, the task defaults to binary behavior:\n   - \"approve\": task completes, workflow continues to next task\n   - \"deny\": task fails (enters try_catch or RUN_FAILED)\n\n When custom outcomes are defined, the first outcome is used as the\n default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used\n as the default for HUMAN_INPUT_TIMEOUT_DENY.",
       "required": false
     },
     {

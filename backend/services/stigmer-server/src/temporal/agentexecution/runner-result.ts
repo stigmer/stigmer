@@ -3,7 +3,7 @@
  * pkg/domain/agentexecution/temporal/activities/execute_deep_agent.go.
  *
  * The TS runner returns a plain JSON object: the proto-JSON fields of the
- * slim AgentExecutionStatus (phase, error, pendingApprovals, …) plus
+ * slim AgentRunStatus (phase, error, pendingApprovals, …) plus
  * non-proto extras (structured_output / final_text). An untyped record
  * preserves all fields — proto and non-proto — across the data converter,
  * exactly Go's map[string]interface{} posture. The tolerant phase
@@ -14,7 +14,9 @@
  * Bundle-safe (pure proto enum import) — the workflow reads phases from
  * every activity result.
  */
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+
+import { currentRunEnumValueName } from "./execution-json.js";
 
 /** Go activities.RunnerActivityResult (map[string]interface{}). */
 export type RunnerActivityResult = Record<string, unknown>;
@@ -25,25 +27,27 @@ export type RunnerActivityResult = Record<string, unknown>;
  */
 export function getPhaseFromResult(
   result: RunnerActivityResult | null | undefined,
-): ExecutionPhase {
+): RunPhase {
   if (result === null || result === undefined) {
-    return ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    return RunPhase.RUN_PHASE_UNSPECIFIED;
   }
   const phase = result["phase"];
   if (typeof phase === "string") {
     // Proto-JSON uses string enum names; the generated TS enum keys ARE
     // the proto value names, so this lookup is Go's ExecutionPhase_value
-    // map exactly.
-    const value = (ExecutionPhase as Record<string, unknown>)[phase];
+    // map exactly. A result recorded before the run rename names the
+    // phase by its retired name (EXECUTION_COMPLETED), which the
+    // retired-names table reads as its current name (RUN_COMPLETED).
+    const value = (RunPhase as Record<string, unknown>)[currentRunEnumValueName(phase)];
     if (typeof value === "number") {
-      return value as ExecutionPhase;
+      return value as RunPhase;
     }
-    return ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    return RunPhase.RUN_PHASE_UNSPECIFIED;
   }
   if (typeof phase === "number") {
-    return phase as ExecutionPhase;
+    return phase as RunPhase;
   }
-  return ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  return RunPhase.RUN_PHASE_UNSPECIFIED;
 }
 
 /** Extracts the error string from a runner activity result (Go GetErrorFromResult). */

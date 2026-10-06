@@ -71,7 +71,7 @@ export const AgentQueryController: GenService<{
    * Get a specific version of an agent by its content hash.
    *
    * Used by the runner and the server to run a turn on the version it
-   * recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+   * recorded (AgentRunStatus.agent_version_hash), and by clients to
    * show what a past version said.
    *
    * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getVersion

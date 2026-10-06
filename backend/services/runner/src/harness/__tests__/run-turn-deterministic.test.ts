@@ -24,7 +24,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../client/stigmer-client.js", async () =>
   (await import("../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -75,7 +75,7 @@ describe("run-turn: the deterministic fake adapter through the real runtime", ()
     it("a first turn with the thread id already present is a first turn: nothing seeded, no session write", async () => {
       clock.reset();
       const { driver, final } = await assertCompletedTurn(harness, "det-completed");
-      expect(driver.record.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_COMPLETED]);
+      expect(driver.record.persistedPhases).toEqual([RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_COMPLETED]);
       expect(driver.record.sessionUpdates, "a deterministic harness never binds a state id").toHaveLength(0);
       expect(final.messages.length, "the transcript is this turn's alone").toBeGreaterThan(0);
     });
@@ -84,9 +84,9 @@ describe("run-turn: the deterministic fake adapter through the real runtime", ()
       clock.reset();
       const { driver } = await assertApprovalRoundTrip(harness, "det-approval");
       expect(driver.record.persistedPhases).toEqual([
-        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_WAITING_FOR_APPROVAL,
+        RunPhase.RUN_IN_PROGRESS,
+        RunPhase.RUN_COMPLETED,
       ]);
       expect(driver.record.sessionUpdates).toHaveLength(0);
     });

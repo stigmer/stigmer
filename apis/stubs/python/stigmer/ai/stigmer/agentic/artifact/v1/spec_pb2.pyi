@@ -19,14 +19,14 @@ class ArtifactSpec(_message.Message):
     def __init__(self, content_type: _Optional[str] = ..., display_name: _Optional[str] = ..., source: _Optional[_Union[ArtifactSource, _Mapping]] = ..., retention: _Optional[_Union[RetentionPolicy, _Mapping]] = ...) -> None: ...
 
 class ArtifactSource(_message.Message):
-    __slots__ = ("workflow_execution_id", "agent_execution_id", "task_name")
-    WORKFLOW_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
-    AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("workflow_run_id", "agent_run_id", "task_name")
+    WORKFLOW_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    AGENT_RUN_ID_FIELD_NUMBER: _ClassVar[int]
     TASK_NAME_FIELD_NUMBER: _ClassVar[int]
-    workflow_execution_id: str
-    agent_execution_id: str
+    workflow_run_id: str
+    agent_run_id: str
     task_name: str
-    def __init__(self, workflow_execution_id: _Optional[str] = ..., agent_execution_id: _Optional[str] = ..., task_name: _Optional[str] = ...) -> None: ...
+    def __init__(self, workflow_run_id: _Optional[str] = ..., agent_run_id: _Optional[str] = ..., task_name: _Optional[str] = ...) -> None: ...
 
 class RetentionPolicy(_message.Message):
     __slots__ = ("ttl_days",)

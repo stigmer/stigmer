@@ -4,20 +4,20 @@
  * Both ExecuteCursor and ExecuteDeepAgent need to persist execution status
  * via gRPC, report setup progress phases, produce slim status payloads for
  * Temporal return values, and generate UTC timestamps. These thin utilities
- * are harness-agnostic — they operate on the common AgentExecutionStatus
+ * are harness-agnostic — they operate on the common AgentRunStatus
  * proto without knowledge of Cursor SDK or LangGraph event shapes.
  */
 
 import { create, toJson } from "@bufbuild/protobuf";
 import {
-  AgentExecutionStatusSchema,
+  AgentRunStatusSchema,
   SetupProgressSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionControlSignal,
-  ExecutionPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  RunControlSignal,
+  RunPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import {
   offloadOversizedToolOutputs,
@@ -102,9 +102,9 @@ function defaultDelay(ms: number): Promise<void> {
 export async function persistStatus(
   client: StigmerClient,
   executionId: string,
-  status: AgentExecutionStatus,
+  status: AgentRunStatus,
   options: PersistStatusOptions = {},
-): Promise<ExecutionControlSignal> {
+): Promise<RunControlSignal> {
   const { offload, retry } = options;
 
   if (offload) {
@@ -156,7 +156,7 @@ export async function persistStatus(
           return response.signal;
         } catch (retryErr) {
           console.error(`[persistStatus] ${executionId}: still failing after hard elide:`, retryErr);
-          return ExecutionControlSignal.UNSPECIFIED;
+          return RunControlSignal.UNSPECIFIED;
         }
       }
 
@@ -167,7 +167,7 @@ export async function persistStatus(
           `[persistStatus] ${executionId}: terminal error persisting status ` +
           `(attempt ${attempt + 1}/${maxRetries + 1}): ${err}`,
         );
-        return ExecutionControlSignal.UNSPECIFIED;
+        return RunControlSignal.UNSPECIFIED;
       }
 
       // Transient errors back off and retry until the budget is exhausted.
@@ -183,11 +183,11 @@ export async function persistStatus(
 
       // Non-retryable, non-terminal (e.g. a bare Error), or retries exhausted.
       console.error(`Failed to persist status for ${executionId}:`, err);
-      return ExecutionControlSignal.UNSPECIFIED;
+      return RunControlSignal.UNSPECIFIED;
     }
   }
 
-  return ExecutionControlSignal.UNSPECIFIED;
+  return RunControlSignal.UNSPECIFIED;
 }
 
 /**
@@ -210,7 +210,7 @@ export async function reportSetupProgress(
   executionId: string,
   phase: string,
 ): Promise<void> {
-  const status = create(AgentExecutionStatusSchema, {
+  const status = create(AgentRunStatusSchema, {
     setupProgress: create(SetupProgressSchema, { currentPhase: phase }),
   });
   await persistStatus(client, executionId, status);
@@ -228,8 +228,8 @@ export async function reportSetupProgress(
  * which serializes Uint8Array bytes fields as {} — invalid protobuf JSON
  * that the Java workflow's JsonFormat.Parser rejects.
  */
-export function slimStatus(full: AgentExecutionStatus): unknown {
-  const slim = create(AgentExecutionStatusSchema, {
+export function slimStatus(full: AgentRunStatus): unknown {
+  const slim = create(AgentRunStatusSchema, {
     phase: full.phase,
     error: full.error,
     startedAt: full.startedAt,
@@ -237,7 +237,7 @@ export function slimStatus(full: AgentExecutionStatus): unknown {
     pendingApprovals: full.pendingApprovals,
     structuredOutput: full.structuredOutput,
   });
-  const json = toJson(AgentExecutionStatusSchema, slim);
+  const json = toJson(AgentRunStatusSchema, slim);
   if (full.structuredOutput) {
     const jsonObj = json as Record<string, unknown>;
     const hasField = "structuredOutput" in jsonObj;

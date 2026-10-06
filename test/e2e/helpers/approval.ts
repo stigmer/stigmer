@@ -5,8 +5,8 @@ import type { Page, Locator } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
 import type { HookSourceInput, Stigmer } from "@stigmer/sdk";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { TerminateAgentExecutionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { TerminateAgentRunInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import {
   anthropicText,
   anthropicToolUses,
@@ -23,13 +23,13 @@ const DEFAULT_ORG = "default";
 export { getMockControlUrl, MockControl };
 
 // ---------------------------------------------------------------------------
-// Node-client seeding — gated AgentExecution rendered + resolved in the browser
+// Node-client seeding — gated AgentRun rendered + resolved in the browser
 // ---------------------------------------------------------------------------
 
-/** A seeded execution sitting at (or heading toward) an approval gate. */
-export interface SeededGatedExecution {
+/** A seeded run sitting at (or heading toward) an approval gate. */
+export interface SeededGatedRun {
   readonly sessionId: string;
-  readonly executionId: string;
+  readonly runId: string;
   readonly cleanup: () => Promise<void>;
 }
 
@@ -82,7 +82,7 @@ export function shellBlock(toolCallId: string, command: string): ToolUseBlock {
 }
 
 /**
- * Seeds an agent + a NATIVE-harness session + a gated AgentExecution via the
+ * Seeds an agent + a NATIVE-harness session + a gated AgentRun via the
  * node SDK client, and programs the mock LLM to drive the run to its gate.
  *
  * The browser is then used only to render and resolve the gate, so the test
@@ -90,7 +90,7 @@ export function shellBlock(toolCallId: string, command: string): ToolUseBlock {
  * submitApproval wiring) from the new-session launcher's agent/model/harness
  * defaults.
  *
- * Ordering matters: the mock turns are enqueued BEFORE the execution is created,
+ * Ordering matters: the mock turns are enqueued BEFORE the run is created,
  * because the runner begins consuming the queue the moment Temporal dispatches
  * the run. The script is N gated tool_use turns (one by default, more via
  * `gateTurns` for the multi-step shape) followed by a single terminating text
@@ -106,7 +106,7 @@ export async function seedGatedSession(
   client: Stigmer,
   control: MockControl,
   opts: SeedGatedSessionOptions = {},
-): Promise<SeededGatedExecution> {
+): Promise<SeededGatedRun> {
   const org = opts.org ?? DEFAULT_ORG;
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   // Normalize to a single source of truth: a list of sequential gated turns.
@@ -145,7 +145,7 @@ export async function seedGatedSession(
   }
   await control.enqueue(anthropicText("Done."));
 
-  const execution = await client.agentExecution.create({
+  const execution = await client.agentRun.create({
     name: `e2e-approval-exec-${stamp}`,
     org,
     sessionId,
@@ -155,24 +155,24 @@ export async function seedGatedSession(
 
   return {
     sessionId,
-    executionId,
+    runId: executionId,
     cleanup: async () => {
-      // A test that failed before resolving the gate leaves the execution paused
+      // A test that failed before resolving the gate leaves the run paused
       // at the approval interrupt with a live Temporal workflow. Deleting it in
       // that state blocks (the delete waits on the still-running workflow), which
       // would hang afterEach for the full test timeout. Terminate first to drive
       // it terminal, then delete — and bound EVERY call so cleanup can never hang
       // the suite regardless of backend state.
       await withTimeout(
-        client.agentExecution.terminate(
-          create(TerminateAgentExecutionInputSchema, {
+        client.agentRun.terminate(
+          create(TerminateAgentRunInputSchema, {
             id: executionId,
             reason: "e2e approval spec teardown",
           }),
         ),
         3_000,
       ).catch(() => {});
-      await withTimeout(client.agentExecution.delete(executionId), 5_000).catch(() => {});
+      await withTimeout(client.agentRun.delete(executionId), 5_000).catch(() => {});
       await withTimeout(client.session.delete(sessionId), 5_000).catch(() => {});
       await withTimeout(client.agent.delete(agentId), 5_000).catch(() => {});
     },
@@ -193,9 +193,9 @@ export interface SeedToolRunSessionOptions {
   readonly org?: string;
   /**
    * SEQUENTIAL tool_use turns to run to completion. Defaults to a single
-   * `write_file` turn. Every call runs un-gated because the execution is created
+   * `write_file` turn. Every call runs un-gated because the run is created
    * with `auto_approve_all`, so the run drives straight through to
-   * `EXECUTION_COMPLETED` with no approval interrupt — the deterministic shape a
+   * `RUN_COMPLETED` with no approval interrupt — the deterministic shape a
    * disclosure spec needs to assert that *settled* rows persist.
    *
    * NOTE on tool choice: the native deep-agent harness exposes the `deepagents`
@@ -213,7 +213,7 @@ export interface SeedToolRunSessionOptions {
 }
 
 /**
- * Seeds an agent + native session + an `auto_approve_all` AgentExecution that
+ * Seeds an agent + native session + an `auto_approve_all` AgentRun that
  * runs the given tool turns to completion, then a terminating text turn. Sibling
  * of {@link seedGatedSession} (the seeding shape is deliberately parallel; the
  * one difference is `autoApproveAll: true` + no gate), kept separate so the
@@ -227,7 +227,7 @@ export async function seedToolRunSession(
   client: Stigmer,
   control: MockControl,
   opts: SeedToolRunSessionOptions = {},
-): Promise<SeededGatedExecution> {
+): Promise<SeededGatedRun> {
   const org = opts.org ?? DEFAULT_ORG;
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const toolTurns: ToolUseBlock[][] =
@@ -257,7 +257,7 @@ export async function seedToolRunSession(
   }
   await control.enqueue(anthropicText("Done."));
 
-  const execution = await client.agentExecution.create({
+  const execution = await client.agentRun.create({
     name: `e2e-toolrun-exec-${stamp}`,
     org,
     sessionId,
@@ -270,18 +270,18 @@ export async function seedToolRunSession(
 
   return {
     sessionId,
-    executionId,
+    runId: executionId,
     cleanup: async () => {
       await withTimeout(
-        client.agentExecution.terminate(
-          create(TerminateAgentExecutionInputSchema, {
+        client.agentRun.terminate(
+          create(TerminateAgentRunInputSchema, {
             id: executionId,
             reason: "e2e tool-run spec teardown",
           }),
         ),
         3_000,
       ).catch(() => {});
-      await withTimeout(client.agentExecution.delete(executionId), 5_000).catch(() => {});
+      await withTimeout(client.agentRun.delete(executionId), 5_000).catch(() => {});
       await withTimeout(client.session.delete(sessionId), 5_000).catch(() => {});
       await withTimeout(client.agent.delete(agentId), 5_000).catch(() => {});
     },
@@ -303,38 +303,38 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 }
 
 // ---------------------------------------------------------------------------
-// Execution phase polling (node client)
+// Run phase polling (node client)
 // ---------------------------------------------------------------------------
 
-const TERMINAL_PHASES: ReadonlySet<ExecutionPhase> = new Set([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
+const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
 ]);
 
-/** Polls the execution until it reaches a specific phase, or throws on timeout. */
-export async function awaitExecutionPhase(
+/** Polls the run until it reaches a specific phase, or throws on timeout. */
+export async function awaitRunPhase(
   client: Stigmer,
   executionId: string,
-  phase: ExecutionPhase,
+  phase: RunPhase,
   opts: { timeoutMs?: number; intervalMs?: number } = {},
 ): Promise<void> {
   await pollExecution(
     client,
     executionId,
     (p) => p === phase,
-    `phase ${ExecutionPhase[phase]}`,
+    `phase ${RunPhase[phase]}`,
     opts,
   );
 }
 
-/** Polls the execution until it reaches any terminal phase. Returns that phase. */
-export async function awaitExecutionTerminal(
+/** Polls the run until it reaches any terminal phase. Returns that phase. */
+export async function awaitRunTerminal(
   client: Stigmer,
   executionId: string,
   opts: { timeoutMs?: number; intervalMs?: number } = {},
-): Promise<ExecutionPhase> {
+): Promise<RunPhase> {
   return pollExecution(
     client,
     executionId,
@@ -347,25 +347,25 @@ export async function awaitExecutionTerminal(
 async function pollExecution(
   client: Stigmer,
   executionId: string,
-  predicate: (phase: ExecutionPhase) => boolean,
+  predicate: (phase: RunPhase) => boolean,
   label: string,
   opts: { timeoutMs?: number; intervalMs?: number },
-): Promise<ExecutionPhase> {
+): Promise<RunPhase> {
   const timeoutMs = opts.timeoutMs ?? 60_000;
   const intervalMs = opts.intervalMs ?? 500;
   const deadline = Date.now() + timeoutMs;
-  let last = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  let last = RunPhase.RUN_PHASE_UNSPECIFIED;
   let lastGetError: unknown;
   while (Date.now() < deadline) {
-    // Bound EACH get: if the backend wedges (e.g. an execution that doesn't
+    // Bound EACH get: if the backend wedges (e.g. a run that doesn't
     // progress to terminal after an approval), a single hung RPC must not stall
     // the deadline check — otherwise the whole poll blocks until Playwright's
     // test timeout and reports an opaque "Test timeout" with no phase context.
     // Capping the call keeps the loop honoring `timeoutMs`, so a stuck backend
     // surfaces as a fast, phase-annotated failure instead of a 90s hang.
     try {
-      const exec = await withTimeout(client.agentExecution.get(executionId), 5_000);
-      last = exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+      const exec = await withTimeout(client.agentRun.get(executionId), 5_000);
+      last = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
       lastGetError = undefined;
       if (predicate(last)) return last;
     } catch (err) {
@@ -379,7 +379,7 @@ async function pollExecution(
       : "";
   throw new Error(
     `execution ${executionId} did not reach ${label} within ${timeoutMs}ms ` +
-      `(last phase: ${ExecutionPhase[last]})${errSuffix}`,
+      `(last phase: ${RunPhase[last]})${errSuffix}`,
   );
 }
 
@@ -466,24 +466,24 @@ export function fileReviewApproveButton(page: Page): Locator {
  * with the card's bulk "Keep all", and wait for the terminal phase. Returns
  * with the page ON the session, showing the settled timeline. Shared by the
  * disclosure and file-review specs — the canonical way a capture-stack write
- * run reaches EXECUTION_COMPLETED.
+ * run reaches RUN_COMPLETED.
  */
 export async function settleThroughFileReview(
   page: Page,
   client: Stigmer,
-  seeded: SeededGatedExecution,
+  seeded: SeededGatedRun,
 ): Promise<void> {
-  await awaitExecutionPhase(
+  await awaitRunPhase(
     client,
-    seeded.executionId,
-    ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+    seeded.runId,
+    RunPhase.RUN_WAITING_FOR_APPROVAL,
   );
   await page.goto(`/sessions/${seeded.sessionId}`);
   await fileReviewApproveButton(page).click({ timeout: 30_000 });
-  const phase = await awaitExecutionTerminal(client, seeded.executionId);
-  if (phase !== ExecutionPhase.EXECUTION_COMPLETED) {
+  const phase = await awaitRunTerminal(client, seeded.runId);
+  if (phase !== RunPhase.RUN_COMPLETED) {
     throw new Error(
-      `review-resolved run should complete, got ${ExecutionPhase[phase]}`,
+      `review-resolved run should complete, got ${RunPhase[phase]}`,
     );
   }
 }

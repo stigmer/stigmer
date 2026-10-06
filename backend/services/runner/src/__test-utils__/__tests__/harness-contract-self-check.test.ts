@@ -28,8 +28,8 @@
 import { describe, it, expect } from "vitest";
 import { CancelledFailure } from "@temporalio/activity";
 import { create } from "@bufbuild/protobuf";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 
 import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import {
@@ -354,7 +354,7 @@ describe("harness contract kit self-check — the settled-transcript assertion c
     row.isStreaming = true;
     const message = aiMessage("");
     message.toolCalls.push(row);
-    status.subAgentExecutions.push(create(SubAgentExecutionSchema, { id: "sub-1", messages: [message] }));
+    status.subAgentRuns.push(create(SubAgentRunSchema, { id: "sub-1", messages: [message] }));
     expect(() => assertTranscriptStreamsNothing("broken:streams", status)).toThrow(/subAgentExecutions\[sub-1\]\.messages\[0\]\.toolCalls\[t-2\]/);
   });
 });

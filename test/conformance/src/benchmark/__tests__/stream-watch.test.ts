@@ -12,27 +12,27 @@
 // did see.
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, FileChangeSetStatus, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema, type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, FileChangeSetStatus, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { watchExecution } from "../stream-watch";
 
-function snapshot(phase: ExecutionPhase, rows: Array<{ type: MessageType; content: string }>): AgentExecution {
-  return create(AgentExecutionSchema, { metadata: { id: "aex_1" }, status: { phase, messages: rows } });
+function snapshot(phase: RunPhase, rows: Array<{ type: MessageType; content: string }>): AgentRun {
+  return create(AgentRunSchema, { metadata: { id: "aex_1" }, status: { phase, messages: rows } });
 }
 
-function awaitingReview(): AgentExecution {
-  return create(AgentExecutionSchema, {
+function awaitingReview(): AgentRun {
+  return create(AgentRunSchema, {
     metadata: { id: "aex_1" },
     status: {
-      phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
       messages: [{ type: MessageType.MESSAGE_AI, content: "Done." }],
       fileChangeSets: [{ id: "fcs_1", status: FileChangeSetStatus.AWAITING_REVIEW }],
     },
   });
 }
 
-function scripted(snapshots: AgentExecution[]): (signal: AbortSignal) => AsyncIterable<AgentExecution> {
+function scripted(snapshots: AgentRun[]): (signal: AbortSignal) => AsyncIterable<AgentRun> {
   return () => ({
     async *[Symbol.asyncIterator]() {
       for (const item of snapshots) yield item;
@@ -46,13 +46,13 @@ describe("watchExecution", () => {
     let tick = 0;
     const watched = await watchExecution(
       scripted([
-        snapshot(ExecutionPhase.EXECUTION_IN_PROGRESS, [{ type: MessageType.MESSAGE_HUMAN, content: "hi" }]),
-        snapshot(ExecutionPhase.EXECUTION_IN_PROGRESS, [{ type: MessageType.MESSAGE_THINKING, content: "hmm" }]),
-        snapshot(ExecutionPhase.EXECUTION_IN_PROGRESS, [
+        snapshot(RunPhase.RUN_IN_PROGRESS, [{ type: MessageType.MESSAGE_HUMAN, content: "hi" }]),
+        snapshot(RunPhase.RUN_IN_PROGRESS, [{ type: MessageType.MESSAGE_THINKING, content: "hmm" }]),
+        snapshot(RunPhase.RUN_IN_PROGRESS, [
           { type: MessageType.MESSAGE_THINKING, content: "hmm" },
           { type: MessageType.MESSAGE_AI, content: "Hel" },
         ]),
-        snapshot(ExecutionPhase.EXECUTION_COMPLETED, [
+        snapshot(RunPhase.RUN_COMPLETED, [
           { type: MessageType.MESSAGE_THINKING, content: "hmm" },
           { type: MessageType.MESSAGE_AI, content: "Hello." },
         ]),
@@ -63,7 +63,7 @@ describe("watchExecution", () => {
     expect(watched.client_first_text_ms).toBe(1600);
     expect(watched.end_to_end_ms).toBe(2500);
     expect(watched.outcome).toBe("until");
-    expect(watched.final?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(watched.final?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
   it("stops at the first snapshot offering review, stamped, with no end-to-end", async () => {
@@ -71,16 +71,16 @@ describe("watchExecution", () => {
     let tick = 0;
     const watched = await watchExecution(
       scripted([
-        snapshot(ExecutionPhase.EXECUTION_IN_PROGRESS, [{ type: MessageType.MESSAGE_AI, content: "Editing." }]),
+        snapshot(RunPhase.RUN_IN_PROGRESS, [{ type: MessageType.MESSAGE_AI, content: "Editing." }]),
         awaitingReview(),
-        snapshot(ExecutionPhase.EXECUTION_COMPLETED, [{ type: MessageType.MESSAGE_AI, content: "Done." }]),
+        snapshot(RunPhase.RUN_COMPLETED, [{ type: MessageType.MESSAGE_AI, content: "Done." }]),
       ]),
       { startedAtMs: 500, timeoutMs: 10_000, now: () => clock[tick++] ?? 9999 },
     );
     expect(watched.awaiting_review).toBe(true);
     expect(watched.review_ready_ms).toBe(1300);
     expect(watched.end_to_end_ms).toBeNull();
-    expect(watched.final?.status?.phase).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(watched.final?.status?.phase).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
   });
 
   it("told not to stop at review, follows the reconcile to the terminal snapshot", async () => {
@@ -90,22 +90,22 @@ describe("watchExecution", () => {
       scripted([
         awaitingReview(),
         awaitingReview(),
-        snapshot(ExecutionPhase.EXECUTION_COMPLETED, [{ type: MessageType.MESSAGE_AI, content: "Done." }]),
+        snapshot(RunPhase.RUN_COMPLETED, [{ type: MessageType.MESSAGE_AI, content: "Done." }]),
       ]),
       { startedAtMs: 500, timeoutMs: 10_000, now: () => clock[tick++] ?? 9999, stopAtReview: false },
     );
     expect(watched.awaiting_review).toBe(false);
     expect(watched.review_ready_ms).toBe(500);
     expect(watched.end_to_end_ms).toBe(2100);
-    expect(watched.final?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(watched.final?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
   it("a stream that never turns terminal is a timeout with a null end-to-end and the stamps it did take", async () => {
     // Honours the abort the bounded reader sends, the way a Connect stream
     // does: the iterable ends with Canceled once the deadline passes.
-    const forever = (signal: AbortSignal): AsyncIterable<AgentExecution> => ({
+    const forever = (signal: AbortSignal): AsyncIterable<AgentRun> => ({
       async *[Symbol.asyncIterator]() {
-        yield snapshot(ExecutionPhase.EXECUTION_IN_PROGRESS, [{ type: MessageType.MESSAGE_AI, content: "Hel" }]);
+        yield snapshot(RunPhase.RUN_IN_PROGRESS, [{ type: MessageType.MESSAGE_AI, content: "Hel" }]);
         await new Promise<never>((_, reject) => {
           signal.addEventListener("abort", () => reject(new ConnectError("aborted", Code.Canceled)), { once: true });
         });

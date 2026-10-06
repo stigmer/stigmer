@@ -10,10 +10,10 @@ import (
 
 // mockRunnerAdapter records all calls for verification.
 type mockRunnerAdapter struct {
-	sessionsOpened       []string
-	sessionsClosed       []string
-	executionsCreated    []string
-	executionsTerminated []string
+	sessionsOpened []string
+	sessionsClosed []string
+	runsCreated    []string
+	runsTerminated []string
 }
 
 func (m *mockRunnerAdapter) OnSessionOpened(_ context.Context, sessionID string) error {
@@ -26,13 +26,13 @@ func (m *mockRunnerAdapter) OnSessionClosed(_ context.Context, sessionID string)
 	return nil
 }
 
-func (m *mockRunnerAdapter) OnWorkflowExecutionCreated(_ context.Context, executionID string) error {
-	m.executionsCreated = append(m.executionsCreated, executionID)
+func (m *mockRunnerAdapter) OnWorkflowRunCreated(_ context.Context, runID string) error {
+	m.runsCreated = append(m.runsCreated, runID)
 	return nil
 }
 
-func (m *mockRunnerAdapter) OnWorkflowExecutionTerminated(_ context.Context, executionID string) error {
-	m.executionsTerminated = append(m.executionsTerminated, executionID)
+func (m *mockRunnerAdapter) OnWorkflowRunTerminated(_ context.Context, runID string) error {
+	m.runsTerminated = append(m.runsTerminated, runID)
 	return nil
 }
 
@@ -58,16 +58,16 @@ func TestRunnerAdapter_MockRecordsCalls(t *testing.T) {
 	err = adapter.OnSessionClosed(ctx, "ses-1")
 	require.NoError(t, err)
 
-	err = adapter.OnWorkflowExecutionCreated(ctx, "wfexec-1")
+	err = adapter.OnWorkflowRunCreated(ctx, "wfexec-1")
 	require.NoError(t, err)
 
-	err = adapter.OnWorkflowExecutionTerminated(ctx, "wfexec-1")
+	err = adapter.OnWorkflowRunTerminated(ctx, "wfexec-1")
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"ses-1", "ses-2"}, adapter.sessionsOpened)
 	assert.Equal(t, []string{"ses-1"}, adapter.sessionsClosed)
-	assert.Equal(t, []string{"wfexec-1"}, adapter.executionsCreated)
-	assert.Equal(t, []string{"wfexec-1"}, adapter.executionsTerminated)
+	assert.Equal(t, []string{"wfexec-1"}, adapter.runsCreated)
+	assert.Equal(t, []string{"wfexec-1"}, adapter.runsTerminated)
 }
 
 func TestWithRunnerAdapter_SetsOnClient(t *testing.T) {

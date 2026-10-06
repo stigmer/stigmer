@@ -183,9 +183,9 @@ describe("platform domain (composed server)", () => {
     expect(checkedAt).toBeLessThanOrEqual(after + 1000);
   });
 
-  it("mints for the agent_execution_id arm, bound to exactly that execution", async () => {
+  it("mints for the agent_run_id arm, bound to exactly that run", async () => {
     const out = await client.getRunnerScopedToken({
-      scope: { case: "agentExecutionId", value: "aexec_01platformtest" },
+      scope: { case: "agentRunId", value: "aexec_01platformtest" },
     });
 
     expect(out.runnerScopedToken).not.toBe("");
@@ -199,9 +199,9 @@ describe("platform domain (composed server)", () => {
     );
   });
 
-  it("mints for the workflow_execution_id arm", async () => {
+  it("mints for the workflow_run_id arm", async () => {
     const out = await client.getRunnerScopedToken({
-      scope: { case: "workflowExecutionId", value: "wexec_01platformtest" },
+      scope: { case: "workflowRunId", value: "wexec_01platformtest" },
     });
     expect(out.tokenType).toBe("Bearer");
     expect(server.runnerAuthService.verify(out.runnerScopedToken)).toBe(
@@ -211,8 +211,8 @@ describe("platform domain (composed server)", () => {
 
   it("answers the not-minted shape for empty ids, pool_claim, and renewal", async () => {
     const arms: MessageInitShape<typeof GetRunnerScopedTokenInputSchema>[] = [
-      { scope: { case: "agentExecutionId", value: "" } },
-      { scope: { case: "workflowExecutionId", value: "" } },
+      { scope: { case: "agentRunId", value: "" } },
+      { scope: { case: "workflowRunId", value: "" } },
       { scope: { case: "poolClaim", value: { sessionId: "ses_x" } } },
       { scope: { case: "renewal", value: {} } },
     ];
@@ -351,7 +351,7 @@ describe("platform domain (keyless runner-token service)", () => {
     const client = createClient(PlatformQueryController, transport);
 
     const out = await client.getRunnerScopedToken({
-      scope: { case: "agentExecutionId", value: "aexec_01keyless" },
+      scope: { case: "agentRunId", value: "aexec_01keyless" },
     });
     expect(out.runnerScopedToken).toBe("");
     expect(out.tokenType).toBe("");
@@ -546,14 +546,14 @@ describe("platform domain (capability-delegating provider)", () => {
     exchanged.length = 0;
 
     const minted = await client.getRunnerScopedToken({
-      scope: { case: "agentExecutionId", value: "aexec_cap1" },
+      scope: { case: "agentRunId", value: "aexec_cap1" },
     });
     expect(minted.runnerScopedToken).toBe("cloud-token");
     expect(minted.tokenType).toBe("Bearer");
     expect(minted.expiresInSeconds).toBe(14400);
 
     await client.getRunnerScopedToken({
-      scope: { case: "workflowExecutionId", value: "wexec_cap1" },
+      scope: { case: "workflowRunId", value: "wexec_cap1" },
     });
     const renewal = await client.getRunnerScopedToken({
       scope: { case: "renewal", value: {} },

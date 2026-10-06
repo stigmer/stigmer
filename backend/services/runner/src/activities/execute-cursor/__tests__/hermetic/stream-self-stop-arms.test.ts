@@ -53,13 +53,13 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionControlSignal,
-  ExecutionPhase,
+  RunControlSignal,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -168,10 +168,10 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "a stall RETURNS, never throws — a retry would wedge again").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_FAILED");
+    expect(slim.phase).toBe("RUN_FAILED");
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_FAILED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_FAILED,
     ]);
     const final = record.lastFullStatus!;
     // Idle = the 1 s step tick before the effect + the effect's own tick: 3 s.
@@ -197,7 +197,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     expect(invocation.heartbeats.length).toBeGreaterThan(0);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/stall.status.json");
   });
 
@@ -231,10 +231,10 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "a cost cap RETURNS — a retry would burn the budget again").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_TERMINATED");
+    expect(slim.phase).toBe("RUN_TERMINATED");
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_TERMINATED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_TERMINATED,
     ]);
     const final = record.lastFullStatus!;
     expect(final.error).toBe(
@@ -258,7 +258,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/cost-cap.status.json");
   });
 
@@ -292,8 +292,8 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
       // The platform's decision: stop once the tool call has completed.
       controlSignal: (status) =>
         status.messages.some((m) => m.toolCalls.some((tc) => tc.status === ToolCallStatus.TOOL_CALL_COMPLETED))
-          ? ExecutionControlSignal.STOP
-          : ExecutionControlSignal.UNSPECIFIED,
+          ? RunControlSignal.STOP
+          : RunControlSignal.UNSPECIFIED,
     });
     const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG } });
 
@@ -303,10 +303,10 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "a platform stop RETURNS a clean completion").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_COMPLETED,
     ]);
     const final = record.lastFullStatus!;
     expect(final.error, "a platform stop is not an error").toBe("");
@@ -330,7 +330,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/platform-stop.status.json");
   });
 });

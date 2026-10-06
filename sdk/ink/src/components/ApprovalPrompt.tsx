@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import { ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   ToolKind,
   resolveToolKindByName,
@@ -168,7 +168,7 @@ export function ApprovalPrompt({
 
   // Why-gated: the authorization provenance the server projected onto the
   // PendingApproval. Mirrors the React card's gate-reason line so the terminal
-  // surface explains the gate at parity. Empty for legacy executions.
+  // surface explains the gate at parity. Empty for legacy runs.
   const gateReason = describeApprovalPolicySource(
     pendingApproval.approvalPolicySource,
     pendingApproval.approvalPolicyHook,

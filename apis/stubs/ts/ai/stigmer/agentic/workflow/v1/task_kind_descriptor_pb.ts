@@ -177,7 +177,7 @@ export const TaskFieldDescriptorSchema: GenMessage<TaskFieldDescriptor> = /*@__P
  * - Generate configuration forms (fields, field_groups)
  * - Power YAML editor autocomplete (config_json_schema)
  * - Validate task configs client-side (config_json_schema)
- * - Display task output shapes in the execution viewer (output_json_schema)
+ * - Display task output shapes in the run viewer (output_json_schema)
  * - Generate documentation (description, yaml_examples, documentation_url)
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.TaskKindDescriptor
@@ -254,7 +254,7 @@ export type TaskKindDescriptor = Message<"ai.stigmer.agentic.workflow.v1.TaskKin
 
   /**
    * JSON Schema describing the task's output shape.
-   * Serialized as a JSON string. Used by the execution viewer to
+   * Serialized as a JSON string. Used by the run viewer to
    * render typed output inspection panels.
    *
    * @generated from field: string output_json_schema = 10;

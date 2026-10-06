@@ -47,7 +47,7 @@ module agentic
 #   customers), children created later included.
 # - Modeled as a single structural relation (child_org_viewer) composed into
 #   viewer, so one tuple drives view and execute — same precedent as
-#   execution_viewer on workflow instances.
+#   run_viewer on workflow instances.
 # - An unconditioned userset, so it resolves in listing queries just like
 #   org visibility.
 

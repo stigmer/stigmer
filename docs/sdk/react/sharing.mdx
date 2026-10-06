@@ -462,7 +462,7 @@ member's own token; the presentation stays the same pure chat.
     className: { type: "string", description: "Additional CSS class names for the root container." },
     heading: { type: "string", description: "Heading above the composer before the first message. Defaults to a prompt built from the agent's name." },
     linkToken: { type: "string", description: "Share-link token from the URL's `?k=` parameter (public audience only). Required when the share link has been locked with a rotatable token; harmless on plain links. Pair it with the same `linkToken` on `createGuestAuth` so profile resolution and token minting present the same credentialing." },
-    onSessionCreated: { type: "(sessionId: string) => void", description: "Called after the visitor's session and first execution are created — e.g. to reflect the session in the host page's URL." },
+    onSessionCreated: { type: "(sessionId: string) => void", description: "Called after the visitor's session and first run are created — e.g. to reflect the session in the host page's URL." },
     placeholder: { type: "string", description: "Placeholder for the composer textarea." },
     shareId: { type: "string", description: "Id of the share, from the hosted chat link (`/chat/<share id>`). The share's organization and slug come from its resolved profile.", required: true },
     sharingAudience: { type: "SharingAudience", description: "Which sharing audience this surface serves. Selects the profile resolution path: `\"public\"` uses the anonymous `getSharedProfile` RPC (pair with `createGuestAuth`); `\"org\"` uses the authenticated `getSharedProfileForMember` RPC and requires a `StigmerProvider` whose client carries a signed-in org member's token. The chat presentation is identical either way.", typeDescriptionLink: "#sharingaudience" },
@@ -518,7 +518,7 @@ every save verbatim.)
     enabled: { type: "boolean", description: "Whether hosted-chat access for the configured audience is enabled.", required: true },
     environmentRefs: { type: "readonly ResourceRef[]", description: "Org-shared environments whose values guest conversations receive — how a tool-using agent becomes chattable over a share link without touching the agent itself. Public-audience only (the proto CEL rule rejects bindings on org-audience shares, whose member sessions carry no share linkage).", required: true },
     messages: { type: "{ conversationEnded: string; rateLimited: string; unavailable: string }", description: "Owner-customized visitor refusal copy. Empty strings mean platform defaults.", required: true },
-    runConfig: { type: "RunConfigInput | undefined", description: "The owner's per-share execution override (model / cost cap / tool rounds / service tier), merged over the platform guest profile at run time — stigmer/stigmer#360. The console does not edit it (yet): it rides through every save opaquely so a toggle never wipes an override set via the CLI or API. Public-audience only (the same proto CEL rule as environmentRefs, for the same reason).", required: true },
+    runConfig: { type: "RunConfigInput | undefined", description: "The owner's per-share run override (model / cost cap / tool rounds / service tier), merged over the platform guest profile at run time — stigmer/stigmer#360. The console does not edit it (yet): it rides through every save opaquely so a toggle never wipes an override set via the CLI or API. Public-audience only (the same proto CEL rule as environmentRefs, for the same reason).", required: true },
   }}
 />
 
@@ -543,7 +543,7 @@ function draftFromShare(share: AgentShare | null): AgentShareDraft
 
 ### ShareToolReadiness
 
-Readiness of a share's tool credentials for visitor executions.
+Readiness of a share's tool credentials for visitor runs.
 
 The shared vocabulary lives on [`ToolCredentialsReadiness`](/docs/sdk/react/environment#toolcredentialsreadiness); this
 alias preserves the original share-scoped export.

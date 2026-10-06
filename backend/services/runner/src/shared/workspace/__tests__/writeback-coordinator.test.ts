@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { type AgentExecutionStatus, AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { WorkspaceWriteBackPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
+import { type AgentRunStatus, AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { WorkspaceWriteBackPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
 import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import {
@@ -21,8 +21,8 @@ const SESSION_BRANCH = `stigmer/${SESSION_ID}`;
 // `addWriteBack` owns the upsert-by-entry rule these arms read the result of
 // (the coordinator itself only registers records through `WriteBackSink`).
 /** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
-function makeStatusBuilder(): { sb: TranscriptBuilder; status: AgentExecutionStatus } {
-  const status = create(AgentExecutionStatusSchema, {});
+function makeStatusBuilder(): { sb: TranscriptBuilder; status: AgentRunStatus } {
+  const status = create(AgentRunStatusSchema, {});
   return { sb: new TranscriptBuilder("exec-test", status), status };
 }
 
@@ -139,7 +139,7 @@ const originalFetch = globalThis.fetch;
 
 describe("WriteBackCoordinator", () => {
   let sb: TranscriptBuilder;
-  let status: AgentExecutionStatus;
+  let status: AgentRunStatus;
 
   beforeEach(() => {
     ({ sb, status } = makeStatusBuilder());

@@ -14,8 +14,8 @@ import path from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -202,18 +202,18 @@ describe("startScheduledRun — re-validation and the ledger", () => {
 
 describe("pollExecutionPhase — one row read, GONE distinct from RUNNING", () => {
   it.each([
-    [ExecutionPhase.EXECUTION_COMPLETED, PHASE_COMPLETED],
-    [ExecutionPhase.EXECUTION_CANCELLED, PHASE_CANCELLED],
-    [ExecutionPhase.EXECUTION_TERMINATED, PHASE_TERMINATED],
-    [ExecutionPhase.EXECUTION_FAILED, PHASE_FAILED],
-    [ExecutionPhase.EXECUTION_IN_PROGRESS, PHASE_RUNNING],
-    [ExecutionPhase.EXECUTION_PENDING, PHASE_RUNNING],
+    [RunPhase.RUN_COMPLETED, PHASE_COMPLETED],
+    [RunPhase.RUN_CANCELLED, PHASE_CANCELLED],
+    [RunPhase.RUN_TERMINATED, PHASE_TERMINATED],
+    [RunPhase.RUN_FAILED, PHASE_FAILED],
+    [RunPhase.RUN_IN_PROGRESS, PHASE_RUNNING],
+    [RunPhase.RUN_PENDING, PHASE_RUNNING],
   ])("classifies phase %d as %s", async (phase, want) => {
     await store.saveResource(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
       "aex_01poll",
-      AgentExecutionSchema,
-      create(AgentExecutionSchema, {
+      AgentRunSchema,
+      create(AgentRunSchema, {
         metadata: { id: "aex_01poll", org: "acme" },
         status: { phase },
       }),

@@ -19,7 +19,7 @@
  *     need the id set BEFORE or WITHOUT scanned rows: the search lane
  *     (ids go into the engine query as a hard filter — pagination is
  *     engine-side, post-filtering would break it), the recent-activity
- *     merge, and the two getExecutionSummary aggregates.
+ *     merge, and the two getRunSummary aggregates.
  *   - `restrictListEntries` — candidates in, kept ids out, for every
  *     post-scan list lane through `restrictListByReadScope` below. The
  *     candidate metadata lets a driver apply per-row rules the id set

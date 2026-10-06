@@ -20,7 +20,7 @@
  * workflow-source.ts).
  */
 import type { Logger } from "../../boot/logger.js";
-import type { AgentExecutionTemporalConfig } from "../../domain/agentexecution/temporal/config.js";
+import type { AgentExecutionTemporalConfig } from "../../domain/agentrun/temporal/config.js";
 import type { ExecutionContextDeleter } from "../../domain/executioncontext/internal-delete.js";
 import type { Store } from "../../store/interface.js";
 import type { WorkerFactory } from "../manager.js";

@@ -99,7 +99,7 @@ export function tableOrganizations(
 }
 
 /**
- * Render a *list message* (e.g. AgentExecutionList, SessionList) for a read verb.
+ * Render a *list message* (e.g. AgentRunList, SessionList) for a read verb.
  *
  * Unlike `renderCollection`, which serializes a bare slice, this mirrors Go's
  * `DisplayProto(list, ...)`: json/yaml emit the whole list envelope (including

@@ -88,7 +88,7 @@ export const MCP_SERVER_TEMPLATES: readonly ResourceTemplate<McpServerWizardData
     // Deliberately stdio: the canonical example of a tool that must run on
     // the user's own machine. Stdio servers are local-runner-only — the
     // wizard's transport step states this, and cloud-targeted sessions
-    // refuse them at execution create.
+    // refuse them at run create.
     {
       id: "filesystem",
       name: "Filesystem (local runners)",

@@ -20,7 +20,7 @@ enum ValidationFailPolicy {
   VALIDATION_FAIL_POLICY_UNSPECIFIED = 0;
 
   // Task fails with a validation error.
-  // The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+  // The workflow transitions to error handling (try_catch or RUN_FAILED).
   // The error includes detailed validation results (which rules/schema
   // constraints failed and why).
   VALIDATION_FAIL_RAISE = 1;
@@ -91,7 +91,7 @@ message ValidationRule {
 //
 // While switch_case + raise_error can approximate validation, a dedicated
 // validate task makes the intent explicit, the error messages richer, and
-// the execution trace clearer. In the execution viewer, a validate
+// the execution trace clearer. In the run viewer, a validate
 // task shows exactly what was checked, what passed, and what failed —
 // visible as a distinct verification step.
 //

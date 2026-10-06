@@ -4,7 +4,7 @@ import * as path from "node:path";
 // Opt-in diagnostics for the e2e backend stack, enabled with STIGMER_E2E_DIAG=1.
 //
 // They exist for one specific, hard-to-reproduce failure: the interactive
-// approval suite's post-approval resume occasionally never drives the execution
+// approval suite's post-approval resume occasionally never drives the run
 // to a terminal phase, so the test's terminal-wait fails. The product surface is
 // correct on every healthy run, so this is a backend resume question, not a UI
 // one. When the flake recurs in CI or locally, re-running (or running) with

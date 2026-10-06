@@ -1,5 +1,5 @@
 /**
- * CallAgent Temporal activity — creates a Stigmer AgentExecution via
+ * CallAgent Temporal activity — creates a Stigmer AgentRun via
  * the platform gRPC API and uses Temporal async completion.
  *
  * Flow:
@@ -10,7 +10,7 @@
  * 4. Apply the Session on the agent's reference (idempotent get-or-create
  *    by name); the server pins the agent's current version on create and
  *    keeps that pin when a retry re-applies the same reference
- * 5. Create the AgentExecution in that session, linked to the workflow run
+ * 5. Create the AgentRun in that session, linked to the workflow run
  *    by `parent` (workflow execution id, the workflow to signal, the task
  *    token), carrying the step's settings as the turn's request
  *    (`spec.run_config`, never an approval mode) and its output schema
@@ -46,21 +46,21 @@ import type { AgentCallConfig, AgentCallRunConfig } from "../workflow-engine/typ
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSpecSchema,
+  AgentRunSpecSchema,
   WorkflowParentSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
   GitRepoSourceSchema,
   type WorkspaceEntry,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -276,7 +276,7 @@ export async function callAgentAction(
   // (`spec.run_config`), field for field: zero or empty means "not set at
   // this layer" and is carried as such, never filled in here. The settings
   // the turn RUNS WITH are resolved once by the control plane at create
-  // (backend/services/stigmer-server/src/domain/agentexecution/resolve-run-config.ts):
+  // (backend/services/stigmer-server/src/domain/agentrun/resolve-run-config.ts):
   // the step's settings are the turn's layer, and the agent's defaults and
   // caps apply beneath it, so a step's bound can lower the agent's cap but
   // never raise it. The runner's guards read that resolution
@@ -298,11 +298,11 @@ export async function callAgentAction(
     `wfExecId=${wfExecId}`,
   );
 
-  const executionSpec = create(AgentExecutionSpecSchema, {
+  const executionSpec = create(AgentRunSpecSchema, {
     target: { case: "sessionId", value: sessionId },
     message: resolved.message,
     parent: create(WorkflowParentSchema, {
-      workflowExecutionId: wfExecId,
+      workflowRunId: wfExecId,
       signalWorkflowId: parentWorkflowId,
       callbackToken: taskToken,
     }),
@@ -324,9 +324,9 @@ export async function callAgentAction(
   }
 
   await client.createAgentExecution(
-    create(AgentExecutionSchema, {
+    create(AgentRunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentExecution",
+      kind: "AgentRun",
       metadata: create(ApiResourceMetadataSchema, {
         name: executionName,
         org: orgId,

@@ -8,8 +8,8 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
+import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
 import { applyTodoUpdate } from "../todos.js";
 
 function emptyMap(): { [key: string]: TodoItem } {

@@ -63,7 +63,7 @@ describe("parseTypeDocJson — domains", () => {
     expect(domains[0]).toMatchObject({
       slug: "workflow",
       title: "Workflow",
-      description: "Hooks and components for workflow definitions, executions, and the visual builder.",
+      description: "Hooks and components for workflow definitions, runs, and the visual builder.",
     });
     expect(domains[0].types.map((t) => t.name)).toEqual(["RunEnvKeySource"]);
   });

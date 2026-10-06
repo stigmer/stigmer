@@ -1,7 +1,7 @@
 /**
  * TranscriptEvent — the canonical event the transcript builder folds: what
  * every harness's translator emits and `TranscriptBuilder` consumes to build
- * the transcript half of the AgentExecutionStatus proto.
+ * the transcript half of the AgentRunStatus proto.
  *
  * A runner-internal contract (not persisted, not exposed to clients). It was
  * born in the native adapter as `StigmerRunEvent`, the normalized form of

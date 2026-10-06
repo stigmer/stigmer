@@ -75,7 +75,7 @@
  * and its row is never read — the facts are exactly what the derivation
  * reads (facts.ts). The seed stands in for the row only where the row
  * would have been read for FACTS; a declaration's `derived` rule reads
- * the row it needs through the loader as before (`execution_viewer` reads
+ * the row it needs through the loader as before (`run_viewer` reads
  * the workflow's run-visibility level, a spec field the facts do not
  * carry), so listing workflows costs one row read per candidate, stated
  * in the scope's cost pins.

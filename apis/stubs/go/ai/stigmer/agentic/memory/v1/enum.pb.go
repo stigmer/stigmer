@@ -30,7 +30,7 @@ const (
 	// recalled.
 	MemoryLifecycleState_lifecycle_state_proposed MemoryLifecycleState = 1
 	// Confirmed by the subject. Recalled into the subject's future
-	// eligible executions.
+	// eligible runs.
 	MemoryLifecycleState_lifecycle_state_confirmed MemoryLifecycleState = 2
 	// Rejected by the subject. Kept for audit, never recalled.
 	MemoryLifecycleState_lifecycle_state_rejected MemoryLifecycleState = 3

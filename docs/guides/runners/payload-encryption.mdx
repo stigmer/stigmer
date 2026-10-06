@@ -6,7 +6,7 @@ description:
   Temporal UI. Two environment variables on the runner and the server.
 ---
 
-Workflow and agent executions move data through Temporal: activity inputs and
+Agent Runs and Workflow Runs move data through Temporal: activity inputs and
 results, expression markers, workflow results. Without encryption, that data —
 including execution-context secrets a workflow interpolates into task configs —
 rests in durable Temporal history, readable by anyone with access to the
@@ -45,14 +45,14 @@ to silent plaintext.
 
 <Callout type="warn">
   Both processes need the key. The server holds it to *decode* runner results —
-  with the key set only on the runner, every agent execution and MCP connect
-  fails on the server's first read. Upgrade both to a release that ships the
-  server-side codec, then set the key on both together.
+  with the key set only on the runner, every Agent Run and MCP connect fails on
+  the server's first read. Upgrade both to a release that ships the server-side
+  codec, then set the key on both together.
 </Callout>
 
-Existing in-flight executions are unaffected: decode passes through payloads
-that were never encrypted, so pre-rollout histories and the server's own
-plaintext payloads keep working with zero migration.
+Existing in-flight runs are unaffected: decode passes through payloads that were
+never encrypted, so pre-rollout histories and the server's own plaintext
+payloads keep working with zero migration.
 
 ## Rotate keys
 
@@ -63,8 +63,7 @@ Payloads name the key that encrypted them, so rotation is a two-key window:
    `STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY_ID` on both processes, then
    restart. New payloads are written under the new key; histories written under
    the old key stay readable.
-2. Once executions started before the rotation have drained, drop the secondary
-   pair.
+2. Once runs started before the rotation have drained, drop the secondary pair.
 
 ## What stays plaintext
 

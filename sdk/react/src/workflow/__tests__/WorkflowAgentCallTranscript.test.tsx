@@ -3,49 +3,49 @@ import { render, screen, fireEvent, cleanup, act } from "@testing-library/react"
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   ApprovalAction,
   DiffCompleteness,
-  ExecutionPhase,
+  RunPhase,
   FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import type { Stigmer } from "@stigmer/sdk";
 
-vi.mock("../../execution/useLiveAgentExecution", () => ({
-  useLiveAgentExecution: vi.fn(),
+vi.mock("../../run/useLiveAgentRun", () => ({
+  useLiveAgentRun: vi.fn(),
 }));
-// The thread is the execution domain's heaviest organism; the transcript's
+// The thread is the run domain's heaviest organism; the transcript's
 // contract with it is props-shaped, so a probe recording them suffices.
 // The FileReviewDock renders REAL — its decision routing is under test.
 // useInViewport runs REAL over the stubbed IntersectionObserver below, so
 // the viewport gate is exercised end-to-end (ref attachment included).
-vi.mock("../../execution/MessageThread", () => ({
+vi.mock("../../run/MessageThread", () => ({
   MessageThread: vi.fn(() => <div data-testid="message-thread-probe" />),
 }));
 
-import { useLiveAgentExecution } from "../../execution/useLiveAgentExecution";
-import { MessageThread } from "../../execution/MessageThread";
+import { useLiveAgentRun } from "../../run/useLiveAgentRun";
+import { MessageThread } from "../../run/MessageThread";
 import { StigmerContext } from "../../context";
-import { useWorkflowExecutionActions } from "../useWorkflowExecutionActions";
+import { useWorkflowRunActions } from "../useWorkflowRunActions";
 import {
   WorkflowAgentCallTranscript,
-  type WorkflowAgentExecutionHitl,
+  type WorkflowAgentRunHitl,
 } from "../WorkflowAgentCallTranscript";
 
-const mockUseLiveAgentExecution = vi.mocked(useLiveAgentExecution);
+const mockUseLiveAgentExecution = vi.mocked(useLiveAgentRun);
 const mockMessageThread = vi.mocked(MessageThread);
 
 // ---------------------------------------------------------------------------
@@ -71,12 +71,12 @@ function fireIO(isIntersecting: boolean) {
 
 function executionFixture(
   id: string,
-  phase: ExecutionPhase,
+  phase: RunPhase,
   fileChangeSets: readonly FileChangeSet[] = [],
-): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+): AgentRun {
+  const exec = create(AgentRunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.status = create(AgentExecutionStatusSchema, {
+  exec.status = create(AgentRunStatusSchema, {
     phase,
     fileChangeSets: [...fileChangeSets],
   });
@@ -106,7 +106,7 @@ function pendingChangeSet(id: string): FileChangeSet {
 }
 
 /** A hitl bundle of spies — the unit-level stand-in for the viewer's wiring. */
-function hitlStub(): WorkflowAgentExecutionHitl & {
+function hitlStub(): WorkflowAgentRunHitl & {
   submitApproval: ReturnType<typeof vi.fn>;
   submitFileDecision: ReturnType<typeof vi.fn>;
 } {
@@ -122,11 +122,11 @@ function hitlStub(): WorkflowAgentExecutionHitl & {
 
 /** The hook's healthy resting shape; spread overrides per scenario. */
 function hookState(
-  overrides: Partial<ReturnType<typeof useLiveAgentExecution>> = {},
-): ReturnType<typeof useLiveAgentExecution> {
+  overrides: Partial<ReturnType<typeof useLiveAgentRun>> = {},
+): ReturnType<typeof useLiveAgentRun> {
   return {
-    execution: null,
-    phase: ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+    run: null,
+    phase: RunPhase.RUN_PHASE_UNSPECIFIED,
     isLoading: false,
     isStreaming: false,
     isReconnecting: false,
@@ -167,22 +167,22 @@ afterEach(() => {
 
 describe("WorkflowAgentCallTranscript", () => {
   it("renders the child transcript with the streamed execution", () => {
-    const running = executionFixture("aex_1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const running = executionFixture("aex_1", RunPhase.RUN_IN_PROGRESS);
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: running,
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        run: running,
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
 
     render(
-      <WorkflowAgentCallTranscript childExecutionId="aex_1" agentSlug="analyst" />,
+      <WorkflowAgentCallTranscript childRunId="aex_1" agentSlug="analyst" />,
     );
 
     expect(screen.getByTestId("message-thread-probe")).toBeTruthy();
     const threadProps = mockMessageThread.mock.calls[0][0];
-    expect(threadProps.activeStreamExecution).toBe(running);
+    expect(threadProps.activeStreamRun).toBe(running);
     expect(
       screen.getByRole("group", { name: "Transcript of agent analyst" }),
     ).toBeTruthy();
@@ -191,12 +191,12 @@ describe("WorkflowAgentCallTranscript", () => {
   it("is bounded: the root carries the height cap, never full-height", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_1", ExecutionPhase.EXECUTION_COMPLETED),
-        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        run: executionFixture("aex_1", RunPhase.RUN_COMPLETED),
+        phase: RunPhase.RUN_COMPLETED,
       }),
     );
 
-    render(<WorkflowAgentCallTranscript childExecutionId="aex_1" />);
+    render(<WorkflowAgentCallTranscript childRunId="aex_1" />);
 
     const root = screen.getByRole("group", { name: "Agent transcript" });
     expect(root.className).toContain("stg:max-h-[60vh]");
@@ -206,17 +206,17 @@ describe("WorkflowAgentCallTranscript", () => {
   it("is read-only without hitl: no thread handlers, no records, no dock", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture(
+        run: executionFixture(
           "aex_1",
-          ExecutionPhase.EXECUTION_IN_PROGRESS,
+          RunPhase.RUN_IN_PROGRESS,
           [pendingChangeSet("cs-1")],
         ),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
 
-    render(<WorkflowAgentCallTranscript childExecutionId="aex_1" />);
+    render(<WorkflowAgentCallTranscript childRunId="aex_1" />);
 
     const threadProps = mockMessageThread.mock.calls[0][0];
     expect(threadProps.onApprovalSubmit).toBeUndefined();
@@ -230,13 +230,13 @@ describe("WorkflowAgentCallTranscript", () => {
   it("shows a Reconnecting affordance during a transient stream drop", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_3", ExecutionPhase.EXECUTION_IN_PROGRESS),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        run: executionFixture("aex_3", RunPhase.RUN_IN_PROGRESS),
+        phase: RunPhase.RUN_IN_PROGRESS,
         isReconnecting: true,
       }),
     );
 
-    render(<WorkflowAgentCallTranscript childExecutionId="aex_3" />);
+    render(<WorkflowAgentCallTranscript childRunId="aex_3" />);
 
     expect(screen.getByText("Reconnecting…")).toBeTruthy();
     // The last snapshot stays visible through the drop.
@@ -246,7 +246,7 @@ describe("WorkflowAgentCallTranscript", () => {
   it("shows the loading skeleton before the first snapshot", () => {
     mockUseLiveAgentExecution.mockReturnValue(hookState({ isLoading: true }));
 
-    render(<WorkflowAgentCallTranscript childExecutionId="aex_4" />);
+    render(<WorkflowAgentCallTranscript childRunId="aex_4" />);
 
     expect(screen.getByText("Loading conversation")).toBeTruthy();
     expect(screen.queryByTestId("message-thread-probe")).toBeNull();
@@ -258,7 +258,7 @@ describe("WorkflowAgentCallTranscript", () => {
       hookState({ error: new Error("stream exhausted retries"), reconnect }),
     );
 
-    render(<WorkflowAgentCallTranscript childExecutionId="aex_5" />);
+    render(<WorkflowAgentCallTranscript childRunId="aex_5" />);
 
     expect(screen.getByRole("alert").textContent).toContain(
       "stream exhausted retries",
@@ -270,10 +270,10 @@ describe("WorkflowAgentCallTranscript", () => {
   it("renders an honest not-found notice when the execution no longer exists", () => {
     mockUseLiveAgentExecution.mockReturnValue(hookState());
 
-    render(<WorkflowAgentCallTranscript childExecutionId="aex_6" />);
+    render(<WorkflowAgentCallTranscript childRunId="aex_6" />);
 
     expect(
-      screen.getByText("This agent execution is no longer available."),
+      screen.getByText("This agent run is no longer available."),
     ).toBeTruthy();
     expect(screen.queryByTestId("message-thread-probe")).toBeNull();
   });
@@ -282,15 +282,15 @@ describe("WorkflowAgentCallTranscript", () => {
     const navigate = vi.fn();
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_7", ExecutionPhase.EXECUTION_COMPLETED),
-        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        run: executionFixture("aex_7", RunPhase.RUN_COMPLETED),
+        phase: RunPhase.RUN_COMPLETED,
       }),
     );
 
     render(
       <WorkflowAgentCallTranscript
-        childExecutionId="aex_7"
-        onNavigateToAgentExecution={navigate}
+        childRunId="aex_7"
+        onNavigateToAgentRun={navigate}
       />,
     );
 
@@ -301,12 +301,12 @@ describe("WorkflowAgentCallTranscript", () => {
   it("omits the chrome bar entirely when there is nothing to show", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_8", ExecutionPhase.EXECUTION_COMPLETED),
-        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        run: executionFixture("aex_8", RunPhase.RUN_COMPLETED),
+        phase: RunPhase.RUN_COMPLETED,
       }),
     );
 
-    render(<WorkflowAgentCallTranscript childExecutionId="aex_8" />);
+    render(<WorkflowAgentCallTranscript childRunId="aex_8" />);
 
     expect(screen.queryByRole("button", { name: /Open standalone/ })).toBeNull();
     expect(screen.queryByText("Reconnecting…")).toBeNull();
@@ -321,12 +321,12 @@ describe("WorkflowAgentCallTranscript — viewport gate", () => {
   it("passes live: false while off-screen and live: true once visible", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_1", ExecutionPhase.EXECUTION_IN_PROGRESS),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        run: executionFixture("aex_1", RunPhase.RUN_IN_PROGRESS),
+        phase: RunPhase.RUN_IN_PROGRESS,
       }),
     );
 
-    render(<WorkflowAgentCallTranscript childExecutionId="aex_1" />);
+    render(<WorkflowAgentCallTranscript childRunId="aex_1" />);
 
     // Before the observer's first callback the card is presumed off-screen:
     // the snapshot fetch runs (the id is always passed) but live is false.
@@ -340,7 +340,7 @@ describe("WorkflowAgentCallTranscript — viewport gate", () => {
     expect(lastCall[1]).toEqual({ live: true });
 
     // Scrolled away → the stream pauses (the hook keeps the last snapshot;
-    // its no-rewind behavior is unit-tested in useLiveAgentExecution).
+    // its no-rewind behavior is unit-tested in useLiveAgentRun).
     fireIO(false);
     lastCall = mockUseLiveAgentExecution.mock.calls.at(-1)!;
     expect(lastCall[1]).toEqual({ live: false });
@@ -350,7 +350,7 @@ describe("WorkflowAgentCallTranscript — viewport gate", () => {
     mockUseLiveAgentExecution.mockReturnValue(hookState());
 
     const { unmount } = render(
-      <WorkflowAgentCallTranscript childExecutionId="aex_1" />,
+      <WorkflowAgentCallTranscript childRunId="aex_1" />,
     );
     unmount();
     expect(ioDisconnect).toHaveBeenCalled();
@@ -366,13 +366,13 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
     const hitl = hitlStub();
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_1", ExecutionPhase.EXECUTION_IN_PROGRESS),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        run: executionFixture("aex_1", RunPhase.RUN_IN_PROGRESS),
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
 
-    render(<WorkflowAgentCallTranscript childExecutionId="aex_1" hitl={hitl} />);
+    render(<WorkflowAgentCallTranscript childRunId="aex_1" hitl={hitl} />);
 
     // Identity, not equivalence: the thread must submit through the SAME
     // workflow-level handler every other surface uses, so in-flight and
@@ -388,17 +388,17 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
     const hitl = hitlStub();
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture(
+        run: executionFixture(
           "aex_1",
-          ExecutionPhase.EXECUTION_IN_PROGRESS,
+          RunPhase.RUN_IN_PROGRESS,
           [pendingChangeSet("cs-1")],
         ),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
 
-    render(<WorkflowAgentCallTranscript childExecutionId="aex_1" hitl={hitl} />);
+    render(<WorkflowAgentCallTranscript childRunId="aex_1" hitl={hitl} />);
 
     expect(
       screen.getByRole("region", { name: "File changes awaiting review" }),
@@ -420,17 +420,17 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
   it("never docks on a terminal execution — unreviewed sets are history, not decisions", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture(
+        run: executionFixture(
           "aex_1",
-          ExecutionPhase.EXECUTION_FAILED,
+          RunPhase.RUN_FAILED,
           [pendingChangeSet("cs-1")],
         ),
-        phase: ExecutionPhase.EXECUTION_FAILED,
+        phase: RunPhase.RUN_FAILED,
       }),
     );
 
     render(
-      <WorkflowAgentCallTranscript childExecutionId="aex_1" hitl={hitlStub()} />,
+      <WorkflowAgentCallTranscript childRunId="aex_1" hitl={hitlStub()} />,
     );
 
     expect(
@@ -453,18 +453,18 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
     });
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture(
+        run: executionFixture(
           "aex_1",
-          ExecutionPhase.EXECUTION_IN_PROGRESS,
+          RunPhase.RUN_IN_PROGRESS,
           [settled, empty],
         ),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
 
     render(
-      <WorkflowAgentCallTranscript childExecutionId="aex_1" hitl={hitlStub()} />,
+      <WorkflowAgentCallTranscript childRunId="aex_1" hitl={hitlStub()} />,
     );
 
     expect(
@@ -476,13 +476,13 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
     const hitl = hitlStub();
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_1", ExecutionPhase.EXECUTION_IN_PROGRESS),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        run: executionFixture("aex_1", RunPhase.RUN_IN_PROGRESS),
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
 
-    const props = { childExecutionId: "aex_1", hitl } as const;
+    const props = { childRunId: "aex_1", hitl } as const;
     const { rerender } = render(<WorkflowAgentCallTranscript {...props} />);
     const rendersAfterMount = mockMessageThread.mock.calls.length;
 
@@ -494,7 +494,7 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
 
     // A gate going in-flight produces a NEW submitting set → the transcript
     // (and only then) re-renders, delivering the set to the thread.
-    const submitting: WorkflowAgentExecutionHitl = {
+    const submitting: WorkflowAgentRunHitl = {
       ...hitl,
       approvalSubmittingToolCallIds: new Set(["tc-1"]),
     };
@@ -507,18 +507,18 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
   it("keeps the dock below the thread, outside the scroll container", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture(
+        run: executionFixture(
           "aex_1",
-          ExecutionPhase.EXECUTION_IN_PROGRESS,
+          RunPhase.RUN_IN_PROGRESS,
           [pendingChangeSet("cs-1")],
         ),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
 
     render(
-      <WorkflowAgentCallTranscript childExecutionId="aex_1" hitl={hitlStub()} />,
+      <WorkflowAgentCallTranscript childRunId="aex_1" hitl={hitlStub()} />,
     );
 
     const thread = screen.getByTestId("message-thread-probe");
@@ -536,9 +536,9 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
 
 /**
  * Integration-shaped guardrail: the transcript driven by a REAL
- * `useWorkflowExecutionActions` instance must reach the workflow-scoped RPCs
- * (`workflowExecution.submitApproval` / `submitFileDecision`) and never the
- * child's own `agentExecution.*` submit path. The two are server-equivalent
+ * `useWorkflowRunActions` instance must reach the workflow-scoped RPCs
+ * (`workflowRun.submitApproval` / `submitFileDecision`) and never the
+ * child's own `agentRun.*` submit path. The two are server-equivalent
  * but check different authorization (workflow vs. runner-spawned child) —
  * a refactor that silently reintroduces the child path is a permission bug.
  */
@@ -550,11 +550,11 @@ describe("WorkflowAgentCallTranscript — workflow-RPC routing", () => {
 
   function makeMockClient(): Stigmer {
     return {
-      workflowExecution: {
+      workflowRun: {
         submitApproval: wfSubmitApproval,
         submitFileDecision: wfSubmitFileDecision,
       },
-      agentExecution: {
+      agentRun: {
         submitApproval: agentSubmitApproval,
         submitFileDecision: agentSubmitFileDecision,
       },
@@ -563,9 +563,9 @@ describe("WorkflowAgentCallTranscript — workflow-RPC routing", () => {
 
   /** Renders the transcript exactly as the viewer wires it: hitl from the hook. */
   function Harness({ children: _unused }: { children?: ReactNode }) {
-    const actions = useWorkflowExecutionActions("wex-1");
+    const actions = useWorkflowRunActions("wex-1");
     return (
-      <WorkflowAgentCallTranscript childExecutionId="aex_1" hitl={actions} />
+      <WorkflowAgentCallTranscript childRunId="aex_1" hitl={actions} />
     );
   }
 
@@ -574,15 +574,15 @@ describe("WorkflowAgentCallTranscript — workflow-RPC routing", () => {
     wfSubmitFileDecision.mockResolvedValue({} as never);
   });
 
-  it("routes approvals (incl. SKIP and APPROVE_ALL) and file decisions through workflowExecution.*, never agentExecution.*", async () => {
+  it("routes approvals (incl. SKIP and APPROVE_ALL) and file decisions through workflowRun.*, never agentRun.*", async () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture(
+        run: executionFixture(
           "aex_1",
-          ExecutionPhase.EXECUTION_IN_PROGRESS,
+          RunPhase.RUN_IN_PROGRESS,
           [pendingChangeSet("cs-1")],
         ),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );
@@ -608,9 +608,9 @@ describe("WorkflowAgentCallTranscript — workflow-RPC routing", () => {
     }
     expect(wfSubmitApproval).toHaveBeenCalledTimes(3);
     expect(wfSubmitApproval.mock.calls.map((c) => c[0])).toEqual([
-      expect.objectContaining({ executionId: "wex-1", toolCallId: "tc-1", action: ApprovalAction.APPROVE }),
-      expect.objectContaining({ executionId: "wex-1", toolCallId: "tc-1", action: ApprovalAction.SKIP }),
-      expect.objectContaining({ executionId: "wex-1", toolCallId: "tc-1", action: ApprovalAction.APPROVE_ALL }),
+      expect.objectContaining({ runId: "wex-1", toolCallId: "tc-1", action: ApprovalAction.APPROVE }),
+      expect.objectContaining({ runId: "wex-1", toolCallId: "tc-1", action: ApprovalAction.SKIP }),
+      expect.objectContaining({ runId: "wex-1", toolCallId: "tc-1", action: ApprovalAction.APPROVE_ALL }),
     ]);
 
     // File decision from the dock: workflow RPC, child id routed in the input.
@@ -624,8 +624,8 @@ describe("WorkflowAgentCallTranscript — workflow-RPC routing", () => {
     expect(wfSubmitFileDecision).toHaveBeenCalledTimes(1);
     expect(wfSubmitFileDecision.mock.calls[0][0]).toEqual(
       expect.objectContaining({
-        executionId: "wex-1",
-        childAgentExecutionId: "aex_1",
+        runId: "wex-1",
+        childAgentRunId: "aex_1",
         changeSetId: "cs-1",
         expectedDigest: "agg-cs-1",
       }),
@@ -639,8 +639,8 @@ describe("WorkflowAgentCallTranscript — workflow-RPC routing", () => {
   it("delivers a failed submit to the thread as a keyed in-card error, and a retry clears it", async () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
-        execution: executionFixture("aex_1", ExecutionPhase.EXECUTION_IN_PROGRESS),
-        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        run: executionFixture("aex_1", RunPhase.RUN_IN_PROGRESS),
+        phase: RunPhase.RUN_IN_PROGRESS,
         isStreaming: true,
       }),
     );

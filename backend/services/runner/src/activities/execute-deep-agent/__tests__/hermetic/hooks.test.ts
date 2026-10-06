@@ -35,7 +35,7 @@
  * allows after (it keeps state in `${CLAUDE_PLUGIN_DATA}`) runs again on
  * resume and now allows, and the call the person rejected still never runs.
  *
- * Two refusals settle as the tool lists' does, EXECUTION_FAILED on the
+ * Two refusals settle as the tool lists' does, RUN_FAILED on the
  * actionable surface with their own sentence: a referenced plugin that cannot
  * be read, and a hook that reads a variable the run does not give the agent.
  *
@@ -48,15 +48,15 @@ import { existsSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create, toJson } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
-import { AgentExecutionSchema, AgentExecutionStatusSchema, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema, AgentRunStatusSchema, type AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   ApprovalAction,
   ApprovalPolicySource,
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { GetArtifactResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
@@ -116,8 +116,8 @@ const DELETE: ScriptedToolCall = { id: "call-hooks-delete", name: "execute", arg
 const LIST: ScriptedToolCall = { id: "call-hooks-list", name: "execute", args: { command: "ls" } };
 const PUBLISH: ScriptedToolCall = { id: "call-hooks-publish", name: "execute", args: { command: "echo publish" } };
 
-function statusJson(status: AgentExecutionStatus): string {
-  return JSON.stringify(toJson(AgentExecutionStatusSchema, status), null, 2) + "\n";
+function statusJson(status: AgentRunStatus): string {
+  return JSON.stringify(toJson(AgentRunStatusSchema, status), null, 2) + "\n";
 }
 
 describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks", () => {
@@ -170,10 +170,10 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     // ── Turn 1 ───────────────────────────────────────────────────────────────
     const turn1 = await runDeepAgentTurn(scenario, { turnSeq: 0 });
     expect(turn1.outcome.kind).toBe("returned");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
 
     const run1 = record.lastFullStatus!;
-    const row = (status: AgentExecutionStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+    const row = (status: AgentRunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
 
     const deleted = row(run1, DELETE.id);
     expect(deleted.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
@@ -197,7 +197,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     // ── Turn 2 ───────────────────────────────────────────────────────────────
     const turn2 = await runDeepAgentTurn(scenario, { turnSeq: 1 });
     expect(turn2.outcome.kind).toBe("returned");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
     const final = record.lastFullStatus!;
     const published = row(final, PUBLISH.id);
@@ -244,14 +244,14 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
         ],
       }),
     });
-    const row = (status: AgentExecutionStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+    const row = (status: AgentRunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
 
     await runDeepAgentTurn(scenario, { turnSeq: 0 });
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE_ALL, "2026-01-01T00:00:30.000Z")).toBe(1);
 
     await runDeepAgentTurn(scenario, { turnSeq: 1 });
-    expect(record.persistedPhases.at(-1), "the shell default still asks before pwd").toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.persistedPhases.at(-1), "the shell default still asks before pwd").toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     const status = record.lastFullStatus!;
 
     const approved = row(status, PUBLISH.id);
@@ -269,7 +269,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect(held.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(held.approvalPolicySource).toBe(ApprovalPolicySource.BUILTIN_CATEGORY);
 
-    const leases = deriveActiveLeases(create(AgentExecutionSchema, { status }));
+    const leases = deriveActiveLeases(create(AgentRunSchema, { status }));
     expect([...leases.categories]).toEqual([]);
     expect([...leases.servers]).toEqual([]);
     expect([...leases.hooks]).toEqual([hookLeaseKey("safety", "", "execute")]);
@@ -334,14 +334,14 @@ fi
         ],
       }),
     });
-    const row = (status: AgentExecutionStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+    const row = (status: AgentRunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
 
     await runDeepAgentTurn(scenario, { turnSeq: 0 });
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     expect(record.decideWaitingToolCalls(ApprovalAction.REJECT, "2026-01-01T00:00:30.000Z")).toBe(1);
 
     await runDeepAgentTurn(scenario, { turnSeq: 1 });
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     expect(existsSync(marker), "the rejected command never ran").toBe(false);
     const rejected = row(record.lastFullStatus!, touch.id);
     expect(rejected.approvalAction).toBe(ApprovalAction.REJECT);
@@ -372,7 +372,7 @@ fi
     const turn = await runDeepAgentTurn(scenario, { turnSeq: 0 });
 
     expect(turn.outcome.kind).toBe("returned");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
     expect(record.lastFullStatus!.error).toMatch(/^The plugin 'gone' that the agent's hooks reference could not be read: /);
   });
 
@@ -411,7 +411,7 @@ fi
     const message =
       "A hook in the agent's own hooks block reads the variable API_TOKEN, which this run does not give the agent. " +
       "Declare API_TOKEN in the agent's env and set its value, then run again.";
-    expect(final.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(final.phase).toBe(RunPhase.RUN_FAILED);
     expect(final.error).toBe(message);
     expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
       `Execution failed: ${message}`,

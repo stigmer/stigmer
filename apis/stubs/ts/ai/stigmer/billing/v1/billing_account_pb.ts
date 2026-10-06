@@ -73,7 +73,7 @@ export type BillingAccount = Message<"ai.stigmer.billing.v1.BillingAccount"> & {
   stripeCustomerId: string;
 
   /**
-   * Maximum negative balance allowed before hard-stopping executions.
+   * Maximum negative balance allowed before hard-stopping runs.
    * Free orgs: 0. Paid orgs: typically 2_000_000 ($2.00). Enterprise: contract-specific.
    *
    * @generated from field: int64 allowed_negative_balance_micros = 7;
@@ -131,7 +131,7 @@ export type CreditBalance = Message<"ai.stigmer.billing.v1.CreditBalance"> & {
   availableMicros: bigint;
 
   /**
-   * Credits held by active execution reservations.
+   * Credits held by active run reservations.
    *
    * @generated from field: int64 reserved_micros = 2;
    */

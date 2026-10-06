@@ -38,11 +38,11 @@ import {
   plaintextKeyOf,
 } from "../support/apikeys";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { makeAgentExecution } from "../support/agentexecutions";
+import { makeAgentExecution } from "../support/agentruns";
 import { makeEnvironment } from "../support/environments";
 import { makeMcpServer } from "../support/mcpservers";
 import { makeWorkflow } from "../support/workflows";
-import { makeWorkflowExecution } from "../support/workflowexecutions";
+import { makeWorkflowExecution } from "../support/workflowruns";
 import { organizationRole, policyTriple, ref } from "../support/iampolicies";
 import { uniqueName } from "../support/naming";
 import {
@@ -495,7 +495,7 @@ describe("credential binding — a credential that names an organization works t
     );
   });
 
-  it("[rpc:WorkflowExecutionCommandController.create] a key limited to A files no run and opens no connect in B, even with A's own workflow, agent or MCP server", async (ctx) => {
+  it("[rpc:WorkflowRunCommandController.create] a key limited to A files no run and opens no connect in B, even with A's own workflow, agent or MCP server", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const a = await tenancy(on);
@@ -626,7 +626,7 @@ describe("credential binding — a credential that names an organization works t
     ).toBe(await outcomeOf(person));
   });
 
-  it("[rpc:WorkflowExecutionCommandController.create] a run filed in A cannot name B's workflow: its run credential, bound to A, could not read it", async (ctx) => {
+  it("[rpc:WorkflowRunCommandController.create] a run filed in A cannot name B's workflow: its run credential, bound to A, could not read it", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const a = await tenancy(on);

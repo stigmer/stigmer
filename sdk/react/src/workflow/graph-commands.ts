@@ -1521,7 +1521,7 @@ function setAtPath(current: Record<string, unknown> | unknown[], keys: string[],
  * Toggles the `disabled` flag on a graph node.
  *
  * Disabled nodes are visually dimmed on the canvas and skipped during
- * execution. The flag round-trips as `x-stigmer-disabled: true` in YAML.
+ * run. The flag round-trips as `x-stigmer-disabled: true` in YAML.
  */
 export class ToggleNodeDisabledCommand implements GraphCommand {
   readonly type = "toggle_node_disabled";

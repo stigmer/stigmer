@@ -40,12 +40,12 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   ApprovalAction,
-  ExecutionPhase,
+  RunPhase,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -160,11 +160,11 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
     expect(hookDecisions, "the real hook denied the gated shell call").toEqual(["deny"]);
     expect(turn1.outcome.kind, "an approval pause RETURNS to the workflow").toBe("returned");
     expect((turn1.outcome as { value: Record<string, unknown> }).value.phase).toBe(
-      "EXECUTION_WAITING_FOR_APPROVAL",
+      "RUN_WAITING_FOR_APPROVAL",
     );
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
     ]);
     expect(agent.runs[0].cancelCalls, "the first denial cancels the run exactly once").toHaveLength(1);
     expect(agent.closeCalls, "the agent is parked for the resume, not closed").toBe(0);
@@ -181,7 +181,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
     // The model's post-denial narration never reaches the user as fact.
     expect(record.status?.messages.some((m) => m.content === "The build was blocked.")).toBe(false);
 
-    const turn1Json = JSON.stringify(toJson(AgentExecutionStatusSchema, record.lastFullStatus!), null, 2) + "\n";
+    const turn1Json = JSON.stringify(toJson(AgentRunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(turn1Json).toMatchFileSnapshot("./goldens/deny-and-retry.turn1.status.json");
 
     // ── The user approves (the server's SubmitApproval effect on the row) ────
@@ -195,13 +195,13 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
     expect(hookDecisions, "the SAME hook allows the approved re-issue").toEqual(["deny", "allow"]);
     expect(turn2.outcome.kind).toBe("returned");
     const slim2 = (turn2.outcome as { value: Record<string, unknown> }).value;
-    expect(slim2.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim2.phase).toBe("RUN_COMPLETED");
     expect(slim2.final_text).toBe(FINAL_TEXT);
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_COMPLETED,
     ]);
 
     // #215: the resume checks the parked agent out of the session cache; the
@@ -225,7 +225,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
-    const turn2Json = JSON.stringify(toJson(AgentExecutionStatusSchema, record.lastFullStatus!), null, 2) + "\n";
+    const turn2Json = JSON.stringify(toJson(AgentRunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(turn2Json).toMatchFileSnapshot("./goldens/deny-and-retry.turn2.status.json");
   });
 });

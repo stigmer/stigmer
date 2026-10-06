@@ -1,6 +1,6 @@
 // In-process test for the workflow query tools: the task-kind
-// registry pair (get_task_kind_registry, get_task_kind) and the execution pair
-// (get_workflow_execution, get_workflow_execution_events). Verifies registry
+// registry pair (get_task_kind_registry, get_task_kind) and the run pair
+// (get_workflow_run, get_workflow_run_events). Verifies registry
 // selection (case-insensitive), the required-field and not-found errors, and
 // that page_size is forwarded only when set.
 
@@ -22,12 +22,12 @@ import {
   TaskKindDescriptorSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_descriptor_pb";
 import { TaskKindRegistryQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_registry_query_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
   type GetEventLogRequest,
   GetEventLogResponseSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../../../logger";
@@ -41,12 +41,12 @@ const registry = create(GetTaskKindRegistryResponseSchema, {
     create(TaskKindDescriptorSchema, { kind: WorkflowTaskKind.for_each }),
   ],
 });
-const execution = create(WorkflowExecutionSchema, { apiVersion: "v1", kind: "workflow_execution" });
+const run = create(WorkflowRunSchema, { apiVersion: "v1", kind: "WorkflowRun" });
 const eventLog = create(GetEventLogResponseSchema, {});
 
 let backend: Http2Server;
 let client: Client;
-let lastExecutionId: string | undefined;
+let lastRunId: string | undefined;
 let lastEventReq: GetEventLogRequest | undefined;
 const openSessions = new Set<ServerHttp2Session>();
 
@@ -62,10 +62,10 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
     router.service(TaskKindRegistryQueryController, { getTaskKindRegistry: () => registry });
-    router.service(WorkflowExecutionQueryController, {
+    router.service(WorkflowRunQueryController, {
       get: (req) => {
-        lastExecutionId = req.value;
-        return execution;
+        lastRunId = req.value;
+        return run;
       },
       getEventLog: (req) => {
         lastEventReq = req;
@@ -122,27 +122,27 @@ describe("workflow query tools integration", () => {
     expect(result.content[0]?.text).toContain('task kind "does_not_exist" not found in registry');
   });
 
-  it("get_workflow_execution requires an execution_id", async () => {
-    const result = await callTool("get_workflow_execution", { execution_id: "" });
+  it("get_workflow_run requires a run_id", async () => {
+    const result = await callTool("get_workflow_run", { run_id: "" });
     expect(result.isError).toBe(true);
-    expect(result.content[0]?.text).toContain("execution_id is required");
+    expect(result.content[0]?.text).toContain("run_id is required");
   });
 
-  it("get_workflow_execution forwards the id and returns the execution", async () => {
-    const result = await callTool("get_workflow_execution", { execution_id: "wex_123" });
+  it("get_workflow_run forwards the id and returns the run", async () => {
+    const result = await callTool("get_workflow_run", { run_id: "wex_123" });
     expect(result.isError).toBeFalsy();
-    expect(lastExecutionId).toBe("wex_123");
+    expect(lastRunId).toBe("wex_123");
     expect(JSON.parse(result.content[0]?.text ?? "{}")).toEqual(
-      toJson(WorkflowExecutionSchema, execution, { useProtoFieldName: true }),
+      toJson(WorkflowRunSchema, run, { useProtoFieldName: true }),
     );
   });
 
-  it("get_workflow_execution_events forwards page_size only when set", async () => {
-    await callTool("get_workflow_execution_events", { execution_id: "wex_123", task_name: "build" });
+  it("get_workflow_run_events forwards page_size only when set", async () => {
+    await callTool("get_workflow_run_events", { run_id: "wex_123", task_name: "build" });
     expect(lastEventReq?.taskName).toBe("build");
     expect(lastEventReq?.pageSize).toBe(0);
 
-    await callTool("get_workflow_execution_events", { execution_id: "wex_123", page_size: 50 });
+    await callTool("get_workflow_run_events", { run_id: "wex_123", page_size: 50 });
     expect(lastEventReq?.pageSize).toBe(50);
   });
 });

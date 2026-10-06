@@ -39,7 +39,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { HumanMessage, type BaseMessage } from "@langchain/core/messages";
 import { create } from "@bufbuild/protobuf";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -226,10 +226,10 @@ describe("ExecuteDeepAgent hermetic — concurrent invocations of one sub-agent"
 
     expect(invocation.outcome.kind).toBe("returned");
     expect(record.persistedPhases, "the run completes").toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_COMPLETED,
     ]);
-    expect(record.lastFullStatus!.subAgentExecutions, "one row per invocation").toHaveLength(2);
+    expect(record.lastFullStatus!.subAgentRuns, "one row per invocation").toHaveLength(2);
     return { root, helpers };
   }
 

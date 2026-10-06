@@ -130,9 +130,9 @@ public enum ApiResourceKind
    * Single run of an agent within a session, tracking tool calls and responses.
    * </pre>
    *
-   * <code>agent_execution = 41 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>agent_run = 41 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  agent_execution(41),
+  agent_run(41),
   /**
    * <pre>
    * Conversation thread between a user and an agent.
@@ -195,12 +195,12 @@ public enum ApiResourceKind
    * Single run of a workflow, tracking step progress and outcomes.
    * </pre>
    *
-   * <code>workflow_execution = 52 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>workflow_run = 52 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  workflow_execution(52),
+  workflow_run(52),
   /**
    * <pre>
-   * Named set of variables and secrets for agent and workflow execution.
+   * Named set of variables and secrets for agent and workflow run.
    * </pre>
    *
    * <code>environment = 53 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -208,7 +208,7 @@ public enum ApiResourceKind
   environment(53),
   /**
    * <pre>
-   * Persisted blob produced during workflow or agent execution.
+   * Persisted blob produced during workflow or agent run.
    * </pre>
    *
    * <code>artifact = 55 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -414,9 +414,9 @@ public enum ApiResourceKind
    * Single run of an agent within a session, tracking tool calls and responses.
    * </pre>
    *
-   * <code>agent_execution = 41 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>agent_run = 41 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  public static final int agent_execution_VALUE = 41;
+  public static final int agent_run_VALUE = 41;
   /**
    * <pre>
    * Conversation thread between a user and an agent.
@@ -479,12 +479,12 @@ public enum ApiResourceKind
    * Single run of a workflow, tracking step progress and outcomes.
    * </pre>
    *
-   * <code>workflow_execution = 52 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>workflow_run = 52 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  public static final int workflow_execution_VALUE = 52;
+  public static final int workflow_run_VALUE = 52;
   /**
    * <pre>
-   * Named set of variables and secrets for agent and workflow execution.
+   * Named set of variables and secrets for agent and workflow run.
    * </pre>
    *
    * <code>environment = 53 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -492,7 +492,7 @@ public enum ApiResourceKind
   public static final int environment_VALUE = 53;
   /**
    * <pre>
-   * Persisted blob produced during workflow or agent execution.
+   * Persisted blob produced during workflow or agent run.
    * </pre>
    *
    * <code>artifact = 55 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -610,7 +610,7 @@ public enum ApiResourceKind
       case 30: return organization;
       case 31: return platform;
       case 40: return agent;
-      case 41: return agent_execution;
+      case 41: return agent_run;
       case 42: return session;
       case 43: return skill;
       case 44: return mcp_server;
@@ -618,7 +618,7 @@ public enum ApiResourceKind
       case 47: return agent_channel;
       case 48: return channel_app;
       case 50: return workflow;
-      case 52: return workflow_execution;
+      case 52: return workflow_run;
       case 53: return environment;
       case 55: return artifact;
       case 54: return execution_context;

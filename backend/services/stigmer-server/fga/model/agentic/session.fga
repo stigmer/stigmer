@@ -15,7 +15,7 @@ module agentic
 # (the AuthorizeRunTarget and AuthorizeRunAgent steps).
 #
 # Sharing a session requires explicit viewer grants per-session.
-# Agent executions inherit permissions from their parent session.
+# Agent runs inherit permissions from their parent session.
 #
 # Default access:
 # - Owner (creator) can view/edit/delete
@@ -27,8 +27,8 @@ module agentic
 # (Slack/WhatsApp turns, owned by the per-org system-channel account) carry
 # a single session#channel@agent_channel:<id> tuple and inherit the parent
 # channel's viewer set (connector + org admins) into can_view ONLY. The
-# channel link deliberately bypasses `viewer` so channel observers never gain can_create_execution_in (injecting a console
-# message into a live external conversation would run an execution whose
+# channel link deliberately bypasses `viewer` so channel observers never gain can_create_run_in (injecting a console
+# message into a live external conversation would start a run whose
 # reply never reaches the channel). Console sessions never get a channel
 # tuple, so the personal-resource invariant above is untouched.
 #
@@ -42,7 +42,7 @@ module agentic
 # console message into an unattended run is not observability. Console
 # sessions never get a schedule tuple.
 #
-# Deletion cascades to the session's agent executions. The billing trail is
+# Deletion cascades to the session's agent runs. The billing trail is
 # unaffected: llm_call_usage_record rows are immutable and carry their own
 # denormalized copies of session/execution/org identifiers (owners may
 # delete their own sessions since 2026-07-08).
@@ -68,7 +68,7 @@ type session
     # JWT's channel_id claim, never derived from the client-suppliable
     # stigmer.ai/channel-id label. Composes the channel's viewer set
     # (connector + org admins) into can_view below — and ONLY can_view, so
-    # channel observers cannot inject executions, edit, delete, or manage
+    # channel observers cannot inject runs, edit, delete, or manage
     # grants. Console sessions never carry this tuple.
     define channel: [agent_channel]
 
@@ -80,7 +80,7 @@ type session
     # JWT's schedule_id claim, never derived from the client-suppliable
     # stigmer.ai/schedule-id label. Composes the schedule's viewer set
     # (creator + org admins + grantees) into can_view below — and ONLY
-    # can_view, so schedule observers cannot inject executions into an
+    # can_view, so schedule observers cannot inject runs into an
     # unattended run. Console sessions never carry this tuple.
     define schedule: [schedule]
 
@@ -101,7 +101,7 @@ type session
     # ========================================
     # can_view adds `viewer from channel` (channel sessions only) and
     # `viewer from schedule` (schedule sessions only) WITHOUT widening
-    # `viewer`, because can_create_execution_in and can_view_access derive
+    # `viewer`, because can_create_run_in and can_view_access derive
     # from viewer — runtime-surface observability must stay read-only.
     define can_view: viewer or viewer from channel or viewer from schedule
     define can_edit: owner
@@ -110,7 +110,7 @@ type session
     # ========================================
     # SESSION INTERACTION
     # ========================================
-    define can_create_execution_in: viewer
+    define can_create_run_in: viewer
     
     # ========================================
     # IAM POLICY MANAGEMENT

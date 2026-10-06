@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
-  ExecutionArtifactKind,
+  RunArtifactKind,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { ArtifactStorage } from "../artifact-storage.js";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import {
@@ -35,7 +35,7 @@ function planId(text: string): string {
 }
 
 function statusWith(...messages: { type: MessageType; content: string }[]) {
-  return create(AgentExecutionStatusSchema, {
+  return create(AgentRunStatusSchema, {
     messages: messages.map((m) =>
       create(AgentMessageSchema, { type: m.type, content: m.content }),
     ),
@@ -145,7 +145,7 @@ describe("isPlanArtifactName", () => {
 
 describe("publishPlanArtifact", () => {
   it("uploads the named plan and registers a FILE artifact on the status", async () => {
-    const status = create(AgentExecutionStatusSchema, {});
+    const status = create(AgentRunStatusSchema, {});
     const storage = fakeStorage();
 
     const planText = "# Plan Card UX Cleanup\n1. step one\n2. step two\n";
@@ -165,7 +165,7 @@ describe("publishPlanArtifact", () => {
     const artifact = status.artifacts[0];
     expect(artifact.name).toBe(name);
     expect(artifact.sandboxPath).toBe(`.stigmer/plans/${name}`);
-    expect(artifact.kind).toBe(ExecutionArtifactKind.FILE);
+    expect(artifact.kind).toBe(RunArtifactKind.FILE);
     expect(artifact.storageKey).toBe(`artifacts/aex_123/${name}`);
     expect(artifact.sizeBytes).toBeGreaterThan(0n);
     expect(artifact.contentHash).toHaveLength(64);
@@ -174,7 +174,7 @@ describe("publishPlanArtifact", () => {
   });
 
   it("uses a bare <id>.plan.md name for a titleless plan (never the legacy plan.md)", async () => {
-    const status = create(AgentExecutionStatusSchema, {});
+    const status = create(AgentRunStatusSchema, {});
     const storage = fakeStorage();
 
     const planText = "just a paragraph, no heading";
@@ -192,7 +192,7 @@ describe("publishPlanArtifact", () => {
   });
 
   it("is a no-op for empty plan text (nothing to publish)", async () => {
-    const status = create(AgentExecutionStatusSchema, {});
+    const status = create(AgentRunStatusSchema, {});
     const storage = fakeStorage();
 
     await publishPlanArtifact({
@@ -207,7 +207,7 @@ describe("publishPlanArtifact", () => {
   });
 
   it("replaces an existing plan rather than appending a duplicate", async () => {
-    const status = create(AgentExecutionStatusSchema, {});
+    const status = create(AgentRunStatusSchema, {});
     const storage = fakeStorage();
 
     await publishPlanArtifact({ status, executionId: "aex_re", planText: "v1", artifactStorage: storage });
@@ -226,7 +226,7 @@ describe("publishPlanArtifact", () => {
   });
 
   it("replaces a prior plan even when the derived name changed (predicate match)", async () => {
-    const status = create(AgentExecutionStatusSchema, {});
+    const status = create(AgentRunStatusSchema, {});
     const storage = fakeStorage();
 
     await publishPlanArtifact({
@@ -248,7 +248,7 @@ describe("publishPlanArtifact", () => {
   });
 
   it("never throws when the upload fails (publish is non-fatal)", async () => {
-    const status = create(AgentExecutionStatusSchema, {});
+    const status = create(AgentRunStatusSchema, {});
     const { storage: failing } = makeInMemoryArtifactStorage();
     failing.upload.mockImplementation(async () => { throw new Error("network down"); });
 

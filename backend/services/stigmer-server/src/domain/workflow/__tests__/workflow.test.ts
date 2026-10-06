@@ -17,7 +17,7 @@
  *   - audit rows SURVIVE workflow delete (execution viewers need them,
  *     oss#582);
  *   - run visibility: stored at create, kept by update and apply, changed
- *     by updateExecutionVisibility alone, and never a version;
+ *     by updateRunVisibility alone, and never a version;
  *   - an agent_call that names its organization by slug saves through the
  *     create and update chains, stored by the organization's id.
  */
@@ -36,7 +36,7 @@ import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/a
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -113,7 +113,7 @@ function workflowInput(overrides?: {
   tag?: string;
   description?: string;
   env?: Record<string, { isSecret?: boolean; optional?: boolean }>;
-  executionVisibility?: WorkflowExecutionVisibility;
+  runVisibility?: WorkflowRunVisibility;
 }) {
   counter += 1;
   const name = overrides?.name ?? `Test Workflow ${counter}`;
@@ -134,9 +134,9 @@ function workflowInput(overrides?: {
     spec: {
       description: overrides?.description ?? "",
       env: overrides?.env ?? {},
-      executionVisibility:
-        overrides?.executionVisibility ??
-        WorkflowExecutionVisibility.unspecified,
+      runVisibility:
+        overrides?.runVisibility ??
+        WorkflowRunVisibility.unspecified,
       document: {
         dsl: "1.0.0",
         namespace: "tests",
@@ -440,31 +440,31 @@ describe("validateSpec (persist-free verdicts)", () => {
   });
 });
 
-describe("run visibility (spec.execution_visibility)", () => {
-  it("is stored at create, changed by updateExecutionVisibility alone, and never mints a version", async () => {
+describe("run visibility (spec.run_visibility)", () => {
+  it("is stored at create, changed by updateRunVisibility alone, and never mints a version", async () => {
     const created = await command.create(
       workflowInput({
-        executionVisibility: WorkflowExecutionVisibility.organization,
+        runVisibility: WorkflowRunVisibility.organization,
       }),
     );
     const id = created.metadata!.id;
-    expect(created.spec?.executionVisibility).toBe(
-      WorkflowExecutionVisibility.organization,
+    expect(created.spec?.runVisibility).toBe(
+      WorkflowRunVisibility.organization,
     );
 
-    const updated = await command.updateExecutionVisibility({
+    const updated = await command.updateRunVisibility({
       resourceId: id,
-      executionVisibility: WorkflowExecutionVisibility.private,
+      runVisibility: WorkflowRunVisibility.private,
     });
-    expect(updated.spec?.executionVisibility).toBe(
-      WorkflowExecutionVisibility.private,
+    expect(updated.spec?.runVisibility).toBe(
+      WorkflowRunVisibility.private,
     );
     expect(updated.status?.versionHash).toBe(created.status?.versionHash);
     expect(await auditCount(id)).toBe(1);
 
     const reloaded = await query.get({ value: id });
-    expect(reloaded.spec?.executionVisibility).toBe(
-      WorkflowExecutionVisibility.private,
+    expect(reloaded.spec?.runVisibility).toBe(
+      WorkflowRunVisibility.private,
     );
   });
 
@@ -472,34 +472,34 @@ describe("run visibility (spec.execution_visibility)", () => {
     const name = `Audience ${++counter}`;
     const created = await command.apply(workflowInput({ name }));
     const id = created.metadata!.id;
-    await command.updateExecutionVisibility({
+    await command.updateRunVisibility({
       resourceId: id,
-      executionVisibility: WorkflowExecutionVisibility.organization,
+      runVisibility: WorkflowRunVisibility.organization,
     });
 
     // A manifest re-applied without the field, and one carrying a stale
     // level, both keep what the door set.
     const reapplied = await command.apply(workflowInput({ name }));
-    expect(reapplied.spec?.executionVisibility).toBe(
-      WorkflowExecutionVisibility.organization,
+    expect(reapplied.spec?.runVisibility).toBe(
+      WorkflowRunVisibility.organization,
     );
     const stale = workflowInput({
       name,
-      executionVisibility: WorkflowExecutionVisibility.private,
+      runVisibility: WorkflowRunVisibility.private,
       variables: { greeting: "changed" },
     });
     stale.metadata!.id = id;
     const updated = await command.update(stale);
-    expect(updated.spec?.executionVisibility).toBe(
-      WorkflowExecutionVisibility.organization,
+    expect(updated.spec?.runVisibility).toBe(
+      WorkflowRunVisibility.organization,
     );
   });
 
   it("an unknown workflow answers NotFound", async () => {
     const err = await command
-      .updateExecutionVisibility({
+      .updateRunVisibility({
         resourceId: "wfl_missing",
-        executionVisibility: WorkflowExecutionVisibility.organization,
+        runVisibility: WorkflowRunVisibility.organization,
       })
       .then(() => undefined)
       .catch((e: unknown) => e);

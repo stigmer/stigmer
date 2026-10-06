@@ -36,11 +36,11 @@ attempt_errored: ChannelAttemptFailureKind
 attempt_withdrawn: ChannelAttemptFailureKind
 
 class ChannelDelivery(_message.Message):
-    __slots__ = ("delivery_id", "agent_channel_id", "org", "execution_id", "session_id", "conversation_key", "external_user_key", "status", "attempts", "last_error", "idempotency_key", "slack", "whatsapp", "created_at", "updated_at", "next_attempt_at", "reply_text", "failure_kind", "attempt_detail")
+    __slots__ = ("delivery_id", "agent_channel_id", "org", "run_id", "session_id", "conversation_key", "external_user_key", "status", "attempts", "last_error", "idempotency_key", "slack", "whatsapp", "created_at", "updated_at", "next_attempt_at", "reply_text", "failure_kind", "attempt_detail")
     DELIVERY_ID_FIELD_NUMBER: _ClassVar[int]
     AGENT_CHANNEL_ID_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     CONVERSATION_KEY_FIELD_NUMBER: _ClassVar[int]
     EXTERNAL_USER_KEY_FIELD_NUMBER: _ClassVar[int]
@@ -59,7 +59,7 @@ class ChannelDelivery(_message.Message):
     delivery_id: str
     agent_channel_id: str
     org: str
-    execution_id: str
+    run_id: str
     session_id: str
     conversation_key: str
     external_user_key: str
@@ -75,7 +75,7 @@ class ChannelDelivery(_message.Message):
     reply_text: str
     failure_kind: ChannelAttemptFailureKind
     attempt_detail: str
-    def __init__(self, delivery_id: _Optional[str] = ..., agent_channel_id: _Optional[str] = ..., org: _Optional[str] = ..., execution_id: _Optional[str] = ..., session_id: _Optional[str] = ..., conversation_key: _Optional[str] = ..., external_user_key: _Optional[str] = ..., status: _Optional[_Union[ChannelDeliveryStatus, str]] = ..., attempts: _Optional[int] = ..., last_error: _Optional[str] = ..., idempotency_key: _Optional[str] = ..., slack: _Optional[_Union[SlackDeliveryContext, _Mapping]] = ..., whatsapp: _Optional[_Union[WhatsAppDeliveryContext, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., next_attempt_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., reply_text: _Optional[str] = ..., failure_kind: _Optional[_Union[ChannelAttemptFailureKind, str]] = ..., attempt_detail: _Optional[str] = ...) -> None: ...
+    def __init__(self, delivery_id: _Optional[str] = ..., agent_channel_id: _Optional[str] = ..., org: _Optional[str] = ..., run_id: _Optional[str] = ..., session_id: _Optional[str] = ..., conversation_key: _Optional[str] = ..., external_user_key: _Optional[str] = ..., status: _Optional[_Union[ChannelDeliveryStatus, str]] = ..., attempts: _Optional[int] = ..., last_error: _Optional[str] = ..., idempotency_key: _Optional[str] = ..., slack: _Optional[_Union[SlackDeliveryContext, _Mapping]] = ..., whatsapp: _Optional[_Union[WhatsAppDeliveryContext, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., next_attempt_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., reply_text: _Optional[str] = ..., failure_kind: _Optional[_Union[ChannelAttemptFailureKind, str]] = ..., attempt_detail: _Optional[str] = ...) -> None: ...
 
 class SlackDeliveryContext(_message.Message):
     __slots__ = ("channel_id", "thread_ts", "placeholder_ts")

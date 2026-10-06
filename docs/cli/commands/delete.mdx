@@ -8,9 +8,9 @@ description: delete a resource by type and reference (slug, org/slug, or ID)
 
 Delete a resource from the Stigmer backend.
 
-`stigmer delete` permanently removes a resource by type and reference. For
-running executions, delete gracefully cancels the agent. This operation cannot
-be undone.
+`stigmer delete` permanently removes a resource by type and reference. For a run
+in progress, delete gracefully cancels the agent. This operation cannot be
+undone.
 
 ## Usage
 
@@ -27,8 +27,8 @@ stigmer delete agent my-agent
 # Delete a workflow by ID
 stigmer delete workflow wfl_abc123
 
-# Cancel a running execution
-stigmer delete execution aex_01abc123
+# Cancel a run in progress
+stigmer delete run aex_01abc123
 
 # Skip the confirmation prompt
 stigmer delete agent my-agent --force
@@ -51,9 +51,9 @@ stigmer delete agent my-agent --force
 | API Key       | `apikey`, `key`                        | Revokes the key; callers using it are cut off immediately                                                       |
 | Channel App   | `channel-app`, `channelapp`, `chapp`   | Permanently deletes the app and its stored provider secrets                                                     |
 | Environment   | `environment`, `env`, `environments`   | Permanently deletes the environment and its values                                                              |
-| Execution     | `execution`, `exec`                    | Gracefully cancels a running execution                                                                          |
 | MCP Server    | `mcpserver`, `mcp`, `mcp-server`       | Permanently deletes the MCP server                                                                              |
 | Organization  | `organization`, `org`, `organizations` | Deletes the organization at once and everything it owned in the background; its slug is free when that finishes |
+| Run           | `run`, `runs`                          | Gracefully cancels a run in progress                                                                            |
 | Schedule      | `schedule`, `sch`, `schedules`         | Permanently deletes the schedule and tears down its firing clock                                                |
 | Skill         | `skill`, `skills`                      | Permanently deletes the skill                                                                                   |
 | Workflow      | `workflow`, `wf`, `workflows`          | Permanently deletes the workflow                                                                                |
@@ -82,10 +82,10 @@ stigmer delete agent my-agent
 You are prompted to confirm. The agent and all its versions are permanently
 removed.
 
-### Cancel a running execution
+### Cancel a run in progress
 
 ```bash
-stigmer delete execution aex_01abc123
+stigmer delete run aex_01abc123
 ```
 
 The running agent receives a graceful cancellation signal.

@@ -1,6 +1,6 @@
 /**
  * Pins who may CREATE a transcript row: an `AgentMessage`, a `ToolCall` or a
- * `SubAgentExecution` on the execution status. Two writers, and no third:
+ * `SubAgentRun` on the execution status. Two writers, and no third:
  *
  *  - `src/harness/transcript/` — the one transcript builder, which every
  *    harness folds its engine's events through (`TurnSink.transcript`);

@@ -1,0 +1,336 @@
+// In-process test for the `runs` group resources.
+//
+// Stands up a real Connect backend over h2c serving the agent + workflow
+// run query and command controllers (including the server-streaming
+// subscribe / subscribeEvents methods), points an SDK node client at it, and
+// drives the resource layer end to end: lifecycle control, approval submission
+// (asserting the comment carry and the unset reviewer), trace rendering, and
+// log streaming (workflow event stream + agent snapshot diffing). The ids
+// `wex_empty` and `aex_empty` read back a run with nothing recorded, for the
+// logs' empty-run lines.
+
+import { create } from "@bufbuild/protobuf";
+import type { ConnectRouter } from "@connectrpc/connect";
+import { connectNodeAdapter } from "@connectrpc/connect-node";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
+import { RunPhase as WorkflowRunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import {
+  GetEventLogResponseSchema,
+  type SubmitWorkflowTaskApprovalInput,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import {
+  WorkflowRunEventSchema,
+  WorkflowEventType,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
+import type { Stigmer } from "@stigmer/sdk";
+import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
+import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
+import type { AddressInfo } from "node:net";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { approveAgentToolCall, approveWorkflowTask } from "../run-approve.js";
+import { cancelRun, pauseRun, resumeRun, terminateRun } from "../run-control.js";
+import { streamRunLogs } from "../run-logs.js";
+import { traceRun } from "../run-trace.js";
+
+let backend: Http2Server;
+let client: Stigmer;
+const openSessions = new Set<ServerHttp2Session>();
+
+// Spies for the command-side calls, reset per test.
+let agentControl: { verb: string; id: string; reason: string }[] = [];
+let workflowControl: { verb: string; id: string; reason: string }[] = [];
+let agentApproval: SubmitApprovalInput[] = [];
+let workflowApproval: SubmitWorkflowTaskApprovalInput[] = [];
+
+beforeEach(() => {
+  agentControl = [];
+  workflowControl = [];
+  agentApproval = [];
+  workflowApproval = [];
+});
+
+// A workflow run with two tasks (one done, one failed) for the trace view.
+const workflowExec = create(WorkflowRunSchema, {
+  metadata: { id: "wex_1", name: "Deploy" },
+  status: {
+    phase: WorkflowRunPhase.RUN_COMPLETED,
+    startedAt: "2026-06-12T10:00:00Z",
+    completedAt: "2026-06-12T10:01:30Z",
+    tasks: [
+      { taskName: "build", status: 3, taskType: 1, startedAt: "2026-06-12T10:00:00Z", completedAt: "2026-06-12T10:00:30Z" },
+      { taskName: "ship", status: 4, taskType: 1, error: "registry down" },
+    ],
+  },
+});
+
+// An agent run carrying two messages for the agent log + trace views.
+const agentExec = create(AgentRunSchema, {
+  metadata: { id: "aex_1", name: "Reviewer" },
+  status: {
+    phase: RunPhase.RUN_COMPLETED,
+    startedAt: "2026-06-12T10:00:00Z",
+    completedAt: "2026-06-12T10:00:20Z",
+    messages: [
+      { type: MessageType.MESSAGE_HUMAN, content: "do it" },
+      { type: MessageType.MESSAGE_AI, content: "done", toolCalls: [{ name: "Shell", result: "ok" }] },
+    ],
+  },
+});
+
+function controlResult(phase: RunPhase) {
+  return create(AgentRunSchema, { metadata: { id: "aex_1" }, status: { phase } });
+}
+function workflowControlResult(phase: WorkflowRunPhase) {
+  return create(WorkflowRunSchema, { metadata: { id: "wex_1" }, status: { phase } });
+}
+
+beforeAll(async () => {
+  const routes = (router: ConnectRouter) => {
+    router.service(AgentRunQueryController, {
+      get: (req) =>
+        req.value === "aex_empty" ? create(AgentRunSchema, { metadata: { id: "aex_empty" }, status: {} }) : agentExec,
+      subscribe: async function* () {
+        yield create(AgentRunSchema, {
+          metadata: { id: "aex_1" },
+          status: { phase: RunPhase.RUN_IN_PROGRESS, messages: [{ type: MessageType.MESSAGE_AI, content: "thinking" }] },
+        });
+        yield create(AgentRunSchema, {
+          metadata: { id: "aex_1" },
+          status: {
+            phase: RunPhase.RUN_COMPLETED,
+            messages: [
+              { type: MessageType.MESSAGE_AI, content: "thinking" },
+              { type: MessageType.MESSAGE_AI, content: "final answer" },
+            ],
+          },
+        });
+      },
+    });
+    router.service(AgentRunCommandController, {
+      cancel: (req) => (agentControl.push({ verb: "cancel", id: req.id, reason: req.reason }), controlResult(RunPhase.RUN_CANCELLED)),
+      terminate: (req) => (agentControl.push({ verb: "terminate", id: req.id, reason: req.reason }), controlResult(RunPhase.RUN_TERMINATED)),
+      pause: (req) => (agentControl.push({ verb: "pause", id: req.id, reason: req.reason }), controlResult(RunPhase.RUN_PAUSED)),
+      resume: (req) => (agentControl.push({ verb: "resume", id: req.id, reason: "" }), controlResult(RunPhase.RUN_IN_PROGRESS)),
+      submitApproval: (req) => (agentApproval.push(req), agentExec),
+    });
+
+    router.service(WorkflowRunQueryController, {
+      get: () => workflowExec,
+      getEventLog: (req) =>
+        req.runId === "wex_empty" ? create(GetEventLogResponseSchema, {}) : create(GetEventLogResponseSchema, {
+          hasMore: true,
+          events: [
+            create(WorkflowRunEventSchema, {
+              eventType: WorkflowEventType.run_started,
+              occurredAt: "2026-06-12T10:00:00Z",
+              payload: { case: "runStarted", value: {} as never },
+            }),
+          ],
+        }),
+      subscribeEvents: async function* () {
+        yield create(WorkflowRunEventSchema, {
+          eventType: WorkflowEventType.task_started,
+          occurredAt: "2026-06-12T10:00:01Z",
+          taskName: "build",
+          payload: { case: "taskStarted", value: {} as never },
+        });
+        yield create(WorkflowRunEventSchema, {
+          eventType: WorkflowEventType.task_completed,
+          occurredAt: "2026-06-12T10:00:05Z",
+          taskName: "other",
+          payload: { case: "taskCompleted", value: {} as never },
+        });
+      },
+    });
+    router.service(WorkflowRunCommandController, {
+      cancel: (req) => (workflowControl.push({ verb: "cancel", id: req.id, reason: req.reason }), workflowControlResult(WorkflowRunPhase.RUN_CANCELLED)),
+      terminate: (req) => (workflowControl.push({ verb: "terminate", id: req.id, reason: req.reason }), workflowControlResult(WorkflowRunPhase.RUN_TERMINATED)),
+      pause: (req) => (workflowControl.push({ verb: "pause", id: req.id, reason: req.reason }), workflowControlResult(WorkflowRunPhase.RUN_PAUSED)),
+      resume: (req) => (workflowControl.push({ verb: "resume", id: req.id, reason: "" }), workflowControlResult(WorkflowRunPhase.RUN_IN_PROGRESS)),
+      submitWorkflowTaskApproval: (req) => (workflowApproval.push(req), workflowExec),
+    });
+  };
+
+  backend = createHttp2Server(connectNodeAdapter({ routes }));
+  backend.on("session", (session) => {
+    openSessions.add(session);
+    session.on("close", () => openSessions.delete(session));
+  });
+  await new Promise<void>((resolve) => backend.listen(0, "127.0.0.1", resolve));
+  const port = (backend.address() as AddressInfo).port;
+  client = createNodeClient({ baseUrl: normalizeEndpoint(`127.0.0.1:${port}`) });
+});
+
+afterAll(async () => {
+  for (const session of openSessions) session.destroy();
+  await new Promise<void>((resolve) => backend.close(() => resolve()));
+});
+
+describe("lifecycle control", () => {
+  it("cancels an agent run and reports the phase", async () => {
+    const result = await cancelRun(client, "aex_1", "no longer needed");
+    expect(result).toEqual({ type: "agent", phase: "cancelled" });
+    expect(agentControl).toEqual([{ verb: "cancel", id: "aex_1", reason: "no longer needed" }]);
+  });
+
+  it("terminates / pauses an agent run", async () => {
+    expect((await terminateRun(client, "aex_1", "stuck")).phase).toBe("terminated");
+    expect((await pauseRun(client, "aex_1", "")).phase).toBe("paused");
+    expect(agentControl.map((c) => c.verb)).toEqual(["terminate", "pause"]);
+  });
+
+  it("cancels / resumes a workflow run", async () => {
+    expect((await cancelRun(client, "wex_1", "")).phase).toBe("cancelled");
+    expect((await resumeRun(client, "wex_1")).phase).toBe("running");
+    expect(workflowControl.map((c) => c.verb)).toEqual(["cancel", "resume"]);
+  });
+
+  it("terminates / pauses a workflow run, carrying the reason", async () => {
+    expect(await terminateRun(client, "wex_1", "stuck")).toEqual({ type: "workflow", phase: "terminated" });
+    expect(await pauseRun(client, "wex_1", "maintenance")).toEqual({ type: "workflow", phase: "paused" });
+    expect(workflowControl).toEqual([
+      { verb: "terminate", id: "wex_1", reason: "stuck" },
+      { verb: "pause", id: "wex_1", reason: "maintenance" },
+    ]);
+    expect(agentControl).toEqual([]);
+  });
+
+  it("resumes an agent run", async () => {
+    expect(await resumeRun(client, "aex_1")).toEqual({ type: "agent", phase: "running" });
+    expect(agentControl).toEqual([{ verb: "resume", id: "aex_1", reason: "" }]);
+    expect(workflowControl).toEqual([]);
+  });
+});
+
+describe("approval submission", () => {
+  it("carries --comment onto the agent SubmitApprovalInput", async () => {
+    await approveAgentToolCall(client, { runId: "aex_1", toolCallId: "tc_1", action: "deny", comment: "unsafe" });
+    expect(agentApproval).toHaveLength(1);
+    expect(agentApproval[0].comment).toBe("unsafe");
+    expect(agentApproval[0].toolCallId).toBe("tc_1");
+    // "deny" maps to REJECT (3).
+    expect(agentApproval[0].action).toBe(3);
+  });
+
+  it("leaves the workflow reviewer unset (server-attributed)", async () => {
+    await approveWorkflowTask(client, { runId: "wex_1", taskName: "review", outcome: "approve", comment: "lgtm" });
+    expect(workflowApproval).toHaveLength(1);
+    expect(workflowApproval[0].reviewer).toBe("");
+    expect(workflowApproval[0].comment).toBe("lgtm");
+    expect(workflowApproval[0].outcome).toBe("approve");
+  });
+});
+
+describe("trace", () => {
+  function capture() {
+    const chunks: string[] = [];
+    return { streams: { write: (t: string) => chunks.push(t), colorize: false }, text: () => chunks.join("") };
+  }
+
+  it("renders a workflow task table", async () => {
+    const cap = capture();
+    await traceRun(client, "wex_1", "table", cap.streams);
+    const text = cap.text();
+    expect(text).toContain("Workflow: Deploy (completed, 1m 30s)");
+    expect(text).toContain("[done] build");
+    expect(text).toContain("[fail] ship");
+    expect(text).toContain("registry down");
+  });
+
+  it("renders the agent tool-call timeline", async () => {
+    const cap = capture();
+    await traceRun(client, "aex_1", "table", cap.streams);
+    expect(cap.text()).toContain("Agent: Reviewer (completed, 20s)");
+    expect(cap.text()).toContain("[done] Shell");
+  });
+
+  it("emits the full proto envelope for json", async () => {
+    const cap = capture();
+    await traceRun(client, "wex_1", "json", cap.streams);
+    const json = JSON.parse(cap.text());
+    expect(json.metadata.id).toBe("wex_1");
+    expect(json.status.tasks).toHaveLength(2);
+  });
+
+  it("emits the workflow run envelope as yaml", async () => {
+    const cap = capture();
+    await traceRun(client, "wex_1", "yaml", cap.streams);
+    expect(cap.text()).toContain("id: wex_1");
+    expect(cap.text()).toContain("task_name: build");
+  });
+
+  it("emits the agent run envelope as json and as yaml", async () => {
+    const json = capture();
+    await traceRun(client, "aex_1", "json", json.streams);
+    const parsed = JSON.parse(json.text());
+    expect(parsed.metadata.id).toBe("aex_1");
+    expect(parsed.status.messages).toHaveLength(2);
+
+    const yaml = capture();
+    await traceRun(client, "aex_1", "yaml", yaml.streams);
+    expect(yaml.text()).toContain("id: aex_1");
+    expect(yaml.text()).toContain("content: do it");
+  });
+});
+
+describe("logs", () => {
+  function capture() {
+    const lines: string[] = [];
+    return { streams: { out: { write: (l: string) => lines.push(l) }, colorize: false }, lines };
+  }
+  const never = new AbortController().signal;
+
+  it("prints the workflow event log with a more-available notice", async () => {
+    const cap = capture();
+    await streamRunLogs(client, { runId: "wex_1", follow: false }, never, cap.streams);
+    const text = cap.lines.join("");
+    expect(text).toContain("run started");
+    expect(text).toContain("more events available");
+  });
+
+  it("drains the workflow event stream on --follow with a task filter", async () => {
+    const cap = capture();
+    await streamRunLogs(client, { runId: "wex_1", follow: true, task: "build" }, never, cap.streams);
+    const text = cap.lines.join("");
+    expect(text).toContain("task started: build");
+    // "other" task is filtered out.
+    expect(text).not.toContain("task completed: other");
+    expect(text).toContain("--- stream ended ---");
+  });
+
+  it("says so when a workflow run has recorded no events", async () => {
+    const cap = capture();
+    await streamRunLogs(client, { runId: "wex_empty", follow: false }, never, cap.streams);
+    expect(cap.lines).toEqual(["No events recorded for this run.\n"]);
+  });
+
+  it("says so when an agent run has recorded no messages", async () => {
+    const cap = capture();
+    await streamRunLogs(client, { runId: "aex_empty", follow: false }, never, cap.streams);
+    expect(cap.lines).toEqual(["No messages recorded for this run.\n"]);
+  });
+
+  it("prints agent messages from a single snapshot when not following", async () => {
+    const cap = capture();
+    await streamRunLogs(client, { runId: "aex_1", follow: false }, never, cap.streams);
+    const text = cap.lines.join("");
+    expect(text).toContain("[human] do it");
+    expect(text).toContain("[ai] done");
+  });
+
+  it("diffs agent snapshots on --follow and stops on the terminal phase", async () => {
+    const cap = capture();
+    await streamRunLogs(client, { runId: "aex_1", follow: true }, never, cap.streams);
+    const text = cap.lines.join("");
+    expect(text).toContain("[ai] thinking");
+    expect(text).toContain("[ai] final answer");
+    expect(text).toContain("[end] run completed");
+  });
+});

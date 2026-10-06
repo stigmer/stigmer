@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import {
   createHashRouter,
+  matchRoutes,
   Navigate,
   type RouteObject,
 } from "react-router-dom";
@@ -48,8 +49,8 @@ const ConversationsPage = lazy(() => import("./pages/conversations/Conversations
 const WorkflowListPage = lazy(() => import("./pages/workflow/WorkflowListPage"));
 const WorkflowNewPage = lazy(() => import("./pages/workflow/WorkflowNewPage"));
 const WorkflowDetailPage = lazy(() => import("./pages/workflow/WorkflowDetailPage"));
-const WorkflowExecutionListPage = lazy(() => import("./pages/workflow/WorkflowExecutionListPage"));
-const WorkflowExecutionDetailPage = lazy(() => import("./pages/workflow/WorkflowExecutionDetailPage"));
+const WorkflowRunListPage = lazy(() => import("./pages/workflow/WorkflowRunListPage"));
+const WorkflowRunDetailPage = lazy(() => import("./pages/workflow/WorkflowRunDetailPage"));
 const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
 const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
@@ -282,20 +283,20 @@ const routes: RouteObject[] = [
             ),
           },
           {
-            path: "workflows/executions",
+            path: "workflows/runs",
             element: (
               <LazyPage>
-                <WorkflowExecutionListPage />
+                <WorkflowRunListPage />
               </LazyPage>
             ),
           },
         ],
       },
       {
-        path: "executions/:id",
+        path: "runs/:id",
         element: (
           <LazyPage>
-            <WorkflowExecutionDetailPage />
+            <WorkflowRunDetailPage />
           </LazyPage>
         ),
       },
@@ -406,7 +407,18 @@ router.subscribe((state) => {
   }
 });
 
-const savedRoute = localStorage.getItem(ROUTE_STORAGE_KEY);
-if (savedRoute && savedRoute !== "/") {
+/**
+ * The saved route to reopen at launch, when it still names a screen. A
+ * path the app no longer routes (a screen removed or moved, such as a run's
+ * page before runs lived at /runs) opens the home screen instead of a page
+ * with no way out.
+ */
+export function restorableRoute(saved: string | null): string | undefined {
+  if (!saved || saved === "/") return undefined;
+  return matchRoutes(routes, saved) === null ? undefined : saved;
+}
+
+const savedRoute = restorableRoute(localStorage.getItem(ROUTE_STORAGE_KEY));
+if (savedRoute !== undefined) {
   router.navigate(savedRoute, { replace: true });
 }

@@ -49,7 +49,7 @@ export interface KeyedSubmission<T> {
  *
  * `run` re-throws after recording so the propagation policy stays with the
  * caller: {@link useSubmitApproval} mirrors the failure to a scalar and
- * rethrows; {@link useWorkflowExecutionActions} swallows it to `null`.
+ * rethrows; {@link useWorkflowRunActions} swallows it to `null`.
  *
  * The return is `useMemo`'d over stable parts (empty-collection sentinels keep
  * the idle refs constant) so it is safe as a `React.memo` dependency.

@@ -1,17 +1,17 @@
-// Historical replay: stored executions → the same StreamEvent sequence the live
+// Historical replay: stored runs → the same StreamEvent sequence the live
 // differ produces. The headless analog of Go's snapshotToEvents
 // (run_stream_snapshot.go). Resume's completed-session path feeds these events
 // to the NDJSON/plaintext renderers so noise suppression, tool lifecycle badges,
 // and interleaving all apply identically to a live run.
 //
-// Unlike the live differ, there is no cross-snapshot state: each execution's
+// Unlike the live differ, there is no cross-snapshot state: each run's
 // final state is a complete picture, so we walk messages once and emit a single
-// todo snapshot. Only the last execution emits `done` (so the Ink composer
+// todo snapshot. Only the last run emits `done` (so the Ink composer
 // activates for follow-ups; headless renderers ignore intermediate dones).
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   collectToolCallsFromMessages,
   convertProtoTodos,
@@ -26,21 +26,21 @@ import type { StreamEvent } from "./events.js";
 import { SubAgentTracking } from "./subagent.js";
 
 /**
- * Convert stored executions (chronological, oldest first) into a flat event
- * sequence. Only the final execution emits a `done` event.
+ * Convert stored runs (chronological, oldest first) into a flat event
+ * sequence. Only the final run emits a `done` event.
  */
-export function snapshotToEvents(executions: readonly AgentExecution[]): StreamEvent[] {
+export function snapshotToEvents(runs: readonly AgentRun[]): StreamEvent[] {
   const out: StreamEvent[] = [];
-  executions.forEach((exec, i) => {
-    emitSnapshotEvents(out, exec, i === executions.length - 1);
+  runs.forEach((exec, i) => {
+    emitSnapshotEvents(out, exec, i === runs.length - 1);
   });
   return out;
 }
 
-// Project one stored execution's final state into events. Mirrors Go's
+// Project one stored run's final state into events. Mirrors Go's
 // emitSnapshotEvents: spec message → interleaved messages + tools → trailing
 // non-message tools → sub-agents → todos → (optional) done.
-function emitSnapshotEvents(out: StreamEvent[], exec: AgentExecution, emitDone: boolean): void {
+function emitSnapshotEvents(out: StreamEvent[], exec: AgentRun, emitDone: boolean): void {
   const status = exec.status;
   const messages = status?.messages ?? [];
 
@@ -53,7 +53,7 @@ function emitSnapshotEvents(out: StreamEvent[], exec: AgentExecution, emitDone: 
   const messageToolIds = collectMessageToolIds(messages);
   const nonMsgToolCalls = sortByStartedAt(allToolCalls.filter((tc) => tc.id !== "" && !messageToolIds.has(tc.id)));
 
-  // The user's prompt for this execution (the "execute" placeholder is hidden).
+  // The user's prompt for this run (the "execute" placeholder is hidden).
   const specMessage = exec.spec?.message ?? "";
   if (specMessage !== "" && specMessage !== "execute") {
     out.push({ kind: "humanMessage", content: specMessage });
@@ -88,7 +88,7 @@ function emitSnapshotEvents(out: StreamEvent[], exec: AgentExecution, emitDone: 
     }
   }
 
-  const subAgents = status?.subAgentExecutions ?? [];
+  const subAgents = status?.subAgentRuns ?? [];
   if (subAgents.length > 0) out.push(...new SubAgentTracking().emit(subAgents));
 
   const todos = convertProtoTodos(status?.todos ?? {});

@@ -5,7 +5,7 @@
  * One function today: marking every non-terminal sub-agent CANCELLED when a
  * turn ends without them (a pause, a shutdown, a stall, a cost cap, an
  * infrastructure cancel), so the final snapshot has no permanent IN_PROGRESS
- * "zombie" delegation. Harness-agnostic (a `SubAgentExecution` is the
+ * "zombie" delegation. Harness-agnostic (a `SubAgentRun` is the
  * platform's row, not an engine's), read by the turn runtime's terminal
  * table and the Cursor settle alike.
  *
@@ -13,8 +13,8 @@
  * the runtime's catch can reach it; the body is unchanged.
  */
 
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { utcTimestamp } from "./status.js";
 
@@ -23,7 +23,7 @@ import { utcTimestamp } from "./status.js";
  * proto array to CANCELLED with a completion timestamp, in place. Returns
  * true if any sub-agent changed.
  */
-export function cancelInProgressSubAgentProtos(subAgents: SubAgentExecution[]): boolean {
+export function cancelInProgressSubAgentProtos(subAgents: SubAgentRun[]): boolean {
   let changed = false;
   for (const sub of subAgents) {
     if (

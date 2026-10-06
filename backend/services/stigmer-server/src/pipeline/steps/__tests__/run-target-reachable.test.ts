@@ -11,8 +11,8 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type {
@@ -42,7 +42,7 @@ function bindingAnswering(answer: BindingVerdict | Error) {
   return { binding, asked };
 }
 
-const workflowTarget = (execution: WorkflowExecution): RunTarget | undefined =>
+const workflowTarget = (execution: WorkflowRun): RunTarget | undefined =>
   execution.spec?.workflowId
     ? {
         ...RUN_GATE_CHECKS.workflow,
@@ -61,20 +61,20 @@ function settle(
 
 function runIn(org: string, workflowId: string) {
   return new RequestContext(
-    WorkflowExecutionSchema,
-    create(WorkflowExecutionSchema, {
+    WorkflowRunSchema,
+    create(WorkflowRunSchema, {
       metadata: { name: "run", org },
       spec: { workflowId },
     }),
     testCallerIdentity(),
-    ApiResourceKind.workflow_execution,
+    ApiResourceKind.workflow_run,
   );
 }
 
 describe("RunTargetReachable", () => {
   it("asks as a credential bound to the run's organization, for can_view", async () => {
     const { binding, asked } = bindingAnswering("inside");
-    await newRunTargetReachableStep<typeof WorkflowExecutionSchema>(
+    await newRunTargetReachableStep<typeof WorkflowRunSchema>(
       binding,
       workflowTarget,
     ).execute(runIn("org_a", "wfl_1"));
@@ -90,7 +90,7 @@ describe("RunTargetReachable", () => {
   it("refuses a target the run's organization cannot read, naming it", async () => {
     const { binding } = bindingAnswering("outside");
     const error = await settle(
-      newRunTargetReachableStep<typeof WorkflowExecutionSchema>(
+      newRunTargetReachableStep<typeof WorkflowRunSchema>(
         binding,
         workflowTarget,
       ),
@@ -109,17 +109,17 @@ describe("RunTargetReachable", () => {
 
   it("passes an admitted or missing target, and a run with no target or no organization", async () => {
     for (const answer of ["admitted", "missing"] as const) {
-      await newRunTargetReachableStep<typeof WorkflowExecutionSchema>(
+      await newRunTargetReachableStep<typeof WorkflowRunSchema>(
         bindingAnswering(answer).binding,
         workflowTarget,
       ).execute(runIn("org_a", "wfl_1"));
     }
     const { binding, asked } = bindingAnswering("outside");
-    await newRunTargetReachableStep<typeof WorkflowExecutionSchema>(
+    await newRunTargetReachableStep<typeof WorkflowRunSchema>(
       binding,
       workflowTarget,
     ).execute(runIn("org_a", ""));
-    await newRunTargetReachableStep<typeof WorkflowExecutionSchema>(
+    await newRunTargetReachableStep<typeof WorkflowRunSchema>(
       binding,
       workflowTarget,
     ).execute(runIn("", "wfl_1"));
@@ -129,7 +129,7 @@ describe("RunTargetReachable", () => {
   it("answers INTERNAL when the binding cannot read the target", async () => {
     const { binding } = bindingAnswering(new Error("store unavailable"));
     const error = await settle(
-      newRunTargetReachableStep<typeof WorkflowExecutionSchema>(
+      newRunTargetReachableStep<typeof WorkflowRunSchema>(
         binding,
         workflowTarget,
       ),

@@ -142,25 +142,25 @@ public interface ScheduleRunOrBuilder extends
 
   /**
    * <pre>
-   * ID of the created execution. Empty when no execution was created
+   * ID of the created run. Empty when no run was created
    * (refused, target missing, skipped).
    * </pre>
    *
-   * <code>string execution_id = 7 [json_name = "executionId"];</code>
-   * @return The executionId.
+   * <code>string run_id = 7 [json_name = "runId"];</code>
+   * @return The runId.
    */
-  java.lang.String getExecutionId();
+  java.lang.String getRunId();
   /**
    * <pre>
-   * ID of the created execution. Empty when no execution was created
+   * ID of the created run. Empty when no run was created
    * (refused, target missing, skipped).
    * </pre>
    *
-   * <code>string execution_id = 7 [json_name = "executionId"];</code>
-   * @return The bytes for executionId.
+   * <code>string run_id = 7 [json_name = "runId"];</code>
+   * @return The bytes for runId.
    */
   com.google.protobuf.ByteString
-      getExecutionIdBytes();
+      getRunIdBytes();
 
   /**
    * <pre>

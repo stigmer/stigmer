@@ -51,7 +51,7 @@ type AgentQueryControllerClient interface {
 	// Get a specific version of an agent by its content hash.
 	//
 	// Used by the runner and the server to run a turn on the version it
-	// recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+	// recorded (AgentRunStatus.agent_version_hash), and by clients to
 	// show what a past version said.
 	GetVersion(ctx context.Context, in *GetAgentVersionInput, opts ...grpc.CallOption) (*AgentVersionEntry, error)
 }
@@ -129,7 +129,7 @@ type AgentQueryControllerServer interface {
 	// Get a specific version of an agent by its content hash.
 	//
 	// Used by the runner and the server to run a turn on the version it
-	// recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+	// recorded (AgentRunStatus.agent_version_hash), and by clients to
 	// show what a past version said.
 	GetVersion(context.Context, *GetAgentVersionInput) (*AgentVersionEntry, error)
 }

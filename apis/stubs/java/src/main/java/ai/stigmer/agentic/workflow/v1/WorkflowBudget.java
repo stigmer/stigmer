@@ -7,14 +7,14 @@ package ai.stigmer.agentic.workflow.v1;
 
 /**
  * <pre>
- * WorkflowBudget declares cost, token, and duration limits for a workflow execution.
+ * WorkflowBudget declares cost, token, and duration limits for a workflow run.
  *
  * All cost fields use micro-USD (int64): 1 USD = 1,000,000 micros.
  * This matches the billing domain convention (CostStamp.provider_cost_micros,
- * CreditLedgerEntry.amount_micros, ExecutionReservation.reserved_micros).
+ * CreditLedgerEntry.amount_micros, RunReservation.reserved_micros).
  *
  * The runtime checks accumulated costs between task boundaries. Per-task
- * limits (on LlmCallTaskConfig and AgentExecutionConfig) are checked first;
+ * limits (on LlmCallTaskConfig and RunConfig) are checked first;
  * then the remaining workflow budget is verified before the next task starts.
  *
  * Example YAML:
@@ -72,7 +72,7 @@ private static final long serialVersionUID = 0L;
   private long maxCostMicros_ = 0L;
   /**
    * <pre>
-   * Maximum total cost for this workflow execution in micro-USD.
+   * Maximum total cost for this workflow run in micro-USD.
    * 1 USD = 1,000,000 micros. Example: 2000000 = $2.00.
    * When exceeded, the on_exceeded policy is applied.
    * Optional — when 0, no cost limit is enforced.
@@ -106,9 +106,9 @@ private static final long serialVersionUID = 0L;
   private int maxDurationSeconds_ = 0;
   /**
    * <pre>
-   * Maximum wall-clock duration for the entire workflow execution in seconds.
+   * Maximum wall-clock duration for the entire workflow run in seconds.
    * Optional — when 0, no duration limit is enforced (Temporal's own
-   * workflow execution timeout still applies).
+   * workflow run timeout still applies).
    * </pre>
    *
    * <code>int32 max_duration_seconds = 3 [json_name = "maxDurationSeconds"];</code>
@@ -338,14 +338,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkflowBudget declares cost, token, and duration limits for a workflow execution.
+   * WorkflowBudget declares cost, token, and duration limits for a workflow run.
    *
    * All cost fields use micro-USD (int64): 1 USD = 1,000,000 micros.
    * This matches the billing domain convention (CostStamp.provider_cost_micros,
-   * CreditLedgerEntry.amount_micros, ExecutionReservation.reserved_micros).
+   * CreditLedgerEntry.amount_micros, RunReservation.reserved_micros).
    *
    * The runtime checks accumulated costs between task boundaries. Per-task
-   * limits (on LlmCallTaskConfig and AgentExecutionConfig) are checked first;
+   * limits (on LlmCallTaskConfig and RunConfig) are checked first;
    * then the remaining workflow budget is verified before the next task starts.
    *
    * Example YAML:
@@ -530,7 +530,7 @@ private static final long serialVersionUID = 0L;
     private long maxCostMicros_ ;
     /**
      * <pre>
-     * Maximum total cost for this workflow execution in micro-USD.
+     * Maximum total cost for this workflow run in micro-USD.
      * 1 USD = 1,000,000 micros. Example: 2000000 = $2.00.
      * When exceeded, the on_exceeded policy is applied.
      * Optional — when 0, no cost limit is enforced.
@@ -545,7 +545,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum total cost for this workflow execution in micro-USD.
+     * Maximum total cost for this workflow run in micro-USD.
      * 1 USD = 1,000,000 micros. Example: 2000000 = $2.00.
      * When exceeded, the on_exceeded policy is applied.
      * Optional — when 0, no cost limit is enforced.
@@ -564,7 +564,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum total cost for this workflow execution in micro-USD.
+     * Maximum total cost for this workflow run in micro-USD.
      * 1 USD = 1,000,000 micros. Example: 2000000 = $2.00.
      * When exceeded, the on_exceeded policy is applied.
      * Optional — when 0, no cost limit is enforced.
@@ -630,9 +630,9 @@ private static final long serialVersionUID = 0L;
     private int maxDurationSeconds_ ;
     /**
      * <pre>
-     * Maximum wall-clock duration for the entire workflow execution in seconds.
+     * Maximum wall-clock duration for the entire workflow run in seconds.
      * Optional — when 0, no duration limit is enforced (Temporal's own
-     * workflow execution timeout still applies).
+     * workflow run timeout still applies).
      * </pre>
      *
      * <code>int32 max_duration_seconds = 3 [json_name = "maxDurationSeconds"];</code>
@@ -644,9 +644,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum wall-clock duration for the entire workflow execution in seconds.
+     * Maximum wall-clock duration for the entire workflow run in seconds.
      * Optional — when 0, no duration limit is enforced (Temporal's own
-     * workflow execution timeout still applies).
+     * workflow run timeout still applies).
      * </pre>
      *
      * <code>int32 max_duration_seconds = 3 [json_name = "maxDurationSeconds"];</code>
@@ -662,9 +662,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum wall-clock duration for the entire workflow execution in seconds.
+     * Maximum wall-clock duration for the entire workflow run in seconds.
      * Optional — when 0, no duration limit is enforced (Temporal's own
-     * workflow execution timeout still applies).
+     * workflow run timeout still applies).
      * </pre>
      *
      * <code>int32 max_duration_seconds = 3 [json_name = "maxDurationSeconds"];</code>

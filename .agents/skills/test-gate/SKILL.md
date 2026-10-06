@@ -28,7 +28,7 @@ and the questions before "done". Read it once per session under this gate.
    refactors (what behaviour must hold).
 2. **Write the integration test first.** For each change ask how it is proven
    through the real system: an RPC through a running server, a workflow through
-   the harness, an agent behaviour through execution status against the scripted
+   the harness, an agent behaviour through run status against the scripted
    model, a CLI command through its output, a browser journey through
    Playwright. The conformance suite is the home for cross-edition contracts and
    runner behaviour; `.agents/skills/conformance-test-authoring/SKILL.md` says

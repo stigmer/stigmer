@@ -43,21 +43,20 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "\n+ai/stigmer/agentic/schedule/v1/status." +
       "proto\022\036ai.stigmer.agentic.schedule.v1\032+a" +
       "i/stigmer/commons/apiresource/status.pro" +
-      "to\032\037google/protobuf/timestamp.proto\"\330\002\n\016" +
+      "to\032\037google/protobuf/timestamp.proto\"\314\002\n\016" +
       "ScheduleStatus\022<\n\014next_fire_at\030\001 \001(\0132\032.g" +
       "oogle.protobuf.TimestampR\nnextFireAt\022<\n\014" +
       "last_fire_at\030\002 \001(\0132\032.google.protobuf.Tim" +
-      "estampR\nlastFireAt\022*\n\021last_execution_id\030" +
-      "\003 \001(\tR\017lastExecutionId\0221\n\024consecutive_fa" +
-      "ilures\030\004 \001(\005R\023consecutiveFailures\022#\n\rpau" +
-      "sed_reason\030\005 \001(\tR\014pausedReason\022F\n\005audit\030" +
-      "c \001(\01320.ai.stigmer.commons.apiresource.A" +
-      "piResourceAuditR\005auditB\252\001B\013StatusProtoP\001" +
-      "\242\002\004ASAS\252\002\036Ai.Stigmer.Agentic.Schedule.V1" +
-      "\312\002\036Ai\\Stigmer\\Agentic\\Schedule\\V1\342\002*Ai\\S" +
-      "tigmer\\Agentic\\Schedule\\V1\\GPBMetadata\352\002" +
-      "\"Ai::Stigmer::Agentic::Schedule::V1b\006pro" +
-      "to3"
+      "estampR\nlastFireAt\022\036\n\013last_run_id\030\003 \001(\tR" +
+      "\tlastRunId\0221\n\024consecutive_failures\030\004 \001(\005" +
+      "R\023consecutiveFailures\022#\n\rpaused_reason\030\005" +
+      " \001(\tR\014pausedReason\022F\n\005audit\030c \001(\01320.ai.s" +
+      "tigmer.commons.apiresource.ApiResourceAu" +
+      "ditR\005auditB\252\001B\013StatusProtoP\001\242\002\004ASAS\252\002\036Ai" +
+      ".Stigmer.Agentic.Schedule.V1\312\002\036Ai\\Stigme" +
+      "r\\Agentic\\Schedule\\V1\342\002*Ai\\Stigmer\\Agent" +
+      "ic\\Schedule\\V1\\GPBMetadata\352\002\"Ai::Stigmer" +
+      "::Agentic::Schedule::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -70,7 +69,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_descriptor,
-        new java.lang.String[] { "NextFireAt", "LastFireAt", "LastExecutionId", "ConsecutiveFailures", "PausedReason", "Audit", });
+        new java.lang.String[] { "NextFireAt", "LastFireAt", "LastRunId", "ConsecutiveFailures", "PausedReason", "Audit", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();

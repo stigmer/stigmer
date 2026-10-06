@@ -40,8 +40,8 @@ Covered against the `local` target:
   types, so the write is the gate. The runner's own refusal of those names
   stays as defence in depth, pinned by the runner's unit tests. A run names
   its workflow alone, and the workflow carries its runs' audience
-  (`spec.execution_visibility`: who may observe them, changed only through
-  `updateExecutionVisibility` by the owner, and the one field outside the
+  (`spec.run_visibility`: who may observe them, changed only through
+  `updateRunVisibility` by the owner, and the one field outside the
   version); a version covers everything else a run reads, a step's
   `environment_refs` and the declared keys included. An `agent_call` step's
   name is unique across the whole workflow.
@@ -629,7 +629,7 @@ execution); a `*.conformance.test.ts` asserts a domain's full contract. They are
 distinct on purpose: the smoke test is a permanent, cheap liveness guard, and
 an execution **domain** enters the suite whole, on this same harness.
 
-`workflowexecution.conformance.test.ts` is the first such whole domain. It uses
+`workflowrun.conformance.test.ts` is the first such whole domain. It uses
 two hermetic fixtures: `set_vars` (sub-second, for create/complete/query/terminal
 cases) and `wait` (a durable Temporal timer, for acting on a genuinely *running*
 execution — IN_PROGRESS, cancel, terminate, pause/resume). It asserts the
@@ -641,7 +641,7 @@ the server's controller unit tests rather than asserted here. Class B files run
 serially (`fileParallelism: false`) so multiple suites don't boot
 multiple Temporal+runner stacks at once.
 
-`agentexecution.conformance.test.ts` is the second whole execution domain. An
+`agentrun.conformance.test.ts` is the second whole execution domain. An
 agent run always hits an LLM, so the `local-execution` target also boots a
 **TS-pure mock-LLM proxy** (`test/support/src/mock-llm.ts`): a long-lived HTTP server with
 a programmable response queue that replays canned Anthropic SSE to the runner via
@@ -659,7 +659,7 @@ built-in prompt. A turn on an agent starts its conversation with
 runs on its status. The two
 execution domains share one enum-agnostic poll core (`support/execution-poll.ts`).
 
-`agentexecution-approval.conformance.test.ts` adds the **HITL tool-approval**
+`agentrun-approval.conformance.test.ts` adds the **HITL tool-approval**
 (`submitApproval`) contract. It is the first slice that exercises a real *tool*:
 an agent can only reach `EXECUTION_WAITING_FOR_APPROVAL` when it references an
 McpServer that exposes an approval-gated tool, so the `local-execution` target
@@ -682,7 +682,7 @@ not stable black-box observables (per-tool-call *final* status after the approva
 resume, and `args_preview`), exactly the boundary the integration HITL suite
 draws.
 
-`workflowexecution-approval.conformance.test.ts` adds the **workflow `human_input`
+`workflowrun-approval.conformance.test.ts` adds the **workflow `human_input`
 HITL** (`submitWorkflowTaskApproval`) contract — the workflow analogue of the
 agent suite, but a genuinely different machine, so it is a separate file. A
 WorkflowExecution has **no execution-level waiting phase**: a `human_input` task
@@ -720,7 +720,7 @@ behaviorally via routing). The sibling `submitApproval` (the workflow->child-age
 tool-forwarding composite) is a **different mechanism** and lives in its own file,
 described next.
 
-`workflowexecution-child-approval.conformance.test.ts` adds the **child-agent
+`workflowrun-child-approval.conformance.test.ts` adds the **child-agent
 approval FORWARDING** (`submitApproval`) contract — distinct from `human_input`
 (above): a workflow invokes an agent via an `agent_call` task, and when that
 *child* AgentExecution gates on a tool, the gate surfaces at the parent's
@@ -743,25 +743,25 @@ on `local-execution`.
 **The runner-behavior facets** replaced the Go `test/integration-offline`
 suite, arm for arm: a runner behavior a
 client reads off execution status is contract, and the execution class is its
-home. `agentexecution-messages` (the transcript: text, thinking, MCP tool
+home. `agentrun-messages` (the transcript: text, thinking, MCP tool
 calls that succeed or fail, the ToolCall field contract, and the model id the
-provider received after registry resolution), `agentexecution-subagent`
-(`task` delegation and `sub_agent_executions`), `agentexecution-provider-error`
+provider received after registry resolution), `agentrun-subagent`
+(`task` delegation and `sub_agent_runs`), `agentrun-provider-error`
 (who a proxy-mode provider fault is attributed to — the stigmer#330 incident
-shapes), `agentexecution-structured-output` (what the final message becomes on
+shapes), `agentrun-structured-output` (what the final message becomes on
 `structured_output`; the fallback's lack of schema validation is deliberately
-NOT pinned, see the file header), `agentexecution-file-review` and
+NOT pinned, see the file header), `agentrun-file-review` and
 `-file-review-progress` (apply-then-review: 15 decide-and-reconcile arms over a
 harness git workspace, the secret and binary rules, and the mid-run progress
-strip under the runner's capture throttle), `agentexecution-memory-selection`
+strip under the runner's capture throttle), `agentrun-memory-selection`
 (the embedder posture, beside `-memory-retrieval`'s no-embedder one),
-`agentexecution-workflow-architect` (a fixture agent on the real
-`stigmer mcp-server` over stdio, the always-on proof of the stdio lane), `workflowexecution-llm-call` and
-`workflowexecution-eval` (the LLM-backed workflow tasks), plus additions to
-`agentexecution` (idempotent cancel/terminate), `agentexecution-approval` (the
+`agentrun-workflow-architect` (a fixture agent on the real
+`stigmer mcp-server` over stdio, the always-on proof of the stdio lane), `workflowrun-llm-call` and
+`workflowrun-eval` (the LLM-backed workflow tasks), plus additions to
+`agentrun` (idempotent cancel/terminate), `agentrun-approval` (the
 approval ledger, the APPROVE_ALL lease across turns, durable resume) and
 `mcpserver-connect` (the stored `destructive_hint` per tool, and a connect
-that asks no model). `agentexecution-tool-lists` pins an agent's `tools` and
+that asks no model). `agentrun-tool-lists` pins an agent's `tools` and
 `disallowed_tools` on the native engine: a tool outside them is never
 offered, a call to it anyway is a failed tool call with the out-of-scope
 message, and no approval is requested for it, under the default and under
@@ -769,7 +769,7 @@ message, and no approval is requested for it, under the default and under
 `runner-ipc.harness` proves the manager-mode `ready` handshake end to
 end.
 
-`agentexecution-request-shape` reads the other direction of the wire: not
+`agentrun-request-shape` reads the other direction of the wire: not
 what the client sees on status but what the MODEL receives from the native
 harness for a bare agent, photographed as two readable file goldens under
 `suites-execution/goldens/` (the system prompt as the provider gets it — the
@@ -795,7 +795,7 @@ src/
   targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
   contract/         errors, parity
   support/          naming, workflows (set_vars + wait + human_input + agent_call + llm_call + eval), execution-poll,
-                    workflowexecutions, agentexecutions, file-review, workflow-architect, working-agent (the benchmark's
+                    workflowruns, agentruns, file-review, workflow-architect, working-agent (the benchmark's
                     working agent), agents, mcpservers, memories, skills, environments, executioncontexts, sessions,
                     request-shape (the golden renderers), …
   benchmark/        report (the contract a run writes), cells, quality-tasks, run (the direct-mode stack and driver), session
@@ -803,9 +803,9 @@ src/
                     workspace-facts, and subject + quality (the judge)  (the live benchmark's library; pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
   suites-execution/ *.harness.test.ts (engine, agent, mcp, runner-ipc, benchmark-readers, temporal-port-loss)
-                    + workflowexecution*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval,
+                    + workflowrun*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval,
                       run-visibility)
-                    + agentexecution*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
+                    + agentrun*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect,
                       request-shape, tool-lists)
                     + mcpserver-connect, mcp-caller-identity, mcp-server-address, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)

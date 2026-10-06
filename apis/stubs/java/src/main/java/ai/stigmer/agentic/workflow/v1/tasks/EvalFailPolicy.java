@@ -27,7 +27,7 @@ public enum EvalFailPolicy
   /**
    * <pre>
    * Task fails with an evaluation error.
-   * The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+   * The workflow transitions to error handling (try_catch or RUN_FAILED).
    * The error includes the judge's reasoning and score for diagnostics.
    * </pre>
    *
@@ -82,7 +82,7 @@ public enum EvalFailPolicy
   /**
    * <pre>
    * Task fails with an evaluation error.
-   * The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+   * The workflow transitions to error handling (try_catch or RUN_FAILED).
    * The error includes the judge's reasoning and score for diagnostics.
    * </pre>
    *

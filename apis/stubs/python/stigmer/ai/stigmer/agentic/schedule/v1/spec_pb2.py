@@ -22,11 +22,11 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_invocation__pb2
+from ai.stigmer.agentic.agentrun.v1 import invocation_pb2 as ai_dot_stigmer_dot_agentic_dot_agentrun_dot_v1_dot_invocation__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/schedule/v1/spec.proto\x12\x1e\x61i.stigmer.agentic.schedule.v1\x1a\x35\x61i/stigmer/agentic/agentexecution/v1/invocation.proto\x1a\x1b\x62uf/validate/validate.proto\"\xcb\x01\n\x0cScheduleSpec\x12\x1b\n\x04\x63ron\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04\x63ron\x12$\n\ttime_zone\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08timeZone\x12\x18\n\x07\x65nabled\x18\x03 \x01(\x08R\x07\x65nabled\x12M\n\x05\x61gent\x18\x04 \x01(\x0b\x32\x35.ai.stigmer.agentic.agentexecution.v1.AgentInvocationH\x00R\x05\x61gentB\x0f\n\x06target\x12\x05\xbaH\x02\x08\x01\x42\xcc\x01\n\"com.ai.stigmer.agentic.schedule.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1e\x41i.Stigmer.Agentic.Schedule.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/schedule/v1/spec.proto\x12\x1e\x61i.stigmer.agentic.schedule.v1\x1a/ai/stigmer/agentic/agentrun/v1/invocation.proto\x1a\x1b\x62uf/validate/validate.proto\"\xc5\x01\n\x0cScheduleSpec\x12\x1b\n\x04\x63ron\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04\x63ron\x12$\n\ttime_zone\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08timeZone\x12\x18\n\x07\x65nabled\x18\x03 \x01(\x08R\x07\x65nabled\x12G\n\x05\x61gent\x18\x04 \x01(\x0b\x32/.ai.stigmer.agentic.agentrun.v1.AgentInvocationH\x00R\x05\x61gentB\x0f\n\x06target\x12\x05\xbaH\x02\x08\x01\x42\xcc\x01\n\"com.ai.stigmer.agentic.schedule.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1e\x41i.Stigmer.Agentic.Schedule.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,6 +40,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SCHEDULESPEC'].fields_by_name['cron']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_SCHEDULESPEC'].fields_by_name['time_zone']._loaded_options = None
   _globals['_SCHEDULESPEC'].fields_by_name['time_zone']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_SCHEDULESPEC']._serialized_start=162
-  _globals['_SCHEDULESPEC']._serialized_end=365
+  _globals['_SCHEDULESPEC']._serialized_start=156
+  _globals['_SCHEDULESPEC']._serialized_end=353
 # @@protoc_insertion_point(module_scope)

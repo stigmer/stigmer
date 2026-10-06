@@ -45,11 +45,11 @@ import { BinaryReader, WireType } from "@bufbuild/protobuf/wire";
 import { StructSchema } from "@bufbuild/protobuf/wkt";
 
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 
 /** The `kind` column value of the rows the step rewrites. */
 export const EXECUTION_KIND = "agent_execution";
@@ -97,7 +97,7 @@ interface RetiredExecutionConfig {
  * Throws when the bytes do not decode.
  */
 export function migrateExecutionRow(data: Uint8Array): Uint8Array | undefined {
-  const execution = fromBinary(AgentExecutionSchema, data);
+  const execution = fromBinary(AgentRunSchema, data);
   const unknown = execution.spec?.$unknown ?? [];
   const held = unknown.filter(
     (f) =>
@@ -144,13 +144,13 @@ export function migrateExecutionRow(data: Uint8Array): Uint8Array | undefined {
       }
     }
   }
-  const status = (execution.status ??= create(AgentExecutionStatusSchema));
+  const status = (execution.status ??= create(AgentRunStatusSchema));
   status.runConfig = clone(RunConfigSchema, settings);
   status.approvalMode =
     retired.approvalMode === ApprovalMode.UNATTENDED
       ? ApprovalMode.UNATTENDED
       : ApprovalMode.INTERACTIVE;
-  return toBinary(AgentExecutionSchema, execution);
+  return toBinary(AgentRunSchema, execution);
 }
 
 /** The step's failure for a row it cannot read (the module header). */

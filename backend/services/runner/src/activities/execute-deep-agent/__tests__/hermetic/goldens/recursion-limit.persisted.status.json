@@ -206,7 +206,7 @@
       "timestamp": "2026-01-01T00:00:10.000Z"
     }
   ],
-  "phase": "EXECUTION_TERMINATED",
+  "phase": "RUN_TERMINATED",
   "error": "Agent reached the tool-call limit for this message. Send another message to continue.",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "completedAt": "2026-01-01T00:00:10.000Z",
@@ -222,7 +222,7 @@
     "requestedThinkingMode": "THINKING_MODE_DISABLED"
   },
   "fileReviewEventStream": {
-    "executionId": "aex_hermetic_0001",
+    "runId": "aex_hermetic_0001",
     "events": [
       {
         "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

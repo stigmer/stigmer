@@ -50,16 +50,16 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import {
-  AgentExecutionStatusSchema,
-  type AgentExecutionStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunStatusSchema,
+  type AgentRunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   ApprovalAction,
   ApprovalPolicySource,
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -86,8 +86,8 @@ const REASONING = "Two commands are needed; I will run them in order.";
 const OPENING_TEXT = "I will run the two commands.";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
 
-function statusJson(status: AgentExecutionStatus): string {
-  return JSON.stringify(toJson(AgentExecutionStatusSchema, status), null, 2) + "\n";
+function statusJson(status: AgentRunStatus): string {
+  return JSON.stringify(toJson(AgentRunStatusSchema, status), null, 2) + "\n";
 }
 
 describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", () => {
@@ -134,7 +134,7 @@ describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", 
 
     // ── Assert 1: paused on A, the thinking persisted ────────────────────────
     expect(turn1.outcome.kind).toBe("returned");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     const run1 = record.lastFullStatus!;
     const thinking = run1.messages.filter((m) => m.type === MessageType.MESSAGE_THINKING);
     expect(thinking.map((m) => m.content), "the reasoning block is exactly one THINKING message").toEqual([REASONING]);
@@ -150,9 +150,9 @@ describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", 
 
     // ── Assert 2: A ran, B ran under the lease, no second interrupt ──────────
     expect(turn2.outcome.kind).toBe("returned");
-    expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
-    expect(record.persistedPhases.filter((p) => p === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL)).toHaveLength(1);
+    expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
+    expect(record.persistedPhases.filter((p) => p === RunPhase.RUN_WAITING_FOR_APPROVAL)).toHaveLength(1);
 
     const final = record.lastFullStatus!;
     const rows = final.messages.flatMap((m) => m.toolCalls);

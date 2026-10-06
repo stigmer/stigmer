@@ -39,7 +39,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "stigmer.billing.v1\032+ai/stigmer/billing/v" +
       "1/billing_account.proto\032\036ai/stigmer/bill" +
       "ing/v1/io.proto\032+ai/stigmer/commons/rpc/" +
-      "method_options.proto2\205\016\n\026BillingQueryCon" +
+      "method_options.proto2\363\r\n\026BillingQueryCon" +
       "troller\022\254\001\n\021getBillingAccount\022-.ai.stigm" +
       "er.billing.v1.GetBillingAccountInput\032%.a" +
       "i.stigmer.billing.v1.BillingAccount\"A\302\270\030" +
@@ -79,16 +79,15 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "stigmer.billing.v1.PreviewAuthorizationR" +
       "esponse\"I\302\270\030E\010\035\020\037*6only platform operato" +
       "rs can execute billing operations2\007stigm" +
-      "er\022\327\001\n\031getExecutionBillingSignal\0225.ai.st" +
-      "igmer.billing.v1.GetExecutionBillingSign" +
-      "alInput\0328.ai.stigmer.billing.v1.GetExecu" +
-      "tionBillingSignalResponse\"I\302\270\030E\010\035\020\037*6onl" +
-      "y platform operators can execute billing" +
-      " operations2\007stigmerB\203\001B\nQueryProtoP\001\242\002\003" +
-      "ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigmer" +
-      "\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBM" +
-      "etadata\352\002\030Ai::Stigmer::Billing::V1b\006prot" +
-      "o3"
+      "er\022\305\001\n\023getRunBillingSignal\022/.ai.stigmer." +
+      "billing.v1.GetRunBillingSignalInput\0322.ai" +
+      ".stigmer.billing.v1.GetRunBillingSignalR" +
+      "esponse\"I\302\270\030E\010\035\020\037*6only platform operato" +
+      "rs can execute billing operations2\007stigm" +
+      "erB\203\001B\nQueryProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.B" +
+      "illing.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\S" +
+      "tigmer\\Billing\\V1\\GPBMetadata\352\002\030Ai::Stig" +
+      "mer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

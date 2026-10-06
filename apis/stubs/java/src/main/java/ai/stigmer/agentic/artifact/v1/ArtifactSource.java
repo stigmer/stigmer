@@ -7,7 +7,7 @@ package ai.stigmer.agentic.artifact.v1;
 
 /**
  * <pre>
- * ArtifactSource identifies the execution context that produced an artifact.
+ * ArtifactSource identifies the run and task that produced an artifact.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactSource}
@@ -32,8 +32,8 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ArtifactSource() {
-    workflowExecutionId_ = "";
-    agentExecutionId_ = "";
+    workflowRunId_ = "";
+    agentRunId_ = "";
     taskName_ = "";
   }
 
@@ -55,104 +55,104 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.artifact.v1.ArtifactSource.class, ai.stigmer.agentic.artifact.v1.ArtifactSource.Builder.class);
   }
 
-  public static final int WORKFLOW_EXECUTION_ID_FIELD_NUMBER = 1;
+  public static final int WORKFLOW_RUN_ID_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object workflowExecutionId_ = "";
+  private volatile java.lang.Object workflowRunId_ = "";
   /**
    * <pre>
-   * WorkflowExecution that produced this artifact.
+   * WorkflowRun that produced this artifact.
    * Format: "wex_{unique-suffix}"
-   * Set when the artifact is produced during workflow execution.
+   * Set when the artifact is produced during workflow run.
    * </pre>
    *
-   * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId"];</code>
-   * @return The workflowExecutionId.
+   * <code>string workflow_run_id = 1 [json_name = "workflowRunId"];</code>
+   * @return The workflowRunId.
    */
   @java.lang.Override
-  public java.lang.String getWorkflowExecutionId() {
-    java.lang.Object ref = workflowExecutionId_;
+  public java.lang.String getWorkflowRunId() {
+    java.lang.Object ref = workflowRunId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      workflowExecutionId_ = s;
+      workflowRunId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * WorkflowExecution that produced this artifact.
+   * WorkflowRun that produced this artifact.
    * Format: "wex_{unique-suffix}"
-   * Set when the artifact is produced during workflow execution.
+   * Set when the artifact is produced during workflow run.
    * </pre>
    *
-   * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId"];</code>
-   * @return The bytes for workflowExecutionId.
+   * <code>string workflow_run_id = 1 [json_name = "workflowRunId"];</code>
+   * @return The bytes for workflowRunId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getWorkflowExecutionIdBytes() {
-    java.lang.Object ref = workflowExecutionId_;
+      getWorkflowRunIdBytes() {
+    java.lang.Object ref = workflowRunId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      workflowExecutionId_ = b;
+      workflowRunId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
   }
 
-  public static final int AGENT_EXECUTION_ID_FIELD_NUMBER = 2;
+  public static final int AGENT_RUN_ID_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object agentExecutionId_ = "";
+  private volatile java.lang.Object agentRunId_ = "";
   /**
    * <pre>
-   * AgentExecution that produced this artifact.
+   * AgentRun that produced this artifact.
    * Format: "aex_{unique-suffix}"
-   * Set when the artifact is produced during agent execution
+   * Set when the artifact is produced during agent run
    * (either standalone or as a child of a workflow).
    * </pre>
    *
-   * <code>string agent_execution_id = 2 [json_name = "agentExecutionId"];</code>
-   * @return The agentExecutionId.
+   * <code>string agent_run_id = 2 [json_name = "agentRunId"];</code>
+   * @return The agentRunId.
    */
   @java.lang.Override
-  public java.lang.String getAgentExecutionId() {
-    java.lang.Object ref = agentExecutionId_;
+  public java.lang.String getAgentRunId() {
+    java.lang.Object ref = agentRunId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      agentExecutionId_ = s;
+      agentRunId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * AgentExecution that produced this artifact.
+   * AgentRun that produced this artifact.
    * Format: "aex_{unique-suffix}"
-   * Set when the artifact is produced during agent execution
+   * Set when the artifact is produced during agent run
    * (either standalone or as a child of a workflow).
    * </pre>
    *
-   * <code>string agent_execution_id = 2 [json_name = "agentExecutionId"];</code>
-   * @return The bytes for agentExecutionId.
+   * <code>string agent_run_id = 2 [json_name = "agentRunId"];</code>
+   * @return The bytes for agentRunId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getAgentExecutionIdBytes() {
-    java.lang.Object ref = agentExecutionId_;
+      getAgentRunIdBytes() {
+    java.lang.Object ref = agentRunId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      agentExecutionId_ = b;
+      agentRunId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -165,8 +165,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Name of the task that produced this artifact.
-   * Matches WorkflowTask.task_name in the execution status.
-   * Empty for execution-level artifacts (e.g., final workflow output).
+   * Matches WorkflowTask.task_name in the run status.
+   * Empty for run-level artifacts (e.g., final workflow output).
    * </pre>
    *
    * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -188,8 +188,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Name of the task that produced this artifact.
-   * Matches WorkflowTask.task_name in the execution status.
-   * Empty for execution-level artifacts (e.g., final workflow output).
+   * Matches WorkflowTask.task_name in the run status.
+   * Empty for run-level artifacts (e.g., final workflow output).
    * </pre>
    *
    * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -224,11 +224,11 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowExecutionId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, workflowExecutionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowRunId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 1, workflowRunId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentExecutionId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, agentExecutionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentRunId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, agentRunId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(taskName_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, taskName_);
@@ -242,11 +242,11 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowExecutionId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, workflowExecutionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowRunId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, workflowRunId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentExecutionId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, agentExecutionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentRunId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, agentRunId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(taskName_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, taskName_);
@@ -266,10 +266,10 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.agentic.artifact.v1.ArtifactSource other = (ai.stigmer.agentic.artifact.v1.ArtifactSource) obj;
 
-    if (!getWorkflowExecutionId()
-        .equals(other.getWorkflowExecutionId())) return false;
-    if (!getAgentExecutionId()
-        .equals(other.getAgentExecutionId())) return false;
+    if (!getWorkflowRunId()
+        .equals(other.getWorkflowRunId())) return false;
+    if (!getAgentRunId()
+        .equals(other.getAgentRunId())) return false;
     if (!getTaskName()
         .equals(other.getTaskName())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -283,10 +283,10 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + WORKFLOW_EXECUTION_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getWorkflowExecutionId().hashCode();
-    hash = (37 * hash) + AGENT_EXECUTION_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getAgentExecutionId().hashCode();
+    hash = (37 * hash) + WORKFLOW_RUN_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getWorkflowRunId().hashCode();
+    hash = (37 * hash) + AGENT_RUN_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getAgentRunId().hashCode();
     hash = (37 * hash) + TASK_NAME_FIELD_NUMBER;
     hash = (53 * hash) + getTaskName().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -388,7 +388,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ArtifactSource identifies the execution context that produced an artifact.
+   * ArtifactSource identifies the run and task that produced an artifact.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactSource}
@@ -424,8 +424,8 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      workflowExecutionId_ = "";
-      agentExecutionId_ = "";
+      workflowRunId_ = "";
+      agentRunId_ = "";
       taskName_ = "";
       return this;
     }
@@ -461,10 +461,10 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.agentic.artifact.v1.ArtifactSource result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.workflowExecutionId_ = workflowExecutionId_;
+        result.workflowRunId_ = workflowRunId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.agentExecutionId_ = agentExecutionId_;
+        result.agentRunId_ = agentRunId_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.taskName_ = taskName_;
@@ -483,13 +483,13 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.agentic.artifact.v1.ArtifactSource other) {
       if (other == ai.stigmer.agentic.artifact.v1.ArtifactSource.getDefaultInstance()) return this;
-      if (!other.getWorkflowExecutionId().isEmpty()) {
-        workflowExecutionId_ = other.workflowExecutionId_;
+      if (!other.getWorkflowRunId().isEmpty()) {
+        workflowRunId_ = other.workflowRunId_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
-      if (!other.getAgentExecutionId().isEmpty()) {
-        agentExecutionId_ = other.agentExecutionId_;
+      if (!other.getAgentRunId().isEmpty()) {
+        agentRunId_ = other.agentRunId_;
         bitField0_ |= 0x00000002;
         onChanged();
       }
@@ -525,12 +525,12 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              workflowExecutionId_ = input.readStringRequireUtf8();
+              workflowRunId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
             case 18: {
-              agentExecutionId_ = input.readStringRequireUtf8();
+              agentRunId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000002;
               break;
             } // case 18
@@ -556,24 +556,24 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object workflowExecutionId_ = "";
+    private java.lang.Object workflowRunId_ = "";
     /**
      * <pre>
-     * WorkflowExecution that produced this artifact.
+     * WorkflowRun that produced this artifact.
      * Format: "wex_{unique-suffix}"
-     * Set when the artifact is produced during workflow execution.
+     * Set when the artifact is produced during workflow run.
      * </pre>
      *
-     * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId"];</code>
-     * @return The workflowExecutionId.
+     * <code>string workflow_run_id = 1 [json_name = "workflowRunId"];</code>
+     * @return The workflowRunId.
      */
-    public java.lang.String getWorkflowExecutionId() {
-      java.lang.Object ref = workflowExecutionId_;
+    public java.lang.String getWorkflowRunId() {
+      java.lang.Object ref = workflowRunId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        workflowExecutionId_ = s;
+        workflowRunId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -581,22 +581,22 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * WorkflowExecution that produced this artifact.
+     * WorkflowRun that produced this artifact.
      * Format: "wex_{unique-suffix}"
-     * Set when the artifact is produced during workflow execution.
+     * Set when the artifact is produced during workflow run.
      * </pre>
      *
-     * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId"];</code>
-     * @return The bytes for workflowExecutionId.
+     * <code>string workflow_run_id = 1 [json_name = "workflowRunId"];</code>
+     * @return The bytes for workflowRunId.
      */
     public com.google.protobuf.ByteString
-        getWorkflowExecutionIdBytes() {
-      java.lang.Object ref = workflowExecutionId_;
+        getWorkflowRunIdBytes() {
+      java.lang.Object ref = workflowRunId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        workflowExecutionId_ = b;
+        workflowRunId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -604,79 +604,79 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * WorkflowExecution that produced this artifact.
+     * WorkflowRun that produced this artifact.
      * Format: "wex_{unique-suffix}"
-     * Set when the artifact is produced during workflow execution.
+     * Set when the artifact is produced during workflow run.
      * </pre>
      *
-     * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId"];</code>
-     * @param value The workflowExecutionId to set.
+     * <code>string workflow_run_id = 1 [json_name = "workflowRunId"];</code>
+     * @param value The workflowRunId to set.
      * @return This builder for chaining.
      */
-    public Builder setWorkflowExecutionId(
+    public Builder setWorkflowRunId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      workflowExecutionId_ = value;
+      workflowRunId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * WorkflowExecution that produced this artifact.
+     * WorkflowRun that produced this artifact.
      * Format: "wex_{unique-suffix}"
-     * Set when the artifact is produced during workflow execution.
+     * Set when the artifact is produced during workflow run.
      * </pre>
      *
-     * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId"];</code>
+     * <code>string workflow_run_id = 1 [json_name = "workflowRunId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearWorkflowExecutionId() {
-      workflowExecutionId_ = getDefaultInstance().getWorkflowExecutionId();
+    public Builder clearWorkflowRunId() {
+      workflowRunId_ = getDefaultInstance().getWorkflowRunId();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * WorkflowExecution that produced this artifact.
+     * WorkflowRun that produced this artifact.
      * Format: "wex_{unique-suffix}"
-     * Set when the artifact is produced during workflow execution.
+     * Set when the artifact is produced during workflow run.
      * </pre>
      *
-     * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId"];</code>
-     * @param value The bytes for workflowExecutionId to set.
+     * <code>string workflow_run_id = 1 [json_name = "workflowRunId"];</code>
+     * @param value The bytes for workflowRunId to set.
      * @return This builder for chaining.
      */
-    public Builder setWorkflowExecutionIdBytes(
+    public Builder setWorkflowRunIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      workflowExecutionId_ = value;
+      workflowRunId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
 
-    private java.lang.Object agentExecutionId_ = "";
+    private java.lang.Object agentRunId_ = "";
     /**
      * <pre>
-     * AgentExecution that produced this artifact.
+     * AgentRun that produced this artifact.
      * Format: "aex_{unique-suffix}"
-     * Set when the artifact is produced during agent execution
+     * Set when the artifact is produced during agent run
      * (either standalone or as a child of a workflow).
      * </pre>
      *
-     * <code>string agent_execution_id = 2 [json_name = "agentExecutionId"];</code>
-     * @return The agentExecutionId.
+     * <code>string agent_run_id = 2 [json_name = "agentRunId"];</code>
+     * @return The agentRunId.
      */
-    public java.lang.String getAgentExecutionId() {
-      java.lang.Object ref = agentExecutionId_;
+    public java.lang.String getAgentRunId() {
+      java.lang.Object ref = agentRunId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        agentExecutionId_ = s;
+        agentRunId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -684,23 +684,23 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentExecution that produced this artifact.
+     * AgentRun that produced this artifact.
      * Format: "aex_{unique-suffix}"
-     * Set when the artifact is produced during agent execution
+     * Set when the artifact is produced during agent run
      * (either standalone or as a child of a workflow).
      * </pre>
      *
-     * <code>string agent_execution_id = 2 [json_name = "agentExecutionId"];</code>
-     * @return The bytes for agentExecutionId.
+     * <code>string agent_run_id = 2 [json_name = "agentRunId"];</code>
+     * @return The bytes for agentRunId.
      */
     public com.google.protobuf.ByteString
-        getAgentExecutionIdBytes() {
-      java.lang.Object ref = agentExecutionId_;
+        getAgentRunIdBytes() {
+      java.lang.Object ref = agentRunId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        agentExecutionId_ = b;
+        agentRunId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -708,58 +708,58 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentExecution that produced this artifact.
+     * AgentRun that produced this artifact.
      * Format: "aex_{unique-suffix}"
-     * Set when the artifact is produced during agent execution
+     * Set when the artifact is produced during agent run
      * (either standalone or as a child of a workflow).
      * </pre>
      *
-     * <code>string agent_execution_id = 2 [json_name = "agentExecutionId"];</code>
-     * @param value The agentExecutionId to set.
+     * <code>string agent_run_id = 2 [json_name = "agentRunId"];</code>
+     * @param value The agentRunId to set.
      * @return This builder for chaining.
      */
-    public Builder setAgentExecutionId(
+    public Builder setAgentRunId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      agentExecutionId_ = value;
+      agentRunId_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * AgentExecution that produced this artifact.
+     * AgentRun that produced this artifact.
      * Format: "aex_{unique-suffix}"
-     * Set when the artifact is produced during agent execution
+     * Set when the artifact is produced during agent run
      * (either standalone or as a child of a workflow).
      * </pre>
      *
-     * <code>string agent_execution_id = 2 [json_name = "agentExecutionId"];</code>
+     * <code>string agent_run_id = 2 [json_name = "agentRunId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearAgentExecutionId() {
-      agentExecutionId_ = getDefaultInstance().getAgentExecutionId();
+    public Builder clearAgentRunId() {
+      agentRunId_ = getDefaultInstance().getAgentRunId();
       bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * AgentExecution that produced this artifact.
+     * AgentRun that produced this artifact.
      * Format: "aex_{unique-suffix}"
-     * Set when the artifact is produced during agent execution
+     * Set when the artifact is produced during agent run
      * (either standalone or as a child of a workflow).
      * </pre>
      *
-     * <code>string agent_execution_id = 2 [json_name = "agentExecutionId"];</code>
-     * @param value The bytes for agentExecutionId to set.
+     * <code>string agent_run_id = 2 [json_name = "agentRunId"];</code>
+     * @param value The bytes for agentRunId to set.
      * @return This builder for chaining.
      */
-    public Builder setAgentExecutionIdBytes(
+    public Builder setAgentRunIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      agentExecutionId_ = value;
+      agentRunId_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
@@ -769,8 +769,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the task that produced this artifact.
-     * Matches WorkflowTask.task_name in the execution status.
-     * Empty for execution-level artifacts (e.g., final workflow output).
+     * Matches WorkflowTask.task_name in the run status.
+     * Empty for run-level artifacts (e.g., final workflow output).
      * </pre>
      *
      * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -791,8 +791,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the task that produced this artifact.
-     * Matches WorkflowTask.task_name in the execution status.
-     * Empty for execution-level artifacts (e.g., final workflow output).
+     * Matches WorkflowTask.task_name in the run status.
+     * Empty for run-level artifacts (e.g., final workflow output).
      * </pre>
      *
      * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -814,8 +814,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the task that produced this artifact.
-     * Matches WorkflowTask.task_name in the execution status.
-     * Empty for execution-level artifacts (e.g., final workflow output).
+     * Matches WorkflowTask.task_name in the run status.
+     * Empty for run-level artifacts (e.g., final workflow output).
      * </pre>
      *
      * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -833,8 +833,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the task that produced this artifact.
-     * Matches WorkflowTask.task_name in the execution status.
-     * Empty for execution-level artifacts (e.g., final workflow output).
+     * Matches WorkflowTask.task_name in the run status.
+     * Empty for run-level artifacts (e.g., final workflow output).
      * </pre>
      *
      * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -849,8 +849,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the task that produced this artifact.
-     * Matches WorkflowTask.task_name in the execution status.
-     * Empty for execution-level artifacts (e.g., final workflow output).
+     * Matches WorkflowTask.task_name in the run status.
+     * Empty for run-level artifacts (e.g., final workflow output).
      * </pre>
      *
      * <code>string task_name = 3 [json_name = "taskName"];</code>

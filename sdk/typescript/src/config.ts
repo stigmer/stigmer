@@ -74,7 +74,7 @@ export interface StigmerConfig {
   readonly fetch?: typeof globalThis.fetch;
 
   /**
-   * Default execution target for all sessions and workflow executions
+   * Default execution target for all sessions and workflow runs
    * created through this client.
    *
    * - `"local"` -- Client provides runners (desktop app, CLI, or

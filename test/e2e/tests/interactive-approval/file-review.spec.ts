@@ -17,14 +17,14 @@ import {
   seedToolRunSession,
   settleThroughFileReview,
   writeFileBlock,
-  awaitExecutionPhase,
+  awaitRunPhase,
   fileReviewApproveButton,
   toolCallRow,
   fileDiff,
-  type SeededGatedExecution,
+  type SeededGatedRun,
 } from "../../helpers/approval";
 import { isFileGateStack } from "../../helpers/mock-llm-control";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 const mockUrl = getMockControlUrl();
 const fileGates = isFileGateStack();
@@ -43,7 +43,7 @@ test.describe("file-review card (deterministic mock LLM)", () => {
   test.describe.configure({ mode: "serial", timeout: 90_000 });
 
   const control = new MockControl(mockUrl ?? "");
-  let seeded: SeededGatedExecution | null = null;
+  let seeded: SeededGatedRun | null = null;
 
   test.afterEach(async () => {
     if (seeded) {
@@ -65,10 +65,10 @@ test.describe("file-review card (deterministic mock LLM)", () => {
       });
       // The write flows (apply-then-review) and the run pauses at the review
       // boundary — the surface under test.
-      await awaitExecutionPhase(
+      await awaitRunPhase(
         stigmerClient,
-        seeded.executionId,
-        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        seeded.runId,
+        RunPhase.RUN_WAITING_FOR_APPROVAL,
       );
 
       await page.emulateMedia({ colorScheme: scheme });

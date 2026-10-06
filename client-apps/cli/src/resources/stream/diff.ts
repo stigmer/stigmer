@@ -2,18 +2,18 @@
 // (run_stream_events.go:203-468).
 //
 // Go's version owns a gRPC loop and blocks on an approval channel. This is a
-// pure, stateful transformer instead: feed it each AgentExecution snapshot and
+// pure, stateful transformer instead: feed it each AgentRun snapshot and
 // it returns the discrete events for that snapshot, holding all cross-snapshot
 // state (message cursor, tool/sub-agent/todo trackers, prompted-approval dedup).
 // Approval *submission* is the renderer's job — the differ only emits
 // ApprovalNeededEvent. The step numbering and ordering below mirror the Go body
 // exactly, because the resulting event sequence is a wire-parity contract.
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   buildApprovalNeeded,
   buildPendingApprovalFromToolCall,
@@ -36,7 +36,7 @@ import { TodoDiffer } from "./todo.js";
 import { buildToolEventMap, toolEventId, ToolStateTracker } from "./tool-state.js";
 
 /**
- * Stateful differ. Construct one per execution stream, then call {@link next}
+ * Stateful differ. Construct one per run stream, then call {@link next}
  * for every snapshot in arrival order. Once a terminal `done` is emitted, later
  * calls return nothing.
  */
@@ -44,7 +44,7 @@ export class SnapshotDiffer {
   private displayedCount = 0;
   private inStream = false;
   private humanMessageEmitted = false;
-  private lastPhase: ExecutionPhase = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  private lastPhase: RunPhase = RunPhase.RUN_PHASE_UNSPECIFIED;
   private seenSummarizationCount = 0;
   private finished = false;
   private readonly promptedIds = new Set<string>();
@@ -53,13 +53,13 @@ export class SnapshotDiffer {
   private readonly todos = new TodoDiffer();
 
   /** Project one snapshot into its events, advancing all internal state. */
-  next(execution: AgentExecution): StreamEvent[] {
+  next(execution: AgentRun): StreamEvent[] {
     if (this.finished) return [];
     const out: StreamEvent[] = [];
     const status = execution.status;
     const messages = status?.messages ?? [];
-    const subAgents = status?.subAgentExecutions ?? [];
-    const phase = status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    const subAgents = status?.subAgentRuns ?? [];
+    const phase = status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
 
     this.emitHumanMessage(out, execution);
 
@@ -99,7 +99,7 @@ export class SnapshotDiffer {
 
   // Step 0: emit the user's input message once, suppressing the "execute"
   // placeholder. Mirrors streamToEvents Step 0.
-  private emitHumanMessage(out: StreamEvent[], execution: AgentExecution): void {
+  private emitHumanMessage(out: StreamEvent[], execution: AgentRun): void {
     if (this.humanMessageEmitted) return;
     const msg = execution.spec?.message ?? "";
     if (msg !== "" && msg !== "execute") {
@@ -175,7 +175,7 @@ export class SnapshotDiffer {
 
   // Step 1f: emit a ContextCompactedEvent per new summarization event. Mirrors
   // the count-based tracking in streamToEvents.
-  private emitContextCompaction(out: StreamEvent[], execution: AgentExecution): void {
+  private emitContextCompaction(out: StreamEvent[], execution: AgentRun): void {
     const events = execution.status?.contextInfo?.summarizationEvents ?? [];
     for (let i = this.seenSummarizationCount; i < events.length; i++) {
       const se = events[i];
@@ -196,11 +196,11 @@ export class SnapshotDiffer {
   // Step 2: phase change, resetting the prompted set on an approval cycle
   // (IN_PROGRESS→WAITING_FOR_APPROVAL) so a re-entered gate re-prompts instead
   // of deadlocking. Mirrors streamToEvents Step 2.
-  private emitPhaseChange(out: StreamEvent[], phase: ExecutionPhase): void {
+  private emitPhaseChange(out: StreamEvent[], phase: RunPhase): void {
     if (phase === this.lastPhase) return;
     if (
-      phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL &&
-      this.lastPhase === ExecutionPhase.EXECUTION_IN_PROGRESS
+      phase === RunPhase.RUN_WAITING_FOR_APPROVAL &&
+      this.lastPhase === RunPhase.RUN_IN_PROGRESS
     ) {
       this.promptedIds.clear();
     }
@@ -214,8 +214,8 @@ export class SnapshotDiffer {
     out: StreamEvent[],
     pendingApprovals: readonly PendingApproval[],
     rootToolCalls: readonly ToolCall[],
-    subAgents: readonly SubAgentExecution[],
-    phase: ExecutionPhase,
+    subAgents: readonly SubAgentRun[],
+    phase: RunPhase,
   ): void {
     for (const pa of pendingApprovals) {
       const key = pa.toolCallId;
@@ -227,7 +227,7 @@ export class SnapshotDiffer {
 
     if (
       !hasUsableApproval(pendingApprovals, this.promptedIds) &&
-      phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+      phase === RunPhase.RUN_WAITING_FOR_APPROVAL
     ) {
       for (const u of findAllUnpromptedApprovals(rootToolCalls, subAgents, this.promptedIds)) {
         const pa = buildPendingApprovalFromToolCall(u.toolCall);

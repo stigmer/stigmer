@@ -203,11 +203,11 @@ export {
   type SlackChannelConfigInput,
 } from "./gen/agentchannel.js";
 export {
-  AgentExecutionClient,
-  toAgentExecutionUpdateInput,
-  type AgentExecutionInput,
+  AgentRunClient,
+  toAgentRunUpdateInput,
+  type AgentRunInput,
   type AttachmentInput,
-} from "./gen/agentexecution.js";
+} from "./gen/agentrun.js";
 export {
   AgentShareClient,
   toAgentShareUpdateInput,
@@ -355,13 +355,13 @@ export {
   type ToolResultView,
   type ToolSearchMatch,
   type ToolContentBlock,
-} from "./execution/tool-view.js";
+} from "./run/tool-view.js";
 export {
   ApprovalPolicySource,
   describeApprovalPolicySource,
   hookApproveAllLabel,
   isInformativePolicySource,
-} from "./execution/approval-provenance.js";
+} from "./run/approval-provenance.js";
 export {
   HOOK_FORMAT_LABELS,
   hookEventLabel,
@@ -370,14 +370,14 @@ export {
   hooksSummary,
   type HookFormatName,
 } from "./hook-words.js";
-export { isTerminalPhase } from "./execution/execution-phases.js";
+export { isTerminalPhase } from "./run/run-phases.js";
 export {
   sortChronologically,
-  supersededExecutionIds,
+  supersededRunIds,
   isBuildFromPlanTurn,
   syntheticUserPrompt,
-  execIdFromStorageKey,
-} from "./execution/conversation-rules.js";
+  runIdFromStorageKey,
+} from "./run/conversation-rules.js";
 export {
   assembleSessionTranscript,
   fetchSessionTranscript,
@@ -391,12 +391,12 @@ export {
   type AssembleSessionTranscriptOptions,
   type FetchSessionTranscriptOptions,
   type TranscriptToMarkdownOptions,
-} from "./execution/transcript.js";
+} from "./run/transcript.js";
 export {
   foldFileReviewEventStream,
   displayFileChangeSets,
-} from "./execution/file-review-fold.js";
-export { toDisplayFileChange } from "./execution/to-display-file-change.js";
+} from "./run/file-review-fold.js";
+export { toDisplayFileChange } from "./run/to-display-file-change.js";
 export { SkillClient, type SkillInput } from "./gen/skill.js";
 export { RoutedSkillClient, MAX_INLINE_ARTIFACT_BYTES } from "./skill.js";
 export { PluginClient, type PluginInput, type PluginAuthorInput } from "./gen/plugin.js";
@@ -411,7 +411,7 @@ export {
   type FlowControlInput,
 } from "./gen/workflow.js";
 export {
-  WorkflowExecutionClient,
-  toWorkflowExecutionUpdateInput,
-  type WorkflowExecutionInput,
-} from "./gen/workflowexecution.js";
+  WorkflowRunClient,
+  toWorkflowRunUpdateInput,
+  type WorkflowRunInput,
+} from "./gen/workflowrun.js";

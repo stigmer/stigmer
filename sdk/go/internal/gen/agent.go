@@ -6,7 +6,7 @@ import (
 	"context"
 
 	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
-	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
+	agentrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
@@ -199,8 +199,8 @@ type RunConfigInput struct {
 	ModelName          string
 	MaxCostUsd         float64
 	MaxToolRounds      int32
-	ServiceTier        agentexecutionv1.ServiceTier
-	ThinkingMode       agentexecutionv1.ThinkingMode
+	ServiceTier        agentrunv1.ServiceTier
+	ThinkingMode       agentrunv1.ThinkingMode
 	MaxToolResultChars int32
 }
 
@@ -355,8 +355,8 @@ func (i *HookHandlerInput) toProto() (*pluginv1.HookHandler, error) {
 	}, nil
 }
 
-func (i *RunConfigInput) toProto() (*agentexecutionv1.RunConfig, error) {
-	return &agentexecutionv1.RunConfig{
+func (i *RunConfigInput) toProto() (*agentrunv1.RunConfig, error) {
+	return &agentrunv1.RunConfig{
 		ModelName:          i.ModelName,
 		MaxCostUsd:         i.MaxCostUsd,
 		MaxToolRounds:      i.MaxToolRounds,
@@ -495,7 +495,7 @@ func hookHandlerInputFromProto(p *pluginv1.HookHandler) *HookHandlerInput {
 	return input
 }
 
-func runConfigInputFromProto(p *agentexecutionv1.RunConfig) *RunConfigInput {
+func runConfigInputFromProto(p *agentrunv1.RunConfig) *RunConfigInput {
 	if p == nil {
 		return nil
 	}

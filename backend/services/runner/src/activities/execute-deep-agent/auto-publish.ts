@@ -7,7 +7,7 @@
  * (e.g., shell commands, race conditions in fire-and-forget publish).
  */
 
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { InlinePublisher } from "./inline-publisher.js";
 
 const FILE_MODIFYING_TOOLS = new Set([
@@ -27,7 +27,7 @@ const FILE_MODIFYING_TOOLS = new Set([
  * Returns the count of additionally published artifacts.
  */
 export async function autoPublishWrittenFiles(
-  status: AgentExecutionStatus,
+  status: AgentRunStatus,
   inlinePublisher: InlinePublisher,
 ): Promise<number> {
   const alreadyPublished = inlinePublisher.publishedPaths;

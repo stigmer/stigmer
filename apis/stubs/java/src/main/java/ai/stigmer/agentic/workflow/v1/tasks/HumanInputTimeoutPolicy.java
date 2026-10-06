@@ -27,7 +27,7 @@ public enum HumanInputTimeoutPolicy
   /**
    * <pre>
    * Task fails with a timeout error.
-   * The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+   * The workflow transitions to error handling (try_catch or RUN_FAILED).
    * </pre>
    *
    * <code>HUMAN_INPUT_TIMEOUT_FAIL = 1;</code>
@@ -95,7 +95,7 @@ public enum HumanInputTimeoutPolicy
   /**
    * <pre>
    * Task fails with a timeout error.
-   * The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+   * The workflow transitions to error handling (try_catch or RUN_FAILED).
    * </pre>
    *
    * <code>HUMAN_INPUT_TIMEOUT_FAIL = 1;</code>

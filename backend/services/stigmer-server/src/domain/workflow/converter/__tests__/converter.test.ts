@@ -743,7 +743,7 @@ describe("per-kind emission", () => {
             },
             delivery: [
               { webhook: { url: "https://hook.test", headers: { "X-K": "v" } } },
-              { signal: { execution_id: "we-1", signal_name: "order" } },
+              { signal: { run_id: "we-1", signal_name: "order" } },
             ],
           },
         },
@@ -761,7 +761,7 @@ describe("per-kind emission", () => {
         },
         delivery: [
           { webhook: { url: "https://hook.test", headers: { "X-K": "v" } } },
-          { signal: { execution_id: "we-1", signal_name: "order" } },
+          { signal: { run_id: "we-1", signal_name: "order" } },
         ],
       },
     });

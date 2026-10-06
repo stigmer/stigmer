@@ -3,13 +3,13 @@
   "title": "File Review Projection Fixture",
   "description": "A persisted file_review ledger plus the expected file_change_sets projection summary, replayed identically by every implementation that loads this corpus.",
   "type": "object",
-  "required": ["name", "execution_id", "phase", "events", "expected"],
+  "required": ["name", "run_id", "phase", "events", "expected"],
   "additionalProperties": false,
   "properties": {
     "name": { "type": "string" },
     "description": { "type": "string" },
-    "execution_id": { "type": "string" },
-    "phase": { "type": "string", "description": "ExecutionPhase enum value name, e.g. EXECUTION_IN_PROGRESS." },
+    "run_id": { "type": "string" },
+    "phase": { "type": "string", "description": "ExecutionPhase enum value name, e.g. RUN_IN_PROGRESS." },
     "events": {
       "type": "array",
       "description": "Ordered FileReviewEvent protojson objects (the persisted ledger).",

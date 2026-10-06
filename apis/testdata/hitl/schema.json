@@ -18,9 +18,9 @@
           "description": "AgentMessage protos as protojson.",
           "items": { "type": "object" }
         },
-        "sub_agent_executions": {
+        "sub_agent_runs": {
           "type": "array",
-          "description": "SubAgentExecution protos as protojson.",
+          "description": "SubAgentRun protos as protojson.",
           "items": { "type": "object" }
         }
       }

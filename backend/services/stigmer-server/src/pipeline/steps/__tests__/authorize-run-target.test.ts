@@ -225,7 +225,7 @@ describe("AuthorizeRunTarget — the step shell", () => {
 describe("isRunGateCheck — the one definition of the run-gate check set", () => {
   const pairs: ReadonlyArray<[string, ApiResourceKind, IamPermission]> = [
     ["agent", ApiResourceKind.agent, IamPermission.can_execute],
-    ["session", ApiResourceKind.session, IamPermission.can_create_execution_in],
+    ["session", ApiResourceKind.session, IamPermission.can_create_run_in],
     ["workflow", ApiResourceKind.workflow, IamPermission.can_execute],
   ];
 
@@ -256,8 +256,8 @@ describe("isRunGateCheck — the one definition of the run-gate check set", () =
     ["agent#can_edit", ApiResourceKind.agent, IamPermission.can_edit],
     ["agent#can_view", ApiResourceKind.agent, IamPermission.can_view],
     [
-      "agent_execution#can_execute",
-      ApiResourceKind.agent_execution,
+      "agent_run#can_execute",
+      ApiResourceKind.agent_run,
       IamPermission.can_execute,
     ],
     [

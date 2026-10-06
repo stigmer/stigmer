@@ -2,7 +2,7 @@
  * CallAgent task builder — invokes a Stigmer agent from a workflow.
  *
  * Unlike call:llm (synchronous activity), call:agent uses Temporal
- * async completion: the activity creates an AgentExecution with a
+ * async completion: the activity creates an AgentRun with a
  * callback token and returns pending. The platform completes the
  * activity when the agent finishes. While pending, the workflow
  * listens for `child_approval_required` signals for HITL propagation.
@@ -20,6 +20,7 @@ import type {
   TaskExecutorFn,
   TaskExecutionContext,
   AgentCallConfig,
+  AgentCallOutput,
   AgentCallResult,
   CallAgentMetadata,
 } from "../types.js";
@@ -28,24 +29,41 @@ import { resolveConfigExpressions } from "../resolve.js";
 import { validateAgentCallOutput } from "./call-agent-output.js";
 
 /**
- * Enriches an AgentCallResult with __stigmer_* keys so that
- * extractCostFromOutput (in do-executor) can pick up cost/token data.
- *
- * Agent usage_summary only provides total_tokens (no input/output split).
- * We map total_tokens to input_tokens and leave output_tokens at 0.
- * The do-executor sets metadata `token_attribution: "total_only"` so
- * the frontend can avoid displaying a misleading split.
+ * The callback result as a workflow reads it: the child run's id under
+ * `agent_run_id`, the key workflow expressions read
+ * (`${ .triage.agent_run_id }`), and still under `agent_execution_id`, its
+ * name before executions were named runs. The old key stays until no run
+ * started before the rename can still run (#1966): a workflow that reads
+ * it, in a condition, an export, a run recovered after the upgrade or YAML
+ * applied again from a repository, keeps reading the child run meanwhile.
+ * The engine's callback result names the child `agent_execution_id`, an
+ * engine key recorded in runs in flight, so the step adds the new key here.
  */
-function enrichResultWithCost(result: AgentCallResult): AgentCallResult {
+function namedChildRun(result: AgentCallResult): AgentCallOutput {
+  const childRunId = result.agent_execution_id;
+  return childRunId === undefined ? result : { ...result, agent_run_id: childRunId };
+}
+
+/**
+ * The step's output: the callback result with the child run named
+ * (`namedChildRun`), plus the __stigmer_* keys so that
+ * extractCostFromOutput (in do-executor) can pick up cost/token data. Agent
+ * usage_summary only provides total_tokens (no input/output split):
+ * total_tokens maps to input_tokens and output_tokens stays 0. The
+ * do-executor sets metadata `token_attribution: "total_only"` so the
+ * frontend can avoid displaying a misleading split.
+ */
+function toStepOutput(result: AgentCallResult): AgentCallOutput {
+  const output = namedChildRun(result);
   const usage = result.usage_summary;
-  if (!usage) return result;
+  if (!usage) return output;
 
   return {
-    ...result,
+    ...output,
     __stigmer_cost_micros: Math.round((usage.estimated_cost_usd ?? 0) * 1_000_000),
     input_tokens: usage.total_tokens ?? 0,
     output_tokens: 0,
-  } as AgentCallResult;
+  };
 }
 
 export class CallAgentTaskBuilder implements TaskBuilder {
@@ -95,7 +113,7 @@ export class CallAgentTaskBuilder implements TaskBuilder {
         attempts++;
 
         if (!outputContract?.schema) {
-          return enrichResultWithCost(lastResult);
+          return toStepOutput(lastResult);
         }
 
         const validation = validateAgentCallOutput(
@@ -104,7 +122,7 @@ export class CallAgentTaskBuilder implements TaskBuilder {
         );
 
         if (validation.valid) {
-          return enrichResultWithCost(lastResult);
+          return toStepOutput(lastResult);
         }
 
         const onInvalid = outputContract.on_invalid ?? "ON_INVALID_FAIL";
@@ -120,7 +138,7 @@ export class CallAgentTaskBuilder implements TaskBuilder {
           return {
             __flow_directive__: outputContract.fallback_task ?? "continue",
             validation_errors: validation.errors,
-            original_output: lastResult,
+            original_output: namedChildRun(lastResult),
           };
         }
       } while (attempts <= maxRetries);

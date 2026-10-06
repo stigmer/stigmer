@@ -7,7 +7,7 @@ This document is the inventory of which field the fill sets, one row per method 
 ## The rule
 
 - **`org`**: the input has a top-level `string org`. Filled on every service but the Organization service's own.
-- **`metadata.org`**: otherwise, the input carries an `ApiResourceMetadata` and its service's `api_resource_kind` is scoped to an organization (`AUTHORIZATION_SCOPE_TYPE_ORGANIZATION`), or to a parent (`AUTHORIZATION_SCOPE_TYPE_PARENT`: an agent execution's organization is its session's).
+- **`metadata.org`**: otherwise, the input carries an `ApiResourceMetadata` and its service's `api_resource_kind` is scoped to an organization (`AUTHORIZATION_SCOPE_TYPE_ORGANIZATION`), or to a parent (`AUTHORIZATION_SCOPE_TYPE_PARENT`: an agent run's organization is its session's).
 - **Not filled**:
   - the Organization service's own methods, because an organization's own `metadata.org` stays empty;
   - the kinds that belong to no organization (`AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY` and `AUTHORIZATION_SCOPE_TYPE_NONE`: identity accounts, API keys, execution contexts, the platform, plans and licences);
@@ -49,16 +49,16 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | ChannelMessageCommandController.sendMessage | org |
 | ChannelMessageQueryController.listTemplates | org |
 
-## `ai.stigmer.agentic.agentexecution.v1`
+## `ai.stigmer.agentic.agentrun.v1`
 
 | Method | Fills |
 |---|---|
-| AgentExecutionCommandController.create | metadata.org |
-| AgentExecutionCommandController.update | metadata.org |
-| AgentExecutionQueryController.getAgentUsageReport | org |
-| AgentExecutionQueryController.getExecutionSummary | org |
-| AgentExecutionQueryController.getOrgUsageReport | org |
-| AgentExecutionQueryController.list | org |
+| AgentRunCommandController.create | metadata.org |
+| AgentRunCommandController.update | metadata.org |
+| AgentRunQueryController.getAgentUsageReport | org |
+| AgentRunQueryController.getRunSummary | org |
+| AgentRunQueryController.getOrgUsageReport | org |
+| AgentRunQueryController.list | org |
 
 ## `ai.stigmer.agentic.agentshare.v1`
 
@@ -151,7 +151,7 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 |---|---|
 | SkillCommandController.createArtifactUploadUrl | org |
 | SkillCommandController.push | org |
-| SkillCommandController.pushFromExecutionArtifact | org |
+| SkillCommandController.pushFromRunArtifact | org |
 | SkillQueryController.getByReference | org |
 | SkillQueryController.listVersions | org |
 
@@ -166,15 +166,15 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | WorkflowQueryController.getByReference | org |
 | WorkflowQueryController.listVersions | org |
 
-## `ai.stigmer.agentic.workflowexecution.v1`
+## `ai.stigmer.agentic.workflowrun.v1`
 
 | Method | Fills |
 |---|---|
-| WorkflowExecutionCommandController.create | metadata.org |
-| WorkflowExecutionCommandController.update | metadata.org |
-| WorkflowExecutionQueryController.getExecutionSummary | org |
-| WorkflowExecutionQueryController.list | org |
-| WorkflowExecutionQueryController.listPendingApprovals | org |
+| WorkflowRunCommandController.create | metadata.org |
+| WorkflowRunCommandController.update | metadata.org |
+| WorkflowRunQueryController.getRunSummary | org |
+| WorkflowRunQueryController.list | org |
+| WorkflowRunQueryController.listPendingApprovals | org |
 
 ## `ai.stigmer.iam.iampolicy.v1`
 
@@ -224,7 +224,7 @@ These kinds are owned by a person, not an organization, yet these methods take a
 
 ## Not filled
 
-One of these still needs its organization named. An execution context belongs to no organization, but an outside caller's `create` or `apply` of one is permitted by the organization it will run in, read from `metadata.org` (`AuthorizeCreate`, `src/domain/executioncontext/steps.ts`), so on this server too a request that names none is refused. No shipped client makes that call: the agent and workflow execution machinery creates execution contexts in-process, authorized by the run it serves.
+One of these still needs its organization named. An execution context belongs to no organization, but an outside caller's `create` or `apply` of one is permitted by the organization it will run in, read from `metadata.org` (`AuthorizeCreate`, `src/domain/executioncontext/steps.ts`), so on this server too a request that names none is refused. No shipped client makes that call: the agent and workflow run machinery creates execution contexts in-process, authorized by the run it serves.
 
 | Method | Fills |
 |---|---|

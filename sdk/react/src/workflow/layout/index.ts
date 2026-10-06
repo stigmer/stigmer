@@ -34,7 +34,7 @@ export { useElkLayoutEngine } from "./useElkLayoutEngine.js";
 export type { UseElkLayoutEngineOptions } from "./useElkLayoutEngine.js";
 
 // ---------------------------------------------------------------------------
-// Synchronous layout utility (shared by editor and execution graph)
+// Synchronous layout utility (shared by editor and run graph)
 // ---------------------------------------------------------------------------
 
 export { applyDagreLayout } from "./apply-dagre-layout.js";

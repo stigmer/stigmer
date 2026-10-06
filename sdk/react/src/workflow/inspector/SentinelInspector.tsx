@@ -26,7 +26,7 @@ export function SentinelInspector({ node, className }: SentinelInspectorProps) {
       <p className="stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
         {isStart
           ? "Entry point of the workflow. The first task is connected automatically."
-          : "Terminal point. Tasks routing here end the workflow execution."}
+          : "Terminal point. Tasks routing here end the workflow run."}
       </p>
     </div>
   );

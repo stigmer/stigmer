@@ -181,7 +181,7 @@ export enum EvalFailPolicy {
 
   /**
    * Task fails with an evaluation error.
-   * The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+   * The workflow transitions to error handling (try_catch or RUN_FAILED).
    * The error includes the judge's reasoning and score for diagnostics.
    *
    * @generated from enum value: EVAL_FAIL_RAISE = 1;

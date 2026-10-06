@@ -27,8 +27,8 @@
       "timestamp": "2026-01-01T00:00:03.000Z"
     }
   ],
-  "phase": "EXECUTION_COMPLETED",
-  "subAgentExecutions": [
+  "phase": "RUN_COMPLETED",
+  "subAgentRuns": [
     {
       "id": "call-hermetic-task-0001",
       "name": "helper",
@@ -61,7 +61,7 @@
     "requestedThinkingMode": "THINKING_MODE_DISABLED"
   },
   "fileReviewEventStream": {
-    "executionId": "aex_hermetic_0001",
+    "runId": "aex_hermetic_0001",
     "events": [
       {
         "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

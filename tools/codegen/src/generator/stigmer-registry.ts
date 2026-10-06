@@ -11,7 +11,7 @@ import { createRegistry } from "@bufbuild/protobuf";
 
 import { file_ai_stigmer_agentic_agent_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { file_ai_stigmer_agentic_agentchannel_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { file_ai_stigmer_agentic_agentexecution_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { file_ai_stigmer_agentic_agentrun_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { file_ai_stigmer_agentic_agentshare_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { file_ai_stigmer_agentic_artifact_v1_api } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { file_ai_stigmer_agentic_channelapp_v1_api } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
@@ -47,7 +47,7 @@ import { file_ai_stigmer_agentic_workflow_v1_tasks_transform } from "@stigmer/pr
 import { file_ai_stigmer_agentic_workflow_v1_tasks_try } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/try_pb";
 import { file_ai_stigmer_agentic_workflow_v1_tasks_validate } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/validate_pb";
 import { file_ai_stigmer_agentic_workflow_v1_tasks_wait } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/wait_pb";
-import { file_ai_stigmer_agentic_workflowexecution_v1_api } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { file_ai_stigmer_agentic_workflowrun_v1_api } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { file_ai_stigmer_billing_license_v1_api } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
 import { file_ai_stigmer_billing_plan_v1_api } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
 import { file_ai_stigmer_billing_subscription_v1_api } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
@@ -64,7 +64,7 @@ import { file_ai_stigmer_tenancy_organization_v1_api } from "@stigmer/protos/ai/
 const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_agentic_agent_v1_api,
   file_ai_stigmer_agentic_agentchannel_v1_api,
-  file_ai_stigmer_agentic_agentexecution_v1_api,
+  file_ai_stigmer_agentic_agentrun_v1_api,
   file_ai_stigmer_agentic_agentshare_v1_api,
   file_ai_stigmer_agentic_artifact_v1_api,
   file_ai_stigmer_agentic_channelapp_v1_api,
@@ -100,7 +100,7 @@ const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_agentic_workflow_v1_tasks_try,
   file_ai_stigmer_agentic_workflow_v1_tasks_validate,
   file_ai_stigmer_agentic_workflow_v1_tasks_wait,
-  file_ai_stigmer_agentic_workflowexecution_v1_api,
+  file_ai_stigmer_agentic_workflowrun_v1_api,
   file_ai_stigmer_billing_license_v1_api,
   file_ai_stigmer_billing_plan_v1_api,
   file_ai_stigmer_billing_subscription_v1_api,

@@ -38,7 +38,7 @@ export interface AccountPreferencesPanelProps {
  * the auto-approve default).
  *
  * The declared text is snapshotted into the user's own eligible agent
- * executions and delivered to the agent as background context.
+ * runs and delivered to the agent as background context.
  * Self-service: the account is resolved via `whoAmI()` and updated
  * through the caller's self-ownership permission — no explicit
  * permission check is needed. On save, calls `identityAccount.update()`
@@ -283,7 +283,7 @@ export function AccountPreferencesPanel({
         placeholder={
           "e.g. Keep answers terse. I prefer TypeScript examples. My timezone is IST."
         }
-        helperText="Shared with agents as background context — not instructions. Applies only to executions you start and is visible on those execution records."
+        helperText="Shared with agents as background context — not instructions. Applies only to runs you start and is visible on those run records."
       />
 
       <div className="stg:space-y-3">
@@ -395,7 +395,7 @@ export function AccountPreferencesPanel({
           onToggle={(next) => void handleMemoryToggle(next)}
           saving={isSavingMemoryFlag}
           error={memoryFlagError}
-          helperText="When on, agents may propose facts to remember about you; only facts you confirm are stored. Confirmed memories are shared with your future sessions and appear on those executions' records; once you have many, each conversation recalls the most relevant ones, shown on the execution. Requires your organization to have memory enabled. Changes apply immediately."
+          helperText="When on, agents may propose facts to remember about you; only facts you confirm are stored. Confirmed memories are shared with your future sessions and appear on those runs' records; once you have many, each conversation recalls the most relevant ones, shown on the run. Requires your organization to have memory enabled. Changes apply immediately."
         />
       )}
 

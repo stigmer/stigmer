@@ -33,9 +33,9 @@ import type {
 } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceAudit } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -45,7 +45,7 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import { sessionListIndex } from "../../domain/session/list-index.js";
-import { workflowExecutionListIndex } from "../../domain/workflowexecution/list-index.js";
+import { workflowExecutionListIndex } from "../../domain/workflowrun/list-index.js";
 import type { Store } from "../../store/interface.js";
 
 /**
@@ -184,10 +184,10 @@ export class ActivityHandler {
     const rows = await this.store.queryResources(workflowExecutionListIndex, {
       org,
     });
-    const decoded: WorkflowExecution[] = [];
+    const decoded: WorkflowRun[] = [];
     for (const row of rows) {
       try {
-        decoded.push(fromBinary(WorkflowExecutionSchema, row.data));
+        decoded.push(fromBinary(WorkflowRunSchema, row.data));
       } catch {
         this.logger.warn(
           "Skipping undecodable workflow execution row in recent activity",
@@ -197,7 +197,7 @@ export class ActivityHandler {
     const visible = await restrictListByReadScope(
       this.listReadScope,
       identity,
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
       decoded,
       "",
     );
@@ -207,12 +207,12 @@ export class ActivityHandler {
       entries.push(
         create(RecentActivityEntrySchema, {
           id: execution.metadata?.id ?? "",
-          type: "workflow_execution",
+          type: "workflow_run",
           subject: name === "" ? UNTITLED_EXECUTION_SUBJECT : name,
           updatedAt: extractUpdatedAt(execution.status?.audit),
           status: resolvePhase(
             execution.status?.phase ??
-              ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+              RunPhase.RUN_PHASE_UNSPECIFIED,
           ),
         }),
       );
@@ -261,21 +261,21 @@ export function resolveSubject(subject: string): string {
  * status badge renders. Unspecified (and any future value this build
  * does not know) reads as "unknown" — no badge.
  */
-export function resolvePhase(phase: ExecutionPhase): string {
+export function resolvePhase(phase: RunPhase): string {
   switch (phase) {
-    case ExecutionPhase.EXECUTION_PENDING:
+    case RunPhase.RUN_PENDING:
       return "pending";
-    case ExecutionPhase.EXECUTION_IN_PROGRESS:
+    case RunPhase.RUN_IN_PROGRESS:
       return "running";
-    case ExecutionPhase.EXECUTION_COMPLETED:
+    case RunPhase.RUN_COMPLETED:
       return "completed";
-    case ExecutionPhase.EXECUTION_FAILED:
+    case RunPhase.RUN_FAILED:
       return "failed";
-    case ExecutionPhase.EXECUTION_CANCELLED:
+    case RunPhase.RUN_CANCELLED:
       return "cancelled";
-    case ExecutionPhase.EXECUTION_TERMINATED:
+    case RunPhase.RUN_TERMINATED:
       return "terminated";
-    case ExecutionPhase.EXECUTION_PAUSED:
+    case RunPhase.RUN_PAUSED:
       return "paused";
     default:
       return "unknown";

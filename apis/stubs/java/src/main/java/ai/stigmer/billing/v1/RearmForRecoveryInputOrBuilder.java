@@ -11,14 +11,14 @@ public interface RearmForRecoveryInputOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-   * @return The executionId.
+   * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+   * @return The runId.
    */
-  java.lang.String getExecutionId();
+  java.lang.String getRunId();
   /**
-   * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for executionId.
+   * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for runId.
    */
   com.google.protobuf.ByteString
-      getExecutionIdBytes();
+      getRunIdBytes();
 }

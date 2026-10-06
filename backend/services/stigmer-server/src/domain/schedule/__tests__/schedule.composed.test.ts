@@ -14,9 +14,11 @@
  *   - the trigger's two-level contract with the REAL launch gates: with no
  *     engine behind the server the fire happens and honestly reports the
  *     EnsureEngineAvailable refusal — never a gRPC error;
- *   - the fire ledger: manual rows, cascade on delete, listRuns paging.
+ *   - the fire ledger: manual rows, cascade on delete, listRuns paging,
+ *     and an in-flight row's outcome read from its run's live phase.
  */
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -403,7 +405,7 @@ describe("trigger — the two-level contract", () => {
     const result = await command.trigger({ value: id });
     expect(result.outcome).toBe(ScheduleRunOutcome.TARGET_MISSING);
     expect(result.refusalReason).toBe(`target agent ${acmeId}/ephemeral not found`);
-    expect(result.executionId).toBe("");
+    expect(result.runId).toBe("");
     // The post-fire row: last_fire_at stamped by the handler.
     expect(result.schedule?.status?.lastFireAt).toBeDefined();
 
@@ -523,6 +525,73 @@ describe("queries — list, getByAgent, listRuns", () => {
     expect(defaulted.items[0]?.nominalFireTime?.seconds).toBe(
       pageOne.items[0]?.nominalFireTime?.seconds,
     );
+  });
+});
+
+describe("listRuns — an in-flight row reads its run's live phase", () => {
+  it("resolves each started row from its run, and a row whose run is gone or silent stands as recorded", async () => {
+    const created = await command.create(scheduleInput({ name: "Live Runs", slug: "live-runs" }));
+    const id = created.metadata?.id ?? "";
+    // Each fire's run, written as the run domain leaves it: a terminal
+    // phase, still running, or a row with no status yet. aex_live_gone
+    // names a run that was deleted.
+    const phases: ReadonlyArray<readonly [string, RunPhase | undefined]> = [
+      ["aex_live_done", RunPhase.RUN_COMPLETED],
+      ["aex_live_failed", RunPhase.RUN_FAILED],
+      ["aex_live_cancelled", RunPhase.RUN_CANCELLED],
+      ["aex_live_terminated", RunPhase.RUN_TERMINATED],
+      ["aex_live_running", RunPhase.RUN_IN_PROGRESS],
+      ["aex_live_silent", undefined],
+    ];
+    for (const [runId, phase] of phases) {
+      await server.store.saveResource(
+        ApiResourceKind.agent_run,
+        runId,
+        AgentRunSchema,
+        create(AgentRunSchema, {
+          metadata: { id: runId, org: acmeId },
+          status: phase === undefined ? undefined : { phase },
+        }),
+      );
+    }
+    const runIds = [...phases.map(([runId]) => runId), "aex_live_gone"];
+    for (const [index, runId] of runIds.entries()) {
+      await server.store.upsertScheduleRun({
+        scheduleId: id,
+        org: "acme",
+        nominalFireTime: `2026-08-26T${String(10 + index).padStart(2, "0")}:00:00Z`,
+        origin: "manual",
+        outcome: "started",
+        reason: "",
+        executionId: runId,
+        recordedAt: "",
+        completedAt: "",
+      });
+    }
+
+    const runs = await query.listRuns({ scheduleId: id });
+    const byRun = new Map(runs.items.map((run) => [run.runId, run]));
+    expect(byRun.size).toBe(runIds.length);
+    expect(byRun.get("aex_live_done")).toMatchObject({
+      outcome: ScheduleRunOutcome.COMPLETED,
+      reason: "",
+    });
+    for (const [runId, word] of [
+      ["aex_live_failed", "failed"],
+      ["aex_live_cancelled", "cancelled"],
+      ["aex_live_terminated", "terminated"],
+    ] as const) {
+      expect(byRun.get(runId)).toMatchObject({
+        outcome: ScheduleRunOutcome.FAILED,
+        reason: `run ${runId} ended ${word}`,
+      });
+    }
+    for (const runId of ["aex_live_running", "aex_live_silent", "aex_live_gone"]) {
+      expect(byRun.get(runId)).toMatchObject({
+        outcome: ScheduleRunOutcome.STARTED,
+        reason: "",
+      });
+    }
   });
 });
 

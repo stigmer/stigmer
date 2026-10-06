@@ -3,13 +3,13 @@ import { describe, it, expect, vi } from "vitest";
 import { render } from "ink-testing-library";
 import { Text, Box } from "ink";
 import { create } from "@bufbuild/protobuf";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { MessageType, ExecutionPhase, ToolCallStatus, ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { MessageType, RunPhase, ToolCallStatus, ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { MessageEntry } from "../components/MessageEntry.js";
-import { ExecutionProgress } from "../components/ExecutionProgress.js";
+import { RunProgress } from "../components/RunProgress.js";
 import { ToolCallItem } from "../components/ToolCallItem.js";
 import { ApprovalPrompt } from "../components/ApprovalPrompt.js";
 import { MessageThread } from "../components/MessageThread.js";
@@ -69,10 +69,10 @@ describe("MessageEntry", () => {
   });
 });
 
-describe("ExecutionProgress", () => {
+describe("RunProgress", () => {
   it("shows 'Running' for in-progress phase", () => {
     const { lastFrame } = render(
-      <ExecutionProgress phase={ExecutionPhase.EXECUTION_IN_PROGRESS} />,
+      <RunProgress phase={RunPhase.RUN_IN_PROGRESS} />,
     );
     const output = lastFrame() ?? "";
     expect(output).toContain("Running");
@@ -80,7 +80,7 @@ describe("ExecutionProgress", () => {
 
   it("shows 'Completed' with check for completed phase", () => {
     const { lastFrame } = render(
-      <ExecutionProgress phase={ExecutionPhase.EXECUTION_COMPLETED} />,
+      <RunProgress phase={RunPhase.RUN_COMPLETED} />,
     );
     const output = lastFrame() ?? "";
     expect(output).toContain("Completed");
@@ -89,7 +89,7 @@ describe("ExecutionProgress", () => {
 
   it("shows 'Failed' for failed phase", () => {
     const { lastFrame } = render(
-      <ExecutionProgress phase={ExecutionPhase.EXECUTION_FAILED} />,
+      <RunProgress phase={RunPhase.RUN_FAILED} />,
     );
     const output = lastFrame() ?? "";
     expect(output).toContain("Failed");
@@ -97,8 +97,8 @@ describe("ExecutionProgress", () => {
 
   it("shows 'Waiting for approval' for approval phase", () => {
     const { lastFrame } = render(
-      <ExecutionProgress
-        phase={ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL}
+      <RunProgress
+        phase={RunPhase.RUN_WAITING_FOR_APPROVAL}
       />,
     );
     const output = lastFrame() ?? "";
@@ -107,8 +107,8 @@ describe("ExecutionProgress", () => {
 
   it("renders nothing for unspecified phase", () => {
     const { lastFrame } = render(
-      <ExecutionProgress
-        phase={ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED}
+      <RunProgress
+        phase={RunPhase.RUN_PHASE_UNSPECIFIED}
       />,
     );
     expect(lastFrame()).toBe("");
@@ -380,7 +380,7 @@ describe("MessageThread — multi-approval keyboard arbitration", () => {
       pa.toolName = "write_file";
       return pa;
     });
-    return create(AgentExecutionSchema, {
+    return create(AgentRunSchema, {
       metadata: { id: "aex-1" },
       status: { pendingApprovals },
     });
@@ -394,7 +394,7 @@ describe("MessageThread — multi-approval keyboard arbitration", () => {
     const exec = execWithApprovals("tc-1", "tc-2");
 
     const { stdin } = render(
-      <MessageThread executions={[exec]} onApprovalSubmit={onApprovalSubmit} />,
+      <MessageThread runs={[exec]} onApprovalSubmit={onApprovalSubmit} />,
     );
     stdin.write("y");
 
@@ -407,11 +407,42 @@ describe("MessageThread — multi-approval keyboard arbitration", () => {
     const exec = execWithApprovals("tc-1");
 
     const { stdin } = render(
-      <MessageThread executions={[exec]} onApprovalSubmit={onApprovalSubmit} />,
+      <MessageThread runs={[exec]} onApprovalSubmit={onApprovalSubmit} />,
     );
     stdin.write("y");
 
     expect(onApprovalSubmit).toHaveBeenCalledTimes(1);
     expect(onApprovalSubmit).toHaveBeenCalledWith("tc-1", ApprovalAction.APPROVE);
+  });
+});
+
+describe("MessageThread — terminal phase badge", () => {
+  function runIn(phase: RunPhase) {
+    return create(AgentRunSchema, {
+      metadata: { id: "aex-phase" },
+      status: {
+        phase,
+        messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "partial answer" })],
+      },
+    });
+  }
+
+  it("ends a failed run's thread with the Failed badge", () => {
+    const { lastFrame } = render(<MessageThread runs={[runIn(RunPhase.RUN_FAILED)]} />);
+    const output = lastFrame() ?? "";
+    expect(output).toContain("partial answer");
+    expect(output).toContain("● Failed");
+  });
+
+  it("ends a cancelled run's thread with the Cancelled badge", () => {
+    const { lastFrame } = render(<MessageThread runs={[runIn(RunPhase.RUN_CANCELLED)]} />);
+    expect(lastFrame() ?? "").toContain("● Cancelled");
+  });
+
+  it("shows no badge after a completed run", () => {
+    const { lastFrame } = render(<MessageThread runs={[runIn(RunPhase.RUN_COMPLETED)]} />);
+    const output = lastFrame() ?? "";
+    expect(output).toContain("partial answer");
+    expect(output).not.toContain("Completed");
   });
 });

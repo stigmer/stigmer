@@ -1,6 +1,6 @@
 /**
  * Test support: the bytes an earlier release wrote for an agent execution
- * whose settings sat in AgentExecutionSpec field 4 (ExecutionConfig), built
+ * whose settings sat in AgentRunSpec field 4 (ExecutionConfig), built
  * by wire number because that schema no longer exists. ExecutionConfig's
  * numbers: model_name 1, context_management 2, max_tool_rounds 3,
  * max_tool_result_chars 4, max_cost_usd 5, interaction_mode 6,
@@ -16,10 +16,10 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import { fromJson } from "@bufbuild/protobuf";
 
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** The retired ExecutionConfig's values, as a test names them. */
@@ -86,14 +86,14 @@ export function retiredConfigBytes(config: RetiredConfig): Uint8Array {
  */
 export function retiredExecutionRow(options: {
   readonly metadata: MessageInitShape<typeof ApiResourceMetadataSchema>;
-  readonly spec?: MessageInitShape<typeof AgentExecutionSpecSchema>;
-  readonly status?: MessageInitShape<typeof AgentExecutionStatusSchema>;
+  readonly spec?: MessageInitShape<typeof AgentRunSpecSchema>;
+  readonly status?: MessageInitShape<typeof AgentRunStatusSchema>;
   readonly config?: RetiredConfig;
 }): Uint8Array {
   const spec = new BinaryWriter().raw(
     toBinary(
-      AgentExecutionSpecSchema,
-      create(AgentExecutionSpecSchema, options.spec ?? { message: "hello" }),
+      AgentRunSpecSchema,
+      create(AgentRunSpecSchema, options.spec ?? { message: "hello" }),
     ),
   );
   if (options.config !== undefined) {
@@ -112,7 +112,7 @@ export function retiredExecutionRow(options: {
     .bytes(spec.finish());
   if (options.status !== undefined) {
     w.tag(5, WireType.LengthDelimited).bytes(
-      toBinary(AgentExecutionStatusSchema, create(AgentExecutionStatusSchema, options.status)),
+      toBinary(AgentRunStatusSchema, create(AgentRunStatusSchema, options.status)),
     );
   }
   return w.finish();
@@ -120,11 +120,11 @@ export function retiredExecutionRow(options: {
 
 /** The bytes the current release writes for the same execution. */
 export function executionBytes(
-  init: MessageInitShape<typeof AgentExecutionSchema>,
+  init: MessageInitShape<typeof AgentRunSchema>,
 ): Uint8Array {
   return toBinary(
-    AgentExecutionSchema,
-    create(AgentExecutionSchema, {
+    AgentRunSchema,
+    create(AgentRunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "AgentExecution",
       ...init,

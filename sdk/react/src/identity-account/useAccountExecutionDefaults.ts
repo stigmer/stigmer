@@ -43,7 +43,7 @@ export interface AccountExecutionDefaults {
  *
  * The defaults are a SEED, not an override: an explicit device-local pick
  * outranks them (the layered precedence in `useNewSessionFlow`), and the
- * chosen values ride the execution spec explicitly. Rides
+ * chosen values ride the run spec explicitly. Rides
  * `useMyIdentityAccount`'s cross-mount cache, so the seed is available
  * synchronously on every visit after the first.
  */

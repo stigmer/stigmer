@@ -3,7 +3,7 @@
  *
  * All harnesses expose an agent to-do tool — the Cursor SDK emits `TodoWrite`
  * (legacy) / `updateTodos` (current), the native deepagents harness emits
- * `write_todos` — and each writes the SAME `AgentExecutionStatus.todos` proto
+ * `write_todos` — and each writes the SAME `AgentRunStatus.todos` proto
  * map that the clients (React `TodoCard`, CLI) render. This module is the single
  * place that maps a raw tool payload into that map, so the one transcript builder
  * (`harness/transcript/builder.ts`, both harnesses since #1097) has one mapping.
@@ -15,9 +15,9 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { utcTimestamp } from "./status.js";
 
 /**

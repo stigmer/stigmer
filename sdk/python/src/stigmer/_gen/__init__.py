@@ -4,7 +4,7 @@ from ._bidi import BidiStream
 from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, McpServerUsageInput, SubAgentInput, EnvVarDeclarationInput, HookSourceInput, HookConfigInput, HookGroupInput, HookHandlerInput, RunConfigInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput
-from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput, WorkflowParentInput
+from ._agentrun import AgentRunClient, AgentRunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput, WorkflowParentInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._artifact import ArtifactClient, ArtifactInput, ArtifactSourceInput, RetentionPolicyInput
@@ -30,7 +30,7 @@ from ._skill import SkillClient, SkillInput
 from ._subscription import SubscriptionClient, SubscriptionInput
 from ._team import TeamClient, TeamInput
 from ._workflow import WorkflowClient, WorkflowInput, WorkflowDocumentInput, WorkflowTaskInput, ExportInput, FlowControlInput, WorkflowBudgetInput
-from ._workflowexecution import WorkflowExecutionClient, WorkflowExecutionInput
+from ._workflowrun import WorkflowRunClient, WorkflowRunInput
 from ._types import (
     DeleteResourceInput,
     EnvSpecInput,
@@ -67,8 +67,8 @@ __all__ = [
     "AgentChannelInput",
     "SlackChannelConfigInput",
     "WhatsAppChannelConfigInput",
-    "AgentExecutionClient",
-    "AgentExecutionInput",
+    "AgentRunClient",
+    "AgentRunInput",
     "SessionSpecInput",
     "WorkspaceEntryInput",
     "WorkspaceSourceInput",
@@ -149,8 +149,8 @@ __all__ = [
     "ExportInput",
     "FlowControlInput",
     "WorkflowBudgetInput",
-    "WorkflowExecutionClient",
-    "WorkflowExecutionInput",
+    "WorkflowRunClient",
+    "WorkflowRunInput",
     "DeleteResourceInput",
     "EnvSpecInput",
     "EnvVarInput",

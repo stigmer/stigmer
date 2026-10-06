@@ -52,7 +52,7 @@ const defaultEdgeOptions = {
  * visual editor, wrapped in diff mode context to show change badges and
  * status highlighting instead of editing affordances.
  *
- * Follows the `WorkflowExecutionGraph` outer/inner pattern with
+ * Follows the `WorkflowRunGraph` outer/inner pattern with
  * `ReactFlowProvider`.
  */
 export const WorkflowDiffGraph = memo(function WorkflowDiffGraph(

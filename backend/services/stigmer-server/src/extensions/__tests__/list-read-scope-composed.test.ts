@@ -41,14 +41,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
@@ -180,12 +180,12 @@ describe("list read scope (composed server, fake scope)", () => {
     // conversation's executions asks listBySession for.
     for (const id of ["aex_turn_1", "aex_turn_2"]) {
       await server.store.saveResource(
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         id,
-        AgentExecutionSchema,
-        create(AgentExecutionSchema, {
+        AgentRunSchema,
+        create(AgentRunSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
-          kind: "AgentExecution",
+          kind: "AgentRun",
           metadata: { id, name: id, org: acmeId },
           spec: { target: { case: "sessionId", value: "ses_mine" } },
           status: {
@@ -203,12 +203,12 @@ describe("list read scope (composed server, fake scope)", () => {
       ["wfe_foreign", acmeId],
     ]) {
       await server.store.saveResource(
-        ApiResourceKind.workflow_execution,
+        ApiResourceKind.workflow_run,
         id,
-        WorkflowExecutionSchema,
-        create(WorkflowExecutionSchema, {
+        WorkflowRunSchema,
+        create(WorkflowRunSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
-          kind: "WorkflowExecution",
+          kind: "WorkflowRun",
           metadata: { id, name: id, org },
           status: {
             audit: {
@@ -310,7 +310,7 @@ describe("list read scope (composed server, fake scope)", () => {
 
   it("workflowexecution.list: non-blank org narrows AFTER the scope; blank org spans orgs (lane 6)", async () => {
     allowed = new Set(["wfe_mine", "wfe_other_org"]);
-    const query = createClient(WorkflowExecutionQueryController, transport);
+    const query = createClient(WorkflowRunQueryController, transport);
     const scopedToOrg = await query.list({ org: "acme" });
     expect(scopedToOrg.entries.map((e) => e.metadata?.id)).toEqual([
       "wfe_mine",
@@ -332,7 +332,7 @@ describe("list read scope (composed server, fake scope)", () => {
     ]);
     expect(seenKinds).toEqual([
       ApiResourceKind.session,
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
     ]);
   });
 
@@ -376,7 +376,7 @@ describe("list read scope (composed server, fake scope)", () => {
       // The scope would hide everything if it were asked.
       allowed = new Set();
       const query = createClient(
-        AgentExecutionQueryController,
+        AgentRunQueryController,
         server.inProcessTransport,
       );
       const turns = await query.listBySession({ sessionId: "ses_mine" });
@@ -390,7 +390,7 @@ describe("list read scope (composed server, fake scope)", () => {
     it("a caller propagated through the in-process header keeps its class and is narrowed like the wire", async () => {
       allowed = new Set(["aex_turn_2"]);
       const query = createClient(
-        AgentExecutionQueryController,
+        AgentRunQueryController,
         server.inProcessTransport,
       );
       const turns = await query.listBySession(
@@ -404,13 +404,13 @@ describe("list read scope (composed server, fake scope)", () => {
         },
       );
       expect(turns.entries.map((e) => e.metadata?.id)).toEqual(["aex_turn_2"]);
-      expect(seenKinds).toEqual([ApiResourceKind.agent_execution]);
+      expect(seenKinds).toEqual([ApiResourceKind.agent_run]);
     });
 
     it("workflowexecution.list, bare: the request's org predicate still applies, the scope never asked", async () => {
       allowed = new Set();
       const query = createClient(
-        WorkflowExecutionQueryController,
+        WorkflowRunQueryController,
         server.inProcessTransport,
       );
       // In-process: server code passes the id, which nothing resolves.

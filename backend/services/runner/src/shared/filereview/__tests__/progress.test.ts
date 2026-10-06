@@ -21,8 +21,8 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { FileChangeKind, FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { FileChangeKind, FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   captureProgressDelta,
   snapshotBaseline,
@@ -417,7 +417,7 @@ describe("createHybridProgressSubstrate", () => {
 
 describe("captureFileChangeProgress: a failed capture is skipped, never thrown", () => {
   it("leaves the attached snapshot in place, spends the floor, and warns once with the change set and the cause", async () => {
-    const status = create(AgentExecutionStatusSchema, {});
+    const status = create(AgentRunStatusSchema, {});
     const state = newProgressCaptureState();
     const substrate = scriptedSubstrate([
       { delta: { entries: [progressEntry("a.ts")] }, changed: true },
@@ -450,7 +450,7 @@ describe("captureFileChangeProgress: a failed capture is skipped, never thrown",
     expect(process.getuid?.(), "this case needs a non-root user (root can read a mode-000 file)").not.toBe(0);
     const baseline = await snapshotBaseline(repo, EXEC_ID);
     const substrate = createGitProgressSubstrate({ workspaceRoot: repo, executionId: EXEC_ID, baselineTree: baseline });
-    const status = create(AgentExecutionStatusSchema, {});
+    const status = create(AgentRunStatusSchema, {});
     const state = newProgressCaptureState();
     await write("src/new.ts", "a\nb\n");
     await write("keep.txt", "line1\nLINE2\nline3\n");

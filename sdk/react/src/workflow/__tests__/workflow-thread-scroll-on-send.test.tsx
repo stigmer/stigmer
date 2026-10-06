@@ -10,8 +10,8 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { ApprovalRequestedPayloadSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
+import { ApprovalRequestedPayloadSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { DerivedTaskState } from "../../internal/store/workflow-run-event-store";
 
 const jumpToLatestSpy = vi.fn();
 
@@ -67,7 +67,7 @@ function gatedHumanInput(taskName: string): DerivedTaskState {
     tokensUsed: 0n,
     attemptNumber: 1,
     error: "",
-    childExecutionId: "",
+    childRunId: "",
     agentSlug: "",
     currentToolName: "",
     messagesCount: 0,

@@ -240,7 +240,7 @@ export async function executeDoTasks(
         && attemptNumber < effectiveCtx.retryContext.maxAttempts;
       if (kind === "call:agent" && taskErr instanceof AgentCallError && taskErr.childExecutionId) {
         effectiveCtx.taskStatusAccumulator?.setTaskMetadata(entry.key, {
-          agent_execution_id: taskErr.childExecutionId,
+          agent_run_id: taskErr.childExecutionId,
         });
       }
       if (effectiveCtx.emitEvents) {
@@ -313,7 +313,10 @@ export async function executeDoTasks(
     if (kind === "call:agent" && taskOutput && typeof taskOutput === "object") {
       const agentResult = taskOutput as Record<string, unknown>;
       const meta: Record<string, unknown> = { token_attribution: "total_only" };
-      if (agentResult.agent_execution_id) meta.agent_execution_id = agentResult.agent_execution_id;
+      // The step's output names the child under both keys until #1966;
+      // the status names it one way.
+      const childRunId = agentResult.agent_run_id ?? agentResult.agent_execution_id;
+      if (childRunId) meta.agent_run_id = childRunId;
       if (agentResult.usage_summary && typeof agentResult.usage_summary === "object") {
         const usage = agentResult.usage_summary as Record<string, unknown>;
         if (usage.tool_call_count) meta.tool_call_count = usage.tool_call_count;

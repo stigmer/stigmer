@@ -4,8 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { RunConfig } from "../../agentexecution/v1/invocation_pb.js";
-import { file_ai_stigmer_agentic_agentexecution_v1_invocation } from "../../agentexecution/v1/invocation_pb.js";
+import type { RunConfig } from "../../agentrun/v1/invocation_pb.js";
+import { file_ai_stigmer_agentic_agentrun_v1_invocation } from "../../agentrun/v1/invocation_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEi+AYKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEk0KCHdoYXRzYXBwGAYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5XaGF0c0FwcENoYW5uZWxDb25maWdIABLIAQoQZW52aXJvbm1lbnRfcmVmcxgEIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1ErwBCgdhcHBfcmVmGAUgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQnW6SG66AWsKDGFwcF9yZWYua2luZBI3YXBwX3JlZiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1jaGFubmVsX2FwcBoidGhpcy5zbHVnID09ICcnIHx8IHRoaXMua2luZCA9PSA0OOCFLDASIwobcHJvYWN0aXZlX21lc3NhZ2luZ19lbmFibGVkGAcgASgIEkMKCnJ1bl9jb25maWcYCCABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUnVuQ29uZmlnQhgKD3Byb3ZpZGVyX2NvbmZpZxIFukgCCAEiFAoSU2xhY2tDaGFubmVsQ29uZmlnIjkKFVdoYXRzQXBwQ2hhbm5lbENvbmZpZxIgCg9waG9uZV9udW1iZXJfaWQYASABKAlCB7pIBHICEAFiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_invocation, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEi8gYKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEk0KCHdoYXRzYXBwGAYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5XaGF0c0FwcENoYW5uZWxDb25maWdIABLIAQoQZW52aXJvbm1lbnRfcmVmcxgEIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1ErwBCgdhcHBfcmVmGAUgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQnW6SG66AWsKDGFwcF9yZWYua2luZBI3YXBwX3JlZiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1jaGFubmVsX2FwcBoidGhpcy5zbHVnID09ICcnIHx8IHRoaXMua2luZCA9PSA0OOCFLDASIwobcHJvYWN0aXZlX21lc3NhZ2luZ19lbmFibGVkGAcgASgIEj0KCnJ1bl9jb25maWcYCCABKAsyKS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuUnVuQ29uZmlnQhgKD3Byb3ZpZGVyX2NvbmZpZxIFukgCCAEiFAoSU2xhY2tDaGFubmVsQ29uZmlnIjkKFVdoYXRzQXBwQ2hhbm5lbENvbmZpZxIgCg9waG9uZV9udW1iZXJfaWQYASABKAlCB7pIBHICEAFiBnByb3RvMw", [file_ai_stigmer_agentic_agentrun_v1_invocation, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentChannelSpec defines the configurable properties of an agent channel.
@@ -82,7 +82,7 @@ export type AgentChannelSpec = Message<"ai.stigmer.agentic.agentchannel.v1.Agent
    *
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel executions receive its values at
+   * a read-only API token), and channel runs receive its values at
    * runtime. The agent itself stays untouched.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4;
@@ -123,7 +123,7 @@ export type AgentChannelSpec = Message<"ai.stigmer.agentic.agentchannel.v1.Agent
    * platform's caps — a channel owner can reduce what one turn may spend,
    * never raise it. What a sender's own request carries is never read.
    *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8;
+   * @generated from field: ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 8;
    */
   runConfig?: RunConfig;
 };

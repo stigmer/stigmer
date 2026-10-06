@@ -227,7 +227,7 @@ own client with methods like `get`, `create`, `list`, `apply`, `update`, and
 ```typescript
 stigmer.agent.get(id)
 stigmer.session.create(input)
-stigmer.agentExecution.subscribe(id)
+stigmer.agentRun.subscribe(id)
 ```
 
 TypeScript uses singular camelCase accessors on the `Stigmer` instance.
@@ -236,7 +236,7 @@ TypeScript uses singular camelCase accessors on the `Stigmer` instance.
 ```go
 client.Agent.Get(ctx, id)
 client.Session.Create(ctx, &stigmer.SessionInput{...})
-client.AgentExecution.Subscribe(ctx, id)
+client.AgentRun.Subscribe(ctx, id)
 ```
 
 Go uses singular PascalCase fields. Every method takes a `context.Context` as
@@ -246,7 +246,7 @@ its first argument.
 ```python
 client.agents.get(id)
 client.sessions.create(SessionInput(...))
-client.agent_executions.subscribe(id)
+client.agent_runs.subscribe(id)
 ```
 
 Python uses plural snake_case attributes.
@@ -255,7 +255,7 @@ Python uses plural snake_case attributes.
 ```java
 client.agents().get(id);
 client.sessions().create(SessionInput.builder()...build());
-client.agentExecutions().subscribe(id);
+client.agentRun.subscribe(id);
 ```
 
 Java uses plural camelCase methods that return typed sub-clients.
@@ -360,8 +360,8 @@ try {
 
 ## Pagination
 
-The lists that grow without bound (sessions, agent executions and workflow
-executions) page by cursor, newest first. Pass `pageSize` (at most 100; zero
+The lists that grow without bound (Sessions, Agent Runs and Workflow Runs) page
+by cursor, newest first. Pass `pageSize` (at most 100; zero
 returns the whole list) and read `nextPageToken` from the result. Pass that
 token back as `pageToken` to get the next page. An empty token means you have
 the whole list. A page can hold fewer entries than `pageSize` and still carry a
@@ -442,14 +442,13 @@ do {
 
 ## Streaming
 
-Agent Executions and Workflow Executions support server-streaming via a
-`subscribe` method. You receive snapshots of the execution state as it
-progresses — messages arriving, tool calls executing, and phases changing.
+Agent Runs and Workflow Runs support server-streaming via a `subscribe` method.
+You receive snapshots of the run state as it progresses — messages arriving, tool calls executing, and phases changing.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-for await (const snapshot of stigmer.agentExecution.subscribe(executionId)) {
+for await (const snapshot of stigmer.agentRun.subscribe(runId)) {
   const messages = snapshot.status?.messages ?? [];
   const last = messages[messages.length - 1];
   if (last?.content) {
@@ -461,7 +460,7 @@ for await (const snapshot of stigmer.agentExecution.subscribe(executionId)) {
 </Tab>
 <Tab value="Go">
 ```go
-stream, err := client.AgentExecution.Subscribe(ctx, executionId)
+stream, err := client.AgentRun.Subscribe(ctx, runID)
 if err != nil {
     log.Fatal(err)
 }
@@ -486,7 +485,7 @@ for {
 </Tab>
 <Tab value="Python">
 ```python
-for snapshot in client.agent_executions.subscribe(execution_id):
+for snapshot in client.agent_runs.subscribe(run_id):
     messages = snapshot.status.messages
     if messages and messages[-1].content:
         print(messages[-1].content)
@@ -495,7 +494,7 @@ for snapshot in client.agent_executions.subscribe(execution_id):
 </Tab>
 <Tab value="Java">
 ```java
-var stream = client.agentExecutions().subscribe(executionId);
+var stream = client.agentRun.subscribe(runId);
 while (stream.hasNext()) {
     var snapshot = stream.next();
     var messages = snapshot.getStatus().getMessagesList();
@@ -511,8 +510,8 @@ while (stream.hasNext()) {
 </Tab>
 </SDKTabs>
 
-For a detailed guide on reading execution snapshots, handling stream completion,
-and subscribing to Workflow Executions, see the
+For a detailed guide on reading run snapshots, handling stream completion, and
+subscribing to Workflow Runs, see the
 [Streaming guide](/docs/sdk/streaming).
 
 ## What's next
@@ -520,7 +519,7 @@ and subscribing to Workflow Executions, see the
 <Cards>
   <Card
     title="Streaming"
-    description="Consume real-time execution responses as they arrive."
+    description="Consume real-time run updates as they arrive."
     href="/docs/sdk/streaming"
   />
   <Card

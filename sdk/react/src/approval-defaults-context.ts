@@ -17,7 +17,7 @@ import { createContext, useContext } from "react";
 export interface ApprovalDefaults {
   /**
    * Start interactive sessions with the session-scoped auto-approve
-   * preference armed, and create their bootstrap executions with
+   * preference armed, and create their bootstrap runs with
    * `auto_approve_all` set.
    *
    * Equivalent to the user clicking "Approve & don't ask again" before the
@@ -44,9 +44,9 @@ export const ApprovalDefaultsContext = createContext<
  * Read the app-level approval defaults from the nearest `StigmerProvider`.
  *
  * Consumed by the interactive-session surface only: `useNewSessionFlow`
- * (bootstrap execution create) and `useSessionPageFlow` (session-scoped
+ * (bootstrap run create) and `useSessionPageFlow` (session-scoped
  * preference initializer). Deliberately NOT consumed by the lower-level
- * `useCreateSession` / `useCreateAgentExecution` primitives — those are
+ * `useCreateSession` / `useCreateAgentRun` primitives — those are
  * shared by specialized flows (workflow architect/explain/diagnose) and by
  * headless callers, which pass `autoApproveAll` explicitly when they mean
  * it.

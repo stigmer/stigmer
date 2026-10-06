@@ -7,7 +7,7 @@ import type { HarnessOption } from "../../models/harness.js";
 import { HARNESS_META } from "../../models/harness.js";
 import { Switch } from "../../switch/Switch.js";
 import type { ExecutionTargetOption } from "../execution-target.js";
-import type { UseSessionVariablesReturn } from "../../execution/useSessionVariables.js";
+import type { UseSessionVariablesReturn } from "../../run/useSessionVariables.js";
 import { useExportTranscript } from "../useExportTranscript.js";
 import {
   FACET_ROW_BUTTON,
@@ -59,7 +59,7 @@ export interface SetupTabProps {
   /**
    * Session-level auto-approve switch in the Run Config section. When
    * provided, the switch renders and is interactive at all times — including
-   * mid-run, where flipping it ON releases the in-flight execution's pending
+   * mid-run, where flipping it ON releases the in-flight run's pending
    * gates (the flow's standing responder). When absent (read-only audiences,
    * demo fixtures), the section shows no approval control at all.
    */

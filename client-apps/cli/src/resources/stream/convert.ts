@@ -5,16 +5,16 @@
 // types to the differ's render-agnostic event payloads (events.ts), keeping the
 // enum/string translation in exactly one place.
 
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   SubAgentStatus,
   SummarizationSource,
   ToolCallStatus,
   TodoStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { ToolCallInfo, TodoItemView } from "./events.js";
 
 /** Mapped tool-call status strings. */
@@ -56,7 +56,7 @@ export function collectToolCallsFromMessages(messages: readonly AgentMessage[]):
 /** Find a tool call by ID, searching root then sub-agent messages. Mirrors Go's findToolCallByID. */
 export function findToolCallById(
   toolCalls: readonly ToolCall[],
-  subAgents: readonly SubAgentExecution[],
+  subAgents: readonly SubAgentRun[],
   id: string,
 ): ToolCall | undefined {
   for (const tc of toolCalls) {
@@ -81,22 +81,22 @@ export function convertProtoTodos(todos: Record<string, TodoItem>): TodoItemView
   }));
 }
 
-/** Map an ExecutionPhase to its differ string. Mirrors Go's mapPhaseToString. */
-export function mapPhaseToString(phase: ExecutionPhase): string {
+/** Map a RunPhase to its differ string. Mirrors Go's mapPhaseToString. */
+export function mapPhaseToString(phase: RunPhase): string {
   switch (phase) {
-    case ExecutionPhase.EXECUTION_PENDING:
+    case RunPhase.RUN_PENDING:
       return "pending";
-    case ExecutionPhase.EXECUTION_IN_PROGRESS:
+    case RunPhase.RUN_IN_PROGRESS:
       return "in_progress";
-    case ExecutionPhase.EXECUTION_COMPLETED:
+    case RunPhase.RUN_COMPLETED:
       return "completed";
-    case ExecutionPhase.EXECUTION_FAILED:
+    case RunPhase.RUN_FAILED:
       return "failed";
-    case ExecutionPhase.EXECUTION_CANCELLED:
+    case RunPhase.RUN_CANCELLED:
       return "cancelled";
-    case ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
+    case RunPhase.RUN_WAITING_FOR_APPROVAL:
       return "waiting_for_approval";
-    case ExecutionPhase.EXECUTION_TERMINATED:
+    case RunPhase.RUN_TERMINATED:
       return "terminated";
     default:
       return "unknown";
@@ -146,8 +146,8 @@ export function mapSummarizationSource(source: SummarizationSource): string {
   switch (source) {
     case SummarizationSource.graph_start:
       return "graph_start";
-    case SummarizationSource.mid_execution:
-      return "mid_execution";
+    case SummarizationSource.mid_run:
+      return "mid_run";
     default:
       return "unknown";
   }
@@ -168,12 +168,12 @@ export function isTerminalToolStatus(status: string): boolean {
 }
 
 /** True for terminal agent phases. Mirrors Go's isTerminalAgentPhase. */
-export function isTerminalAgentPhase(phase: ExecutionPhase): boolean {
+export function isTerminalAgentPhase(phase: RunPhase): boolean {
   return (
-    phase === ExecutionPhase.EXECUTION_COMPLETED ||
-    phase === ExecutionPhase.EXECUTION_FAILED ||
-    phase === ExecutionPhase.EXECUTION_CANCELLED ||
-    phase === ExecutionPhase.EXECUTION_TERMINATED
+    phase === RunPhase.RUN_COMPLETED ||
+    phase === RunPhase.RUN_FAILED ||
+    phase === RunPhase.RUN_CANCELLED ||
+    phase === RunPhase.RUN_TERMINATED
   );
 }
 
@@ -197,9 +197,9 @@ export function sanitizeSystemContent(content: string): string {
   const idx = content.indexOf("Error code:");
   if (idx > 0) {
     const prefix = content.slice(0, idx).trim().replace(/[:\-\s]+$/, "");
-    if (prefix !== "") return `${prefix} (internal error — check execution logs for details)`;
+    if (prefix !== "") return `${prefix} (internal error — check run logs for details)`;
   }
-  return "Agent execution encountered an internal error. Check execution logs for details.";
+  return "Agent run encountered an internal error. Check run logs for details.";
 }
 
 /** True when the system message looks like an approval-received acknowledgement. Mirrors Go's isApprovalNoiseMessage. */

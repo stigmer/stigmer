@@ -1,7 +1,7 @@
 /**
  * The built-in assistant's instructions: the ONE text a run reads when its
  * blueprint carries no instructions — because the turn runs no agent (its
- * status stamps no agent_id; agentexecution/v1/api.proto) or because the
+ * status stamps no agent_id; agentrun/v1/api.proto) or because the
  * agent it runs left its instructions empty. Both harnesses' prompt builders
  * substitute these words on that arm and frame them their own way (the
  * `prompt-sections.ts` doctrine: the framing is house style, the words are

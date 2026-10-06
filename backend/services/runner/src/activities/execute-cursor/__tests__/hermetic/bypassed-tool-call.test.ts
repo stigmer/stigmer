@@ -15,7 +15,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -99,7 +99,7 @@ describe("ExecuteCursor hermetic — a gated built-in under the global bypass", 
 
     // ── Assert: the turn ran to completion, nothing parked ───────────────────
     expect(invocation.outcome.kind).toBe("returned");
-    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(record.waitingToolCalls(), "a bypassed call is never parked").toHaveLength(0);
     expect(agent.runs[0].cancelCalls, "nothing was denied, so nothing was cancelled").toHaveLength(0);
 

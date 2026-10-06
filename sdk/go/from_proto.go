@@ -6,7 +6,7 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
 	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
-	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
+	agentrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
 	agentsharev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1"
 	artifactv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/artifact/v1"
 	channelappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1"
@@ -19,7 +19,7 @@ import (
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1"
-	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowexecution/v1"
+	workflowrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowrun/v1"
 	licensev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/license/v1"
 	planv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/plan/v1"
 	subscriptionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1"
@@ -44,9 +44,9 @@ func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInp
 	return gen.AgentChannelInputFromProto(p)
 }
 
-// AgentExecutionInputFromProto creates a AgentExecutionInput from a proto AgentExecution resource.
-func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExecutionInput {
-	return gen.AgentExecutionInputFromProto(p)
+// AgentRunInputFromProto creates a AgentRunInput from a proto AgentRun resource.
+func AgentRunInputFromProto(p *agentrunv1.AgentRun) *AgentRunInput {
+	return gen.AgentRunInputFromProto(p)
 }
 
 // AgentShareInputFromProto creates a AgentShareInput from a proto AgentShare resource.
@@ -169,7 +169,7 @@ func WorkflowInputFromProto(p *workflowv1.Workflow) *WorkflowInput {
 	return gen.WorkflowInputFromProto(p)
 }
 
-// WorkflowExecutionInputFromProto creates a WorkflowExecutionInput from a proto WorkflowExecution resource.
-func WorkflowExecutionInputFromProto(p *workflowexecutionv1.WorkflowExecution) *WorkflowExecutionInput {
-	return gen.WorkflowExecutionInputFromProto(p)
+// WorkflowRunInputFromProto creates a WorkflowRunInput from a proto WorkflowRun resource.
+func WorkflowRunInputFromProto(p *workflowrunv1.WorkflowRun) *WorkflowRunInput {
+	return gen.WorkflowRunInputFromProto(p)
 }

@@ -9,10 +9,10 @@
         "properties": {
           "signal": {
             "additionalProperties": false,
-            "description": "Signal another workflow execution's listen task.",
+            "description": "Signal another workflow run's listen task.",
             "properties": {
-              "execution_id": {
-                "description": "Target workflow execution id (\"wfx_...\"), as returned by run/create. Usually flows from a prior task's output: \"${ .start_processor.execution_id }\"",
+              "run_id": {
+                "description": "Target workflow run id (\"wex_...\"), as returned by run/create. Usually flows from a prior task's output: \"${ .start_processor.run_id }\"",
                 "minLength": 1,
                 "type": "string"
               },
@@ -23,7 +23,7 @@
               }
             },
             "required": [
-              "execution_id",
+              "run_id",
               "signal_name"
             ],
             "type": "object"
@@ -64,7 +64,7 @@
           "type": "object"
         },
         "source": {
-          "description": "CloudEvents source identifier. URI or URI-reference that identifies the context in which the event happened. Supports ${ } expression interpolation. When empty, the runtime defaults to the workflow execution URI (e.g., \"/workflows/{workflow_id}/executions/{execution_id}\").",
+          "description": "CloudEvents source identifier. URI or URI-reference that identifies the context in which the event happened. Supports ${ } expression interpolation. When empty, the runtime defaults to the workflow run URI (e.g., \"/workflows/runs/{run_id}\").",
           "type": "string"
         },
         "subject": {

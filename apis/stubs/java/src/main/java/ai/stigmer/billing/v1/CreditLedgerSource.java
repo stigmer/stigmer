@@ -11,10 +11,10 @@ package ai.stigmer.billing.v1;
  * and drill-down purposes.
  *
  * Fields are populated based on the entry type:
- * - usage_debit: execution_id, session_id, agent_id, llm_call_sequence, llm_call_id
+ * - usage_debit: run_id, session_id, agent_id, llm_call_sequence, llm_call_id
  * - purchase_credit / auto_recharge_credit: purchase_id
  * - adjustment_credit / adjustment_debit: adjusted_by, description
- * - reservation_hold / reservation_release: execution_id, reservation_id
+ * - reservation_hold / reservation_release: run_id, reservation_id
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.CreditLedgerSource}
@@ -39,7 +39,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private CreditLedgerSource() {
-    executionId_ = "";
+    runId_ = "";
     sessionId_ = "";
     agentId_ = "";
     llmCallId_ = "";
@@ -68,47 +68,47 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.billing.v1.CreditLedgerSource.class, ai.stigmer.billing.v1.CreditLedgerSource.Builder.class);
   }
 
-  public static final int EXECUTION_ID_FIELD_NUMBER = 1;
+  public static final int RUN_ID_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object executionId_ = "";
+  private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * Agent execution that generated this debit.
+   * Agent run that generated this debit.
    * </pre>
    *
-   * <code>string execution_id = 1 [json_name = "executionId"];</code>
-   * @return The executionId.
+   * <code>string run_id = 1 [json_name = "runId"];</code>
+   * @return The runId.
    */
   @java.lang.Override
-  public java.lang.String getExecutionId() {
-    java.lang.Object ref = executionId_;
+  public java.lang.String getRunId() {
+    java.lang.Object ref = runId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      executionId_ = s;
+      runId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * Agent execution that generated this debit.
+   * Agent run that generated this debit.
    * </pre>
    *
-   * <code>string execution_id = 1 [json_name = "executionId"];</code>
-   * @return The bytes for executionId.
+   * <code>string run_id = 1 [json_name = "runId"];</code>
+   * @return The bytes for runId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getExecutionIdBytes() {
-    java.lang.Object ref = executionId_;
+      getRunIdBytes() {
+    java.lang.Object ref = runId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      executionId_ = b;
+      runId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -120,7 +120,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object sessionId_ = "";
   /**
    * <pre>
-   * Session containing the execution.
+   * Session containing the run.
    * </pre>
    *
    * <code>string session_id = 2 [json_name = "sessionId"];</code>
@@ -141,7 +141,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Session containing the execution.
+   * Session containing the run.
    * </pre>
    *
    * <code>string session_id = 2 [json_name = "sessionId"];</code>
@@ -213,10 +213,10 @@ private static final long serialVersionUID = 0L;
   private int llmCallSequence_ = 0;
   /**
    * <pre>
-   * Sequence number of the LLM call within the execution (1-based), as the
+   * Sequence number of the LLM call within the run (1-based), as the
    * reporting proxy counted it. Display and ordering; the locator of the
    * debited usage record is llm_call_id, because a proxy restart makes two
-   * calls of one execution share a sequence.
+   * calls of one run share a sequence.
    * </pre>
    *
    * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>
@@ -235,7 +235,7 @@ private static final long serialVersionUID = 0L;
    * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
    * drill-down from this debit to the exact record it paid for. Empty for
    * debits of records whose reporter sent no call id (they are located by
-   * execution_id + llm_call_sequence, as before).
+   * run_id + llm_call_sequence, as before).
    * </pre>
    *
    * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
@@ -259,7 +259,7 @@ private static final long serialVersionUID = 0L;
    * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
    * drill-down from this debit to the exact record it paid for. Empty for
    * debits of records whose reporter sent no call id (they are located by
-   * execution_id + llm_call_sequence, as before).
+   * run_id + llm_call_sequence, as before).
    * </pre>
    *
    * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
@@ -529,8 +529,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(executionId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, executionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 1, runId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sessionId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, sessionId_);
@@ -568,8 +568,8 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(executionId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, executionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, runId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sessionId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, sessionId_);
@@ -614,8 +614,8 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.billing.v1.CreditLedgerSource other = (ai.stigmer.billing.v1.CreditLedgerSource) obj;
 
-    if (!getExecutionId()
-        .equals(other.getExecutionId())) return false;
+    if (!getRunId()
+        .equals(other.getRunId())) return false;
     if (!getSessionId()
         .equals(other.getSessionId())) return false;
     if (!getAgentId()
@@ -645,8 +645,8 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + EXECUTION_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getExecutionId().hashCode();
+    hash = (37 * hash) + RUN_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getRunId().hashCode();
     hash = (37 * hash) + SESSION_ID_FIELD_NUMBER;
     hash = (53 * hash) + getSessionId().hashCode();
     hash = (37 * hash) + AGENT_ID_FIELD_NUMBER;
@@ -768,10 +768,10 @@ private static final long serialVersionUID = 0L;
    * and drill-down purposes.
    *
    * Fields are populated based on the entry type:
-   * - usage_debit: execution_id, session_id, agent_id, llm_call_sequence, llm_call_id
+   * - usage_debit: run_id, session_id, agent_id, llm_call_sequence, llm_call_id
    * - purchase_credit / auto_recharge_credit: purchase_id
    * - adjustment_credit / adjustment_debit: adjusted_by, description
-   * - reservation_hold / reservation_release: execution_id, reservation_id
+   * - reservation_hold / reservation_release: run_id, reservation_id
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.CreditLedgerSource}
@@ -807,7 +807,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      executionId_ = "";
+      runId_ = "";
       sessionId_ = "";
       agentId_ = "";
       llmCallSequence_ = 0;
@@ -851,7 +851,7 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.billing.v1.CreditLedgerSource result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.executionId_ = executionId_;
+        result.runId_ = runId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.sessionId_ = sessionId_;
@@ -894,8 +894,8 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.billing.v1.CreditLedgerSource other) {
       if (other == ai.stigmer.billing.v1.CreditLedgerSource.getDefaultInstance()) return this;
-      if (!other.getExecutionId().isEmpty()) {
-        executionId_ = other.executionId_;
+      if (!other.getRunId().isEmpty()) {
+        runId_ = other.runId_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
@@ -969,7 +969,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              executionId_ = input.readStringRequireUtf8();
+              runId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
@@ -1035,22 +1035,22 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object executionId_ = "";
+    private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * Agent execution that generated this debit.
+     * Agent run that generated this debit.
      * </pre>
      *
-     * <code>string execution_id = 1 [json_name = "executionId"];</code>
-     * @return The executionId.
+     * <code>string run_id = 1 [json_name = "runId"];</code>
+     * @return The runId.
      */
-    public java.lang.String getExecutionId() {
-      java.lang.Object ref = executionId_;
+    public java.lang.String getRunId() {
+      java.lang.Object ref = runId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        executionId_ = s;
+        runId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1058,20 +1058,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent execution that generated this debit.
+     * Agent run that generated this debit.
      * </pre>
      *
-     * <code>string execution_id = 1 [json_name = "executionId"];</code>
-     * @return The bytes for executionId.
+     * <code>string run_id = 1 [json_name = "runId"];</code>
+     * @return The bytes for runId.
      */
     public com.google.protobuf.ByteString
-        getExecutionIdBytes() {
-      java.lang.Object ref = executionId_;
+        getRunIdBytes() {
+      java.lang.Object ref = runId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        executionId_ = b;
+        runId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1079,49 +1079,49 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent execution that generated this debit.
+     * Agent run that generated this debit.
      * </pre>
      *
-     * <code>string execution_id = 1 [json_name = "executionId"];</code>
-     * @param value The executionId to set.
+     * <code>string run_id = 1 [json_name = "runId"];</code>
+     * @param value The runId to set.
      * @return This builder for chaining.
      */
-    public Builder setExecutionId(
+    public Builder setRunId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      executionId_ = value;
+      runId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Agent execution that generated this debit.
+     * Agent run that generated this debit.
      * </pre>
      *
-     * <code>string execution_id = 1 [json_name = "executionId"];</code>
+     * <code>string run_id = 1 [json_name = "runId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearExecutionId() {
-      executionId_ = getDefaultInstance().getExecutionId();
+    public Builder clearRunId() {
+      runId_ = getDefaultInstance().getRunId();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Agent execution that generated this debit.
+     * Agent run that generated this debit.
      * </pre>
      *
-     * <code>string execution_id = 1 [json_name = "executionId"];</code>
-     * @param value The bytes for executionId to set.
+     * <code>string run_id = 1 [json_name = "runId"];</code>
+     * @param value The bytes for runId to set.
      * @return This builder for chaining.
      */
-    public Builder setExecutionIdBytes(
+    public Builder setRunIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      executionId_ = value;
+      runId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
@@ -1130,7 +1130,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object sessionId_ = "";
     /**
      * <pre>
-     * Session containing the execution.
+     * Session containing the run.
      * </pre>
      *
      * <code>string session_id = 2 [json_name = "sessionId"];</code>
@@ -1150,7 +1150,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Session containing the execution.
+     * Session containing the run.
      * </pre>
      *
      * <code>string session_id = 2 [json_name = "sessionId"];</code>
@@ -1171,7 +1171,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Session containing the execution.
+     * Session containing the run.
      * </pre>
      *
      * <code>string session_id = 2 [json_name = "sessionId"];</code>
@@ -1188,7 +1188,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Session containing the execution.
+     * Session containing the run.
      * </pre>
      *
      * <code>string session_id = 2 [json_name = "sessionId"];</code>
@@ -1202,7 +1202,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Session containing the execution.
+     * Session containing the run.
      * </pre>
      *
      * <code>string session_id = 2 [json_name = "sessionId"];</code>
@@ -1314,10 +1314,10 @@ private static final long serialVersionUID = 0L;
     private int llmCallSequence_ ;
     /**
      * <pre>
-     * Sequence number of the LLM call within the execution (1-based), as the
+     * Sequence number of the LLM call within the run (1-based), as the
      * reporting proxy counted it. Display and ordering; the locator of the
      * debited usage record is llm_call_id, because a proxy restart makes two
-     * calls of one execution share a sequence.
+     * calls of one run share a sequence.
      * </pre>
      *
      * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>
@@ -1329,10 +1329,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sequence number of the LLM call within the execution (1-based), as the
+     * Sequence number of the LLM call within the run (1-based), as the
      * reporting proxy counted it. Display and ordering; the locator of the
      * debited usage record is llm_call_id, because a proxy restart makes two
-     * calls of one execution share a sequence.
+     * calls of one run share a sequence.
      * </pre>
      *
      * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>
@@ -1348,10 +1348,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sequence number of the LLM call within the execution (1-based), as the
+     * Sequence number of the LLM call within the run (1-based), as the
      * reporting proxy counted it. Display and ordering; the locator of the
      * debited usage record is llm_call_id, because a proxy restart makes two
-     * calls of one execution share a sequence.
+     * calls of one run share a sequence.
      * </pre>
      *
      * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>
@@ -1370,7 +1370,7 @@ private static final long serialVersionUID = 0L;
      * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
      * drill-down from this debit to the exact record it paid for. Empty for
      * debits of records whose reporter sent no call id (they are located by
-     * execution_id + llm_call_sequence, as before).
+     * run_id + llm_call_sequence, as before).
      * </pre>
      *
      * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
@@ -1393,7 +1393,7 @@ private static final long serialVersionUID = 0L;
      * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
      * drill-down from this debit to the exact record it paid for. Empty for
      * debits of records whose reporter sent no call id (they are located by
-     * execution_id + llm_call_sequence, as before).
+     * run_id + llm_call_sequence, as before).
      * </pre>
      *
      * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
@@ -1417,7 +1417,7 @@ private static final long serialVersionUID = 0L;
      * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
      * drill-down from this debit to the exact record it paid for. Empty for
      * debits of records whose reporter sent no call id (they are located by
-     * execution_id + llm_call_sequence, as before).
+     * run_id + llm_call_sequence, as before).
      * </pre>
      *
      * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
@@ -1437,7 +1437,7 @@ private static final long serialVersionUID = 0L;
      * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
      * drill-down from this debit to the exact record it paid for. Empty for
      * debits of records whose reporter sent no call id (they are located by
-     * execution_id + llm_call_sequence, as before).
+     * run_id + llm_call_sequence, as before).
      * </pre>
      *
      * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
@@ -1454,7 +1454,7 @@ private static final long serialVersionUID = 0L;
      * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
      * drill-down from this debit to the exact record it paid for. Empty for
      * debits of records whose reporter sent no call id (they are located by
-     * execution_id + llm_call_sequence, as before).
+     * run_id + llm_call_sequence, as before).
      * </pre>
      *
      * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>

@@ -1,7 +1,7 @@
 import datetime
 
-from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
-from ai.stigmer.agentic.agentexecution.v1 import usage_pb2 as _usage_pb2
+from ai.stigmer.agentic.agentrun.v1 import enum_pb2 as _enum_pb2
+from ai.stigmer.agentic.agentrun.v1 import usage_pb2 as _usage_pb2
 from ai.stigmer.billing.v1 import credit_pb2 as _credit_pb2
 from ai.stigmer.billing.v1 import enum_pb2 as _enum_pb2_1
 from ai.stigmer.billing.v1 import model_pricing_baseline_pb2 as _model_pricing_baseline_pb2
@@ -49,19 +49,19 @@ class GrantCreditsInput(_message.Message):
     idempotency_key: str
     def __init__(self, org: _Optional[str] = ..., amount_micros: _Optional[int] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., reason: _Optional[str] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
 
-class AuthorizeExecutionInput(_message.Message):
-    __slots__ = ("org", "execution_id", "harness", "expected_cost_cap_micros")
+class AuthorizeRunInput(_message.Message):
+    __slots__ = ("org", "run_id", "harness", "expected_cost_cap_micros")
     ORG_FIELD_NUMBER: _ClassVar[int]
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
     HARNESS_FIELD_NUMBER: _ClassVar[int]
     EXPECTED_COST_CAP_MICROS_FIELD_NUMBER: _ClassVar[int]
     org: str
-    execution_id: str
+    run_id: str
     harness: str
     expected_cost_cap_micros: int
-    def __init__(self, org: _Optional[str] = ..., execution_id: _Optional[str] = ..., harness: _Optional[str] = ..., expected_cost_cap_micros: _Optional[int] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., run_id: _Optional[str] = ..., harness: _Optional[str] = ..., expected_cost_cap_micros: _Optional[int] = ...) -> None: ...
 
-class AuthorizeExecutionResponse(_message.Message):
+class AuthorizeRunResponse(_message.Message):
     __slots__ = ("authorized", "reservation_id", "reserved_micros", "available_balance_micros", "denial_reason")
     AUTHORIZED_FIELD_NUMBER: _ClassVar[int]
     RESERVATION_ID_FIELD_NUMBER: _ClassVar[int]
@@ -76,8 +76,8 @@ class AuthorizeExecutionResponse(_message.Message):
     def __init__(self, authorized: bool = ..., reservation_id: _Optional[str] = ..., reserved_micros: _Optional[int] = ..., available_balance_micros: _Optional[int] = ..., denial_reason: _Optional[str] = ...) -> None: ...
 
 class RecordLlmCallUsageInput(_message.Message):
-    __slots__ = ("execution_id", "sequence", "call_id", "provider", "resolved_model", "requested_model", "tokens", "usage_status", "provider_request_id", "http_status_code", "streaming", "finish_reason", "proxy_timing", "provider_usage_json", "harness", "cursor_account_id", "cursor_key_id", "cursor_key_source", "served_service_tier", "metered_execution", "provider_key_source")
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("run_id", "sequence", "call_id", "provider", "resolved_model", "requested_model", "tokens", "usage_status", "provider_request_id", "http_status_code", "streaming", "finish_reason", "proxy_timing", "provider_usage_json", "harness", "cursor_account_id", "cursor_key_id", "cursor_key_source", "served_service_tier", "metered_run", "provider_key_source")
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
     SEQUENCE_FIELD_NUMBER: _ClassVar[int]
     CALL_ID_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
@@ -96,9 +96,9 @@ class RecordLlmCallUsageInput(_message.Message):
     CURSOR_KEY_ID_FIELD_NUMBER: _ClassVar[int]
     CURSOR_KEY_SOURCE_FIELD_NUMBER: _ClassVar[int]
     SERVED_SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
-    METERED_EXECUTION_FIELD_NUMBER: _ClassVar[int]
+    METERED_RUN_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_KEY_SOURCE_FIELD_NUMBER: _ClassVar[int]
-    execution_id: str
+    run_id: str
     sequence: int
     call_id: str
     provider: str
@@ -117,11 +117,11 @@ class RecordLlmCallUsageInput(_message.Message):
     cursor_key_id: str
     cursor_key_source: _usage_pb2.CursorKeySource
     served_service_tier: str
-    metered_execution: MeteredExecution
+    metered_run: MeteredRun
     provider_key_source: _usage_pb2.ProviderKeySource
-    def __init__(self, execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., call_id: _Optional[str] = ..., provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., requested_model: _Optional[str] = ..., tokens: _Optional[_Union[_usage_pb2.TokenUsage, _Mapping]] = ..., usage_status: _Optional[_Union[_usage_pb2.UsageCompletionStatus, str]] = ..., provider_request_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., streaming: bool = ..., finish_reason: _Optional[str] = ..., proxy_timing: _Optional[_Union[_usage_pb2.ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., harness: _Optional[str] = ..., cursor_account_id: _Optional[str] = ..., cursor_key_id: _Optional[str] = ..., cursor_key_source: _Optional[_Union[_usage_pb2.CursorKeySource, str]] = ..., served_service_tier: _Optional[str] = ..., metered_execution: _Optional[_Union[MeteredExecution, _Mapping]] = ..., provider_key_source: _Optional[_Union[_usage_pb2.ProviderKeySource, str]] = ...) -> None: ...
+    def __init__(self, run_id: _Optional[str] = ..., sequence: _Optional[int] = ..., call_id: _Optional[str] = ..., provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., requested_model: _Optional[str] = ..., tokens: _Optional[_Union[_usage_pb2.TokenUsage, _Mapping]] = ..., usage_status: _Optional[_Union[_usage_pb2.UsageCompletionStatus, str]] = ..., provider_request_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., streaming: bool = ..., finish_reason: _Optional[str] = ..., proxy_timing: _Optional[_Union[_usage_pb2.ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., harness: _Optional[str] = ..., cursor_account_id: _Optional[str] = ..., cursor_key_id: _Optional[str] = ..., cursor_key_source: _Optional[_Union[_usage_pb2.CursorKeySource, str]] = ..., served_service_tier: _Optional[str] = ..., metered_run: _Optional[_Union[MeteredRun, _Mapping]] = ..., provider_key_source: _Optional[_Union[_usage_pb2.ProviderKeySource, str]] = ...) -> None: ...
 
-class MeteredExecution(_message.Message):
+class MeteredRun(_message.Message):
     __slots__ = ("session_id", "pinned_model", "requested_service_tier", "requested_thinking_mode")
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     PINNED_MODEL_FIELD_NUMBER: _ClassVar[int]
@@ -147,13 +147,13 @@ class RecordLlmCallUsageResponse(_message.Message):
     is_duplicate: bool
     def __init__(self, usage_record_id: _Optional[str] = ..., provider_cost_micros: _Optional[int] = ..., customer_billable_amount_micros: _Optional[int] = ..., is_billable: bool = ..., is_duplicate: bool = ...) -> None: ...
 
-class FinalizeExecutionInput(_message.Message):
-    __slots__ = ("execution_id",)
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
-    execution_id: str
-    def __init__(self, execution_id: _Optional[str] = ...) -> None: ...
+class FinalizeRunInput(_message.Message):
+    __slots__ = ("run_id",)
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    run_id: str
+    def __init__(self, run_id: _Optional[str] = ...) -> None: ...
 
-class FinalizeExecutionResponse(_message.Message):
+class FinalizeRunResponse(_message.Message):
     __slots__ = ("total_provider_cost_micros", "total_billable_amount_micros", "released_reservation_micros", "billed_call_count")
     TOTAL_PROVIDER_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_BILLABLE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
@@ -166,10 +166,10 @@ class FinalizeExecutionResponse(_message.Message):
     def __init__(self, total_provider_cost_micros: _Optional[int] = ..., total_billable_amount_micros: _Optional[int] = ..., released_reservation_micros: _Optional[int] = ..., billed_call_count: _Optional[int] = ...) -> None: ...
 
 class RearmForRecoveryInput(_message.Message):
-    __slots__ = ("execution_id",)
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
-    execution_id: str
-    def __init__(self, execution_id: _Optional[str] = ...) -> None: ...
+    __slots__ = ("run_id",)
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    run_id: str
+    def __init__(self, run_id: _Optional[str] = ...) -> None: ...
 
 class CreateCreditCheckoutSessionInput(_message.Message):
     __slots__ = ("org", "pack_id", "success_url", "cancel_url")
@@ -286,18 +286,18 @@ class GetBillingUsageReportInput(_message.Message):
     def __init__(self, org: _Optional[str] = ..., start_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., end_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class BillingUsageReportResponse(_message.Message):
-    __slots__ = ("total_provider_cost_micros", "total_billable_amount_micros", "execution_count", "llm_call_count", "model_breakdown")
+    __slots__ = ("total_provider_cost_micros", "total_billable_amount_micros", "run_count", "llm_call_count", "model_breakdown")
     TOTAL_PROVIDER_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_BILLABLE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
-    EXECUTION_COUNT_FIELD_NUMBER: _ClassVar[int]
+    RUN_COUNT_FIELD_NUMBER: _ClassVar[int]
     LLM_CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
     MODEL_BREAKDOWN_FIELD_NUMBER: _ClassVar[int]
     total_provider_cost_micros: int
     total_billable_amount_micros: int
-    execution_count: int
+    run_count: int
     llm_call_count: int
     model_breakdown: _containers.RepeatedCompositeFieldContainer[ModelBillingBreakdown]
-    def __init__(self, total_provider_cost_micros: _Optional[int] = ..., total_billable_amount_micros: _Optional[int] = ..., execution_count: _Optional[int] = ..., llm_call_count: _Optional[int] = ..., model_breakdown: _Optional[_Iterable[_Union[ModelBillingBreakdown, _Mapping]]] = ...) -> None: ...
+    def __init__(self, total_provider_cost_micros: _Optional[int] = ..., total_billable_amount_micros: _Optional[int] = ..., run_count: _Optional[int] = ..., llm_call_count: _Optional[int] = ..., model_breakdown: _Optional[_Iterable[_Union[ModelBillingBreakdown, _Mapping]]] = ...) -> None: ...
 
 class ModelBillingBreakdown(_message.Message):
     __slots__ = ("model", "harness", "cost_tier", "provider_cost_micros", "billable_amount_micros", "call_count")
@@ -465,16 +465,16 @@ class PreviewAuthorizationResponse(_message.Message):
     reserve_amount_micros: int
     def __init__(self, authorized: bool = ..., denial_reason: _Optional[str] = ..., reserve_amount_micros: _Optional[int] = ...) -> None: ...
 
-class GetExecutionBillingSignalInput(_message.Message):
-    __slots__ = ("execution_id",)
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
-    execution_id: str
-    def __init__(self, execution_id: _Optional[str] = ...) -> None: ...
+class GetRunBillingSignalInput(_message.Message):
+    __slots__ = ("run_id",)
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    run_id: str
+    def __init__(self, run_id: _Optional[str] = ...) -> None: ...
 
-class GetExecutionBillingSignalResponse(_message.Message):
+class GetRunBillingSignalResponse(_message.Message):
     __slots__ = ("signal", "reason")
     SIGNAL_FIELD_NUMBER: _ClassVar[int]
     REASON_FIELD_NUMBER: _ClassVar[int]
-    signal: _enum_pb2_1.ExecutionBillingSignal
+    signal: _enum_pb2_1.RunBillingSignal
     reason: str
-    def __init__(self, signal: _Optional[_Union[_enum_pb2_1.ExecutionBillingSignal, str]] = ..., reason: _Optional[str] = ...) -> None: ...
+    def __init__(self, signal: _Optional[_Union[_enum_pb2_1.RunBillingSignal, str]] = ..., reason: _Optional[str] = ...) -> None: ...

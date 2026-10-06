@@ -11,7 +11,7 @@ import ai.stigmer.agentic.artifact.v1.ArtifactQueryControllerGrpc;
 import ai.stigmer.agentic.artifact.v1.CreateArtifactInput;
 import ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest;
 import ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse;
-import ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest;
+import ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -44,9 +44,9 @@ public final class ArtifactClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public ArtifactList listByExecution(ListArtifactsByExecutionRequest input) {
+    public ArtifactList listByRun(ListArtifactsByRunRequest input) {
         try {
-            return query.listByExecution(input);
+            return query.listByRun(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

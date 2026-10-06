@@ -33,16 +33,15 @@ A Session names the Agent it talks to, and each message in it is one run:
   chart={`
 graph LR
   A["Agent"] --> S["Session"]
-  S --> E1["Execution 1"]
-  S --> E2["Execution 2"]
-  S --> E3["Execution 3"]
+  S --> E1["Agent Run 1"]
+  S --> E2["Agent Run 2"]
+  S --> E3["Agent Run 3"]
 `}
 />
 
 Each request-response cycle within a Session creates an
-[Agent Execution](/docs/concepts/agents#blueprint-vs-runtime). The execution
-sees all previous messages from the Session — this is how the Agent remembers
-context.
+[Agent Run](/docs/concepts/agents#blueprint-vs-runtime). The run sees all
+previous messages from the Session — this is how the Agent remembers context.
 
 ## Creating a Session
 
@@ -109,8 +108,8 @@ reaches them only when someone updates them:
 
 To start a conversation on a particular version instead of the current one, name
 a tag or a version hash in the reference (`version: stable`). Every
-[Agent Execution](/docs/concepts/agents#versions) records the Agent and version
-it ran.
+[Agent Run](/docs/concepts/agents#versions) records the Agent and version it
+ran.
 
 ## Who may send a message
 
@@ -140,7 +139,7 @@ Cursor-specific models and coding tools).
 
 You set the Harness when creating a Session; when you set none, the Session
 starts on the Agent's own `harness`, or native when the Agent names none. Once
-the first execution runs, the Harness is locked for that Session.
+the first Agent Run starts, the Harness is locked for that Session.
 
 ```yaml validate-as="Session"
 spec:
@@ -190,8 +189,7 @@ narrow what an Agent can do, change its lists.
 Sessions persist until explicitly deleted. You can:
 
 - **Resume** a Session by sending new messages to the same Session ID
-- **List** past Sessions, or every Session on one Agent, and their execution
-  history
+- **List** past Sessions, or every Session on one Agent, and their run history
 - **Delete** a Session when the conversation is no longer needed
 
 Each Session maintains its own thread of messages. The Agent sees the complete
@@ -204,4 +202,4 @@ Sessions capture conversations. But every conversation needs somewhere to run �
 a process that picks up the work, calls the LLM, and executes tools. That's what
 [Runners](/docs/concepts/runners) are. The next page explains how runners work,
 the difference between local and cloud runners, and how Sessions find the right
-runner for each execution.
+runner for each run.

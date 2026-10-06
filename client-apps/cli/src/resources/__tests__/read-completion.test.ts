@@ -1,4 +1,4 @@
-// In-process test for the read surface: search, execution
+// In-process test for the read surface: search, run
 // get/list, session list, and usage reports.
 //
 // Stands up a real Connect backend over h2c serving the controllers these paths
@@ -11,10 +11,10 @@
 import { create, toJson } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { GetSessionUsageReportOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { GetSessionUsageReportOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -28,7 +28,7 @@ import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Se
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { classify, ExitCode } from "../../errors/index.js";
-import { getExecution, listAgentExecutions, renderExecutionList } from "../execution.js";
+import { getRun, listAgentRuns, renderRunList } from "../runs.js";
 import { listResources } from "../list.js";
 import { renderResource } from "../render.js";
 import { searchResources } from "../search.js";
@@ -36,9 +36,9 @@ import { getSessionUsageReport, renderSessionUsage } from "../usage.js";
 
 const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 
-const knownExec = create(AgentExecutionSchema, {
+const knownExec = create(AgentRunSchema, {
   metadata: { id: "aex_1", org: "acme" },
-  status: { agentId: "agt_1", phase: ExecutionPhase.EXECUTION_COMPLETED, startedAt: "2026-03-01T10:00:00Z" },
+  status: { agentId: "agt_1", phase: RunPhase.RUN_COMPLETED, startedAt: "2026-03-01T10:00:00Z" },
 });
 
 const knownSession = create(SessionSchema, {
@@ -68,7 +68,7 @@ const knownSearchResult = create(SearchResultSchema, {
 
 const knownUsage = create(GetSessionUsageReportOutputSchema, {
   sessionId: "ses_1",
-  executionCount: 1,
+  runCount: 1,
   modelBreakdown: [{ model: "claude-sonnet-4", inputTokens: 1000n, outputTokens: 100n, billableCostMicros: 500000n }],
 });
 
@@ -78,7 +78,7 @@ const openSessions = new Set<ServerHttp2Session>();
 
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
-    router.service(AgentExecutionQueryController, {
+    router.service(AgentRunQueryController, {
       get: (req) => {
         if (req.value !== "aex_1") throw new ConnectError("execution not found", Code.NotFound);
         return knownExec;
@@ -141,22 +141,22 @@ describe("search integration", () => {
   });
 });
 
-describe("execution integration", () => {
-  it("gets an agent execution by ID and renders backend protojson", async () => {
-    const { schema, message } = await getExecution(client, "aex_1");
+describe("run integration", () => {
+  it("gets an agent run by ID and renders backend protojson", async () => {
+    const { schema, message } = await getRun(client, "aex_1");
     expect(JSON.parse(renderResource(schema, message, "json"))).toEqual(
-      toJson(AgentExecutionSchema, knownExec, { useProtoFieldName: true }),
+      toJson(AgentRunSchema, knownExec, { useProtoFieldName: true }),
     );
   });
 
-  it("maps a NotFound execution to ExitCode.NotFound", async () => {
-    const err = await getExecution(client, "aex_missing").catch((e) => e);
+  it("maps a NotFound run to ExitCode.NotFound", async () => {
+    const err = await getRun(client, "aex_missing").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
   });
 
-  it("lists agent executions as protojson envelope", async () => {
-    const result = await listAgentExecutions(client, 50);
-    const json = JSON.parse(renderExecutionList(result, "json", "agent"));
+  it("lists agent runs as protojson envelope", async () => {
+    const result = await listAgentRuns(client, 50);
+    const json = JSON.parse(renderRunList(result, "json", "agent"));
     expect(json.entries[0].metadata.id).toBe("aex_1");
   });
 });

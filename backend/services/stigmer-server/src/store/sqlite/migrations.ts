@@ -75,6 +75,22 @@ import {
   workflowInstanceWorkflowIdOf,
 } from "../workflow-instance-retired.js";
 import type { MigratedRun } from "../workflow-instance-retired.js";
+import {
+  RETIRED_AGENT_RUN_KIND,
+  RETIRED_WORKFLOW_RUN_KIND,
+  RUN_EVENT_TYPE_RENAMES,
+  RUN_KIND_RENAMES,
+  RUN_KIND_TABLES,
+  RUN_RENAME_PAGE_SIZE,
+  RUN_RENAME_POLICY_KIND,
+  RUN_RENAME_WORKFLOW_KIND,
+  rekeyedRunPolicy,
+  renamedAgentRunRow,
+  renamedWorkflowRow,
+  renamedWorkflowRunRow,
+  unreadableRunRenameRowError,
+} from "../run-rename.js";
+import type { RekeyedPolicy } from "../run-rename.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -104,9 +120,11 @@ export const SCHEMA_VERSION_15 = 15;
 export const SCHEMA_VERSION_16 = 16;
 /** v17: workflow runs name their workflow directly; the workflow instance rows removed. */
 export const SCHEMA_VERSION_17 = 17;
+/** v18: agent and workflow executions are runs, in the store and the workflow language. */
+export const SCHEMA_VERSION_18 = 18;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_17;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_18;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -148,6 +166,7 @@ export function runMigrations(
     [SCHEMA_VERSION_15, migrateToV15],
     [SCHEMA_VERSION_16, migrateToV16],
     [SCHEMA_VERSION_17, migrateToV17],
+    [SCHEMA_VERSION_18, migrateToV18],
   ];
 
   for (const [version, migrate] of chain) {
@@ -908,5 +927,134 @@ function migrateToV17(db: DatabaseSync): void {
     db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(
       RETIRED_WORKFLOW_INSTANCE_KIND,
     );
+  }
+}
+
+/**
+ * v18: agent and workflow executions are runs — the Postgres driver's v13
+ * in this engine's terms (run-rename.ts says what each row becomes and why
+ * an unreadable row fails the step). Every run row is read in keyset pages
+ * under its old kind and rewritten when its bytes spell the kind the old
+ * way; then every table keyed by kind renames the run kinds, and every
+ * workflow run event names its type the new way. Every IamPolicy row is read in keyset pages, and the ones naming a run kind are
+ * re-keyed: the old row leaves with its list keys, its history kept, and
+ * the new row is written unproven with `updated_at` stamped, so the list
+ * index derives its keys at open. Every workflow head and every archived
+ * workflow version is read in keyset pages and rewritten when its steps
+ * name a run the old way; no stamp changes, because no list key reads a
+ * step. The search index is left to boot's RebuildIndex (the v14
+ * precedent). Runs inside applyInTransaction's BEGIN, so a throw rolls the
+ * whole step back and the boot stops on the row it names.
+ */
+function migrateToV18(db: DatabaseSync): void {
+  const resourcePage = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const resources = function* (
+    kind: string,
+  ): Generator<{ id: string; data: Uint8Array }> {
+    let after = "";
+    for (;;) {
+      const rows = resourcePage.all(kind, after, RUN_RENAME_PAGE_SIZE) as Array<{
+        id: string;
+        data: Uint8Array;
+      }>;
+      yield* rows;
+      if (rows.length < RUN_RENAME_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+  const rewrite = db.prepare(
+    `UPDATE resources SET data = ? WHERE kind = ? AND id = ?`,
+  );
+  const migrateRows = (
+    kind: string,
+    migrate: (data: Uint8Array) => Uint8Array | undefined,
+  ): void => {
+    for (const row of resources(kind)) {
+      let data: Uint8Array | undefined;
+      try {
+        data = migrate(row.data);
+      } catch (error) {
+        throw unreadableRunRenameRowError(kind, row.id, error);
+      }
+      if (data !== undefined) {
+        rewrite.run(data, kind, row.id);
+      }
+    }
+  };
+
+  migrateRows(RETIRED_AGENT_RUN_KIND, renamedAgentRunRow);
+  migrateRows(RETIRED_WORKFLOW_RUN_KIND, renamedWorkflowRunRow);
+  for (const [from, to] of RUN_KIND_RENAMES) {
+    for (const table of RUN_KIND_TABLES) {
+      db.prepare(`UPDATE ${table} SET kind = ? WHERE kind = ?`).run(to, from);
+    }
+  }
+  const renameEventType = db.prepare(
+    `UPDATE workflow_execution_events SET event_type = ? WHERE event_type = ?`,
+  );
+  for (const [from, to] of RUN_EVENT_TYPE_RENAMES) {
+    renameEventType.run(to, from);
+  }
+
+  const rekeyed: Array<{ from: string; policy: RekeyedPolicy }> = [];
+  for (const row of resources(RUN_RENAME_POLICY_KIND)) {
+    try {
+      const policy = rekeyedRunPolicy(row.data);
+      if (policy !== undefined) {
+        rekeyed.push({ from: row.id, policy });
+      }
+    } catch (error) {
+      throw unreadableRunRenameRowError(RUN_RENAME_POLICY_KIND, row.id, error);
+    }
+  }
+  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
+  );
+  const insertPolicy = db.prepare(
+    `INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, datetime('now'))`,
+  );
+  for (const { from, policy } of rekeyed) {
+    for (const statement of deletePolicy) {
+      statement.run(RUN_RENAME_POLICY_KIND, from);
+    }
+    insertPolicy.run(RUN_RENAME_POLICY_KIND, policy.id, policy.data);
+  }
+
+  migrateRows(RUN_RENAME_WORKFLOW_KIND, renamedWorkflowRow);
+  const versionPage = db.prepare(
+    `SELECT id, data FROM resource_audit WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const rewriteVersion = db.prepare(
+    `UPDATE resource_audit SET data = ? WHERE id = ?`,
+  );
+  for (let after = 0; ; ) {
+    const rows = versionPage.all(
+      RUN_RENAME_WORKFLOW_KIND,
+      after,
+      RUN_RENAME_PAGE_SIZE,
+    ) as Array<{ id: number; data: Uint8Array }>;
+    for (const row of rows) {
+      let data: Uint8Array | undefined;
+      try {
+        data = renamedWorkflowRow(row.data);
+      } catch (error) {
+        throw unreadableRunRenameRowError(
+          `${RUN_RENAME_WORKFLOW_KIND} version`,
+          String(row.id),
+          error,
+        );
+      }
+      if (data !== undefined) {
+        rewriteVersion.run(data, row.id);
+      }
+    }
+    if (rows.length < RUN_RENAME_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
   }
 }

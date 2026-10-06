@@ -1,19 +1,19 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import { findChangeForSelection } from "../workspace/findChangeForSelection.js";
 import { useSessionFileChanges } from "./useSessionFileChanges.js";
 
 /**
- * Stable empty executions passed to {@link useSessionFileChanges} while no file
+ * Stable empty runs passed to {@link useSessionFileChanges} while no file
  * is open, so the (fetch-free) net-change fold stays trivial during streaming
  * and only folds once a file is actually being viewed.
  */
-const EMPTY_EXECUTIONS: readonly AgentExecution[] = [];
+const EMPTY_EXECUTIONS: readonly AgentRun[] = [];
 
 /**
  * Correlate the open workspace file with the one session {@link FileChange} that
@@ -32,12 +32,12 @@ const EMPTY_EXECUTIONS: readonly AgentExecution[] = [];
  */
 export function useOpenFileChange(
   selectedFile: SelectedWorkspaceFile | null | undefined,
-  allExecutions: readonly AgentExecution[],
+  allRuns: readonly AgentRun[],
   entries: readonly WorkspaceEntry[] | undefined,
   sandboxWorkspaceRoot: string | undefined,
 ): FileChange | null {
   const { fileChanges } = useSessionFileChanges(
-    selectedFile ? allExecutions : EMPTY_EXECUTIONS,
+    selectedFile ? allRuns : EMPTY_EXECUTIONS,
   );
   return useMemo(
     () =>

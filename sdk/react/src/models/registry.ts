@@ -467,7 +467,7 @@ export interface DefaultModelResolution {
  * **The harness-default arm is a contract, not a suggestion**
  * (stigmer/stigmer#663): this resolution feeds the composer's model pill,
  * and the submission adopts what the pill displays — so the default MUST
- * be the model the platform would run for an unpinned execution, or the
+ * be the model the platform would run for an unpinned run, or the
  * pill promises one model while a different one serves the request.
  * Concretely:
  *

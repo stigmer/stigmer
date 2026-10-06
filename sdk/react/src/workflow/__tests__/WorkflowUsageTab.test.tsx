@@ -4,7 +4,7 @@ import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1
 import type {
   DerivedCostSummary,
   DerivedTaskState,
-} from "../../internal/store/workflow-execution-event-store";
+} from "../../internal/store/workflow-run-event-store";
 import { WorkflowUsageTab } from "../facets/WorkflowUsageTab";
 
 function costSummary(overrides: Partial<DerivedCostSummary> = {}): DerivedCostSummary {
@@ -27,7 +27,7 @@ function taskState(overrides: Partial<DerivedTaskState> & { taskName: string }):
     tokensUsed: 0n,
     attemptNumber: 1,
     error: "",
-    childExecutionId: "",
+    childRunId: "",
     agentSlug: "",
     currentToolName: "",
     messagesCount: 0,

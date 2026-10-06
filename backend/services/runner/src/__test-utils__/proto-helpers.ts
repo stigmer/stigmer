@@ -8,21 +8,21 @@
 
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
-export function emptyStatus(): AgentExecutionStatus {
-  return create(AgentExecutionStatusSchema, {});
+export function emptyStatus(): AgentRunStatus {
+  return create(AgentRunStatusSchema, {});
 }
 
 export function aiMessage(content: string): AgentMessage {
@@ -41,7 +41,7 @@ export function toolCall(
 }
 
 /** The tool-call row with this id, wherever it sits in the transcript. */
-export function findToolCallRow(status: AgentExecutionStatus, toolCallId: string): ToolCall | undefined {
+export function findToolCallRow(status: AgentRunStatus, toolCallId: string): ToolCall | undefined {
   for (const message of status.messages) {
     const row = message.toolCalls.find((tc) => tc.id === toolCallId);
     if (row) return row;

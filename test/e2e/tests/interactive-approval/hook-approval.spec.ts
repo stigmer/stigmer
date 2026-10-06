@@ -17,19 +17,19 @@
 // resets the queue per test.
 import type { HookSourceInput } from "@stigmer/sdk";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { test, expect } from "../../fixtures";
 import {
   MockControl,
   getMockControlUrl,
   approveAllButton,
   approveButton,
-  awaitExecutionPhase,
-  awaitExecutionTerminal,
+  awaitRunPhase,
+  awaitRunTerminal,
   seedGatedSession,
   seedToolRunSession,
   shellBlock,
-  type SeededGatedExecution,
+  type SeededGatedRun,
 } from "../../helpers/approval";
 
 const mockUrl = getMockControlUrl();
@@ -54,7 +54,7 @@ test.describe("Hooks deciding tool calls (deterministic mock LLM)", () => {
   test.describe.configure({ mode: "serial", timeout: 90_000 });
 
   const control = new MockControl(mockUrl ?? "");
-  let seeded: SeededGatedExecution | null = null;
+  let seeded: SeededGatedRun | null = null;
 
   test.afterEach(async () => {
     if (seeded) {
@@ -69,7 +69,7 @@ test.describe("Hooks deciding tool calls (deterministic mock LLM)", () => {
       gateBlocks: [shellBlock("call_hook_ask", "echo asked-by-a-hook")],
       agentHooks: bashHook("ask", "the e2e hook wants a person to look"),
     });
-    await awaitExecutionPhase(stigmerClient, seeded.executionId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    await awaitRunPhase(stigmerClient, seeded.runId, RunPhase.RUN_WAITING_FOR_APPROVAL);
 
     await page.goto(`/sessions/${seeded.sessionId}`);
     await expect(approveButton(page)).toBeVisible({ timeout: 30_000 });
@@ -77,8 +77,8 @@ test.describe("Hooks deciding tool calls (deterministic mock LLM)", () => {
     await expect(approveAllButton(page)).toContainText("the agent's hooks ask about");
 
     await approveButton(page).click();
-    const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
-    expect(phase, "approved execution completes").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
+    expect(phase, "approved run completes").toBe(RunPhase.RUN_COMPLETED);
   });
 
   test("a hook that refuses binds under auto-approve: no gate, the reason on the settled call", async ({ page, stigmerClient }) => {
@@ -86,8 +86,8 @@ test.describe("Hooks deciding tool calls (deterministic mock LLM)", () => {
       toolTurns: [[shellBlock("call_hook_deny", "echo refused-by-a-hook")]],
       agentHooks: bashHook("deny", "the e2e hook refuses this command"),
     });
-    const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
-    expect(phase, "the run completes around the refusal").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
+    expect(phase, "the run completes around the refusal").toBe(RunPhase.RUN_COMPLETED);
 
     await page.goto(`/sessions/${seeded.sessionId}`);
     await expect(page.getByText(/the e2e hook refuses this command/).first()).toBeVisible({ timeout: 30_000 });

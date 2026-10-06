@@ -7,7 +7,7 @@ import { cn } from "@stigmer/theme";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components.js";
 import { DecisionButton, type DecisionVariant } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
-import { formatJson } from "../execution/tool-rendering-primitives.js";
+import { formatJson } from "../run/tool-rendering-primitives.js";
 import { StructuredDataViewer } from "./task-detail/StructuredDataViewer.js";
 
 /** Outcome descriptor for UI rendering. */
@@ -48,8 +48,8 @@ export interface WorkflowTaskApprovalCardProps {
   readonly payload?: JsonValue | null;
   /**
    * Called when the reviewer submits a decision.
-   * The consumer (typically {@link WorkflowExecutionViewer}) wires this
-   * to `useWorkflowExecutionActions().submitTaskApproval`.
+   * The consumer (typically {@link WorkflowRunViewer}) wires this
+   * to `useWorkflowRunActions().submitTaskApproval`.
    */
   readonly onSubmit: (
     taskName: string,
@@ -62,7 +62,7 @@ export interface WorkflowTaskApprovalCardProps {
   /**
    * This gate's last failed decision, or `null`. Surfaced in-card beside the
    * outcome buttons (via the shared {@link InCardDecisionError}) — supply
-   * {@link useWorkflowExecutionActions}'s `taskApprovalErrorsByTaskName` for
+   * {@link useWorkflowRunActions}'s `taskApprovalErrorsByTaskName` for
    * this `taskName`.
    */
   readonly error?: Error | null;
@@ -80,7 +80,7 @@ const DEFAULT_OUTCOMES: readonly TaskOutcome[] = [
  *
  * Renders dynamic outcome buttons (from workflow configuration),
  * optional form fields (from JSON Schema), and a comment textarea.
- * Designed for inline rendering in the execution timeline when a
+ * Designed for inline rendering in the run timeline when a
  * human_input task is in `waiting_approval` state.
  *
  * Distinct from `WorkflowApprovalList` (which handles agent tool

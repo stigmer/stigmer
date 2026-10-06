@@ -98,7 +98,7 @@ Data hook that fetches a single Schedule by organization and slug.
 Wraps `stigmer.schedule.getByReference()` with loading, error, and
 not-found state management. The loaded resource carries the spec
 (cron, time zone, enabled, target) and the platform-written status
-(`next_fire_at`, `last_fire_at`, `last_execution_id`,
+(`next_fire_at`, `last_fire_at`, `last_run_id`,
 `consecutive_failures`, `paused_reason`) — everything the detail view
 renders, including the disabled-vs-paused distinction (see
 [`deriveScheduleState`](#deriveschedulestate)).
@@ -275,14 +275,14 @@ The trigger is a two-level contract, and this hook honors both levels:
   copy verbatim (byte-identical across editions) and the promise
   rejects.
 - A **success** means the fire happened. The result's `outcome` then
-  says what the RUN did: `STARTED` (an execution was created — a
+  says what the RUN did: `STARTED` (a run was created — a
   success toast), or `REFUSED` / `TARGET_MISSING` (a launch gate said
   no — an error toast carrying the gate's `refusalReason` verbatim).
   The promise RESOLVES in every one of these cases: a refused run is a
   successful trigger honestly reported, and the caller decides what to
-  do with it (navigate to the execution, show the reason).
+  do with it (navigate to the run, show the reason).
 
-Triggering starts a real, billable execution — gate the call behind a
+Triggering starts a real, billable run — gate the call behind a
 confirmation (the detail view uses `ConfirmDialog`).
 
 **Signature**
@@ -297,7 +297,7 @@ function useTriggerSchedule(): UseTriggerScheduleReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed or refused trigger, or `null` when healthy." },
     isTriggering: { type: "boolean", description: "`true` while the trigger request is in flight." },
-    triggerSchedule: { type: "(scheduleId: string) => Promise<ScheduleTriggerResult>", description: "Fire the schedule once, now — a real agent execution, outside the cron cadence. Resolves with the ScheduleTriggerResult: the run's REAL outcome (started with an execution id, or refused with the gate's copy), so a caller can navigate to the execution or surface the refusal. Refetch the schedule afterwards to pick up the freshly stamped `status.last_fire_at` / `status.last_execution_id`." },
+    triggerSchedule: { type: "(scheduleId: string) => Promise<ScheduleTriggerResult>", description: "Fire the schedule once, now — a real agent run, outside the cron cadence. Resolves with the ScheduleTriggerResult: the run's REAL outcome (started with a run id, or refused with the gate's copy), so a caller can navigate to the run or surface the refusal. Refetch the schedule afterwards to pick up the freshly stamped `status.last_fire_at` / `status.last_run_id`." },
   }}
 />
 
@@ -397,7 +397,7 @@ distinctly, each with its inline remedy:
   `status.paused_reason`) — banner showing the reason with a Resume
   action (the one path that clears the pause).
 
-Trigger ("Run now") starts a real, billable execution and is gated
+Trigger ("Run now") starts a real, billable run and is gated
 behind a confirmation; it is disabled while the schedule cannot fire
 (the banner names the remedy). With `editable`, the mutable spec
 fields edit inline; Edit YAML, Export, and Delete round out the
@@ -419,7 +419,7 @@ All visual properties flow through `--stgm-*` design tokens.
     now: { type: "Date", description: "The instant \"next fire\" countdowns and run timestamps are computed against. Injectable for deterministic tests and Scenar fixtures." },
     onDeleted: { type: "() => void", description: "Called after a successful delete (navigate back to the list)." },
     onNavigateToAgent: { type: "(org: string, slug: string) => void", description: "Called when the user activates the target-agent reference. Navigation is the consumer's concern — the Console pushes a Library route; an embedding host does whatever fits." },
-    onNavigateToExecution: { type: "(executionId: string) => void", description: "Called when the user activates an execution reference (`aex_…`), from the status row or a run-history row. When omitted, ids render as plain text." },
+    onNavigateToRun: { type: "(executionId: string) => void", description: "Called when the user activates a run reference (`aex_…`), from the status row or a run-history row. When omitted, ids render as plain text." },
     onResourceLoad: { type: "(schedule: Schedule) => void", description: "Called when the schedule loads or reloads (e.g. breadcrumb label sync)." },
     onTabChange: { type: "(tabId: string) => void", description: "Controlled tab change handler (pair with `activeTab`)." },
     org: { type: "string", description: "Organization id (a slug is also accepted).", required: true },
@@ -483,7 +483,7 @@ Clock-with-arrow icon shared by the schedule views.
 ### ScheduleRowActions
 
 Compact per-row actions for a schedule list: **Run now** on an active
-schedule (confirmation-gated — it starts a real, billable execution)
+schedule (confirmation-gated — it starts a real, billable run)
 and **Resume** on a platform-paused one. Exactly one action renders
 at a time — the one that is currently meaningful; an owner-disabled
 schedule renders neither (its remedy lives on the detail page).
@@ -506,12 +506,12 @@ so row behavior never diverges between apps.
 Paginated run-history table for a schedule — the fire ledger,
 rendered in full.
 
-Every fire leaves a row, INCLUDING fires that created no execution (a
+Every fire leaves a row, INCLUDING fires that created no run (a
 refused launch gate, a missing target agent), carrying the refusing
 gate's copy verbatim. Columns: outcome, origin, fired time (relative,
 with the absolute instant on hover), duration (recorded → completed;
 "—" while a run is in flight or when no run was created), and the
-execution reference.
+run reference.
 
 Owns its data: give it a `scheduleId` and it fetches via
 `useScheduleRuns` with internal page state. To force a refresh
@@ -529,7 +529,7 @@ All visual properties flow through `--stgm-*` design tokens.
   type={{
     className: { type: "string", description: "Additional CSS classes for the root container." },
     now: { type: "Date", description: "The instant relative timestamps are computed against. Injectable for deterministic tests and Scenar fixtures." },
-    onNavigateToExecution: { type: "(executionId: string) => void", description: "Called when the user activates a run's execution reference (`aex_…`). When omitted, the id renders as plain text." },
+    onNavigateToRun: { type: "(executionId: string) => void", description: "Called when the user activates a run's run reference (`aex_…`). When omitted, the id renders as plain text." },
     pageSize: { type: "number", description: "Runs per page." },
     scheduleId: { type: "string", description: "ID of the schedule whose run history to show.", required: true },
   }}
@@ -538,7 +538,7 @@ All visual properties flow through `--stgm-*` design tokens.
 ```tsx
 <ScheduleRunsTable
   scheduleId={schedule.metadata.id}
-  onNavigateToExecution={(id) => router.push(`/executions/${id}`)}
+  onNavigateToRun={(id) => router.push(`/runs/${id}`)}
 />
 ```
 

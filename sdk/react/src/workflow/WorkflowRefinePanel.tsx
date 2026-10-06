@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { useRefineWorkflowFlow, type RefinePhase } from "./useRefineWorkflowFlow.js";
-import { MessageThread } from "../execution/MessageThread.js";
+import { MessageThread } from "../run/MessageThread.js";
 import { computeUnifiedDiff, type DiffLine } from "./workflow-yaml-diff.js";
 import { WorkflowDiffGraph } from "./WorkflowDiffGraph.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -79,7 +79,7 @@ export function WorkflowRefinePanel({
 
   const composerEnabled = COMPOSER_ENABLED_PHASES.has(flow.phase);
   const hasConversation =
-    flow.completedExecutions.length > 0 || flow.activeExecution !== null;
+    flow.completedRuns.length > 0 || flow.activeRun !== null;
 
   // -------------------------------------------------------------------------
   // Handlers
@@ -184,8 +184,8 @@ export function WorkflowRefinePanel({
         {/* Agent conversation */}
         {hasConversation && (
           <MessageThread
-            executions={flow.completedExecutions}
-            activeStreamExecution={flow.activeExecution}
+            runs={flow.completedRuns}
+            activeStreamRun={flow.activeRun}
             pendingUserMessage={
               flow.phase === "starting" ? instruction || undefined : undefined
             }

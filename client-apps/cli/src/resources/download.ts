@@ -1,4 +1,4 @@
-// `download execution`: stream an execution's artifacts to disk via short-lived
+// `download run`: stream a run's artifacts to disk via short-lived
 // presigned URLs. Partial-failure tolerant — a failed artifact is reported and
 // skipped, never aborting the batch (mirrors Go's downloadExecutionArtifacts).
 
@@ -8,9 +8,9 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { create } from "@bufbuild/protobuf";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { CliExitError, ExitCode } from "../errors/index.js";
 import { formatBytes } from "./skill.js";
@@ -24,34 +24,34 @@ export interface DownloadOutcome {
   readonly total: number;
   readonly downloaded: number;
   readonly noArtifacts: boolean;
-  /** Set when the execution is not yet terminal (a soft warning, not an error). */
+  /** Set when the run is not yet terminal (a soft warning, not an error). */
   readonly incompletePhase?: string;
 }
 
 /** A sink for human progress/warning lines (download is not byte-parity output). */
 export type ProgressSink = (line: string) => void;
 
-const TERMINAL_PHASES: ReadonlySet<ExecutionPhase> = new Set([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
+const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
 ]);
 
-export async function downloadExecutionArtifacts(
+export async function downloadRunArtifacts(
   client: Stigmer,
-  executionId: string,
+  runId: string,
   params: DownloadParams,
   progress?: ProgressSink,
 ): Promise<DownloadOutcome> {
-  const execution = await client.agentExecution.get(executionId);
-  const phase = execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  const run = await client.agentRun.get(runId);
+  const phase = run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   const incompletePhase = TERMINAL_PHASES.has(phase) ? undefined : formatDownloadPhase(phase);
   if (incompletePhase !== undefined) {
-    progress?.(`Execution is still ${incompletePhase}. Artifacts may not be complete until execution finishes.`);
+    progress?.(`Run is still ${incompletePhase}. Artifacts may not be complete until the run finishes.`);
   }
 
-  let artifacts = execution.status?.artifacts ?? [];
+  let artifacts = run.status?.artifacts ?? [];
   if (artifacts.length === 0) {
     return { total: 0, downloaded: 0, noArtifacts: true, incompletePhase };
   }
@@ -61,7 +61,7 @@ export async function downloadExecutionArtifacts(
     if (artifacts.length === 0) {
       throw new CliExitError(
         `artifact not found: ${params.artifactName}\n\n` +
-          `Use 'stigmer get execution ${executionId}' to see available artifacts`,
+          `Use 'stigmer get run ${runId}' to see available artifacts`,
         ExitCode.General,
       );
     }
@@ -72,7 +72,7 @@ export async function downloadExecutionArtifacts(
   let downloaded = 0;
   for (const artifact of artifacts) {
     try {
-      const written = await downloadSingle(client, executionId, artifact, params.outputDir, progress);
+      const written = await downloadSingle(client, runId, artifact, params.outputDir, progress);
       progress?.(`  Downloaded ${artifact.name} (${formatBytes(written)})`);
       downloaded++;
     } catch (err) {
@@ -85,12 +85,12 @@ export async function downloadExecutionArtifacts(
 
 async function downloadSingle(
   client: Stigmer,
-  executionId: string,
-  artifact: ExecutionArtifact,
+  runId: string,
+  artifact: RunArtifact,
   outputDir: string,
   progress?: ProgressSink,
 ): Promise<number> {
-  const url = await resolveDownloadUrl(client, executionId, artifact);
+  const url = await resolveDownloadUrl(client, runId, artifact);
   const destPath = join(outputDir, artifact.name);
   mkdirSync(dirname(destPath), { recursive: true });
 
@@ -122,24 +122,24 @@ async function downloadSingle(
  * There is deliberately no cached-URL fallback: a persisted URL would have
  * expired, so the refresh RPC is the single source of a working URL.
  */
-async function resolveDownloadUrl(client: Stigmer, executionId: string, artifact: ExecutionArtifact): Promise<string> {
-  const response = await client.agentExecution.getArtifactDownloadUrl(
-    create(GetArtifactDownloadUrlRequestSchema, { executionId, storageKey: artifact.storageKey }),
+async function resolveDownloadUrl(client: Stigmer, runId: string, artifact: RunArtifact): Promise<string> {
+  const response = await client.agentRun.getArtifactDownloadUrl(
+    create(GetArtifactDownloadUrlRequestSchema, { runId, storageKey: artifact.storageKey }),
   );
   if (response.downloadUrl !== "") return response.downloadUrl;
   throw new Error("failed to get download URL");
 }
 
 // Human-readable non-terminal phase label (matches Go's formatPhaseForDownload).
-function formatDownloadPhase(phase: ExecutionPhase): string {
+function formatDownloadPhase(phase: RunPhase): string {
   switch (phase) {
-    case ExecutionPhase.EXECUTION_PENDING:
+    case RunPhase.RUN_PENDING:
       return "pending";
-    case ExecutionPhase.EXECUTION_IN_PROGRESS:
+    case RunPhase.RUN_IN_PROGRESS:
       return "in progress";
-    case ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
+    case RunPhase.RUN_WAITING_FOR_APPROVAL:
       return "waiting for approval";
-    case ExecutionPhase.EXECUTION_PAUSED:
+    case RunPhase.RUN_PAUSED:
       return "paused";
     default:
       return "unknown";

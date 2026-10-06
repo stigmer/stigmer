@@ -66,9 +66,9 @@ export class Stigmer extends GeneratedClient {
   readonly fetch: typeof globalThis.fetch | undefined;
 
   /**
-   * Default execution target for sessions and workflow executions.
+   * Default execution target for sessions and workflow runs.
    *
-   * When set, `session.create()` and `workflowExecution.create()`
+   * When set, `session.create()` and `workflowRun.create()`
    * apply this as the default when the per-call input does not
    * specify an explicit `executionTarget`.
    *
@@ -133,7 +133,7 @@ export class Stigmer extends GeneratedClient {
 
   /**
    * Wrap `session.create/apply` — and the one-call bootstrap path on
-   * `agentExecution.create` (an embedded `sessionSpec` defines the
+   * `agentRun.create` (an embedded `sessionSpec` defines the
    * session to auto-create) — so that the client-level
    * `defaultExecutionTarget` is applied when the per-call input
    * does not specify one.
@@ -145,15 +145,15 @@ export class Stigmer extends GeneratedClient {
     const target = this.defaultExecutionTarget!;
     const origSessionCreate = this.session.create.bind(this.session);
     const origSessionApply = this.session.apply.bind(this.session);
-    const origExecutionCreate = this.agentExecution.create.bind(
-      this.agentExecution,
+    const origExecutionCreate = this.agentRun.create.bind(
+      this.agentRun,
     );
 
     this.session.create = (input) =>
       origSessionCreate(applySessionDefault(input, target));
     this.session.apply = (input) =>
       origSessionApply(applySessionDefault(input, target));
-    this.agentExecution.create = (input) =>
+    this.agentRun.create = (input) =>
       origExecutionCreate(
         input.sessionSpec
           ? {

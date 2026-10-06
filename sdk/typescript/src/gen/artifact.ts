@@ -6,7 +6,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ArtifactSchema, type Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
-import { ArtifactIdSchema, CreateArtifactInputSchema, ListArtifactsByExecutionRequestSchema, ArtifactListSchema, ArtifactDownloadUrlSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, type CreateArtifactInput, type ListArtifactsByExecutionRequest, type ArtifactList, type ArtifactDownloadUrl, type GetArtifactContentRequest, type GetArtifactContentResponse } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
+import { ArtifactIdSchema, CreateArtifactInputSchema, ListArtifactsByRunRequestSchema, ArtifactListSchema, ArtifactDownloadUrlSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, type CreateArtifactInput, type ListArtifactsByRunRequest, type ArtifactList, type ArtifactDownloadUrl, type GetArtifactContentRequest, type GetArtifactContentResponse } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
 import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import { ArtifactSpecSchema, ArtifactSourceSchema, RetentionPolicySchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -41,9 +41,9 @@ export class ArtifactClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByExecution(input: ListArtifactsByExecutionRequest): Promise<ArtifactList> {
+  async listByRun(input: ListArtifactsByRunRequest): Promise<ArtifactList> {
     try {
-      return await this.query.listByExecution(input);
+      return await this.query.listByRun(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -82,8 +82,8 @@ export interface ArtifactInput {
 
 /** SDK input type for ArtifactSource. */
 export interface ArtifactSourceInput {
-  workflowExecutionId?: string;
-  agentExecutionId?: string;
+  workflowRunId?: string;
+  agentRunId?: string;
   taskName?: string;
 }
 
@@ -94,8 +94,8 @@ export interface RetentionPolicyInput {
 
 function buildArtifactSourceProto(input: ArtifactSourceInput) {
   return Object.assign(create(ArtifactSourceSchema), stripUndefined({
-    workflowExecutionId: input.workflowExecutionId,
-    agentExecutionId: input.agentExecutionId,
+    workflowRunId: input.workflowRunId,
+    agentRunId: input.agentRunId,
     taskName: input.taskName,
   }));
 }

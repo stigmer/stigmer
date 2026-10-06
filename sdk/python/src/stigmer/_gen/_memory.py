@@ -113,14 +113,14 @@ class MemoryProvenanceInput:
 
     agent_id: str = ""
     session_id: str = ""
-    agent_execution_id: str = ""
+    agent_run_id: str = ""
     tool_call_id: str = ""
 
     def _to_proto(self) -> spec_pb2.MemoryProvenance:
         msg = spec_pb2.MemoryProvenance(
             agent_id=self.agent_id,
             session_id=self.session_id,
-            agent_execution_id=self.agent_execution_id,
+            agent_run_id=self.agent_run_id,
             tool_call_id=self.tool_call_id,
         )
         return msg

@@ -24,8 +24,8 @@ describe("createRunnerAdapter", () => {
 
     expect(adapter.onSessionOpened).toBeInstanceOf(Function);
     expect(adapter.onSessionClosed).toBeInstanceOf(Function);
-    expect(adapter.onWorkflowExecutionCreated).toBeInstanceOf(Function);
-    expect(adapter.onWorkflowExecutionTerminated).toBeInstanceOf(Function);
+    expect(adapter.onWorkflowRunCreated).toBeInstanceOf(Function);
+    expect(adapter.onWorkflowRunTerminated).toBeInstanceOf(Function);
   });
 
   it("maps onSessionOpened to host.addSession with the session id", async () => {
@@ -52,22 +52,22 @@ describe("createRunnerAdapter", () => {
     expect(host.addSession).not.toHaveBeenCalled();
   });
 
-  it("maps onWorkflowExecutionCreated to host.addWorkflowExecution with the execution id", async () => {
+  it("maps onWorkflowRunCreated to host.addWorkflowExecution with the execution id", async () => {
     const host = createMockHost();
     const adapter = createRunnerAdapter(host);
 
-    await adapter.onWorkflowExecutionCreated("wfexec-456");
+    await adapter.onWorkflowRunCreated("wfexec-456");
 
     expect(host.addWorkflowExecution).toHaveBeenCalledTimes(1);
     expect(host.addWorkflowExecution).toHaveBeenCalledWith("wfexec-456");
     expect(host.removeWorkflowExecution).not.toHaveBeenCalled();
   });
 
-  it("maps onWorkflowExecutionTerminated to host.removeWorkflowExecution with the execution id", async () => {
+  it("maps onWorkflowRunTerminated to host.removeWorkflowExecution with the execution id", async () => {
     const host = createMockHost();
     const adapter = createRunnerAdapter(host);
 
-    await adapter.onWorkflowExecutionTerminated("wfexec-456");
+    await adapter.onWorkflowRunTerminated("wfexec-456");
 
     expect(host.removeWorkflowExecution).toHaveBeenCalledTimes(1);
     expect(host.removeWorkflowExecution).toHaveBeenCalledWith("wfexec-456");
@@ -84,7 +84,7 @@ describe("createRunnerAdapter", () => {
 
     await expect(adapter.onSessionOpened("ses-123")).resolves.toBeUndefined();
     await expect(
-      adapter.onWorkflowExecutionCreated("wfexec-456"),
+      adapter.onWorkflowRunCreated("wfexec-456"),
     ).resolves.toBeUndefined();
   });
 

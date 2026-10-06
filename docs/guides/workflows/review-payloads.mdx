@@ -48,8 +48,8 @@ expressions — point it at the workflow data the reviewer must examine:
 
 When the gate activates, the runtime resolves the expression and attaches the
 **resolved value** to the gate's `approval_requested` event. The approval record
-is permanently bound to exactly what the reviewer saw — the execution history
-can always answer "what was approved?"
+is permanently bound to exactly what the reviewer saw — the run's history can
+always answer "what was approved?"
 
 Two properties to know:
 
@@ -87,9 +87,8 @@ const reviewRenderers: ReviewRenderers = {
 Define the map as a module constant (or wrap it in `useMemo`) — a new object on
 every render re-renders every mounted gate.
 
-Every surface that shows pending gates — `WorkflowExecutionViewer`'s inspector
-and its timeline — picks the renderer up from context. No other wiring is
-required.
+Every surface that shows pending gates — `WorkflowRunViewer`'s inspector and its
+timeline — picks the renderer up from context. No other wiring is required.
 
 Here is the result. This gate carries the revision above as its payload with
 `ui_hint: article-diff`, and a registered renderer presents it as a diff:

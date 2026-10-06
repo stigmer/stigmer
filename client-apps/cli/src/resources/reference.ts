@@ -41,10 +41,10 @@ export function parseReference(ref: string, defaultOrg: string, idPrefix: string
 // known prefix is accepted as a complete ID.
 const ULID_LENGTH = 26;
 
-// Execution-runtime prefixes that are not in KIND_META (which only carries the
+// Run prefixes that are not in KIND_META (which only carries the
 // addressable, registry-relevant kinds) but that the run resolver must still
 // recognize so it can reject them with explicit-form guidance. "wex" is the
-// workflow-execution prefix; "aex" is already in KIND_META.
+// workflow-run prefix; "aex" is already in KIND_META.
 const RUNTIME_ID_PREFIXES: readonly string[] = ["wex"];
 
 /** The id_prefix for a kind (from the proto kind_meta mirror), or "". */

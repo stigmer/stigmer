@@ -1,8 +1,8 @@
 {
   "name": "partial-decision",
   "description": "Only one of two files decided -> the change set stays AWAITING_REVIEW (still actionable) with one decision.",
-  "execution_id": "aex_partial",
-  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "run_id": "aex_partial",
+  "phase": "RUN_WAITING_FOR_APPROVAL",
   "events": [
     {
       "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

@@ -120,7 +120,7 @@ Always use `stigmer org get <slug>` to confirm the existing slug before updating
 
 Deleting an organization is irreversible. Its members lose access to
 everything under it: agents, workflows, MCP servers, skills, sessions and
-executions. Its slug is released: a later organization may take it, and
+runs. Its slug is released: a later organization may take it, and
 that organization reaches nothing the deleted one owned, because every
 resource names its organization by id.
 

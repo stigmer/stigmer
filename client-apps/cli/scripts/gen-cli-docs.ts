@@ -62,7 +62,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   // Core
   run: "core",
   resume: "core",
-  execution: "core",
+  runs: "core",
   usage: "core",
   // Lifecycle
   up: "lifecycle",

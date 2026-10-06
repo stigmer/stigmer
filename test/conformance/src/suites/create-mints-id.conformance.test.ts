@@ -54,7 +54,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { declaredMethods } from "../inventory/rpc-contract";
 import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeAgentExecution } from "../support/agentexecutions";
+import { makeAgentExecution } from "../support/agentruns";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentShare } from "../support/agentshares";
 import { makeApiKey } from "../support/apikeys";
@@ -67,7 +67,7 @@ import { foreignId, uniqueName, uniqueOrg } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
 import { makeSchedule } from "../support/schedules";
 import { makeSession } from "../support/sessions";
-import { makeWorkflowExecution } from "../support/workflowexecutions";
+import { makeWorkflowExecution } from "../support/workflowruns";
 import { makeWorkflow } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -239,9 +239,9 @@ const ROWS: readonly Row[] = [
     },
   },
   {
-    title: "[rpc:AgentExecutionCommandController.create] AgentExecution",
-    key: "AgentExecutionCommandController.create",
-    kind: ApiResourceKind.agent_execution,
+    title: "[rpc:AgentRunCommandController.create] AgentRun",
+    key: "AgentRunCommandController.create",
+    kind: ApiResourceKind.agent_run,
     edition: "engine",
     async send({ org }, chosenId) {
       await fundedWhereMetered(org);
@@ -552,9 +552,9 @@ const ROWS: readonly Row[] = [
     },
   },
   {
-    title: "[rpc:WorkflowExecutionCommandController.create] WorkflowExecution",
-    key: "WorkflowExecutionCommandController.create",
-    kind: ApiResourceKind.workflow_execution,
+    title: "[rpc:WorkflowRunCommandController.create] WorkflowRun",
+    key: "WorkflowRunCommandController.create",
+    kind: ApiResourceKind.workflow_run,
     edition: "engine",
     async send({ org }, chosenId) {
       await fundedWhereMetered(org);

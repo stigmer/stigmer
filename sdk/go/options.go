@@ -61,7 +61,7 @@ func WithInsecure() ClientOption {
 }
 
 // WithKeepaliveParams configures gRPC transport-level keepalive.
-// Useful for long-running streams (e.g. execution subscriptions) where
+// Useful for long-running streams (e.g. run subscriptions) where
 // idle-connection detection is needed.
 func WithKeepaliveParams(params keepalive.ClientParameters) ClientOption {
 	return func(c *clientConfig) {
@@ -77,9 +77,9 @@ func WithDialOptions(opts ...grpc.DialOption) ClientOption {
 }
 
 // WithExecutionTarget sets the default execution target for all sessions
-// and workflow executions created through this client.
+// and workflow runs created through this client.
 //
-// When set, Session.Create() and WorkflowExecution.Create() apply this
+// When set, Session.Create() and WorkflowRun.Create() apply this
 // as the default when the per-call input does not specify an explicit
 // ExecutionTarget. This is an app-level setting, not a per-session choice.
 //
@@ -97,7 +97,7 @@ func WithExecutionTarget(target sessionv1.ExecutionTarget) ClientOption {
 // management.
 //
 // When ExecutionTarget is LOCAL, the SDK automatically calls adapter methods
-// after session/execution creation and on terminal phase detection. Cloud
+// after session/run creation and on terminal phase detection. Cloud
 // consumers omit this option entirely.
 //
 //	client, _ := stigmer.NewClient(

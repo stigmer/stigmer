@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { BillingUsageReportResponse, CreditLedgerResponse, CustomerModelPricingResponse, GetBillingAccountInput, GetBillingUsageReportInput, GetCreditBalanceInput, GetCreditLedgerInput, GetCustomerModelPricingInput, GetExecutionBillingSignalInput, GetExecutionBillingSignalResponse, GetModelPricingGovernanceInput, ListModelPricingBaselinesInput, ModelPricingBaselinesResponse, ModelPricingGovernanceResponse, PreviewAuthorizationInput, PreviewAuthorizationResponse } from "./io_pbjs";
+import { BillingUsageReportResponse, CreditLedgerResponse, CustomerModelPricingResponse, GetBillingAccountInput, GetBillingUsageReportInput, GetCreditBalanceInput, GetCreditLedgerInput, GetCustomerModelPricingInput, GetModelPricingGovernanceInput, GetRunBillingSignalInput, GetRunBillingSignalResponse, ListModelPricingBaselinesInput, ModelPricingBaselinesResponse, ModelPricingGovernanceResponse, PreviewAuthorizationInput, PreviewAuthorizationResponse } from "./io_pbjs";
 import { BillingAccount, CreditBalance } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -105,9 +105,9 @@ export const BillingQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Preview whether an organization can fund an execution, without writing
+     * Preview whether an organization can fund a run, without writing
      * a reservation. The read-only twin of BillingCommandController's
-     * authorizeExecution: both ride the same server-side affordability
+     * authorizeRun: both ride the same server-side affordability
      * predicate (start threshold, negative allowance, default cap), so a
      * synchronous preflight refusal and the authoritative reservation can
      * never drift.
@@ -121,16 +121,16 @@ export const BillingQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Retrieve the current billing control signal for a running execution
-     * (continue / low-balance warning / stop), derived from the execution's
+     * Retrieve the current billing control signal for a run in progress
+     * (continue / low-balance warning / stop), derived from the run's
      * reservation headroom and the billing account's status.
      *
-     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getExecutionBillingSignal
+     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getRunBillingSignal
      */
-    getExecutionBillingSignal: {
-      name: "getExecutionBillingSignal",
-      I: GetExecutionBillingSignalInput,
-      O: GetExecutionBillingSignalResponse,
+    getRunBillingSignal: {
+      name: "getRunBillingSignal",
+      I: GetRunBillingSignalInput,
+      O: GetRunBillingSignalResponse,
       kind: MethodKind.Unary,
     },
   }

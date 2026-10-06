@@ -1,8 +1,8 @@
 /**
- * Shared formatting utilities for workflow execution metrics.
+ * Shared formatting utilities for workflow run metrics.
  *
  * Consolidates formatting logic previously duplicated across
- * WorkflowExecutionViewer, WorkflowExecutionHeader, and
+ * WorkflowRunViewer, WorkflowRunHeader, and
  * WorkflowExecutionTaskPanel.
  */
 
@@ -85,7 +85,7 @@ export function formatTimestamp(iso: string): string {
  * Formats a duration in whole seconds to a human-readable string.
  *
  * Unlike {@link formatDuration} (which takes milliseconds), this is for
- * API responses that report durations in seconds (e.g., execution summaries).
+ * API responses that report durations in seconds (e.g., run summaries).
  *
  * Output examples: `42s`, `3m`, `1h 30m`
  */

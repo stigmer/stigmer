@@ -49,10 +49,10 @@
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -80,20 +80,20 @@ import type {
   ListIndexCursor,
   ListIndexDeclaration,
 } from "../../../store/list-index.js";
-import type { ExecutionEngineStateProvider } from "../../agentexecution/engine.js";
-import { EngineWorkflowNotFoundError as AgentWorkflowNotFoundError } from "../../agentexecution/engine.js";
-import { agentExecutionListIndex } from "../../agentexecution/list-index.js";
-import { isTerminalExecutionPhase } from "../../agentexecution/phases.js";
+import type { ExecutionEngineStateProvider } from "../../agentrun/engine.js";
+import { EngineWorkflowNotFoundError as AgentWorkflowNotFoundError } from "../../agentrun/engine.js";
+import { agentExecutionListIndex } from "../../agentrun/list-index.js";
+import { isTerminalExecutionPhase } from "../../agentrun/phases.js";
 import type { IamPolicyGrantPath } from "../../iampolicy/grant-path.js";
 import { sessionListIndex } from "../../session/list-index.js";
 import {
   childWorkflowId,
   orchestratorWorkflowId,
-} from "../../workflowexecution/constants.js";
-import type { WorkflowExecutionEngineStateProvider } from "../../workflowexecution/engine.js";
-import { EngineWorkflowNotFoundError as WorkflowNotFoundError } from "../../workflowexecution/engine.js";
-import { workflowExecutionListIndex } from "../../workflowexecution/list-index.js";
-import { isTerminalWorkflowExecutionPhase } from "../../workflowexecution/phases.js";
+} from "../../workflowrun/constants.js";
+import type { WorkflowExecutionEngineStateProvider } from "../../workflowrun/engine.js";
+import { EngineWorkflowNotFoundError as WorkflowNotFoundError } from "../../workflowrun/engine.js";
+import { workflowExecutionListIndex } from "../../workflowrun/list-index.js";
+import { isTerminalWorkflowExecutionPhase } from "../../workflowrun/phases.js";
 import { newReleaseExternalIdStep } from "../children.js";
 import { organizationListIndex } from "../list-index.js";
 import { newRetireOrganizationSlugStep } from "../names.js";
@@ -184,7 +184,7 @@ async function terminateAgentExecutions(
     agentExecutionListIndex,
     context.org.id,
   )) {
-    const execution: AgentExecution = fromBinary(AgentExecutionSchema, data);
+    const execution: AgentRun = fromBinary(AgentRunSchema, data);
     if (isTerminalExecutionPhase(execution.status?.phase ?? 0)) {
       continue;
     }
@@ -212,7 +212,7 @@ async function terminateWorkflowExecutions(
     workflowExecutionListIndex,
     context.org.id,
   )) {
-    const execution = fromBinary(WorkflowExecutionSchema, data);
+    const execution = fromBinary(WorkflowRunSchema, data);
     if (isTerminalWorkflowExecutionPhase(execution.status?.phase ?? 0)) {
       continue;
     }
@@ -260,7 +260,7 @@ async function deprovisionSandboxes(
     workflowExecutionListIndex,
     context.org.id,
   )) {
-    const id = fromBinary(WorkflowExecutionSchema, data).metadata?.id ?? "";
+    const id = fromBinary(WorkflowRunSchema, data).metadata?.id ?? "";
     if (id !== "") {
       await lane.provisioner.deprovisionWorkflowSandbox(id);
     }

@@ -99,7 +99,7 @@ function parseField(child: Reflection): Field {
     if (isExternalTarget(ref.target as number | { packageName: string; packagePath: string; qualifiedName: string } | undefined)) {
       const ext = ref.target as { packageName: string; qualifiedName: string };
       if (ext.packageName === "@stigmer/protos") {
-        typeLink = `/docs/sdk/resources/agent-execution`;
+        typeLink = `/docs/sdk/resources/agent-run`;
       }
     }
   }

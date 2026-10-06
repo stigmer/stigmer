@@ -1,9 +1,9 @@
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
 import { toAgentUpdateInput } from "@stigmer/sdk";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ListAgentExecutionsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ListAgentRunsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
@@ -56,9 +56,9 @@ async function turnWith(
   client: Stigmer,
   sessionId: string,
   message: string,
-): Promise<AgentExecution | undefined> {
-  const listed = await client.agentExecution.listBySession(
-    create(ListAgentExecutionsBySessionRequestSchema, { sessionId }),
+): Promise<AgentRun | undefined> {
+  const listed = await client.agentRun.listBySession(
+    create(ListAgentRunsBySessionRequestSchema, { sessionId }),
   );
   return listed.entries.find((turn) => turn.spec?.message === message);
 }
@@ -146,7 +146,7 @@ test.describe("An agent's run defaults in the console", () => {
       expect(after.spec?.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
 
       // A build-from-plan turn on the same conversation still runs.
-      const build = await stigmerClient.agentExecution.create({
+      const build = await stigmerClient.agentRun.create({
         org: testAgent.org,
         name: `build-${Date.now()}`,
         sessionId,
@@ -156,12 +156,12 @@ test.describe("An agent's run defaults in the console", () => {
       await expect
         .poll(
           async () =>
-            (await stigmerClient.agentExecution.get(build.metadata?.id ?? ""))
+            (await stigmerClient.agentRun.get(build.metadata?.id ?? ""))
               .status?.phase,
           { timeout: 90_000 },
         )
-        .toBe(3); // EXECUTION_COMPLETED
-      const built = await stigmerClient.agentExecution.get(build.metadata?.id ?? "");
+        .toBe(3); // RUN_COMPLETED
+      const built = await stigmerClient.agentRun.get(build.metadata?.id ?? "");
       expect(built.spec?.buildFromPlan).toBe(true);
     } finally {
       await stigmerClient.session.delete(sessionId).catch(() => {});

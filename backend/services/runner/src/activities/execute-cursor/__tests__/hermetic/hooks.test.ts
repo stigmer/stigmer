@@ -47,15 +47,15 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create, toJson } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
-import { AgentExecutionStatusSchema, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema, type AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   ApprovalAction,
   ApprovalPolicySource,
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { GetArtifactResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
@@ -157,11 +157,11 @@ function pluginClient(script: string) {
 /** Cursor's preToolUse payload for a shell call. */
 const shellHook = (command: string, callId: string) => ({ ...hookBuiltin("Shell", { command, cwd: "", timeout: 30000 }), tool_use_id: callId });
 
-function statusJson(status: AgentExecutionStatus): string {
-  return JSON.stringify(toJson(AgentExecutionStatusSchema, status), null, 2) + "\n";
+function statusJson(status: AgentRunStatus): string {
+  return JSON.stringify(toJson(AgentRunStatusSchema, status), null, 2) + "\n";
 }
 
-const row = (status: AgentExecutionStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+const row = (status: AgentRunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
 
 describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, allows and asks", () => {
   let env: HermeticEnvironment;
@@ -229,7 +229,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     const turn1 = await runCursorTurn(scenario, { threadId: "", turnSeq: 0 });
     expect(turn1.outcome.kind).toBe("returned");
     expect(answers).toEqual(["deny", "allow", "deny"]);
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     const run1 = record.lastFullStatus!;
 
     const deleted = row(run1, "call-delete");
@@ -255,7 +255,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     const turn2 = await runCursorTurn(scenario, { threadId: "agent-hooks-0001", turnSeq: 1 });
     expect(turn2.outcome.kind).toBe("returned");
     expect(answers.at(-1), "the approval's grant answers the hook's second ask").toBe("allow");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const final = record.lastFullStatus!;
     const published = row(final, "call-publish");
     expect(published.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
@@ -307,14 +307,14 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG }, clientOverrides: pluginClient(GUARD) });
 
     await runCursorTurn(scenario, { threadId: "", turnSeq: 0 });
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE_ALL, "2026-01-01T00:00:30.000Z")).toBe(1);
 
     await runCursorTurn(scenario, { threadId: "agent-lease-0001", turnSeq: 1 });
     // The approved publish and the later one run on the hook's lease; the
     // shell default still asks before pwd, which the hook passes.
     expect(answers).toEqual(["deny", "allow", "allow", "deny"]);
-    expect(record.persistedPhases.at(-1), "the shell default still asks before pwd").toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.persistedPhases.at(-1), "the shell default still asks before pwd").toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     const status = record.lastFullStatus!;
     const approved = row(status, "call-pub");
     expect([approved.approvalPolicySource, approved.approvalPolicyHook, approved.approvalAction]).toEqual([
@@ -367,7 +367,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG }, clientOverrides: pluginClient(CHANGES_ITS_MIND) });
 
     await runCursorTurn(scenario, { threadId: "", turnSeq: 0 });
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     expect(record.decideWaitingToolCalls(ApprovalAction.REJECT, "2026-01-01T00:00:30.000Z")).toBe(1);
 
     await runCursorTurn(scenario, { threadId: "agent-reject-0001", turnSeq: 1 });
@@ -375,7 +375,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     expect(raws.at(-1), "the model reads the person's decision").toContain(
       "Tool 'shell' was rejected by the user. Do not retry it; proceed by taking their objection into account.",
     );
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const status = record.lastFullStatus!;
     expect(row(status, "call-first").approvalAction).toBe(ApprovalAction.REJECT);
     // The retry is the rejected call's twin: kept in place, hidden, never run.
@@ -421,7 +421,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG } });
 
     await runCursorTurn(scenario, { threadId: "", turnSeq: 0 });
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     expect(readAnswer).toBe("allow");
     expect(existsSync(marker), "neither repository hook ran").toBe(false);
     expect(JSON.parse(duringClaude), "the .claude hooks were set aside during the turn, every other key kept").toEqual({ model: "x" });
@@ -456,7 +456,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG } });
 
     await runCursorTurn(scenario, { threadId: "", turnSeq: 0 });
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const options = scenario.sdk.resolutions[0]!.options as { disallowedTools?: string[] };
     expect(options.disallowedTools).toEqual(["webFetch", "webSearch"]);
   });
@@ -477,7 +477,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     });
 
     const invocation = await runCursorTurn(scenario);
-    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_FAILED");
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_FAILED");
     const final = scenario.record.lastFullStatus!;
     expect(final.error).toContain(settingsPath);
     expect(final.error).toContain("Run this session on Stigmer's native engine");

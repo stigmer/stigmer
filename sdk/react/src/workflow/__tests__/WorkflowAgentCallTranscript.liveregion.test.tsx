@@ -8,7 +8,7 @@
 //   own child's content, never a sibling's);
 // - `polite` regions only announce on CONTENT CHANGE — a settled child's
 //   transcript never mutates, so it is permanently silent;
-// - the viewport gate (useInViewport → useLiveAgentExecution's `live`)
+// - the viewport gate (useInViewport → useLiveAgentRun's `live`)
 //   pauses off-screen streams, so at most the on-screen running children
 //   mutate concurrently.
 //
@@ -20,31 +20,31 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, within, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
-vi.mock("../../execution/useLiveAgentExecution", () => ({
-  useLiveAgentExecution: vi.fn(),
+vi.mock("../../run/useLiveAgentRun", () => ({
+  useLiveAgentRun: vi.fn(),
 }));
 
-import { useLiveAgentExecution } from "../../execution/useLiveAgentExecution";
+import { useLiveAgentRun } from "../../run/useLiveAgentRun";
 import { WorkflowAgentCallTranscript } from "../WorkflowAgentCallTranscript";
 
-const mockUseLiveAgentExecution = vi.mocked(useLiveAgentExecution);
+const mockUseLiveAgentExecution = vi.mocked(useLiveAgentRun);
 
-function executionWithMessage(id: string, text: string): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+function executionWithMessage(id: string, text: string): AgentRun {
+  const exec = create(AgentRunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.status = create(AgentExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_COMPLETED,
+  exec.status = create(AgentRunStatusSchema, {
+    phase: RunPhase.RUN_COMPLETED,
     messages: [
       create(AgentMessageSchema, {
         type: MessageType.MESSAGE_AI,
@@ -82,8 +82,8 @@ afterEach(() => {
 describe("WorkflowAgentCallTranscript — stacked live regions (a11y)", () => {
   it("scopes each transcript's polite log region to its own child's content, under the viewer-style announcer", () => {
     mockUseLiveAgentExecution.mockImplementation((id) => ({
-      execution: executionWithMessage(id!, `report from ${id}`),
-      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      run: executionWithMessage(id!, `report from ${id}`),
+      phase: RunPhase.RUN_COMPLETED,
       isLoading: false,
       isStreaming: false,
       isReconnecting: false,
@@ -95,8 +95,8 @@ describe("WorkflowAgentCallTranscript — stacked live regions (a11y)", () => {
       <div>
         {/* The viewer's single always-visible task-state announcer. */}
         <div role="log" aria-live="polite" data-testid="viewer-announcer" />
-        <WorkflowAgentCallTranscript childExecutionId="aex_a" agentSlug="alpha" />
-        <WorkflowAgentCallTranscript childExecutionId="aex_b" agentSlug="beta" />
+        <WorkflowAgentCallTranscript childRunId="aex_a" agentSlug="alpha" />
+        <WorkflowAgentCallTranscript childRunId="aex_b" agentSlug="beta" />
       </div>,
     );
 

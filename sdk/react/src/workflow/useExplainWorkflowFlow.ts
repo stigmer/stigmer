@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { getUserMessage } from "@stigmer/sdk";
 import { useCreateSession } from "../session/useCreateSession.js";
-import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
-import { useExecutionStream } from "../execution/useExecutionStream.js";
-import { isTerminalPhase } from "../execution/execution-phases.js";
+import { useCreateAgentRun } from "../run/useCreateAgentRun.js";
+import { useRunStream } from "../run/useRunStream.js";
+import { isTerminalPhase } from "../run/run-phases.js";
 import { useConversationStoreRef } from "../internal/store/index.js";
 import { WORKFLOW_ARCHITECT_RESPONSE_SCHEMA } from "./architect-response-schema.js";
 import { workflowArchitectRef } from "./workflow-architect.js";
@@ -17,7 +17,7 @@ import { workflowArchitectRef } from "./workflow-architect.js";
  *
  * Simplified single-turn flow (no multi-turn, no YAML extraction):
  * - `idle` — not started
- * - `starting` — creating session + execution
+ * - `starting` — creating session + run
  * - `streaming` — agent is working
  * - `complete` — explanation received
  * - `error` — something failed
@@ -38,7 +38,7 @@ export interface UseExplainWorkflowFlowOptions {
 export interface UseExplainWorkflowFlowReturn {
   readonly phase: ExplainPhase;
   readonly explanation: string | null;
-  readonly execution: AgentExecution | null;
+  readonly run: AgentRun | null;
   readonly isStreaming: boolean;
   readonly error: string | null;
   readonly explain: () => Promise<void>;
@@ -76,9 +76,9 @@ export function useExplainWorkflowFlow(
   const prevTerminalRef = useRef(false);
 
   const { create: createSession } = useCreateSession();
-  const { create: createExecution } = useCreateAgentExecution();
+  const { create: createExecution } = useCreateAgentRun();
   const conversationStore = useConversationStoreRef();
-  const stream = useExecutionStream(executionId, {
+  const stream = useRunStream(executionId, {
     store: conversationStore,
   });
 
@@ -87,13 +87,13 @@ export function useExplainWorkflowFlow(
     if (phase !== "streaming") return;
 
     const isTerminal =
-      stream.phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED &&
+      stream.phase !== RunPhase.RUN_PHASE_UNSPECIFIED &&
       isTerminalPhase(stream.phase);
 
     if (isTerminal && !prevTerminalRef.current) {
       prevTerminalRef.current = true;
 
-      const structuredOutput = stream.execution?.status?.structuredOutput as
+      const structuredOutput = stream.run?.status?.structuredOutput as
         | Record<string, unknown>
         | undefined;
 
@@ -104,7 +104,7 @@ export function useExplainWorkflowFlow(
       setPhase("complete");
       setExecutionId(null);
     }
-  }, [phase, stream.phase, stream.execution]);
+  }, [phase, stream.phase, stream.run]);
 
   // Stream error surfacing
   useEffect(() => {
@@ -140,7 +140,7 @@ export function useExplainWorkflowFlow(
         yamlRef.current +
         "\n```";
 
-      const { executionId: newExecId } = await createExecution({
+      const { runId: newExecId } = await createExecution({
         org: sessionOrg,
         sessionId,
         message,
@@ -172,12 +172,12 @@ export function useExplainWorkflowFlow(
     () => ({
       phase,
       explanation,
-      execution: stream.execution,
+      run: stream.run,
       isStreaming: stream.isStreaming || stream.isConnecting,
       error,
       explain,
       reset,
     }),
-    [phase, explanation, stream.execution, stream.isStreaming, stream.isConnecting, error, explain, reset],
+    [phase, explanation, stream.run, stream.isStreaming, stream.isConnecting, error, explain, reset],
   );
 }

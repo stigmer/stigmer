@@ -51,7 +51,7 @@ import { dirname, join } from "node:path";
 import {
   FileCaptureClass,
   FileChangeKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { ArtifactStorage } from "../artifact-storage.js";
 import { bytesLookBinary } from "../file-change.js";
 import { sha256Bytes, sha256Hex } from "./digest.js";

@@ -7,7 +7,7 @@
 import { describe, it, expect } from "vitest";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
+import type { DerivedTaskState } from "../../internal/store/workflow-run-event-store";
 import {
   resolveTaskPreview,
   registerTaskPresenter,
@@ -27,7 +27,7 @@ function state(
     tokensUsed: 0n,
     attemptNumber: 1,
     error: "",
-    childExecutionId: "",
+    childRunId: "",
     agentSlug: "",
     currentToolName: "",
     messagesCount: 0,

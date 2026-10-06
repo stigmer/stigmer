@@ -1,9 +1,9 @@
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { parse as parseYaml } from "yaml";
 
 /**
- * Result of detecting whether an execution artifact is a pushable skill package.
+ * Result of detecting whether a run artifact is a pushable skill package.
  *
  * Uses a discriminated union on the `detected` field — identical pattern
  * to {@link StigmerResourceDetection} — so consumers can narrow with a
@@ -12,7 +12,7 @@ import { parse as parseYaml } from "yaml";
  * Skill detection is a **parallel** path to YAML resource detection:
  *
  * - **YAML detection** (`detectStigmerResource`): Agents, MCP Servers — applied via `apply()`
- * - **Package detection** (`detectSkillPackage`): Skill packages (directory with SKILL.md) — pushed via `pushFromExecutionArtifact()`
+ * - **Package detection** (`detectSkillPackage`): Skill packages (directory with SKILL.md) — pushed via `pushFromRunArtifact()`
  */
 export type SkillPackageDetection =
   | {
@@ -28,7 +28,7 @@ export type SkillPackageDetection =
       readonly skillDescription: string | undefined;
       /** Number of files in the package archive. */
       readonly fileCount: number;
-      /** Relative file paths within the archive (from `ExecutionArtifact.entries`). */
+      /** Relative file paths within the archive (from `RunArtifact.entries`). */
       readonly entries: readonly string[];
     };
 
@@ -37,7 +37,7 @@ const NOT_DETECTED: SkillPackageDetection = { detected: false } as const;
 const SKILL_MD_ENTRY = "SKILL.md";
 
 /**
- * Checks whether an execution artifact is a skill package (directory
+ * Checks whether a run artifact is a skill package (directory
  * artifact whose archive contains `SKILL.md`).
  *
  * This is a pure, synchronous check that requires no network call — it
@@ -58,9 +58,9 @@ const SKILL_MD_ENTRY = "SKILL.md";
  * }
  * ```
  */
-export function isSkillPackage(artifact: ExecutionArtifact): boolean {
+export function isSkillPackage(artifact: RunArtifact): boolean {
   return (
-    artifact.kind === ExecutionArtifactKind.DIRECTORY &&
+    artifact.kind === RunArtifactKind.DIRECTORY &&
     artifact.entries.includes(SKILL_MD_ENTRY)
   );
 }
@@ -75,7 +75,7 @@ export function isSkillPackage(artifact: ExecutionArtifact): boolean {
  * **Resilient by design** — any parse failure, missing field, or unexpected
  * structure returns `{ detected: false }`. This function never throws.
  *
- * @param artifact - The execution artifact (must be a DIRECTORY with SKILL.md in entries).
+ * @param artifact - The run artifact (must be a DIRECTORY with SKILL.md in entries).
  * @param skillMdContent - Raw text content of SKILL.md fetched from the archive.
  * @returns A discriminated union with skill metadata when detection succeeds.
  *
@@ -93,7 +93,7 @@ export function isSkillPackage(artifact: ExecutionArtifact): boolean {
  * @see {@link useDetectSkillPackage} for the React hook that automates the full flow
  */
 export function detectSkillPackage(
-  artifact: ExecutionArtifact,
+  artifact: RunArtifact,
   skillMdContent: string,
 ): SkillPackageDetection {
   if (!isSkillPackage(artifact)) {

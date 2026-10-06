@@ -17,7 +17,7 @@
 // session, and the axes and counts are derived from them here so the
 // derivation has one home.
 import { readFile } from "node:fs/promises";
-import { pollUntil } from "../support/execution-poll";
+import { pollUntil } from "../support/run-poll";
 import type { BenchmarkAxes, TimingLine, TimingSegment } from "./report";
 
 export const TURN_PHASES_EVENT = "turn_phases";

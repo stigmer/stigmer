@@ -1,6 +1,6 @@
 // Command-level contract for the commands that print an organization: on a
 // server that holds one (client/single-org.ts says yes), `get` and
-// `get <execution>` print no Org line and `auth whoami` names none and hints
+// `get run <id>` print no Org line and `auth whoami` names none and hints
 // nothing; on a server that holds several they print it as before, except
 // for an organization itself, which belongs to none, naming it by slug
 // where the caller can see it and by the value as given where not. The
@@ -11,7 +11,7 @@ import { create } from "@bufbuild/protobuf";
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { Config } from "../../config/index.js";
@@ -71,16 +71,16 @@ vi.mock("../../resources/get.js", () => ({
     },
 }));
 
-// The organization the stubbed execution belongs to.
+// The organization the stubbed run belongs to.
 let executionOrg = "stigmer";
 
-vi.mock("../../resources/execution.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../resources/execution.js")>();
+vi.mock("../../resources/runs.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../resources/runs.js")>();
   return {
     ...actual,
-    getExecution: async () => ({
-      schema: AgentExecutionSchema,
-      message: create(AgentExecutionSchema, {
+    getRun: async () => ({
+      schema: AgentRunSchema,
+      message: create(AgentRunSchema, {
         metadata: { id: "aex_1", name: "run", org: executionOrg },
       }),
     }),
@@ -152,10 +152,10 @@ describe("stigmer get", () => {
     expect(out).not.toContain(ACME_ID);
   });
 
-  it("names an execution's organization by slug where it carries the id", async () => {
+  it("names a run's organization by slug where it carries the id", async () => {
     stigmer = stigmerKnowingAcme();
     executionOrg = ACME_ID;
-    const out = await runGet("execution", "aex_1");
+    const out = await runGet("run", "aex_1");
     expect(out).toMatch(/Org:\s+acme\n/);
     expect(out).not.toContain(ACME_ID);
   });
@@ -203,9 +203,9 @@ describe("stigmer get", () => {
     expect(out).not.toMatch(/Org:/);
   });
 
-  it("prints none for an execution on a server that holds one", async () => {
+  it("prints none for a run on a server that holds one", async () => {
     singleOrg = true;
-    const out = await runGet("execution", "aex_1");
+    const out = await runGet("run", "aex_1");
     expect(out).toMatch(/ID:\s+aex_1/);
     expect(out).not.toMatch(/Org:/);
   });

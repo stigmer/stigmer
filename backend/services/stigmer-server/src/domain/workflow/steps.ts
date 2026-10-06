@@ -16,7 +16,7 @@ import { WorkflowStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/workflo
 import { ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import type { ServerlessWorkflowValidation } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import type { WorkflowSpec } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 
@@ -212,7 +212,7 @@ export function newPopulateServerlessValidationStepForUpdate(
 // the version unchanged and a running step read the edited refs
 // (stigmer#1906).
 //
-// The one exception is spec.execution_visibility, the run audience: it is
+// The one exception is spec.run_visibility, the run audience: it is
 // cleared before hashing, so changing who sees the runs mints no version.
 //
 // The hash is taken only when validation produced YAML (a VALID verdict),
@@ -228,7 +228,7 @@ export function newPopulateServerlessValidationStepForUpdate(
  */
 export function workflowVersionHash(spec: WorkflowSpec): string {
   const versioned = clone(WorkflowSpecSchema, spec);
-  versioned.executionVisibility = WorkflowExecutionVisibility.unspecified;
+  versioned.runVisibility = WorkflowRunVisibility.unspecified;
   return canonicalSpecHash(WorkflowSpecSchema, versioned);
 }
 

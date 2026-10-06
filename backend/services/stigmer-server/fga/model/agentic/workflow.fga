@@ -25,8 +25,8 @@ module agentic
 # - workflow:github-summary#child_org_viewer@organization:<org>#child_org_viewer (if visibility=CHILD_ORGS)
 #
 # Run observability (opt-in, separate from visibility):
-# - workflow:github-summary#execution_viewer@organization:stigmer#viewer
-#   (if spec.execution_visibility=ORGANIZATION; see execution_viewer below)
+# - workflow:github-summary#run_viewer@organization:stigmer#viewer
+#   (if spec.run_visibility=ORGANIZATION; see run_viewer below)
 #
 # Child-organization visibility (visibility_child_orgs):
 # - Grants view + execute to everyone in the owning organization's child
@@ -82,14 +82,14 @@ type workflow
     # Opt-in observers of THIS workflow's runs. Kept SEPARATE from `viewer`
     # so that making a workflow org-runnable (ORG visibility) does NOT expose
     # other people's run inputs and outputs. Empty by default => each
-    # workflow_execution stays private to the person who started it (its
+    # workflow_run stays private to the person who started it (its
     # owner). Org-wide run history is the workflow's
-    # spec.execution_visibility=ORGANIZATION, which reads as
-    # execution_viewer@organization:<org>#viewer (the org's full read
-    # audience). Consumed by workflow_execution.viewer via
-    # "execution_viewer from workflow". Changed only by
-    # updateExecutionVisibility, which asks can_manage_audience.
-    define execution_viewer: [identity_account, organization#viewer] and affiliated from organization
+    # spec.run_visibility=ORGANIZATION, which reads as
+    # run_viewer@organization:<org>#viewer (the org's full read
+    # audience). Consumed by workflow_run.viewer via
+    # "run_viewer from workflow". Changed only by
+    # updateRunVisibility, which asks can_manage_audience.
+    define run_viewer: [identity_account, organization#viewer] and affiliated from organization
     
     # ========================================
     # PERMISSIONS

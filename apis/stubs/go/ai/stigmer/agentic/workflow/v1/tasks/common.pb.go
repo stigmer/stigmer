@@ -29,7 +29,7 @@ const (
 	// Unspecified: defaults to ON_INVALID_FAIL behavior.
 	OnInvalidOutputPolicy_ON_INVALID_POLICY_UNSPECIFIED OnInvalidOutputPolicy = 0
 	// Task fails immediately with a schema validation error.
-	// The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+	// The workflow transitions to error handling (try_catch or RUN_FAILED).
 	OnInvalidOutputPolicy_ON_INVALID_FAIL OnInvalidOutputPolicy = 1
 	// Re-prompt the agent with the validation error message, up to max_retries
 	// attempts. The retry message includes the schema and specific validation

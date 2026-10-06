@@ -56,8 +56,8 @@
 // The context's end is pinned here too: once a run settles, the run-end
 // activity has deleted its context through the context's own delete chain
 // (stigmer#1647), so getByExecutionId answers NotFound.
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
@@ -65,7 +65,7 @@ import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { requireLlmProxy } from "../support/agentexecutions";
+import { requireLlmProxy } from "../support/agentruns";
 import { makeAgent } from "../support/agents";
 import {
   type EnvVarDeclarationInit,
@@ -74,7 +74,7 @@ import {
   makeEnvironment,
   makePersonalEnvironment,
 } from "../support/environments";
-import { pollUntil } from "../support/execution-poll";
+import { pollUntil } from "../support/run-poll";
 import { type ExecutionValueInit } from "../support/executioncontexts";
 import { uniqueName } from "../support/naming";
 import { createChildOrganization } from "../support/organizations";
@@ -87,7 +87,7 @@ import {
   makeHumanInputWorkflow,
   makeWorkflow,
 } from "../support/workflows";
-import { awaitPhase, awaitTaskStatus, awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowexecutions";
+import { awaitPhase, awaitTaskStatus, awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowruns";
 import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -199,7 +199,7 @@ async function awaitContextGone(executionId: string, after: string): Promise<voi
 }
 
 // Drives the WORKFLOW env-merge path end to end: the run's person's personal
-// Environment -> Workflow (env whitelist) -> WorkflowExecution
+// Environment -> Workflow (env whitelist) -> WorkflowRun
 // (runtime_env), then reads the merged ExecutionContext. The `wait` workflow
 // keeps the run non-terminal so the ephemeral context survives the read.
 async function runWorkflowMerge(org: string, setup: MergeSetup) {
@@ -273,7 +273,7 @@ describe("envmerge conformance — Workflow precedence", () => {
     // create() ran the merge in-pipeline; a missing required key is warn-only, so
     // creation succeeded rather than failing the execution.
     expect(execution.status?.phase, "a missing required key does not fail the run").not.toBe(
-      ExecutionPhase.EXECUTION_FAILED,
+      RunPhase.RUN_FAILED,
     );
   });
 
@@ -321,7 +321,7 @@ describe("envmerge conformance — Workflow precedence", () => {
     const execution = await startRun(clients, org, workflow.metadata!.id);
     const final = await awaitTerminal(clients, execution.metadata!.id);
 
-    expect(final.status?.phase, "the secret-consuming run completes").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase, "the secret-consuming run completes").toBe(RunPhase.RUN_COMPLETED);
     // The set_vars task's recorded output carries the evaluated variables
     // (workflow-level status.output needs an explicit output.as block, which
     // this single-task fixture deliberately omits).
@@ -351,11 +351,11 @@ describe("envmerge conformance — Workflow precedence", () => {
     const executionId = execution.metadata!.id;
 
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     const taskOutput = taskByName(final, "setVars")?.output as Record<string, unknown> | undefined;
     expect(taskOutput?.seen, "the runner read the run's context").toBe("end-value");
 
-    await awaitContextGone(executionId, ExecutionPhase[final.status!.phase]);
+    await awaitContextGone(executionId, RunPhase[final.status!.phase]);
   });
 
   it("a workflow of another organization than the run gets none of the person's keys; what the run passes still reaches it", async () => {
@@ -406,7 +406,7 @@ describe("envmerge conformance — Workflow precedence", () => {
     expect(Object.keys(secondData).sort(), "the second run holds the second version's keys").toEqual(["SECOND_KEY"]);
   });
 
-  it("[rpc:WorkflowExecutionCommandController.recover] recover rebuilds the context create built: the pinned version's keys, from the same person", async () => {
+  it("[rpc:WorkflowRunCommandController.recover] recover rebuilds the context create built: the pinned version's keys, from the same person", async () => {
     // A human_input gate that times out FAILS the run; recover resumes at
     // the gate, which waits again, so the rebuilt context is alive to read.
     // Between the failure and the recover the workflow is saved declaring
@@ -424,10 +424,10 @@ describe("envmerge conformance — Workflow precedence", () => {
     const built = await contextData(clients, executionId);
     expect(built.RUN_KEY?.value, "create filled the run's key").toBe("run-value");
 
-    await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_FAILED);
+    await awaitPhase(clients, executionId, RunPhase.RUN_FAILED);
     // The failed run's own context delete runs after the phase lands; recover
     // only once it has, so it can never remove the rebuilt context.
-    await awaitContextGone(executionId, "EXECUTION_FAILED");
+    await awaitContextGone(executionId, "RUN_FAILED");
     const v2 = await clients.workflowCommand.apply(gated({ LATER_KEY: {} }));
     expect(v2.status?.versionHash).not.toBe(v1.status?.versionHash);
 
@@ -471,7 +471,7 @@ describe("envmerge conformance — whose personal keys a workflow run reads (on 
 // The turn an agent_call step started for `workflowExecutionId`, found by the
 // lineage label the runner stamps on it (poll: the runner creates it once
 // the step starts).
-async function stepTurnOf(org: string, workflowExecutionId: string): Promise<AgentExecution> {
+async function stepTurnOf(org: string, workflowExecutionId: string): Promise<AgentRun> {
   const turn = await pollUntil(
     async () =>
       (await clients.agentExecutionQuery.list({ org })).entries.find(
@@ -530,7 +530,7 @@ describe("envmerge conformance — the environments a workflow step names", () =
     await clients.workflowCommand.apply(
       makeAgentCallStepWorkflow({ org, name, agentSlug, environmentRefs: [editedRef!], gated: true }),
     );
-    await clients.workflowExecutionCommand.sendSignal({ executionId: runId, signalName: AGENT_CALL_GATE_SIGNAL });
+    await clients.workflowExecutionCommand.sendSignal({ runId: runId, signalName: AGENT_CALL_GATE_SIGNAL });
 
     const turn = await stepTurnOf(org, runId);
     expect(turn.metadata?.labels[WORKFLOW_TASK_LABEL], "the turn names the step that started it").toBe(

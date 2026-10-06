@@ -1,4 +1,4 @@
-A Session is a persistent conversation that groups multiple executions together
+A Session is a persistent conversation that groups multiple runs together
 and preserves the message thread, workspace files, and sandbox state across
 every turn. `agent_ref` names the agent it runs (empty: the built-in assistant),
 and the server pins the version that reference resolved to in

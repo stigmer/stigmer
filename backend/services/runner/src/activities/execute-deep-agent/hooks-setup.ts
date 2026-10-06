@@ -10,7 +10,7 @@
  * bound and the workspace's virtual paths.
  */
 
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import type { TurnInput, TurnSink } from "../../harness/types.js";
 import { normalizeWorkspacePathArg } from "../../middleware/path-normalization.js";

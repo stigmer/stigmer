@@ -59,8 +59,8 @@ export default function WorkflowDetailPage() {
 
   const handleRunSuccess = useCallback(
     (executionId: string) => {
-      toast.success("Workflow execution started");
-      navigate(`/executions/${executionId}`);
+      toast.success("Workflow run started");
+      navigate(`/runs/${executionId}`);
     },
     [navigate],
   );
@@ -95,7 +95,7 @@ export default function WorkflowDetailPage() {
 
   const handleViewLatestRun = useCallback(
     (executionId: string) => {
-      navigate(`/executions/${executionId}`);
+      navigate(`/runs/${executionId}`);
     },
     [navigate],
   );
@@ -196,7 +196,7 @@ export default function WorkflowDetailPage() {
           additionalTabs={additionalTabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          onExecutionClick={(id) => navigate(`/executions/${id}`)}
+          onRunClick={(id) => navigate(`/runs/${id}`)}
           onOpenInEditor={handleOpenInEditor}
           onViewLatestRun={handleViewLatestRun}
         />

@@ -1,6 +1,6 @@
-// The agent-execution flag set `run` registers (Go's registerAgentExecFlags),
-// kept as its own module so a new execution flag has one home and any future
-// command that starts an execution picks the whole set up unchanged.
+// The agent-run flag set `run` registers (Go's registerAgentExecFlags),
+// kept as its own module so a new run flag has one home and any future
+// command that starts a run picks the whole set up unchanged.
 
 import type { Command } from "commander";
 import type { AgentExecFlags, HarnessFlag, RunMode, ServiceTierFlag, ThinkingFlag } from "../resources/run/prepare.js";
@@ -33,11 +33,11 @@ export interface AgentExecOptions {
 /** Register the agent-exec options on `command`. */
 export function addAgentExecFlags(command: Command): Command {
   return command
-    .option("-m, --message <text>", "initial message/prompt for execution")
+    .option("-m, --message <text>", "initial message/prompt for the run")
     .option("--attach <path>", "file or directory to attach as input (repeatable)", collect, [])
     .option("--approve-default <action>", "auto-resolve approvals in headless mode (approve, skip, reject, approve-all)")
-    .option("-v, --verbose", "show execution IDs and phase transitions")
-    .option("--detach", "start execution and return immediately without streaming")
+    .option("-v, --verbose", "show run IDs and phase transitions")
+    .option("--detach", "start the run and return immediately without streaming")
     .option("-w, --workspace <source>", "workspace: HTTPS git URL or local path (repeatable)", collect, [])
     .option("--branch <name>", "git branch to clone (single git workspace only)")
     .option("--commit <sha>", "git commit SHA to checkout (single git workspace only)")

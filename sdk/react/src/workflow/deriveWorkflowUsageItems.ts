@@ -2,7 +2,7 @@
 // Domain: workflow (the Usage-facet analog of deriveWorkflowArtifactItems).
 
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
+import type { DerivedTaskState } from "../internal/store/workflow-run-event-store.js";
 import { kindToDisplayName } from "./kind-metadata.js";
 import { taskKindToString } from "./workflow-graph-conversions.js";
 
@@ -25,8 +25,8 @@ export interface WorkflowUsageItem {
 }
 
 /**
- * Derives the Usage facet's per-task breakdown from an execution's derived
- * task states (as returned by `useWorkflowExecutionEventStream`).
+ * Derives the Usage facet's per-task breakdown from a run's derived
+ * task states (as returned by `useWorkflowRunEventStream`).
  *
  * **Zero-usage rows are dropped** (zero cost AND zero tokens): they carry no
  * usage signal, and the viewer's snapshot-fallback task states (built when

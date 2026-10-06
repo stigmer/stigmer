@@ -1,18 +1,21 @@
 // Orchestration tests for executeResolvedAgent: the one-call bootstrap
 // contract (stigmer/stigmer#249). A workspace-bearing run must issue exactly
-// one create RPC — the AgentExecution carrying session_spec — instead of the
-// old session.create + agentExecution.create pair, and the flow must read the
-// canonical session id back from the returned execution's target. A run on
+// one create RPC — the AgentRun carrying session_spec — instead of the
+// old session.create + agentRun.create pair, and the flow must read the
+// canonical session id back from the returned run's target. A run on
 // an agent names it by reference (org and slug, no instance and no id); the
-// built-in assistant rides the same flow with no agent at all. Runs use
-// detach mode so no streaming machinery is exercised.
+// built-in assistant rides the same flow with no agent at all. Most runs
+// use detach mode so no streaming machinery is exercised; the attached runs
+// stream through a double that returns the final run, and pin that the
+// run's artifacts are downloaded only when a download directory was given
+// and the final run holds some.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
@@ -20,9 +23,15 @@ import {
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { BackendClient } from "../../../client/index.js";
 import { executeResolvedAgent } from "../agent-exec.js";
 import type { PreparedRun } from "../prepare.js";
+
+const stream = vi.hoisted(() => ({ streamAgentRun: vi.fn() }));
+const download = vi.hoisted(() => ({ downloadRunArtifacts: vi.fn() }));
+vi.mock("../stream.js", () => stream);
+vi.mock("../../download.js", () => download);
 
 const WORKSPACE_ENTRY = create(WorkspaceEntrySchema, {
   name: "repo",
@@ -59,11 +68,11 @@ function makePrepared(overrides: Partial<PreparedRun> = {}): PreparedRun {
 
 // A BackendClient double whose controller records every create call and
 // emulates the server stamping the bootstrapped session id onto the returned
-// execution spec.
-function fakeBackend(): { client: BackendClient; creates: () => AgentExecution[] } {
-  const captured: AgentExecution[] = [];
+// run spec.
+function fakeBackend(): { client: BackendClient; creates: () => AgentRun[] } {
+  const captured: AgentRun[] = [];
   const controller = () => ({
-    create: async (msg: AgentExecution) => {
+    create: async (msg: AgentRun) => {
       captured.push(msg);
       // Echo with the server-owned session id filled in, like the real backend.
       return {
@@ -75,7 +84,7 @@ function fakeBackend(): { client: BackendClient; creates: () => AgentExecution[]
       };
     },
   });
-  const client = { controller } as unknown as BackendClient;
+  const client = { controller, stigmer: { name: "stub-client" } } as unknown as BackendClient;
   return { client, creates: () => captured };
 }
 
@@ -92,6 +101,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.clearAllMocks();
 });
 
 describe("executeResolvedAgent", () => {
@@ -108,14 +118,14 @@ describe("executeResolvedAgent", () => {
     });
 
     const sent = creates();
-    expect(sent, "a workspace run is a single AgentExecution create").toHaveLength(1);
+    expect(sent, "a workspace run is a single AgentRun create").toHaveLength(1);
     const target = sent[0]?.spec?.target;
     expect(target?.case, "no client-created session id").toBe("sessionSpec");
     const sessionSpec = target?.case === "sessionSpec" ? target.value : undefined;
     expect(sessionSpec?.agentRef).toMatchObject({ kind: ApiResourceKind.agent, org: "acme", slug: "helper" });
     expect(sessionSpec?.workspaceEntries).toEqual([WORKSPACE_ENTRY]);
 
-    // The canonical session id comes back on the execution spec and drives the
+    // The canonical session id comes back on the run spec and drives the
     // re-attach hint.
     expect(stderrLines.join("")).toContain("stigmer resume ses_srv");
   });
@@ -189,5 +199,71 @@ describe("executeResolvedAgent", () => {
     // whether the flag or the account preference selected it.
     expect(stderrLines.join("")).toContain("Harness:");
     expect(stderrLines.join("")).toContain("Cursor");
+  });
+});
+
+describe("executeResolvedAgent, attached", () => {
+  /** The final run the stream returns: `artifacts` named files under run aex_final. */
+  function finalRun(artifacts: string[]): AgentRun {
+    return create(AgentRunSchema, {
+      metadata: { id: "aex_final" },
+      status: { artifacts: artifacts.map((name) => ({ name, storageKey: `store/${name}` })) },
+    });
+  }
+
+  it("streams the created run with the session the server returned", async () => {
+    stream.streamAgentRun.mockResolvedValue(finalRun([]));
+    const { client } = fakeBackend();
+
+    await executeResolvedAgent({
+      agent: makeAgent(),
+      prepared: makePrepared({ detach: false, mode: "plan" }),
+      org: "acme",
+      downloadDir: "",
+      outputMode: "json",
+      client,
+    });
+
+    expect(stream.streamAgentRun).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: "ses_srv", org: "acme", mode: "plan", outputMode: "json" }),
+    );
+    expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
+  });
+
+  it("downloads the final run's artifacts into the download directory", async () => {
+    stream.streamAgentRun.mockResolvedValue(finalRun(["report.txt"]));
+    const { client } = fakeBackend();
+
+    await executeResolvedAgent({
+      agent: makeAgent(),
+      prepared: makePrepared({ detach: false }),
+      org: "acme",
+      downloadDir: "/tmp/out",
+      outputMode: "inline",
+      client,
+    });
+
+    expect(download.downloadRunArtifacts).toHaveBeenCalledWith(
+      client.stigmer,
+      "aex_final",
+      { artifactName: "", outputDir: "/tmp/out" },
+      expect.any(Function),
+    );
+  });
+
+  it("downloads nothing when the final run produced no artifacts", async () => {
+    stream.streamAgentRun.mockResolvedValue(finalRun([]));
+    const { client } = fakeBackend();
+
+    await executeResolvedAgent({
+      agent: makeAgent(),
+      prepared: makePrepared({ detach: false }),
+      org: "acme",
+      downloadDir: "/tmp/out",
+      outputMode: "inline",
+      client,
+    });
+
+    expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
   });
 });

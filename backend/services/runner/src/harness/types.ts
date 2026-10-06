@@ -68,8 +68,8 @@
  * `registry.ts`, no barrel.
  */
 
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRun, AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
 import type { Config } from "../config.js";
@@ -339,7 +339,7 @@ export interface TurnInput extends NormalizedActivityInput {
    * verdict from the rows itself.
    */
   readonly approvalDecisions: ReadonlyMap<string, ApprovalAction>;
-  readonly execution: AgentExecution;
+  readonly execution: AgentRun;
   /** The same object as `blueprint.session`; `bindHarnessState` writes it. */
   readonly session: Session;
   readonly blueprint: ResolvedBlueprint;
@@ -405,7 +405,7 @@ export interface TurnSink {
    * seeded by the runtime from the persisted transcript, so the WAITING rows
    * the adapter wrote last time, and their decisions, are already on it.
    */
-  readonly status: AgentExecutionStatus;
+  readonly status: AgentRunStatus;
 
   /**
    * The one transcript builder over `status`, constructed by the runtime
@@ -577,7 +577,7 @@ export type FailureSurface = "engine" | "actionable" | "internal";
  *    stopped its run to gate a call and then found nothing to pause for
  *    (an unattended denial settled as skipped). Not `interrupted`: the
  *    runtime's `stopSignal` never fired. The runtime writes
- *    `EXECUTION_CANCELLED` with no copy and completes the turn.
+ *    `RUN_CANCELLED` with no copy and completes the turn.
  *  - `awaiting_approval`: the engine proposed at least one gated side effect
  *    and stopped. The WAITING_APPROVAL rows are already on the status; the
  *    runtime persists them and returns to the workflow, which reinvokes with

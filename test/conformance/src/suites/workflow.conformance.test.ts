@@ -19,12 +19,12 @@
 // type, and for the task nested in a for_each.
 //
 // The run-visibility arms pin the workflow's second audience, who observes
-// its runs (`spec.execution_visibility`): it starts private, only
-// updateExecutionVisibility changes it, update and apply keep the stored
+// its runs (`spec.run_visibility`): it starts private, only
+// updateRunVisibility changes it, update and apply keep the stored
 // level, only the owner may change it (a member who can see and run the
 // workflow is refused, and so is an editor where the edition grants one),
 // and a toggle is no new version. Who the level then admits to a run is the
-// execution class's (workflowexecution-run-visibility).
+// execution class's (workflowrun-run-visibility).
 //
 // The version arms pin what a version covers: everything a run reads from
 // the workflow, so an edit to only a step's environment_refs or to the
@@ -48,7 +48,7 @@
 // expression may reach when it resolves is the runner-as-subject execution
 // suite's arm.
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionVisibility, WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility, WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -836,9 +836,9 @@ async function seedStepIngredients(org: string) {
 }
 
 // The run audience a level reads as: an unset level is private.
-function runAudienceOf(level: WorkflowExecutionVisibility | undefined): WorkflowExecutionVisibility {
-  return level === undefined || level === WorkflowExecutionVisibility.unspecified
-    ? WorkflowExecutionVisibility.private
+function runAudienceOf(level: WorkflowRunVisibility | undefined): WorkflowRunVisibility {
+  return level === undefined || level === WorkflowRunVisibility.unspecified
+    ? WorkflowRunVisibility.private
     : level;
 }
 
@@ -846,40 +846,40 @@ describe("Workflow conformance — run visibility", () => {
   it("[rpc:WorkflowCommandController.create] a workflow created without a run audience reads private, and one created with a level stores it", async () => {
     const { org } = await target.provisionTenancy();
     const plain = await createWorkflow(org, uniqueName("wf"));
-    expect(runAudienceOf(plain.spec?.executionVisibility), "no level names no audience").toBe(
-      WorkflowExecutionVisibility.private,
+    expect(runAudienceOf(plain.spec?.runVisibility), "no level names no audience").toBe(
+      WorkflowRunVisibility.private,
     );
 
     const input = makeWorkflow({ org, name: uniqueName("wf-org-runs") });
-    input.spec!.executionVisibility = WorkflowExecutionVisibility.organization;
+    input.spec!.runVisibility = WorkflowRunVisibility.organization;
     const widened = await clients.workflowCommand.create(input);
     fixtures.defer(() => clients.workflowCommand.delete({ value: widened.metadata!.id }));
-    expect(widened.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+    expect(widened.spec?.runVisibility).toBe(WorkflowRunVisibility.organization);
     const stored = await clients.workflowQuery.get({ value: widened.metadata!.id });
-    expect(stored.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+    expect(stored.spec?.runVisibility).toBe(WorkflowRunVisibility.organization);
   });
 
-  it("[rpc:WorkflowCommandController.updateExecutionVisibility] sets organization and resets to private, and a fresh read follows each", async () => {
+  it("[rpc:WorkflowCommandController.updateRunVisibility] sets organization and resets to private, and a fresh read follows each", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
     const resourceId = created.metadata!.id;
 
-    const raised = await clients.workflowCommand.updateExecutionVisibility({
+    const raised = await clients.workflowCommand.updateRunVisibility({
       resourceId,
-      executionVisibility: WorkflowExecutionVisibility.organization,
+      runVisibility: WorkflowRunVisibility.organization,
     });
-    expect(raised.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
-    expect((await clients.workflowQuery.get({ value: resourceId })).spec?.executionVisibility).toBe(
-      WorkflowExecutionVisibility.organization,
+    expect(raised.spec?.runVisibility).toBe(WorkflowRunVisibility.organization);
+    expect((await clients.workflowQuery.get({ value: resourceId })).spec?.runVisibility).toBe(
+      WorkflowRunVisibility.organization,
     );
 
-    const lowered = await clients.workflowCommand.updateExecutionVisibility({
+    const lowered = await clients.workflowCommand.updateRunVisibility({
       resourceId,
-      executionVisibility: WorkflowExecutionVisibility.private,
+      runVisibility: WorkflowRunVisibility.private,
     });
-    expect(lowered.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.private);
-    expect((await clients.workflowQuery.get({ value: resourceId })).spec?.executionVisibility).toBe(
-      WorkflowExecutionVisibility.private,
+    expect(lowered.spec?.runVisibility).toBe(WorkflowRunVisibility.private);
+    expect((await clients.workflowQuery.get({ value: resourceId })).spec?.runVisibility).toBe(
+      WorkflowRunVisibility.private,
     );
   });
 
@@ -891,9 +891,9 @@ describe("Workflow conformance — run visibility", () => {
     const name = uniqueName("wf");
     const created = await createWorkflow(org, name, { taskVar: "before" });
     const { id } = created.metadata!;
-    await clients.workflowCommand.updateExecutionVisibility({
+    await clients.workflowCommand.updateRunVisibility({
       resourceId: id,
-      executionVisibility: WorkflowExecutionVisibility.organization,
+      runVisibility: WorkflowRunVisibility.organization,
     });
 
     const updated = await clients.workflowCommand.update({
@@ -902,22 +902,22 @@ describe("Workflow conformance — run visibility", () => {
       metadata: { id, name, org },
       spec: {
         ...makeWorkflowSpec({ namespace: org, documentName: name, taskVar: "after" }),
-        executionVisibility: WorkflowExecutionVisibility.private,
+        runVisibility: WorkflowRunVisibility.private,
       },
     });
     expect(updated.spec?.tasks, "the update itself landed").toHaveLength(1);
     expect(updated.status?.versionHash, "the update itself landed").not.toBe(created.status?.versionHash);
-    expect(updated.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+    expect(updated.spec?.runVisibility).toBe(WorkflowRunVisibility.organization);
 
     const applied = await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "applied" }));
     expect(applied.metadata?.id, "apply took the update arm").toBe(id);
-    expect(applied.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+    expect(applied.spec?.runVisibility).toBe(WorkflowRunVisibility.organization);
 
     const stored = await clients.workflowQuery.get({ value: id });
-    expect(stored.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+    expect(stored.spec?.runVisibility).toBe(WorkflowRunVisibility.organization);
   });
 
-  it("[rpc:WorkflowCommandController.updateExecutionVisibility] a toggle is no new version, and an unchanged re-apply after it mints none either", async () => {
+  it("[rpc:WorkflowCommandController.updateRunVisibility] a toggle is no new version, and an unchanged re-apply after it mints none either", async () => {
     // The run audience is the one field of the spec outside the version: a
     // version names what a run executes and reads, and who may observe the
     // runs is neither.
@@ -926,53 +926,53 @@ describe("Workflow conformance — run visibility", () => {
     const created = await applyWorkflow(org, name, { taskVar: "same" });
     const { id, slug } = created.metadata!;
 
-    const raised = await clients.workflowCommand.updateExecutionVisibility({
+    const raised = await clients.workflowCommand.updateRunVisibility({
       resourceId: id,
-      executionVisibility: WorkflowExecutionVisibility.organization,
+      runVisibility: WorkflowRunVisibility.organization,
     });
     expect(raised.status?.versionHash, "a toggle keeps the head version").toBe(created.status?.versionHash);
     const reapplied = await applyWorkflow(org, name, { taskVar: "same" }, false);
     expect(reapplied.status?.versionHash, "an unchanged re-apply keeps the head version").toBe(
       created.status?.versionHash,
     );
-    expect(reapplied.spec?.executionVisibility, "and keeps the level").toBe(WorkflowExecutionVisibility.organization);
+    expect(reapplied.spec?.runVisibility, "and keeps the level").toBe(WorkflowRunVisibility.organization);
 
     const history = await clients.workflowQuery.listVersions({ org, slug });
     expect(history.versions, "neither the toggle nor the re-apply archived a version").toHaveLength(1);
     expect(history.totalCount).toBe(1);
   });
 
-  it("[rpc:WorkflowCommandController.updateExecutionVisibility] rejects the unspecified zero value (InvalidArgument) and leaves the stored level", async () => {
+  it("[rpc:WorkflowCommandController.updateRunVisibility] rejects the unspecified zero value (InvalidArgument) and leaves the stored level", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
 
     await expectGrpcCode(
       () =>
-        clients.workflowCommand.updateExecutionVisibility({
+        clients.workflowCommand.updateRunVisibility({
           resourceId: created.metadata!.id,
-          executionVisibility: WorkflowExecutionVisibility.unspecified,
+          runVisibility: WorkflowRunVisibility.unspecified,
         }),
       Code.InvalidArgument,
-      "updateExecutionVisibility to the zero value",
+      "updateRunVisibility to the zero value",
     );
     const stored = await clients.workflowQuery.get({ value: created.metadata!.id });
-    expect(runAudienceOf(stored.spec?.executionVisibility)).toBe(WorkflowExecutionVisibility.private);
+    expect(runAudienceOf(stored.spec?.runVisibility)).toBe(WorkflowRunVisibility.private);
   });
 
-  it("[rpc:WorkflowCommandController.updateExecutionVisibility] returns NotFound for an unknown workflow", () =>
+  it("[rpc:WorkflowCommandController.updateRunVisibility] returns NotFound for an unknown workflow", () =>
     expectGrpcCode(
       () =>
-        clients.workflowCommand.updateExecutionVisibility({
+        clients.workflowCommand.updateRunVisibility({
           resourceId: "wfl_doesnotexist",
-          executionVisibility: WorkflowExecutionVisibility.organization,
+          runVisibility: WorkflowRunVisibility.organization,
         }),
       Code.NotFound,
-      "updateExecutionVisibility unknown id",
+      "updateRunVisibility unknown id",
     ));
 });
 
 describe("Workflow conformance — the run audience is the owner's (on the enforcing lane)", () => {
-  it("[rpc:WorkflowCommandController.updateExecutionVisibility] a member who can see and run the workflow is refused, and the level stays", async (ctx) => {
+  it("[rpc:WorkflowCommandController.updateRunVisibility] a member who can see and run the workflow is refused, and the level stays", async (ctx) => {
     const enforcing = await enforcingLaneOf(target);
     if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
     const lane = enforcing.lane;
@@ -990,18 +990,18 @@ describe("Workflow conformance — the run audience is the owner's (on the enfor
 
     await expectGrpcCode(
       () =>
-        member.workflowCommand.updateExecutionVisibility({
+        member.workflowCommand.updateRunVisibility({
           resourceId: workflow.metadata!.id,
-          executionVisibility: WorkflowExecutionVisibility.organization,
+          runVisibility: WorkflowRunVisibility.organization,
         }),
       Code.PermissionDenied,
       "a member widens who observes the runs",
     );
     const stored = await lane.clients.workflowQuery.get({ value: workflow.metadata!.id });
-    expect(runAudienceOf(stored.spec?.executionVisibility)).toBe(WorkflowExecutionVisibility.private);
+    expect(runAudienceOf(stored.spec?.runVisibility)).toBe(WorkflowRunVisibility.private);
   });
 
-  it("[rpc:WorkflowCommandController.updateExecutionVisibility] an editor of the workflow, who may change its definition, is refused; the owner may", async (ctx) => {
+  it("[rpc:WorkflowCommandController.updateRunVisibility] an editor of the workflow, who may change its definition, is refused; the owner may", async (ctx) => {
     // An editor is a per-resource grant: an edition whose grant scope admits
     // only organization roles (open source's default) cannot make one.
     if (!target.capabilities.perResourceGrants) {
@@ -1027,19 +1027,19 @@ describe("Workflow conformance — the run audience is the owner's (on the enfor
 
     await expectGrpcCode(
       () =>
-        editor.workflowCommand.updateExecutionVisibility({
+        editor.workflowCommand.updateRunVisibility({
           resourceId: workflowId,
-          executionVisibility: WorkflowExecutionVisibility.organization,
+          runVisibility: WorkflowRunVisibility.organization,
         }),
       Code.PermissionDenied,
       "an editor widens who observes the runs",
     );
-    const owned = await lane.clients.workflowCommand.updateExecutionVisibility({
+    const owned = await lane.clients.workflowCommand.updateRunVisibility({
       resourceId: workflowId,
-      executionVisibility: WorkflowExecutionVisibility.organization,
+      runVisibility: WorkflowRunVisibility.organization,
     });
-    expect(owned.spec?.executionVisibility, "the owner holds the audience").toBe(
-      WorkflowExecutionVisibility.organization,
+    expect(owned.spec?.runVisibility, "the owner holds the audience").toBe(
+      WorkflowRunVisibility.organization,
     );
   });
 });

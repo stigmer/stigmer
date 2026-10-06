@@ -1,28 +1,28 @@
-// Execution-engine harness smoke test for AgentExecution (Class B).
+// Execution-engine harness smoke test for AgentRun (Class B).
 // Domain: agentic / agentexecution — proves the agent engine is wired, not the
 // domain contract.
 //
-// This is the AgentExecution counterpart to harness.test.ts (which uses a
-// data-only set_vars WorkflowExecution). Where that one needs no LLM, an agent
+// This is the AgentRun counterpart to harness.test.ts (which uses a
+// data-only set_vars WorkflowRun). Where that one needs no LLM, an agent
 // run does — so this is the cheap, permanent guard that the local-execution
 // target's LLM machinery works end-to-end: Go server -> Temporal dispatch ->
 // runner pickup -> hydration -> a real LLM loop served by the mock proxy ->
-// terminal status streamed back via gRPC. The whole AgentExecution domain
-// contract lives in agentexecution.conformance.test.ts.
+// terminal status streamed back via gRPC. The whole AgentRun domain
+// contract lives in agentrun.conformance.test.ts.
 //
 // Hermetic by construction: the runner is pointed at the in-process mock proxy
 // (no API key, no network), artifacts are on local disk, and the checkpointer is
 // in-memory. A single Anthropic text turn with stop_reason end_turn is the
-// smallest script that reaches EXECUTION_COMPLETED.
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+// smallest script that reaches RUN_COMPLETED.
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, MOCK_SESSION_TITLE } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/agentexecutions";
-import { pollUntil } from "../support/execution-poll";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/agentruns";
+import { pollUntil } from "../support/run-poll";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -68,13 +68,13 @@ describe("Execution harness smoke — agent text turn", () => {
     // against the mock. (We assert the deterministic endpoints, PENDING and
     // COMPLETED, not the sub-second IN_PROGRESS transient.)
     expect(execution.metadata?.id, "create assigns a prefixed execution id").toMatch(/^aex_[0-9a-z]+$/);
-    expect(execution.status?.phase, "create returns a PENDING execution").toBe(ExecutionPhase.EXECUTION_PENDING);
+    expect(execution.status?.phase, "create returns a PENDING execution").toBe(RunPhase.RUN_PENDING);
 
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `execution ${executionId} should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `execution ${executionId} should complete; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
     expect(final.status?.startedAt, "started_at is set when the run begins").toBeTruthy();
     expect(final.status?.completedAt, "completed_at is set on completion").toBeTruthy();
 

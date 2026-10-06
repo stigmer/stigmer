@@ -23,13 +23,13 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { WorkflowParentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { WorkflowParentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../boot/logger.js";
@@ -37,12 +37,12 @@ import {
   AgentExecutionTemporalConfig,
   ROUTING_GLOBAL,
   ROUTING_SESSION,
-} from "../../domain/agentexecution/temporal/config.js";
+} from "../../domain/agentrun/temporal/config.js";
 import {
   WORKFLOW_ROUTING_EXECUTION,
   WORKFLOW_ROUTING_GLOBAL,
   WorkflowExecutionTemporalConfig,
-} from "../../domain/workflowexecution/temporal/config.js";
+} from "../../domain/workflowrun/temporal/config.js";
 import type {
   RunnerCredentialProvider,
   SandboxCredentialRequest,
@@ -211,7 +211,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
 
   async function seed(target: ExecutionTarget): Promise<{
     sessionId: string;
-    execution: AgentExecution;
+    execution: AgentRun;
   }> {
     counter += 1;
     const sessionId = `ses_sbx_${counter}`;
@@ -225,14 +225,14 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         spec: { executionTarget: target },
       }),
     );
-    const execution = create(AgentExecutionSchema, {
+    const execution = create(AgentRunSchema, {
       metadata: { id: executionId, name: executionId },
       spec: { target: { case: "sessionId", value: sessionId } },
     });
     await store.saveResource(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
       executionId,
-      AgentExecutionSchema,
+      AgentRunSchema,
       execution,
     );
     return { sessionId, execution };
@@ -299,7 +299,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         spec: { executionTarget: ExecutionTarget.CLOUD },
       }),
     );
-    const execution = create(AgentExecutionSchema, {
+    const execution = create(AgentRunSchema, {
       metadata: { id: executionId, name: executionId, org: "org-test" },
       spec: { target: { case: "sessionId", value: sessionId } },
     });
@@ -344,7 +344,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
   });
 
   it("skips when the lane is disabled without touching the store", async () => {
-    const execution = create(AgentExecutionSchema, {
+    const execution = create(AgentRunSchema, {
       metadata: { id: "axr_disabled" },
       spec: { target: { case: "sessionId", value: "ses_never_loaded" } },
     });
@@ -371,7 +371,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
     const { execution } = await seed(ExecutionTarget.CLOUD);
     if (execution.spec !== undefined) {
       execution.spec.parent = create(WorkflowParentSchema, {
-        workflowExecutionId: "wfx_parent",
+        workflowRunId: "wfx_parent",
       });
     }
     await ensureSessionSandboxForExecution(
@@ -393,7 +393,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
     const { sessionId, execution } = await seed(ExecutionTarget.CLOUD);
     if (execution.spec !== undefined) {
       execution.spec.parent = create(WorkflowParentSchema, {
-        workflowExecutionId: "wfx_parent",
+        workflowRunId: "wfx_parent",
       });
     }
     await ensureSessionSandboxForExecution(
@@ -466,9 +466,9 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
       TEST_CALLER,
     );
     const stamped = await store.getResource(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
       executionId,
-      AgentExecutionSchema,
+      AgentRunSchema,
     );
     expect(stamped.status?.error).toBe(
       `${SANDBOX_PROVISIONING_FAILED_PREFIX}quota exhausted: count/secrets`,
@@ -484,10 +484,10 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
     // Re-seed WITH a status already carrying the first error — the state
     // a concurrent runner write (or an earlier stamp) leaves behind.
     await store.saveResource(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
       executionId,
-      AgentExecutionSchema,
-      create(AgentExecutionSchema, {
+      AgentRunSchema,
+      create(AgentRunSchema, {
         metadata: { id: executionId, name: executionId },
         spec: { target: { case: "sessionId", value: sessionId } },
         status: { error: "the real root cause" },
@@ -504,9 +504,9 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
       TEST_CALLER,
     );
     const after = await store.getResource(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
       executionId,
-      AgentExecutionSchema,
+      AgentRunSchema,
     );
     expect(after.status?.error).toBe("the real root cause");
   });
@@ -514,7 +514,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
 
 describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
   function workflowExecution(target: ExecutionTarget) {
-    return create(WorkflowExecutionSchema, {
+    return create(WorkflowRunSchema, {
       metadata: { id: "wfx_sbx_1", name: "wfx_sbx_1" },
       spec: { executionTarget: target },
     });
@@ -567,7 +567,7 @@ describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
         lane: lane(provisioner, credentials),
         temporalConfig: executionRoutingConfig,
       },
-      create(WorkflowExecutionSchema, {
+      create(WorkflowRunSchema, {
         metadata: { id: "wfx_sbx_cap", name: "wfx_sbx_cap", org: "org-test" },
         spec: { executionTarget: ExecutionTarget.CLOUD },
       }),
@@ -647,10 +647,10 @@ describe("the terminal observer (newWorkflowSandboxTerminalObserver)", () => {
       lane(provisioner),
       silentLogger,
     );
-    observe("wfx_1", P.EXECUTION_IN_PROGRESS, P.EXECUTION_COMPLETED);
-    observe("wfx_2", P.EXECUTION_IN_PROGRESS, P.EXECUTION_FAILED);
-    observe("wfx_3", P.EXECUTION_PENDING, P.EXECUTION_CANCELLED);
-    observe("wfx_4", P.EXECUTION_PAUSED, P.EXECUTION_TERMINATED);
+    observe("wfx_1", P.RUN_IN_PROGRESS, P.RUN_COMPLETED);
+    observe("wfx_2", P.RUN_IN_PROGRESS, P.RUN_FAILED);
+    observe("wfx_3", P.RUN_PENDING, P.RUN_CANCELLED);
+    observe("wfx_4", P.RUN_PAUSED, P.RUN_TERMINATED);
     await vi.waitFor(() => {
       expect(provisioner.deprovisioned.map((d) => d.id)).toEqual([
         "wfx_1",
@@ -670,13 +670,13 @@ describe("the terminal observer (newWorkflowSandboxTerminalObserver)", () => {
       lane(provisioner),
       silentLogger,
     );
-    observe("wfx_a", P.EXECUTION_PENDING, P.EXECUTION_IN_PROGRESS);
-    observe("wfx_b", P.EXECUTION_FAILED, P.EXECUTION_FAILED);
+    observe("wfx_a", P.RUN_PENDING, P.RUN_IN_PROGRESS);
+    observe("wfx_b", P.RUN_FAILED, P.RUN_FAILED);
     const disabledObserve = newWorkflowSandboxTerminalObserver(
       { enabled: false },
       silentLogger,
     );
-    disabledObserve("wfx_c", P.EXECUTION_IN_PROGRESS, P.EXECUTION_COMPLETED);
+    disabledObserve("wfx_c", P.RUN_IN_PROGRESS, P.RUN_COMPLETED);
     // Give any wrongly-fired teardown a chance to surface.
     await new Promise((resolve) => setImmediate(resolve));
     expect(provisioner.deprovisioned).toEqual([]);
@@ -696,7 +696,7 @@ describe("the terminal observer (newWorkflowSandboxTerminalObserver)", () => {
       lane(provisioner),
       loggingLogger,
     );
-    observe("wfx_leak", P.EXECUTION_IN_PROGRESS, P.EXECUTION_FAILED);
+    observe("wfx_leak", P.RUN_IN_PROGRESS, P.RUN_FAILED);
     await vi.waitFor(() => {
       expect(failures.join("")).toContain("sandbox may be leaked");
     });

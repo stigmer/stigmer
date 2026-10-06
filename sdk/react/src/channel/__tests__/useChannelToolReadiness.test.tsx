@@ -73,7 +73,7 @@ describe("useChannelToolReadiness", () => {
     );
 
     // A tool-using agent with zero bound environments is broken over the
-    // channel BY CONSTRUCTION (channel executions receive credentials
+    // channel BY CONSTRUCTION (channel runs receive credentials
     // only from the channel's bindings) — the hook says so instead of
     // staying silent, and needs no server round-trip to know it.
     expect(result.current).toEqual({ status: "needs-credentials" });

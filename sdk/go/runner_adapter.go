@@ -8,11 +8,11 @@ import "context"
 // appropriate lifecycle points so it never manages runner processes
 // directly — the adapter handles it transparently.
 //
-// Sessions and workflow executions have different lifecycles. A session is
+// Sessions and workflow runs have different lifecycles. A session is
 // a long-lived, multi-turn conversation with no terminal phase, so its
 // worker is tied to whether the session is open (in use): OnSessionOpened
 // when the session is opened, OnSessionClosed when it is closed. A workflow
-// execution runs to a terminal phase, so its worker is tied to creation and
+// run reaches a terminal phase, so its worker is tied to creation and
 // completion.
 //
 // Each environment provides its own implementation:
@@ -31,13 +31,13 @@ type RunnerAdapter interface {
 	// in use). The adapter should tear down the session's runner worker.
 	OnSessionClosed(ctx context.Context, sessionID string) error
 
-	// OnWorkflowExecutionCreated is called after a workflow execution
-	// is created with ExecutionTarget=LOCAL. The adapter should ensure
-	// a runner worker is active for the given execution.
-	OnWorkflowExecutionCreated(ctx context.Context, executionID string) error
+	// OnWorkflowRunCreated is called after a workflow run is created
+	// with ExecutionTarget=LOCAL. The adapter should ensure a runner
+	// worker is active for the given run.
+	OnWorkflowRunCreated(ctx context.Context, runID string) error
 
-	// OnWorkflowExecutionTerminated is called when a workflow execution
-	// reaches a terminal phase. The adapter should clean up any runner
-	// resources allocated for the execution.
-	OnWorkflowExecutionTerminated(ctx context.Context, executionID string) error
+	// OnWorkflowRunTerminated is called when a workflow run reaches a
+	// terminal phase. The adapter should clean up any runner resources
+	// allocated for the run.
+	OnWorkflowRunTerminated(ctx context.Context, runID string) error
 }

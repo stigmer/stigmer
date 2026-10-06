@@ -1,8 +1,8 @@
 {
   "name": "failed-diff-unreviewable",
   "description": "A DIFF_UNREVIEWABLE failure after candidate capture -> status FAILED while the execution is still non-terminal (the diff cannot be shown completely, so the set is unapprovable but the audit set is still projected). Pins the terminal FAILED fold, uncovered by 01-05. A terminal failure (HASH_MISMATCH/RECONCILE_FAILED) drives the EXECUTION phase terminal, which projects empty (the phase-aware rule pinned by 05); DIFF_UNREVIEWABLE is the projectable FAILED.",
-  "execution_id": "aex_failed_unreviewable",
-  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "run_id": "aex_failed_unreviewable",
+  "phase": "RUN_WAITING_FOR_APPROVAL",
   "events": [
     {
       "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

@@ -1,13 +1,13 @@
 {
   "name": "approve-supersede-orphan-complete",
   "description": "The canonical adversarial run: a root call is approved, a second root call is superseded without a decision, a sub-agent goes terminal orphaning its gated call, then the execution completes. Equality holds after every write; the ledger ends with one APPROVED and two RETRACTED (one SUPERSEDED, one SUB_AGENT_TERMINAL).",
-  "execution_id": "exec-seq",
+  "run_id": "exec-seq",
   "steps": [
     {
       "name": "seed: root-1, root-2, and sub-1 all gated",
       "description": "First touch seeds the stream from the scan: one REQUESTED per gated call.",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",
@@ -35,7 +35,7 @@
             ]
           }
         ],
-        "sub_agent_executions": [
+        "sub_agent_runs": [
           {
             "name": "worker",
             "subject": "Apply database migration",
@@ -98,7 +98,7 @@
       "name": "decide root-1 (approve)",
       "description": "A SubmitApproval site: REQUESTED is ensured while root-1 is still gated, then the decision is recorded with decided_by + comment.",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",
@@ -126,7 +126,7 @@
             ]
           }
         ],
-        "sub_agent_executions": [
+        "sub_agent_runs": [
           {
             "name": "worker",
             "subject": "Apply database migration",
@@ -192,7 +192,7 @@
       "name": "supersede root-2 (no decision)",
       "description": "root-1 has advanced post-approval; root-2's status advances off WAITING with no decision while the execution is live, so the reconciler retracts it (SUPERSEDED).",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",
@@ -221,7 +221,7 @@
             ]
           }
         ],
-        "sub_agent_executions": [
+        "sub_agent_runs": [
           {
             "name": "worker",
             "subject": "Apply database migration",
@@ -272,7 +272,7 @@
       "name": "sub-agent goes terminal with sub-1 undecided",
       "description": "The worker sub-agent completes while sub-1 is still gated. The scan drops the orphan structurally; the reconciler authors the matching RETRACTED (SUB_AGENT_TERMINAL) so the event projection drops it too.",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",
@@ -301,7 +301,7 @@
             ]
           }
         ],
-        "sub_agent_executions": [
+        "sub_agent_runs": [
           {
             "name": "worker",
             "subject": "Apply database migration",
@@ -342,7 +342,7 @@
       "name": "execution completes",
       "description": "A terminal phase projects zero pending via the phase-aware seam and authors no further events (the reconciler short-circuits on terminal).",
       "status": {
-        "phase": "EXECUTION_COMPLETED",
+        "phase": "RUN_COMPLETED",
         "messages": [
           {
             "type": "MESSAGE_AI",
@@ -371,7 +371,7 @@
             ]
           }
         ],
-        "sub_agent_executions": [
+        "sub_agent_runs": [
           {
             "name": "worker",
             "subject": "Apply database migration",

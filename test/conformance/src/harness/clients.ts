@@ -20,8 +20,8 @@ import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/a
 import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
 import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
@@ -52,8 +52,8 @@ import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
-import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
-import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
@@ -113,10 +113,10 @@ export interface ConformanceClients {
   organizationQuery: Client<typeof OrganizationQueryController>;
   workflowCommand: Client<typeof WorkflowCommandController>;
   workflowQuery: Client<typeof WorkflowQueryController>;
-  workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
-  workflowExecutionQuery: Client<typeof WorkflowExecutionQueryController>;
-  agentExecutionCommand: Client<typeof AgentExecutionCommandController>;
-  agentExecutionQuery: Client<typeof AgentExecutionQueryController>;
+  workflowExecutionCommand: Client<typeof WorkflowRunCommandController>;
+  workflowExecutionQuery: Client<typeof WorkflowRunQueryController>;
+  agentExecutionCommand: Client<typeof AgentRunCommandController>;
+  agentExecutionQuery: Client<typeof AgentRunQueryController>;
   agentCommand: Client<typeof AgentCommandController>;
   agentQuery: Client<typeof AgentQueryController>;
   environmentCommand: Client<typeof EnvironmentCommandController>;
@@ -244,18 +244,18 @@ export function makeClients(transport: Transport): ConformanceClients {
     workflowCommand: createClient(WorkflowCommandController, transport),
     workflowQuery: createClient(WorkflowQueryController, transport),
     workflowExecutionCommand: createClient(
-      WorkflowExecutionCommandController,
+      WorkflowRunCommandController,
       transport,
     ),
     workflowExecutionQuery: createClient(
-      WorkflowExecutionQueryController,
+      WorkflowRunQueryController,
       transport,
     ),
     agentExecutionCommand: createClient(
-      AgentExecutionCommandController,
+      AgentRunCommandController,
       transport,
     ),
-    agentExecutionQuery: createClient(AgentExecutionQueryController, transport),
+    agentExecutionQuery: createClient(AgentRunQueryController, transport),
     agentCommand: createClient(AgentCommandController, transport),
     agentQuery: createClient(AgentQueryController, transport),
     environmentCommand: createClient(EnvironmentCommandController, transport),

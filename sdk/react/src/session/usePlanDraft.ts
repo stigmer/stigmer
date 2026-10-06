@@ -4,14 +4,14 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import type { SessionPlan } from "../library/detect-plan-artifact.js";
 
 /**
- * Identity of a plan for draft scoping: the execution that published it plus
- * the artifact's content hash. A refined plan (new execution) or a republished
+ * Identity of a plan for draft scoping: the run that published it plus
+ * the artifact's content hash. A refined plan (new run) or a republished
  * plan (same key, new hash) produces a NEW identity, which orphans any draft
  * of the previous plan — a draft of plan N must never silently ride along
  * once plan N+1 exists.
  */
 export function planDraftKey(plan: SessionPlan): string {
-  return `${plan.executionId}:${plan.artifact.contentHash}`;
+  return `${plan.runId}:${plan.artifact.contentHash}`;
 }
 
 /** Controller returned by {@link usePlanDraft}. */
@@ -49,7 +49,7 @@ interface DraftState {
  * build). The draft is a client-side overlay — the published `plan.md`
  * artifact is immutable and is never written back (edit-as-input, not
  * artifact mutation). The approved plan (draft if edited, else the artifact
- * text) is delivered to the implement execution as an attachment.
+ * text) is delivered to the implement run as an attachment.
  *
  * Ownership lives at the viewer level, NOT inside the plan document tab's
  * editor: the panel subtree unmounts wholesale on collapse (and the editor

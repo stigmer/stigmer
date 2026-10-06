@@ -11,7 +11,7 @@
  * now), audit-slot preservation across pushes (#540), and delete's archive
  * cleanup.
  */
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import http2 from "node:http2";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -581,25 +581,25 @@ describe("delete", () => {
   });
 });
 
-describe("pushFromExecutionArtifact — validation surface (the happy path is the integration layer's)", () => {
+describe("pushFromRunArtifact — validation surface", () => {
   it("rejects missing required fields — the protovalidate interceptor answers on the wire (both editions run it before the handler's manual arms)", async () => {
     const cases: Array<[Record<string, string>, string]> = [
       [
         { storageKey: "artifacts/aex_x/skill.zip", org: ORG },
-        "execution_id: must be at least 1 characters [string.min_len]",
+        "run_id: must be at least 1 characters [string.min_len]",
       ],
       [
-        { executionId: "aex_x", org: ORG },
+        { runId: "aex_x", org: ORG },
         "storage_key: must be at least 1 characters [string.min_len]",
       ],
       [
-        { executionId: "aex_x", storageKey: "artifacts/aex_x/skill.zip" },
+        { runId: "aex_x", storageKey: "artifacts/aex_x/skill.zip" },
         "org: value is required [required]",
       ],
     ];
     for (const [request, message] of cases) {
       const err = await expectCode(
-        command.pushFromExecutionArtifact(request),
+        command.pushFromRunArtifact(request),
         Code.InvalidArgument,
         message,
       );
@@ -609,14 +609,52 @@ describe("pushFromExecutionArtifact — validation surface (the happy path is th
 
   it("rejects a storage key outside the execution's namespace (traversal guard)", async () => {
     const err = await expectCode(
-      command.pushFromExecutionArtifact({
+      command.pushFromRunArtifact({
         org: ORG,
-        executionId: "aex_example",
+        runId: "aex_example",
         storageKey: "artifacts/aex_other/skill.zip",
       }),
       Code.InvalidArgument,
       "prefix guard",
     );
     expect(err.rawMessage).toBe("storage_key does not belong to this execution");
+  });
+});
+
+describe("pushFromRunArtifact — reading the run's artifact", () => {
+  it("pushes the directory artifact a run stored as a skill in the named org", async () => {
+    const name = uniqueName();
+    const storageKey = "artifacts/aex_push_source/skill.zip";
+    // The run's blob store is the local driver rooted at
+    // ARTIFACT_LOCAL_BASE_PATH; a key is a path under it.
+    const filePath = path.join(dir, "artifacts", storageKey);
+    mkdirSync(path.dirname(filePath), { recursive: true });
+    writeFileSync(filePath, makeArtifact(name));
+
+    const skill = await command.pushFromRunArtifact({
+      org: ORG,
+      runId: "aex_push_source",
+      storageKey,
+      tag: "from-run",
+    });
+
+    expect(skill.metadata?.name).toBe(name);
+    expect(skill.metadata?.org).toBe(ORG_ID);
+    expect(skill.spec?.tag).toBe("from-run");
+    const fetched = await query.get({ value: skill.metadata?.id ?? "" });
+    expect(fetched.status?.versionHash).toBe(skill.status?.versionHash);
+  });
+
+  it("answers a sanitized Internal when the run's artifact cannot be read", async () => {
+    const err = await expectCode(
+      command.pushFromRunArtifact({
+        org: ORG,
+        runId: "aex_push_missing",
+        storageKey: "artifacts/aex_push_missing/skill.zip",
+      }),
+      Code.Internal,
+      "download failure",
+    );
+    expect(err.rawMessage).toBe("failed to download execution artifact");
   });
 });

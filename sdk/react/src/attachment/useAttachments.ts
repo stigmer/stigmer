@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import type { AttachmentInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -141,7 +141,7 @@ export interface UseAttachmentsReturn {
   /** Clear all entries and abort any in-flight uploads. */
   readonly clear: () => void;
   /**
-   * Produces the `AttachmentInput[]` suitable for execution creation.
+   * Produces the `AttachmentInput[]` suitable for run creation.
    * Only includes entries in the `"ready"` phase.
    */
   readonly toAttachmentInputs: () => AttachmentInput[];
@@ -157,12 +157,12 @@ function generateId(): string {
 }
 
 /**
- * Behavior hook that manages file attachments for agent executions.
+ * Behavior hook that manages file attachments for agent runs.
  *
  * Handles the full lifecycle: file validation, upload via
- * `stigmer.agentExecution.uploadAttachment()`, progress tracking,
+ * `stigmer.agentRun.uploadAttachment()`, progress tracking,
  * error handling, and retry. Produces `AttachmentInput[]` ready
- * for execution creation.
+ * for run creation.
  *
  * Files are uploaded immediately on selection so the `storageKey`
  * is available by the time the user submits their message.
@@ -230,7 +230,7 @@ export function useAttachments(
 
         if (controller.signal.aborted) return;
 
-        const response = await stigmer.agentExecution.uploadAttachment(
+        const response = await stigmer.agentRun.uploadAttachment(
           create(UploadAttachmentRequestSchema, {
             filename: file.name,
             content: bytes,
@@ -357,7 +357,7 @@ export function useAttachments(
           continue;
         }
 
-        // Duplicate names within a turn break the execution downstream
+        // Duplicate names within a turn break the run downstream
         // (see uniquifyFilename) — rename before the bytes ever upload,
         // so the chip, the upload, and the mounted file all agree.
         const uniqueName = uniquifyFilename(rawFile.name, takenNames);

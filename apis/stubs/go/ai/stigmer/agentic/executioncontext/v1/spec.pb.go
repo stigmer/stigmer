@@ -22,10 +22,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Runtime configuration and secrets for a single execution.
+// Runtime configuration and secrets for a single run.
 type ExecutionContextSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// ID of the parent AgentExecution or WorkflowExecution.
+	// ID of the parent AgentRun or WorkflowRun.
 	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	// Runtime key-value pairs, each marked as secret or plaintext.
 	Data          map[string]*ExecutionValue `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`

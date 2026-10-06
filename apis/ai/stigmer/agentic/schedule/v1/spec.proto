@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.schedule.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/invocation.proto";
+import "ai/stigmer/agentic/agentrun/v1/invocation.proto";
 import "buf/validate/validate.proto";
 
 // ScheduleSpec defines when a schedule fires and what it runs.
@@ -70,7 +70,7 @@ message ScheduleSpec {
   //
   // @internal
   // The extension seam (the provider_config oneof pattern): a
-  // future `workflow` arm reuses the WorkflowExecution create pipeline
+  // future `workflow` arm reuses the WorkflowRun create pipeline
   // directly — carrying its two recorded divergences from the agent path
   // (version pinning; the CRITICAL pre-persist sandbox step).
   // The arm is immutable across updates: an
@@ -101,7 +101,7 @@ message ScheduleSpec {
     // the server resolves it once, at create (ResolveRunConfig), under
     // the schedule profile as the lane's ceiling (RunConfig has the
     // rule).
-    ai.stigmer.agentic.agentexecution.v1.AgentInvocation agent = 4;
+    ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4;
 
     // Reserved (additive): WorkflowTarget workflow = 5;
   }

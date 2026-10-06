@@ -11,7 +11,7 @@ import {
 } from "@stigmer/react";
 import type { SidebarLinkRenderProps, WorkspaceNavId } from "@stigmer/react";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
-import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
+import { useRunNavigation } from "@/domain/workflow/run-navigation";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 
@@ -41,8 +41,8 @@ export function Sidebar() {
   const { count: wantsHumanCount } = useConversationsWantsHumanCount(org || null);
   const { activeSessionId, isSessionZone, navigateToSession, navigateToHome } =
     useSessionNavigation();
-  const { activeExecutionId, isExecutionZone, navigateToExecution } =
-    useExecutionNavigation();
+  const { activeRunId, isExecutionZone, navigateToRun } =
+    useRunNavigation();
 
   const isDashboardActive =
     !isSessionZone && !isExecutionZone && pathname.startsWith("/dashboard");
@@ -77,17 +77,17 @@ export function Sidebar() {
   });
 
   useEffect(() => {
-    if (activeExecutionId && !entriesRef.current.some((e) => e.id === activeExecutionId)) {
+    if (activeRunId && !entriesRef.current.some((e) => e.id === activeRunId)) {
       prependOptimistic({
-        id: activeExecutionId,
-        type: "workflow_execution",
+        id: activeRunId,
+        type: "workflow_run",
         subject: "Loading\u2026",
       });
     }
 
     refetch();
 
-    const activeId = activeSessionId ?? activeExecutionId;
+    const activeId = activeSessionId ?? activeRunId;
     if (!activeId) return;
 
     // LLM subject generation runs async after session creation and
@@ -99,7 +99,7 @@ export function Sidebar() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [activeSessionId, activeExecutionId, refetch, prependOptimistic]);
+  }, [activeSessionId, activeRunId, refetch, prependOptimistic]);
 
   const renderLink = useCallback(
     ({
@@ -122,7 +122,7 @@ export function Sidebar() {
                 if (entry.type === "session") {
                   navigateToSession(entry.id);
                 } else {
-                  navigateToExecution(entry.id);
+                  navigateToRun(entry.id);
                 }
               }
             }}
@@ -157,7 +157,7 @@ export function Sidebar() {
         </Link>
       );
     },
-    [navigateToSession, navigateToExecution, navigateToHome],
+    [navigateToSession, navigateToRun, navigateToHome],
   );
 
   return (
@@ -166,7 +166,7 @@ export function Sidebar() {
       renderLink={renderLink}
       recentActivity={recentActivity}
       activeSessionId={activeSessionId}
-      activeExecutionId={activeExecutionId}
+      activeRunId={activeRunId}
       conversationsBadgeCount={wantsHumanCount}
       footer={<UserMenu />}
       isOpen={sidebar.isOpen}

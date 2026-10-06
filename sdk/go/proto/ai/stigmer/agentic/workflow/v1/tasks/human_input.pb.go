@@ -32,7 +32,7 @@ const (
 	// Unspecified: defaults to HUMAN_INPUT_TIMEOUT_FAIL behavior.
 	HumanInputTimeoutPolicy_HUMAN_INPUT_TIMEOUT_POLICY_UNSPECIFIED HumanInputTimeoutPolicy = 0
 	// Task fails with a timeout error.
-	// The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+	// The workflow transitions to error handling (try_catch or RUN_FAILED).
 	HumanInputTimeoutPolicy_HUMAN_INPUT_TIMEOUT_FAIL HumanInputTimeoutPolicy = 1
 	// Auto-approve: the task completes as if the reviewer selected the first
 	// outcome (or "approve" if no outcomes are defined).
@@ -174,7 +174,7 @@ func (x *HumanInputOutcome) GetThen() string {
 }
 
 // HumanInputTaskConfig defines the configuration for human_input tasks that
-// pause workflow execution to collect typed input or approval from a human
+// pause workflow run to collect typed input or approval from a human
 // reviewer, then resume based on the reviewer's response.
 type HumanInputTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -203,7 +203,7 @@ type HumanInputTaskConfig struct {
 	//
 	// When empty, the task defaults to binary behavior:
 	//   - "approve": task completes, workflow continues to next task
-	//   - "deny": task fails (enters try_catch or EXECUTION_FAILED)
+	//   - "deny": task fails (enters try_catch or RUN_FAILED)
 	//
 	// When custom outcomes are defined, the first outcome is used as the
 	// default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used

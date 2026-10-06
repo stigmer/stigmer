@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import type { DerivedCostSummary } from "../../internal/store/workflow-execution-event-store";
-import { useWorkflowExecution } from "../useWorkflowExecution";
-import { useWorkflowExecutionEventStream } from "../useWorkflowExecutionEventStream";
-import { useWorkflowExecutionArtifacts } from "../useWorkflowExecutionArtifacts";
-import { useWorkflowExecutionFileChanges } from "../useWorkflowExecutionFileChanges";
-import { useWorkflowExecutionActions } from "../useWorkflowExecutionActions";
-import { WorkflowExecutionViewer } from "../WorkflowExecutionViewer";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import type { DerivedCostSummary } from "../../internal/store/workflow-run-event-store";
+import { useWorkflowRun } from "../useWorkflowRun";
+import { useWorkflowRunEventStream } from "../useWorkflowRunEventStream";
+import { useWorkflowRunArtifacts } from "../useWorkflowRunArtifacts";
+import { useWorkflowRunFileChanges } from "../useWorkflowRunFileChanges";
+import { useWorkflowRunActions } from "../useWorkflowRunActions";
+import { WorkflowRunViewer } from "../WorkflowRunViewer";
 
 // ---------------------------------------------------------------------------
-// Wiring-contract tests for the execution panel's host-negotiation surface
+// Wiring-contract tests for the run panel's host-negotiation surface
 // (issue #654): `panel="none"` omission, `defaultPanelOpen`, and the
 // controlled/observed `panelOpen` + `onPanelOpenChange` pair — the workflow
 // mirror of the session organisms' #651 contract (see the session
@@ -20,29 +20,29 @@ import { WorkflowExecutionViewer } from "../WorkflowExecutionViewer";
 // panel too, because its conversation renders inside the panel.
 //
 // Same probe/stub setup as the approvals suite: data hooks are stubbed to a
-// loaded, task-less execution; the graph and comparison picker are inert.
+// loaded, task-less run; the graph and comparison picker are inert.
 // ---------------------------------------------------------------------------
 
-vi.mock("../useWorkflowExecution", () => ({
-  useWorkflowExecution: vi.fn(),
+vi.mock("../useWorkflowRun", () => ({
+  useWorkflowRun: vi.fn(),
 }));
-vi.mock("../useWorkflowExecutionEventStream", () => ({
-  useWorkflowExecutionEventStream: vi.fn(),
+vi.mock("../useWorkflowRunEventStream", () => ({
+  useWorkflowRunEventStream: vi.fn(),
 }));
-vi.mock("../useWorkflowExecutionArtifacts", () => ({
-  useWorkflowExecutionArtifacts: vi.fn(),
+vi.mock("../useWorkflowRunArtifacts", () => ({
+  useWorkflowRunArtifacts: vi.fn(),
 }));
-vi.mock("../useWorkflowExecutionFileChanges", () => ({
-  useWorkflowExecutionFileChanges: vi.fn(),
+vi.mock("../useWorkflowRunFileChanges", () => ({
+  useWorkflowRunFileChanges: vi.fn(),
 }));
-vi.mock("../useWorkflowExecutionActions", () => ({
-  useWorkflowExecutionActions: vi.fn(),
+vi.mock("../useWorkflowRunActions", () => ({
+  useWorkflowRunActions: vi.fn(),
 }));
-vi.mock("../WorkflowExecutionGraph", () => ({
-  WorkflowExecutionGraph: () => <div data-testid="graph-stub" />,
+vi.mock("../WorkflowRunGraph", () => ({
+  WorkflowRunGraph: () => <div data-testid="graph-stub" />,
 }));
-vi.mock("../execution-comparison/ExecutionComparisonPicker", () => ({
-  ExecutionComparisonPicker: () => null,
+vi.mock("../run-comparison/RunComparisonPicker", () => ({
+  RunComparisonPicker: () => null,
 }));
 
 // Diagnose also gates on the Organization's Workflow Architect existing
@@ -58,11 +58,11 @@ vi.mock("../workflow-architect", () => ({
   }),
 }));
 
-const mockedUseWorkflowExecution = vi.mocked(useWorkflowExecution);
-const mockedUseEventStream = vi.mocked(useWorkflowExecutionEventStream);
-const mockedUseArtifacts = vi.mocked(useWorkflowExecutionArtifacts);
-const mockedUseFileChanges = vi.mocked(useWorkflowExecutionFileChanges);
-const mockedUseActions = vi.mocked(useWorkflowExecutionActions);
+const mockedUseWorkflowExecution = vi.mocked(useWorkflowRun);
+const mockedUseEventStream = vi.mocked(useWorkflowRunEventStream);
+const mockedUseArtifacts = vi.mocked(useWorkflowRunArtifacts);
+const mockedUseFileChanges = vi.mocked(useWorkflowRunFileChanges);
+const mockedUseActions = vi.mocked(useWorkflowRunActions);
 
 const COST_SUMMARY: DerivedCostSummary = {
   costConsumedMicros: 0n,
@@ -72,9 +72,9 @@ const COST_SUMMARY: DerivedCostSummary = {
   thresholdBreached: false,
 };
 
-function arrange(phase: ExecutionPhase = ExecutionPhase.EXECUTION_IN_PROGRESS) {
+function arrange(phase: RunPhase = RunPhase.RUN_IN_PROGRESS) {
   mockedUseWorkflowExecution.mockReturnValue({
-    execution: create(WorkflowExecutionSchema, {
+    run: create(WorkflowRunSchema, {
       metadata: { id: "wex_1", name: "nightly-report" },
       spec: { workflowId: "wf_1" },
       status: { phase, startedAt: "2026-07-15T00:00:00Z", tasks: [] },
@@ -82,7 +82,7 @@ function arrange(phase: ExecutionPhase = ExecutionPhase.EXECUTION_IN_PROGRESS) {
     isLoading: false,
     error: null,
     refetch: vi.fn(),
-  } as unknown as ReturnType<typeof useWorkflowExecution>);
+  } as unknown as ReturnType<typeof useWorkflowRun>);
   mockedUseEventStream.mockReturnValue({
     events: [],
     taskStates: new Map(),
@@ -91,10 +91,10 @@ function arrange(phase: ExecutionPhase = ExecutionPhase.EXECUTION_IN_PROGRESS) {
     totalTasks: 0,
     error: null,
     reconnect: vi.fn(),
-  } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
+  } as unknown as ReturnType<typeof useWorkflowRunEventStream>);
   mockedUseArtifacts.mockReturnValue({
     artifacts: [],
-  } as unknown as ReturnType<typeof useWorkflowExecutionArtifacts>);
+  } as unknown as ReturnType<typeof useWorkflowRunArtifacts>);
   mockedUseFileChanges.mockReturnValue({
     fileChanges: [],
     fileChangeCount: 0,
@@ -102,7 +102,7 @@ function arrange(phase: ExecutionPhase = ExecutionPhase.EXECUTION_IN_PROGRESS) {
     isRefetching: false,
     error: null,
     refetch: vi.fn(),
-  } as unknown as ReturnType<typeof useWorkflowExecutionFileChanges>);
+  } as unknown as ReturnType<typeof useWorkflowRunFileChanges>);
   mockedUseActions.mockReturnValue({
     cancel: vi.fn(),
     terminate: vi.fn(),
@@ -121,7 +121,7 @@ function arrange(phase: ExecutionPhase = ExecutionPhase.EXECUTION_IN_PROGRESS) {
     taskApprovalErrorsByTaskName: new Map<string, Error>(),
     fileDecisionSubmittingKeys: new Set<string>(),
     fileDecisionErrorsByKey: new Map<string, Error>(),
-  } as unknown as ReturnType<typeof useWorkflowExecutionActions>);
+  } as unknown as ReturnType<typeof useWorkflowRunActions>);
 }
 
 function chipButton(): HTMLElement | null {
@@ -138,17 +138,17 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-describe('WorkflowExecutionViewer — panel="none"', () => {
+describe('WorkflowRunViewer — panel="none"', () => {
   it("removes the chip and never renders the panel", () => {
     arrange();
-    render(<WorkflowExecutionViewer executionId="wex_1" panel="none" />);
+    render(<WorkflowRunViewer runId="wex_1" panel="none" />);
     expect(chipButton()).toBeNull();
   });
 
   it("withholds Diagnose — its conversation renders inside the panel", () => {
-    arrange(ExecutionPhase.EXECUTION_FAILED);
+    arrange(RunPhase.RUN_FAILED);
     render(
-      <WorkflowExecutionViewer executionId="wex_1" org="acme" panel="none" />,
+      <WorkflowRunViewer runId="wex_1" org="acme" panel="none" />,
     );
     expect(screen.queryByRole("button", { name: "Diagnose" })).toBeNull();
     // The failed-state actions that live OUTSIDE the panel are untouched.
@@ -159,8 +159,8 @@ describe('WorkflowExecutionViewer — panel="none"', () => {
     arrange();
     const onPanelOpenChange = vi.fn();
     render(
-      <WorkflowExecutionViewer
-        executionId="wex_1"
+      <WorkflowRunViewer
+        runId="wex_1"
         panel="none"
         panelOpen={true}
         onPanelOpenChange={onPanelOpenChange}
@@ -171,21 +171,21 @@ describe('WorkflowExecutionViewer — panel="none"', () => {
   });
 });
 
-describe("WorkflowExecutionViewer — Diagnose in the default panel mode", () => {
+describe("WorkflowRunViewer — Diagnose in the default panel mode", () => {
   it("offers Diagnose on a failed execution (the contrast for the none-mode withholding)", () => {
-    arrange(ExecutionPhase.EXECUTION_FAILED);
-    render(<WorkflowExecutionViewer executionId="wex_1" org="acme" />);
+    arrange(RunPhase.RUN_FAILED);
+    render(<WorkflowRunViewer runId="wex_1" org="acme" />);
     expect(screen.getByRole("button", { name: "Diagnose" })).toBeDefined();
   });
 });
 
-describe("WorkflowExecutionViewer — observed panel state (uncontrolled + onPanelOpenChange)", () => {
+describe("WorkflowRunViewer — observed panel state (uncontrolled + onPanelOpenChange)", () => {
   it("reports chip toggles without taking control", () => {
     arrange();
     const seen: boolean[] = [];
     render(
-      <WorkflowExecutionViewer
-        executionId="wex_1"
+      <WorkflowRunViewer
+        runId="wex_1"
         onPanelOpenChange={(open) => seen.push(open)}
       />,
     );
@@ -200,8 +200,8 @@ describe("WorkflowExecutionViewer — observed panel state (uncontrolled + onPan
     arrange();
     const onPanelOpenChange = vi.fn();
     render(
-      <WorkflowExecutionViewer
-        executionId="wex_1"
+      <WorkflowRunViewer
+        runId="wex_1"
         defaultPanelOpen
         onPanelOpenChange={onPanelOpenChange}
       />,
@@ -212,14 +212,14 @@ describe("WorkflowExecutionViewer — observed panel state (uncontrolled + onPan
   });
 });
 
-describe("WorkflowExecutionViewer — controlled panel state", () => {
+describe("WorkflowRunViewer — controlled panel state", () => {
   it("follows panelOpen and surfaces the chip's request without applying it", () => {
     arrange();
     const seen: boolean[] = [];
     const onPanelOpenChange = (open: boolean) => seen.push(open);
     const { rerender } = render(
-      <WorkflowExecutionViewer
-        executionId="wex_1"
+      <WorkflowRunViewer
+        runId="wex_1"
         panelOpen={false}
         onPanelOpenChange={onPanelOpenChange}
       />,
@@ -232,8 +232,8 @@ describe("WorkflowExecutionViewer — controlled panel state", () => {
 
     // The host grants the request: the panel opens and the chip flips.
     rerender(
-      <WorkflowExecutionViewer
-        executionId="wex_1"
+      <WorkflowRunViewer
+        runId="wex_1"
         panelOpen={true}
         onPanelOpenChange={onPanelOpenChange}
       />,

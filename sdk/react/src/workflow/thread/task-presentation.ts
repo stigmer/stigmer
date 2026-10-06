@@ -1,6 +1,6 @@
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
+import type { DerivedTaskState } from "../../internal/store/workflow-run-event-store.js";
 import { formatDuration } from "../format-utils.js";
 
 // Headless presentation layer for workflow task cards — the thread's
@@ -82,7 +82,7 @@ const registry = new Map<WorkflowTaskKind, WorkflowTaskPresenter>();
  * Registers a custom presenter for a {@link WorkflowTaskKind}, overriding
  * the built-in preview line and/or disclosure. Call once at app startup.
  * This is the extension point for platform builders embedding the workflow
- * execution UI who want product-specific wording without forking the
+ * run UI who want product-specific wording without forking the
  * components — the same seam as the session's `registerToolPresenter`.
  *
  * Returns a disposer that unregisters the presenter, restoring the previous

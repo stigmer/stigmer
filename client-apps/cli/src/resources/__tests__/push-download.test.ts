@@ -1,10 +1,12 @@
-// In-process test for `push skill` and `download execution`.
+// In-process test for `push skill` and `download run`.
 //
-// Stands up a Connect backend (skill push + execution query/artifact-URL) plus a
+// Stands up a Connect backend (skill push + run query/artifact-URL) plus a
 // plain HTTP server standing in for object storage, then drives the resource
 // layer end to end: pushSkill zips a temp dir and uploads it (asserting the
-// server receives a valid ZIP), and downloadExecutionArtifacts streams a
-// presigned URL to disk (asserting partial-failure tolerance).
+// server receives a valid ZIP), and downloadRunArtifacts streams a
+// presigned URL to disk (asserting partial-failure tolerance), warns that a
+// run still in progress may not have every artifact yet, and refuses a named
+// artifact the run does not hold with a pointer to `get run`.
 
 import { createServer as createHttpServer, type Server as HttpServer } from "node:http";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
@@ -15,17 +17,18 @@ import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { GetArtifactDownloadUrlResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { GetArtifactDownloadUrlResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
 import type { Stigmer } from "@stigmer/sdk";
 import { unzipSync } from "fflate";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { downloadExecutionArtifacts } from "../download.js";
+import { CliExitError, ExitCode } from "../../errors/index.js";
+import { downloadRunArtifacts } from "../download.js";
 import { pushSkill } from "../skill.js";
 
 const SKILL_MD = ["---", "name: my-skill", "---", "# My Skill"].join("\n");
@@ -45,15 +48,21 @@ beforeEach(() => {
   pushedTags = [];
 });
 
-const execution = create(AgentExecutionSchema, {
+const execution = create(AgentRunSchema, {
   metadata: { id: "aex_done" },
   status: {
-    phase: ExecutionPhase.EXECUTION_COMPLETED,
+    phase: RunPhase.RUN_COMPLETED,
     artifacts: [
       { name: "report.txt", storageKey: "store/report.txt", sizeBytes: 23n },
       { name: "broken.txt", storageKey: "store/missing.txt", sizeBytes: 5n },
     ],
   },
+});
+
+// A run still pending: nothing produced yet.
+const pendingExecution = create(AgentRunSchema, {
+  metadata: { id: "aex_pending" },
+  status: { phase: RunPhase.RUN_PENDING },
 });
 
 beforeAll(async () => {
@@ -82,8 +91,9 @@ beforeAll(async () => {
         });
       },
     });
-    router.service(AgentExecutionQueryController, {
+    router.service(AgentRunQueryController, {
       get: (req) => {
+        if (req.value === "aex_pending") return pendingExecution;
         if (req.value !== "aex_done") throw new ConnectError("not found", Code.NotFound);
         return execution;
       },
@@ -148,11 +158,11 @@ describe("pushSkill", () => {
   });
 });
 
-describe("downloadExecutionArtifacts", () => {
+describe("downloadRunArtifacts", () => {
   it("downloads available artifacts and tolerates partial failures", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadExecutionArtifacts(client, "aex_done", { artifactName: "", outputDir: out });
+      const outcome = await downloadRunArtifacts(client, "aex_done", { artifactName: "", outputDir: out });
       expect(outcome.total).toBe(2);
       expect(outcome.downloaded).toBe(1); // broken.txt 404s, report.txt succeeds
       expect(outcome.noArtifacts).toBe(false);
@@ -162,10 +172,43 @@ describe("downloadExecutionArtifacts", () => {
     }
   });
 
+  it("warns that a pending run may be incomplete, and reports no artifacts", async () => {
+    const progress: string[] = [];
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const outcome = await downloadRunArtifacts(
+        client,
+        "aex_pending",
+        { artifactName: "", outputDir: out },
+        (line) => progress.push(line),
+      );
+      expect(outcome).toEqual({ total: 0, downloaded: 0, noArtifacts: true, incompletePhase: "pending" });
+      expect(progress).toEqual([
+        "Run is still pending. Artifacts may not be complete until the run finishes.",
+      ]);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a named artifact the run does not hold, pointing at get run", async () => {
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const failure = downloadRunArtifacts(client, "aex_done", { artifactName: "missing.txt", outputDir: out });
+      await expect(failure).rejects.toBeInstanceOf(CliExitError);
+      await expect(failure).rejects.toMatchObject({
+        message: "artifact not found: missing.txt\n\nUse 'stigmer get run aex_done' to see available artifacts",
+        exitCode: ExitCode.General,
+      });
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
   it("filters to a named artifact", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadExecutionArtifacts(client, "aex_done", { artifactName: "report.txt", outputDir: out });
+      const outcome = await downloadRunArtifacts(client, "aex_done", { artifactName: "report.txt", outputDir: out });
       expect(outcome.total).toBe(1);
       expect(outcome.downloaded).toBe(1);
     } finally {

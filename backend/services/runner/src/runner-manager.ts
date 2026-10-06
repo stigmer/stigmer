@@ -624,7 +624,7 @@ export async function createStigmerRunnerManager(
       // Mark every queue's shutdown signal BEFORE draining, so an in-flight
       // activity cancelled by the drain classifies it as a worker shutdown
       // rather than a user pause (issue #776 — a SIGTERM'd pool member used
-      // to persist EXECUTION_PAUSED and let raw Temporal drain text reach
+      // to persist RUN_PAUSED and let raw Temporal drain text reach
       // status.error). Aborting is classification-only: it stops nothing;
       // worker.shutdown() below still owns the drain. This is deliberately
       // NOT done in teardownManaged — single-worker teardowns only run once

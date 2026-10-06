@@ -76,7 +76,7 @@ evaluator. Commit the regenerated JSON with the source; CI's
   message schema, or `ROWLESS` for a type with no stored resource). The model
   refuses to load a type with no binding.
 - A relation `kind_meta.authorization` cannot derive from the row: a derived
-  rule in the same table (`default-of.ts` and `execution-viewer.ts` are the
+  rule in the same table (`default-of.ts` and `run-viewer.ts` are the
   precedents).
 - A removed relation: its derived rule goes with it, since the model refuses a
   rule for a relation the type does not define. No server code changes its

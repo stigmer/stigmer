@@ -19,7 +19,7 @@
         ]
       }
     ],
-    "sub_agent_executions": [
+    "sub_agent_runs": [
       {
         "name": "agent-b",
         "subject": "Run integration tests",

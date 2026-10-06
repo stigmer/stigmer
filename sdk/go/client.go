@@ -30,7 +30,7 @@ type Client struct {
 	Billing *BillingClient
 
 	// DefaultExecutionTarget is applied as the default for session and
-	// workflow execution creation when the per-call input does not
+	// workflow run creation when the per-call input does not
 	// specify an explicit ExecutionTarget. Set via WithExecutionTarget.
 	DefaultExecutionTarget sessionv1.ExecutionTarget
 

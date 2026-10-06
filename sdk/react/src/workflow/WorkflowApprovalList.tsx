@@ -1,15 +1,15 @@
 "use client";
 
 import { memo, useCallback } from "react";
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { WorkflowPendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import type { WorkflowPendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { cn } from "@stigmer/theme";
-import { ApprovalCard } from "../execution/ApprovalCard.js";
+import { ApprovalCard } from "../run/ApprovalCard.js";
 
 /**
  * Submit handler for a workflow-level tool-approval decision, matching
- * `useWorkflowExecutionActions().submitApproval`. The tool-call id is bound per
+ * `useWorkflowRunActions().submitApproval`. The tool-call id is bound per
  * card so the shared {@link ApprovalCard} only needs the card-level
  * `(action, comment)`.
  */
@@ -24,7 +24,7 @@ export interface WorkflowApprovalListProps {
   /**
    * The parent workflow's surfaced tool-approval gates
    * (`status.pending_approvals`) — each pairs a child's full
-   * `PendingApproval` with the child agent execution to route the decision to.
+   * `PendingApproval` with the child agent run to route the decision to.
    */
   readonly pendingApprovals: readonly WorkflowPendingApproval[];
   /** Forwards a decision to the child (see {@link WorkflowApprovalSubmit}). */
@@ -41,19 +41,19 @@ export interface WorkflowApprovalListProps {
    */
   readonly approvalErrors?: ReadonlyMap<string, Error>;
   /**
-   * Optional deep-link to open the gate's child agent execution in its own
-   * view. When provided, each gate renders a "View agent execution"
+   * Optional deep-link to open the gate's child agent run in its own
+   * view. When provided, each gate renders a "View agent run"
    * affordance — with parallel children, it names which child a gate belongs
    * to. Routing is the host's responsibility.
    */
-  readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
+  readonly onNavigateToAgentRun?: (agentExecutionId: string) => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
 /**
  * Renders the child agent tool approvals surfaced on a parent
- * WorkflowExecution — the tool-approval sibling of {@link WorkflowFileReviewList},
+ * WorkflowRun — the tool-approval sibling of {@link WorkflowFileReviewList},
  * reusing the session's canonical {@link ApprovalCard} so a gate reads
  * identically everywhere it appears (workflow bottom tab, inspector, in-place
  * transcript, agent session): same 4-action decision model (Approve / Skip /
@@ -66,9 +66,9 @@ export interface WorkflowApprovalListProps {
  * simpler body.
  *
  * Decisions route through the WORKFLOW-level RPC (the supplied
- * `onSubmitApproval`, normally `useWorkflowExecutionActions().submitApproval`)
- * — never the child's own `agentExecution.*` path, whose authorization checks
- * the runner-spawned child rather than the workflow execution the operator
+ * `onSubmitApproval`, normally `useWorkflowRunActions().submitApproval`)
+ * — never the child's own `agentRun.*` path, whose authorization checks
+ * the runner-spawned child rather than the workflow run the operator
  * owns. Empty `pendingApprovals` renders nothing.
  */
 export function WorkflowApprovalList({
@@ -76,7 +76,7 @@ export function WorkflowApprovalList({
   onSubmitApproval,
   submittingToolCallIds,
   approvalErrors,
-  onNavigateToAgentExecution,
+  onNavigateToAgentRun,
   className,
 }: WorkflowApprovalListProps): React.ReactElement | null {
   if (pendingApprovals.length === 0) return null;
@@ -91,13 +91,13 @@ export function WorkflowApprovalList({
         const toolCallId = ref.approval.toolCallId;
         return (
           <WorkflowApprovalItem
-            key={toolCallId || ref.childAgentExecutionId}
+            key={toolCallId || ref.childAgentRunId}
             approval={ref.approval}
-            childAgentExecutionId={ref.childAgentExecutionId}
+            childAgentExecutionId={ref.childAgentRunId}
             onSubmitApproval={onSubmitApproval}
             isSubmitting={submittingToolCallIds?.has(toolCallId) ?? false}
             error={approvalErrors?.get(toolCallId) ?? null}
-            onNavigateToAgentExecution={onNavigateToAgentExecution}
+            onNavigateToAgentRun={onNavigateToAgentRun}
           />
         );
       })}
@@ -111,7 +111,7 @@ interface WorkflowApprovalItemProps {
   readonly onSubmitApproval: WorkflowApprovalSubmit;
   readonly isSubmitting: boolean;
   readonly error: Error | null;
-  readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
+  readonly onNavigateToAgentRun?: (agentExecutionId: string) => void;
 }
 
 /**
@@ -126,7 +126,7 @@ const WorkflowApprovalItem = memo(function WorkflowApprovalItem({
   onSubmitApproval,
   isSubmitting,
   error,
-  onNavigateToAgentExecution,
+  onNavigateToAgentRun,
 }: WorkflowApprovalItemProps) {
   const toolCallId = approval.toolCallId;
   const handleSubmit = useCallback(
@@ -138,13 +138,13 @@ const WorkflowApprovalItem = memo(function WorkflowApprovalItem({
 
   return (
     <div className="stg:space-y-2">
-      {onNavigateToAgentExecution && (
+      {onNavigateToAgentRun && (
         <button
           type="button"
-          onClick={() => onNavigateToAgentExecution(childAgentExecutionId)}
+          onClick={() => onNavigateToAgentRun(childAgentExecutionId)}
           className="stg:text-xs stg:text-muted-foreground stg:hover:text-foreground stg:underline stg:underline-offset-2"
         >
-          View agent execution
+          View agent run
         </button>
       )}
       <ApprovalCard

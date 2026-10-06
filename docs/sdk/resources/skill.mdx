@@ -65,7 +65,7 @@ Skill skill = client.skills().get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`delete`](#delete) | Delete a skill and all its versions. |
 | [`createArtifactUploadUrl`](#createartifactuploadurl) | Mint a short-lived, single-use upload URL for staging a skill artifact that exceeds the gRPC message-size cap (10MB). |
 | [`push`](#push) | Push a skill artifact. |
-| [`pushFromExecutionArtifact`](#pushfromexecutionartifact) | Push a skill from an execution artifact already in storage. |
+| [`pushFromRunArtifact`](#pushfromrunartifact) | Push a skill from a run artifact already in storage. |
 
 ### get
 
@@ -476,16 +476,16 @@ Skill skill = client.skills().push(PushSkillRequest.builder()
 
 **Returns**: [`Skill`](#skill)
 
-### pushFromExecutionArtifact
+### pushFromRunArtifact
 
-Push a skill from an execution artifact already in storage. Use this when an agent execution has already produced a skill artifact and you want to publish it without downloading and re-uploading the ZIP.
+Push a skill from a run artifact already in storage. Use this when an agent run has already produced a skill artifact and you want to publish it without downloading and re-uploading the ZIP.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const skill = await stigmer.skill.pushFromExecutionArtifact({
+const skill = await stigmer.skill.pushFromRunArtifact({
   org: "...",
-  executionId: "...",
+  runId: "...",
   storageKey: "...",
   tag: "...",
 });
@@ -493,19 +493,19 @@ const skill = await stigmer.skill.pushFromExecutionArtifact({
 </Tab>
 <Tab value="Go">
 ```go
-skill, err := client.Skill.PushFromExecutionArtifact(ctx, &stigmer.PushSkillFromExecutionArtifactRequest{
-  Org:         "...",
-  ExecutionId: "...",
-  StorageKey:  "...",
-  Tag:         "...",
+skill, err := client.Skill.PushFromRunArtifact(ctx, &stigmer.PushSkillFromRunArtifactRequest{
+  Org:        "...",
+  RunId:      "...",
+  StorageKey: "...",
+  Tag:        "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skills.push_from_execution_artifact(PushSkillFromExecutionArtifactRequest(
+skill = client.skills.push_from_run_artifact(PushSkillFromRunArtifactRequest(
     org="...",
-    execution_id="...",
+    run_id="...",
     storage_key="...",
     tag="...",
 ))
@@ -513,9 +513,9 @@ skill = client.skills.push_from_execution_artifact(PushSkillFromExecutionArtifac
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skills().pushFromExecutionArtifact(PushSkillFromExecutionArtifactRequest.builder()
+Skill skill = client.skills().pushFromRunArtifact(PushSkillFromRunArtifactRequest.builder()
     .org("...")
-    .executionId("...")
+    .runId("...")
     .storageKey("...")
     .tag("...")
     .build());
@@ -523,7 +523,7 @@ Skill skill = client.skills().pushFromExecutionArtifact(PushSkillFromExecutionAr
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`PushSkillFromExecutionArtifactRequest`](#pushskillfromexecutionartifactrequest)
+**Parameters**: [`PushSkillFromRunArtifactRequest`](#pushskillfromrunartifactrequest)
 
 **Returns**: [`Skill`](#skill)
 
@@ -584,14 +584,14 @@ SkillArtifactUploadUrl is a short-lived, single-use capability for staging a ski
   }}
 />
 
-### PushSkillFromExecutionArtifactRequest
+### PushSkillFromRunArtifactRequest
 
-PushSkillFromExecutionArtifactRequest publishes a skill from an execution artifact already in storage, without downloading and re-uploading the ZIP.
+PushSkillFromRunArtifactRequest publishes a skill from a run artifact already in storage, without downloading and re-uploading the ZIP.
 
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that will own the skill.", required: true },
-    executionId: { type: "string", description: "ID of the agent execution that produced the artifact (e.g., \"aex_abc123xyz456\")." },
+    runId: { type: "string", description: "ID of the agent run that produced the artifact (e.g., \"aex_abc123xyz456\")." },
     storageKey: { type: "string", description: "Storage key of the directory artifact (ZIP) to push as a skill." },
     tag: { type: "string", description: "Optional version tag (same semantics as PushSkillRequest.tag)." },
   }}

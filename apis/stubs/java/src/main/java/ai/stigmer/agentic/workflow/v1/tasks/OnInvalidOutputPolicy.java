@@ -27,7 +27,7 @@ public enum OnInvalidOutputPolicy
   /**
    * <pre>
    * Task fails immediately with a schema validation error.
-   * The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+   * The workflow transitions to error handling (try_catch or RUN_FAILED).
    * </pre>
    *
    * <code>ON_INVALID_FAIL = 1;</code>
@@ -81,7 +81,7 @@ public enum OnInvalidOutputPolicy
   /**
    * <pre>
    * Task fails immediately with a schema validation error.
-   * The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+   * The workflow transitions to error handling (try_catch or RUN_FAILED).
    * </pre>
    *
    * <code>ON_INVALID_FAIL = 1;</code>

@@ -145,7 +145,7 @@ public interface BillingAccountOrBuilder extends
 
   /**
    * <pre>
-   * Maximum negative balance allowed before hard-stopping executions.
+   * Maximum negative balance allowed before hard-stopping runs.
    * Free orgs: 0. Paid orgs: typically 2_000_000 ($2.00). Enterprise: contract-specific.
    * </pre>
    *

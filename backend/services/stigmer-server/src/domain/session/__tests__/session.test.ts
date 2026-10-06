@@ -51,9 +51,9 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -81,7 +81,7 @@ import {
   DEFAULT_EXECUTION_TARGET_LOCAL,
   ROUTING_GLOBAL,
   newConfigFromEnv,
-} from "../../agentexecution/temporal/config.js";
+} from "../../agentrun/temporal/config.js";
 import {
   newFilterByAgentStep,
   newValidateExecutionTargetImmutabilityStep,
@@ -219,21 +219,21 @@ async function markSessionUsed(
 let executionCounter = 0;
 async function seedExecution(
   sessionId: string,
-  phase: ExecutionPhase,
+  phase: RunPhase,
 ): Promise<string> {
   executionCounter += 1;
   const id = `aex_sessiontest_${executionCounter}`;
-  const execution = create(AgentExecutionSchema, {
+  const execution = create(AgentRunSchema, {
     apiVersion: API_VERSION,
-    kind: "AgentExecution",
+    kind: "AgentRun",
     metadata: { id, name: `Execution ${executionCounter}`, org: ORG },
     spec: { target: { case: "sessionId", value: sessionId } },
     status: { phase },
   });
   await server.store.saveResource(
-    ApiResourceKind.agent_execution,
+    ApiResourceKind.agent_run,
     id,
-    AgentExecutionSchema,
+    AgentRunSchema,
     execution,
   );
   return id;
@@ -800,14 +800,14 @@ describe("session updateSubject — field-level RMW (#540 spec_audit slot)", () 
 });
 
 describe("session delete — active-execution guard and cascade", () => {
-  const activePhases: ReadonlyArray<[string, ExecutionPhase]> = [
-    ["EXECUTION_PENDING", ExecutionPhase.EXECUTION_PENDING],
-    ["EXECUTION_IN_PROGRESS", ExecutionPhase.EXECUTION_IN_PROGRESS],
+  const activePhases: ReadonlyArray<[string, RunPhase]> = [
+    ["RUN_PENDING", RunPhase.RUN_PENDING],
+    ["RUN_IN_PROGRESS", RunPhase.RUN_IN_PROGRESS],
     [
-      "EXECUTION_WAITING_FOR_APPROVAL",
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      "RUN_WAITING_FOR_APPROVAL",
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
     ],
-    ["EXECUTION_PAUSED", ExecutionPhase.EXECUTION_PAUSED],
+    ["RUN_PAUSED", RunPhase.RUN_PAUSED],
   ];
 
   for (const [name, phase] of activePhases) {
@@ -830,7 +830,7 @@ describe("session delete — active-execution guard and cascade", () => {
 
       // Unblock and converge: the retried delete succeeds and cascades.
       await server.store.deleteResource(
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         executionId,
       );
       await command.delete({ value: session.metadata!.id });
@@ -843,15 +843,15 @@ describe("session delete — active-execution guard and cascade", () => {
 
     const completedId = await seedExecution(
       doomed.metadata!.id,
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_COMPLETED,
     );
     const failedId = await seedExecution(
       doomed.metadata!.id,
-      ExecutionPhase.EXECUTION_FAILED,
+      RunPhase.RUN_FAILED,
     );
     const survivorExecutionId = await seedExecution(
       survivor.metadata!.id,
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_COMPLETED,
     );
 
     const deleted = await command.delete({ value: doomed.metadata!.id });
@@ -860,24 +860,24 @@ describe("session delete — active-execution guard and cascade", () => {
     // The doomed session's executions are gone (children before parent)...
     await expect(
       server.store.getResource(
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         completedId,
-        AgentExecutionSchema,
+        AgentRunSchema,
       ),
     ).rejects.toBeInstanceOf(ResourceNotFoundError);
     await expect(
       server.store.getResource(
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         failedId,
-        AgentExecutionSchema,
+        AgentRunSchema,
       ),
     ).rejects.toBeInstanceOf(ResourceNotFoundError);
 
     // ...while the other session's execution is untouched.
     const untouched = await server.store.getResource(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
       survivorExecutionId,
-      AgentExecutionSchema,
+      AgentRunSchema,
     );
     expect(untouched.spec?.target).toEqual({
       case: "sessionId",

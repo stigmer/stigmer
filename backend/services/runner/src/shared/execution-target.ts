@@ -9,9 +9,9 @@
  * Pinned by shared/__tests__/execution-target.test.ts.
  */
 
-import type { AgentExecutionSpec } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import type { AgentRunSpec } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 
 /** The session a turn runs in, or "" when its target names none. */
-export function sessionIdOf(spec: AgentExecutionSpec | undefined): string {
+export function sessionIdOf(spec: AgentRunSpec | undefined): string {
   return spec?.target.case === "sessionId" ? spec.target.value : "";
 }

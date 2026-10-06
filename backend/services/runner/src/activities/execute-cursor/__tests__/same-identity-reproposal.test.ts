@@ -29,10 +29,10 @@
 
 import { describe, it, expect } from "vitest";
 import { create, clone } from "@bufbuild/protobuf";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
 import { approvalDecisionsOf } from "../../../harness/approval-decisions.js";
@@ -91,7 +91,7 @@ async function laterTurnProposesSameEdit(seeded: AgentMessage[]): Promise<ToolCa
 }
 
 function decisionsTheRuntimeWouldRead(messages: AgentMessage[]): ReadonlyMap<string, ApprovalAction> {
-  return approvalDecisionsOf(create(AgentExecutionStatusSchema, { messages }));
+  return approvalDecisionsOf(create(AgentRunStatusSchema, { messages }));
 }
 
 describe("a later same-identity proposal never lands on a decided row", () => {

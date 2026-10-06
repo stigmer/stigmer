@@ -15,7 +15,7 @@
 // - open-computer-use is EXCLUDED: a local-only developer gate (macOS
 //   accessibility + STIGMER_DESKTOP_TESTS opt-in) that can never run in the
 //   headless CI this config exists for.
-// - agentexecution-request-shape is EXCLUDED: its goldens photograph the
+// - agentrun-request-shape is EXCLUDED: its goldens photograph the
 //   bytes the OSS composition's runner sends the model for a bare agent. The
 //   cloud composition's bare agent is a different photograph (consent-gated
 //   memory recall, tenancy-snapshotted preferences, its own model pins), not
@@ -33,7 +33,7 @@ export default defineConfig({
     exclude: [
       "src/suites-execution/schedule-firing.conformance.test.ts",
       "src/suites-execution/open-computer-use.conformance.test.ts",
-      "src/suites-execution/agentexecution-request-shape.conformance.test.ts",
+      "src/suites-execution/agentrun-request-shape.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-cloud-execution.ts"],
     // Judges every test on the RPCs it sent: a `[rpc:...]` tag it never sent

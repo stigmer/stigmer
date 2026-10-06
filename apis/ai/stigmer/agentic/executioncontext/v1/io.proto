@@ -13,9 +13,9 @@ message ExecutionContextId {
 //
 // @internal
 // Primary lookup method used by runners to retrieve merged environment
-// variables during execution.
+// variables during a run.
 message ExecutionContextExecutionIdInput {
-  // AgentExecution or WorkflowExecution ID to look up.
+  // AgentRun or WorkflowRun ID to look up.
   //
   // @internal
   // Must match the execution_id field in ExecutionContextSpec.

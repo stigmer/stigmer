@@ -32,8 +32,8 @@ message EmitEventSpec {
   // CloudEvents source identifier.
   // URI or URI-reference that identifies the context in which the event
   // happened. Supports ${ } expression interpolation.
-  // When empty, the runtime defaults to the workflow execution URI
-  // (e.g., "/workflows/{workflow_id}/executions/{execution_id}").
+  // When empty, the runtime defaults to the workflow run URI
+  // (e.g., "/workflows/runs/{run_id}").
   string source = 2 [(ai.stigmer.commons.apiresource.is_expression) = true];
 
   // Event payload data.
@@ -74,7 +74,7 @@ message EmitEventSpec {
 //     "id": "<generated UUID>",
 //     "specversion": "1.0",
 //     "type": "stigmer.workflow.ticket.classified",
-//     "source": "/workflows/triage/executions/abc-123",
+//     "source": "/workflows/runs/abc-123",
 //     "time": "2026-05-12T14:30:00Z",
 //     "subject": "TICKET-456",
 //     "datacontenttype": "application/json",
@@ -124,7 +124,7 @@ message EmitEventSpec {
 //               headers:
 //                 Authorization: "Bearer ${.secrets.ACME_HOOK_TOKEN}"
 //           - signal:
-//               execution_id: "${ .start_shipping.execution_id }"
+//               run_id: "${ .start_shipping.run_id }"
 //               signal_name: "order-fulfilled"
 message EmitEventTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "emit_event";
@@ -150,7 +150,7 @@ message EmitEventTaskConfig {
 // Two delivery mechanisms are supported:
 // - webhook: HTTP POST the CloudEvents envelope to an external endpoint.
 // - signal: deliver the envelope as a signal to another workflow
-//   execution's listen task (the emit/listen pairing).
+//   run's listen task (the emit/listen pairing).
 message EmitDeliveryTarget {
   oneof target {
     option (buf.validate.oneof).required = true;
@@ -158,7 +158,7 @@ message EmitDeliveryTarget {
     // POST the CloudEvents envelope to an HTTP endpoint.
     WebhookDelivery webhook = 1;
 
-    // Signal another workflow execution's listen task.
+    // Signal another workflow run's listen task.
     SignalDelivery signal = 2;
   }
 }
@@ -190,24 +190,24 @@ message WebhookDelivery {
 }
 
 // SignalDelivery routes the CloudEvents envelope to another workflow
-// execution as a signal, completing the emit/listen pairing: the target
-// execution receives the envelope on the listen task whose signal id
+// run as a signal, completing the emit/listen pairing: the target
+// run receives the envelope on the listen task whose signal id
 // matches signal_name.
 //
 // @internal
-// Delivery is server-mediated via the workflowexecution sendSignal RPC —
+// Delivery is server-mediated via the workflowrun sendSignal RPC —
 // the only sanctioned path for runner-originated signals (oss#517:
-// authorization boundary, phase gate, execution-id addressing). sendSignal
-// enforces can_edit on the TARGET execution, which resolves to its owner:
-// cross-execution signals therefore work only between executions triggered
+// authorization boundary, phase gate, run-id addressing). sendSignal
+// enforces can_edit on the TARGET run, which resolves to its owner:
+// cross-run signals therefore work only between runs triggered
 // by the same principal. Deliberate conservative posture, ruled at
 // oss#530; a scoped can_signal relation is the named follow-up if
 // cross-principal pipelines get demand.
 message SignalDelivery {
-  // Target workflow execution id ("wfx_..."), as returned by run/create.
+  // Target workflow run id ("wex_..."), as returned by run/create.
   // Usually flows from a prior task's output:
-  // "${ .start_processor.execution_id }"
-  string execution_id = 1 [
+  // "${ .start_processor.run_id }"
+  string run_id = 1 [
     (ai.stigmer.commons.apiresource.is_expression) = true,
     (buf.validate.field).required = true,
     (buf.validate.field).string.min_len = 1

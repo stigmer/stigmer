@@ -2,7 +2,7 @@
   "name": "sub-agent-pending",
   "description": "A gated tool call inside an active sub-agent surfaces with from_sub_agent, name, and subject populated.",
   "input": {
-    "sub_agent_executions": [
+    "sub_agent_runs": [
       {
         "name": "code-reviewer",
         "subject": "Explore CLI rendering code",

@@ -27,7 +27,7 @@ const (
 	BillingQueryController_GetModelPricingGovernance_FullMethodName = "/ai.stigmer.billing.v1.BillingQueryController/getModelPricingGovernance"
 	BillingQueryController_ListModelPricingBaselines_FullMethodName = "/ai.stigmer.billing.v1.BillingQueryController/listModelPricingBaselines"
 	BillingQueryController_PreviewAuthorization_FullMethodName      = "/ai.stigmer.billing.v1.BillingQueryController/previewAuthorization"
-	BillingQueryController_GetExecutionBillingSignal_FullMethodName = "/ai.stigmer.billing.v1.BillingQueryController/getExecutionBillingSignal"
+	BillingQueryController_GetRunBillingSignal_FullMethodName       = "/ai.stigmer.billing.v1.BillingQueryController/getRunBillingSignal"
 )
 
 // BillingQueryControllerClient is the client API for BillingQueryController service.
@@ -62,17 +62,17 @@ type BillingQueryControllerClient interface {
 	// Operator surface: exposes raw provider rates (pre-markup) and revision
 	// provenance, so it is platform-gated like the governance view.
 	ListModelPricingBaselines(ctx context.Context, in *ListModelPricingBaselinesInput, opts ...grpc.CallOption) (*ModelPricingBaselinesResponse, error)
-	// Preview whether an organization can fund an execution, without writing
+	// Preview whether an organization can fund a run, without writing
 	// a reservation. The read-only twin of BillingCommandController's
-	// authorizeExecution: both ride the same server-side affordability
+	// authorizeRun: both ride the same server-side affordability
 	// predicate (start threshold, negative allowance, default cap), so a
 	// synchronous preflight refusal and the authoritative reservation can
 	// never drift.
 	PreviewAuthorization(ctx context.Context, in *PreviewAuthorizationInput, opts ...grpc.CallOption) (*PreviewAuthorizationResponse, error)
-	// Retrieve the current billing control signal for a running execution
-	// (continue / low-balance warning / stop), derived from the execution's
+	// Retrieve the current billing control signal for a run in progress
+	// (continue / low-balance warning / stop), derived from the run's
 	// reservation headroom and the billing account's status.
-	GetExecutionBillingSignal(ctx context.Context, in *GetExecutionBillingSignalInput, opts ...grpc.CallOption) (*GetExecutionBillingSignalResponse, error)
+	GetRunBillingSignal(ctx context.Context, in *GetRunBillingSignalInput, opts ...grpc.CallOption) (*GetRunBillingSignalResponse, error)
 }
 
 type billingQueryControllerClient struct {
@@ -163,10 +163,10 @@ func (c *billingQueryControllerClient) PreviewAuthorization(ctx context.Context,
 	return out, nil
 }
 
-func (c *billingQueryControllerClient) GetExecutionBillingSignal(ctx context.Context, in *GetExecutionBillingSignalInput, opts ...grpc.CallOption) (*GetExecutionBillingSignalResponse, error) {
+func (c *billingQueryControllerClient) GetRunBillingSignal(ctx context.Context, in *GetRunBillingSignalInput, opts ...grpc.CallOption) (*GetRunBillingSignalResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetExecutionBillingSignalResponse)
-	err := c.cc.Invoke(ctx, BillingQueryController_GetExecutionBillingSignal_FullMethodName, in, out, cOpts...)
+	out := new(GetRunBillingSignalResponse)
+	err := c.cc.Invoke(ctx, BillingQueryController_GetRunBillingSignal_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -205,17 +205,17 @@ type BillingQueryControllerServer interface {
 	// Operator surface: exposes raw provider rates (pre-markup) and revision
 	// provenance, so it is platform-gated like the governance view.
 	ListModelPricingBaselines(context.Context, *ListModelPricingBaselinesInput) (*ModelPricingBaselinesResponse, error)
-	// Preview whether an organization can fund an execution, without writing
+	// Preview whether an organization can fund a run, without writing
 	// a reservation. The read-only twin of BillingCommandController's
-	// authorizeExecution: both ride the same server-side affordability
+	// authorizeRun: both ride the same server-side affordability
 	// predicate (start threshold, negative allowance, default cap), so a
 	// synchronous preflight refusal and the authoritative reservation can
 	// never drift.
 	PreviewAuthorization(context.Context, *PreviewAuthorizationInput) (*PreviewAuthorizationResponse, error)
-	// Retrieve the current billing control signal for a running execution
-	// (continue / low-balance warning / stop), derived from the execution's
+	// Retrieve the current billing control signal for a run in progress
+	// (continue / low-balance warning / stop), derived from the run's
 	// reservation headroom and the billing account's status.
-	GetExecutionBillingSignal(context.Context, *GetExecutionBillingSignalInput) (*GetExecutionBillingSignalResponse, error)
+	GetRunBillingSignal(context.Context, *GetRunBillingSignalInput) (*GetRunBillingSignalResponse, error)
 }
 
 // UnimplementedBillingQueryControllerServer should be embedded to have
@@ -249,8 +249,8 @@ func (UnimplementedBillingQueryControllerServer) ListModelPricingBaselines(conte
 func (UnimplementedBillingQueryControllerServer) PreviewAuthorization(context.Context, *PreviewAuthorizationInput) (*PreviewAuthorizationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PreviewAuthorization not implemented")
 }
-func (UnimplementedBillingQueryControllerServer) GetExecutionBillingSignal(context.Context, *GetExecutionBillingSignalInput) (*GetExecutionBillingSignalResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetExecutionBillingSignal not implemented")
+func (UnimplementedBillingQueryControllerServer) GetRunBillingSignal(context.Context, *GetRunBillingSignalInput) (*GetRunBillingSignalResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRunBillingSignal not implemented")
 }
 func (UnimplementedBillingQueryControllerServer) testEmbeddedByValue() {}
 
@@ -416,20 +416,20 @@ func _BillingQueryController_PreviewAuthorization_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BillingQueryController_GetExecutionBillingSignal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetExecutionBillingSignalInput)
+func _BillingQueryController_GetRunBillingSignal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRunBillingSignalInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BillingQueryControllerServer).GetExecutionBillingSignal(ctx, in)
+		return srv.(BillingQueryControllerServer).GetRunBillingSignal(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: BillingQueryController_GetExecutionBillingSignal_FullMethodName,
+		FullMethod: BillingQueryController_GetRunBillingSignal_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingQueryControllerServer).GetExecutionBillingSignal(ctx, req.(*GetExecutionBillingSignalInput))
+		return srv.(BillingQueryControllerServer).GetRunBillingSignal(ctx, req.(*GetRunBillingSignalInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -474,8 +474,8 @@ var BillingQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BillingQueryController_PreviewAuthorization_Handler,
 		},
 		{
-			MethodName: "getExecutionBillingSignal",
-			Handler:    _BillingQueryController_GetExecutionBillingSignal_Handler,
+			MethodName: "getRunBillingSignal",
+			Handler:    _BillingQueryController_GetRunBillingSignal_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

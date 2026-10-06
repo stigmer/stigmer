@@ -16,8 +16,8 @@ import { Code, ConnectError } from "@connectrpc/connect";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -212,15 +212,15 @@ describe("skip arms (the authorizer is never consulted)", () => {
 
   it("is_skip_authorization methods skip (agentexecution create — handler-owned checks)", async () => {
     const { authorizer, checks } = denyAll();
-    const step = newAuthorizeStep<typeof AgentExecutionSchema>(
-      AgentExecutionCommandController.method.create,
+    const step = newAuthorizeStep<typeof AgentRunSchema>(
+      AgentRunCommandController.method.create,
       authorizer,
     );
     const ctx = new RequestContext(
-      AgentExecutionSchema,
-      create(AgentExecutionSchema),
+      AgentRunSchema,
+      create(AgentRunSchema),
       testCallerIdentity(),
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
     );
     await expect(step.execute(ctx)).resolves.toBeUndefined();
     expect(checks).toHaveLength(0);
@@ -228,7 +228,7 @@ describe("skip arms (the authorizer is never consulted)", () => {
 
   it("methods with NO config skip (uploadAttachment — storage_key is the capability)", async () => {
     const { authorizer, checks } = denyAll();
-    const method = AgentExecutionCommandController.method.uploadAttachment;
+    const method = AgentRunCommandController.method.uploadAttachment;
     const step = newAuthorizeStep(method, authorizer);
     const ctx = new RequestContext(
       method.input,

@@ -5,7 +5,7 @@ package gen
 import (
 	"context"
 
-	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
+	agentrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
 	schedulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
@@ -140,7 +140,7 @@ func (i *ScheduleInput) toProto() (*schedulev1.Schedule, error) {
 	resource.Spec.TimeZone = i.TimeZone
 	resource.Spec.Enabled = i.Enabled
 	if i.Agent != nil {
-		m := &agentexecutionv1.AgentInvocation{}
+		m := &agentrunv1.AgentInvocation{}
 		if i.Agent.AgentRef.Org != "" || i.Agent.AgentRef.Slug != "" {
 			ref := i.Agent.AgentRef.toProto()
 			ref.Kind = apiresourcekind.ApiResourceKind_agent
@@ -197,7 +197,7 @@ func ScheduleInputFromProto(p *schedulev1.Schedule) *ScheduleInput {
 	return input
 }
 
-func agentInvocationInputFromProto(p *agentexecutionv1.AgentInvocation) *AgentInvocationInput {
+func agentInvocationInputFromProto(p *agentrunv1.AgentInvocation) *AgentInvocationInput {
 	if p == nil {
 		return nil
 	}

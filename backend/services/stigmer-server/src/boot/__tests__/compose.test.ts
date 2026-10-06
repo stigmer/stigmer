@@ -191,7 +191,7 @@ describe("the artifact download lane", () => {
         spec: {
           displayName: "ephemeral-lane.txt",
           contentType: "text/plain",
-          source: { agentExecutionId: "aexec_01ephemerallane" },
+          source: { agentRunId: "aexec_01ephemerallane" },
         },
         content,
       });

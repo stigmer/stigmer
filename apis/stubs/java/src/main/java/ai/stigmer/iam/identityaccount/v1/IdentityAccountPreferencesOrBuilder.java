@@ -13,7 +13,7 @@ public interface IdentityAccountPreferencesOrBuilder extends
   /**
    * <pre>
    * Free-text standing context injected into this user's eligible agent
-   * executions. Example: "Keep answers terse."
+   * runs. Example: "Keep answers terse."
    * </pre>
    *
    * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>
@@ -23,7 +23,7 @@ public interface IdentityAccountPreferencesOrBuilder extends
   /**
    * <pre>
    * Free-text standing context injected into this user's eligible agent
-   * executions. Example: "Keep answers terse."
+   * runs. Example: "Keep answers terse."
    * </pre>
    *
    * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>

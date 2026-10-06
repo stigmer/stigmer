@@ -67,7 +67,7 @@ const STAT_CARDS: readonly StatCardDef[] = [
 ];
 
 /**
- * Unified stat cards showing combined agent + workflow execution KPIs.
+ * Unified stat cards showing combined agent + workflow run KPIs.
  *
  * Each card shows the combined count with a breakdown tooltip showing
  * per-source values (e.g., "2 agent, 1 workflow").

@@ -74,7 +74,7 @@ private static final long serialVersionUID = 0L;
   private long reservedMicros_ = 0L;
   /**
    * <pre>
-   * Credits held by active execution reservations.
+   * Credits held by active run reservations.
    * </pre>
    *
    * <code>int64 reserved_micros = 2 [json_name = "reservedMicros"];</code>
@@ -574,7 +574,7 @@ private static final long serialVersionUID = 0L;
     private long reservedMicros_ ;
     /**
      * <pre>
-     * Credits held by active execution reservations.
+     * Credits held by active run reservations.
      * </pre>
      *
      * <code>int64 reserved_micros = 2 [json_name = "reservedMicros"];</code>
@@ -586,7 +586,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Credits held by active execution reservations.
+     * Credits held by active run reservations.
      * </pre>
      *
      * <code>int64 reserved_micros = 2 [json_name = "reservedMicros"];</code>
@@ -602,7 +602,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Credits held by active execution reservations.
+     * Credits held by active run reservations.
      * </pre>
      *
      * <code>int64 reserved_micros = 2 [json_name = "reservedMicros"];</code>

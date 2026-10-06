@@ -1,0 +1,221 @@
+# Store tests for workflow_run sharing and run observability.
+#
+# Two independent axes govern who can read a run's inputs/outputs:
+#
+#   1. Per-run sharing — the person who started a run (its owner)
+#      grants viewer on a single workflow_run (can_grant_access /
+#      can_view_access, mirroring session.fga).
+#   2. Workflow-level run observability — opt-in via the workflow's
+#      `run_viewer` relation, inherited by every run through
+#      `viewer = ... or run_viewer from workflow`.
+#
+# The critical invariant: making a workflow org-RUNNABLE (workflow#viewer for
+# org members) must NOT leak run history. Only run_viewer does that,
+# and only the workflow's owner may change it (can_manage_audience): an
+# editor of the workflow may not.
+#
+# Run with:
+#   fga model test --tests workflow-run-sharing.fga.yaml
+#
+# Scenario: org "acme" with members alice (who starts runs), bob, carol and
+# the read-only viewer vera; outsider org with member mallory. wf1 is
+# org-runnable but keeps runs private; wf2 opts into org-wide run
+# observability; bob is an editor of wf2.
+name: workflow-run-sharing
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- Org memberships ---
+  - user: identity_account:alice
+    relation: member
+    object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:bob
+    relation: member
+    object: organization:acme
+  - user: identity_account:bob
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:carol
+    relation: member
+    object: organization:acme
+  - user: identity_account:carol
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:vera
+    relation: viewer
+    object: organization:acme
+  - user: identity_account:vera
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: member
+    object: organization:outsider
+  - user: identity_account:mallory
+    relation: affiliated
+    object: organization:outsider
+
+  # --- wf1: ORG-RUNNABLE workflow, runs stay PRIVATE (no run_viewer) ---
+  - user: organization:acme
+    relation: organization
+    object: workflow:wf1
+  - user: identity_account:alice
+    relation: owner
+    object: workflow:wf1
+  # Everyone in the org can SEE and RUN the workflow (stigmer#465 viewer
+  # shape)...
+  - user: organization:acme#viewer
+    relation: viewer
+    object: workflow:wf1
+  # ...but NO run_viewer tuple, so run history is not shared.
+
+  # run1: alice's run of wf1, no explicit grants.
+  - user: organization:acme
+    relation: organization
+    object: workflow_run:run1
+  - user: workflow:wf1
+    relation: workflow
+    object: workflow_run:run1
+  - user: identity_account:alice
+    relation: owner
+    object: workflow_run:run1
+
+  # run1b: alice's run of wf1, explicitly shared with bob (per-run).
+  - user: organization:acme
+    relation: organization
+    object: workflow_run:run1b
+  - user: workflow:wf1
+    relation: workflow
+    object: workflow_run:run1b
+  - user: identity_account:alice
+    relation: owner
+    object: workflow_run:run1b
+  - user: identity_account:bob
+    relation: viewer
+    object: workflow_run:run1b
+
+  # --- wf2: opts into ORG-WIDE run observability (run_viewer) ---
+  - user: organization:acme
+    relation: organization
+    object: workflow:wf2
+  - user: identity_account:alice
+    relation: owner
+    object: workflow:wf2
+  - user: organization:acme#viewer
+    relation: run_viewer
+    object: workflow:wf2
+  # bob may edit wf2's definition, not decide who sees its runs.
+  - user: identity_account:bob
+    relation: editor
+    object: workflow:wf2
+
+  # run2: alice's run of wf2.
+  - user: organization:acme
+    relation: organization
+    object: workflow_run:run2
+  - user: workflow:wf2
+    relation: workflow
+    object: workflow_run:run2
+  - user: identity_account:alice
+    relation: owner
+    object: workflow_run:run2
+
+tests:
+  - name: triggerer always sees and can manage sharing of their own run
+    check:
+      - user: identity_account:alice
+        object: workflow_run:run1
+        assertions:
+          can_view: true
+          can_grant_access: true
+          can_view_access: true
+
+  - name: org-runnable workflow does NOT leak run history to teammates
+    check:
+      # bob and carol can see/run wf1, but cannot read alice's run1.
+      - user: identity_account:bob
+        object: workflow_run:run1
+        assertions:
+          can_view: false
+          can_view_access: false
+      - user: identity_account:carol
+        object: workflow_run:run1
+        assertions:
+          can_view: false
+
+  - name: per-run share grants exactly the named teammate
+    check:
+      - user: identity_account:bob
+        object: workflow_run:run1b
+        assertions:
+          can_view: true
+          can_view_access: true
+      # A viewer cannot re-share (only the owner can grant).
+      - user: identity_account:bob
+        object: workflow_run:run1b
+        assertions:
+          can_grant_access: false
+      # Another org member not on the grant sees nothing.
+      - user: identity_account:carol
+        object: workflow_run:run1b
+        assertions:
+          can_view: false
+
+  - name: workflow run_viewer opt-in shares all runs org-wide
+    check:
+      - user: identity_account:bob
+        object: workflow_run:run2
+        assertions:
+          can_view: true
+      - user: identity_account:carol
+        object: workflow_run:run2
+        assertions:
+          can_view: true
+      # stigmer#465: run observability is a pure read grant, so the org's
+      # read-only viewers are exactly its audience.
+      - user: identity_account:vera
+        object: workflow_run:run2
+        assertions:
+          can_view: true
+      # Outsiders never gain access through org-scoped observability.
+      - user: identity_account:mallory
+        object: workflow_run:run2
+        assertions:
+          can_view: false
+
+  - name: run privacy holds against org viewers exactly as against members
+    check:
+      # No run_viewer opt-in on wf1 → vera reads and runs the
+      # workflow but never alice's run history.
+      - user: identity_account:vera
+        object: workflow:wf1
+        assertions:
+          can_view: true
+          can_execute: true
+      - user: identity_account:vera
+        object: workflow_run:run1
+        assertions:
+          can_view: false
+
+  - name: who sees the runs is the workflow owner's decision, never an editor's
+    check:
+      - user: identity_account:alice
+        object: workflow:wf2
+        assertions:
+          can_manage_audience: true
+      - user: identity_account:bob
+        object: workflow:wf2
+        assertions:
+          can_edit: true
+          can_manage_audience: false
+
+  - name: list a teammate's viewable runs reflects both sharing axes
+    list_objects:
+      - user: identity_account:bob
+        type: workflow_run
+        assertions:
+          can_view:
+            - workflow_run:run1b
+            - workflow_run:run2

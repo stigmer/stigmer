@@ -1,12 +1,12 @@
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
 import { snapshot } from "../../fixtures";
 
 export type ToolCallStep =
   | { view: "composer-typing"; message: string }
-  | { view: "conversation"; execution: AgentExecution };
+  | { view: "conversation"; execution: AgentRun };
 
 const user1 = samples.humanMessage(
   "What's the status of order #ORD-4821?",
@@ -48,7 +48,7 @@ export const toolCallsPlaybackSteps: ScenarioStep<ToolCallStep>[] = [
       view: "conversation",
       execution: snapshot(
         [user1, aiToolCallMsg],
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        RunPhase.RUN_IN_PROGRESS,
       ),
     },
     narration: "Instead of guessing, the agent calls get_order to look up the real order details from the system.",
@@ -59,7 +59,7 @@ export const toolCallsPlaybackSteps: ScenarioStep<ToolCallStep>[] = [
       view: "conversation",
       execution: snapshot(
         [user1, aiToolCallMsg, aiResponseMsg],
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
       ),
     },
     narration: "The response includes real data — tracking number, delivery date, and item details — all from the tool call.",

@@ -56,8 +56,8 @@ service SkillCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to push skill in this organization";
   }
 
-  // Push a skill from an execution artifact already in storage.
-  // Use this when an agent execution has already produced a skill artifact
+  // Push a skill from a run artifact already in storage.
+  // Use this when an agent run has already produced a skill artifact
   // and you want to publish it without downloading and re-uploading the ZIP.
   //
   // @internal
@@ -66,9 +66,9 @@ service SkillCommandController {
   // CORS concerns for SDK consumers.
   //
   // Authorization:
-  // - Requires can_view on the referenced execution (to read the artifact)
+  // - Requires can_view on the referenced run (to read the artifact)
   // - Requires can_create_skill in the target organization (to push the skill)
-  rpc pushFromExecutionArtifact(PushSkillFromExecutionArtifactRequest) returns (Skill) {
+  rpc pushFromRunArtifact(PushSkillFromRunArtifactRequest) returns (Skill) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_create_skill;
     option (ai.stigmer.commons.rpc.config).field_path = "org";

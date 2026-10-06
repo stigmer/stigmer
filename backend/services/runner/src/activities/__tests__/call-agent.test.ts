@@ -26,9 +26,9 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApprovalMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 
 let mockGetAgentByReference: ReturnType<typeof vi.fn>;
 let mockCreateSession: ReturnType<typeof vi.fn>;
@@ -72,9 +72,9 @@ const appConfig = testConfig({ stigmerTokenRef: { current: "test-token" } });
 /** The workflow execution every step below runs in, unless a test says otherwise. */
 const WEX = "wex_test1";
 
-/** The AgentExecution the activity handed the control plane's create. */
-function createdExecution(): AgentExecution {
-  return mockCreateAgentExecution.mock.calls[0][0] as AgentExecution;
+/** The AgentRun the activity handed the control plane's create. */
+function createdExecution(): AgentRun {
+  return mockCreateAgentExecution.mock.calls[0][0] as AgentRun;
 }
 
 /** The agent every reference resolves to: its own organization (an id) and slug. */
@@ -348,12 +348,12 @@ describe("callAgentAction", () => {
       expect(mockCreateAgentExecution).toHaveBeenCalledOnce();
       const execution = mockCreateAgentExecution.mock.calls[0][0];
       expect(execution.apiVersion).toBe("agentic.stigmer.ai/v1");
-      expect(execution.kind).toBe("AgentExecution");
+      expect(execution.kind).toBe("AgentRun");
       expect(execution.metadata.org).toBe("test-org");
       expect(execution.metadata.name).toMatch(/^aex-wf-my-agent-\d+$/);
       expect(execution.spec.target).toEqual({ case: "sessionId", value: "ses_test789" });
       expect(execution.spec.message).toBe("Review this");
-      expect(execution.spec.parent?.workflowExecutionId).toBe(WEX);
+      expect(execution.spec.parent?.workflowRunId).toBe(WEX);
       expect(execution.spec.parent?.signalWorkflowId).toBe("wfl_parent_id");
       expect(execution.spec.parent?.callbackToken).toEqual(new Uint8Array([1, 2, 3]));
     });
@@ -369,7 +369,7 @@ describe("callAgentAction", () => {
       ).rejects.toThrow("CompleteAsyncError");
 
       const execution = mockCreateAgentExecution.mock.calls[0][0];
-      expect(execution.spec.parent?.workflowExecutionId).toBe("wex_from_task");
+      expect(execution.spec.parent?.workflowRunId).toBe("wex_from_task");
     });
 
     it("links the turn by the environment's execution id when the task's is empty", async () => {
@@ -384,7 +384,7 @@ describe("callAgentAction", () => {
       ).rejects.toThrow("CompleteAsyncError");
 
       const execution = mockCreateAgentExecution.mock.calls[0][0];
-      expect(execution.spec.parent?.workflowExecutionId).toBe("wex_from_env");
+      expect(execution.spec.parent?.workflowRunId).toBe("wex_from_env");
     });
 
     it("refuses without a workflow execution id, before any session or turn is written", async () => {

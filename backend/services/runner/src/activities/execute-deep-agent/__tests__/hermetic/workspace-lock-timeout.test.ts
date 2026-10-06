@@ -7,7 +7,7 @@
  * (`shared/workspace/workspace-lock.ts`); while another turn holds the lock it
  * reports a visible waiting state and heartbeats; past
  * `Config.workspaceLockTimeoutMs` it maps `WorkspaceLockTimeoutError` to
- * EXECUTION_FAILED with the lock's own message (which names the directory)
+ * RUN_FAILED with the lock's own message (which names the directory)
  * and one system row, persists ONCE, and returns — a Temporal retry would only
  * queue behind the same holder.
  *
@@ -38,7 +38,7 @@
 import { mkdirSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -115,8 +115,8 @@ describe("ExecuteDeepAgent hermetic — workspace lock timeout", () => {
         "returned",
       );
       const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-      expect(slim.phase).toBe("EXECUTION_FAILED");
-      expect(record.persistedPhases, "the one and only full persist").toEqual([ExecutionPhase.EXECUTION_FAILED]);
+      expect(slim.phase).toBe("RUN_FAILED");
+      expect(record.persistedPhases, "the one and only full persist").toEqual([RunPhase.RUN_FAILED]);
 
       // ── Assert: the copy, built with the same class over the real path ─────
       const expectedMessage = new WorkspaceLockTimeoutError(resolvedDir, 0).message;

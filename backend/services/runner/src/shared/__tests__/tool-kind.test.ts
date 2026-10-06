@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { describe, it, expect } from "vitest";
-import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { classifyTool, toolApprovalCategory } from "../tool-kind.js";
 
 const here = dirname(fileURLToPath(import.meta.url));

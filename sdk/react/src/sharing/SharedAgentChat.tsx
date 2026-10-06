@@ -35,7 +35,7 @@ export interface SharedAgentChatProps {
    */
   readonly showPoweredBy?: boolean;
   /**
-   * Called after the visitor's session and first execution are
+   * Called after the visitor's session and first run are
    * created — e.g. to reflect the session in the host page's URL.
    */
   readonly onSessionCreated?: (sessionId: string) => void;

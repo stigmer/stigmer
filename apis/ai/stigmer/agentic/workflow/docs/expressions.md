@@ -254,7 +254,7 @@ Expressions are validated at two points:
 
 1. **Workflow validation** (async, after `stigmer apply`) — The platform checks expression syntax during DSL generation. Syntax errors appear in `status.serverless_workflow_validation.errors`.
 
-2. **Execution time** — Expressions are evaluated when the task runs. A reference to `$context.taskName` where `taskName` never exported will evaluate to `null`. This is not an error unless downstream code treats null as invalid.
+2. **Run time** — Expressions are evaluated when the task runs. A reference to `$context.taskName` where `taskName` never exported will evaluate to `null`. This is not an error unless downstream code treats null as invalid.
 
 Common expression errors in `status.serverless_workflow_validation.errors`:
 

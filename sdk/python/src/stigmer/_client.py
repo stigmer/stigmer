@@ -83,7 +83,7 @@ class StigmerClient(GeneratedClient):
             runner_adapter: Runner adapter for local execution lifecycle
                 management. When ``execution_target`` is ``"local"``, the
                 adapter is driven at the appropriate lifecycle points:
-                sessions on open/close, workflow executions on
+                sessions on open/close, workflow runs on
                 create/terminal. Cloud consumers omit this.
         """
         if not api_key:

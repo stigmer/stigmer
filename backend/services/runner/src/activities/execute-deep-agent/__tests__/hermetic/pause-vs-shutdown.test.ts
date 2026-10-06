@@ -27,7 +27,7 @@
  *     (`pause.loop.mid-tool`, the cancel arriving on the persist that carried
  *     the row).
  *  2. WORKER SHUTDOWN: the queue's shutdown signal is aborted before the
- *     cancel, so the interruption is EXECUTION_FAILED with the interrupted
+ *     cancel, so the interruption is RUN_FAILED with the interrupted
  *     copy and one row, thrown as
  *     `CancelledFailure("Activity cancelled (worker shutdown, not user pause)")`
  *     (#776) — the workflow re-invokes instead of waiting for a resume. The
@@ -46,14 +46,14 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import {
-  AgentExecutionStatusSchema,
-  type AgentExecutionStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunStatusSchema,
+  type AgentRunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionControlSignal,
-  ExecutionPhase,
+  RunControlSignal,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -120,7 +120,7 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
             if (info.round === 1) controls.cancel();
           },
         }),
-      controlSignal: undefined as ((status: AgentExecutionStatus) => ExecutionControlSignal) | undefined,
+      controlSignal: undefined as ((status: AgentRunStatus) => RunControlSignal) | undefined,
       loopGolden: "./goldens/pause.loop.after-tool.status.json",
     },
     {
@@ -129,9 +129,9 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
         beginDeepAgentScenario({ env, clock, record, script: () => SCRIPT }),
       // The platform answers the persist that carries the first tool row by
       // cancelling the activity (the workflow's pause).
-      controlSignal: (status: AgentExecutionStatus) => {
+      controlSignal: (status: AgentRunStatus) => {
         if (status.messages.some((m) => m.toolCalls.length > 0)) inFlight?.controls?.cancel();
-        return ExecutionControlSignal.UNSPECIFIED;
+        return RunControlSignal.UNSPECIFIED;
       },
       loopGolden: "./goldens/pause.loop.mid-tool.status.json",
     },
@@ -145,10 +145,10 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
 
       expect(threwCancelledFailure(invocation.outcome), "an orchestrator stop THROWS CancelledFailure").toBe(true);
       expect((invocation.outcome as { error: Error }).error.message).toBe("Activity paused by orchestrator");
-      expect(record.persistedPhases, "the stop writes no phase").toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS]);
+      expect(record.persistedPhases, "the stop writes no phase").toEqual([RunPhase.RUN_IN_PROGRESS]);
 
       const settleWrites = record.persisted.filter(
-        (s) => s.phase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED && s.messages.length > 0,
+        (s) => s.phase === RunPhase.RUN_PHASE_UNSPECIFIED && s.messages.length > 0,
       );
       expect(settleWrites, "the stop is settled exactly once (stigmer#1071)").toHaveLength(1);
       const [paused] = settleWrites;
@@ -163,7 +163,7 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
       expect(paused.completedAt).toBe("");
       expect(record.persisted.at(-1), "the wire ends on the write that carries the transcript").toEqual(paused);
 
-      const json = JSON.stringify(toJson(AgentExecutionStatusSchema, paused), null, 2) + "\n";
+      const json = JSON.stringify(toJson(AgentRunStatusSchema, paused), null, 2) + "\n";
       await expect(json).toMatchFileSnapshot(loopGolden);
     });
   });
@@ -190,7 +190,7 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
     expect((invocation.outcome as { error: Error }).error.message).toBe(
       "Activity cancelled (worker shutdown, not user pause)",
     );
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
     const final = record.lastFullStatus!;
     expect(final.error).toBe("Execution interrupted: runner worker was shut down. Retry or resume.");
     // The transcript the turn produced is kept and the row appended (the
@@ -205,7 +205,7 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
     ]);
     expect(final.messages.flatMap((m) => m.toolCalls).map((tc) => tc.name), "the read that landed before the drain is kept").toEqual(["read_file"]);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/worker-shutdown.status.json");
   });
 });

@@ -150,7 +150,7 @@ export interface CallGrpcTaskDef extends TaskBase {
 
 /**
  * Agent call — invokes a Stigmer agent as a workflow task. Uses
- * Temporal async completion: the activity creates an AgentExecution
+ * Temporal async completion: the activity creates an AgentRun
  * with a callback token, then the platform completes the activity
  * when the agent finishes. Separate from generic call:function
  * because it requires workflow-side signal handling for HITL.
@@ -444,7 +444,7 @@ export interface TaskExecutionContext {
    * Best-effort — failures are logged but do not block the workflow.
    *
    * Accepts plain event descriptors (no proto imports needed in the
-   * sandbox). The activity converts them to `WorkflowExecutionEvent`
+   * sandbox). The activity converts them to `WorkflowRunEvent`
    * proto objects before sending.
    */
   readonly emitEvents?: EmitEventsFn;
@@ -713,7 +713,7 @@ export interface TaskBuilder {
 
 /**
  * Invokes a Stigmer agent as an async-completion Temporal activity.
- * The activity creates a Session + AgentExecution with a callback
+ * The activity creates a Session + AgentRun with a callback
  * token. The platform completes the activity when the agent finishes.
  * While pending, the workflow listens for HITL approval signals.
  */
@@ -762,7 +762,7 @@ export interface AgentCallWorkspaceEntry {
 }
 
 /**
- * Mirrors the shared `ai.stigmer.agentic.agentexecution.v1.RunConfig`
+ * Mirrors the shared `ai.stigmer.agentic.agentrun.v1.RunConfig`
  * (issue #358) — the same settings vocabulary schedules embed. The step's
  * settings become the child turn's `spec.run_config` field for field; the
  * control plane resolves the settings the turn runs with from them and the
@@ -804,11 +804,34 @@ export interface CallAgentMetadata {
   readonly taskName: string;
 }
 
+/**
+ * The engine's callback result for an agent call. Its keys are a contract
+ * with the server's agent workflow and are recorded in the histories of
+ * runs in flight, so the child's id stays `agent_execution_id` here.
+ */
 export interface AgentCallResult {
   readonly structured?: unknown;
   readonly final_text?: string;
   readonly agent_execution_id?: string;
   readonly usage_summary?: AgentUsageSummary;
+}
+
+/**
+ * An agent_call step's output, as workflow expressions read it: the
+ * callback result with the child run's id under `agent_run_id` (and still
+ * under its retired key, `agent_execution_id`, until #1966), plus the
+ * engine's __stigmer_* cost keys.
+ */
+export interface AgentCallOutput {
+  readonly structured?: unknown;
+  readonly final_text?: string;
+  readonly agent_run_id?: string;
+  /** The child run's id under its name before the rename, kept until #1966. */
+  readonly agent_execution_id?: string;
+  readonly usage_summary?: AgentUsageSummary;
+  readonly __stigmer_cost_micros?: number;
+  readonly input_tokens?: number;
+  readonly output_tokens?: number;
 }
 
 export interface AgentUsageSummary {
@@ -823,7 +846,7 @@ export interface AgentUsageSummary {
 //
 // Plain-object event descriptors that can be constructed inside the
 // Temporal deterministic sandbox (no proto imports, no I/O). The
-// emit activity converts these to WorkflowExecutionEvent proto
+// emit activity converts these to WorkflowRunEvent proto
 // objects before sending to the server.
 // ─────────────────────────────────────────────────────────────────────
 
@@ -1011,7 +1034,7 @@ export type EmitEventsFn = (events: WorkflowEventDescriptor[]) => Promise<void>;
 
 /**
  * Typed error for agent call failures that preserves the child
- * AgentExecution ID across the error propagation chain.
+ * AgentRun ID across the error propagation chain.
  *
  * The orchestrator throws this when the CallAgent activity fails,
  * carrying the child execution ID that was captured via the

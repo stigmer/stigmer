@@ -89,15 +89,15 @@ public final class EmitEventProto extends com.google.protobuf.GeneratedFile {
       "s\030\002 \003(\0132B.ai.stigmer.agentic.workflow.v1" +
       ".tasks.WebhookDelivery.HeadersEntryR\007hea" +
       "ders\032:\n\014HeadersEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024" +
-      "\n\005value\030\002 \001(\tR\005value:\0028\001\"t\n\016SignalDelive" +
-      "ry\0221\n\014execution_id\030\001 \001(\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001" +
-      "R\013executionId\022/\n\013signal_name\030\002 \001(\tB\016\272H\007r" +
-      "\002\020\001\310\001\001\330\205,\001R\nsignalNameB\310\001B\016EmitEventProt" +
-      "oP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agentic.Workfl" +
-      "ow.V1.Tasks\312\002$Ai\\Stigmer\\Agentic\\Workflo" +
-      "w\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic\\Workflow" +
-      "\\V1\\Tasks\\GPBMetadata\352\002)Ai::Stigmer::Age" +
-      "ntic::Workflow::V1::Tasksb\006proto3"
+      "\n\005value\030\002 \001(\tR\005value:\0028\001\"h\n\016SignalDelive" +
+      "ry\022%\n\006run_id\030\001 \001(\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001R\005runI" +
+      "d\022/\n\013signal_name\030\002 \001(\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001R\n" +
+      "signalNameB\310\001B\016EmitEventProtoP\001\242\002\006ASAWVT" +
+      "\252\002$Ai.Stigmer.Agentic.Workflow.V1.Tasks\312" +
+      "\002$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\342\002" +
+      "0Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GP" +
+      "BMetadata\352\002)Ai::Stigmer::Agentic::Workfl" +
+      "ow::V1::Tasksb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -141,7 +141,7 @@ public final class EmitEventProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_SignalDelivery_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_tasks_SignalDelivery_descriptor,
-        new java.lang.String[] { "ExecutionId", "SignalName", });
+        new java.lang.String[] { "RunId", "SignalName", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

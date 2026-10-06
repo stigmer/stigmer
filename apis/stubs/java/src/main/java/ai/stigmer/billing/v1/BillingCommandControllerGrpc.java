@@ -112,35 +112,35 @@ public final class BillingCommandControllerGrpc {
     return getGrantCreditsMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AuthorizeExecutionInput,
-      ai.stigmer.billing.v1.AuthorizeExecutionResponse> getAuthorizeExecutionMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AuthorizeRunInput,
+      ai.stigmer.billing.v1.AuthorizeRunResponse> getAuthorizeRunMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "authorizeExecution",
-      requestType = ai.stigmer.billing.v1.AuthorizeExecutionInput.class,
-      responseType = ai.stigmer.billing.v1.AuthorizeExecutionResponse.class,
+      fullMethodName = SERVICE_NAME + '/' + "authorizeRun",
+      requestType = ai.stigmer.billing.v1.AuthorizeRunInput.class,
+      responseType = ai.stigmer.billing.v1.AuthorizeRunResponse.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AuthorizeExecutionInput,
-      ai.stigmer.billing.v1.AuthorizeExecutionResponse> getAuthorizeExecutionMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AuthorizeExecutionInput, ai.stigmer.billing.v1.AuthorizeExecutionResponse> getAuthorizeExecutionMethod;
-    if ((getAuthorizeExecutionMethod = BillingCommandControllerGrpc.getAuthorizeExecutionMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AuthorizeRunInput,
+      ai.stigmer.billing.v1.AuthorizeRunResponse> getAuthorizeRunMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AuthorizeRunInput, ai.stigmer.billing.v1.AuthorizeRunResponse> getAuthorizeRunMethod;
+    if ((getAuthorizeRunMethod = BillingCommandControllerGrpc.getAuthorizeRunMethod) == null) {
       synchronized (BillingCommandControllerGrpc.class) {
-        if ((getAuthorizeExecutionMethod = BillingCommandControllerGrpc.getAuthorizeExecutionMethod) == null) {
-          BillingCommandControllerGrpc.getAuthorizeExecutionMethod = getAuthorizeExecutionMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.AuthorizeExecutionInput, ai.stigmer.billing.v1.AuthorizeExecutionResponse>newBuilder()
+        if ((getAuthorizeRunMethod = BillingCommandControllerGrpc.getAuthorizeRunMethod) == null) {
+          BillingCommandControllerGrpc.getAuthorizeRunMethod = getAuthorizeRunMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.AuthorizeRunInput, ai.stigmer.billing.v1.AuthorizeRunResponse>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "authorizeExecution"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "authorizeRun"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.AuthorizeExecutionInput.getDefaultInstance()))
+                  ai.stigmer.billing.v1.AuthorizeRunInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.AuthorizeExecutionResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("authorizeExecution"))
+                  ai.stigmer.billing.v1.AuthorizeRunResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("authorizeRun"))
               .build();
         }
       }
     }
-    return getAuthorizeExecutionMethod;
+    return getAuthorizeRunMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RecordLlmCallUsageInput,
@@ -174,60 +174,60 @@ public final class BillingCommandControllerGrpc {
     return getRecordLlmCallUsageMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.FinalizeExecutionInput,
-      ai.stigmer.billing.v1.FinalizeExecutionResponse> getFinalizeExecutionMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.FinalizeRunInput,
+      ai.stigmer.billing.v1.FinalizeRunResponse> getFinalizeRunMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "finalizeExecution",
-      requestType = ai.stigmer.billing.v1.FinalizeExecutionInput.class,
-      responseType = ai.stigmer.billing.v1.FinalizeExecutionResponse.class,
+      fullMethodName = SERVICE_NAME + '/' + "finalizeRun",
+      requestType = ai.stigmer.billing.v1.FinalizeRunInput.class,
+      responseType = ai.stigmer.billing.v1.FinalizeRunResponse.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.FinalizeExecutionInput,
-      ai.stigmer.billing.v1.FinalizeExecutionResponse> getFinalizeExecutionMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.FinalizeExecutionInput, ai.stigmer.billing.v1.FinalizeExecutionResponse> getFinalizeExecutionMethod;
-    if ((getFinalizeExecutionMethod = BillingCommandControllerGrpc.getFinalizeExecutionMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.FinalizeRunInput,
+      ai.stigmer.billing.v1.FinalizeRunResponse> getFinalizeRunMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.FinalizeRunInput, ai.stigmer.billing.v1.FinalizeRunResponse> getFinalizeRunMethod;
+    if ((getFinalizeRunMethod = BillingCommandControllerGrpc.getFinalizeRunMethod) == null) {
       synchronized (BillingCommandControllerGrpc.class) {
-        if ((getFinalizeExecutionMethod = BillingCommandControllerGrpc.getFinalizeExecutionMethod) == null) {
-          BillingCommandControllerGrpc.getFinalizeExecutionMethod = getFinalizeExecutionMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.FinalizeExecutionInput, ai.stigmer.billing.v1.FinalizeExecutionResponse>newBuilder()
+        if ((getFinalizeRunMethod = BillingCommandControllerGrpc.getFinalizeRunMethod) == null) {
+          BillingCommandControllerGrpc.getFinalizeRunMethod = getFinalizeRunMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.FinalizeRunInput, ai.stigmer.billing.v1.FinalizeRunResponse>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "finalizeExecution"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "finalizeRun"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.FinalizeExecutionInput.getDefaultInstance()))
+                  ai.stigmer.billing.v1.FinalizeRunInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.FinalizeExecutionResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("finalizeExecution"))
+                  ai.stigmer.billing.v1.FinalizeRunResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("finalizeRun"))
               .build();
         }
       }
     }
-    return getFinalizeExecutionMethod;
+    return getFinalizeRunMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RearmForRecoveryInput,
-      ai.stigmer.billing.v1.AuthorizeExecutionResponse> getRearmForRecoveryMethod;
+      ai.stigmer.billing.v1.AuthorizeRunResponse> getRearmForRecoveryMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "rearmForRecovery",
       requestType = ai.stigmer.billing.v1.RearmForRecoveryInput.class,
-      responseType = ai.stigmer.billing.v1.AuthorizeExecutionResponse.class,
+      responseType = ai.stigmer.billing.v1.AuthorizeRunResponse.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
   public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RearmForRecoveryInput,
-      ai.stigmer.billing.v1.AuthorizeExecutionResponse> getRearmForRecoveryMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RearmForRecoveryInput, ai.stigmer.billing.v1.AuthorizeExecutionResponse> getRearmForRecoveryMethod;
+      ai.stigmer.billing.v1.AuthorizeRunResponse> getRearmForRecoveryMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RearmForRecoveryInput, ai.stigmer.billing.v1.AuthorizeRunResponse> getRearmForRecoveryMethod;
     if ((getRearmForRecoveryMethod = BillingCommandControllerGrpc.getRearmForRecoveryMethod) == null) {
       synchronized (BillingCommandControllerGrpc.class) {
         if ((getRearmForRecoveryMethod = BillingCommandControllerGrpc.getRearmForRecoveryMethod) == null) {
           BillingCommandControllerGrpc.getRearmForRecoveryMethod = getRearmForRecoveryMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.RearmForRecoveryInput, ai.stigmer.billing.v1.AuthorizeExecutionResponse>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.RearmForRecoveryInput, ai.stigmer.billing.v1.AuthorizeRunResponse>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "rearmForRecovery"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.billing.v1.RearmForRecoveryInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.AuthorizeExecutionResponse.getDefaultInstance()))
+                  ai.stigmer.billing.v1.AuthorizeRunResponse.getDefaultInstance()))
               .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("rearmForRecovery"))
               .build();
         }
@@ -565,20 +565,20 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Reserve credits before starting an agent execution.
+     * Reserve credits before starting an agent run.
      * Returns authorization status and reservation details.
      * </pre>
      */
-    default void authorizeExecution(ai.stigmer.billing.v1.AuthorizeExecutionInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeExecutionResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAuthorizeExecutionMethod(), responseObserver);
+    default void authorizeRun(ai.stigmer.billing.v1.AuthorizeRunInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeRunResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAuthorizeRunMethod(), responseObserver);
     }
 
     /**
      * <pre>
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the execution's reservation.
+     * LlmCallUsageRecord, and debits credits from the run's reservation.
      * </pre>
      */
     default void recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request,
@@ -588,27 +588,27 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Settle billing for a completed execution.
+     * Settle billing for a completed run.
      * Releases unused reservation credits and produces the final billing record.
      * </pre>
      */
-    default void finalizeExecution(ai.stigmer.billing.v1.FinalizeExecutionInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.FinalizeExecutionResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getFinalizeExecutionMethod(), responseObserver);
+    default void finalizeRun(ai.stigmer.billing.v1.FinalizeRunInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.FinalizeRunResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getFinalizeRunMethod(), responseObserver);
     }
 
     /**
      * <pre>
-     * Re-arm a settled reservation so a failed execution can be recovered.
+     * Re-arm a settled reservation so a failed run can be recovered.
      * The one sanctioned path past the settled-reservation latch: re-runs
      * the affordability check, transfers a fresh hold, and rotates the
      * reservation id as the fence against settles still in flight from the
-     * terminated run. Returns the same shape as authorizeExecution, with
+     * terminated run. Returns the same shape as authorizeRun, with
      * the rotated reservation id.
      * </pre>
      */
     default void rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeExecutionResponse> responseObserver) {
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeRunResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRearmForRecoveryMethod(), responseObserver);
     }
 
@@ -795,21 +795,21 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Reserve credits before starting an agent execution.
+     * Reserve credits before starting an agent run.
      * Returns authorization status and reservation details.
      * </pre>
      */
-    public void authorizeExecution(ai.stigmer.billing.v1.AuthorizeExecutionInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeExecutionResponse> responseObserver) {
+    public void authorizeRun(ai.stigmer.billing.v1.AuthorizeRunInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeRunResponse> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getAuthorizeExecutionMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getAuthorizeRunMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
      * <pre>
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the execution's reservation.
+     * LlmCallUsageRecord, and debits credits from the run's reservation.
      * </pre>
      */
     public void recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request,
@@ -820,28 +820,28 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Settle billing for a completed execution.
+     * Settle billing for a completed run.
      * Releases unused reservation credits and produces the final billing record.
      * </pre>
      */
-    public void finalizeExecution(ai.stigmer.billing.v1.FinalizeExecutionInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.FinalizeExecutionResponse> responseObserver) {
+    public void finalizeRun(ai.stigmer.billing.v1.FinalizeRunInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.FinalizeRunResponse> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getFinalizeExecutionMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getFinalizeRunMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
      * <pre>
-     * Re-arm a settled reservation so a failed execution can be recovered.
+     * Re-arm a settled reservation so a failed run can be recovered.
      * The one sanctioned path past the settled-reservation latch: re-runs
      * the affordability check, transfers a fresh hold, and rotates the
      * reservation id as the fence against settles still in flight from the
-     * terminated run. Returns the same shape as authorizeExecution, with
+     * terminated run. Returns the same shape as authorizeRun, with
      * the rotated reservation id.
      * </pre>
      */
     public void rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeExecutionResponse> responseObserver) {
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeRunResponse> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getRearmForRecoveryMethod(), getCallOptions()), request, responseObserver);
     }
@@ -1015,20 +1015,20 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Reserve credits before starting an agent execution.
+     * Reserve credits before starting an agent run.
      * Returns authorization status and reservation details.
      * </pre>
      */
-    public ai.stigmer.billing.v1.AuthorizeExecutionResponse authorizeExecution(ai.stigmer.billing.v1.AuthorizeExecutionInput request) throws io.grpc.StatusException {
+    public ai.stigmer.billing.v1.AuthorizeRunResponse authorizeRun(ai.stigmer.billing.v1.AuthorizeRunInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getAuthorizeExecutionMethod(), getCallOptions(), request);
+          getChannel(), getAuthorizeRunMethod(), getCallOptions(), request);
     }
 
     /**
      * <pre>
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the execution's reservation.
+     * LlmCallUsageRecord, and debits credits from the run's reservation.
      * </pre>
      */
     public ai.stigmer.billing.v1.RecordLlmCallUsageResponse recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request) throws io.grpc.StatusException {
@@ -1038,26 +1038,26 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Settle billing for a completed execution.
+     * Settle billing for a completed run.
      * Releases unused reservation credits and produces the final billing record.
      * </pre>
      */
-    public ai.stigmer.billing.v1.FinalizeExecutionResponse finalizeExecution(ai.stigmer.billing.v1.FinalizeExecutionInput request) throws io.grpc.StatusException {
+    public ai.stigmer.billing.v1.FinalizeRunResponse finalizeRun(ai.stigmer.billing.v1.FinalizeRunInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getFinalizeExecutionMethod(), getCallOptions(), request);
+          getChannel(), getFinalizeRunMethod(), getCallOptions(), request);
     }
 
     /**
      * <pre>
-     * Re-arm a settled reservation so a failed execution can be recovered.
+     * Re-arm a settled reservation so a failed run can be recovered.
      * The one sanctioned path past the settled-reservation latch: re-runs
      * the affordability check, transfers a fresh hold, and rotates the
      * reservation id as the fence against settles still in flight from the
-     * terminated run. Returns the same shape as authorizeExecution, with
+     * terminated run. Returns the same shape as authorizeRun, with
      * the rotated reservation id.
      * </pre>
      */
-    public ai.stigmer.billing.v1.AuthorizeExecutionResponse rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request) throws io.grpc.StatusException {
+    public ai.stigmer.billing.v1.AuthorizeRunResponse rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getRearmForRecoveryMethod(), getCallOptions(), request);
     }
@@ -1224,20 +1224,20 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Reserve credits before starting an agent execution.
+     * Reserve credits before starting an agent run.
      * Returns authorization status and reservation details.
      * </pre>
      */
-    public ai.stigmer.billing.v1.AuthorizeExecutionResponse authorizeExecution(ai.stigmer.billing.v1.AuthorizeExecutionInput request) {
+    public ai.stigmer.billing.v1.AuthorizeRunResponse authorizeRun(ai.stigmer.billing.v1.AuthorizeRunInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getAuthorizeExecutionMethod(), getCallOptions(), request);
+          getChannel(), getAuthorizeRunMethod(), getCallOptions(), request);
     }
 
     /**
      * <pre>
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the execution's reservation.
+     * LlmCallUsageRecord, and debits credits from the run's reservation.
      * </pre>
      */
     public ai.stigmer.billing.v1.RecordLlmCallUsageResponse recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request) {
@@ -1247,26 +1247,26 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Settle billing for a completed execution.
+     * Settle billing for a completed run.
      * Releases unused reservation credits and produces the final billing record.
      * </pre>
      */
-    public ai.stigmer.billing.v1.FinalizeExecutionResponse finalizeExecution(ai.stigmer.billing.v1.FinalizeExecutionInput request) {
+    public ai.stigmer.billing.v1.FinalizeRunResponse finalizeRun(ai.stigmer.billing.v1.FinalizeRunInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getFinalizeExecutionMethod(), getCallOptions(), request);
+          getChannel(), getFinalizeRunMethod(), getCallOptions(), request);
     }
 
     /**
      * <pre>
-     * Re-arm a settled reservation so a failed execution can be recovered.
+     * Re-arm a settled reservation so a failed run can be recovered.
      * The one sanctioned path past the settled-reservation latch: re-runs
      * the affordability check, transfers a fresh hold, and rotates the
      * reservation id as the fence against settles still in flight from the
-     * terminated run. Returns the same shape as authorizeExecution, with
+     * terminated run. Returns the same shape as authorizeRun, with
      * the rotated reservation id.
      * </pre>
      */
-    public ai.stigmer.billing.v1.AuthorizeExecutionResponse rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request) {
+    public ai.stigmer.billing.v1.AuthorizeRunResponse rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getRearmForRecoveryMethod(), getCallOptions(), request);
     }
@@ -1436,21 +1436,21 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Reserve credits before starting an agent execution.
+     * Reserve credits before starting an agent run.
      * Returns authorization status and reservation details.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.AuthorizeExecutionResponse> authorizeExecution(
-        ai.stigmer.billing.v1.AuthorizeExecutionInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.AuthorizeRunResponse> authorizeRun(
+        ai.stigmer.billing.v1.AuthorizeRunInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getAuthorizeExecutionMethod(), getCallOptions()), request);
+          getChannel().newCall(getAuthorizeRunMethod(), getCallOptions()), request);
     }
 
     /**
      * <pre>
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the execution's reservation.
+     * LlmCallUsageRecord, and debits credits from the run's reservation.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.RecordLlmCallUsageResponse> recordLlmCallUsage(
@@ -1461,27 +1461,27 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Settle billing for a completed execution.
+     * Settle billing for a completed run.
      * Releases unused reservation credits and produces the final billing record.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.FinalizeExecutionResponse> finalizeExecution(
-        ai.stigmer.billing.v1.FinalizeExecutionInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.FinalizeRunResponse> finalizeRun(
+        ai.stigmer.billing.v1.FinalizeRunInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getFinalizeExecutionMethod(), getCallOptions()), request);
+          getChannel().newCall(getFinalizeRunMethod(), getCallOptions()), request);
     }
 
     /**
      * <pre>
-     * Re-arm a settled reservation so a failed execution can be recovered.
+     * Re-arm a settled reservation so a failed run can be recovered.
      * The one sanctioned path past the settled-reservation latch: re-runs
      * the affordability check, transfers a fresh hold, and rotates the
      * reservation id as the fence against settles still in flight from the
-     * terminated run. Returns the same shape as authorizeExecution, with
+     * terminated run. Returns the same shape as authorizeRun, with
      * the rotated reservation id.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.AuthorizeExecutionResponse> rearmForRecovery(
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.AuthorizeRunResponse> rearmForRecovery(
         ai.stigmer.billing.v1.RearmForRecoveryInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getRearmForRecoveryMethod(), getCallOptions()), request);
@@ -1594,9 +1594,9 @@ public final class BillingCommandControllerGrpc {
   private static final int METHODID_GET_OR_CREATE_BILLING_ACCOUNT = 0;
   private static final int METHODID_ADJUST_CREDITS = 1;
   private static final int METHODID_GRANT_CREDITS = 2;
-  private static final int METHODID_AUTHORIZE_EXECUTION = 3;
+  private static final int METHODID_AUTHORIZE_RUN = 3;
   private static final int METHODID_RECORD_LLM_CALL_USAGE = 4;
-  private static final int METHODID_FINALIZE_EXECUTION = 5;
+  private static final int METHODID_FINALIZE_RUN = 5;
   private static final int METHODID_REARM_FOR_RECOVERY = 6;
   private static final int METHODID_CREATE_CREDIT_CHECKOUT_SESSION = 7;
   private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 8;
@@ -1635,21 +1635,21 @@ public final class BillingCommandControllerGrpc {
           serviceImpl.grantCredits((ai.stigmer.billing.v1.GrantCreditsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerEntry>) responseObserver);
           break;
-        case METHODID_AUTHORIZE_EXECUTION:
-          serviceImpl.authorizeExecution((ai.stigmer.billing.v1.AuthorizeExecutionInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeExecutionResponse>) responseObserver);
+        case METHODID_AUTHORIZE_RUN:
+          serviceImpl.authorizeRun((ai.stigmer.billing.v1.AuthorizeRunInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeRunResponse>) responseObserver);
           break;
         case METHODID_RECORD_LLM_CALL_USAGE:
           serviceImpl.recordLlmCallUsage((ai.stigmer.billing.v1.RecordLlmCallUsageInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.RecordLlmCallUsageResponse>) responseObserver);
           break;
-        case METHODID_FINALIZE_EXECUTION:
-          serviceImpl.finalizeExecution((ai.stigmer.billing.v1.FinalizeExecutionInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.FinalizeExecutionResponse>) responseObserver);
+        case METHODID_FINALIZE_RUN:
+          serviceImpl.finalizeRun((ai.stigmer.billing.v1.FinalizeRunInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.FinalizeRunResponse>) responseObserver);
           break;
         case METHODID_REARM_FOR_RECOVERY:
           serviceImpl.rearmForRecovery((ai.stigmer.billing.v1.RearmForRecoveryInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeExecutionResponse>) responseObserver);
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeRunResponse>) responseObserver);
           break;
         case METHODID_CREATE_CREDIT_CHECKOUT_SESSION:
           serviceImpl.createCreditCheckoutSession((ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput) request,
@@ -1719,12 +1719,12 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.CreditLedgerEntry>(
                 service, METHODID_GRANT_CREDITS)))
         .addMethod(
-          getAuthorizeExecutionMethod(),
+          getAuthorizeRunMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.billing.v1.AuthorizeExecutionInput,
-              ai.stigmer.billing.v1.AuthorizeExecutionResponse>(
-                service, METHODID_AUTHORIZE_EXECUTION)))
+              ai.stigmer.billing.v1.AuthorizeRunInput,
+              ai.stigmer.billing.v1.AuthorizeRunResponse>(
+                service, METHODID_AUTHORIZE_RUN)))
         .addMethod(
           getRecordLlmCallUsageMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1733,18 +1733,18 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.RecordLlmCallUsageResponse>(
                 service, METHODID_RECORD_LLM_CALL_USAGE)))
         .addMethod(
-          getFinalizeExecutionMethod(),
+          getFinalizeRunMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.billing.v1.FinalizeExecutionInput,
-              ai.stigmer.billing.v1.FinalizeExecutionResponse>(
-                service, METHODID_FINALIZE_EXECUTION)))
+              ai.stigmer.billing.v1.FinalizeRunInput,
+              ai.stigmer.billing.v1.FinalizeRunResponse>(
+                service, METHODID_FINALIZE_RUN)))
         .addMethod(
           getRearmForRecoveryMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
               ai.stigmer.billing.v1.RearmForRecoveryInput,
-              ai.stigmer.billing.v1.AuthorizeExecutionResponse>(
+              ai.stigmer.billing.v1.AuthorizeRunResponse>(
                 service, METHODID_REARM_FOR_RECOVERY)))
         .addMethod(
           getCreateCreditCheckoutSessionMethod(),
@@ -1846,9 +1846,9 @@ public final class BillingCommandControllerGrpc {
               .addMethod(getGetOrCreateBillingAccountMethod())
               .addMethod(getAdjustCreditsMethod())
               .addMethod(getGrantCreditsMethod())
-              .addMethod(getAuthorizeExecutionMethod())
+              .addMethod(getAuthorizeRunMethod())
               .addMethod(getRecordLlmCallUsageMethod())
-              .addMethod(getFinalizeExecutionMethod())
+              .addMethod(getFinalizeRunMethod())
               .addMethod(getRearmForRecoveryMethod())
               .addMethod(getCreateCreditCheckoutSessionMethod())
               .addMethod(getCreateBillingPortalSessionMethod())

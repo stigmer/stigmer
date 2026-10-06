@@ -10,7 +10,7 @@ import {
  * The harness-default arm is a contract, not a suggestion
  * (stigmer/stigmer#663): this resolution feeds the composer's pill, and
  * the submission adopts what the pill displays — so the default must be
- * what the platform actually runs for an unpinned execution:
+ * what the platform actually runs for an unpinned run:
  *
  * - cursor → the registry's Auto entry (the runner coerces an empty
  *   model_name to "default")

@@ -9,7 +9,7 @@
 //    operability of the disclosure row and the approve action.
 //
 // The functional `accessibility.spec.ts` cannot cover these because tool cards
-// only exist once a real execution has produced tool calls; this project has the
+// only exist once a real run has produced tool calls; this project has the
 // full backend, so the cards render for real.
 //
 // STACK SHAPE: this file runs as the `interactive-approval-gate` project
@@ -28,7 +28,7 @@ import {
   toolCallRow,
   approveButton,
   rejectButton,
-  type SeededGatedExecution,
+  type SeededGatedRun,
 } from "../../helpers/approval";
 import { isFileGateStack } from "../../helpers/mock-llm-control";
 
@@ -78,7 +78,7 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   test.describe.configure({ mode: "serial", timeout: 90_000 });
 
   const control = new MockControl(mockUrl ?? "");
-  let seeded: SeededGatedExecution | null = null;
+  let seeded: SeededGatedRun | null = null;
 
   test.afterEach(async () => {
     if (seeded) {

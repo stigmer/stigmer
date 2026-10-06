@@ -9,15 +9,15 @@
  * the tag COLUMN as the source of truth; tagVersion moves tags
  * single-holder (oss#341). Every version step is the shared machinery,
  * bound in version-resolution.ts. Who observes the workflow's runs is
- * `spec.execution_visibility`, set at create and changed only by
- * updateExecutionVisibility (execution-visibility.ts).
+ * `spec.run_visibility`, set at create and changed only by
+ * updateRunVisibility (run-visibility.ts).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by workflow.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/.
  *
  * Every chain opens with Authorize; create, delete, updateVisibility and
- * updateExecutionVisibility run the shared tuple-lifecycle steps against
+ * updateRunVisibility run the shared tuple-lifecycle steps against
  * the composed lifecycle;
  * getByReference and listVersions authorize the resolved workflow as `get`
  * would. getVersion evaluates its annotation through authorizeDirect;
@@ -33,7 +33,7 @@ import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/ap
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import type {
-  UpdateWorkflowExecutionVisibilityInput,
+  UpdateWorkflowRunVisibilityInput,
   WorkflowId,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import {
@@ -164,7 +164,7 @@ import {
   newPreserveExecutionVisibilityStep,
   newSetWorkflowExecutionVisibilityStep,
   newUpdateExecutionVisibilityTuplesStep,
-} from "./execution-visibility.js";
+} from "./run-visibility.js";
 import {
   TAG_VERSION_RESULT_KEY,
   TAG_VERSION_WORKFLOW_KEY,
@@ -199,8 +199,8 @@ export function registerWorkflowServices(
     create: (workflow, ctx) => createWorkflow(deps, workflow, ctx),
     update: (workflow, ctx) => update(deps, workflow, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
-    updateExecutionVisibility: (input, ctx) =>
-      updateExecutionVisibility(deps, input, ctx),
+    updateRunVisibility: (input, ctx) =>
+      updateRunVisibility(deps, input, ctx),
     delete: (id, ctx) => deleteWorkflow(deps, id, ctx),
     // validateSpec deliberately evaluates NO authorization despite its
     // can_create_workflow annotation: nothing is loaded or persisted, and
@@ -618,8 +618,8 @@ function newIndexWorkflowAfterVisibilityUpdateStep(
 }
 
 // ---------------------------------------------------------------------------
-// updateExecutionVisibility — who observes the workflow's runs: a targeted
-// spec update (only spec.execution_visibility changes) and the one door
+// updateRunVisibility — who observes the workflow's runs: a targeted
+// spec update (only spec.run_visibility changes) and the one door
 // that changes it after create. can_manage_audience is the owner's, never
 // an editor's. Open source authorizes run reads from the row itself, so
 // the persisted level is the grant; a composed tuple driver hears the
@@ -628,15 +628,15 @@ function newIndexWorkflowAfterVisibilityUpdateStep(
 // ---------------------------------------------------------------------------
 
 type UpdateExecutionVisibilityDesc =
-  typeof WorkflowCommandController.method.updateExecutionVisibility.input;
+  typeof WorkflowCommandController.method.updateRunVisibility.input;
 
-async function updateExecutionVisibility(
+async function updateRunVisibility(
   deps: WorkflowControllerDeps,
-  input: UpdateWorkflowExecutionVisibilityInput,
+  input: UpdateWorkflowRunVisibilityInput,
   ctx: HandlerContext,
 ): Promise<Workflow> {
   const reqCtx = new RequestContext(
-    WorkflowCommandController.method.updateExecutionVisibility.input,
+    WorkflowCommandController.method.updateRunVisibility.input,
     input,
     callerIdentityOf(ctx),
     kindOf(ctx),
@@ -647,7 +647,7 @@ async function updateExecutionVisibility(
   )
     .addStep(
       newAuthorizeStep(
-        WorkflowCommandController.method.updateExecutionVisibility,
+        WorkflowCommandController.method.updateRunVisibility,
         deps.authorizer,
       ),
     )
@@ -660,7 +660,7 @@ async function updateExecutionVisibility(
     )
     .addStep(
       newSetWorkflowExecutionVisibilityStep<UpdateExecutionVisibilityDesc>(
-        (c) => c.input.executionVisibility,
+        (c) => c.input.runVisibility,
       ),
     )
     .addStep(

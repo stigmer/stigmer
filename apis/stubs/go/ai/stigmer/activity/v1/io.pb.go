@@ -23,24 +23,24 @@ const (
 )
 
 // RecentActivityEntry is a lightweight summary of either an agent session
-// or a workflow execution, used for the sidebar "recents" list.
+// or a workflow run, used for the sidebar "recents" list.
 //
 // This is a projection — not the full resource. Clients that need the
 // complete resource should call the specific get() RPC for the resource kind.
 type RecentActivityEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Resource ID (session ID or workflow execution ID).
+	// Resource ID (session ID or workflow run ID).
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Discriminator: "session" or "workflow_execution".
+	// Discriminator: "session" or "workflow_run".
 	Type string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
 	// Human-readable label for display.
 	// For sessions: the conversation subject.
-	// For workflow executions: the execution name.
+	// For workflow runs: the run name.
 	Subject string `protobuf:"bytes,3,opt,name=subject,proto3" json:"subject,omitempty"`
 	// When this entry was last meaningfully updated.
 	// Used for interleaved sort (newest first).
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	// Execution phase label for workflow executions (e.g., "completed", "failed").
+	// Run phase label for workflow runs (e.g., "completed", "failed").
 	// Empty for sessions.
 	Status        string `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -124,7 +124,7 @@ type ListRecentActivityRequest struct {
 	// enforced (on the hosted edition, FGA `can_view` enumeration per kind),
 	// and the org filter only intersects that authorized set. Both recents
 	// kinds are private by default — sessions are personal resources and
-	// workflow executions opt in to org observability per workflow — so org
+	// workflow runs opt in to org observability per workflow — so org
 	// membership alone must never substitute for the per-resource check. An
 	// earlier "org member = query by org directly" fast path leaked session
 	// titles to every org member.
@@ -188,7 +188,7 @@ func (x *ListRecentActivityRequest) GetOrg() string {
 type ListRecentActivityResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Entries sorted by updated_at descending, interleaving sessions
-	// and workflow executions.
+	// and workflow runs.
 	Entries       []*RecentActivityEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

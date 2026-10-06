@@ -33,8 +33,8 @@ class CreditLedgerEntry(_message.Message):
     def __init__(self, entry_id: _Optional[str] = ..., org: _Optional[str] = ..., type: _Optional[_Union[_enum_pb2.LedgerEntryType, str]] = ..., amount_micros: _Optional[int] = ..., balance_after_micros: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., rating: _Optional[_Union[_policy_pb2.BillingUsageRating, _Mapping]] = ..., source: _Optional[_Union[CreditLedgerSource, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class CreditLedgerSource(_message.Message):
-    __slots__ = ("execution_id", "session_id", "agent_id", "llm_call_sequence", "llm_call_id", "purchase_id", "grant_id", "reservation_id", "adjusted_by", "description")
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("run_id", "session_id", "agent_id", "llm_call_sequence", "llm_call_id", "purchase_id", "grant_id", "reservation_id", "adjusted_by", "description")
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     LLM_CALL_SEQUENCE_FIELD_NUMBER: _ClassVar[int]
@@ -44,7 +44,7 @@ class CreditLedgerSource(_message.Message):
     RESERVATION_ID_FIELD_NUMBER: _ClassVar[int]
     ADJUSTED_BY_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
-    execution_id: str
+    run_id: str
     session_id: str
     agent_id: str
     llm_call_sequence: int
@@ -54,7 +54,7 @@ class CreditLedgerSource(_message.Message):
     reservation_id: str
     adjusted_by: str
     description: str
-    def __init__(self, execution_id: _Optional[str] = ..., session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., llm_call_sequence: _Optional[int] = ..., llm_call_id: _Optional[str] = ..., purchase_id: _Optional[str] = ..., grant_id: _Optional[str] = ..., reservation_id: _Optional[str] = ..., adjusted_by: _Optional[str] = ..., description: _Optional[str] = ...) -> None: ...
+    def __init__(self, run_id: _Optional[str] = ..., session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., llm_call_sequence: _Optional[int] = ..., llm_call_id: _Optional[str] = ..., purchase_id: _Optional[str] = ..., grant_id: _Optional[str] = ..., reservation_id: _Optional[str] = ..., adjusted_by: _Optional[str] = ..., description: _Optional[str] = ...) -> None: ...
 
 class CreditGrant(_message.Message):
     __slots__ = ("grant_id", "org", "kind", "original_amount_micros", "remaining_amount_micros", "expires_at", "priority", "created_at")
@@ -90,11 +90,11 @@ class CreditPack(_message.Message):
     active: bool
     def __init__(self, pack_id: _Optional[str] = ..., display_name: _Optional[str] = ..., price_micros: _Optional[int] = ..., credits_micros: _Optional[int] = ..., active: bool = ...) -> None: ...
 
-class ExecutionReservation(_message.Message):
-    __slots__ = ("reservation_id", "org", "execution_id", "reserved_micros", "consumed_micros", "status", "created_at", "expires_at")
+class RunReservation(_message.Message):
+    __slots__ = ("reservation_id", "org", "run_id", "reserved_micros", "consumed_micros", "status", "created_at", "expires_at")
     RESERVATION_ID_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
     RESERVED_MICROS_FIELD_NUMBER: _ClassVar[int]
     CONSUMED_MICROS_FIELD_NUMBER: _ClassVar[int]
     STATUS_FIELD_NUMBER: _ClassVar[int]
@@ -102,13 +102,13 @@ class ExecutionReservation(_message.Message):
     EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
     reservation_id: str
     org: str
-    execution_id: str
+    run_id: str
     reserved_micros: int
     consumed_micros: int
     status: _enum_pb2.ReservationStatus
     created_at: _timestamp_pb2.Timestamp
     expires_at: _timestamp_pb2.Timestamp
-    def __init__(self, reservation_id: _Optional[str] = ..., org: _Optional[str] = ..., execution_id: _Optional[str] = ..., reserved_micros: _Optional[int] = ..., consumed_micros: _Optional[int] = ..., status: _Optional[_Union[_enum_pb2.ReservationStatus, str]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, reservation_id: _Optional[str] = ..., org: _Optional[str] = ..., run_id: _Optional[str] = ..., reserved_micros: _Optional[int] = ..., consumed_micros: _Optional[int] = ..., status: _Optional[_Union[_enum_pb2.ReservationStatus, str]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class CreditPurchase(_message.Message):
     __slots__ = ("purchase_id", "org", "pack_id", "amount_paid_micros", "credits_granted_micros", "status", "stripe_customer_id", "checkout_session_id", "payment_intent_id", "created_at", "updated_at")

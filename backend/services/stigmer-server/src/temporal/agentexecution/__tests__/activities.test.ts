@@ -2,7 +2,9 @@
  * Server-side activity tests — pins the contracts of activities.ts:
  *
  *   - UpdateExecutionStatus owns only the payload boundary: it decodes
- *     the proto-JSON status into a typed UpdateStatus input and hands it
+ *     the proto-JSON status into a typed UpdateStatus input (a status a
+ *     runner wrote before the run rename, with retired names, included;
+ *     any other unknown name refused) and hands it
  *     to the in-process status edge (stigmer#979) — the lane's answer,
  *     success or ConnectError, IS the activity's outcome. The lane itself
  *     (transport, interceptors, handler, merge, hooks, broadcast) is
@@ -29,12 +31,12 @@ import type { Client } from "@temporalio/client";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecutionUpdateStatusInput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRunUpdateStatusInput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -97,7 +99,7 @@ function newFixture() {
   // The in-process status edge as a recording fake: these are UNIT pins
   // of the activity's payload boundary, so the lane is a seam here (the
   // real lane is exercised in own-behalf-status-writes.test.ts).
-  const writes: AgentExecutionUpdateStatusInput[] = [];
+  const writes: AgentRunUpdateStatusInput[] = [];
   let writerFault: ConnectError | undefined;
   const statusWriter: ExecutionStatusWriter = {
     updateStatus: (input) => {
@@ -142,15 +144,15 @@ function newFixture() {
 async function saveExecution(
   store: Store,
   id: string,
-  phase = ExecutionPhase.EXECUTION_IN_PROGRESS,
+  phase = RunPhase.RUN_IN_PROGRESS,
 ): Promise<void> {
   await store.saveResource(
-    ApiResourceKind.agent_execution,
+    ApiResourceKind.agent_run,
     id,
-    AgentExecutionSchema,
-    create(AgentExecutionSchema, {
+    AgentRunSchema,
+    create(AgentRunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentExecution",
+      kind: "AgentRun",
       metadata: { id, name: "test-exec", org: "test-org" },
       spec: { target: { case: "sessionId", value: "ses_1" } },
       status: {
@@ -165,8 +167,8 @@ async function saveExecution(
 describe("UpdateExecutionStatus activity", () => {
   it("decodes the proto-JSON status into a typed UpdateStatus input for the in-process edge", async () => {
     const { activities, writes } = newFixture();
-    const update = create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_FAILED,
+    const update = create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_FAILED,
       error: "boom",
       // An int64 field crossing the payload boundary as JSON and coming
       // back typed — the bigint rule the module header states.
@@ -178,11 +180,11 @@ describe("UpdateExecutionStatus activity", () => {
         id: string,
         status: JsonValue,
       ) => Promise<void>
-    )("aex_upd_1", toJson(AgentExecutionStatusSchema, update));
+    )("aex_upd_1", toJson(AgentRunStatusSchema, update));
 
     expect(writes).toHaveLength(1);
-    expect(writes[0]?.executionId).toBe("aex_upd_1");
-    expect(writes[0]?.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(writes[0]?.runId).toBe("aex_upd_1");
+    expect(writes[0]?.status?.phase).toBe(RunPhase.RUN_FAILED);
     expect(writes[0]?.status?.error).toBe("boom");
     expect(writes[0]?.status?.streamingUsage?.totalTokens).toBe(1234n);
   });
@@ -200,6 +202,39 @@ describe("UpdateExecutionStatus activity", () => {
     expect(writes).toHaveLength(0);
   });
 
+  it("decodes a status recorded before the run rename, its retired names read as the current ones", async () => {
+    const { activities, writes } = newFixture();
+    // The status JSON the user-cancel replay history records for this
+    // activity's input, written before agent executions became runs.
+    await (
+      activities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as (
+        id: string,
+        status: JsonValue,
+      ) => Promise<void>
+    )("aex_recorded", {
+      messages: [{ type: "MESSAGE_SYSTEM", content: "Execution was cancelled." }],
+      phase: "EXECUTION_CANCELLED",
+      subAgentExecutions: [{ id: "sub_1", name: "researcher" }],
+    });
+
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.status?.phase).toBe(RunPhase.RUN_CANCELLED);
+    expect(writes[0]?.status?.subAgentRuns[0]?.name).toBe("researcher");
+    // A free-form string is data, never a name: it survives as written.
+    expect(writes[0]?.status?.messages[0]?.content).toBe("Execution was cancelled.");
+  });
+
+  it("still refuses a name that is neither current nor retired, before the edge is reached", async () => {
+    const { activities, writes } = newFixture();
+    const update = activities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as (
+      id: string,
+      status: JsonValue,
+    ) => Promise<void>;
+    await expect(update("aex_unknown_value", { phase: "EXECUTION_EXPLODED" })).rejects.toThrow();
+    await expect(update("aex_unknown_field", { executionPhase: "RUN_FAILED" })).rejects.toThrow();
+    expect(writes).toHaveLength(0);
+  });
+
   it("surfaces the edge's ConnectError as the activity's failure (the lane's NotFound for a deleted execution)", async () => {
     const { activities, failWriterWith } = newFixture();
     failWriterWith(
@@ -211,7 +246,7 @@ describe("UpdateExecutionStatus activity", () => {
           id: string,
           status: JsonValue,
         ) => Promise<void>
-      )("aex_missing", { phase: "EXECUTION_FAILED" }),
+      )("aex_missing", { phase: "RUN_FAILED" }),
     ).rejects.toThrow(/not.?found/i);
   });
 });
@@ -230,7 +265,7 @@ describe("LoadAgentExecution activity", () => {
     // The wire form must be plain JSON — bigint would crash the default
     // payload converter's JSON.stringify.
     expect(() => JSON.stringify(raw)).not.toThrow();
-    const parsed = fromJson(AgentExecutionSchema, raw);
+    const parsed = fromJson(AgentRunSchema, raw);
     expect(parsed.metadata?.id).toBe("aex_load_1");
     expect(parsed.status?.streamingUsage?.totalTokens).toBe(1234n);
   });

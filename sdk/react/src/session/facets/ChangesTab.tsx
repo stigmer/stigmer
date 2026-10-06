@@ -1,12 +1,12 @@
 "use client";
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { useSessionWriteBacks } from "../useSessionWriteBacks.js";
-import { WriteBackCard } from "../../execution/WriteBackCard.js";
+import { WriteBackCard } from "../../run/WriteBackCard.js";
 
 export interface ChangesTabProps {
-  readonly executions: readonly AgentExecution[];
+  readonly runs: readonly AgentRun[];
   /**
    * Whether this session is expected to push its approved changes back to a
    * git remote — a CLOUD session with at least one git workspace entry (local
@@ -17,7 +17,7 @@ export interface ChangesTabProps {
    */
   readonly expectsWriteBack?: boolean;
   /**
-   * Whether the session's latest execution is settled (terminal). Selects
+   * Whether the session's latest run is settled (terminal). Selects
    * between the pre-write-back states: a live turn shows the "will be pushed
    * here" promise, a settled one shows the honest "nothing pushed yet".
    * Only consulted when {@link expectsWriteBack} is set and no write-back
@@ -39,7 +39,7 @@ export interface ChangesTabProps {
  * what was reviewed there lands here as a branch and pull request.
  */
 export function ChangesTab({
-  executions,
+  runs: executions,
   expectsWriteBack = false,
   isSettled = false,
 }: ChangesTabProps) {

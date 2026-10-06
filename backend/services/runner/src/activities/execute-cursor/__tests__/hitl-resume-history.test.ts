@@ -34,19 +34,19 @@
 
 import { describe, it, expect } from "vitest";
 import { create, clone } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import type {
   AgentMessage,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   ApprovalAction,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration } from "../boundary-rows.js";
 import { CursorFold, builderOver } from "../__test-utils__/fold.js";
@@ -67,9 +67,9 @@ import {
   NO_MCP_DEFAULT,
 } from "../__test-utils__/cursor-hook-harness.js";
 import {
-  SubAgentExecutionSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  SubAgentRunSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 const MCP_SLUG = "open-computer-use";
 
@@ -282,19 +282,19 @@ describe("Cursor HITL resume — append-only transcript", () => {
     // `status.messages`, so the seeded row is retained, indexed by id, and a
     // resumed update lands on it in place. This arm hands the seeded status
     // to the constructor, which indexes by the same routine `seed()` does.
-    const seededSub = create(SubAgentExecutionSchema, {
+    const seededSub = create(SubAgentRunSchema, {
       id: "sub_1",
       name: "researcher",
       status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
     });
     const statusRows = [seededSub];
 
-    const status = create(AgentExecutionStatusSchema, {});
-    status.subAgentExecutions = statusRows;
+    const status = create(AgentRunStatusSchema, {});
+    status.subAgentRuns = statusRows;
     new TranscriptBuilder("exec-resume", status).finalize();
 
-    expect(status.subAgentExecutions, "the status's own array, not a copy").toBe(statusRows);
-    expect(status.subAgentExecutions.some((s) => s.id === "sub_1")).toBe(true);
+    expect(status.subAgentRuns, "the status's own array, not a copy").toBe(statusRows);
+    expect(status.subAgentRuns.some((s) => s.id === "sub_1")).toBe(true);
   });
 
   // The transcript-superset fix keeps the run off the watchdog, but the OTHER

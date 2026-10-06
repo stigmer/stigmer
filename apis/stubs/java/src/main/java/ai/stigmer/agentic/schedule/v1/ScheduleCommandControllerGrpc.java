@@ -281,7 +281,7 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Create a schedule.
      * Scheduling an agent is a billing-affecting decision: every fire
-     * creates an execution that consumes the schedule-owning
+     * creates a run that consumes the schedule-owning
      * organization's credits, unattended.
      * </pre>
      */
@@ -308,7 +308,7 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Delete a schedule.
-     * Firing stops permanently. Executions created by past fires are
+     * Firing stops permanently. Runs created by past fires are
      * untouched. To stop firing while keeping the schedule and its
      * history, disable it (enabled=false) instead.
      * </pre>
@@ -337,10 +337,10 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Trigger a schedule to fire once, immediately, and answer with the
      * run's real outcome.
-     * The manual fire runs synchronously through the standard execution
+     * The manual fire runs synchronously through the standard run
      * create pipeline — every launch gate runs — and the result names what
-     * happened: the created execution's id, or the refusing gate's own
-     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * happened: the created run's id, or the refusing gate's own
+     * copy verbatim. status.last_fire_at and status.last_run_id
      * record a started run. Manual fires do NOT feed the failure streak —
      * the streak is the unattended (cron) health signal, and a test fire
      * of a broken schedule must not race its owner to the pause threshold.
@@ -404,7 +404,7 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Create a schedule.
      * Scheduling an agent is a billing-affecting decision: every fire
-     * creates an execution that consumes the schedule-owning
+     * creates a run that consumes the schedule-owning
      * organization's credits, unattended.
      * </pre>
      */
@@ -433,7 +433,7 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Delete a schedule.
-     * Firing stops permanently. Executions created by past fires are
+     * Firing stops permanently. Runs created by past fires are
      * untouched. To stop firing while keeping the schedule and its
      * history, disable it (enabled=false) instead.
      * </pre>
@@ -464,10 +464,10 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Trigger a schedule to fire once, immediately, and answer with the
      * run's real outcome.
-     * The manual fire runs synchronously through the standard execution
+     * The manual fire runs synchronously through the standard run
      * create pipeline — every launch gate runs — and the result names what
-     * happened: the created execution's id, or the refusing gate's own
-     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * happened: the created run's id, or the refusing gate's own
+     * copy verbatim. status.last_fire_at and status.last_run_id
      * record a started run. Manual fires do NOT feed the failure streak —
      * the streak is the unattended (cron) health signal, and a test fire
      * of a broken schedule must not race its owner to the pause threshold.
@@ -517,7 +517,7 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Create a schedule.
      * Scheduling an agent is a billing-affecting decision: every fire
-     * creates an execution that consumes the schedule-owning
+     * creates a run that consumes the schedule-owning
      * organization's credits, unattended.
      * </pre>
      */
@@ -544,7 +544,7 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Delete a schedule.
-     * Firing stops permanently. Executions created by past fires are
+     * Firing stops permanently. Runs created by past fires are
      * untouched. To stop firing while keeping the schedule and its
      * history, disable it (enabled=false) instead.
      * </pre>
@@ -573,10 +573,10 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Trigger a schedule to fire once, immediately, and answer with the
      * run's real outcome.
-     * The manual fire runs synchronously through the standard execution
+     * The manual fire runs synchronously through the standard run
      * create pipeline — every launch gate runs — and the result names what
-     * happened: the created execution's id, or the refusing gate's own
-     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * happened: the created run's id, or the refusing gate's own
+     * copy verbatim. status.last_fire_at and status.last_run_id
      * record a started run. Manual fires do NOT feed the failure streak —
      * the streak is the unattended (cron) health signal, and a test fire
      * of a broken schedule must not race its owner to the pause threshold.
@@ -625,7 +625,7 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Create a schedule.
      * Scheduling an agent is a billing-affecting decision: every fire
-     * creates an execution that consumes the schedule-owning
+     * creates a run that consumes the schedule-owning
      * organization's credits, unattended.
      * </pre>
      */
@@ -652,7 +652,7 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Delete a schedule.
-     * Firing stops permanently. Executions created by past fires are
+     * Firing stops permanently. Runs created by past fires are
      * untouched. To stop firing while keeping the schedule and its
      * history, disable it (enabled=false) instead.
      * </pre>
@@ -681,10 +681,10 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Trigger a schedule to fire once, immediately, and answer with the
      * run's real outcome.
-     * The manual fire runs synchronously through the standard execution
+     * The manual fire runs synchronously through the standard run
      * create pipeline — every launch gate runs — and the result names what
-     * happened: the created execution's id, or the refusing gate's own
-     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * happened: the created run's id, or the refusing gate's own
+     * copy verbatim. status.last_fire_at and status.last_run_id
      * record a started run. Manual fires do NOT feed the failure streak —
      * the streak is the unattended (cron) health signal, and a test fire
      * of a broken schedule must not race its owner to the pause threshold.
@@ -734,7 +734,7 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Create a schedule.
      * Scheduling an agent is a billing-affecting decision: every fire
-     * creates an execution that consumes the schedule-owning
+     * creates a run that consumes the schedule-owning
      * organization's credits, unattended.
      * </pre>
      */
@@ -763,7 +763,7 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Delete a schedule.
-     * Firing stops permanently. Executions created by past fires are
+     * Firing stops permanently. Runs created by past fires are
      * untouched. To stop firing while keeping the schedule and its
      * history, disable it (enabled=false) instead.
      * </pre>
@@ -794,10 +794,10 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Trigger a schedule to fire once, immediately, and answer with the
      * run's real outcome.
-     * The manual fire runs synchronously through the standard execution
+     * The manual fire runs synchronously through the standard run
      * create pipeline — every launch gate runs — and the result names what
-     * happened: the created execution's id, or the refusing gate's own
-     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * happened: the created run's id, or the refusing gate's own
+     * copy verbatim. status.last_fire_at and status.last_run_id
      * record a started run. Manual fires do NOT feed the failure streak —
      * the streak is the unattended (cron) health signal, and a test fire
      * of a broken schedule must not race its owner to the pause threshold.

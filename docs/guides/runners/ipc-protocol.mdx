@@ -8,8 +8,8 @@ description:
 
 This is the reference for the stdin/stdout protocol that drives the runner in
 **manager mode**. Read it if you are building a host process that embeds the
-runner and manages Sessions or Workflow Executions dynamically, the way the
-Stigmer desktop app does.
+runner and manages Sessions or Workflow Runs dynamically, the way the Stigmer
+desktop app does.
 
 If you only run the runner as a single-queue worker, you do not need this
 protocol. See the runner README (`backend/services/runner/README.md`) for static
@@ -25,8 +25,8 @@ line-delimited JSON: the host writes **commands** to the runner's stdin, and the
 runner writes **responses** to its stdout.
 
 A host uses manager mode to run many short-lived workers from one process — one
-Temporal worker per Session and per Workflow Execution — over a single shared
-Temporal connection.
+Temporal worker per Session and per Workflow Run — over a single shared Temporal
+connection.
 
 ## Transport and framing
 
@@ -159,32 +159,32 @@ Idempotent: removing a Session that is not active is a no-op and still returns
 
 ### addWorkflowExecution
 
-Start a Temporal worker for a Workflow Execution. The worker polls the task
-queue `wfexec:<executionId>`.
+Start a Temporal worker for a Workflow Run. The worker polls the task queue
+`wfexec:<executionId>`.
 
 ```json
 { "type": "addWorkflowExecution", "executionId": "wfe_abc123" }
 ```
 
-| Field         | Type   | Required | Description                                  |
-| ------------- | ------ | -------- | -------------------------------------------- |
-| `type`        | string | yes      | `"addWorkflowExecution"`                     |
-| `executionId` | string | yes      | The Workflow Execution to start a worker for |
+| Field         | Type   | Required | Description                            |
+| ------------- | ------ | -------- | -------------------------------------- |
+| `type`        | string | yes      | `"addWorkflowExecution"`               |
+| `executionId` | string | yes      | The Workflow Run to start a worker for |
 
 Idempotent in the same way as [`addSession`](#addsession).
 
 ### removeWorkflowExecution
 
-Stop the worker for a Workflow Execution.
+Stop the worker for a Workflow Run.
 
 ```json
 { "type": "removeWorkflowExecution", "executionId": "wfe_abc123" }
 ```
 
-| Field         | Type   | Required | Description                    |
-| ------------- | ------ | -------- | ------------------------------ |
-| `type`        | string | yes      | `"removeWorkflowExecution"`    |
-| `executionId` | string | yes      | The Workflow Execution to stop |
+| Field         | Type   | Required | Description                 |
+| ------------- | ------ | -------- | --------------------------- |
+| `type`        | string | yes      | `"removeWorkflowExecution"` |
+| `executionId` | string | yes      | The Workflow Run to stop    |
 
 Idempotent in the same way as [`removeSession`](#removesession).
 
@@ -283,7 +283,7 @@ Acknowledges [`addWorkflowExecution`](#addworkflowexecution).
 | Field         | Type   | Description                                            |
 | ------------- | ------ | ------------------------------------------------------ |
 | `type`        | string | `"workflowExecutionAdded"`                             |
-| `executionId` | string | The Workflow Execution the worker serves               |
+| `executionId` | string | The Workflow Run the worker serves                     |
 | `taskQueue`   | string | The Temporal task queue, always `wfexec:<executionId>` |
 
 ### workflowExecutionRemoved
@@ -294,10 +294,10 @@ Acknowledges [`removeWorkflowExecution`](#removeworkflowexecution).
 { "type": "workflowExecutionRemoved", "executionId": "wfe_abc123" }
 ```
 
-| Field         | Type   | Description                                     |
-| ------------- | ------ | ----------------------------------------------- |
-| `type`        | string | `"workflowExecutionRemoved"`                    |
-| `executionId` | string | The Workflow Execution whose worker was stopped |
+| Field         | Type   | Description                               |
+| ------------- | ------ | ----------------------------------------- |
+| `type`        | string | `"workflowExecutionRemoved"`              |
+| `executionId` | string | The Workflow Run whose worker was stopped |
 
 ### tokenUpdated
 

@@ -38,7 +38,7 @@ type Flow =
  * the hourly sync.
  *
  * - **List** — every account with routability at a glance (an account
- *   with zero enabled member keys cannot serve executions).
+ *   with zero enabled member keys cannot serve runs).
  * - **Detail** — org assignments, "Sync now", and the team-coverage
  *   table: every member and stored key classified into three explicit
  *   categories (on team with key / on team without key / key held but

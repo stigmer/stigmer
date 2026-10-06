@@ -32,7 +32,7 @@
 
 import { ConnectError } from "@connectrpc/connect";
 import type { StigmerClient } from "../client/stigmer-client.js";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { AgentSpec, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -60,8 +60,8 @@ export interface RunAgent {
   readonly spec: AgentSpec;
 }
 
-/** The agent a turn recorded at create (AgentExecutionStatus). */
-export type RecordedRunAgent = Pick<AgentExecutionStatus, "agentId" | "agentVersionHash">;
+/** The agent a turn recorded at create (AgentRunStatus). */
+export type RecordedRunAgent = Pick<AgentRunStatus, "agentId" | "agentVersionHash">;
 
 export interface ResolvedBlueprint {
   /** The agent the turn runs; undefined for the built-in assistant. */

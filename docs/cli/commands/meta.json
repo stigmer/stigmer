@@ -3,9 +3,9 @@
   "pages": [
     "index",
     "---Core Commands---",
-    "execution",
     "resume",
     "run",
+    "runs",
     "usage",
     "---Lifecycle---",
     "down",

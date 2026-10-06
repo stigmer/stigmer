@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 // ---------------------------------------------------------------------------
 // Mocks — useSessionPageFlow composes many hooks; we stub them to isolate the
@@ -19,8 +19,8 @@ const mockConv = {
     metadata?: { labels?: Record<string, string> };
   },
   isLoading: false,
-  completedExecutions: [] as unknown[],
-  activeStreamExecution: null as {
+  completedRuns: [] as unknown[],
+  activeStreamRun: null as {
     spec?: { autoApproveAll?: boolean };
     status?: object;
   } | null,
@@ -59,7 +59,7 @@ const mockSessionVariables = {
   isEmpty: true,
   clear: vi.fn(),
 };
-vi.mock("../../execution/useSessionVariables", () => ({
+vi.mock("../../run/useSessionVariables", () => ({
   useSessionVariables: () => mockSessionVariables,
 }));
 
@@ -320,19 +320,19 @@ describe("useSessionPageFlow — account preference seed (default_auto_approve)"
 
 describe("useSessionPageFlow — arming derived from the in-flight run (#816)", () => {
   afterEach(() => {
-    mockConv.activeStreamExecution = null;
-    mockConv.completedExecutions = [];
+    mockConv.activeStreamRun = null;
+    mockConv.completedRuns = [];
     vi.clearAllMocks();
   });
 
   it("reflects an active execution armed at create (launcher handoff)", () => {
-    mockConv.activeStreamExecution = { spec: { autoApproveAll: true }, status: {} };
+    mockConv.activeStreamRun = { spec: { autoApproveAll: true }, status: {} };
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
     expect(result.current.autoApproveAll).toBe(true);
   });
 
   it("the user's explicit OFF beats the armed run for follow-up carry", async () => {
-    mockConv.activeStreamExecution = { spec: { autoApproveAll: true }, status: {} };
+    mockConv.activeStreamRun = { spec: { autoApproveAll: true }, status: {} };
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
 
     act(() => {
@@ -351,7 +351,7 @@ describe("useSessionPageFlow — arming derived from the in-flight run (#816)", 
     // A reloaded page whose history contains an armed run must come up at
     // the host default — deriving from history would make the consent
     // silently survive reloads.
-    mockConv.completedExecutions = [{ spec: { autoApproveAll: true }, status: {} }];
+    mockConv.completedRuns = [{ spec: { autoApproveAll: true }, status: {} }];
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
     expect(result.current.autoApproveAll).toBe(false);
   });
@@ -363,7 +363,7 @@ describe("useSessionPageFlow — armed responder (#816, the walk-away scenario)"
   });
   afterEach(() => {
     mockConv.pendingApprovals = [];
-    mockConv.activeStreamExecution = null;
+    mockConv.activeStreamRun = null;
     mockConv.session = { spec: {} };
     vi.clearAllMocks();
   });
@@ -451,7 +451,7 @@ describe("useSessionPageFlow — armed responder (#816, the walk-away scenario)"
   });
 
   it("never fires for a guest, even when the run itself is armed", async () => {
-    mockConv.activeStreamExecution = { spec: { autoApproveAll: true }, status: {} };
+    mockConv.activeStreamRun = { spec: { autoApproveAll: true }, status: {} };
     mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
     renderHook(() => useSessionPageFlow({ ...OPTS, audience: "guest" }), {
       wrapper: hostDefaultWrapper(true),

@@ -1,6 +1,6 @@
 # Agent guide: backend/services/runner
 
-The Temporal worker that runs agent turns and workflow executions, published as
+The Temporal worker that runs agent turns and workflow runs, published as
 `@stigmer/runner` and embedded by `stigmer up`, the cloud provisioner and the
 desktop app. One turn runtime serves every harness (native deep-agent, Cursor);
 a harness is a registry row and an SDK slice. This guide is an index; the
