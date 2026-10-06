@@ -20,7 +20,7 @@ export interface InkSessionOptions {
   /** The CLI's configured, refreshing-token client (backend.stigmer). */
   readonly client: Stigmer;
   readonly sessionId: string;
-  /** Org slug, for follow-up executions created from the composer. */
+  /** Org slug, for follow-up runs created from the composer. */
   readonly org: string;
   /** Initial interaction mode; the user can toggle with Ctrl+T. */
   readonly mode: InteractionMode;

@@ -1,7 +1,7 @@
-// `execution logs` — event/message stream for an execution (agent or workflow).
+// `runs logs` — event/message stream for a run (agent or workflow).
 //
 // Mirrors Go's execution.WorkflowLogs + AgentLogs (logs_workflow.go /
-// logs_agent.go). The two execution families consume different primitives, and
+// logs_agent.go). The two run families consume different primitives, and
 // that asymmetry is intentional:
 //
 //   - Workflows have a canonical, sequenced event log. Non-follow reads it via
@@ -25,14 +25,14 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { shouldColorize, styler } from "../output/style.js";
-import { formatAgentPhase, isTerminalAgentPhase, resolveExecutionType } from "./execution.js";
+import { formatAgentPhase, isTerminalAgentPhase, resolveRunType } from "./runs.js";
 import { type LineSink, renderWorkflowEventPlaintext } from "./stream/workflow-render-plaintext.js";
 
 const EVENT_LOG_PAGE_SIZE = 50;
 const MAX_AGENT_MESSAGE_LEN = 200;
 
 export interface LogsOptions {
-  readonly executionId: string;
+  readonly runId: string;
   readonly follow: boolean;
   /** Workflow-only: filter events by task name. */
   readonly task?: string;
@@ -44,14 +44,14 @@ export interface LogsStreams {
   readonly colorize: boolean;
 }
 
-/** Stream or print logs for an execution. `signal` aborts a follow cleanly. */
-export async function streamExecutionLogs(
+/** Stream or print logs for a run. `signal` aborts a follow cleanly. */
+export async function streamRunLogs(
   client: Stigmer,
   opts: LogsOptions,
   signal: AbortSignal,
   streams: LogsStreams = defaultStreams(),
 ): Promise<void> {
-  const type = resolveExecutionType(opts.executionId);
+  const type = resolveRunType(opts.runId);
   if (type === "workflow") {
     await (opts.follow ? followWorkflowLogs(client, opts, signal, streams) : printWorkflowLog(client, opts, streams));
     return;
@@ -62,13 +62,13 @@ export async function streamExecutionLogs(
 async function printWorkflowLog(client: Stigmer, opts: LogsOptions, streams: LogsStreams): Promise<void> {
   const resp = await client.workflowRun.getEventLog(
     create(GetEventLogRequestSchema, {
-      runId: opts.executionId,
+      runId: opts.runId,
       pageSize: EVENT_LOG_PAGE_SIZE,
       ...(opts.task ? { taskName: opts.task } : {}),
     }),
   );
   if (resp.events.length === 0) {
-    streams.out.write("No events recorded for this execution.\n");
+    streams.out.write("No events recorded for this run.\n");
     return;
   }
   for (const event of resp.events) renderWorkflowEventPlaintext(event, streams.out, streams.colorize);
@@ -84,7 +84,7 @@ async function followWorkflowLogs(
   streams: LogsStreams,
 ): Promise<void> {
   const stream = client.workflowRun.subscribeEvents(
-    create(SubscribeEventsRequestSchema, { runId: opts.executionId }),
+    create(SubscribeEventsRequestSchema, { runId: opts.runId }),
     signal,
   );
   try {
@@ -101,10 +101,10 @@ async function followWorkflowLogs(
 }
 
 async function printAgentMessages(client: Stigmer, opts: LogsOptions, streams: LogsStreams): Promise<void> {
-  const exec = await client.agentRun.get(opts.executionId);
+  const exec = await client.agentRun.get(opts.runId);
   const messages = exec.status?.messages ?? [];
   if (messages.length === 0) {
-    streams.out.write("No messages recorded for this execution.\n");
+    streams.out.write("No messages recorded for this run.\n");
     return;
   }
   for (const message of messages) renderAgentMessage(message, streams);
@@ -118,7 +118,7 @@ async function followAgentLogs(
 ): Promise<void> {
   let lastMsgCount = 0;
   try {
-    for await (const exec of client.agentRun.subscribe(opts.executionId, signal)) {
+    for await (const exec of client.agentRun.subscribe(opts.runId, signal)) {
       const messages = exec.status?.messages ?? [];
       for (let i = lastMsgCount; i < messages.length; i++) renderAgentMessage(messages[i], streams);
       lastMsgCount = messages.length;
@@ -126,7 +126,7 @@ async function followAgentLogs(
       const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
       if (isTerminalAgentPhase(phase)) {
         const style = styler(streams.colorize);
-        streams.out.write(`\n${style.dim("[end]")} execution ${formatAgentPhase(phase)}\n`);
+        streams.out.write(`\n${style.dim("[end]")} run ${formatAgentPhase(phase)}\n`);
         return;
       }
     }

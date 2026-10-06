@@ -69,12 +69,14 @@ describe("renderAgentUsage", () => {
     expect(out).toContain("agent_id: agt_1");
   });
 
-  it("renders summary stats with an average per execution", () => {
+  it("renders summary stats with an average per run", () => {
     const out = renderAgentUsage(agentReport, { from: "2026-03-01", to: "2026-03-13" }, "table");
     expect(out).toContain("Agent:  Reviewer");
     expect(out).toContain("Period: 2026-03-01 to 2026-03-13");
     expect(out).toContain("$4.00"); // total cost, dollar+ → 2 decimals
-    expect(out).toContain("$1.00"); // avg/exec = 4.00 / 4
+    expect(out).toContain("Runs:         4");
+    expect(out).toContain("Avg/run:      $1.00"); // 4.00 / 4
+    expect(out).toMatch(/#\s+PERIOD\s+RUNS\s+COST/);
     expect(out).toContain("100.0%"); // single model = 100% share
   });
 });
@@ -94,6 +96,9 @@ describe("renderOrgUsage", () => {
     const out = renderOrgUsage(orgReport, { from: "2026-03-01", to: "2026-03-31" }, "table");
     expect(out).toContain("Organization Usage Report");
     expect(out).toContain("Agents:       3");
+    expect(out).toContain("Runs:         10");
+    expect(out).toMatch(/AGENT\s+RUNS\s+COST\s+SHARE/);
+    expect(out).toMatch(/DATE\s+RUNS\s+COST/);
     expect(out).toContain("Reviewer");
     expect(out).toContain("2026-03-01");
     expect(out).toContain("60.0%"); // 6M of 10M total
@@ -106,7 +111,7 @@ describe("the usage reports ask for the organization as org", () => {
   it("getAgentUsageReport sends the agent and org with the range", async () => {
     let seen: unknown;
     const client = {
-      agentExecution: { getAgentUsageReport: async (input: unknown) => ((seen = input), {}) },
+      agentRun: { getAgentUsageReport: async (input: unknown) => ((seen = input), {}) },
     } as unknown as Stigmer;
     await getAgentUsageReport(client, "agt_1", "acme", range);
     expect(seen).toMatchObject({ agentId: "agt_1", org: "acme", fromDate: range.from, toDate: range.to });
@@ -115,7 +120,7 @@ describe("the usage reports ask for the organization as org", () => {
   it("getOrgUsageReport sends the org with the range", async () => {
     let seen: unknown;
     const client = {
-      agentExecution: { getOrgUsageReport: async (input: unknown) => ((seen = input), {}) },
+      agentRun: { getOrgUsageReport: async (input: unknown) => ((seen = input), {}) },
     } as unknown as Stigmer;
     await getOrgUsageReport(client, "acme", range);
     expect(seen).toMatchObject({ org: "acme", fromDate: range.from, toDate: range.to });

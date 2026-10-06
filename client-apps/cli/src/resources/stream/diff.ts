@@ -2,7 +2,7 @@
 // (run_stream_events.go:203-468).
 //
 // Go's version owns a gRPC loop and blocks on an approval channel. This is a
-// pure, stateful transformer instead: feed it each AgentExecution snapshot and
+// pure, stateful transformer instead: feed it each AgentRun snapshot and
 // it returns the discrete events for that snapshot, holding all cross-snapshot
 // state (message cursor, tool/sub-agent/todo trackers, prompted-approval dedup).
 // Approval *submission* is the renderer's job — the differ only emits
@@ -36,7 +36,7 @@ import { TodoDiffer } from "./todo.js";
 import { buildToolEventMap, toolEventId, ToolStateTracker } from "./tool-state.js";
 
 /**
- * Stateful differ. Construct one per execution stream, then call {@link next}
+ * Stateful differ. Construct one per run stream, then call {@link next}
  * for every snapshot in arrival order. Once a terminal `done` is emitted, later
  * calls return nothing.
  */

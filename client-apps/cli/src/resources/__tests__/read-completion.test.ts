@@ -1,4 +1,4 @@
-// In-process test for the read surface: search, execution
+// In-process test for the read surface: search, run
 // get/list, session list, and usage reports.
 //
 // Stands up a real Connect backend over h2c serving the controllers these paths
@@ -28,7 +28,7 @@ import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Se
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { classify, ExitCode } from "../../errors/index.js";
-import { getExecution, listAgentExecutions, renderExecutionList } from "../execution.js";
+import { getRun, listAgentRuns, renderRunList } from "../runs.js";
 import { listResources } from "../list.js";
 import { renderResource } from "../render.js";
 import { searchResources } from "../search.js";
@@ -141,22 +141,22 @@ describe("search integration", () => {
   });
 });
 
-describe("execution integration", () => {
-  it("gets an agent execution by ID and renders backend protojson", async () => {
-    const { schema, message } = await getExecution(client, "aex_1");
+describe("run integration", () => {
+  it("gets an agent run by ID and renders backend protojson", async () => {
+    const { schema, message } = await getRun(client, "aex_1");
     expect(JSON.parse(renderResource(schema, message, "json"))).toEqual(
       toJson(AgentRunSchema, knownExec, { useProtoFieldName: true }),
     );
   });
 
-  it("maps a NotFound execution to ExitCode.NotFound", async () => {
-    const err = await getExecution(client, "aex_missing").catch((e) => e);
+  it("maps a NotFound run to ExitCode.NotFound", async () => {
+    const err = await getRun(client, "aex_missing").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
   });
 
-  it("lists agent executions as protojson envelope", async () => {
-    const result = await listAgentExecutions(client, 50);
-    const json = JSON.parse(renderExecutionList(result, "json", "agent"));
+  it("lists agent runs as protojson envelope", async () => {
+    const result = await listAgentRuns(client, 50);
+    const json = JSON.parse(renderRunList(result, "json", "agent"));
     expect(json.entries[0].metadata.id).toBe("aex_1");
   });
 });

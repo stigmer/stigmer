@@ -1,8 +1,8 @@
 // Orchestration tests for executeResolvedAgent: the one-call bootstrap
 // contract (stigmer/stigmer#249). A workspace-bearing run must issue exactly
-// one create RPC — the AgentExecution carrying session_spec — instead of the
-// old session.create + agentExecution.create pair, and the flow must read the
-// canonical session id back from the returned execution's target. A run on
+// one create RPC — the AgentRun carrying session_spec — instead of the
+// old session.create + agentRun.create pair, and the flow must read the
+// canonical session id back from the returned run's target. A run on
 // an agent names it by reference (org and slug, no instance and no id); the
 // built-in assistant rides the same flow with no agent at all. Runs use
 // detach mode so no streaming machinery is exercised.
@@ -59,7 +59,7 @@ function makePrepared(overrides: Partial<PreparedRun> = {}): PreparedRun {
 
 // A BackendClient double whose controller records every create call and
 // emulates the server stamping the bootstrapped session id onto the returned
-// execution spec.
+// run spec.
 function fakeBackend(): { client: BackendClient; creates: () => AgentRun[] } {
   const captured: AgentRun[] = [];
   const controller = () => ({
@@ -108,14 +108,14 @@ describe("executeResolvedAgent", () => {
     });
 
     const sent = creates();
-    expect(sent, "a workspace run is a single AgentExecution create").toHaveLength(1);
+    expect(sent, "a workspace run is a single AgentRun create").toHaveLength(1);
     const target = sent[0]?.spec?.target;
     expect(target?.case, "no client-created session id").toBe("sessionSpec");
     const sessionSpec = target?.case === "sessionSpec" ? target.value : undefined;
     expect(sessionSpec?.agentRef).toMatchObject({ kind: ApiResourceKind.agent, org: "acme", slug: "helper" });
     expect(sessionSpec?.workspaceEntries).toEqual([WORKSPACE_ENTRY]);
 
-    // The canonical session id comes back on the execution spec and drives the
+    // The canonical session id comes back on the run spec and drives the
     // re-attach hint.
     expect(stderrLines.join("")).toContain("stigmer resume ses_srv");
   });

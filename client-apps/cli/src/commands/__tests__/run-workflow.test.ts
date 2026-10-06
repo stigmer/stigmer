@@ -4,9 +4,9 @@
 // value the caller set explicitly wins. The agent path pins the same rule in
 // resources/run/__tests__/prepare.test.ts; this is the workflow path.
 //
-// The workflow lookup and the execution create are replaced at their modules
+// The workflow lookup and the run create are replaced at their modules
 // (the command imports them lazily), and `--detach` returns as soon as the
-// execution exists, so the test is offline and deterministic. The config is an
+// run exists, so the test is offline and deterministic. The config is an
 // authenticated cloud context; `--org` names the organization.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -42,7 +42,7 @@ vi.mock("../../resources/run/create.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../resources/run/create.js")>();
   return {
     ...actual,
-    createWorkflowExecution: async (_controller: unknown, input: CreatedExecution) => {
+    createWorkflowRun: async (_controller: unknown, input: CreatedExecution) => {
       created.push(input);
       return { metadata: { id: "wfx_1" } };
     },

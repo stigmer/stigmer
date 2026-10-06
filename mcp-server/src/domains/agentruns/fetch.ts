@@ -1,6 +1,6 @@
-// Agent-execution read path: the polling primitive behind get_agent_execution.
+// Agent-run read path: the polling primitive behind get_agent_run.
 //
-// Agent executions have no event-log RPC (unlike workflow executions) — the
+// Agent runs have no event-log RPC (unlike workflow runs) — the
 // platform's contract is: poll get and read status.phase, status.messages[],
 // and status.pending_approvals[]. That makes the response shape critical for
 // MCP: a long conversation's full protojson (every message, the resolved
@@ -16,7 +16,7 @@ import { withClient } from "../client.js";
 import { toProtoJson } from "../marshal.js";
 import { rpcError } from "../rpcerr.js";
 
-export type ExecutionView = "compact" | "full";
+export type RunView = "compact" | "full";
 
 /** Message-tail size when the caller doesn't specify one. */
 export const DEFAULT_MESSAGE_LIMIT = 5;
@@ -30,40 +30,40 @@ export const DEFAULT_MESSAGE_LIMIT = 5;
 const COMPACT_PRUNED_STATUS_FIELDS = [
   "approval_events",
   "callback_token",
-  "sub_agent_executions",
+  "sub_agent_runs",
 ] as const;
 
-/** Fetch a single agent execution by ID and shape it for the requested view. */
-export async function fetchAgentExecution(
+/** Fetch a single agent run by ID and shape it for the requested view. */
+export async function fetchAgentRun(
   serverAddress: string,
   token: string,
-  executionId: string,
-  view: ExecutionView,
+  runId: string,
+  view: RunView,
   messageLimit: number,
 ): Promise<string> {
-  if (executionId === "") {
-    throw new Error("execution_id is required");
+  if (runId === "") {
+    throw new Error("run_id is required");
   }
   return withClient(
     AgentRunQueryController,
     serverAddress,
     token,
     async (client, callOptions) => {
-      let execution: AgentRun;
+      let run: AgentRun;
       try {
-        execution = await client.get({ value: executionId }, callOptions);
+        run = await client.get({ value: runId }, callOptions);
       } catch (err) {
-        throw rpcError(err, `agent execution "${executionId}"`);
+        throw rpcError(err, `agent run "${runId}"`);
       }
       return view === "full"
-        ? toProtoJson(AgentRunSchema, execution)
-        : compactExecutionJson(execution, messageLimit);
+        ? toProtoJson(AgentRunSchema, run)
+        : compactRunJson(run, messageLimit);
     },
   );
 }
 
 /** The compact projection plus the pre-truncation message count. */
-export interface CompactExecution {
+export interface CompactRun {
   readonly totalMessages: number;
   readonly data: Record<string, unknown>;
 }
@@ -71,14 +71,14 @@ export interface CompactExecution {
 /**
  * Build the compact projection: full protojson minus the pruned status
  * fields, with status.messages sliced to the last `messageLimit` entries.
- * Exposed at the data level so wrappers (cancel_execution's already_terminal
+ * Exposed at the data level so wrappers (cancel_run's already_terminal
  * envelope) can compose it without double-nesting.
  *
- * Shared by the write tools that return an AgentExecution (approve, cancel):
+ * Shared by the write tools that return an AgentRun (approve, cancel):
  * their responses embed the same potentially-huge status.
  */
-export function compactExecution(execution: AgentRun, messageLimit: number): CompactExecution {
-  const data = JSON.parse(toProtoJson(AgentRunSchema, execution)) as Record<string, unknown>;
+export function compactRun(run: AgentRun, messageLimit: number): CompactRun {
+  const data = JSON.parse(toProtoJson(AgentRunSchema, run)) as Record<string, unknown>;
   let totalMessages = 0;
 
   const status = data.status as Record<string, unknown> | undefined;
@@ -101,10 +101,10 @@ export function compactExecution(execution: AgentRun, messageLimit: number): Com
  * the model can tell when the message tail is a window (and re-request with a
  * larger message_limit or view=full).
  */
-export function compactExecutionJson(execution: AgentRun, messageLimit: number): string {
-  const { totalMessages, data } = compactExecution(execution, messageLimit);
+export function compactRunJson(run: AgentRun, messageLimit: number): string {
+  const { totalMessages, data } = compactRun(run, messageLimit);
   return JSON.stringify(
-    { view: "compact", total_messages: totalMessages, execution: data },
+    { view: "compact", total_messages: totalMessages, run: data },
     null,
     2,
   );

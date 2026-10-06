@@ -43,7 +43,7 @@ func main() {
 
     // Start a conversation on the agent: the server creates its session
     // and pins the agent's current version on it
-    exec, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecutionInput{
+    run, err := client.AgentRun.Create(ctx, &stigmer.AgentRunInput{
         SessionSpec: &stigmer.SessionSpecInput{
             AgentRef: stigmer.ResourceRef{
                 Org:  agent.GetMetadata().GetOrg(),
@@ -55,7 +55,7 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    fmt.Printf("Execution: %s\n", exec.GetMetadata().GetId())
+    fmt.Printf("Run: %s\n", run.GetMetadata().GetId())
 }
 ```
 
@@ -69,7 +69,7 @@ The client provides sub-clients for each resource type:
 | `client.Skill`          | Skill           | Get, GetByReference, Push, GetArtifact, Delete, List |
 | `client.McpServer`      | MCP Server      | Get, GetByReference, Create, Update, Apply, Delete, List |
 | `client.Session`        | Session         | Get, Create, Update, Apply, Delete, List, ListByAgent |
-| `client.AgentExecution` | AgentExecution  | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |
+| `client.AgentRun`       | AgentRun        | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |
 | `client.Search`         | Cross-resource  | Query |
 | `client.Billing`        | Billing         | GetOrCreateBillingAccount, GetBillingAccount, GetCreditBalance, AdjustCredits, GetCreditLedger, GetBillingUsageReport, CreateCreditCheckoutSession, CreateBillingPortalSession, CreatePaymentMethodSetupSession, SetAutoRechargeConfig, GetCustomerModelPricing + operator pricing methods |
 
@@ -125,22 +125,22 @@ if stigmer.IsPermissionDenied(err) {
 
 ## Streaming
 
-Subscribe to real-time execution updates:
+Subscribe to real-time run updates:
 
 ```go
-stream, err := client.AgentExecution.Subscribe(ctx, "execution-id")
+stream, err := client.AgentRun.Subscribe(ctx, "run-id")
 for {
-    exec, err := stream.Recv()
+    run, err := stream.Recv()
     if err == io.EOF {
         break
     }
-    fmt.Println(exec.GetStatus().GetPhase())
+    fmt.Println(run.GetStatus().GetPhase())
 }
 ```
 
 ## Types
 
-- **Input types** (`AgentInput`, `AgentExecutionInput`, etc.) are SDK types that flatten proto construction.
+- **Input types** (`AgentInput`, `AgentRunInput`, etc.) are SDK types that flatten proto construction.
 - **Response types** are proto types directly (e.g., `*agentv1.Agent`). Access fields via generated getters.
 - **Search/List results** use `*stigmer.ListResult` (for SearchService-backed lists) or the native list response types.
 
@@ -148,6 +148,6 @@ for {
 
 See the `examples/` directory for complete usage patterns:
 - `basic_crud.go` — Create, get, list, delete agents
-- `streaming_execution.go` — Create and stream an execution
+- `streaming_run.go` — Create and stream a run
 - `error_handling.go` — Handle SDK errors
 - `search.go` — Cross-resource search

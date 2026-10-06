@@ -1,7 +1,7 @@
-// In-process test for the `execution` group resources.
+// In-process test for the `runs` group resources.
 //
 // Stands up a real Connect backend over h2c serving the agent + workflow
-// execution query and command controllers (including the server-streaming
+// run query and command controllers (including the server-streaming
 // subscribe / subscribeEvents methods), points an SDK node client at it, and
 // drives the resource layer end to end: lifecycle control, approval submission
 // (asserting the comment carry and the unset reviewer), trace rendering, and
@@ -17,7 +17,7 @@ import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/age
 import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
 import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
-import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { RunPhase as WorkflowRunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
   GetEventLogResponseSchema,
   type SubmitWorkflowTaskApprovalInput,
@@ -32,10 +32,10 @@ import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { approveAgentToolCall, approveWorkflowTask } from "../execution-approve.js";
-import { cancelExecution, pauseExecution, resumeExecution, terminateExecution } from "../execution-control.js";
-import { streamExecutionLogs } from "../execution-logs.js";
-import { traceExecution } from "../execution-trace.js";
+import { approveAgentToolCall, approveWorkflowTask } from "../run-approve.js";
+import { cancelRun, pauseRun, resumeRun, terminateRun } from "../run-control.js";
+import { streamRunLogs } from "../run-logs.js";
+import { traceRun } from "../run-trace.js";
 
 let backend: Http2Server;
 let client: Stigmer;
@@ -54,11 +54,11 @@ beforeEach(() => {
   workflowApproval = [];
 });
 
-// A workflow execution with two tasks (one done, one failed) for the trace view.
+// A workflow run with two tasks (one done, one failed) for the trace view.
 const workflowExec = create(WorkflowRunSchema, {
   metadata: { id: "wex_1", name: "Deploy" },
   status: {
-    phase: WorkflowExecutionPhase.RUN_COMPLETED,
+    phase: WorkflowRunPhase.RUN_COMPLETED,
     startedAt: "2026-06-12T10:00:00Z",
     completedAt: "2026-06-12T10:01:30Z",
     tasks: [
@@ -68,7 +68,7 @@ const workflowExec = create(WorkflowRunSchema, {
   },
 });
 
-// An agent execution carrying two messages for the agent log + trace views.
+// An agent run carrying two messages for the agent log + trace views.
 const agentExec = create(AgentRunSchema, {
   metadata: { id: "aex_1", name: "Reviewer" },
   status: {
@@ -85,7 +85,7 @@ const agentExec = create(AgentRunSchema, {
 function controlResult(phase: RunPhase) {
   return create(AgentRunSchema, { metadata: { id: "aex_1" }, status: { phase } });
 }
-function workflowControlResult(phase: WorkflowExecutionPhase) {
+function workflowControlResult(phase: WorkflowRunPhase) {
   return create(WorkflowRunSchema, { metadata: { id: "wex_1" }, status: { phase } });
 }
 
@@ -147,10 +147,10 @@ beforeAll(async () => {
       },
     });
     router.service(WorkflowRunCommandController, {
-      cancel: (req) => (workflowControl.push({ verb: "cancel", id: req.id, reason: req.reason }), workflowControlResult(WorkflowExecutionPhase.RUN_CANCELLED)),
-      terminate: (req) => (workflowControl.push({ verb: "terminate", id: req.id, reason: req.reason }), workflowControlResult(WorkflowExecutionPhase.RUN_TERMINATED)),
-      pause: (req) => (workflowControl.push({ verb: "pause", id: req.id, reason: req.reason }), workflowControlResult(WorkflowExecutionPhase.RUN_PAUSED)),
-      resume: (req) => (workflowControl.push({ verb: "resume", id: req.id, reason: "" }), workflowControlResult(WorkflowExecutionPhase.RUN_IN_PROGRESS)),
+      cancel: (req) => (workflowControl.push({ verb: "cancel", id: req.id, reason: req.reason }), workflowControlResult(WorkflowRunPhase.RUN_CANCELLED)),
+      terminate: (req) => (workflowControl.push({ verb: "terminate", id: req.id, reason: req.reason }), workflowControlResult(WorkflowRunPhase.RUN_TERMINATED)),
+      pause: (req) => (workflowControl.push({ verb: "pause", id: req.id, reason: req.reason }), workflowControlResult(WorkflowRunPhase.RUN_PAUSED)),
+      resume: (req) => (workflowControl.push({ verb: "resume", id: req.id, reason: "" }), workflowControlResult(WorkflowRunPhase.RUN_IN_PROGRESS)),
       submitWorkflowTaskApproval: (req) => (workflowApproval.push(req), workflowExec),
     });
   };
@@ -171,28 +171,28 @@ afterAll(async () => {
 });
 
 describe("lifecycle control", () => {
-  it("cancels an agent execution and reports the phase", async () => {
-    const result = await cancelExecution(client, "aex_1", "no longer needed");
+  it("cancels an agent run and reports the phase", async () => {
+    const result = await cancelRun(client, "aex_1", "no longer needed");
     expect(result).toEqual({ type: "agent", phase: "cancelled" });
     expect(agentControl).toEqual([{ verb: "cancel", id: "aex_1", reason: "no longer needed" }]);
   });
 
-  it("terminates / pauses an agent execution", async () => {
-    expect((await terminateExecution(client, "aex_1", "stuck")).phase).toBe("terminated");
-    expect((await pauseExecution(client, "aex_1", "")).phase).toBe("paused");
+  it("terminates / pauses an agent run", async () => {
+    expect((await terminateRun(client, "aex_1", "stuck")).phase).toBe("terminated");
+    expect((await pauseRun(client, "aex_1", "")).phase).toBe("paused");
     expect(agentControl.map((c) => c.verb)).toEqual(["terminate", "pause"]);
   });
 
-  it("cancels / resumes a workflow execution", async () => {
-    expect((await cancelExecution(client, "wex_1", "")).phase).toBe("cancelled");
-    expect((await resumeExecution(client, "wex_1")).phase).toBe("running");
+  it("cancels / resumes a workflow run", async () => {
+    expect((await cancelRun(client, "wex_1", "")).phase).toBe("cancelled");
+    expect((await resumeRun(client, "wex_1")).phase).toBe("running");
     expect(workflowControl.map((c) => c.verb)).toEqual(["cancel", "resume"]);
   });
 });
 
 describe("approval submission", () => {
   it("carries --comment onto the agent SubmitApprovalInput", async () => {
-    await approveAgentToolCall(client, { executionId: "aex_1", toolCallId: "tc_1", action: "deny", comment: "unsafe" });
+    await approveAgentToolCall(client, { runId: "aex_1", toolCallId: "tc_1", action: "deny", comment: "unsafe" });
     expect(agentApproval).toHaveLength(1);
     expect(agentApproval[0].comment).toBe("unsafe");
     expect(agentApproval[0].toolCallId).toBe("tc_1");
@@ -201,7 +201,7 @@ describe("approval submission", () => {
   });
 
   it("leaves the workflow reviewer unset (server-attributed)", async () => {
-    await approveWorkflowTask(client, { executionId: "wex_1", taskName: "review", outcome: "approve", comment: "lgtm" });
+    await approveWorkflowTask(client, { runId: "wex_1", taskName: "review", outcome: "approve", comment: "lgtm" });
     expect(workflowApproval).toHaveLength(1);
     expect(workflowApproval[0].reviewer).toBe("");
     expect(workflowApproval[0].comment).toBe("lgtm");
@@ -217,7 +217,7 @@ describe("trace", () => {
 
   it("renders a workflow task table", async () => {
     const cap = capture();
-    await traceExecution(client, "wex_1", "table", cap.streams);
+    await traceRun(client, "wex_1", "table", cap.streams);
     const text = cap.text();
     expect(text).toContain("Workflow: Deploy (completed, 1m 30s)");
     expect(text).toContain("[done] build");
@@ -227,14 +227,14 @@ describe("trace", () => {
 
   it("renders the agent tool-call timeline", async () => {
     const cap = capture();
-    await traceExecution(client, "aex_1", "table", cap.streams);
+    await traceRun(client, "aex_1", "table", cap.streams);
     expect(cap.text()).toContain("Agent: Reviewer (completed, 20s)");
     expect(cap.text()).toContain("[done] Shell");
   });
 
   it("emits the full proto envelope for json", async () => {
     const cap = capture();
-    await traceExecution(client, "wex_1", "json", cap.streams);
+    await traceRun(client, "wex_1", "json", cap.streams);
     const json = JSON.parse(cap.text());
     expect(json.metadata.id).toBe("wex_1");
     expect(json.status.tasks).toHaveLength(2);
@@ -250,15 +250,15 @@ describe("logs", () => {
 
   it("prints the workflow event log with a more-available notice", async () => {
     const cap = capture();
-    await streamExecutionLogs(client, { executionId: "wex_1", follow: false }, never, cap.streams);
+    await streamRunLogs(client, { runId: "wex_1", follow: false }, never, cap.streams);
     const text = cap.lines.join("");
-    expect(text).toContain("execution started");
+    expect(text).toContain("run started");
     expect(text).toContain("more events available");
   });
 
   it("drains the workflow event stream on --follow with a task filter", async () => {
     const cap = capture();
-    await streamExecutionLogs(client, { executionId: "wex_1", follow: true, task: "build" }, never, cap.streams);
+    await streamRunLogs(client, { runId: "wex_1", follow: true, task: "build" }, never, cap.streams);
     const text = cap.lines.join("");
     expect(text).toContain("task started: build");
     // "other" task is filtered out.
@@ -268,7 +268,7 @@ describe("logs", () => {
 
   it("prints agent messages from a single snapshot when not following", async () => {
     const cap = capture();
-    await streamExecutionLogs(client, { executionId: "aex_1", follow: false }, never, cap.streams);
+    await streamRunLogs(client, { runId: "aex_1", follow: false }, never, cap.streams);
     const text = cap.lines.join("");
     expect(text).toContain("[human] do it");
     expect(text).toContain("[ai] done");
@@ -276,10 +276,10 @@ describe("logs", () => {
 
   it("diffs agent snapshots on --follow and stops on the terminal phase", async () => {
     const cap = capture();
-    await streamExecutionLogs(client, { executionId: "aex_1", follow: true }, never, cap.streams);
+    await streamRunLogs(client, { runId: "aex_1", follow: true }, never, cap.streams);
     const text = cap.lines.join("");
     expect(text).toContain("[ai] thinking");
     expect(text).toContain("[ai] final answer");
-    expect(text).toContain("[end] execution completed");
+    expect(text).toContain("[end] run completed");
   });
 });

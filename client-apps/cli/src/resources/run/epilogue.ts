@@ -1,6 +1,6 @@
 // The post-stream epilogue, shared by every renderer (Go's streamAgentEpilogue +
 // run_display_summary.go). After the stream ends we fetch the authoritative final
-// execution and a usage report, then print a compact, copy-paste-friendly exit
+// run and a usage report, then print a compact, copy-paste-friendly exit
 // summary to stderr (AI content already went to stdout). A stream that failed
 // before reaching a phase is re-raised as a CLI error.
 
@@ -16,13 +16,13 @@ import { mapPhaseToString } from "../stream/convert.js";
 import type { HeadlessResult } from "../stream/headless.js";
 
 /**
- * Fetch the final execution + usage and print the exit summary. Returns the
- * final execution so the caller can act on its artifacts (e.g. --download).
+ * Fetch the final run + usage and print the exit summary. Returns the
+ * final run so the caller can act on its artifacts (e.g. --download).
  */
 export async function runEpilogue(
   client: Stigmer,
   sessionId: string,
-  executionId: string,
+  runId: string,
   result: HeadlessResult,
 ): Promise<AgentRun> {
   // A stream error before any phase is a hard failure (Go: epilogue returns it).
@@ -30,8 +30,8 @@ export async function runEpilogue(
     throw new CliExitError(result.error, ExitCode.General);
   }
 
-  const exec = await client.agentRun.get(executionId);
-  const usage = await fetchUsage(client, executionId);
+  const exec = await client.agentRun.get(runId);
+  const usage = await fetchUsage(client, runId);
 
   const write = (line: string): void => void process.stderr.write(`${line}\n`);
   const s = styler(shouldColorize(process.stderr));
@@ -46,10 +46,10 @@ export async function runEpilogue(
 
 // Best-effort usage fetch; a failure here must not fail the run (Go tolerates a
 // nil usage report and renders without the cost line).
-async function fetchUsage(client: Stigmer, executionId: string): Promise<UsageReportAggregate | undefined> {
+async function fetchUsage(client: Stigmer, runId: string): Promise<UsageReportAggregate | undefined> {
   try {
     const report = await client.agentRun.getRunUsageReport(
-      create(GetRunUsageReportInputSchema, { runId: executionId }),
+      create(GetRunUsageReportInputSchema, { runId }),
     );
     return report.aggregate;
   } catch {
@@ -99,10 +99,10 @@ function printSessionExit(
 function printCompletion(write: Write, s: Styler, exec: AgentRun): void {
   const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   if (phase === RunPhase.RUN_FAILED) {
-    write(s.red(`✗ Execution failed: ${resolveFailureError(exec)}`));
+    write(s.red(`✗ Run failed: ${resolveFailureError(exec)}`));
     return;
   }
-  write(s.green(`✓ Execution ${mapPhaseToString(phase)}`));
+  write(s.green(`✓ Run ${mapPhaseToString(phase)}`));
 }
 
 function completedLine(duration: string, cost: string): string {
@@ -141,7 +141,7 @@ function resolveFailureError(exec: AgentRun): string {
   return GENERIC_FAILURE;
 }
 
-const GENERIC_FAILURE = "Execution failed (error details unavailable — check execution logs)";
+const GENERIC_FAILURE = "Run failed (error details unavailable — check run logs)";
 
 // "1m23s"/"45s" between two RFC3339 timestamps, or "" when unknown. Mirrors Go's
 // parseDuration + Round(time.Second).

@@ -1,14 +1,13 @@
-// Workflow-execution approval paths: the org-wide pending-approvals inbox
+// Workflow-run approval paths: the org-wide pending-approvals inbox
 // (listPendingApprovals) and the reviewer decision for a human_input task
 // (submitWorkflowTaskApproval).
 //
-// listPendingApprovals is org-scoped by contract (io.proto), not
-// execution-scoped — it answers "what is waiting on a human right now"
-// across the org. Each entry carries everything a decision needs: the
-// execution ID, task name, requester, timeout, and the form schema when the
-// task defines one. Agent-execution approvals are a different surface
-// entirely (embedded in get_agent_execution status; see
-// agentexecutions/approve.ts).
+// listPendingApprovals is org-scoped by contract (io.proto), not run-scoped
+// — it answers "what is waiting on a human right now" across the org. Each
+// entry carries everything a decision needs: the run ID, task name,
+// requester, timeout, and the form schema when the task defines one.
+// Agent-run approvals are a different surface entirely (embedded in
+// get_agent_run status; see agentruns/approve.ts).
 
 import type { JsonObject, MessageInitShape } from "@bufbuild/protobuf";
 import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
@@ -60,7 +59,7 @@ export async function listPendingApprovals(
 }
 
 export interface SubmitWorkflowTaskApprovalArgs {
-  readonly executionId: string;
+  readonly runId: string;
   readonly taskName: string;
   readonly outcome: string;
   readonly comment?: string;
@@ -79,7 +78,7 @@ export async function submitWorkflowTaskApproval(
     token,
     async (client, callOptions) => {
       const req: MessageInitShape<typeof SubmitWorkflowTaskApprovalInputSchema> = {
-        runId: args.executionId,
+        runId: args.runId,
         taskName: args.taskName,
         outcome: args.outcome,
         comment: args.comment ?? "",
@@ -89,12 +88,12 @@ export async function submitWorkflowTaskApproval(
         req.formData = args.formData as JsonObject;
       }
       try {
-        const execution = await client.submitWorkflowTaskApproval(req, callOptions);
-        return toProtoJson(WorkflowRunSchema, execution);
+        const run = await client.submitWorkflowTaskApproval(req, callOptions);
+        return toProtoJson(WorkflowRunSchema, run);
       } catch (err) {
         throw rpcError(
           err,
-          `approval for task "${args.taskName}" in workflow execution "${args.executionId}"`,
+          `approval for task "${args.taskName}" in workflow run "${args.runId}"`,
         );
       }
     },

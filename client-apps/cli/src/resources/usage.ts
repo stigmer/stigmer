@@ -68,9 +68,9 @@ export function renderSessionUsage(report: GetSessionUsageReportOutput, format: 
   const lines: string[] = ["", `Session: ${report.sessionId}`];
   const period = formatDateRange(report.firstRunAt, report.lastRunAt);
   if (period !== "") {
-    lines.push(`Period:  ${period} (${report.runCount} executions)`);
+    lines.push(`Period:  ${period} (${report.runCount} runs)`);
   } else {
-    lines.push(`Executions: ${report.runCount}`);
+    lines.push(`Runs: ${report.runCount}`);
   }
   lines.push("");
 
@@ -141,11 +141,11 @@ export function renderAgentUsage(
   }
   lines.push("");
   lines.push(`  Sessions:     ${report.totalSessions}`);
-  lines.push(`  Executions:   ${report.totalRuns}`);
+  lines.push(`  Runs:         ${report.totalRuns}`);
   lines.push(`  Total cost:   ${formatCost(report.totalBillableCostMicros)}`);
   if (report.totalRuns > 0) {
     const avg = report.totalBillableCostMicros / BigInt(report.totalRuns);
-    lines.push(`  Avg/exec:     ${formatCost(avg)}`);
+    lines.push(`  Avg/run:      ${formatCost(avg)}`);
   }
   lines.push("");
 
@@ -167,7 +167,7 @@ export function renderAgentUsage(
       String(sess.runCount),
       formatCost(sess.billableCostMicros),
     ]);
-    lines.push(renderTable(["#", "PERIOD", "EXECUTIONS", "COST"], rows));
+    lines.push(renderTable(["#", "PERIOD", "RUNS", "COST"], rows));
   }
 
   lines.push("");
@@ -187,7 +187,7 @@ export function renderOrgUsage(
   const lines: string[] = ["", "Organization Usage Report", `Period: ${formatInputDateRange(range.from, range.to)}`, ""];
   lines.push(`  Agents:       ${report.totalAgents}`);
   lines.push(`  Sessions:     ${report.totalSessions}`);
-  lines.push(`  Executions:   ${report.totalRuns}`);
+  lines.push(`  Runs:         ${report.totalRuns}`);
   lines.push(`  Total cost:   ${formatCost(report.totalBillableCostMicros)}`);
   lines.push("");
 
@@ -209,7 +209,7 @@ export function renderOrgUsage(
       formatCost(a.billableCostMicros),
       formatShare(a.billableCostMicros, totalCost),
     ]);
-    lines.push(renderTable(["AGENT", "EXECUTIONS", "COST", "SHARE"], rows), "");
+    lines.push(renderTable(["AGENT", "RUNS", "COST", "SHARE"], rows), "");
   }
 
   if (report.dailyCosts.length > 0) {
@@ -218,7 +218,7 @@ export function renderOrgUsage(
       String(day.runCount),
       formatCost(day.billableCostMicros),
     ]);
-    lines.push(renderTable(["DATE", "EXECUTIONS", "COST"], rows));
+    lines.push(renderTable(["DATE", "RUNS", "COST"], rows));
   }
 
   lines.push("");

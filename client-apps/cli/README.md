@@ -1,7 +1,7 @@
 # @stigmer/cli
 
 The Stigmer command-line interface — manage agents, workflows, MCP servers,
-skills, and executions from the terminal.
+skills, and runs from the terminal.
 
 This is the TypeScript CLI that replaced the Go CLI. Its shape, in brief:
 

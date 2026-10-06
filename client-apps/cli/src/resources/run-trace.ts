@@ -1,4 +1,4 @@
-// `execution trace` — task/tool structure and timing for an execution.
+// `runs trace` — task/tool structure and timing for a run.
 //
 // Mirrors Go's execution.Trace (trace.go + trace_workflow.go + trace_agent.go):
 // auto-detect the type, and for table output render a compact structure view —
@@ -15,8 +15,8 @@ import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowr
 import type { Stigmer } from "@stigmer/sdk";
 import { renderProtoJson, renderProtoYaml } from "../output/index.js";
 import { type Styler, shouldColorize, styler } from "../output/style.js";
-import { calculateDuration, formatWorkflowTaskType, truncateWithEllipsis } from "./execution-format.js";
-import { formatAgentPhase, formatWorkflowPhase, resolveExecutionType } from "./execution.js";
+import { calculateDuration, formatWorkflowTaskType, truncateWithEllipsis } from "./run-format.js";
+import { formatAgentPhase, formatWorkflowPhase, resolveRunType } from "./runs.js";
 
 /** Output format for trace: a compact structure table, or the full proto envelope. */
 export type TraceFormat = "table" | "yaml" | "json";
@@ -26,15 +26,15 @@ export interface TraceStreams {
   readonly colorize: boolean;
 }
 
-/** Fetch and render an execution's structure. */
-export async function traceExecution(
+/** Fetch and render a run's structure. */
+export async function traceRun(
   client: Stigmer,
-  executionId: string,
+  runId: string,
   format: TraceFormat,
   streams: TraceStreams = defaultStreams(),
 ): Promise<void> {
-  if (resolveExecutionType(executionId) === "workflow") {
-    const exec = await client.workflowRun.get(executionId);
+  if (resolveRunType(runId) === "workflow") {
+    const exec = await client.workflowRun.get(runId);
     if (format === "yaml") {
       streams.write(renderProtoYaml(WorkflowRunSchema, exec));
       return;
@@ -47,7 +47,7 @@ export async function traceExecution(
     return;
   }
 
-  const exec = await client.agentRun.get(executionId);
+  const exec = await client.agentRun.get(runId);
   if (format === "yaml") {
     streams.write(renderProtoYaml(AgentRunSchema, exec));
     return;

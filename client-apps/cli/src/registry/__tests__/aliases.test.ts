@@ -71,6 +71,17 @@ describe("generateAliases", () => {
     }
   });
 
+  it("derives the run kinds' spellings from their renamed metadata", () => {
+    const agentRun = [...normalized(generateAliases("AgentRun", "Agent Run", "aex", "agent_run"))];
+    expect(agentRun).toEqual(expect.arrayContaining(["agentrun", "agent-run", "agent_run", "aex"]));
+    expect(agentRun).not.toContain("agent");
+    const workflowRun = [...normalized(generateAliases("WorkflowRun", "Workflow Run", "wex", "workflow_run"))];
+    expect(workflowRun).toEqual(expect.arrayContaining(["workflowrun", "workflow-run", "workflow_run", "wex"]));
+    for (const alias of [...agentRun, ...workflowRun]) {
+      expect(alias).not.toContain("execution");
+    }
+  });
+
   it("does not let a multi-word display name steal the parent's name", () => {
     // "Agent Share" must NOT register "agent" (that belongs to Agent).
     const found = normalized(
@@ -95,7 +106,7 @@ describe("case conversion", () => {
     ["McpServer", "mcp-server"],
     ["Agent", "agent"],
     ["AgentShare", "agent-share"],
-    ["WorkflowExecution", "workflow-execution"],
+    ["WorkflowRun", "workflow-run"],
     ["", ""],
   ])("toKebabCase(%s) = %s", (input, expected) => {
     expect(toKebabCase(input)).toBe(expected);
@@ -105,7 +116,7 @@ describe("case conversion", () => {
     ["McpServer", "mcp_server"],
     ["Agent", "agent"],
     ["AgentShare", "agent_share"],
-    ["WorkflowExecution", "workflow_execution"],
+    ["WorkflowRun", "workflow_run"],
     ["", ""],
   ])("toSnakeCase(%s) = %s", (input, expected) => {
     expect(toSnakeCase(input)).toBe(expected);

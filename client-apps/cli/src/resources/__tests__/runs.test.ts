@@ -2,21 +2,21 @@ import { create } from "@bufbuild/protobuf";
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { AgentRunListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { RunPhase as WorkflowRunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/index.js";
 import {
   formatAgentPhase,
   formatWorkflowPhase,
-  isAgentExecutionId,
-  isExecutionAlias,
+  isAgentRunId,
+  isRunAlias,
   isTerminalAgentPhase,
-  isWorkflowExecutionId,
-  renderExecutionList,
-  resolveExecutionType,
-} from "../execution.js";
+  isWorkflowRunId,
+  renderRunList,
+  resolveRunType,
+} from "../runs.js";
 
-describe("isAgentExecutionId", () => {
+describe("isAgentRunId", () => {
   it.each([
     ["aex_01ARZ3NDEKTSV4RRFFQ69G5FAV", true],
     ["aex-01ARZ3NDEKTSV4RRFFQ69G5FAV", true],
@@ -25,11 +25,11 @@ describe("isAgentExecutionId", () => {
     ["agt_abc", false], // different kind
     ["wex_run", false], // workflow, not agent
   ])("%j -> %s", (ref, expected) => {
-    expect(isAgentExecutionId(ref)).toBe(expected);
+    expect(isAgentRunId(ref)).toBe(expected);
   });
 });
 
-describe("isWorkflowExecutionId", () => {
+describe("isWorkflowRunId", () => {
   it.each([
     ["wex_run456", true],
     ["wex-run456", true],
@@ -37,35 +37,37 @@ describe("isWorkflowExecutionId", () => {
     ["wfl_abc", false],
     ["aex_run", false],
   ])("%j -> %s", (ref, expected) => {
-    expect(isWorkflowExecutionId(ref)).toBe(expected);
+    expect(isWorkflowRunId(ref)).toBe(expected);
   });
 });
 
-describe("isExecutionAlias", () => {
+describe("isRunAlias", () => {
   it.each([
-    ["execution", true],
-    ["executions", true],
-    ["exec", true],
-    ["  Exec  ", true],
+    ["run", true],
+    ["runs", true],
+    ["  Runs  ", true],
+    ["execution", false],
+    ["executions", false],
+    ["exec", false],
     ["agent", false],
     ["session", false],
   ])("%j -> %s", (type, expected) => {
-    expect(isExecutionAlias(type)).toBe(expected);
+    expect(isRunAlias(type)).toBe(expected);
   });
 });
 
-describe("resolveExecutionType", () => {
+describe("resolveRunType", () => {
   it("resolves agent and workflow prefixes", () => {
-    expect(resolveExecutionType("aex_01ARZ3NDEKTSV4RRFFQ69G5FAV")).toBe("agent");
-    expect(resolveExecutionType("wex_01ARZ3NDEKTSV4RRFFQ69G5FAV")).toBe("workflow");
+    expect(resolveRunType("aex_01ARZ3NDEKTSV4RRFFQ69G5FAV")).toBe("agent");
+    expect(resolveRunType("wex_01ARZ3NDEKTSV4RRFFQ69G5FAV")).toBe("workflow");
   });
 
   it("throws a usage error on an unrecognized prefix", () => {
-    expect(() => resolveExecutionType("xyz_123")).toThrow(UsageError);
+    expect(() => resolveRunType("xyz_123")).toThrow(UsageError);
   });
 });
 
-describe("renderExecutionList", () => {
+describe("renderRunList", () => {
   const list = create(AgentRunListSchema, {
     totalPages: 1,
     entries: [
@@ -82,13 +84,13 @@ describe("renderExecutionList", () => {
   const result = { schema: AgentRunListSchema, message: list };
 
   it("renders the full list envelope as protojson for json", () => {
-    const json = JSON.parse(renderExecutionList(result, "json", "agent"));
+    const json = JSON.parse(renderRunList(result, "json", "agent"));
     expect(json.total_pages).toBe(1);
     expect(json.entries[0].metadata.id).toBe("aex_1");
   });
 
   it("renders a table with a friendly phase label", () => {
-    const table = renderExecutionList(result, "table", "agent");
+    const table = renderRunList(result, "table", "agent");
     expect(table).toContain("AGENT");
     expect(table).toContain("aex_1");
     // The agent column is the agent the turn ran, as the server recorded it.
@@ -115,14 +117,14 @@ describe("formatAgentPhase", () => {
 
 describe("formatWorkflowPhase", () => {
   it.each([
-    [WorkflowExecutionPhase.RUN_PENDING, "pending"],
-    [WorkflowExecutionPhase.RUN_IN_PROGRESS, "running"],
-    [WorkflowExecutionPhase.RUN_COMPLETED, "completed"],
-    [WorkflowExecutionPhase.RUN_FAILED, "failed"],
-    [WorkflowExecutionPhase.RUN_CANCELLED, "cancelled"],
-    [WorkflowExecutionPhase.RUN_TERMINATED, "terminated"],
-    [WorkflowExecutionPhase.RUN_PAUSED, "paused"],
-    [WorkflowExecutionPhase.RUN_PHASE_UNSPECIFIED, "unknown"],
+    [WorkflowRunPhase.RUN_PENDING, "pending"],
+    [WorkflowRunPhase.RUN_IN_PROGRESS, "running"],
+    [WorkflowRunPhase.RUN_COMPLETED, "completed"],
+    [WorkflowRunPhase.RUN_FAILED, "failed"],
+    [WorkflowRunPhase.RUN_CANCELLED, "cancelled"],
+    [WorkflowRunPhase.RUN_TERMINATED, "terminated"],
+    [WorkflowRunPhase.RUN_PAUSED, "paused"],
+    [WorkflowRunPhase.RUN_PHASE_UNSPECIFIED, "unknown"],
   ])("%s -> %s", (phase, expected) => {
     expect(formatWorkflowPhase(phase)).toBe(expected);
   });

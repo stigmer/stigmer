@@ -1,7 +1,7 @@
-// Agent-execution start path for the run_agent tool.
+// Agent-run start path for the run_agent tool.
 //
 // Mirrors the CLI's run stack (client-apps/cli/src/resources/run/create.ts):
-// starting an agent is a single AgentExecutionCommandController.create call
+// starting an agent is a single AgentRunCommandController.create call
 // whose target is either an existing session (by id alone: the session pins
 // the agent it started on) or the session_spec of a new conversation naming
 // the agent by reference. The server bootstraps that session, pins the
@@ -19,9 +19,9 @@
 // reference as given, and only when the text differs (a slug against the
 // stored id) is the named agent resolved and its organization id compared.
 //
-// The tool is deliberately asynchronous: it returns the created execution
-// (with its aex_* ID) immediately and the run continues in the background.
-// Observation happens through get_agent_execution polling — MCP tools are
+// The tool is deliberately asynchronous: it returns the created run (with
+// its aex_* ID) immediately and the run continues in the background.
+// Observation happens through get_agent_run polling — MCP tools are
 // request/response, so there is no streaming path here by design.
 
 import {
@@ -52,7 +52,7 @@ import { withTransport } from "../client.js";
 import { toProtoJson } from "../marshal.js";
 import { rpcError } from "../rpcerr.js";
 
-/** apiVersion stamped on created executions; mirrors the CLI's run stack. */
+/** apiVersion stamped on created runs; mirrors the CLI's run stack. */
 const API_VERSION = "agentic.stigmer.ai/v1";
 
 export interface RunAgentArgs {
@@ -64,10 +64,10 @@ export interface RunAgentArgs {
 }
 
 /**
- * Start an agent execution: a follow-up in an existing session sends the
+ * Start an agent run: a follow-up in an existing session sends the
  * session id alone, once the session is shown to run the named agent; a new
  * conversation resolves org/slug and names the agent by reference. Returns
- * the created execution as protojson (small at creation time — status is
+ * the created run as protojson (small at creation time — status is
  * empty until the runner picks it up).
  */
 export async function runAgent(
@@ -104,15 +104,15 @@ export async function runAgent(
       }
     }
 
-    const execution = createMessage(AgentRunSchema, {
+    const run = createMessage(AgentRunSchema, {
       apiVersion: API_VERSION,
-      kind: "AgentExecution",
+      kind: "AgentRun",
       // `org` names the agent's organization. A follow-up in an existing
       // session belongs to the session's organization, which the server
       // fills in when none is sent (stigmer/stigmer#1580); sending the
       // agent's would refuse a session started with another org's agent.
       metadata: createMessage(ApiResourceMetadataSchema, {
-        name: executionName(),
+        name: runName(),
         org: sessionId === "" ? args.org : "",
       }),
       spec: createMessage(AgentRunSpecSchema, {
@@ -125,10 +125,10 @@ export async function runAgent(
 
     const command = createClient(AgentRunCommandController, transport);
     try {
-      const created = await command.create(execution, callOptions);
+      const created = await command.create(run, callOptions);
       return toProtoJson(AgentRunSchema, created);
     } catch (err) {
-      throw rpcError(err, `execution of ${desc}`);
+      throw rpcError(err, `run of ${desc}`);
     }
   });
 }
@@ -191,7 +191,7 @@ async function assertSessionRunsAgent(
 /**
  * Convert the tool's plain string map to the proto ExecutionValue map. Values
  * arriving through an MCP tool call have already passed through the model's
- * context, so they are never secrets by definition — secrets reach executions
+ * context, so they are never secrets by definition — secrets reach runs
  * through Environments, not through this tool.
  */
 export function toExecutionValues(
@@ -206,8 +206,8 @@ export function toExecutionValues(
 
 /**
  * Unique-enough placeholder name; the backend owns final identity. Mirrors the
- * CLI's executionName (Go's fmt.Sprintf("execution-%d", UnixMicro())).
+ * CLI's default run name: `run-` and the Unix time in microseconds.
  */
-export function executionName(): string {
-  return `execution-${Date.now() * 1000}`;
+export function runName(): string {
+  return `run-${Date.now() * 1000}`;
 }

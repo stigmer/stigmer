@@ -1,6 +1,6 @@
-// `stigmer execution logs <execution-id>` — view or stream execution logs.
+// `stigmer runs logs <run-id>` — view or stream a run's logs.
 // Thin handler: resolve the client, wire Ctrl-C to abort a follow cleanly, and
-// delegate to resources/execution-logs.ts. Mirrors Go's execution_logs.go.
+// delegate to resources/run-logs.ts. Mirrors Go's execution_logs.go.
 
 import type { Command } from "commander";
 import { ensureAuthenticated } from "../../config/index.js";
@@ -10,19 +10,19 @@ interface LogsFlags {
   task?: string;
 }
 
-export function registerExecutionLogs(execution: Command): void {
-  execution
-    .command("logs <execution-id>")
-    .description("view execution event logs (use --follow to stream)")
+export function registerRunsLogs(runs: Command): void {
+  runs
+    .command("logs <run-id>")
+    .description("view run event logs (use --follow to stream)")
     .option("-f, --follow", "stream live events")
     .option("--task <name>", "filter events by task name (workflow only)")
-    .action((executionId: string, options: LogsFlags) => runLogs(executionId, options));
+    .action((runId: string, options: LogsFlags) => runLogs(runId, options));
 }
 
-async function runLogs(executionId: string, options: LogsFlags): Promise<void> {
-  const [{ connectBackend }, { streamExecutionLogs }] = await Promise.all([
+async function runLogs(runId: string, options: LogsFlags): Promise<void> {
+  const [{ connectBackend }, { streamRunLogs }] = await Promise.all([
     import("../../backend.js"),
-    import("../../resources/execution-logs.js"),
+    import("../../resources/run-logs.js"),
   ]);
 
   const client = connectBackend();
@@ -35,9 +35,9 @@ async function runLogs(executionId: string, options: LogsFlags): Promise<void> {
   process.once("SIGINT", onSignal);
   process.once("SIGTERM", onSignal);
   try {
-    await streamExecutionLogs(
+    await streamRunLogs(
       client.stigmer,
-      { executionId, follow: options.follow === true, task: options.task },
+      { runId, follow: options.follow === true, task: options.task },
       controller.signal,
     );
   } finally {

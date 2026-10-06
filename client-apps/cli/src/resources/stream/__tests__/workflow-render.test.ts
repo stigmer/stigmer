@@ -49,7 +49,7 @@ describe("workflowEventToNdjson", () => {
       payload: { case: "runStarted", value: {} as never },
     });
     const env = workflowEventToNdjson(event);
-    expect(env.type).toBe("execution_started");
+    expect(env.type).toBe("run_started");
     expect(env.ts).toBe("2026-06-12T13:45:09Z");
     expect(env.payload).toEqual({ sequence: 1 });
   });

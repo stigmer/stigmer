@@ -1,4 +1,4 @@
-// Pins readCursorPages, the walk behind `list session` and `list executions`:
+// Pins readCursorPages, the walk behind `list session` and `list runs`:
 // a --limit above the server's page cap takes several reads, a short page
 // that still carries a token is followed, each read asks only for what is
 // missing, and a limit of zero is one whole-list request.

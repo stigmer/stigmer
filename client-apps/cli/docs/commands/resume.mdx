@@ -1,8 +1,8 @@
 Resume an existing session by ID, or browse recent sessions interactively.
 
 `stigmer resume` reconnects you to a previous conversation. If the latest
-execution is still running, you re-attach to the live stream. If all
-executions have completed, you see the full conversation history and can
+run is still in progress, you re-attach to the live stream. If all
+runs have completed, you see the full conversation history and can
 send follow-up messages.
 
 {/* AUTO_USAGE */}
@@ -26,8 +26,8 @@ stigmer resume "deploy staging"
 
 | Scenario | Behavior |
 |----------|----------|
-| Latest execution is running | Re-attach to the live output stream |
-| All executions complete | Display conversation history, accept new messages |
+| Latest run is in progress | Re-attach to the live output stream |
+| All runs complete | Display conversation history, accept new messages |
 | Search text provided | Find sessions by subject, show interactive picker |
 
 Session IDs must be provided in full (e.g., `ses-01abc123xyz456`). Partial
@@ -65,7 +65,7 @@ picker if multiple match.
 
 | Command | Description |
 |---------|-------------|
-| [`stigmer run`](./run) | Start a new agent execution |
+| [`stigmer run`](./run) | Start a new agent run |
 | [`stigmer get`](./get) | Inspect session details |
 | [`stigmer list`](./list) | List all sessions |
 

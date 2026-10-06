@@ -1,4 +1,4 @@
-// Resource creation for the run path: AgentExecution and WorkflowExecution.
+// Resource creation for the run path: AgentRun and WorkflowRun.
 //
 // Ports the Go CLI's run_create.go. We build the full proto messages and drive
 // the generated command controllers directly — the fidelity rule
@@ -55,7 +55,7 @@ export interface AgentRefInput {
 }
 
 /**
- * Inputs for creating an agent execution. The turn's target is one of two
+ * Inputs for creating an agent run. The turn's target is one of two
  * things: sessionId continues an existing conversation (whose agent the
  * session already pins), or a new conversation the backend creates from the
  * embedded session_spec. agentRef names the new conversation's agent; with
@@ -66,7 +66,7 @@ export interface AgentRefInput {
  * workspace and harness are fixed at creation, so with sessionId set they are
  * not sent: the target carries the session id alone.
  */
-export interface CreateAgentExecutionInput {
+export interface CreateAgentRunInput {
   readonly agentRef?: AgentRefInput;
   readonly sessionId?: string;
   readonly orgId: string;
@@ -83,15 +83,15 @@ export interface CreateAgentExecutionInput {
   readonly harness: HarnessFlag;
 }
 
-/** Create an agent execution. Mirrors Go's createAgentExecution. */
-export async function createAgentExecution(
+/** Create an agent run. Mirrors Go's createAgentExecution. */
+export async function createAgentRun(
   controller: ControllerFn,
-  input: CreateAgentExecutionInput,
+  input: CreateAgentRunInput,
 ): Promise<AgentRun> {
-  const execution = create(AgentRunSchema, {
+  const run = create(AgentRunSchema, {
     apiVersion: API_VERSION,
-    kind: "AgentExecution",
-    metadata: create(ApiResourceMetadataSchema, { name: executionName(), org: input.orgId }),
+    kind: "AgentRun",
+    metadata: create(ApiResourceMetadataSchema, { name: runName(), org: input.orgId }),
     spec: create(AgentRunSpecSchema, {
       message: input.message === "" ? "execute" : input.message,
       runtimeEnv: toExecutionValues(input.runtimeEnv),
@@ -105,11 +105,11 @@ export async function createAgentExecution(
       interactionMode: input.mode === "plan" ? InteractionMode.PLAN : InteractionMode.UNSPECIFIED,
     }),
   });
-  return controller(AgentRunCommandController).create(execution);
+  return controller(AgentRunCommandController).create(run);
 }
 
-/** Inputs for creating a workflow execution. */
-export interface CreateWorkflowExecutionInput {
+/** Inputs for creating a workflow run. */
+export interface CreateWorkflowRunInput {
   readonly workflowId: string;
   readonly orgId: string;
   readonly message: string;
@@ -117,31 +117,31 @@ export interface CreateWorkflowExecutionInput {
 }
 
 /**
- * Create a workflow execution. Mirrors Go's createWorkflowExecution. The caller
- * either detaches (prints IDs) or streams the execution live over the canonical
+ * Create a workflow run. Mirrors Go's createWorkflowExecution. The caller
+ * either detaches (prints IDs) or streams the run live over the canonical
  * event stream (resources/run/workflow-stream.ts).
  */
-export async function createWorkflowExecution(
+export async function createWorkflowRun(
   controller: ControllerFn,
-  input: CreateWorkflowExecutionInput,
+  input: CreateWorkflowRunInput,
 ): Promise<WorkflowRun> {
-  const execution = create(WorkflowRunSchema, {
+  const run = create(WorkflowRunSchema, {
     apiVersion: API_VERSION,
-    kind: "WorkflowExecution",
-    metadata: create(ApiResourceMetadataSchema, { name: executionName(), org: input.orgId }),
+    kind: "WorkflowRun",
+    metadata: create(ApiResourceMetadataSchema, { name: runName(), org: input.orgId }),
     spec: create(WorkflowRunSpecSchema, {
       workflowId: input.workflowId,
       triggerMessage: input.message === "" ? "execute" : input.message,
       runtimeEnv: toExecutionValues(input.runtimeEnv),
     }),
   });
-  return controller(WorkflowRunCommandController).create(execution);
+  return controller(WorkflowRunCommandController).create(run);
 }
 
 // The turn's target: an existing session by id, or the session_spec of the
 // conversation the backend creates for it. An unset target is a new
 // conversation with the built-in assistant.
-function buildTarget(input: CreateAgentExecutionInput): AgentRunSpec["target"] {
+function buildTarget(input: CreateAgentRunInput): AgentRunSpec["target"] {
   const sessionId = input.sessionId ?? "";
   if (sessionId !== "") return { case: "sessionId", value: sessionId };
   const sessionSpec = buildSessionSpec(input.agentRef, input.workspaceEntries, input.harness);
@@ -159,7 +159,7 @@ function buildTarget(input: CreateAgentExecutionInput): AgentRunSpec["target"] {
 // (server defaults to native). Subject is left empty: the server defaults its
 // sentinel and the async title activity replaces it. The server clones this
 // spec onto the auto-created session and then clears it from the persisted
-// execution — the Session resource stays the single source of truth.
+// run — the Session resource stays the single source of truth.
 function buildSessionSpec(
   agentRef: AgentRefInput | undefined,
   workspaceEntries: readonly WorkspaceEntry[],
@@ -211,8 +211,9 @@ function toExecutionValues(env: RuntimeEnv): Record<string, ExecutionValue> {
   return out;
 }
 
-// Unique-enough placeholder name; the backend owns final identity. Mirrors Go's
-// fmt.Sprintf("execution-%d", time.Now().UnixMicro()).
-function executionName(): string {
-  return `execution-${Date.now() * 1000}`;
+// Unique-enough placeholder name; the backend owns final identity. Go's CLI
+// used fmt.Sprintf("execution-%d", time.Now().UnixMicro()); the prefix now
+// says run.
+function runName(): string {
+  return `run-${Date.now() * 1000}`;
 }

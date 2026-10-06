@@ -1,4 +1,4 @@
-// Example: Streaming an agent execution.
+// Example: Streaming an agent run.
 //
 // This shows how to start a conversation on an agent and subscribe to
 // real-time updates. The new conversation names the agent by reference; the
@@ -14,7 +14,7 @@ import (
 	stigmer "github.com/stigmer/stigmer/sdk/go/v3"
 )
 
-func StreamingExecution() {
+func StreamingRun() {
 	ctx := context.Background()
 
 	client, err := stigmer.NewClient(stigmer.WithAPIKey("sk_live_your_api_key"))
@@ -23,7 +23,7 @@ func StreamingExecution() {
 	}
 	defer client.Close()
 
-	exec, err := client.AgentRun.Create(ctx, &stigmer.AgentRunInput{
+	run, err := client.AgentRun.Create(ctx, &stigmer.AgentRunInput{
 		SessionSpec: &stigmer.SessionSpecInput{
 			AgentRef: stigmer.ResourceRef{Org: "my-org", Slug: "code-reviewer"},
 		},
@@ -37,9 +37,9 @@ func StreamingExecution() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Created execution: %s\n", exec.GetMetadata().GetId())
+	fmt.Printf("Created run: %s\n", run.GetMetadata().GetId())
 
-	stream, err := client.AgentRun.Subscribe(ctx, exec.GetMetadata().GetId())
+	stream, err := client.AgentRun.Subscribe(ctx, run.GetMetadata().GetId())
 	if err != nil {
 		log.Fatal(err)
 	}

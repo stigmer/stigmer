@@ -13,8 +13,8 @@ class RunnerAdapterTest {
     static class MockRunnerAdapter implements RunnerAdapter {
         final List<String> sessionsOpened = new ArrayList<>();
         final List<String> sessionsClosed = new ArrayList<>();
-        final List<String> executionsCreated = new ArrayList<>();
-        final List<String> executionsTerminated = new ArrayList<>();
+        final List<String> runsCreated = new ArrayList<>();
+        final List<String> runsTerminated = new ArrayList<>();
 
         @Override
         public void onSessionOpened(String sessionId) {
@@ -27,13 +27,13 @@ class RunnerAdapterTest {
         }
 
         @Override
-        public void onWorkflowExecutionCreated(String executionId) {
-            executionsCreated.add(executionId);
+        public void onWorkflowRunCreated(String runId) {
+            runsCreated.add(runId);
         }
 
         @Override
-        public void onWorkflowExecutionTerminated(String executionId) {
-            executionsTerminated.add(executionId);
+        public void onWorkflowRunTerminated(String runId) {
+            runsTerminated.add(runId);
         }
     }
 
@@ -44,13 +44,13 @@ class RunnerAdapterTest {
         adapter.onSessionOpened("ses-1");
         adapter.onSessionOpened("ses-2");
         adapter.onSessionClosed("ses-1");
-        adapter.onWorkflowExecutionCreated("wfexec-1");
-        adapter.onWorkflowExecutionTerminated("wfexec-1");
+        adapter.onWorkflowRunCreated("wfexec-1");
+        adapter.onWorkflowRunTerminated("wfexec-1");
 
         assertEquals(List.of("ses-1", "ses-2"), adapter.sessionsOpened);
         assertEquals(List.of("ses-1"), adapter.sessionsClosed);
-        assertEquals(List.of("wfexec-1"), adapter.executionsCreated);
-        assertEquals(List.of("wfexec-1"), adapter.executionsTerminated);
+        assertEquals(List.of("wfexec-1"), adapter.runsCreated);
+        assertEquals(List.of("wfexec-1"), adapter.runsTerminated);
     }
 
     @Test
@@ -79,16 +79,16 @@ class RunnerAdapterTest {
             @Override
             public void onSessionClosed(String sessionId) {}
             @Override
-            public void onWorkflowExecutionCreated(String executionId) {}
+            public void onWorkflowRunCreated(String runId) {}
             @Override
-            public void onWorkflowExecutionTerminated(String executionId) {}
+            public void onWorkflowRunTerminated(String runId) {}
         };
 
         assertDoesNotThrow(() -> {
             adapter.onSessionOpened("test");
             adapter.onSessionClosed("test");
-            adapter.onWorkflowExecutionCreated("test");
-            adapter.onWorkflowExecutionTerminated("test");
+            adapter.onWorkflowRunCreated("test");
+            adapter.onWorkflowRunTerminated("test");
         });
     }
 }

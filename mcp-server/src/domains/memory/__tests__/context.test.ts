@@ -15,7 +15,7 @@ const startup: CaptureContext = {
   org: "env-org",
   agentId: "agt_env",
   sessionId: "ses_env",
-  agentExecutionId: "aex_env",
+  agentRunId: "aex_env",
 };
 
 describe("loadCaptureContextFromEnv", () => {
@@ -30,7 +30,7 @@ describe("loadCaptureContextFromEnv", () => {
       org: "acme",
       agentId: "agt_1",
       sessionId: "ses_1",
-      agentExecutionId: "aex_1",
+      agentRunId: "aex_1",
     });
   });
 
@@ -63,7 +63,7 @@ describe("resolveCaptureContext", () => {
       org: "acme",
       agentId: "agt_http",
       sessionId: "ses_http",
-      agentExecutionId: "aex_http",
+      agentRunId: "aex_http",
     });
   });
 
@@ -74,7 +74,7 @@ describe("resolveCaptureContext", () => {
       { requestInfo: { headers: { "x-stigmer-memory-org": "acme" } } },
       startup,
     );
-    expect(ctx).toEqual({ org: "acme", agentId: "", sessionId: "", agentExecutionId: "" });
+    expect(ctx).toEqual({ org: "acme", agentId: "", sessionId: "", agentRunId: "" });
   });
 
   it("looks headers up case-insensitively and collapses Node's array form", () => {

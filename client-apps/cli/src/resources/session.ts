@@ -17,11 +17,11 @@ export async function getSessionById(client: Stigmer, sessionId: string): Promis
 }
 
 /**
- * List a session's executions, newest-first (the backend's order). The RPC
- * returns a session's executions whole, so one call is the complete set.
+ * List a session's runs, newest-first (the backend's order). The RPC
+ * returns a session's runs whole, so one call is the complete set.
  * Returns the raw entries for resume to inspect.
  */
-export async function listExecutionsBySession(client: Stigmer, sessionId: string): Promise<AgentRun[]> {
+export async function listRunsBySession(client: Stigmer, sessionId: string): Promise<AgentRun[]> {
   const list = await client.agentRun.listBySession(create(ListAgentRunsBySessionRequestSchema, { sessionId }));
   return list.entries;
 }

@@ -1,8 +1,8 @@
-// Shared, presentation-only formatters for execution output.
+// Shared, presentation-only formatters for run output.
 //
 // These mirror helpers in Go's pkg/display + internal/cli/execution (duration
 // math, ellipsis truncation, workflow task-type labels). They live here, away
-// from any RPC code, so both `execution trace` and the `run workflow` epilogue
+// from any RPC code, so both `runs trace` and the `run workflow` epilogue
 // format durations and task types identically without duplicating the logic.
 
 import { WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";

@@ -102,9 +102,9 @@ const BASE_FLAGS: AgentExecFlags = {
   harness: "",
 };
 
-// prepareAgentExec only touches client.agentExecution for attachment uploads;
+// prepareAgentExec only touches client.agentRun for attachment uploads;
 // with no attachments a bare stub suffices.
-const STUB_CLIENT = { agentExecution: {} } as unknown as Stigmer;
+const STUB_CLIENT = { agentRun: {} } as unknown as Stigmer;
 
 /** The shape of IdentityAccountPreferences the stubs below expose. */
 interface StubPreferences {
@@ -116,7 +116,7 @@ interface StubPreferences {
 /** Stub whose whoAmI resolves an account carrying the given preferences. */
 function clientWithPreferences(preferences: StubPreferences): Stigmer {
   return {
-    agentExecution: {},
+    agentRun: {},
     identityAccount: {
       whoAmI: () => Promise.resolve({ spec: { preferences } }),
     },
@@ -131,7 +131,7 @@ function clientWithPreference(defaultNativeModel: string): Stigmer {
 /** Stub whose whoAmI rejects (auth failure, backend without the RPC, ...). */
 function clientWithFailingWhoAmI(): Stigmer {
   return {
-    agentExecution: {},
+    agentRun: {},
     identityAccount: {
       whoAmI: () => Promise.reject(new Error("unimplemented")),
     },
@@ -142,7 +142,7 @@ function clientWithFailingWhoAmI(): Stigmer {
 function countingClient(preferences: StubPreferences): { client: Stigmer; calls: () => number } {
   let calls = 0;
   const client = {
-    agentExecution: {},
+    agentRun: {},
     identityAccount: {
       whoAmI: () => {
         calls += 1;

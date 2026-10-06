@@ -1,15 +1,15 @@
-// `stigmer execution approve <execution-id>` — submit an approval decision.
+// `stigmer runs approve <run-id>` — submit an approval decision.
 //
-// Workflow executions (wex_) approve a task: --task (required) + --outcome, with
-// optional --comment and --data-file (form data). Agent executions (aex_) approve
-// a tool call: --tool-call (required) + --action, with optional --comment.
-// Thin handler: validate required flags, delegate to resources/execution-approve.ts.
+// Workflow runs (wex_) approve a task: --task (required) + --outcome, with
+// optional --comment and --data-file (form data). Agent runs (aex_) approve a
+// tool call: --tool-call (required) + --action, with optional --comment.
+// Thin handler: validate required flags, delegate to resources/run-approve.ts.
 // Mirrors Go's execution_approve.go.
 
 import type { Command } from "commander";
 import { ensureAuthenticated } from "../../config/index.js";
 import { UsageError } from "../../errors/index.js";
-import { resolveExecutionType } from "../../resources/execution.js";
+import { resolveRunType } from "../../resources/runs.js";
 
 interface ApproveFlags {
   task?: string;
@@ -20,26 +20,26 @@ interface ApproveFlags {
   action?: string;
 }
 
-export function registerExecutionApprove(execution: Command): void {
-  execution
-    .command("approve <execution-id>")
-    .description("submit approval for a waiting execution")
-    .option("--task <name>", "task name to approve (workflow executions)")
-    .option("--outcome <outcome>", "approval outcome (workflow executions)", "approve")
+export function registerRunsApprove(runs: Command): void {
+  runs
+    .command("approve <run-id>")
+    .description("submit approval for a waiting run")
+    .option("--task <name>", "task name to approve (workflow runs)")
+    .option("--outcome <outcome>", "approval outcome (workflow runs)", "approve")
     .option("--comment <comment>", "approval comment")
-    .option("--data-file <path>", "JSON file with form data (workflow executions)")
-    .option("--tool-call <id>", "tool call ID to approve (agent executions)")
-    .option("--action <action>", "approval action: approve or deny (agent executions)", "approve")
-    .action((executionId: string, options: ApproveFlags) => runApprove(executionId, options));
+    .option("--data-file <path>", "JSON file with form data (workflow runs)")
+    .option("--tool-call <id>", "tool call ID to approve (agent runs)")
+    .option("--action <action>", "approval action: approve or deny (agent runs)", "approve")
+    .action((runId: string, options: ApproveFlags) => runApprove(runId, options));
 }
 
-async function runApprove(executionId: string, options: ApproveFlags): Promise<void> {
+async function runApprove(runId: string, options: ApproveFlags): Promise<void> {
   // Resolve type before any network call so a bad ID fails fast with guidance.
-  const type = resolveExecutionType(executionId);
+  const type = resolveRunType(runId);
 
   const [{ connectBackend }, approve, { CommandResult, renderResult }] = await Promise.all([
     import("../../backend.js"),
-    import("../../resources/execution-approve.js"),
+    import("../../resources/run-approve.js"),
     import("../../output/command-result.js"),
   ]);
 
@@ -48,11 +48,11 @@ async function runApprove(executionId: string, options: ApproveFlags): Promise<v
 
   if (type === "workflow") {
     if (options.task === undefined || options.task === "") {
-      throw new UsageError("--task is required for workflow execution approvals");
+      throw new UsageError("--task is required for workflow run approvals");
     }
     const outcome = options.outcome ?? "approve";
     await approve.approveWorkflowTask(client.stigmer, {
-      executionId,
+      runId,
       taskName: options.task,
       outcome,
       comment: options.comment ?? "",
@@ -63,11 +63,11 @@ async function runApprove(executionId: string, options: ApproveFlags): Promise<v
   }
 
   if (options.toolCall === undefined || options.toolCall === "") {
-    throw new UsageError("--tool-call is required for agent execution approvals");
+    throw new UsageError("--tool-call is required for agent run approvals");
   }
   const action = options.action ?? "approve";
   await approve.approveAgentToolCall(client.stigmer, {
-    executionId,
+    runId,
     toolCallId: options.toolCall,
     action,
     comment: options.comment ?? "",

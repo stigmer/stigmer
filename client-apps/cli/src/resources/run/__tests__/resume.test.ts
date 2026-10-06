@@ -20,9 +20,9 @@ const tty = vi.hoisted(() => ({ supported: false }));
 
 vi.mock("../../session.js", () => ({
   getSessionById: session.get,
-  listExecutionsBySession: session.executions,
+  listRunsBySession: session.executions,
 }));
-vi.mock("../stream.js", () => ({ streamAgentExecution: stream }));
+vi.mock("../stream.js", () => ({ streamAgentRun: stream }));
 vi.mock("../../stream/ink.js", () => ({ runInkSession: ink }));
 vi.mock("../../stream/tty.js", () => ({ isInkSupported: () => tty.supported }));
 

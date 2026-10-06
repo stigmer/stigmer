@@ -1,7 +1,7 @@
 // NDJSON renderer for workflow events (`run workflow --json`).
 //
 // Emits one `{type, ts, payload}` envelope per event, where `type` is the
-// canonical WorkflowEventType name (e.g. "execution_started") — the server's
+// canonical WorkflowEventType name (e.g. "run_started") — the server's
 // own vocabulary, not a CLI invention. This is the machine-readable workflow
 // stream that the Go CLI never produced: Go's `run workflow --json` flag was
 // silently ignored.

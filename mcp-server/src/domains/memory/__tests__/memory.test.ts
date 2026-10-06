@@ -113,7 +113,7 @@ beforeAll(async () => {
   // runner-set STIGMER_MEMORY_* environment.
   const mcp = createMemoryServer(
     { serverAddress: `127.0.0.1:${port}`, apiKey: "" },
-    { org: "acme", agentId: "agt_1", sessionId: "ses_1", agentExecutionId: "aex_1" },
+    { org: "acme", agentId: "agt_1", sessionId: "ses_1", agentRunId: "aex_1" },
   );
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   client = new Client({ name: "memory-integration", version: "test" });

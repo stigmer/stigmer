@@ -15,7 +15,7 @@ import { toWorkflowEventView, workflowEventTypeName } from "../workflow-event-vi
 
 describe("workflowEventTypeName", () => {
   it("returns the canonical proto name for the type", () => {
-    expect(workflowEventTypeName(WorkflowEventType.run_started)).toBe("execution_started");
+    expect(workflowEventTypeName(WorkflowEventType.run_started)).toBe("run_started");
     expect(workflowEventTypeName(WorkflowEventType.approval_requested)).toBe("approval_requested");
   });
 });
@@ -49,7 +49,7 @@ describe("toWorkflowEventView", () => {
     const view = toWorkflowEventView(failed);
     expect(view.terminal).toBe(true);
     expect(view.tone).toBe("error");
-    expect(view.text).toBe("execution failed: boom");
+    expect(view.text).toBe("run failed: boom");
   });
 
   it("does not mark task/lifecycle non-terminal events as terminal", () => {

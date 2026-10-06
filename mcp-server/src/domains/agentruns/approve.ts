@@ -1,11 +1,10 @@
-// Agent-execution approval path: submit a decision for a tool call the
-// execution is waiting on (AgentExecutionCommandController.submitApproval).
+// Agent-run approval path: submit a decision for a tool call the run is
+// waiting on (AgentRunCommandController.submitApproval).
 //
-// Pending approvals surface in get_agent_execution's
-// status.pending_approvals[] — there is no org-wide inbox for agent
-// executions (that exists only for workflow human_input tasks, see
-// workflowexecutions/approvals.ts). The response reuses the compact
-// projection: the returned AgentExecution embeds the full message history,
+// Pending approvals surface in get_agent_run's status.pending_approvals[] —
+// there is no org-wide inbox for agent runs (that exists only for workflow
+// human_input tasks, see workflowruns/approvals.ts). The response reuses the
+// compact projection: the returned AgentRun embeds the full message history,
 // which the approval loop doesn't need.
 
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
@@ -13,7 +12,7 @@ import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/ag
 
 import { withClient } from "../client.js";
 import { rpcError } from "../rpcerr.js";
-import { compactExecutionJson, DEFAULT_MESSAGE_LIMIT } from "./fetch.js";
+import { compactRunJson, DEFAULT_MESSAGE_LIMIT } from "./fetch.js";
 
 /**
  * Model-facing action spelling → proto enum. APPROVE_ALL is deliberately not
@@ -27,13 +26,13 @@ const APPROVAL_ACTIONS: Readonly<Record<string, ApprovalAction>> = {
 };
 
 export interface SubmitAgentApprovalArgs {
-  readonly executionId: string;
+  readonly runId: string;
   readonly toolCallId: string;
   readonly action: string;
   readonly comment?: string;
 }
 
-/** Submit an approval decision; returns the execution in the compact view. */
+/** Submit an approval decision; returns the run in the compact view. */
 export async function submitAgentApproval(
   serverAddress: string,
   token: string,
@@ -49,18 +48,18 @@ export async function submitAgentApproval(
     token,
     async (client, callOptions) => {
       try {
-        const execution = await client.submitApproval(
+        const run = await client.submitApproval(
           {
-            agentRunId: args.executionId,
+            agentRunId: args.runId,
             toolCallId: args.toolCallId,
             action,
             comment: args.comment ?? "",
           },
           callOptions,
         );
-        return compactExecutionJson(execution, DEFAULT_MESSAGE_LIMIT);
+        return compactRunJson(run, DEFAULT_MESSAGE_LIMIT);
       } catch (err) {
-        throw rpcError(err, `approval for agent execution "${args.executionId}"`);
+        throw rpcError(err, `approval for agent run "${args.runId}"`);
       }
     },
   );

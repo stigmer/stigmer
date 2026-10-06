@@ -1,4 +1,4 @@
-// The agent-execution prelude: validate flags and resolve every input the
+// The agent-run prelude: validate flags and resolve every input the
 // create step needs. Ports the Go CLI's prepareAgentExec (run_agent_exec.go).
 //
 // Order matters and mirrors Go: validate cheap flags first (mode, approve
@@ -120,7 +120,7 @@ export interface PrepareAgentExecOptions {
 }
 
 /**
- * Validate flags and resolve all execution inputs. The `org` is used to inject
+ * Validate flags and resolve all run inputs. The `org` is used to inject
  * STIGMER_ORG and the `client` to upload non-workspace attachments.
  */
 export async function prepareAgentExec(

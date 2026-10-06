@@ -1,5 +1,5 @@
 // Scenario tests for the snapshot→event differ. Each test drives a sequence of
-// AgentExecution snapshots through a single SnapshotDiffer and asserts the
+// AgentRun snapshots through a single SnapshotDiffer and asserts the
 // resulting event sequence — the wire-parity contract with Go's streamToEvents.
 
 import { create } from "@bufbuild/protobuf";

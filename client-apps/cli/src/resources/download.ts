@@ -1,4 +1,4 @@
-// `download execution`: stream an execution's artifacts to disk via short-lived
+// `download run`: stream a run's artifacts to disk via short-lived
 // presigned URLs. Partial-failure tolerant — a failed artifact is reported and
 // skipped, never aborting the batch (mirrors Go's downloadExecutionArtifacts).
 
@@ -24,7 +24,7 @@ export interface DownloadOutcome {
   readonly total: number;
   readonly downloaded: number;
   readonly noArtifacts: boolean;
-  /** Set when the execution is not yet terminal (a soft warning, not an error). */
+  /** Set when the run is not yet terminal (a soft warning, not an error). */
   readonly incompletePhase?: string;
 }
 
@@ -38,20 +38,20 @@ const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
   RunPhase.RUN_TERMINATED,
 ]);
 
-export async function downloadExecutionArtifacts(
+export async function downloadRunArtifacts(
   client: Stigmer,
-  executionId: string,
+  runId: string,
   params: DownloadParams,
   progress?: ProgressSink,
 ): Promise<DownloadOutcome> {
-  const execution = await client.agentRun.get(executionId);
-  const phase = execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
+  const run = await client.agentRun.get(runId);
+  const phase = run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   const incompletePhase = TERMINAL_PHASES.has(phase) ? undefined : formatDownloadPhase(phase);
   if (incompletePhase !== undefined) {
-    progress?.(`Execution is still ${incompletePhase}. Artifacts may not be complete until execution finishes.`);
+    progress?.(`Run is still ${incompletePhase}. Artifacts may not be complete until the run finishes.`);
   }
 
-  let artifacts = execution.status?.artifacts ?? [];
+  let artifacts = run.status?.artifacts ?? [];
   if (artifacts.length === 0) {
     return { total: 0, downloaded: 0, noArtifacts: true, incompletePhase };
   }
@@ -61,7 +61,7 @@ export async function downloadExecutionArtifacts(
     if (artifacts.length === 0) {
       throw new CliExitError(
         `artifact not found: ${params.artifactName}\n\n` +
-          `Use 'stigmer get execution ${executionId}' to see available artifacts`,
+          `Use 'stigmer get run ${runId}' to see available artifacts`,
         ExitCode.General,
       );
     }
@@ -72,7 +72,7 @@ export async function downloadExecutionArtifacts(
   let downloaded = 0;
   for (const artifact of artifacts) {
     try {
-      const written = await downloadSingle(client, executionId, artifact, params.outputDir, progress);
+      const written = await downloadSingle(client, runId, artifact, params.outputDir, progress);
       progress?.(`  Downloaded ${artifact.name} (${formatBytes(written)})`);
       downloaded++;
     } catch (err) {
@@ -85,12 +85,12 @@ export async function downloadExecutionArtifacts(
 
 async function downloadSingle(
   client: Stigmer,
-  executionId: string,
+  runId: string,
   artifact: RunArtifact,
   outputDir: string,
   progress?: ProgressSink,
 ): Promise<number> {
-  const url = await resolveDownloadUrl(client, executionId, artifact);
+  const url = await resolveDownloadUrl(client, runId, artifact);
   const destPath = join(outputDir, artifact.name);
   mkdirSync(dirname(destPath), { recursive: true });
 
@@ -122,9 +122,9 @@ async function downloadSingle(
  * There is deliberately no cached-URL fallback: a persisted URL would have
  * expired, so the refresh RPC is the single source of a working URL.
  */
-async function resolveDownloadUrl(client: Stigmer, executionId: string, artifact: RunArtifact): Promise<string> {
+async function resolveDownloadUrl(client: Stigmer, runId: string, artifact: RunArtifact): Promise<string> {
   const response = await client.agentRun.getArtifactDownloadUrl(
-    create(GetArtifactDownloadUrlRequestSchema, { runId: executionId, storageKey: artifact.storageKey }),
+    create(GetArtifactDownloadUrlRequestSchema, { runId, storageKey: artifact.storageKey }),
   );
   if (response.downloadUrl !== "") return response.downloadUrl;
   throw new Error("failed to get download URL");

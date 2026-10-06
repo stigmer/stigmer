@@ -60,7 +60,7 @@ Every resource type has a typed client accessible as a method on `StigmerClient`
 | Method                   | Resource           |
 |--------------------------|--------------------|
 | `agents()`               | Agent              |
-| `agentExecutions()`      | AgentExecution     |
+| `agentRuns()`            | AgentRun           |
 | `apiKeys()`              | ApiKey             |
 | `environments()`         | Environment        |
 | `executionContexts()`    | ExecutionContext    |
@@ -72,7 +72,7 @@ Every resource type has a typed client accessible as a method on `StigmerClient`
 | `sessions()`             | Session            |
 | `skills()`               | Skill              |
 | `workflows()`            | Workflow           |
-| `workflowExecutions()`   | WorkflowExecution  |
+| `workflowRuns()`         | WorkflowRun        |
 | `search()`               | Cross-resource search |
 | `billing()`              | Credit balance, ledger, and Stripe billing |
 

@@ -88,15 +88,15 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
   ],
   [
     ApiResourceKind.agent_run,
-    { name: "AgentExecution", displayName: "Agent Execution", idPrefix: "aex" },
+    { name: "AgentRun", displayName: "Agent Run", idPrefix: "aex" },
   ],
 ]);
 
 // Kinds that are user-facing in the CLI and therefore registered as addressable
 // types. (Inherited from the Go CLI's `cliRelevantKinds`, removed in the
-// TypeScript migration — stigmer/stigmer#203.) Note: agent_execution is
+// TypeScript migration — stigmer/stigmer#203.) Note: agent_run is
 // intentionally excluded — it is driven through its dedicated
-// AgentExecutionQueryController RPCs as a command special-case, not the generic
+// AgentRunQueryController RPCs as a command special-case, not the generic
 // verb dispatch, even though it carries kind metadata above and a verb-support
 // entry below.
 export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [

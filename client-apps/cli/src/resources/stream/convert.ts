@@ -81,7 +81,7 @@ export function convertProtoTodos(todos: Record<string, TodoItem>): TodoItemView
   }));
 }
 
-/** Map an ExecutionPhase to its differ string. Mirrors Go's mapPhaseToString. */
+/** Map a RunPhase to its differ string. Mirrors Go's mapPhaseToString. */
 export function mapPhaseToString(phase: RunPhase): string {
   switch (phase) {
     case RunPhase.RUN_PENDING:
@@ -147,7 +147,7 @@ export function mapSummarizationSource(source: SummarizationSource): string {
     case SummarizationSource.graph_start:
       return "graph_start";
     case SummarizationSource.mid_run:
-      return "mid_execution";
+      return "mid_run";
     default:
       return "unknown";
   }
@@ -197,9 +197,9 @@ export function sanitizeSystemContent(content: string): string {
   const idx = content.indexOf("Error code:");
   if (idx > 0) {
     const prefix = content.slice(0, idx).trim().replace(/[:\-\s]+$/, "");
-    if (prefix !== "") return `${prefix} (internal error — check execution logs for details)`;
+    if (prefix !== "") return `${prefix} (internal error — check run logs for details)`;
   }
-  return "Agent execution encountered an internal error. Check execution logs for details.";
+  return "Agent run encountered an internal error. Check run logs for details.";
 }
 
 /** True when the system message looks like an approval-received acknowledgement. Mirrors Go's isApprovalNoiseMessage. */

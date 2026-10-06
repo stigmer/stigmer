@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { classify, ExitCode } from "../../errors/index.js";
-import { readFormData } from "../execution-approve.js";
+import { readFormData } from "../run-approve.js";
 
 const dirs: string[] = [];
 

@@ -3,7 +3,7 @@
 // Stands up a real Connect backend over h2c serving the query *and* command
 // controllers these verbs call, points an SDK node client at it, and drives the
 // resource layer (planDelete → perform, tagVersion for workflows and agents) end to end. Asserts the
-// rendered result shape, the special-case routing (execution→cancel,
+// rendered result shape, the special-case routing (run→cancel,
 // already-terminal), and that backend errors map to the right CLI exit code.
 
 import { create } from "@bufbuild/protobuf";
@@ -79,7 +79,7 @@ const knownSchedule = create(ScheduleSchema, {
   metadata: { name: "daily-fee-reminders", slug: "daily-fee-reminders", org: "acme", id: "sch_1" },
 });
 
-// Pending execution (cancellable) vs. an already-terminal one.
+// Pending run (cancellable) vs. an already-terminal one.
 const pendingExecution = create(AgentRunSchema, {
   metadata: { id: "aex_run" },
   status: { phase: RunPhase.RUN_PENDING },
@@ -328,7 +328,7 @@ describe("delete (standard kinds)", () => {
       "agentchannel",
       "channelapp",
       "schedule",
-      "execution",
+      "run",
       "organization",
     ]) {
       expect(message).toContain(wired);
@@ -408,29 +408,29 @@ describe("delete (cutover kinds: environment, agent channel, channel app)", () =
   });
 });
 
-describe("delete execution (cancel special case)", () => {
-  it("cancels a non-terminal execution", async () => {
-    const plan = await planDelete(client, "execution", "aex_run", "");
+describe("delete run (cancel special case)", () => {
+  it("cancels a non-terminal run", async () => {
+    const plan = await planDelete(client, "run", "aex_run", "");
     expect(plan.confirmPrompt).toContain("cancellation");
 
     const result = await plan.perform();
     expect(result.status).toBe("success");
-    expect(result.message).toBe("Execution cancelled successfully");
+    expect(result.message).toBe("Run cancelled successfully");
     expect(result.sections[0].fields).toContainEqual({ key: "Status", value: "cancelled" });
     expect(cancelCalls).toEqual(["aex_run"]);
   });
 
-  it("reports an already-terminal execution without issuing a cancel", async () => {
-    const plan = await planDelete(client, "execution", "aex_done", "");
+  it("reports an already-terminal run without issuing a cancel", async () => {
+    const plan = await planDelete(client, "run", "aex_done", "");
     const result = await plan.perform();
     expect(result.status).toBe("warning");
-    expect(result.message).toBe("Execution was already in terminal state");
+    expect(result.message).toBe("Run was already in terminal state");
     expect(result.sections[0].fields).toContainEqual({ key: "Status", value: "completed" });
     expect(cancelCalls).toEqual([]);
   });
 
-  it("rejects a non-execution ID with a usage error", async () => {
-    const err = await planDelete(client, "execution", "agt_1", "").catch((e) => e);
+  it("rejects a non-run ID with a usage error", async () => {
+    const err = await planDelete(client, "run", "agt_1", "").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
   });
 });

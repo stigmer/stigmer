@@ -1,6 +1,6 @@
 // `stigmer get <type> <reference>` — fetch a single resource.
 //
-// Thin handler: route the two non-registry special cases (executions, addressed
+// Thin handler: route the two non-registry special cases (runs, addressed
 // by `aex_`/`wex_` ID; workflow and agent version history/retrieval) first, then the
 // registry-driven standard path. Heavy modules (backend client, SDK schemas)
 // are dynamically imported inside the action so `--help` stays fast.
@@ -34,9 +34,9 @@ export function registerGet(program: Command): void {
 }
 
 async function runGet(type: string, reference: string, options: GetFlags, command: Command): Promise<void> {
-  const { isExecutionAlias } = await import("../resources/execution.js");
-  if (isExecutionAlias(type)) {
-    await runGetExecution(reference, options, command);
+  const { isRunAlias } = await import("../resources/runs.js");
+  if (isRunAlias(type)) {
+    await runGetRun(reference, options, command);
     return;
   }
 
@@ -100,21 +100,21 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
   process.stdout.write(renderResource(schema, message, format, { hideOrg, orgLabel }));
 }
 
-async function runGetExecution(reference: string, options: GetFlags, command: Command): Promise<void> {
-  const [{ connectBackend }, { getExecution }, { renderResource }] = await Promise.all([
+async function runGetRun(reference: string, options: GetFlags, command: Command): Promise<void> {
+  const [{ connectBackend }, { getRun }, { renderResource }] = await Promise.all([
     import("../backend.js"),
-    import("../resources/execution.js"),
+    import("../resources/runs.js"),
     import("../resources/render.js"),
   ]);
 
   const client = connectBackend();
   ensureAuthenticated(client.config);
-  // Executions are addressed by ID; org context is irrelevant. `getExecution`
+  // Runs are addressed by ID; org context is irrelevant. `getRun`
   // resolves agent-vs-workflow by prefix and throws a usage error otherwise.
   void globalOrg(command);
 
   const [{ schema, message }, hideOrg] = await Promise.all([
-    getExecution(client.stigmer, reference),
+    getRun(client.stigmer, reference),
     omitsOrganization(client.stigmer),
   ]);
   const format = readFormat(options);

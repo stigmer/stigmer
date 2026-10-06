@@ -1,4 +1,4 @@
-// `execution approve` — submit an approval decision for a waiting execution.
+// `runs approve` — submit an approval decision for a waiting run.
 //
 // Mirrors Go's execution.ApproveWorkflow / ApproveAgent (approve.go), with two
 // deliberate corrections over the Go behavior:
@@ -21,7 +21,7 @@ import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 
 export interface ApproveWorkflowOptions {
-  readonly executionId: string;
+  readonly runId: string;
   readonly taskName: string;
   readonly outcome: string;
   readonly comment: string;
@@ -32,7 +32,7 @@ export interface ApproveWorkflowOptions {
 export async function approveWorkflowTask(client: Stigmer, opts: ApproveWorkflowOptions): Promise<void> {
   await client.workflowRun.submitWorkflowTaskApproval(
     create(SubmitWorkflowTaskApprovalInputSchema, {
-      runId: opts.executionId,
+      runId: opts.runId,
       taskName: opts.taskName,
       outcome: opts.outcome,
       comment: opts.comment,
@@ -42,7 +42,7 @@ export async function approveWorkflowTask(client: Stigmer, opts: ApproveWorkflow
 }
 
 export interface ApproveAgentOptions {
-  readonly executionId: string;
+  readonly runId: string;
   readonly toolCallId: string;
   readonly action: string;
   readonly comment: string;
@@ -52,7 +52,7 @@ export interface ApproveAgentOptions {
 export async function approveAgentToolCall(client: Stigmer, opts: ApproveAgentOptions): Promise<void> {
   await client.agentRun.submitApproval(
     create(SubmitApprovalInputSchema, {
-      agentRunId: opts.executionId,
+      agentRunId: opts.runId,
       toolCallId: opts.toolCallId,
       action: resolveApprovalAction(opts.action),
       comment: opts.comment,

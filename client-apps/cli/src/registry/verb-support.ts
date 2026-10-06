@@ -67,7 +67,7 @@ export const VERB_SUPPORT: ReadonlyMap<
     ]),
   ],
   [ApiResourceKind.api_key, new Set<Verb>([Verb.Get, Verb.List, Verb.Delete])],
-  // agent_execution is special — uses dedicated AgentExecutionQueryController
+  // agent_run is special — uses dedicated AgentRunQueryController
   // RPCs, not the unified SearchService. delete maps to cancel.
   [
     ApiResourceKind.agent_run,

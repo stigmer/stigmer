@@ -1,10 +1,10 @@
-// Workflow-execution start path for the run_workflow tool.
+// Workflow-run start path for the run_workflow tool.
 //
 // Mirrors the CLI's workflow run branch (client-apps/cli/src/commands/run.ts +
 // resources/run/create.ts): resolve the org/slug reference to the workflow ID,
-// then create the execution. Asynchronous like run_agent — the tool returns
-// the created execution (wex_* ID) and observation happens through the
-// existing get_workflow_execution / get_workflow_execution_events tools.
+// then create the run. Asynchronous like run_agent — the tool returns the
+// created run (wex_* ID) and observation happens through the existing
+// get_workflow_run / get_workflow_run_events tools.
 
 import { createClient } from "@connectrpc/connect";
 import { create as createMessage } from "@bufbuild/protobuf";
@@ -16,12 +16,12 @@ import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executi
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { executionName, toExecutionValues } from "../agentexecutions/run.js";
+import { runName, toExecutionValues } from "../agentruns/run.js";
 import { withTransport } from "../client.js";
 import { toProtoJson } from "../marshal.js";
 import { rpcError } from "../rpcerr.js";
 
-/** apiVersion stamped on created executions; mirrors the CLI's run stack. */
+/** apiVersion stamped on created runs; mirrors the CLI's run stack. */
 const API_VERSION = "agentic.stigmer.ai/v1";
 
 export interface RunWorkflowArgs {
@@ -32,8 +32,8 @@ export interface RunWorkflowArgs {
 }
 
 /**
- * Start a workflow execution: resolve org/slug → workflow ID, then create the
- * execution. Returns the created execution as protojson.
+ * Start a workflow run: resolve org/slug → workflow ID, then create the run.
+ * Returns the created run as protojson.
  */
 export async function runWorkflow(
   serverAddress: string,
@@ -68,10 +68,10 @@ export async function runWorkflow(
       });
     }
 
-    const execution = createMessage(WorkflowRunSchema, {
+    const run = createMessage(WorkflowRunSchema, {
       apiVersion: API_VERSION,
-      kind: "WorkflowExecution",
-      metadata: createMessage(ApiResourceMetadataSchema, { name: executionName(), org: args.org }),
+      kind: "WorkflowRun",
+      metadata: createMessage(ApiResourceMetadataSchema, { name: runName(), org: args.org }),
       spec: createMessage(WorkflowRunSpecSchema, {
         workflowId,
         // Empty message means "just run" — the CLI applies the same default.
@@ -82,10 +82,10 @@ export async function runWorkflow(
 
     const command = createClient(WorkflowRunCommandController, transport);
     try {
-      const created = await command.create(execution, callOptions);
+      const created = await command.create(run, callOptions);
       return toProtoJson(WorkflowRunSchema, created);
     } catch (err) {
-      throw rpcError(err, `execution of ${desc}`);
+      throw rpcError(err, `run of ${desc}`);
     }
   });
 }

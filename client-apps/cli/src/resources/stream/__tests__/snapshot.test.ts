@@ -1,6 +1,6 @@
 // Tests for the historical-replay projection (snapshotToEvents). Stored
-// executions must yield the same event vocabulary as the live differ, with
-// `done` emitted only for the final execution.
+// runs must yield the same event vocabulary as the live differ, with
+// `done` emitted only for the final run.
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -59,7 +59,7 @@ function tool(id: string, status: ToolCallStatus): ToolCall {
 const kinds = (events: StreamEvent[]): string[] => events.map((e) => e.kind);
 
 describe("snapshotToEvents", () => {
-  it("emits the human prompt, AI text, and a terminal done for the last execution", () => {
+  it("emits the human prompt, AI text, and a terminal done for the last run", () => {
     const events = snapshotToEvents([exec({ message: "do it", messages: [aiMsg("done")] })]);
     expect(kinds(events)).toEqual(["humanMessage", "aiMessage", "done"]);
     expect(events[0]).toMatchObject({ kind: "humanMessage", content: "do it" });
@@ -93,7 +93,7 @@ describe("snapshotToEvents", () => {
     expect(events[0]).toMatchObject({ kind: "toolInterrupted", toolCallId: "tc1" });
   });
 
-  it("only the final execution emits done", () => {
+  it("only the final run emits done", () => {
     const events = snapshotToEvents([
       exec({ message: "first", messages: [aiMsg("a")] }),
       exec({ message: "second", messages: [aiMsg("b")] }),

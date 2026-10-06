@@ -1,16 +1,17 @@
-// Canonical WorkflowExecutionEvent → display mapping.
+// Canonical WorkflowRunEvent → display mapping.
 //
 // This is the single source of truth for how a workflow event is presented,
-// shared by `run workflow` (live stream) and `execution logs` (historical +
+// shared by `run workflow` (live stream) and `runs logs` (historical +
 // follow). It is a pure transform with no I/O: a renderer (plaintext or NDJSON)
 // decides where bytes go; this module decides *what* each event means.
 //
-// Why an event view at all: WorkflowExecution exposes a canonical, sequenced
+// Why an event view at all: WorkflowRun exposes a canonical, sequenced
 // event stream (subscribeEvents) with a rich WorkflowEventType taxonomy. Rather
 // than invent a CLI-private vocabulary, every CLI surface renders the server's
-// events directly, so the CLI, the web execution viewer, and the SDK all agree
+// events directly, so the CLI, the web run viewer, and the SDK all agree
 // on what happened. Ports Go's execution.renderWorkflowEvent switch
-// (internal/cli/execution/logs_workflow.go), preserving its glyphs and wording.
+// (internal/cli/execution/logs_workflow.go), preserving its glyphs; the
+// lifecycle lines say "run" where Go said "execution".
 
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
@@ -31,11 +32,11 @@ export interface WorkflowEventView {
   readonly tone: EventTone;
   /** Human sentence describing the event. */
   readonly text: string;
-  /** True when this event marks a terminal execution phase. */
+  /** True when this event marks a terminal run phase. */
   readonly terminal: boolean;
 }
 
-/** Canonical WorkflowEventType name (e.g. "execution_started") for NDJSON `type`. */
+/** Canonical WorkflowEventType name (e.g. "run_started") for NDJSON `type`. */
 export function workflowEventTypeName(type: WorkflowEventType): string {
   return WorkflowEventType[type] ?? "workflow_event_type_unspecified";
 }
@@ -54,19 +55,19 @@ export function toWorkflowEventView(event: WorkflowRunEvent): WorkflowEventView 
 
   switch (event.payload.case) {
     case "runStarted":
-      return view("▶", "success", "execution started");
+      return view("▶", "success", "run started");
     case "runCompleted":
-      return view("✓", "success", "execution completed", true);
+      return view("✓", "success", "run completed", true);
     case "runFailed":
-      return view("✗", "error", `execution failed: ${event.payload.value.error}`, true);
+      return view("✗", "error", `run failed: ${event.payload.value.error}`, true);
     case "runPaused":
-      return view("⏸", "warning", "execution paused");
+      return view("⏸", "warning", "run paused");
     case "runResumed":
-      return view("▶", "success", "execution resumed");
+      return view("▶", "success", "run resumed");
     case "runCancelled":
-      return view("⊘", "warning", "execution cancelled", true);
+      return view("⊘", "warning", "run cancelled", true);
     case "runTerminated":
-      return view("⊘", "error", "execution terminated", true);
+      return view("⊘", "error", "run terminated", true);
     case "taskStarted":
       return view("→", "info", `task started: ${taskName}`);
     case "taskCompleted":

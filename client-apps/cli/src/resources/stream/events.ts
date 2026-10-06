@@ -2,7 +2,7 @@
 //
 // Inherited from the retired Go CLI's pkg/executiontui.Event family (deleted
 // with the TypeScript migration, PR #203). The differ projects each
-// AgentExecution snapshot into a sequence of these discrete events; the
+// AgentRun snapshot into a sequence of these discrete events; the
 // NDJSON and plaintext renderers consume them. The Ink TTY path does NOT use
 // this model — it renders from full snapshots via @stigmer/ink.
 //

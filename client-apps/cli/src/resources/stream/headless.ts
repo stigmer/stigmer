@@ -45,9 +45,9 @@ export interface HeadlessResult {
 
 /** Dependencies for {@link runHeadlessStream}. */
 export interface HeadlessStreamDeps {
-  /** The execution snapshot source (the SDK's agentExecution.subscribe). */
+  /** The run snapshot source (the SDK's agentRun.subscribe). */
   readonly subscribe: (signal: AbortSignal) => AsyncIterable<AgentRun>;
-  /** Submit one approval decision. The caller binds the execution + RPC. */
+  /** Submit one approval decision. The caller binds the run + RPC. */
   readonly submitApproval: (toolCallId: string, action: ApprovalAction) => Promise<void>;
   readonly renderer: HeadlessRenderer;
   readonly sessionId: string;

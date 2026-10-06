@@ -1,11 +1,11 @@
-// Live `run workflow` streaming over the canonical WorkflowExecutionEvent stream.
+// Live `run workflow` streaming over the canonical WorkflowRunEvent stream.
 //
 // Unlike the agent path (which has only status snapshots and so must diff them —
-// see resources/stream/headless.ts), WorkflowExecution exposes subscribeEvents:
+// see resources/stream/headless.ts), WorkflowRun exposes subscribeEvents:
 // an incremental, sequenced, persisted event stream with explicit terminal
 // markers. A live run view *is* a timeline view, so we consume that stream
 // directly and render through the shared workflow event renderer. This is
-// why `run workflow`, `execution logs`, and the web execution viewer all speak
+// why `run workflow`, `runs logs`, and the web run viewer all speak
 // the same event vocabulary — the server's — instead of a CLI-private one.
 //
 // Mirrors the *behavior* of Go's streamWorkflowExecution (run_stream.go): render
@@ -14,7 +14,7 @@
 // the source primitive (events, not snapshots) and on approvals: per the shipped
 // decision, workflows have no inline raw-mode prompter, so an approval is either
 // resolved by the configured policy (--approve-default / --auto-approve) or left
-// for the user to resolve out-of-band via `stigmer execution approve`.
+// for the user to resolve out-of-band via `stigmer runs approve`.
 
 import { create } from "@bufbuild/protobuf";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
@@ -27,8 +27,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { shouldColorize, type Styler, styler } from "../../output/style.js";
-import { calculateDuration } from "../execution-format.js";
-import { formatWorkflowPhase } from "../execution.js";
+import { calculateDuration } from "../run-format.js";
+import { formatWorkflowPhase } from "../runs.js";
 import { SUBSCRIPTION_DRAIN_GRACE_MS } from "../stream/headless.js";
 import { APPROVAL_RETRY_BASE_DELAY_MS, APPROVAL_RETRY_MAX_ATTEMPTS, retryWithBackoff } from "../stream/submit.js";
 import { toWorkflowEventView } from "../stream/workflow-event-view.js";
@@ -40,7 +40,7 @@ export type RunOutputMode = "inline" | "json";
 
 export interface WorkflowStreamDeps {
   readonly client: Stigmer;
-  readonly executionId: string;
+  readonly runId: string;
   readonly outputMode: RunOutputMode;
   /** Approval policy: APPROVE_ALL when --auto-approve, else --approve-default (or UNSPECIFIED). */
   readonly defaultAction: ApprovalAction;
@@ -54,8 +54,8 @@ export interface WorkflowStreamStreams {
 }
 
 /**
- * Stream a workflow execution to a terminal state, then print a summary. Returns
- * the authoritative final execution (a final Get), mirroring the agent path's
+ * Stream a workflow run to a terminal state, then print a summary. Returns
+ * the authoritative final run (a final Get), mirroring the agent path's
  * return for symmetry. Ctrl-C aborts the subscription cleanly.
  *
  * The subscription never outlives the stream, as on the agent path
@@ -67,7 +67,7 @@ export interface WorkflowStreamStreams {
  * A server that does not end it within SUBSCRIPTION_DRAIN_GRACE_MS is
  * cancelled, and the subscription's own signal is aborted on every way out.
  */
-export async function streamWorkflowExecution(
+export async function streamWorkflowRun(
   deps: WorkflowStreamDeps,
   streams: WorkflowStreamStreams = defaultStreams(),
 ): Promise<WorkflowRun> {
@@ -82,7 +82,7 @@ export async function streamWorkflowExecution(
   let grace: ReturnType<typeof setTimeout> | undefined;
   try {
     const stream = deps.client.workflowRun.subscribeEvents(
-      create(SubscribeEventsRequestSchema, { runId: deps.executionId }),
+      create(SubscribeEventsRequestSchema, { runId: deps.runId }),
       AbortSignal.any([controller.signal, subscription.signal]),
     );
     for await (const event of stream) {
@@ -104,7 +104,7 @@ export async function streamWorkflowExecution(
     process.removeListener("SIGTERM", onSignal);
   }
 
-  return runWorkflowEpilogue(deps.client, deps.executionId, streams);
+  return runWorkflowEpilogue(deps.client, deps.runId, streams);
 }
 
 function renderEvent(event: WorkflowRunEvent, mode: RunOutputMode, streams: WorkflowStreamStreams): void {
@@ -130,7 +130,7 @@ async function maybeResolveApproval(
   if (toolCallId === "" || resolved.has(toolCallId)) return;
   resolved.add(toolCallId);
 
-  const escapeHatch = `stigmer execution approve ${deps.executionId} --tool-call ${toolCallId} --action approve`;
+  const escapeHatch = `stigmer runs approve ${deps.runId} --tool-call ${toolCallId} --action approve`;
   if (deps.defaultAction === ApprovalAction.UNSPECIFIED) {
     streams.status(`  ⏳ Approval required for ${toolCallId}. Resolve it with:`);
     streams.status(`     ${escapeHatch}`);
@@ -140,7 +140,7 @@ async function maybeResolveApproval(
   await retryWithBackoff(signal, APPROVAL_RETRY_MAX_ATTEMPTS, APPROVAL_RETRY_BASE_DELAY_MS, async () => {
     await deps.client.workflowRun.submitApproval(
       create(SubmitWorkflowApprovalInputSchema, {
-        runId: deps.executionId,
+        runId: deps.runId,
         toolCallId,
         action: deps.defaultAction,
       }),
@@ -154,10 +154,10 @@ async function maybeResolveApproval(
 // piped event output on stdout stays clean).
 async function runWorkflowEpilogue(
   client: Stigmer,
-  executionId: string,
+  runId: string,
   streams: WorkflowStreamStreams,
 ): Promise<WorkflowRun> {
-  const exec = await client.workflowRun.get(executionId);
+  const exec = await client.workflowRun.get(runId);
   const style = styler(streams.colorize);
   const status = exec.status;
   const phase = status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;

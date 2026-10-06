@@ -8,7 +8,7 @@ package stigmer
 // These tests exercise the *checked-in generated code* against the real proto
 // stubs — the layer where the bug actually bit. The SDK's toProto() is
 // unexported, so the forward direction is driven through the public
-// Session/AgentExecution Create calls against an in-memory gRPC server that
+// Session/AgentRun Create calls against an in-memory gRPC server that
 // captures the exact wire message the server would validate. The reverse
 // direction uses the exported *InputFromProto constructors.
 //
@@ -43,7 +43,7 @@ type captureState struct {
 	lastAgentExecution *agentrunv1.AgentRun
 }
 
-// The session and agent-execution command controllers each require a method
+// The session and agent-run command controllers each require a method
 // named Create with a different signature, so they cannot be satisfied by one
 // Go type. Two thin shims share the same captureState.
 
@@ -230,7 +230,7 @@ func TestWorkspaceSourceOneof_SessionCreate(t *testing.T) {
 	})
 }
 
-func TestWorkspaceSourceOneof_AgentExecutionSessionSpec(t *testing.T) {
+func TestWorkspaceSourceOneof_AgentRunSessionSpec(t *testing.T) {
 	t.Run("git_repo", func(t *testing.T) {
 		client, state := newCaptureClient(t)
 		if _, err := client.AgentRun.Create(context.Background(), &AgentRunInput{
@@ -241,7 +241,7 @@ func TestWorkspaceSourceOneof_AgentExecutionSessionSpec(t *testing.T) {
 				WorkspaceEntries: []*WorkspaceEntryInput{gitRepoEntry()},
 			},
 		}); err != nil {
-			t.Fatalf("AgentExecution.Create: %v", err)
+			t.Fatalf("AgentRun.Create: %v", err)
 		}
 		sessionSpec := state.lastAgentExecution.GetSpec().GetSessionSpec()
 		// The new conversation names its agent by reference, stamped with
@@ -267,7 +267,7 @@ func TestWorkspaceSourceOneof_AgentExecutionSessionSpec(t *testing.T) {
 				WorkspaceEntries: []*WorkspaceEntryInput{localPathEntry()},
 			},
 		}); err != nil {
-			t.Fatalf("AgentExecution.Create: %v", err)
+			t.Fatalf("AgentRun.Create: %v", err)
 		}
 		entries := state.lastAgentExecution.GetSpec().GetSessionSpec().GetWorkspaceEntries()
 		if len(entries) != 1 {

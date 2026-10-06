@@ -1,6 +1,6 @@
 // Sub-agent activity tracking for the snapshot differ.
 //
-// Ports the Go CLI's run_stream_subagent.go. Each sub-agent execution has its
+// Ports the Go CLI's run_stream_subagent.go. Each sub-agent run has its
 // own message cursor and tool-state tracker (its data arrays grow independently
 // of the top-level status), so this module keeps a per-sub-agent tracker keyed
 // by sub-agent ID and emits started/message/tool/completed events with the
@@ -32,7 +32,7 @@ interface SubAgentCursor {
 export class SubAgentTracking {
   private readonly cursors = new Map<string, SubAgentCursor>();
 
-  /** Process all sub-agent executions in a snapshot. Mirrors Go's emitSubAgentEvents. */
+  /** Process all sub-agent runs in a snapshot. Mirrors Go's emitSubAgentEvents. */
   emit(subAgents: readonly SubAgentRun[]): StreamEvent[] {
     const out: StreamEvent[] = [];
 

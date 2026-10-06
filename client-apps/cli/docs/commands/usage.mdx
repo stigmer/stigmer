@@ -3,7 +3,7 @@ View token usage and cost reports at different levels of detail.
 `stigmer usage` shows how many tokens your agents consumed and the
 associated costs. Reports are available at three levels: per-session,
 per-agent, and per-organization. Costs are calculated using the model
-pricing at the time of each execution.
+pricing at the time of each run.
 
 {/* AUTO_USAGE */}
 
@@ -26,7 +26,7 @@ stigmer usage org --from 2026-03-01 --to 2026-03-31
 
 | Subcommand | Scope | Date range |
 |------------|-------|------------|
-| `usage session` | Single session | Not applicable (shows all executions) |
+| `usage session` | Single session | Not applicable (shows all runs) |
 | `usage agent` | All sessions for an agent | Optional `--from` / `--to` |
 | `usage org` | Entire organization | Required `--from` / `--to` |
 
@@ -34,7 +34,7 @@ stigmer usage org --from 2026-03-01 --to 2026-03-31
 
 - **Summary**: Total tokens (input + output), total cost
 - **Per-model breakdown**: Token counts and costs by LLM model
-- **Per-execution detail** (session level): Each execution with its model, tokens, and cost
+- **Per-run detail** (session level): Each run with its model, tokens, and cost
 - **Cache statistics**: Cached vs uncached token usage
 
 {/* AUTO_SUBCOMMANDS */}
@@ -47,7 +47,7 @@ stigmer usage org --from 2026-03-01 --to 2026-03-31
 stigmer usage session ses-01abc123
 ```
 
-Shows every execution in the session with per-model token breakdown.
+Shows every run in the session with per-model token breakdown.
 
 ### Agent usage over a month
 
@@ -68,7 +68,7 @@ stigmer usage org --from 2026-03-01 --to 2026-03-31 --output json
 | Command | Description |
 |---------|-------------|
 | [`stigmer get`](./get) | Inspect individual resources |
-| [`stigmer list`](./list) | List sessions and executions |
+| [`stigmer list`](./list) | List sessions and runs |
 | [`stigmer run`](./run) | Execute an agent |
 
 ## See also

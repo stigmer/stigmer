@@ -51,7 +51,7 @@ import java.util.Objects;
  * <p>Wraps the user-facing billing RPCs: account provisioning, balance
  * queries, ledger history, manual credit adjustments, credit purchases via
  * Stripe Checkout, and the platform-operator pricing surfaces. Internal
- * execution-billing RPCs (authorize, report, finalize) are not exposed —
+ * run-billing RPCs (authorize, report, finalize) are not exposed —
  * they are called only by the Temporal workflow and agent runner.
  *
  * <p>Billing is not an API Resource: RPCs authorize against the owning
@@ -173,7 +173,7 @@ public final class BillingClient {
     /**
      * Retrieves an aggregated billing usage report for a date range.
      *
-     * <p>Returns total provider cost, total billable amount, execution and
+     * <p>Returns total provider cost, total billable amount, run and
      * LLM call counts, and a per-model breakdown with cost tier attribution.
      */
     public BillingUsageReportResponse getBillingUsageReport(GetBillingUsageReportParams params) {

@@ -49,9 +49,9 @@ stigmer get workflow acme-corp/deploy-pipeline --version stable
 | API Key | `apikey`, `key` | ID only |
 | Channel App | `channel-app`, `channelapp`, `chapp` | slug, org/slug, ID |
 | Environment | `environment`, `env`, `environments` | slug, org/slug, ID |
-| Execution | `execution`, `exec` | ID only |
 | MCP Server | `mcpserver`, `mcp`, `mcp-server` | slug, org/slug, ID |
 | Organization | `organization`, `org`, `organizations` | slug, ID |
+| Run | `run`, `runs` | ID only |
 | Schedule | `schedule`, `sch`, `schedules` | slug, org/slug, ID |
 | Skill | `skill`, `skills` | slug, org/slug, ID |
 | Workflow | `workflow`, `wf`, `workflows` | slug, org/slug, ID |
@@ -82,13 +82,13 @@ stigmer get agent my-agent --output json | jq '.spec.instructions'
 stigmer get agent my-agent
 ```
 
-### Check execution status and artifacts
+### Check run status and artifacts
 
 ```bash
-stigmer get execution aex_01abc123
+stigmer get run aex_01abc123
 ```
 
-Executions are referenced by ID only (not slugs). The output includes
+Runs are referenced by ID only (not slugs). The output includes
 artifacts produced by the agent.
 
 ### Export a resource definition

@@ -1,8 +1,8 @@
 // In-process test for live `run workflow` streaming.
 //
-// Stands up a real Connect backend serving workflowExecution.subscribeEvents
+// Stands up a real Connect backend serving workflowRun.subscribeEvents
 // (the canonical event stream) plus get + submitApproval, points an SDK node
-// client at it, and drives streamWorkflowExecution end to end: NDJSON vs inline
+// client at it, and drives streamWorkflowRun end to end: NDJSON vs inline
 // rendering, policy-driven approval submission on approval_requested,
 // terminal-event stop, and the final-Get epilogue summary. Then, against a
 // scripted event source, that the subscription never outlives the stream: it
@@ -30,7 +30,7 @@ import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Se
 import type { AddressInfo } from "node:net";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { SUBSCRIPTION_DRAIN_GRACE_MS } from "../../stream/headless.js";
-import { streamWorkflowExecution, type WorkflowStreamStreams } from "../workflow-stream.js";
+import { streamWorkflowRun, type WorkflowStreamStreams } from "../workflow-stream.js";
 
 let backend: Http2Server;
 let client: Stigmer;
@@ -107,16 +107,16 @@ function capture(): { streams: WorkflowStreamStreams; data: () => string; status
 describe("live run workflow streaming", () => {
   it("renders inline plaintext, auto-resolves approval, and prints the epilogue", async () => {
     const cap = capture();
-    const result = await streamWorkflowExecution(
-      { client, executionId: "wex_1", outputMode: "inline", defaultAction: ApprovalAction.APPROVE },
+    const result = await streamWorkflowRun(
+      { client, runId: "wex_1", outputMode: "inline", defaultAction: ApprovalAction.APPROVE },
       cap.streams,
     );
 
     const data = cap.data();
-    expect(data).toContain("execution started");
+    expect(data).toContain("run started");
     expect(data).toContain("task started: build");
     expect(data).toContain("approval requested: ship — delete prod?");
-    expect(data).toContain("execution completed");
+    expect(data).toContain("run completed");
 
     // Policy resolved the approval: one submit with the right tool call + action.
     expect(approvals).toHaveLength(1);
@@ -133,17 +133,17 @@ describe("live run workflow streaming", () => {
 
   it("emits NDJSON event envelopes with canonical type names", async () => {
     const cap = capture();
-    await streamWorkflowExecution(
-      { client, executionId: "wex_1", outputMode: "json", defaultAction: ApprovalAction.APPROVE },
+    await streamWorkflowRun(
+      { client, runId: "wex_1", outputMode: "json", defaultAction: ApprovalAction.APPROVE },
       cap.streams,
     );
 
     const lines = cap.data().trim().split("\n").map((l) => JSON.parse(l));
     expect(lines.map((e) => e.type)).toEqual([
-      "execution_started",
+      "run_started",
       "task_started",
       "approval_requested",
-      "execution_completed",
+      "run_completed",
     ]);
     const approval = lines.find((e) => e.type === "approval_requested");
     expect(approval.payload.task).toBe("ship");
@@ -151,24 +151,24 @@ describe("live run workflow streaming", () => {
 
   it("leaves the approval for the user when no policy is configured", async () => {
     const cap = capture();
-    await streamWorkflowExecution(
-      { client, executionId: "wex_1", outputMode: "inline", defaultAction: ApprovalAction.UNSPECIFIED },
+    await streamWorkflowRun(
+      { client, runId: "wex_1", outputMode: "inline", defaultAction: ApprovalAction.UNSPECIFIED },
       cap.streams,
     );
 
     expect(approvals).toHaveLength(0);
-    expect(cap.status()).toContain("stigmer execution approve wex_1 --tool-call tc_99 --action approve");
+    expect(cap.status()).toContain("stigmer runs approve wex_1 --tool-call tc_99 --action approve");
   });
 });
 
 /** A client whose event stream is `events(signal)`, with the final Get the epilogue reads. */
 function scriptedClient(events: (signal: AbortSignal) => AsyncIterable<WorkflowRunEvent>): Stigmer {
-  const workflowExecution = {
+  const workflowRun = {
     subscribeEvents: (_request: unknown, signal: AbortSignal) => events(signal),
     get: async () => finalExec,
     submitApproval: async () => finalExec,
   };
-  return { workflowExecution } as unknown as Stigmer;
+  return { workflowRun } as unknown as Stigmer;
 }
 
 const started = () => event(WorkflowEventType.run_started, { case: "runStarted", value: {} as never });
@@ -188,9 +188,9 @@ describe("the subscription never outlives the stream", () => {
       yield event(WorkflowEventType.task_started, { case: "taskStarted", value: {} as never }, "late");
       readToEnd = true;
     });
-    await streamWorkflowExecution({ client, executionId: "wex_1", outputMode: "json", defaultAction: ApprovalAction.UNSPECIFIED }, cap.streams);
+    await streamWorkflowRun({ client, runId: "wex_1", outputMode: "json", defaultAction: ApprovalAction.UNSPECIFIED }, cap.streams);
     expect(readToEnd).toBe(true);
-    expect(cap.data().trim().split("\n").map((line) => JSON.parse(line).type)).toEqual(["execution_started", "execution_completed"]);
+    expect(cap.data().trim().split("\n").map((line) => JSON.parse(line).type)).toEqual(["run_started", "run_completed"]);
     expect(cap.status()).toContain("Workflow completed");
   });
 
@@ -205,8 +205,8 @@ describe("the subscription never outlives the stream", () => {
         signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true }),
       );
     });
-    const running = streamWorkflowExecution(
-      { client, executionId: "wex_1", outputMode: "inline", defaultAction: ApprovalAction.UNSPECIFIED },
+    const running = streamWorkflowRun(
+      { client, runId: "wex_1", outputMode: "inline", defaultAction: ApprovalAction.UNSPECIFIED },
       cap.streams,
     );
     await vi.advanceTimersByTimeAsync(SUBSCRIPTION_DRAIN_GRACE_MS - 1);
@@ -227,7 +227,7 @@ describe("the subscription never outlives the stream", () => {
       given = signal;
       yield* script();
     });
-    await streamWorkflowExecution({ client, executionId: "wex_1", outputMode: "json", defaultAction: ApprovalAction.UNSPECIFIED }, capture().streams);
+    await streamWorkflowRun({ client, runId: "wex_1", outputMode: "json", defaultAction: ApprovalAction.UNSPECIFIED }, capture().streams);
     expect(given?.aborted).toBe(true);
   });
 
@@ -237,7 +237,7 @@ describe("the subscription never outlives the stream", () => {
       throw new Error("the stream dropped");
     });
     await expect(
-      streamWorkflowExecution({ client, executionId: "wex_1", outputMode: "json", defaultAction: ApprovalAction.UNSPECIFIED }, capture().streams),
+      streamWorkflowRun({ client, runId: "wex_1", outputMode: "json", defaultAction: ApprovalAction.UNSPECIFIED }, capture().streams),
     ).rejects.toThrow("the stream dropped");
   });
 });

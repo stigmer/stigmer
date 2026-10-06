@@ -1,6 +1,6 @@
-// In-process test for the execution-loop tools: run_agent,
-// run_workflow, get_agent_execution, the two approval tools,
-// list_pending_approvals, and cancel_execution.
+// In-process test for the run-loop tools: run_agent, run_workflow,
+// get_agent_run, the two approval tools, list_pending_approvals, and
+// cancel_run.
 //
 // Same harness as reads.test.ts: a real Connect backend serving
 // stubbed controllers, the MCP server driven through an in-memory client. The
@@ -8,7 +8,7 @@
 // (slug→reference resolution and a missing agent's not-found, the turn's
 // target, a follow-up refused when it names another agent or organization
 // than the session's, runtime-env conversion, approval enum mapping) and
-// script execution state (running vs terminal, long message histories) to
+// script run state (running vs terminal, long message histories) to
 // exercise the compact projection and the cancel short-circuit.
 
 import { create, toJson } from "@bufbuild/protobuf";
@@ -49,7 +49,7 @@ import {
   type WorkflowRun,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
-import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { RunPhase as WorkflowRunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
   PendingApprovalsListSchema,
   type ListPendingApprovalsRequest,
@@ -75,11 +75,11 @@ const knownWorkflow = create(WorkflowSchema, {
   metadata: { name: "Release", slug: "release", org: "acme", id: "wkf_1" },
 });
 
-/** An execution with a scriptable phase and an 8-message history. */
-function agentExecutionFixture(phase: RunPhase): AgentRun {
+/** An agent run with a scriptable phase and an 8-message history. */
+function agentRunFixture(phase: RunPhase): AgentRun {
   return create(AgentRunSchema, {
     apiVersion: "v1",
-    kind: "AgentExecution",
+    kind: "AgentRun",
     metadata: { name: "run", org: "acme", id: "aex_1" },
     spec: { target: { case: "sessionId", value: "ses_1" }, message: "review this" },
     status: {
@@ -92,10 +92,10 @@ function agentExecutionFixture(phase: RunPhase): AgentRun {
   });
 }
 
-function workflowExecutionFixture(phase: WorkflowExecutionPhase): WorkflowRun {
+function workflowRunFixture(phase: WorkflowRunPhase): WorkflowRun {
   return create(WorkflowRunSchema, {
     apiVersion: "v1",
-    kind: "WorkflowExecution",
+    kind: "WorkflowRun",
     metadata: { name: "run", org: "acme", id: "wex_1" },
     spec: { workflowId: "wkf_1" },
     status: { phase },
@@ -120,11 +120,11 @@ let client: Client;
 const openSessions = new Set<ServerHttp2Session>();
 
 // Captured requests / scripted state, reset per test.
-let createdAgentExecution: AgentRun | undefined;
-let createdWorkflowExecution: WorkflowRun | undefined;
-let agentExecutionState: AgentRun;
+let createdAgentRun: AgentRun | undefined;
+let createdWorkflowRun: WorkflowRun | undefined;
+let agentRunState: AgentRun;
 let sessionState: Session;
-let workflowExecutionState: WorkflowRun;
+let workflowRunState: WorkflowRun;
 let lastAgentApproval: SubmitApprovalInput | undefined;
 let lastWorkflowApproval: SubmitWorkflowTaskApprovalInput | undefined;
 let lastPendingApprovalsRequest: ListPendingApprovalsRequest | undefined;
@@ -161,7 +161,7 @@ beforeAll(async () => {
       },
     });
     router.service(AgentRunQueryController, {
-      get: () => agentExecutionState,
+      get: () => agentRunState,
     });
     router.service(SessionQueryController, {
       get: (req) => {
@@ -173,16 +173,16 @@ beforeAll(async () => {
     });
     router.service(AgentRunCommandController, {
       create: (req) => {
-        createdAgentExecution = req;
-        return agentExecutionFixture(RunPhase.RUN_PENDING);
+        createdAgentRun = req;
+        return agentRunFixture(RunPhase.RUN_PENDING);
       },
       submitApproval: (req) => {
         lastAgentApproval = req;
-        return agentExecutionFixture(RunPhase.RUN_IN_PROGRESS);
+        return agentRunFixture(RunPhase.RUN_IN_PROGRESS);
       },
       cancel: () => {
         agentCancelCalls++;
-        return agentExecutionFixture(RunPhase.RUN_CANCELLED);
+        return agentRunFixture(RunPhase.RUN_CANCELLED);
       },
     });
     router.service(WorkflowQueryController, {
@@ -192,7 +192,7 @@ beforeAll(async () => {
       },
     });
     router.service(WorkflowRunQueryController, {
-      get: () => workflowExecutionState,
+      get: () => workflowRunState,
       listPendingApprovals: (req) => {
         lastPendingApprovalsRequest = req;
         return pendingApprovals;
@@ -200,16 +200,16 @@ beforeAll(async () => {
     });
     router.service(WorkflowRunCommandController, {
       create: (req) => {
-        createdWorkflowExecution = req;
-        return workflowExecutionFixture(WorkflowExecutionPhase.RUN_PENDING);
+        createdWorkflowRun = req;
+        return workflowRunFixture(WorkflowRunPhase.RUN_PENDING);
       },
       submitWorkflowTaskApproval: (req) => {
         lastWorkflowApproval = req;
-        return workflowExecutionFixture(WorkflowExecutionPhase.RUN_IN_PROGRESS);
+        return workflowRunFixture(WorkflowRunPhase.RUN_IN_PROGRESS);
       },
       cancel: () => {
         workflowCancelCalls++;
-        return workflowExecutionFixture(WorkflowExecutionPhase.RUN_CANCELLED);
+        return workflowRunFixture(WorkflowRunPhase.RUN_CANCELLED);
       },
     });
   };
@@ -223,16 +223,16 @@ beforeAll(async () => {
 
   const mcp = createServer({ serverAddress: `127.0.0.1:${port}`, apiKey: "" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  client = new Client({ name: "executions-integration", version: "test" });
+  client = new Client({ name: "runs-integration", version: "test" });
   await Promise.all([mcp.connect(serverTransport), client.connect(clientTransport)]);
 });
 
 beforeEach(() => {
-  createdAgentExecution = undefined;
-  createdWorkflowExecution = undefined;
-  agentExecutionState = agentExecutionFixture(RunPhase.RUN_IN_PROGRESS);
+  createdAgentRun = undefined;
+  createdWorkflowRun = undefined;
+  agentRunState = agentRunFixture(RunPhase.RUN_IN_PROGRESS);
   sessionState = sessionFixture({ org: "acme", slug: "code-reviewer" });
-  workflowExecutionState = workflowExecutionFixture(WorkflowExecutionPhase.RUN_IN_PROGRESS);
+  workflowRunState = workflowRunFixture(WorkflowRunPhase.RUN_IN_PROGRESS);
   lastAgentApproval = undefined;
   lastWorkflowApproval = undefined;
   lastPendingApprovalsRequest = undefined;
@@ -248,18 +248,18 @@ afterAll(async () => {
   await new Promise<void>((resolve) => backend.close(() => resolve()));
 });
 
-describe("execution tools integration", () => {
-  it("advertises the execution-loop tools", async () => {
+describe("run tools integration", () => {
+  it("advertises the run-loop tools", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual(
       expect.arrayContaining([
         "run_agent",
         "run_workflow",
-        "get_agent_execution",
-        "submit_agent_execution_approval",
+        "get_agent_run",
+        "submit_agent_run_approval",
         "list_pending_approvals",
         "submit_workflow_task_approval",
-        "cancel_execution",
+        "cancel_run",
       ]),
     );
   });
@@ -273,7 +273,7 @@ describe("execution tools integration", () => {
     });
     expect(result.isError).toBeFalsy();
 
-    const target = createdAgentExecution?.spec?.target;
+    const target = createdAgentRun?.spec?.target;
     expect(target?.case).toBe("sessionSpec");
     // The agent by reference, no version: the session pins the current one.
     expect(target?.case === "sessionSpec" ? target.value.agentRef : undefined).toMatchObject({
@@ -282,13 +282,14 @@ describe("execution tools integration", () => {
       slug: "code-reviewer",
       version: "",
     });
-    expect(createdAgentExecution?.spec?.message).toBe("review this PR");
-    expect(createdAgentExecution?.metadata?.org).toBe("acme");
+    expect(createdAgentRun?.kind).toBe("AgentRun");
+    expect(createdAgentRun?.spec?.message).toBe("review this PR");
+    expect(createdAgentRun?.metadata?.org).toBe("acme");
     // Runtime env values through MCP are never secrets.
-    expect(createdAgentExecution?.spec?.runtimeEnv?.REPO?.value).toBe("stigmer/stigmer");
-    expect(createdAgentExecution?.spec?.runtimeEnv?.REPO?.isSecret).toBe(false);
+    expect(createdAgentRun?.spec?.runtimeEnv?.REPO?.value).toBe("stigmer/stigmer");
+    expect(createdAgentRun?.spec?.runtimeEnv?.REPO?.isSecret).toBe(false);
 
-    // The created execution comes back as plain protojson (its status is small).
+    // The created run comes back as plain protojson (its status is small).
     const created = parseText(result);
     expect((created.metadata as Record<string, unknown>).id).toBe("aex_1");
   });
@@ -304,7 +305,7 @@ describe("execution tools integration", () => {
     expect(result.content[0]?.text).toContain(
       'agent "no-such-agent" in org "acme" not found',
     );
-    expect(createdAgentExecution).toBeUndefined();
+    expect(createdAgentRun).toBeUndefined();
   });
 
   it("run_agent threads a session follow-up", async () => {
@@ -317,11 +318,11 @@ describe("execution tools integration", () => {
     // The session id alone: the session runs the agent it started on, so the
     // turn does not name it, and an org equal to the session's reference
     // needs no lookup.
-    expect(createdAgentExecution?.spec?.target).toEqual({ case: "sessionId", value: "ses_42" });
+    expect(createdAgentRun?.spec?.target).toEqual({ case: "sessionId", value: "ses_42" });
     expect(agentLookups).toBe(0);
     // The follow-up names no organization: the server files it under the
     // session's, which may differ from the agent's (stigmer/stigmer#1580).
-    expect(createdAgentExecution?.metadata?.org).toBe("");
+    expect(createdAgentRun?.metadata?.org).toBe("");
   });
 
   it("run_agent refuses a follow-up naming another agent than the session's", async () => {
@@ -336,7 +337,7 @@ describe("execution tools integration", () => {
     expect(result.content[0]?.text).toContain(
       'session "ses_42" runs agent "code-reviewer" in org "acme", not agent "release-bot" in org "acme"',
     );
-    expect(createdAgentExecution).toBeUndefined();
+    expect(createdAgentRun).toBeUndefined();
   });
 
   it("run_agent refuses a follow-up naming an agent in a session on the built-in assistant", async () => {
@@ -352,7 +353,7 @@ describe("execution tools integration", () => {
     expect(result.content[0]?.text).toContain(
       'session "ses_42" runs the built-in assistant, not agent "code-reviewer"',
     );
-    expect(createdAgentExecution).toBeUndefined();
+    expect(createdAgentRun).toBeUndefined();
   });
 
   it("run_agent resolves an org given as a slug against the id the session's reference holds", async () => {
@@ -368,7 +369,7 @@ describe("execution tools integration", () => {
     // agent to organization "acme", the one the reference holds.
     expect(result.isError).toBeFalsy();
     expect(agentLookups).toBe(1);
-    expect(createdAgentExecution?.spec?.target).toEqual({ case: "sessionId", value: "ses_42" });
+    expect(createdAgentRun?.spec?.target).toEqual({ case: "sessionId", value: "ses_42" });
   });
 
   it("run_agent refuses a follow-up whose org names another organization's agent", async () => {
@@ -384,7 +385,7 @@ describe("execution tools integration", () => {
     expect(result.content[0]?.text).toContain(
       'session "ses_42" runs agent "code-reviewer" in org "org_other", not agent "code-reviewer" in org "acme"',
     );
-    expect(createdAgentExecution).toBeUndefined();
+    expect(createdAgentRun).toBeUndefined();
   });
 
   it("run_agent reports a session it cannot read and starts nothing", async () => {
@@ -397,7 +398,7 @@ describe("execution tools integration", () => {
 
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('session "ses_gone"');
-    expect(createdAgentExecution).toBeUndefined();
+    expect(createdAgentRun).toBeUndefined();
   });
 
   it("run_agent reports an agent it cannot read while checking a follow-up's org, and starts nothing", async () => {
@@ -411,17 +412,18 @@ describe("execution tools integration", () => {
 
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('agent "code-reviewer" in org "org-down"');
-    expect(createdAgentExecution).toBeUndefined();
+    expect(createdAgentRun).toBeUndefined();
   });
 
-  it("run_workflow creates the execution with the org env injected", async () => {
+  it("run_workflow creates the run with the org env injected", async () => {
     const result = await callTool("run_workflow", { org: "acme", workflow: "release" });
     expect(result.isError).toBeFalsy();
 
-    expect(createdWorkflowExecution?.spec?.workflowId).toBe("wkf_1");
-    expect(createdWorkflowExecution?.spec?.triggerMessage).toBe("execute");
+    expect(createdWorkflowRun?.kind).toBe("WorkflowRun");
+    expect(createdWorkflowRun?.spec?.workflowId).toBe("wkf_1");
+    expect(createdWorkflowRun?.spec?.triggerMessage).toBe("execute");
     // The CLI-parity org injection.
-    expect(createdWorkflowExecution?.spec?.runtimeEnv?.STIGMER_ORG?.value).toBe("acme");
+    expect(createdWorkflowRun?.spec?.runtimeEnv?.STIGMER_ORG?.value).toBe("acme");
   });
 
   it("run_workflow lets a caller-supplied STIGMER_ORG win", async () => {
@@ -431,8 +433,8 @@ describe("execution tools integration", () => {
       message: "ship it",
       runtime_env: { STIGMER_ORG: "other-org" },
     });
-    expect(createdWorkflowExecution?.spec?.triggerMessage).toBe("ship it");
-    expect(createdWorkflowExecution?.spec?.runtimeEnv?.STIGMER_ORG?.value).toBe("other-org");
+    expect(createdWorkflowRun?.spec?.triggerMessage).toBe("ship it");
+    expect(createdWorkflowRun?.spec?.runtimeEnv?.STIGMER_ORG?.value).toBe("other-org");
   });
 
   it("run_workflow with no org names none and injects no STIGMER_ORG", async () => {
@@ -441,49 +443,49 @@ describe("execution tools integration", () => {
     const result = await callTool("run_workflow", { workflow: "release" });
     expect(result.isError).toBeFalsy();
     expect(lastWorkflowReferenceOrg).toBe("");
-    expect(createdWorkflowExecution?.spec?.workflowId).toBe("wkf_1");
-    expect(createdWorkflowExecution?.spec?.runtimeEnv?.STIGMER_ORG).toBeUndefined();
+    expect(createdWorkflowRun?.spec?.workflowId).toBe("wkf_1");
+    expect(createdWorkflowRun?.spec?.runtimeEnv?.STIGMER_ORG).toBeUndefined();
   });
 
-  it("get_agent_execution defaults to the compact view", async () => {
-    const result = await callTool("get_agent_execution", { execution_id: "aex_1" });
+  it("get_agent_run defaults to the compact view", async () => {
+    const result = await callTool("get_agent_run", { run_id: "aex_1" });
     expect(result.isError).toBeFalsy();
 
     const body = parseText(result);
     expect(body.view).toBe("compact");
     expect(body.total_messages).toBe(8);
 
-    const execution = body.execution as Record<string, unknown>;
-    const status = (execution.status ?? {}) as Record<string, unknown>;
+    const run = body.run as Record<string, unknown>;
+    const status = (run.status ?? {}) as Record<string, unknown>;
     const messages = status.messages as Array<Record<string, unknown>>;
     // Default tail of 5, ending with the newest message.
     expect(messages).toHaveLength(5);
     expect(messages[4]?.content).toBe("msg-7");
     // Bulk bookkeeping fields are pruned.
-    expect(status.sub_agent_executions).toBeUndefined();
+    expect(status.sub_agent_runs).toBeUndefined();
   });
 
-  it("get_agent_execution honors message_limit", async () => {
+  it("get_agent_run honors message_limit", async () => {
     const body = parseText(
-      await callTool("get_agent_execution", { execution_id: "aex_1", message_limit: 2 }),
+      await callTool("get_agent_run", { run_id: "aex_1", message_limit: 2 }),
     );
-    const status = ((body.execution as Record<string, unknown>).status ?? {}) as Record<
+    const status = ((body.run as Record<string, unknown>).status ?? {}) as Record<
       string,
       unknown
     >;
     expect(status.messages as unknown[]).toHaveLength(2);
   });
 
-  it("get_agent_execution view=full returns the backend protojson verbatim", async () => {
-    const result = await callTool("get_agent_execution", { execution_id: "aex_1", view: "full" });
+  it("get_agent_run view=full returns the backend protojson verbatim", async () => {
+    const result = await callTool("get_agent_run", { run_id: "aex_1", view: "full" });
     expect(parseText(result)).toEqual(
-      toJson(AgentRunSchema, agentExecutionState, { useProtoFieldName: true }),
+      toJson(AgentRunSchema, agentRunState, { useProtoFieldName: true }),
     );
   });
 
-  it("submit_agent_execution_approval maps the action and returns the compact view", async () => {
-    const result = await callTool("submit_agent_execution_approval", {
-      execution_id: "aex_1",
+  it("submit_agent_run_approval maps the action and returns the compact view", async () => {
+    const result = await callTool("submit_agent_run_approval", {
+      run_id: "aex_1",
       tool_call_id: "call_7",
       action: "reject",
       comment: "wrong repository",
@@ -507,7 +509,7 @@ describe("execution tools integration", () => {
 
   it("submit_workflow_task_approval forwards the decision and form data", async () => {
     const result = await callTool("submit_workflow_task_approval", {
-      execution_id: "wex_1",
+      run_id: "wex_1",
       task_name: "sign-off",
       outcome: "approve",
       comment: "lgtm",
@@ -523,29 +525,29 @@ describe("execution tools integration", () => {
     expect(lastWorkflowApproval?.reviewer).toBe("");
   });
 
-  it("cancel_execution cancels a running agent execution", async () => {
-    const body = parseText(await callTool("cancel_execution", { execution_id: "aex_1" }));
+  it("cancel_run cancels a running agent run", async () => {
+    const body = parseText(await callTool("cancel_run", { run_id: "aex_1" }));
     expect(agentCancelCalls).toBe(1);
     expect(body.already_terminal).toBe(false);
     expect(body.view).toBe("compact");
   });
 
-  it("cancel_execution short-circuits a terminal agent execution", async () => {
-    agentExecutionState = agentExecutionFixture(RunPhase.RUN_COMPLETED);
-    const body = parseText(await callTool("cancel_execution", { execution_id: "aex_1" }));
+  it("cancel_run short-circuits a terminal agent run", async () => {
+    agentRunState = agentRunFixture(RunPhase.RUN_COMPLETED);
+    const body = parseText(await callTool("cancel_run", { run_id: "aex_1" }));
     expect(agentCancelCalls).toBe(0);
     expect(body.already_terminal).toBe(true);
   });
 
-  it("cancel_execution routes workflow executions by prefix", async () => {
-    const body = parseText(await callTool("cancel_execution", { execution_id: "wex_1" }));
+  it("cancel_run routes workflow runs by prefix", async () => {
+    const body = parseText(await callTool("cancel_run", { run_id: "wex_1" }));
     expect(workflowCancelCalls).toBe(1);
     expect(body.already_terminal).toBe(false);
   });
 
-  it("cancel_execution rejects an unrecognized ID format", async () => {
-    const result = await callTool("cancel_execution", { execution_id: "ses_123" });
+  it("cancel_run rejects an unrecognized ID format", async () => {
+    const result = await callTool("cancel_run", { run_id: "ses_123" });
     expect(result.isError).toBe(true);
-    expect(result.content[0]?.text).toContain("unrecognized execution ID format");
+    expect(result.content[0]?.text).toContain("unrecognized run ID format");
   });
 });

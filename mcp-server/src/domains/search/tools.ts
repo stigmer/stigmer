@@ -27,7 +27,7 @@ import { textOrError } from "../toolresult.js";
  * The searchable kinds and their proto enum values. Deliberately a curated
  * subset (not every ApiResourceKind): the kinds an MCP client can also read
  * and manage through tools. The backend's extractor registry supports more
- * (sessions, executions, ...) — add here only alongside a tool surface.
+ * (sessions, runs, ...) — add here only alongside a tool surface.
  */
 const knownKinds: Readonly<Record<string, ApiResourceKind>> = {
   agent: ApiResourceKind.agent,

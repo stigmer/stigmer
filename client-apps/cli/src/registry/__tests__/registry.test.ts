@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { APPLY_HANDLERS } from "../../resources/apply/handlers.js";
 import { DELETE_HANDLERS } from "../../resources/delete.js";
 import { GET_BINDINGS } from "../../resources/get-bindings.js";
-import { isExecutionAlias } from "../../resources/execution.js";
+import { isRunAlias } from "../../resources/runs.js";
 import { LIST_HANDLERS, SEARCH_KINDS } from "../../resources/list.js";
 import { VALIDATE_SCHEMAS } from "../../resources/validate.js";
 import { normalizeAlias } from "../aliases.js";
@@ -58,11 +58,11 @@ describe("registry — alias resolution", () => {
     expect(registry.getByAlias("nope")).toBeUndefined();
   });
 
-  // The runtime execution kinds are served by the pre-gate `list executions`
+  // The run kinds are served by the pre-gate `list runs`
   // route and their dedicated controllers; registering either would put a
   // row in `list types` that the pre-gate route then shadows — the
   // stigmer/stigmer#469 class (see the alias-shadowing suite below).
-  it("does not register the runtime execution kinds as addressable types", () => {
+  it("does not register the run kinds as addressable types", () => {
     for (const kind of [
       ApiResourceKind.agent_run,
       ApiResourceKind.workflow_run,
@@ -313,7 +313,7 @@ describe("registry — verb/dispatch conformance", () => {
 
 // `stigmer list` resolves a handful of aliases BEFORE consulting the
 // registry (commands/list.ts): `types` (a command word, not a kind) and the
-// execution family. A pre-gate alias that intercepts a REGISTERED kind hides
+// run family. A pre-gate alias that intercepts a REGISTERED kind hides
 // that kind's registry dispatch behind bespoke behavior the verb matrix
 // cannot describe — sessions shipped working-but-unadvertised for two months
 // exactly this way (stigmer/stigmer#469). Every pre-gate predicate must be
@@ -326,8 +326,8 @@ describe("registry — pre-gate list aliases cannot shadow registered kinds", ()
     matches: (type: string) => boolean;
   }> = [
     {
-      name: "executions (resources/execution.ts isExecutionAlias)",
-      matches: isExecutionAlias,
+      name: "runs (resources/runs.ts isRunAlias)",
+      matches: isRunAlias,
     },
   ];
 

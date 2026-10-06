@@ -4,7 +4,7 @@
 // snapshot carries the full tool-call list; this tracker diffs it against the
 // last-known per-tool status/result to emit only the *transitions* (running,
 // completed, waiting-approval, streaming delta). One tracker instance per scope:
-// the top-level execution gets one, each sub-agent gets its own (matching Go's
+// the top-level run gets one, each sub-agent gets its own (matching Go's
 // per-sub-agent tracker maps).
 
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";

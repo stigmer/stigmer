@@ -1,6 +1,6 @@
 // Re-opening an existing session (Go's openSession / resumeSession in
-// resume_session.go). Fetch the session + its executions, then either:
-//   - re-attach to the live stream when the latest execution is still active, or
+// resume_session.go). Fetch the session + its runs, then either:
+//   - re-attach to the live stream when the latest run is still active, or
 //   - replay the full history (snapshotToEvents) when everything has finished.
 // The TTY path defers to Ink's SessionView, which loads history and offers a
 // follow-up composer for free.
@@ -8,20 +8,20 @@
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ApprovalAction, RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { BackendClient } from "../../client/index.js";
-import { getSessionById, listExecutionsBySession } from "../session.js";
+import { getSessionById, listRunsBySession } from "../session.js";
 import { NdjsonRenderer } from "../stream/render-ndjson.js";
 import { PlaintextRenderer } from "../stream/render-plaintext.js";
 import { snapshotToEvents } from "../stream/snapshot.js";
 import { isInkSupported } from "../stream/tty.js";
 import { renderSessionHeader, type SessionHeaderInfo, workspaceNames } from "./header.js";
 import type { RunMode } from "./prepare.js";
-import { streamAgentExecution, type RunOutputMode } from "./stream.js";
+import { streamAgentRun, type RunOutputMode } from "./stream.js";
 
 // The backend's auto-create sentinel; suppressed in the header until the async
 // title activity replaces it (Go's session.PendingSubject / ResolvedSubject).
 const PENDING_SUBJECT = "Auto-created session";
 
-// Phases where the latest execution is still producing output — re-attach live.
+// Phases where the latest run is still producing output — re-attach live.
 const ACTIVE_PHASES: ReadonlySet<RunPhase> = new Set([
   RunPhase.RUN_PENDING,
   RunPhase.RUN_IN_PROGRESS,
@@ -32,7 +32,7 @@ const ACTIVE_PHASES: ReadonlySet<RunPhase> = new Set([
 export interface OpenSessionDeps {
   readonly client: BackendClient;
   readonly sessionId: string;
-  /** Explicit --mode override; "" means infer from the latest execution. */
+  /** Explicit --mode override; "" means infer from the latest run. */
   readonly mode: RunMode;
   readonly outputMode: RunOutputMode;
 }
@@ -43,9 +43,9 @@ export async function openSession(deps: OpenSessionDeps): Promise<void> {
   // Every turn in the session is filed under the session's own organization
   // (stigmer/stigmer#1580), never the CLI's context organization.
   const org = session.metadata?.org ?? "";
-  const entries = await listExecutionsBySession(stigmer, deps.sessionId);
+  const entries = await listRunsBySession(stigmer, deps.sessionId);
   if (entries.length === 0) {
-    process.stderr.write(`Session ${deps.sessionId} has no executions\n`);
+    process.stderr.write(`Session ${deps.sessionId} has no runs\n`);
     return;
   }
 
@@ -64,10 +64,10 @@ export async function openSession(deps: OpenSessionDeps): Promise<void> {
 
   if (ACTIVE_PHASES.has(phase)) {
     // Live re-attach reuses the exact run streaming stack.
-    await streamAgentExecution({
+    await streamAgentRun({
       client: stigmer,
       sessionId: deps.sessionId,
-      executionId: latest.metadata?.id ?? "",
+      runId: latest.metadata?.id ?? "",
       org,
       mode: effectiveMode,
       defaultAction: ApprovalAction.UNSPECIFIED,
@@ -110,7 +110,7 @@ async function replaySession(
 }
 
 // Mirrors Go's resolveResumeMode: --mode wins; else infer "plan" from the last
-// execution's InteractionMode; else default (agent).
+// run's InteractionMode; else default (agent).
 function resolveResumeMode(explicit: RunMode, latest: AgentRun): RunMode {
   if (explicit !== "") return explicit;
   if (latest.spec?.interactionMode === InteractionMode.PLAN) return "plan";

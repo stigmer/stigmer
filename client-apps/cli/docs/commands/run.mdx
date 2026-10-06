@@ -100,7 +100,7 @@ stigmer run my-agent --attach ./image.png --attach ./spec.pdf
 |------|----------|
 | _(default)_ | Interactive terminal UI powered by [`@stigmer/ink`](/docs/sdk/ink/cli-integration) |
 | `--json` | Newline-delimited JSON events for scripting and CI |
-| `--detach` | Start execution and return immediately |
+| `--detach` | Start the run and return immediately |
 
 Use `--json` when piping output to other tools:
 
@@ -108,14 +108,14 @@ Use `--json` when piping output to other tools:
 stigmer run my-agent --json -m "Process data" | jq '.payload.content'
 ```
 
-Use `--detach` for fire-and-forget execution. The CLI prints the session ID
+Use `--detach` for a fire-and-forget run. The CLI prints the session ID
 and exits. Check progress with `stigmer get session <id>`.
 
 ```bash
 stigmer run my-agent --detach -m "Generate weekly report"
 ```
 
-### Execution options
+### Run options
 
 | Flag | Purpose |
 |------|---------|
@@ -123,7 +123,7 @@ stigmer run my-agent --detach -m "Generate weekly report"
 | `--harness` | Choose the execution engine for the new session (`native` or `cursor`) |
 | `--auto-approve` | Approve all tool executions without prompting (bypasses approval policies) |
 | `--approve-default` | Auto-resolve approval prompts in non-interactive mode (`approve`, `skip`, `reject`) |
-| `--verbose`, `-v` | Show execution IDs and phase transitions in the TUI transcript |
+| `--verbose`, `-v` | Show run IDs and phase transitions in the TUI transcript |
 
 ```bash
 # Use a specific model
@@ -200,7 +200,7 @@ stigmer run code-reviewer \
 The agent clones the repository, checks out the specified branch, and
 performs the review with full access to the codebase.
 
-### Fire-and-forget execution
+### Fire-and-forget run
 
 ```bash
 stigmer run report-generator --detach -m "Generate the monthly report"

@@ -1,9 +1,9 @@
-// In-process test for `push skill` and `download execution`.
+// In-process test for `push skill` and `download run`.
 //
-// Stands up a Connect backend (skill push + execution query/artifact-URL) plus a
+// Stands up a Connect backend (skill push + run query/artifact-URL) plus a
 // plain HTTP server standing in for object storage, then drives the resource
 // layer end to end: pushSkill zips a temp dir and uploads it (asserting the
-// server receives a valid ZIP), and downloadExecutionArtifacts streams a
+// server receives a valid ZIP), and downloadRunArtifacts streams a
 // presigned URL to disk (asserting partial-failure tolerance).
 
 import { createServer as createHttpServer, type Server as HttpServer } from "node:http";
@@ -25,7 +25,7 @@ import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
 import type { Stigmer } from "@stigmer/sdk";
 import { unzipSync } from "fflate";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { downloadExecutionArtifacts } from "../download.js";
+import { downloadRunArtifacts } from "../download.js";
 import { pushSkill } from "../skill.js";
 
 const SKILL_MD = ["---", "name: my-skill", "---", "# My Skill"].join("\n");
@@ -148,11 +148,11 @@ describe("pushSkill", () => {
   });
 });
 
-describe("downloadExecutionArtifacts", () => {
+describe("downloadRunArtifacts", () => {
   it("downloads available artifacts and tolerates partial failures", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadExecutionArtifacts(client, "aex_done", { artifactName: "", outputDir: out });
+      const outcome = await downloadRunArtifacts(client, "aex_done", { artifactName: "", outputDir: out });
       expect(outcome.total).toBe(2);
       expect(outcome.downloaded).toBe(1); // broken.txt 404s, report.txt succeeds
       expect(outcome.noArtifacts).toBe(false);
@@ -165,7 +165,7 @@ describe("downloadExecutionArtifacts", () => {
   it("filters to a named artifact", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadExecutionArtifacts(client, "aex_done", { artifactName: "report.txt", outputDir: out });
+      const outcome = await downloadRunArtifacts(client, "aex_done", { artifactName: "report.txt", outputDir: out });
       expect(outcome.total).toBe(1);
       expect(outcome.downloaded).toBe(1);
     } finally {

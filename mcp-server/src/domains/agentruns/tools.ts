@@ -1,13 +1,12 @@
-// MCP tools for the AgentExecution domain: start a run, poll it, and answer
-// its approval requests. Together with cancel_execution (executions domain)
-// these close the agent iteration loop: author with apply_agent, run with
-// run_agent, observe with get_agent_execution, steer with
-// submit_agent_execution_approval.
+// MCP tools for the AgentRun domain: start a run, poll it, and answer its
+// approval requests. Together with cancel_run (runs domain) these close the
+// agent iteration loop: author with apply_agent, run with run_agent, observe
+// with get_agent_run, steer with submit_agent_run_approval.
 //
-// The execution model is asynchronous by design: run_agent returns as soon as
-// the backend accepts the execution; progress is observed by polling. Agent
-// executions have no event-log RPC, so get_agent_execution IS the poll loop —
-// which is why it defaults to the compact view (see fetch.ts).
+// A run is asynchronous by design: run_agent returns as soon as the backend
+// accepts the run; progress is observed by polling. Agent runs have no
+// event-log RPC, so get_agent_run IS the poll loop — which is why it defaults
+// to the compact view (see fetch.ts).
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -15,17 +14,17 @@ import { z } from "zod";
 import { resolveToken, type BackendTarget } from "../client.js";
 import { textOrError } from "../toolresult.js";
 import { submitAgentApproval } from "./approve.js";
-import { DEFAULT_MESSAGE_LIMIT, fetchAgentExecution } from "./fetch.js";
+import { DEFAULT_MESSAGE_LIMIT, fetchAgentRun } from "./fetch.js";
 import { runAgent } from "./run.js";
 
-/** Register every AgentExecution-domain tool; returns the registered tool names. */
-export function registerAgentExecutionTools(server: McpServer, target: BackendTarget): string[] {
+/** Register every AgentRun-domain tool; returns the registered tool names. */
+export function registerAgentRunTools(server: McpServer, target: BackendTarget): string[] {
   server.registerTool(
     "run_agent",
     {
       description:
-        "Start an agent execution (asynchronous). Returns immediately with the created execution " +
-        "(aex_* ID) while the run continues in the background — poll get_agent_execution to observe " +
+        "Start an agent run (asynchronous). Returns immediately with the created run " +
+        "(aex_* ID) while the run continues in the background — poll get_agent_run to observe " +
         "progress, pending approvals, and the final result. Omit session_id to start a fresh " +
         "conversation on the agent; pass one to send a follow-up message into an existing session, " +
         "which runs the agent the session started on.",
@@ -44,7 +43,7 @@ export function registerAgentExecutionTools(server: McpServer, target: BackendTa
           .string()
           .optional()
           .describe(
-            "Existing session ID to continue a conversation (from a previous execution's " +
+            "Existing session ID to continue a conversation (from a previous run's " +
               "spec.session_id). Omit to start a new session. A turn in a session runs the agent " +
               "the session started on and belongs to that session's organization, which the server " +
               "applies. `agent` (and `org`, when given) must name the session's agent, or the call " +
@@ -74,17 +73,17 @@ export function registerAgentExecutionTools(server: McpServer, target: BackendTa
   );
 
   server.registerTool(
-    "get_agent_execution",
+    "get_agent_run",
     {
       description:
-        "Get an agent execution's status: phase, messages, pending approvals, errors, timing. " +
-        "Agent executions have no event log — poll this tool to track a run started with run_agent " +
+        "Get an agent run's status: phase, messages, pending approvals, errors, timing. " +
+        "Agent runs have no event log — poll this tool to track a run started with run_agent " +
         "(terminal phases: completed, failed, cancelled, terminated). The default compact view " +
         "returns the last few messages and omits bulky bookkeeping fields (resolved context, " +
         "approval ledger, sub-agent transcripts); total_messages tells you when the tail is a " +
         "window. Use view=full for the complete record.",
       inputSchema: {
-        execution_id: z.string().describe("Agent execution ID (aex_* format)."),
+        run_id: z.string().describe("Agent run ID (aex_* format)."),
         view: z
           .enum(["compact", "full"])
           .optional()
@@ -99,10 +98,10 @@ export function registerAgentExecutionTools(server: McpServer, target: BackendTa
     },
     (args, extra) =>
       textOrError(() =>
-        fetchAgentExecution(
+        fetchAgentRun(
           target.serverAddress,
           resolveToken(extra, target.apiKey),
-          args.execution_id,
+          args.run_id,
           args.view ?? "compact",
           args.message_limit ?? DEFAULT_MESSAGE_LIMIT,
         ),
@@ -110,16 +109,16 @@ export function registerAgentExecutionTools(server: McpServer, target: BackendTa
   );
 
   server.registerTool(
-    "submit_agent_execution_approval",
+    "submit_agent_run_approval",
     {
       description:
-        "Approve, skip, or reject a tool call an agent execution is waiting on (phase " +
-        "waiting-for-approval). Find pending requests in get_agent_execution's " +
+        "Approve, skip, or reject a tool call an agent run is waiting on (phase " +
+        "waiting-for-approval). Find pending requests in get_agent_run's " +
         "status.pending_approvals — tool_call_id must match exactly. reject denies the single " +
         "tool call and feeds your comment back to the agent, which then continues; to stop the " +
-        "whole run use cancel_execution instead.",
+        "whole run use cancel_run instead.",
       inputSchema: {
-        execution_id: z.string().describe("Agent execution ID (aex_* format)."),
+        run_id: z.string().describe("Agent run ID (aex_* format)."),
         tool_call_id: z
           .string()
           .describe("Tool call awaiting the decision (status.pending_approvals[].tool_call_id)."),
@@ -138,7 +137,7 @@ export function registerAgentExecutionTools(server: McpServer, target: BackendTa
     (args, extra) =>
       textOrError(() =>
         submitAgentApproval(target.serverAddress, resolveToken(extra, target.apiKey), {
-          executionId: args.execution_id,
+          runId: args.run_id,
           toolCallId: args.tool_call_id,
           action: args.action,
           comment: args.comment,
@@ -146,5 +145,5 @@ export function registerAgentExecutionTools(server: McpServer, target: BackendTa
       ),
   );
 
-  return ["run_agent", "get_agent_execution", "submit_agent_execution_approval"];
+  return ["run_agent", "get_agent_run", "submit_agent_run_approval"];
 }

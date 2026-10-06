@@ -1,10 +1,10 @@
-// Plaintext renderer for workflow events (human + `execution logs` output).
+// Plaintext renderer for workflow events (human + `runs logs` output).
 //
 // Renders one line per event: `[HH:MM:SS] <glyph> <text>`, with the glyph tinted
 // by the event tone (color auto-disables off a TTY / under NO_COLOR, like the
 // rest of the CLI). Mirrors the layout of Go's renderWorkflowEvent. Output goes
 // to a caller-supplied sink so this composes into both the `run workflow` inline
-// stream and `execution logs`.
+// stream and `runs logs`.
 
 import { type Styler, styler } from "../../output/style.js";
 import { type EventTone, type WorkflowEventView, toWorkflowEventView } from "./workflow-event-view.js";
