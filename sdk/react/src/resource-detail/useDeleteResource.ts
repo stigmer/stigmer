@@ -87,10 +87,6 @@ export function useDeleteResource(
           // refuses when something outside the plugin still references one.
           await stigmer.plugin.delete(resourceId);
           break;
-        default: {
-          const unreachable: never = kind;
-          throw new Error(`Unsupported resource kind: ${String(unreachable)}`);
-        }
       }
       toast.success(
         resourceName
@@ -125,9 +121,5 @@ function kindLabel(kind: DeletableResourceKind): string {
       return "schedule";
     case "plugin":
       return "plugin";
-    default: {
-      const unreachable: never = kind;
-      return String(unreachable);
-    }
   }
 }

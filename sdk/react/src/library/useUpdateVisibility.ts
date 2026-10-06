@@ -97,10 +97,6 @@ export function useUpdateVisibility(
           case "environment":
             await stigmer.environment.updateVisibility(input);
             break;
-          default: {
-            const unreachable: never = kind;
-            throw new Error(`Unsupported visibility kind: ${String(unreachable)}`);
-          }
         }
       } catch (err) {
         setError(toError(err));
