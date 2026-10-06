@@ -479,6 +479,7 @@ export async function getArtifactDownloadUrl(
       storageKey,
       expiresInMs,
       downloadFilename,
+      "person",
     );
   } catch (error) {
     throw internalError(error, "failed to generate download URL");

@@ -136,13 +136,14 @@ describe("LocalArtifactStorage", () => {
 
   it("signed URL: inline has no query, download carries url-encoded filename", async () => {
     const key = "artifacts/aex_1/plan.md";
-    const inline = await storage.getSignedUrl(key, 3600_000, "");
+    const inline = await storage.getSignedUrl(key, 3600_000, "", "person");
     expect(inline).toBe(`http://localhost:7235/${key}`);
 
     const download = await storage.getSignedUrl(
       key,
       3600_000,
       "my plan.plan.md",
+      "person",
     );
     // Space encodes as '+' (Go url.Values.Encode).
     expect(download).toBe(
@@ -151,19 +152,22 @@ describe("LocalArtifactStorage", () => {
 
     // Go url.QueryEscape byte-exactness on the two characters where
     // URLSearchParams disagrees: '~' stays bare, '*' percent-encodes.
-    const exotic = await storage.getSignedUrl(key, 3600_000, "a~b*c.md");
+    const exotic = await storage.getSignedUrl(key, 3600_000, "a~b*c.md", "person");
     expect(exotic).toBe(`http://localhost:7235/${key}?download=a~b%2Ac.md`);
+
+    // The lane has one address, so a runner's link is a person's.
+    expect(await storage.getSignedUrl(key, 3600_000, "", "runner")).toBe(inline);
   });
 
   it("signed URL: a resolved serve URL is read at every mint, not at construction", async () => {
     let origin = "";
     const resolved = new LocalArtifactStorage(base, () => origin);
     const key = "artifacts/aex_1/plan.md";
-    await expect(resolved.getSignedUrl(key, 3600_000, "")).rejects.toThrow(
+    await expect(resolved.getSignedUrl(key, 3600_000, "", "person")).rejects.toThrow(
       "local serve URL not configured",
     );
     origin = "http://localhost:51234";
-    expect(await resolved.getSignedUrl(key, 3600_000, "")).toBe(
+    expect(await resolved.getSignedUrl(key, 3600_000, "", "person")).toBe(
       `http://localhost:51234/${key}`,
     );
   });
@@ -274,6 +278,7 @@ const NO_R2 = {
   r2AccessKeyId: "",
   r2SecretAccessKey: "",
   r2Region: "",
+  r2RunnerEndpoint: "",
 } as const;
 
 describe("newArtifactStorage factory", () => {

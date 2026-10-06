@@ -5,7 +5,8 @@
  * required-config copy, the 7-day presign clamp, the signed
  * Content-Disposition, the not-found mapping, and the widened surface
  * (typed not-found on download/size, presigned-PUT under the caller's key
- * with the signed Content-Length).
+ * with the signed Content-Length), and a runner's links signed for the
+ * runner's address when one is set.
  */
 import { describe, expect, it } from "vitest";
 
@@ -39,7 +40,7 @@ describe("R2ArtifactStorage presigned URLs", () => {
   const storage = new R2ArtifactStorage(VALID);
 
   it("presigns a path-style GET under the endpoint and bucket", async () => {
-    const url = await storage.getSignedUrl("abc123hash", 3_600_000, "");
+    const url = await storage.getSignedUrl("abc123hash", 3_600_000, "", "person");
     expect(url.startsWith(`${VALID.endpoint}/${VALID.bucket}/abc123hash?`)).toBe(true);
     expect(url).toContain("X-Amz-Expires=3600");
     expect(url).not.toContain("response-content-disposition");
@@ -50,15 +51,42 @@ describe("R2ArtifactStorage presigned URLs", () => {
       "abc123hash",
       R2_MAX_EXPIRATION_MS * 3,
       "",
+      "person",
     );
     expect(url).toContain("X-Amz-Expires=604800");
   });
 
   it("signs the attachment disposition into the URL when a filename is given", async () => {
-    const url = await storage.getSignedUrl("abc123hash", 3_600_000, "report.txt");
+    const url = await storage.getSignedUrl("abc123hash", 3_600_000, "report.txt", "person");
     // Signed as a response-content-disposition override, mirroring Go.
     expect(url).toContain("response-content-disposition=");
     expect(decodeURIComponent(url)).toContain('attachment; filename="report.txt"');
+  });
+});
+
+describe("R2ArtifactStorage links by reader", () => {
+  const RUNNER_ENDPOINT = "http://host.docker.internal:9000";
+
+  it("signs a runner's link for the runner's address and a person's for the endpoint", async () => {
+    const storage = new R2ArtifactStorage({ ...VALID, runnerEndpoint: RUNNER_ENDPOINT });
+    const runner = await storage.getSignedUrl("plugins/abc.zip", 3_600_000, "", "runner");
+    const person = await storage.getSignedUrl("plugins/abc.zip", 3_600_000, "", "person");
+    expect(runner.startsWith(`${RUNNER_ENDPOINT}/${VALID.bucket}/plugins/abc.zip?`)).toBe(true);
+    expect(person.startsWith(`${VALID.endpoint}/${VALID.bucket}/plugins/abc.zip?`)).toBe(true);
+  });
+
+  it("keeps uploads on the endpoint when a runner's address is set", async () => {
+    const storage = new R2ArtifactStorage({ ...VALID, runnerEndpoint: RUNNER_ENDPOINT });
+    const upload = await storage.presignPut("skills/staging/ref.zip", 10, 60_000);
+    expect(upload.url.startsWith(`${VALID.endpoint}/${VALID.bucket}/skills/staging/ref.zip?`)).toBe(true);
+  });
+
+  it.each([undefined, ""])("signs every reader's link for the endpoint with no runner address (%j)", async (runnerEndpoint) => {
+    const storage = new R2ArtifactStorage({ ...VALID, ...(runnerEndpoint === undefined ? {} : { runnerEndpoint }) });
+    for (const reader of ["runner", "person"] as const) {
+      const url = await storage.getSignedUrl("plugins/abc.zip", 3_600_000, "", reader);
+      expect(url.startsWith(`${VALID.endpoint}/${VALID.bucket}/plugins/abc.zip?`), reader).toBe(true);
+    }
   });
 });
 

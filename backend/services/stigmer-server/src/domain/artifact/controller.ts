@@ -640,6 +640,7 @@ async function getDownloadUrl(
       contentHash,
       DOWNLOAD_URL_EXPIRATION_MS,
       "",
+      "person",
     );
   } catch (error) {
     deps.logger.error("failed to generate download URL for artifact", {

@@ -1180,6 +1180,7 @@ export async function composeServer(
       r2AccessKeyId: config.r2AccessKeyId,
       r2SecretAccessKey: config.r2SecretAccessKey,
       r2Region: config.r2Region,
+      r2RunnerEndpoint: config.r2RunnerEndpoint,
     },
     extensions.drivers.artifactStorageDrivers,
   );
@@ -1283,6 +1284,7 @@ export async function composeServer(
         r2AccessKeyId: config.r2AccessKeyId,
         r2SecretAccessKey: config.r2SecretAccessKey,
         r2Region: config.r2Region,
+        r2RunnerEndpoint: config.r2RunnerEndpoint,
       },
       extensions.drivers.artifactStorageDrivers,
     );
