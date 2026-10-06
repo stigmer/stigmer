@@ -105,7 +105,7 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
     // ── Assert: the STOP was delivered, and the run stopped there ────────────
     expect(stopsAnswered, "the platform said STOP at least once").toBeGreaterThan(0);
     expect(invocation.outcome.kind, "a platform stop RETURNS").toBe("returned");
-    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(record.persistedPhases).toEqual([RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_COMPLETED]);
     const final = record.lastFullStatus!;
     expect(final.error).toBe("");

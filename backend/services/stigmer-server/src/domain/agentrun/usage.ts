@@ -6,7 +6,7 @@
  * (get_execution_summary.go, a direct handler in Go too).
  *
  * The OSS zero-shapes contract, which the conformance suite's zero-record
- * read surfaces pin (agentexecution.conformance.test.ts): runners record
+ * read surfaces pin (agentrun.conformance.test.ts): runners record
  * no per-message llm_metrics and there is no llm_call_usage_record
  * collection (a cloud billing concern), so every aggregate is
  * structurally valid and zero-valued, and the session/agent/org reports
@@ -410,7 +410,7 @@ async function resolveAgentNameFromStore(
 type ExecutionReportDesc =
   typeof AgentRunQueryController.method.getRunUsageReport.input;
 
-export async function getExecutionUsageReport(
+export async function getRunUsageReport(
   deps: UsageReportDeps,
   req: RequestContext<ExecutionReportDesc>["input"],
   identity: CallerIdentity,
@@ -798,7 +798,7 @@ function requireReport<T>(value: unknown, message: string): T {
 // (workflowexecution/get-execution-summary.ts) for the full rationale.
 // ---------------------------------------------------------------------------
 
-export async function getExecutionSummary(
+export async function getRunSummary(
   deps: UsageReportDeps,
   req: GetAgentRunSummaryRequest,
   identity: CallerIdentity,

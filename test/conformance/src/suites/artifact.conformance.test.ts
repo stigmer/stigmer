@@ -127,7 +127,7 @@ describe("[rpc:ArtifactCommandController.create] Artifact conformance — create
 });
 
 describe("Artifact conformance — read surfaces", () => {
-  it.skipIf(multiTenant)("[rpc:ArtifactQueryController.get] [rpc:ArtifactQueryController.listByExecution] get and listByExecution resolve the artifact by id and by source", async () => {
+  it.skipIf(multiTenant)("[rpc:ArtifactQueryController.get] [rpc:ArtifactQueryController.listByRun] get and listByRun resolve the artifact by id and by source", async () => {
     const executionId = `wexec_01${uniqueName("run").replace(/-/g, "")}`.slice(0, 30);
     const created = await clients.artifactCommand.create(
       makeArtifactInput({ workflowExecutionId: executionId }),
@@ -150,11 +150,11 @@ describe("Artifact conformance — read surfaces", () => {
     expect(other.entries).toHaveLength(0);
   });
 
-  it("[rpc:ArtifactQueryController.listByExecution] listByExecution requires an execution filter (InvalidArgument)", async () => {
+  it("[rpc:ArtifactQueryController.listByRun] listByRun requires an execution filter (InvalidArgument)", async () => {
     await expectGrpcCode(
       () => clients.artifactQuery.listByRun({}),
       Code.InvalidArgument,
-      "listByExecution without any filter",
+      "listByRun without any filter",
     );
   });
 

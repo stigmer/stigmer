@@ -26,7 +26,7 @@ schema.json            JSON Schema for a scenario file
   "description": "one gated tool call -> one pending approval",
   "input": {
     "messages": [ /* AgentMessage protos as protojson */ ],
-    "sub_agent_executions": [ /* SubAgentExecution protos as protojson */ ]
+    "sub_agent_runs": [ /* SubAgentRun protos as protojson */ ]
   },
   "expected": {
     "pending_approvals": [ /* PendingApproval protos as protojson */ ]

@@ -3,7 +3,7 @@
 //
 // The contract under test (stigmer/stigmer#1463, spec.proto's max_tool_rounds):
 // a run given a budget of N tool rounds makes exactly N, then ends
-// EXECUTION_TERMINATED with the tool-call-limit copy, whose prefix is a
+// RUN_TERMINATED with the tool-call-limit copy, whose prefix is a
 // cross-repository contract (the runner's shared/tool-rounds.ts). A round is
 // one model response that proposes tools, so the budget is read in rounds
 // executed: N tools/call requests at the MCP fixture and N tool rows on the
@@ -75,11 +75,11 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("AgentExecution run_config.max_tool_rounds", () => {
+describe("AgentRun run_config.max_tool_rounds", () => {
   // The run passes its 80% advisory on the way to the limit, so this case is
   // also the end-to-end proof that the advisory reaches an Anthropic model as
   // a request it accepts (stigmer/stigmer#1354).
-  it("[rpc:AgentExecutionCommandController.create] ends the run at its budget, with exactly that many tool rounds made", async () => {
+  it("[rpc:AgentRunCommandController.create] ends the run at its budget, with exactly that many tool rounds made", async () => {
     const { org } = await target.provisionTenancy();
 
     const server = await clients.mcpServerCommand.create(

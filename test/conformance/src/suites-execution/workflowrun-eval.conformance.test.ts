@@ -89,7 +89,7 @@ function expectTaskCompleted(final: WorkflowRun, taskName: string): void {
   expect(taskByName(final, taskName)?.status, `${taskName} completed`).toBe(WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED);
 }
 
-describe("WorkflowExecution eval — scoring modes", () => {
+describe("WorkflowRun eval — scoring modes", () => {
   it("a pass/fail eval completes when the judge's forced extract tool answers pass", async () => {
     mock.enqueue(
       anthropicToolUse("toolu_eval_pass", EVAL_EXTRACT_TOOL_NAME, {
@@ -170,7 +170,7 @@ describe("WorkflowExecution eval — scoring modes", () => {
   });
 });
 
-describe("WorkflowExecution eval — failure policy", () => {
+describe("WorkflowRun eval — failure policy", () => {
   it("a failing score under the warn policy runs the next task and completes", async () => {
     mock.enqueue(
       anthropicToolUse("toolu_eval_low", EVAL_EXTRACT_TOOL_NAME, {

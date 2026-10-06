@@ -1,8 +1,8 @@
 {
   "name": "multi-changeset-accumulation",
-  "description": "Two change sets within one execution (turn 1 reconciled, turn 2 awaiting review) -> two projected sets with DISTINCT statuses, in first-seen order. Pins per-set grouping by change_set_id, ordering, and a terminal RECONCILED set coexisting with an actionable AWAITING_REVIEW set (every other fixture has exactly one set). This is the deep-agent accumulation-across-turns shape (change_set_id = executionId:turnSeq).",
-  "execution_id": "aex_multi",
-  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "description": "Two change sets within one execution (turn 1 reconciled, turn 2 awaiting review) -> two projected sets with DISTINCT statuses, in first-seen order. Pins per-set grouping by change_set_id, ordering, and a terminal RECONCILED set coexisting with an actionable AWAITING_REVIEW set (every other fixture has exactly one set). This is the deep-agent accumulation-across-turns shape (change_set_id = runId:turnSeq).",
+  "run_id": "aex_multi",
+  "phase": "RUN_WAITING_FOR_APPROVAL",
   "events": [
     {
       "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

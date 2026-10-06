@@ -279,7 +279,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     );
   });
 
-  it("[rpc:AgentExecutionQueryController.getArtifactContent] [rpc:AgentExecutionQueryController.getArtifactDownloadUrl] [rpc:AgentExecutionQueryController.subscribe] [rpc:WorkflowExecutionQueryController.getEventLog] [rpc:WorkflowExecutionQueryController.subscribe] [rpc:WorkflowExecutionQueryController.subscribeEvents] the authorize-first read lanes answer an outsider's unknown id with the uniform NOT_FOUND", async (ctx) => {
+  it("[rpc:AgentRunQueryController.getArtifactContent] [rpc:AgentRunQueryController.getArtifactDownloadUrl] [rpc:AgentRunQueryController.subscribe] [rpc:WorkflowRunQueryController.getEventLog] [rpc:WorkflowRunQueryController.subscribe] [rpc:WorkflowRunQueryController.subscribeEvents] the authorize-first read lanes answer an outsider's unknown id with the uniform NOT_FOUND", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const outsider = await lane.provisionIdentity();
     const missingWorkflowExecution = "wfe_01conformancemissing";

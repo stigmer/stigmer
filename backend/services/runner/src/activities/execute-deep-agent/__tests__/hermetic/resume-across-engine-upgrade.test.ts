@@ -333,7 +333,7 @@ describe("ExecuteDeepAgent hermetic — a paused session resumes across an engin
 
       // ── Assert ─────────────────────────────────────────────────────────────
       expect(turn.outcome.kind).toBe("returned");
-      expect((turn.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+      expect((turn.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
       const final = record.lastFullStatus!;
       const rows = final.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === EXECUTE_CALL_A.id);
       expect(rows, "exactly one copy of the gated call — a resume, not a replay").toHaveLength(1);

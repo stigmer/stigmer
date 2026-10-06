@@ -66,7 +66,7 @@ import { triple } from "../../iampolicy/__tests__/support.js";
 
 const API_VERSION = "agentic.stigmer.ai/v1";
 
-/** EXECUTION_COMPLETED, the same number in both execution kinds' phase enums. */
+/** RUN_COMPLETED, the same number in both execution kinds' phase enums. */
 const FINISHED_PHASE = RunPhase.RUN_COMPLETED;
 
 /** How the suite reaches the database the composed server writes. */

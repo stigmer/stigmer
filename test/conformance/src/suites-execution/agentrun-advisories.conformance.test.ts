@@ -22,7 +22,7 @@
 // The arm here is loop detection's, the threshold the runner fixes at seven
 // identical calls (runner execute-deep-agent/turn-setup.ts). The budget's
 // advisory is proven end to end by the tool-round facet, whose run passes it
-// on the way to its limit (agentexecution-tool-rounds.conformance.test.ts).
+// on the way to its limit (agentrun-tool-rounds.conformance.test.ts).
 // The cost advisory is proven in the runner's hermetic net, with a price it
 // controls (hermetic/cost-advisory.test.ts); this suite cannot see a model's
 // price, so its token counts would be guesses.
@@ -96,7 +96,7 @@ function isTextOnlyUserTurn(turn: TurnShape | undefined): boolean {
   return turn?.role === "user" && turn.blocks.length > 0 && turn.blocks.every((block) => block === "text");
 }
 
-describe("AgentExecution advisories to the model", () => {
+describe("AgentRun advisories to the model", () => {
   it("loop detection's warning reaches the model as a user turn after the tool results, and the run completes", async () => {
     const { org } = await target.provisionTenancy();
 

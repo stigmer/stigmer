@@ -3,7 +3,7 @@
 // The contract: a caller may START or CONTINUE a run only on what they can
 // see. The three create chains — session, agent execution, workflow
 // execution — ask the edition's Authorizer about the record's run target
-// (agent#can_execute, session#can_create_execution_in, workflow#can_execute)
+// (agent#can_execute, session#can_create_run_in, workflow#can_execute)
 // before any engine check, gate slot or side effect. A session names its agent by reference and pins the agent it
 // resolves to (status.agent_id), so the gate judges that resolved id, and
 // asks it again whenever a write introduces or changes the agent. A turn
@@ -201,7 +201,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
     );
   });
 
-  it("[rpc:AgentExecutionCommandController.create] a new conversation on a PRIVATE agent is denied with the agent copy", async (ctx) => {
+  it("[rpc:AgentRunCommandController.create] a new conversation on a PRIVATE agent is denied with the agent copy", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -228,7 +228,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
     );
   });
 
-  it("[rpc:AgentExecutionCommandController.create] execution create by session_id on a session the member cannot see is denied with the session copy", async (ctx) => {
+  it("[rpc:AgentRunCommandController.create] execution create by session_id on a session the member cannot see is denied with the session copy", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -262,7 +262,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
     );
   });
 
-  it("[rpc:WorkflowExecutionCommandController.create] workflow execution create on a PRIVATE workflow is denied with the workflow copy", async (ctx) => {
+  it("[rpc:WorkflowRunCommandController.create] workflow execution create on a PRIVATE workflow is denied with the workflow copy", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -286,7 +286,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
     );
   });
 
-  it("[rpc:WorkflowExecutionCommandController.create] a workflow run naming an unknown workflow answers NOT_FOUND naming only the id it was sent", async (ctx) => {
+  it("[rpc:WorkflowRunCommandController.create] a workflow run naming an unknown workflow answers NOT_FOUND naming only the id it was sent", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -354,7 +354,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
 });
 
 describe("run gate — the agent is asked on every turn and every repoint (on the enforcing lane)", () => {
-  it("[rpc:AgentExecutionCommandController.create] a member who lost the agent is refused in their own session", async (ctx) => {
+  it("[rpc:AgentRunCommandController.create] a member who lost the agent is refused in their own session", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -370,7 +370,7 @@ describe("run gate — the agent is asked on every turn and every repoint (on th
       "member-session",
     );
     // The owner takes the agent back: the member keeps their session, and
-    // with it session#can_create_execution_in, but no longer agent#can_execute.
+    // with it session#can_create_run_in, but no longer agent#can_execute.
     await clients.agentCommand.updateVisibility({
       resourceId: agent.metadata!.id,
       visibility: ApiResourceVisibility.visibility_private,
@@ -393,7 +393,7 @@ describe("run gate — the agent is asked on every turn and every repoint (on th
     );
   });
 
-  it("[rpc:AgentExecutionCommandController.create] a viewer of a session who may not run its agent is refused", async (ctx) => {
+  it("[rpc:AgentRunCommandController.create] a viewer of a session who may not run its agent is refused", async (ctx) => {
     // A viewer on one session is a per-resource grant: an edition whose
     // grant scope admits only organization roles (open source's default)
     // cannot make one, and skips with that reason.
@@ -418,7 +418,7 @@ describe("run gate — the agent is asked on every turn and every repoint (on th
     );
     const sessionId = ownerSession.metadata!.id;
     // The owner shares the conversation itself: viewer on the session gives
-    // the member session#can_create_execution_in, and nothing on the agent.
+    // the member session#can_create_run_in, and nothing on the agent.
     await clients.iamPolicyCommand.create(
       policyTriple(
         { kind: "identity_account", id: await lane.accountIdOf(member) },
@@ -556,7 +556,7 @@ describe("run gate — a client-sent status never reaches either check (on the e
     );
   });
 
-  it("[rpc:AgentExecutionCommandController.create] on execution create", async (ctx) => {
+  it("[rpc:AgentRunCommandController.create] on execution create", async (ctx) => {
     const { context, member, open, closed } = await cast(ctx);
 
     const denied = await expectGrpcCode(
@@ -579,7 +579,7 @@ describe("run gate — a client-sent status never reaches either check (on the e
 });
 
 describe("run gate — a session the caller may not add to discloses nothing (on the enforcing lane)", () => {
-  it("[rpc:AgentExecutionCommandController.create] a forbidden session answers the session's own denial even when its agent is gone", async (ctx) => {
+  it("[rpc:AgentRunCommandController.create] a forbidden session answers the session's own denial even when its agent is gone", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -617,7 +617,7 @@ describe("run gate — a session the caller may not add to discloses nothing (on
     );
   });
 
-  it("[rpc:AgentExecutionCommandController.create] an unknown session answers NOT_FOUND naming only the id it was sent", async (ctx) => {
+  it("[rpc:AgentRunCommandController.create] an unknown session answers NOT_FOUND naming only the id it was sent", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -640,7 +640,7 @@ describe("run gate — a session the caller may not add to discloses nothing (on
 });
 
 describe("run gate — a workflow parent link is the vouched runner's (on the enforcing lane)", () => {
-  it("[rpc:AgentExecutionCommandController.create] a parent link the caller cannot vouch for is refused with INVALID_ARGUMENT", async (ctx) => {
+  it("[rpc:AgentRunCommandController.create] a parent link the caller cannot vouch for is refused with INVALID_ARGUMENT", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);

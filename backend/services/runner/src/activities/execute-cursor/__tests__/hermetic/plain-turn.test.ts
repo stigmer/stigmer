@@ -125,7 +125,7 @@ describe("ExecuteCursor hermetic — plain turn", () => {
     // ── Assert: the outcome the workflow sees ────────────────────────────────
     expect(invocation.outcome.kind, "a completed turn RETURNS, never throws").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     expect(slim.final_text).toBe(ASSISTANT_TEXT);
     expect(slim, "the slim return carries no transcript").not.toHaveProperty("messages");
 

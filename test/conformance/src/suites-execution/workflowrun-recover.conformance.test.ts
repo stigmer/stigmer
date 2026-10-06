@@ -1,4 +1,4 @@
-// Conformance suite for WorkflowExecution recover (Class B).
+// Conformance suite for WorkflowRun recover (Class B).
 // Domain: agentic / workflowexecution — the recover RPC and the lifecycle a
 // recovered execution goes through.
 //
@@ -9,7 +9,7 @@
 // incomplete/failed task; the phase returns to IN_PROGRESS and the error clears.
 // The conformance suite asserts the *observable* contract (phase lifecycle + the
 // cleared error + the eventual terminal state), not the terminate/restart vs.
-// checkpoint-reset mechanism — that internal difference from AgentExecution.recover
+// checkpoint-reset mechanism — that internal difference from AgentRun.recover
 // is an implementation detail a black-box client never sees.
 //
 // Fixture strategy: the failure must be deterministic, hermetic, and sub-second so
@@ -30,7 +30,7 @@
 //   (ValidateRecoverableStep's alreadyInTargetState branch): it succeeds and the
 //   running execution is untouched.
 //
-// Already covered in the main WorkflowExecution suite (not re-asserted here):
+// Already covered in the main WorkflowRun suite (not re-asserted here):
 // - recover of a non-FAILED terminal execution -> FailedPrecondition.
 // - recover with empty id -> InvalidArgument; missing execution -> NotFound
 //   (the latter two are the shared lifecycle negatives; recover shares the
@@ -89,8 +89,8 @@ async function createExecution(org: string, workflowId: string): Promise<string>
   return execution.metadata!.id;
 }
 
-describe("WorkflowExecution recover — happy path", () => {
-  it("[rpc:WorkflowExecutionCommandController.recover] recovers a FAILED execution back to IN_PROGRESS with the error cleared, then re-runs to terminal", async () => {
+describe("WorkflowRun recover — happy path", () => {
+  it("[rpc:WorkflowRunCommandController.recover] recovers a FAILED execution back to IN_PROGRESS with the error cleared, then re-runs to terminal", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionRaiseErrorWorkflow(org);
     const executionId = await createExecution(org, workflowId);
@@ -124,7 +124,7 @@ describe("WorkflowExecution recover — happy path", () => {
     ).toBe(RunPhase.RUN_FAILED);
   });
 
-  it("[rpc:WorkflowExecutionCommandController.recover] is an idempotent no-op on an already-IN_PROGRESS execution", async () => {
+  it("[rpc:WorkflowRunCommandController.recover] is an idempotent no-op on an already-IN_PROGRESS execution", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWaitWorkflow(org);
     const executionId = await createExecution(org, workflowId);

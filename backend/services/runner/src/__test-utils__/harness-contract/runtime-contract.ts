@@ -283,7 +283,7 @@ export async function assertCompletedTurn(harness: RuntimeContractHarness, label
   const invocation = await driver.turn([scenario.say(text), scenario.usage({ inputTokens: 1_200, outputTokens: 40, estimatedCostUsd: 0.00136, model: "fixture-model", requestedModelParams: "" })]);
 
   const slim = slimOf(subject, invocation);
-  expect(slim.phase, `${subject.name}: a completed turn returns COMPLETED`).toBe("EXECUTION_COMPLETED");
+  expect(slim.phase, `${subject.name}: a completed turn returns COMPLETED`).toBe("RUN_COMPLETED");
   expect(slim.final_text, `${subject.name}: the slim return carries the last assistant text`).toBe(text);
   expect(slim, `${subject.name}: the slim return carries no transcript`).not.toHaveProperty("messages");
   expect(driver.record.persistedPhases.at(-1), `${subject.name}: the last persist is COMPLETED`).toBe(RunPhase.RUN_COMPLETED);
@@ -320,7 +320,7 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, l
   const propose = scenario.propose(id, { kind: "shell", resource: `npm run build # ${label}` });
 
   const first = await driver.turn([propose]);
-  expect(slimOf(subject, first).phase, `${subject.name}: a proposal returns WAITING_FOR_APPROVAL`).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+  expect(slimOf(subject, first).phase, `${subject.name}: a proposal returns WAITING_FOR_APPROVAL`).toBe("RUN_WAITING_FOR_APPROVAL");
   expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
   expect(driver.record.waitingToolCalls().map((tc) => tc.id), `${subject.name}: exactly the proposal waits`).toEqual([id]);
   expect(subject.executionCount(id), `${subject.name}: a proposal never executes in its own turn`).toBe(0);
@@ -329,7 +329,7 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, l
   expect(driver.decide(ApprovalAction.APPROVE), `${subject.name}: one row to decide`).toBe(1);
 
   const second = await driver.turn([propose, scenario.say("Done.")]);
-  expect(slimOf(subject, second).phase, `${subject.name}: after APPROVE the turn completes`).toBe("EXECUTION_COMPLETED");
+  expect(slimOf(subject, second).phase, `${subject.name}: after APPROVE the turn completes`).toBe("RUN_COMPLETED");
   expect(slimOf(subject, second).final_text).toBe("Done.");
   expect(subject.executionCount(id), `${subject.name}: APPROVE executes exactly once`).toBe(1);
   expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits after the approval`).toHaveLength(0);
@@ -374,7 +374,7 @@ export async function assertFileReviewRoundTrip(harness: RuntimeContractHarness,
   const changeSetId = `${driver.record.executionId}:0`;
 
   const first = await driver.turn([scenario.flowingWrite(keepId, KEPT), scenario.flowingWrite(dropId, DROPPED), scenario.say("Edited two files.")]);
-  expect(slimOf(subject, first).phase, `${subject.name}: a captured change pauses the turn for review`).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+  expect(slimOf(subject, first).phase, `${subject.name}: a captured change pauses the turn for review`).toBe("RUN_WAITING_FOR_APPROVAL");
   expect(driver.record.waitingToolCalls(), `${subject.name}: a flowing write opens no gate row`).toHaveLength(0);
   expect(subject.executionCount(keepId), `${subject.name}: a flowing write executes at once`).toBe(1);
   expect(subject.executionCount(dropId)).toBe(1);
@@ -409,7 +409,7 @@ export async function assertFileReviewRoundTrip(harness: RuntimeContractHarness,
   expect(driver.record.decideCapturedFileChanges({ approve: [KEPT], reject: [DROPPED] }, new Date().toISOString()), `${subject.name}: two files to decide`).toBe(2);
 
   const second = await driver.turn([]);
-  expect(slimOf(subject, second).phase, `${subject.name}: a pure file-review resume completes without the engine`).toBe("EXECUTION_COMPLETED");
+  expect(slimOf(subject, second).phase, `${subject.name}: a pure file-review resume completes without the engine`).toBe("RUN_COMPLETED");
   // The kept file is the engine-not-re-run witness: a subject that counts
   // executions by reading its ledger off disk (the native one) reads
   // the DISCARDED file's count as 0 now, because the reconcile just restored
@@ -450,11 +450,11 @@ export async function assertNonExecutingDecisionSettlesSkipped(
   const verdict = ApprovalAction[action];
 
   const first = await driver.turn([propose]);
-  expect(slimOf(subject, first).phase, `${subject.name}: a proposal returns WAITING_FOR_APPROVAL`).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+  expect(slimOf(subject, first).phase, `${subject.name}: a proposal returns WAITING_FOR_APPROVAL`).toBe("RUN_WAITING_FOR_APPROVAL");
   expect(driver.decide(action), `${subject.name}: one row to decide`).toBe(1);
 
   const second = await driver.turn([propose, scenario.say("Moving on.")]);
-  expect(slimOf(subject, second).phase, `${subject.name}: after ${verdict} the run continues to COMPLETED — it does not fail`).toBe("EXECUTION_COMPLETED");
+  expect(slimOf(subject, second).phase, `${subject.name}: after ${verdict} the run continues to COMPLETED — it does not fail`).toBe("RUN_COMPLETED");
   expect(slimOf(subject, second).final_text, `${subject.name}: the step after the ${verdict}ed action ran`).toBe("Moving on.");
   expect(subject.executionCount(id), `${subject.name}: a ${verdict}ed action never executes`).toBe(0);
 
@@ -493,7 +493,7 @@ export async function assertToolCallLimitTerminates(harness: RuntimeContractHarn
   const driver = new RuntimeExecutionDriver(harness, label, { maxToolRounds: MIN_TOOL_ROUNDS });
   const invocation = await driver.turn([scenario.say("Working…"), scenario.limit(), scenario.say(NEVER_SEEN)]);
   // `slimOf` is the RETURN assertion (a retry would spend the same budget).
-  expect(slimOf(subject, invocation).phase, `${subject.name}: the tool-call limit is TERMINATED, not FAILED`).toBe("EXECUTION_TERMINATED");
+  expect(slimOf(subject, invocation).phase, `${subject.name}: the tool-call limit is TERMINATED, not FAILED`).toBe("RUN_TERMINATED");
   const final = finalStatusOf(harness, driver);
   expect(final.phase).toBe(RunPhase.RUN_TERMINATED);
   expect(final.error.startsWith(TOOL_CALL_LIMIT_ERROR_PREFIX), `${subject.name}: the error carries the cross-repo prefix; got "${final.error}"`).toBe(true);
@@ -531,12 +531,12 @@ export async function assertReinvocationCarriesThePersistedStatus(harness: Runti
   const propose = scenario.propose(id, { kind: "shell", resource: `make release # ${label}` });
 
   const first = await driver.turn([propose]);
-  expect(slimOf(subject, first).phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+  expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
   const planted = plantPriorTurnFacts(driver.record.status!, label);
   expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
 
   const second = await driver.turn([propose, scenario.say("Done.")]);
-  expect(slimOf(subject, second).phase, `${subject.name}: the resumed turn completes`).toBe("EXECUTION_COMPLETED");
+  expect(slimOf(subject, second).phase, `${subject.name}: the resumed turn completes`).toBe("RUN_COMPLETED");
   const final = finalStatusOf(harness, driver);
   expect(final.subAgentRuns.map((s) => s.id), `${subject.name}: the prior turn's sub-agent row survives the resume`).toContain(planted.subAgentId);
   expect(Object.keys(final.todos), `${subject.name}: the prior turn's to-dos survive the resume`).toContain(planted.todoId);
@@ -555,7 +555,7 @@ export async function assertFirstTurnSeedsNothing(harness: RuntimeContractHarnes
   const driver = new RuntimeExecutionDriver(harness, label);
   const planted = plantPriorTurnFacts(driver.record.status ?? (driver.record.execution.status = emptyStatus()), label);
   const invocation = await driver.turn([scenario.say("Fresh start.")]);
-  expect(slimOf(subject, invocation).phase).toBe("EXECUTION_COMPLETED");
+  expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
   const final = finalStatusOf(harness, driver);
   expect(final.subAgentRuns.map((s) => s.id), `${subject.name}: a first turn seeds no sub-agent rows`).not.toContain(planted.subAgentId);
   expect(Object.keys(final.todos), `${subject.name}: a first turn seeds no to-dos`).not.toContain(planted.todoId);
@@ -696,7 +696,7 @@ export async function assertStallFailsTheTurn(harness: RuntimeContractHarness, l
     if (running) clearInterval(running);
   }
 
-  expect(slimOf(subject, invocation).phase, `${subject.name}: a stall RETURNS FAILED`).toBe("EXECUTION_FAILED");
+  expect(slimOf(subject, invocation).phase, `${subject.name}: a stall RETURNS FAILED`).toBe("RUN_FAILED");
   expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
   const final = finalStatusOf(harness, driver);
   expect(final.error).toMatch(/^\[StallTimeoutError\] Agent stream stalled: no activity for \d+s( \(last tool: [^)]+\))?\. Retry or resume\.$/);
@@ -729,7 +729,7 @@ export async function assertCostCapTerminates(harness: RuntimeContractHarness, l
     scenario.say(NEVER_SEEN),
   ]);
 
-  expect(slimOf(subject, invocation).phase, `${subject.name}: the cost cap TERMINATES`).toBe("EXECUTION_TERMINATED");
+  expect(slimOf(subject, invocation).phase, `${subject.name}: the cost cap TERMINATES`).toBe("RUN_TERMINATED");
   expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_TERMINATED);
   const final = finalStatusOf(harness, driver);
   expect(final.error).toMatch(/^Agent reached the cost limit for this message \(~\$[\d.]+ of the \$0\.50 budget\)\. Send another message to continue\.$/);
@@ -762,7 +762,7 @@ export async function assertPlatformStopCompletesEarly(harness: RuntimeContractH
 
   const invocation = await driver.turn([scenario.say("Starting the suite."), scenario.read(`${label}-read`, "package.json"), scenario.say(NEVER_SEEN)]);
 
-  expect(slimOf(subject, invocation).phase, `${subject.name}: a platform STOP completes the turn`).toBe("EXECUTION_COMPLETED");
+  expect(slimOf(subject, invocation).phase, `${subject.name}: a platform STOP completes the turn`).toBe("RUN_COMPLETED");
   expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
   const final = finalStatusOf(harness, driver);
   expect(final.error, `${subject.name}: a platform stop is not an error`).toBe("");
@@ -781,7 +781,7 @@ export async function assertEngineCancelledEndsCancelled(harness: RuntimeContrac
   const invocation = await driver.turn([scenario.say("Looking at the pull requests."), scenario.cancelled(), scenario.say(NEVER_SEEN)]);
 
   const slim = slimOf(subject, invocation);
-  expect(slim.phase, `${subject.name}: an engine cancel ends CANCELLED`).toBe("EXECUTION_CANCELLED");
+  expect(slim.phase, `${subject.name}: an engine cancel ends CANCELLED`).toBe("RUN_CANCELLED");
   expect(slim).not.toHaveProperty("final_text");
   expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_CANCELLED);
   const final = finalStatusOf(harness, driver);
@@ -807,7 +807,7 @@ export async function assertFailedSurfaceWritesItsCopy(harness: RuntimeContractH
 
   const invocation = await driver.turn([scenario.say("Checking the repository."), scenario.fail(message, surface), scenario.say(NEVER_SEEN)]);
 
-  expect(slimOf(subject, invocation).phase, `${subject.name}: a ${surface} failure RETURNS FAILED`).toBe("EXECUTION_FAILED");
+  expect(slimOf(subject, invocation).phase, `${subject.name}: a ${surface} failure RETURNS FAILED`).toBe("RUN_FAILED");
   expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
   const final = finalStatusOf(harness, driver);
   expect(final.error, `${subject.name}: a failed turn names its error`).not.toBe("");
@@ -854,7 +854,7 @@ export async function assertRejectedBindFails(harness: RuntimeContractHarness, l
     },
   });
 
-  expect(slimOf(subject, invocation).phase, `${subject.name}: a rejected bind RETURNS FAILED`).toBe("EXECUTION_FAILED");
+  expect(slimOf(subject, invocation).phase, `${subject.name}: a rejected bind RETURNS FAILED`).toBe("RUN_FAILED");
   const final = finalStatusOf(harness, driver);
   expect(final.error).not.toBe("");
   expect(systemMessages(final)[0], `${subject.name}: a rejected bind is an internal failure`).toBe(TERMINAL_COPY.internalFailure.row);
@@ -880,7 +880,7 @@ export async function assertResolutionErrorFailsBeforeEngine(harness: RuntimeCon
     },
   });
 
-  expect(slimOf(subject, invocation).phase).toBe("EXECUTION_FAILED");
+  expect(slimOf(subject, invocation).phase).toBe("RUN_FAILED");
   expect(driver.record.persistedPhases, `${subject.name}: nothing was persisted before the failure`).toEqual([RunPhase.RUN_FAILED]);
   const final = finalStatusOf(harness, driver);
   // One grammar for a FAILED `status.error` (stigmer#1122): the described
@@ -904,7 +904,7 @@ export async function assertWorkspaceLockTimeoutFails(harness: RuntimeContractHa
   try {
     const invocation = await driver.turn([scenario.say(NEVER_SEEN)], { config: { workspaceLockTimeoutMs: 500 } });
 
-    expect(slimOf(subject, invocation).phase).toBe("EXECUTION_FAILED");
+    expect(slimOf(subject, invocation).phase).toBe("RUN_FAILED");
     expect(driver.record.persistedPhases).toEqual([RunPhase.RUN_FAILED]);
     const final = finalStatusOf(harness, driver);
     const resolvedDir = await realpath(driver.workspaceDir);

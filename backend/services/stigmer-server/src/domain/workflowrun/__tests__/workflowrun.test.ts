@@ -18,7 +18,7 @@
  *   - getEventLog cursor pagination over REAL persisted events: has_more
  *     from the +1 fetch, latest_sequence, the 500 cap, the multi-type
  *     in-memory filter, and the malformed-record skip;
- *   - the populated getExecutionSummary arm (phase counts, active count,
+ *   - the populated getRunSummary arm (phase counts, active count,
  *     avg duration, failure ranks, cost breakdown, workflow scoping,
  *     time-window cutoff);
  *   - listPendingApprovals projection (task_name not task_id; requester
@@ -83,7 +83,7 @@ const silentLogger = createLogger({
 });
 
 const API_VERSION = "agentic.stigmer.ai/v1";
-const KIND = "WorkflowExecution";
+const KIND = "WorkflowRun";
 const ORG = "acme";
 
 type CommandClient = Client<typeof WorkflowRunCommandController>;
@@ -564,7 +564,7 @@ describe("getEventLog over the wire (the pinned pagination contract)", () => {
   });
 });
 
-describe("getExecutionSummary over the wire", () => {
+describe("getRunSummary over the wire", () => {
   // The composed store is shared across this file's tests, so summary
   // assertions scope through workflow_id filters seeded uniquely here.
   it("aggregates phase counts, cost, avg duration, ranks — scoped by workflow", async () => {
@@ -768,7 +768,7 @@ describe("listPendingApprovals over the wire", () => {
   });
 });
 
-describe("[rpc:WorkflowExecutionCommandController.updateStatus] updateStatus over the wire", () => {
+describe("[rpc:WorkflowRunCommandController.updateStatus] updateStatus over the wire", () => {
   it("merges status, persists events, and broadcasts to subscribers", async () => {
     const id = await seed(
       seedInput({ phase: RunPhase.RUN_IN_PROGRESS }),
@@ -1102,7 +1102,7 @@ describe("lifecycle over the wire (engineless postures)", () => {
       Code.FailedPrecondition,
     );
     expect(err.rawMessage).toBe(
-      "cannot pause execution in phase EXECUTION_COMPLETED; only PENDING or IN_PROGRESS can be paused",
+      "cannot pause execution in phase RUN_COMPLETED; only PENDING or IN_PROGRESS can be paused",
     );
   });
 
@@ -1115,7 +1115,7 @@ describe("lifecycle over the wire (engineless postures)", () => {
       Code.FailedPrecondition,
     );
     expect(err.rawMessage).toBe(
-      "cannot recover execution in phase EXECUTION_COMPLETED; only FAILED executions can be recovered",
+      "cannot recover execution in phase RUN_COMPLETED; only FAILED executions can be recovered",
     );
   });
 });
@@ -1234,7 +1234,7 @@ describe("submitApproval over the wire (forwarding through the REAL in-process e
       Code.Unavailable,
     );
     expect(err.rawMessage).toBe(
-      "failed to forward approval to child agent: rpc error: code = NotFound desc = agent_execution not found: aexec_child_missing",
+      "failed to forward approval to child agent: rpc error: code = NotFound desc = agent_run not found: aexec_child_missing",
     );
   });
 });
@@ -1255,7 +1255,7 @@ describe("submitFileDecision over the wire (propagation through the REAL in-proc
       AgentRunSchema,
       create(AgentRunSchema, {
         apiVersion: API_VERSION,
-        kind: "AgentExecution",
+        kind: "AgentRun",
         metadata: {
           id: childId,
           name: childId.replaceAll("_", "-"),
@@ -1466,7 +1466,7 @@ describe("submitWorkflowTaskApproval over the wire", () => {
       Code.FailedPrecondition,
     );
     expect(err.rawMessage).toBe(
-      "cannot submit task approval: execution is in EXECUTION_COMPLETED phase",
+      "cannot submit task approval: execution is in RUN_COMPLETED phase",
     );
   });
 });

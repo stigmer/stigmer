@@ -45,7 +45,7 @@
  *
  * The turn's ending is the file review's. The environment pins local artifact
  * storage, so the runtime's capture mode is ON as in production, and a turn
- * that wrote a file ends `EXECUTION_WAITING_FOR_APPROVAL` with the write
+ * that wrote a file ends `RUN_WAITING_FOR_APPROVAL` with the write
  * captured as a change set for review (`hermetic/file-review-capture.test.ts`
  * pins the same ending) — `auto_approve_all` bypasses the tool gate, not the
  * review. So the terminal phase asserted here is COMPLETED, or WAITING with a

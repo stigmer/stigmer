@@ -199,7 +199,7 @@ async function awaitContextGone(executionId: string, after: string): Promise<voi
 }
 
 // Drives the WORKFLOW env-merge path end to end: the run's person's personal
-// Environment -> Workflow (env whitelist) -> WorkflowExecution
+// Environment -> Workflow (env whitelist) -> WorkflowRun
 // (runtime_env), then reads the merged ExecutionContext. The `wait` workflow
 // keeps the run non-terminal so the ephemeral context survives the read.
 async function runWorkflowMerge(org: string, setup: MergeSetup) {
@@ -406,7 +406,7 @@ describe("envmerge conformance — Workflow precedence", () => {
     expect(Object.keys(secondData).sort(), "the second run holds the second version's keys").toEqual(["SECOND_KEY"]);
   });
 
-  it("[rpc:WorkflowExecutionCommandController.recover] recover rebuilds the context create built: the pinned version's keys, from the same person", async () => {
+  it("[rpc:WorkflowRunCommandController.recover] recover rebuilds the context create built: the pinned version's keys, from the same person", async () => {
     // A human_input gate that times out FAILS the run; recover resumes at
     // the gate, which waits again, so the rebuilt context is alive to read.
     // Between the failure and the recover the workflow is saved declaring
@@ -427,7 +427,7 @@ describe("envmerge conformance — Workflow precedence", () => {
     await awaitPhase(clients, executionId, RunPhase.RUN_FAILED);
     // The failed run's own context delete runs after the phase lands; recover
     // only once it has, so it can never remove the rebuilt context.
-    await awaitContextGone(executionId, "EXECUTION_FAILED");
+    await awaitContextGone(executionId, "RUN_FAILED");
     const v2 = await clients.workflowCommand.apply(gated({ LATER_KEY: {} }));
     expect(v2.status?.versionHash).not.toBe(v1.status?.versionHash);
 

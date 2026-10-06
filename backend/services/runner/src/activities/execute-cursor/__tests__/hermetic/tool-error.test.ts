@@ -112,7 +112,7 @@ describe("ExecuteCursor hermetic — an ungated tool call that fails", () => {
 
     // ── Assert: a failed read does not fail the turn ─────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
-    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
     // ── Assert: the one FAILED row ───────────────────────────────────────────

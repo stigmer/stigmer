@@ -1,5 +1,5 @@
 /**
- * Pins the read of BOTH getExecutionSummary handlers through the list
+ * Pins the read of BOTH getRunSummary handlers through the list
  * index and the ListReadScope's restrict verb:
  *
  *   - the rows are the requested org's, within the time window, read
@@ -37,8 +37,8 @@ import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 
-import { getExecutionSummary as getAgentSummary } from "../../agentrun/usage.js";
-import { getExecutionSummary as getWorkflowSummary } from "../get-run-summary.js";
+import { getRunSummary as getAgentSummary } from "../../agentrun/usage.js";
+import { getRunSummary as getWorkflowSummary } from "../get-run-summary.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -140,7 +140,7 @@ async function agentStore(): Promise<Store> {
 
 const LAST_7D = { org: "acme", timeWindow: SummaryTimeWindow.LAST_7D };
 
-describe("workflow getExecutionSummary read", () => {
+describe("workflow getRunSummary read", () => {
   it("offers the scope the org's rows within the window, and aggregates the ones it keeps", async () => {
     const scope = restrictingScope([
       "wfe_mine_done",
@@ -201,7 +201,7 @@ describe("workflow getExecutionSummary read", () => {
   });
 });
 
-describe("agent getExecutionSummary read", () => {
+describe("agent getRunSummary read", () => {
   function deps(store: Store, scope: ListReadScope | undefined) {
     return {
       store,

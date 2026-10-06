@@ -173,7 +173,7 @@ describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)",
     const turn2Keys = uploads.mock.calls.map(([key]) => key);
     uploads.mockRestore();
     expect(turn2.outcome.kind).toBe("returned");
-    expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+    expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     const final = record.lastFullStatus!;
     expect(final.artifacts.map((a) => [a.name, a.storageKey, a.contentHash]), "the seed carried the artifact").toEqual(
       run1.artifacts.map((a) => [a.name, a.storageKey, a.contentHash]),

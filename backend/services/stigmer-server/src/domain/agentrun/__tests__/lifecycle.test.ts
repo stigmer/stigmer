@@ -355,7 +355,7 @@ let counter = 0;
 function gatedExecution(id: string, toolCallId: string): AgentRun {
   return create(AgentRunSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "AgentExecution",
+    kind: "AgentRun",
     metadata: { id, name: id },
     spec: {},
     status: {
@@ -390,7 +390,7 @@ async function seedExecution(init: {
     AgentRunSchema,
     create(AgentRunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentExecution",
+      kind: "AgentRun",
       metadata: { id, name: id, org: "acme" },
       spec: {
         target:
@@ -577,7 +577,7 @@ describe("lifecycle pipelines", () => {
       [
         () =>
           cancelExecution(deps, cancelInput(completed), testCallerIdentity()),
-        "cannot cancel execution in phase EXECUTION_COMPLETED; only PENDING or IN_PROGRESS can be cancelled",
+        "cannot cancel execution in phase RUN_COMPLETED; only PENDING or IN_PROGRESS can be cancelled",
       ],
       [
         () =>
@@ -586,21 +586,21 @@ describe("lifecycle pipelines", () => {
             terminateInput(completed),
             testCallerIdentity(),
           ),
-        "cannot terminate execution in phase EXECUTION_COMPLETED; only PENDING or IN_PROGRESS can be terminated",
+        "cannot terminate execution in phase RUN_COMPLETED; only PENDING or IN_PROGRESS can be terminated",
       ],
       [
         () => pauseExecution(deps, pauseInput(completed), testCallerIdentity()),
-        "cannot pause execution in phase EXECUTION_COMPLETED; only PENDING or IN_PROGRESS can be paused",
+        "cannot pause execution in phase RUN_COMPLETED; only PENDING or IN_PROGRESS can be paused",
       ],
       [
         () =>
           resumeExecution(deps, resumeInput(completed), testCallerIdentity()),
-        "cannot resume execution in phase EXECUTION_COMPLETED; only PAUSED executions can be resumed",
+        "cannot resume execution in phase RUN_COMPLETED; only PAUSED executions can be resumed",
       ],
       [
         () =>
           recoverExecution(deps, recoverInput(completed), testCallerIdentity()),
-        "cannot recover execution in phase EXECUTION_COMPLETED; only FAILED executions can be recovered",
+        "cannot recover execution in phase RUN_COMPLETED; only FAILED executions can be recovered",
       ],
     ];
     for (const [fn, message] of cases) {

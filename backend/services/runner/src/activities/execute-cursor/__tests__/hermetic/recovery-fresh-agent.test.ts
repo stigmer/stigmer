@@ -128,7 +128,7 @@ describe("ExecuteCursor hermetic — poisoned-handle recovery on a fresh agent",
     // ── Assert: outcome ──────────────────────────────────────────────────────
     expect(invocation.outcome.kind, "a recovered turn RETURNS like any completion").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     expect(slim.final_text).toBe(FINAL_TEXT);
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,

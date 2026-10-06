@@ -162,7 +162,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
     expect(session?.updatedAt).toBeDefined();
 
     const execution = response.entries.find((entry) => entry.id === "wfe_1");
-    expect(execution?.type).toBe("workflow_execution");
+    expect(execution?.type).toBe("workflow_run");
     expect(execution?.subject).toBe("nightly-sync");
     expect(execution?.status).toBe("running");
   });

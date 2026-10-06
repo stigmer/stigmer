@@ -5,7 +5,7 @@
 // This is deliberately a `.harness.test.ts`, not a `.conformance.test.ts`: it is
 // the cheap, permanent guard that the local-execution target (server +
 // Temporal + runner) actually runs an execution end-to-end. The whole
-// WorkflowExecution domain contract lives in workflowexecution.conformance.test.ts.
+// WorkflowRun domain contract lives in workflowrun.conformance.test.ts.
 //
 // The vehicle is a data-only `set_vars` workflow: it runs through the runner's
 // executeFromExecution path with no LLM, MCP, API key, proxy, object storage,
@@ -38,7 +38,7 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("Execution harness smoke — set_vars WorkflowExecution", () => {
+describe("Execution harness smoke — set_vars WorkflowRun", () => {
   it("runs a data-only workflow end-to-end: PENDING at create, COMPLETED via the runner", async () => {
     const { org } = await target.provisionTenancy();
 

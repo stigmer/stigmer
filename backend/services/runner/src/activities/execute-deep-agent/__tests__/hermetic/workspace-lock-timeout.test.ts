@@ -7,7 +7,7 @@
  * (`shared/workspace/workspace-lock.ts`); while another turn holds the lock it
  * reports a visible waiting state and heartbeats; past
  * `Config.workspaceLockTimeoutMs` it maps `WorkspaceLockTimeoutError` to
- * EXECUTION_FAILED with the lock's own message (which names the directory)
+ * RUN_FAILED with the lock's own message (which names the directory)
  * and one system row, persists ONCE, and returns — a Temporal retry would only
  * queue behind the same holder.
  *
@@ -115,7 +115,7 @@ describe("ExecuteDeepAgent hermetic — workspace lock timeout", () => {
         "returned",
       );
       const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-      expect(slim.phase).toBe("EXECUTION_FAILED");
+      expect(slim.phase).toBe("RUN_FAILED");
       expect(record.persistedPhases, "the one and only full persist").toEqual([RunPhase.RUN_FAILED]);
 
       // ── Assert: the copy, built with the same class over the real path ─────

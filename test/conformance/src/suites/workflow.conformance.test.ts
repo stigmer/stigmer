@@ -20,7 +20,7 @@
 //
 // The run-visibility arms pin the workflow's second audience, who observes
 // its runs (`spec.execution_visibility`): it starts private, only
-// updateExecutionVisibility changes it, update and apply keep the stored
+// updateRunVisibility changes it, update and apply keep the stored
 // level, only the owner may change it (a member who can see and run the
 // workflow is refused, and so is an editor where the edition grants one),
 // and a toggle is no new version. Who the level then admits to a run is the
@@ -859,7 +859,7 @@ describe("Workflow conformance — run visibility", () => {
     expect(stored.spec?.runVisibility).toBe(WorkflowRunVisibility.organization);
   });
 
-  it("[rpc:WorkflowCommandController.updateExecutionVisibility] sets organization and resets to private, and a fresh read follows each", async () => {
+  it("[rpc:WorkflowCommandController.updateRunVisibility] sets organization and resets to private, and a fresh read follows each", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
     const resourceId = created.metadata!.id;
@@ -917,7 +917,7 @@ describe("Workflow conformance — run visibility", () => {
     expect(stored.spec?.runVisibility).toBe(WorkflowRunVisibility.organization);
   });
 
-  it("[rpc:WorkflowCommandController.updateExecutionVisibility] a toggle is no new version, and an unchanged re-apply after it mints none either", async () => {
+  it("[rpc:WorkflowCommandController.updateRunVisibility] a toggle is no new version, and an unchanged re-apply after it mints none either", async () => {
     // The run audience is the one field of the spec outside the version: a
     // version names what a run executes and reads, and who may observe the
     // runs is neither.
@@ -942,7 +942,7 @@ describe("Workflow conformance — run visibility", () => {
     expect(history.totalCount).toBe(1);
   });
 
-  it("[rpc:WorkflowCommandController.updateExecutionVisibility] rejects the unspecified zero value (InvalidArgument) and leaves the stored level", async () => {
+  it("[rpc:WorkflowCommandController.updateRunVisibility] rejects the unspecified zero value (InvalidArgument) and leaves the stored level", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
 
@@ -953,13 +953,13 @@ describe("Workflow conformance — run visibility", () => {
           runVisibility: WorkflowRunVisibility.unspecified,
         }),
       Code.InvalidArgument,
-      "updateExecutionVisibility to the zero value",
+      "updateRunVisibility to the zero value",
     );
     const stored = await clients.workflowQuery.get({ value: created.metadata!.id });
     expect(runAudienceOf(stored.spec?.runVisibility)).toBe(WorkflowRunVisibility.private);
   });
 
-  it("[rpc:WorkflowCommandController.updateExecutionVisibility] returns NotFound for an unknown workflow", () =>
+  it("[rpc:WorkflowCommandController.updateRunVisibility] returns NotFound for an unknown workflow", () =>
     expectGrpcCode(
       () =>
         clients.workflowCommand.updateRunVisibility({
@@ -967,12 +967,12 @@ describe("Workflow conformance — run visibility", () => {
           runVisibility: WorkflowRunVisibility.organization,
         }),
       Code.NotFound,
-      "updateExecutionVisibility unknown id",
+      "updateRunVisibility unknown id",
     ));
 });
 
 describe("Workflow conformance — the run audience is the owner's (on the enforcing lane)", () => {
-  it("[rpc:WorkflowCommandController.updateExecutionVisibility] a member who can see and run the workflow is refused, and the level stays", async (ctx) => {
+  it("[rpc:WorkflowCommandController.updateRunVisibility] a member who can see and run the workflow is refused, and the level stays", async (ctx) => {
     const enforcing = await enforcingLaneOf(target);
     if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
     const lane = enforcing.lane;
@@ -1001,7 +1001,7 @@ describe("Workflow conformance — the run audience is the owner's (on the enfor
     expect(runAudienceOf(stored.spec?.runVisibility)).toBe(WorkflowRunVisibility.private);
   });
 
-  it("[rpc:WorkflowCommandController.updateExecutionVisibility] an editor of the workflow, who may change its definition, is refused; the owner may", async (ctx) => {
+  it("[rpc:WorkflowCommandController.updateRunVisibility] an editor of the workflow, who may change its definition, is refused; the owner may", async (ctx) => {
     // An editor is a per-resource grant: an edition whose grant scope admits
     // only organization roles (open source's default) cannot make one.
     if (!target.capabilities.perResourceGrants) {

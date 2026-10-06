@@ -1,7 +1,7 @@
 /**
  * Pins the agent-execution run-gate resolvers, the turn's two questions:
  *   - agentExecutionRunTarget (AuthorizeRunTarget) asks only about the
- *     conversation a turn continues: session#can_create_execution_in on
+ *     conversation a turn continues: session#can_create_run_in on
  *     the target's session_id, with its byte-pinned deny copy. A new
  *     conversation (a session_spec, whatever agent it names) and the
  *     built-in assistant (no target) answer no target here: the session
@@ -34,7 +34,7 @@ const AGENT_REF = {
 };
 
 describe("agentExecutionRunTarget", () => {
-  it("session_id → session#can_create_execution_in", () => {
+  it("session_id → session#can_create_run_in", () => {
     expect(
       agentExecutionRunTarget(
         create(AgentRunSchema, {

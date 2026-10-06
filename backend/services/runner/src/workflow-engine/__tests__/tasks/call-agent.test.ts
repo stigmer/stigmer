@@ -65,7 +65,9 @@ describe("CallAgentTaskBuilder", () => {
     expect(config.agent).toBe("code-reviewer");
     expect(config.message).toBe("Review this code");
     expect(metadata).toEqual({ taskName: "reviewCode" });
-    expect(output).toEqual(result);
+    // The step names the child run as workflow expressions read it
+    // (agent_run_id); the engine's callback key does not reach the output.
+    expect(output).toEqual({ final_text: "Code looks good", agent_run_id: "aex-123" });
   });
 
   it("hands over no link ids, whatever the workflow data carries", async () => {

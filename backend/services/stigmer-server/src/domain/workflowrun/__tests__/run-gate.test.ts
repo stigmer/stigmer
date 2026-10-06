@@ -100,7 +100,7 @@ async function captureError(
 function createInput(spec: { workflowId?: string }) {
   return {
     apiVersion: API_VERSION,
-    kind: "WorkflowExecution",
+    kind: "WorkflowRun",
     metadata: { name: "run-gate-wf-exec", org: ORG },
     spec,
   };

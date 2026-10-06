@@ -1,4 +1,4 @@
-// Conformance suite for sub-agent delegation on an AgentExecution: the parent's
+// Conformance suite for sub-agent delegation on an AgentRun: the parent's
 // `task` tool call, the child's own transcript under status.sub_agent_executions,
 // and the field contract of a completed SubAgentExecution.
 // Domain: agentic / agentexecution — the delegation surface a console renders
@@ -55,7 +55,7 @@ const RESEARCHER = "researcher";
 const CHILD_ANSWER =
   "Renewable energy encompasses solar, wind and hydroelectric sources that replenish naturally.";
 
-describe("AgentExecution sub-agent delegation", () => {
+describe("AgentRun sub-agent delegation", () => {
   it("a task tool_use delegates to the named sub-agent: the parent's ToolCall completes and sub_agent_executions carries the child's full record", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await clients.agentCommand.create(

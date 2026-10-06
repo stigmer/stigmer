@@ -1,4 +1,4 @@
-// Conformance suite for WorkflowExecution sendSignal (Class B).
+// Conformance suite for WorkflowRun sendSignal (Class B).
 // Domain: agentic / workflowexecution — the sendSignal RPC and the `listen` task
 // it unblocks.
 //
@@ -24,7 +24,7 @@
 // Asserted contract (sourced from controller/send_signal.go):
 // - A signal whose signal_name matches the listen task's signal id unblocks the
 //   gate; the listen task and the downstream task complete and the execution
-//   reaches EXECUTION_COMPLETED. The optional payload is accepted.
+//   reaches RUN_COMPLETED. The optional payload is accepted.
 // - idempotency_key dedupe: a duplicate of a DELIVERED key (org-scoped, 24h
 //   window anchored at delivery) is rejected with ALREADY_EXISTS; a distinct
 //   key delivers normally. Both editions enforce this through equivalent
@@ -49,7 +49,7 @@
 // bouncing off ValidateSignalable after the run completes. The matching gate
 // signal then rides a DIFFERENT key, proving distinct keys pass.
 //
-// Already covered in the main WorkflowExecution suite (not re-asserted here):
+// Already covered in the main WorkflowRun suite (not re-asserted here):
 // - sendSignal with empty execution_id -> InvalidArgument; missing execution ->
 //   NotFound. The terminal-phase FailedPrecondition is covered by the lifecycle
 //   negatives (only PENDING/IN_PROGRESS are signalable).
@@ -101,8 +101,8 @@ async function provisionListenWorkflow(org: string): Promise<string> {
   return workflow.metadata!.id;
 }
 
-describe("WorkflowExecution sendSignal — happy path", () => {
-  it("[rpc:WorkflowExecutionCommandController.sendSignal] delivers a matching signal that unblocks the listen task and completes the workflow", async () => {
+describe("WorkflowRun sendSignal — happy path", () => {
+  it("[rpc:WorkflowRunCommandController.sendSignal] delivers a matching signal that unblocks the listen task and completes the workflow", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionListenWorkflow(org);
 
@@ -137,8 +137,8 @@ describe("WorkflowExecution sendSignal — happy path", () => {
   });
 });
 
-describe("WorkflowExecution sendSignal — idempotency_key dedupe", () => {
-  it("[rpc:WorkflowExecutionCommandController.sendSignal] rejects a duplicate idempotency_key with ALREADY_EXISTS while a distinct key delivers", async () => {
+describe("WorkflowRun sendSignal — idempotency_key dedupe", () => {
+  it("[rpc:WorkflowRunCommandController.sendSignal] rejects a duplicate idempotency_key with ALREADY_EXISTS while a distinct key delivers", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionListenWorkflow(org);
 

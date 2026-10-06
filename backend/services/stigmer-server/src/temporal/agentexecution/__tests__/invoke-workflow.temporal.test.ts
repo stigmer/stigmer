@@ -15,7 +15,7 @@
  *     re-invokes) — Go's CancellationScope pattern;
  *   - bounded auto-recovery on worker-shutdown shapes (#776: IN_PROGRESS
  *     persisted, honest status copy on exhaustion);
- *   - EXECUTION_FAILED propagation with the fallback persist;
+ *   - RUN_FAILED propagation with the fallback persist;
  *   - the stop and failure copy each has one writer (stigmer#980): the
  *     pause persist carries the pause row, a runner-reported failure's
  *     write carries no lines (the runner explained it), and only a broken
@@ -614,7 +614,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
   // honest-copy mapping it feeds are pinned by runner-failure.test.ts;
   // the recovery loop mechanics are pinned by the single-cycle test above.
 
-  it("propagates EXECUTION_FAILED results with the fallback persist", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("propagates RUN_FAILED results with the fallback persist", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => slimResult(RunPhase.RUN_FAILED, "agent blew up"),
     ];

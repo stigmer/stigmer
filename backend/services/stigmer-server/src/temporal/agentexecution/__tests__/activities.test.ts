@@ -152,7 +152,7 @@ async function saveExecution(
     AgentRunSchema,
     create(AgentRunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentExecution",
+      kind: "AgentRun",
       metadata: { id, name: "test-exec", org: "test-org" },
       spec: { target: { case: "sessionId", value: "ses_1" } },
       status: {
@@ -246,7 +246,7 @@ describe("UpdateExecutionStatus activity", () => {
           id: string,
           status: JsonValue,
         ) => Promise<void>
-      )("aex_missing", { phase: "EXECUTION_FAILED" }),
+      )("aex_missing", { phase: "RUN_FAILED" }),
     ).rejects.toThrow(/not.?found/i);
   });
 });

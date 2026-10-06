@@ -99,7 +99,7 @@ describe("ExecuteCursor hermetic — a gated built-in under the global bypass", 
 
     // ── Assert: the turn ran to completion, nothing parked ───────────────────
     expect(invocation.outcome.kind).toBe("returned");
-    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(record.waitingToolCalls(), "a bypassed call is never parked").toHaveLength(0);
     expect(agent.runs[0].cancelCalls, "nothing was denied, so nothing was cancelled").toHaveLength(0);
 

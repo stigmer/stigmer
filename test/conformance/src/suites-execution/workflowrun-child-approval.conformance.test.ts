@@ -1,17 +1,17 @@
-// Conformance suite for WorkflowExecution child-agent approval FORWARDING (Class B).
+// Conformance suite for WorkflowRun child-agent approval FORWARDING (Class B).
 // Domain: agentic / workflowexecution — the submitApproval RPC that forwards a
-// child AgentExecution's tool-approval decision through its parent workflow.
+// child AgentRun's tool-approval decision through its parent workflow.
 //
 // This is a genuinely different machine from the workflow `human_input` gate, so
-// it is a separate file from workflowexecution-approval.conformance.test.ts.
+// it is a separate file from workflowrun-approval.conformance.test.ts.
 // The two must not be conflated:
 //   - human_input (submitWorkflowTaskApproval): a *task-level* gate authored in
 //     workflow YAML, resolved by a Temporal signal. Self-contained in the workflow.
 //   - this forwarder (submitApproval): a workflow invokes an agent via an
-//     `agent_call` task; when that *child* AgentExecution gates on a tool, the gate
+//     `agent_call` task; when that *child* AgentRun gates on a tool, the gate
 //     surfaces at the parent's status.pending_approvals (carrying the
 //     child_agent_execution_id), and submitApproval routes the decision down to the
-//     child's AgentExecution.submitApproval. The parent owns no gate of its own — it
+//     child's AgentRun.submitApproval. The parent owns no gate of its own — it
 //     is a conduit.
 //
 // ## History: the forwarder was half-built in OSS by design
@@ -115,8 +115,8 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives", () => {
-  it("[rpc:WorkflowExecutionCommandController.submitApproval] rejects an empty execution_id with InvalidArgument", () =>
+describe("WorkflowRun submitApproval (child-agent forwarder) — negatives", () => {
+  it("[rpc:WorkflowRunCommandController.submitApproval] rejects an empty execution_id with InvalidArgument", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
@@ -128,7 +128,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
       "empty execution_id",
     ));
 
-  it("[rpc:WorkflowExecutionCommandController.submitApproval] rejects an empty tool_call_id with InvalidArgument", () =>
+  it("[rpc:WorkflowRunCommandController.submitApproval] rejects an empty tool_call_id with InvalidArgument", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
@@ -140,7 +140,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
       "empty tool_call_id",
     ));
 
-  it("[rpc:WorkflowExecutionCommandController.submitApproval] rejects an UNSPECIFIED action with InvalidArgument", () =>
+  it("[rpc:WorkflowRunCommandController.submitApproval] rejects an UNSPECIFIED action with InvalidArgument", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
@@ -152,7 +152,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
       "UNSPECIFIED action",
     ));
 
-  it("[rpc:WorkflowExecutionCommandController.submitApproval] returns NotFound for a missing execution", () =>
+  it("[rpc:WorkflowRunCommandController.submitApproval] returns NotFound for a missing execution", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
@@ -164,7 +164,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
       "missing execution",
     ));
 
-  it("[rpc:WorkflowExecutionCommandController.submitApproval] returns FailedPrecondition for a running execution with no pending approvals", async () => {
+  it("[rpc:WorkflowRunCommandController.submitApproval] returns FailedPrecondition for a running execution with no pending approvals", async () => {
     const { org } = await target.provisionTenancy();
     // A running wait execution is genuinely in-flight (IN_PROGRESS) yet has no
     // approval gate — the cleanest way to hit the handler's no-pending guard
@@ -198,7 +198,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
     await clients.workflowExecutionCommand.cancel({ id: executionId });
   });
 
-  it("[rpc:WorkflowExecutionCommandController.submitApproval] returns FailedPrecondition for a submit on a terminal execution", async () => {
+  it("[rpc:WorkflowRunCommandController.submitApproval] returns FailedPrecondition for a submit on a terminal execution", async () => {
     const { org } = await target.provisionTenancy();
     // A set_vars execution completes sub-second; a terminal execution also has no
     // pending approvals, so it resolves through the same guard — pinned separately
@@ -234,7 +234,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
 // current target (local-execution and cloud-execution). The gate keeps any
 // future sender-less target SKIPPED rather than falsely green.
 describe.skipIf(!forwarderEnabled)(
-  "WorkflowExecution submitApproval (child-agent forwarder) — forwarding round-trip",
+  "WorkflowRun submitApproval (child-agent forwarder) — forwarding round-trip",
   () => {
     let mock: MockLlmProxy;
     let mcp: McpToolFixture;
@@ -251,12 +251,12 @@ describe.skipIf(!forwarderEnabled)(
       mock.reset();
     });
 
-    it("[rpc:WorkflowExecutionCommandController.submitApproval] forwards a child agent's approval; the child resumes and the workflow completes", async () => {
+    it("[rpc:WorkflowRunCommandController.submitApproval] forwards a child agent's approval; the child resumes and the workflow completes", async () => {
       const { org } = await target.provisionTenancy();
 
       // An agent whose tool the approval default asks before: the fixture's
       // destructive echo on a connected server — the same recipe the
-      // AgentExecution HITL suite uses to reach a tool gate.
+      // AgentRun HITL suite uses to reach a tool gate.
       const server = await createConnectedMcpServer(clients, mcp, fixtures, {
         org,
         name: uniqueName("mcp"),

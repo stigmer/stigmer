@@ -1,8 +1,8 @@
 {
   "name": "hybrid-changeset-decide-reconcile",
   "description": "A HYBRID snapshot change set (git-tracked + CAS-captured files) with three changes, approved by one CHANGE_SET-scoped decision that covers all of them, then reconciled -> status RECONCILED. Locks the multi-file isFullyDecided short-circuit (one CHANGE_SET decision satisfies N>1 changes) and the cross-edition protojson round-trip of the HYBRID SnapshotRef (git + cas) and the CAS capture classes. aggregate_digest is carried opaquely (digest math is locked in ../file-digest).",
-  "execution_id": "aex_hybrid",
-  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "run_id": "aex_hybrid",
+  "phase": "RUN_WAITING_FOR_APPROVAL",
   "events": [
     {
       "eventId": "cs9:cs9:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

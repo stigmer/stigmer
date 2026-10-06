@@ -16,7 +16,7 @@
 //     completes, its status writes land, and the runner titles its session
 //     as the member (stigmer#1137 was every such run failing INTERNAL);
 //   - the rows the runner writes for a run — the `agent_call` child's
-//     Session and AgentExecution — carry the member's stamp, and an outsider
+//     Session and AgentRun — carry the member's stamp, and an outsider
 //     is refused them;
 //   - an API key alone is not a delegate: the operator's key on the member's
 //     run is refused;
@@ -502,7 +502,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(session.spec?.subject).not.toBe(UNTITLED_SESSION_SUBJECT);
     });
 
-    it("[rpc:AgentExecutionCommandController.updateStatus] an API key alone is not a delegate: the operator's key on the member's run is refused", async (ctx) => {
+    it("[rpc:AgentRunCommandController.updateStatus] an API key alone is not a delegate: the operator's key on the member's run is refused", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
       const agent = await createAgent(
@@ -1076,7 +1076,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(new Set(carried)).toEqual(new Set(["member-credential"]));
     });
 
-    it("[rpc:AgentExecutionCommandController.create] a key the agent declares and no layer carries is filled from the turn sender's personal environment, never the agent author's saved after it", async (ctx) => {
+    it("[rpc:AgentRunCommandController.create] a key the agent declares and no layer carries is filled from the turn sender's personal environment, never the agent author's saved after it", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
 

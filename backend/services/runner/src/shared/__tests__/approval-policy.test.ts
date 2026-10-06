@@ -58,7 +58,7 @@ interface TestToolCall {
 }
 
 /**
- * Builds a minimal AgentExecution shaped just enough for deriveActiveLeases,
+ * Builds a minimal AgentRun shaped just enough for deriveActiveLeases,
  * which reads each tool call's approval action plus its name / mcp_server_slug
  * (the scope inputs) on root and sub-agent messages, and spec.auto_approve_all.
  */
@@ -85,7 +85,7 @@ function makeExecution(opts: {
     spec,
     status: {
       messages: [{ toolCalls: toCalls(opts.rootCalls) }],
-      subAgentExecutions: [
+      subAgentRuns: [
         { messages: [{ toolCalls: toCalls(opts.subAgentCalls) }] },
       ],
     },

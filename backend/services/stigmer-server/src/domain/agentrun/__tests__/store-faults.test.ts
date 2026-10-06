@@ -58,7 +58,7 @@ import {
 } from "../lifecycle.js";
 import { StreamBroker } from "../stream-broker.js";
 import { subscribeExecution } from "../subscribe.js";
-import { getExecutionUsageReport } from "../usage.js";
+import { getRunUsageReport } from "../usage.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -71,7 +71,7 @@ const EXECUTION_ID = "aex_storefault";
 const LOAD_FAULT_COPY = "failed to load agent execution";
 
 const MISSING = (): Error =>
-  new ResourceNotFoundError(`agent_execution/${EXECUTION_ID}`);
+  new ResourceNotFoundError(`agent_run/${EXECUTION_ID}`);
 const LOCKED = (): Error => new Error("SQLITE_BUSY: database is locked");
 
 function lifecycleDeps(store: Store): LifecycleDeps {
@@ -147,7 +147,7 @@ describe.each(LIFECYCLE_VERBS)("%s — LoadExecutionById", (_verb, run) => {
     );
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`agent_execution not found: ${EXECUTION_ID}`);
+    expect(error.rawMessage).toBe(`agent_run not found: ${EXECUTION_ID}`);
   });
 
   it("any other store failure answers a sanitized Internal", async () => {
@@ -190,7 +190,7 @@ describe("subscribe — the snapshot read", () => {
     const error = await subscribeError(failingStore(MISSING()), broker);
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`AgentExecution not found: ${EXECUTION_ID}`);
+    expect(error.rawMessage).toBe(`AgentRun not found: ${EXECUTION_ID}`);
     expect(broker.getSubscriberCount(EXECUTION_ID)).toBe(0);
   });
 
@@ -262,10 +262,10 @@ describe("artifact reads — the existence check", () => {
   });
 });
 
-describe("getExecutionUsageReport — LoadExecution", () => {
+describe("getRunUsageReport — LoadExecution", () => {
   function reportError(store: Store): Promise<ConnectError> {
     return errorOf(() =>
-      getExecutionUsageReport(
+      getRunUsageReport(
         {
           store,
           logger: silentLogger,
@@ -285,7 +285,7 @@ describe("getExecutionUsageReport — LoadExecution", () => {
     const error = await reportError(failingStore(MISSING()));
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`agent_execution not found: ${EXECUTION_ID}`);
+    expect(error.rawMessage).toBe(`agent_run not found: ${EXECUTION_ID}`);
   });
 
   it("any other store failure answers a sanitized Internal", async () => {

@@ -168,7 +168,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "a stall RETURNS, never throws — a retry would wedge again").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_FAILED");
+    expect(slim.phase).toBe("RUN_FAILED");
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_FAILED,
@@ -231,7 +231,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "a cost cap RETURNS — a retry would burn the budget again").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_TERMINATED");
+    expect(slim.phase).toBe("RUN_TERMINATED");
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_TERMINATED,
@@ -303,7 +303,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "a platform stop RETURNS a clean completion").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_COMPLETED,

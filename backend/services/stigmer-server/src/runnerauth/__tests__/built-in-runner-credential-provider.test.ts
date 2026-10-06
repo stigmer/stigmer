@@ -333,7 +333,7 @@ describe("exchangeScopedToken — the mint gate", () => {
       exchange({ arm: "agent-execution", executionId: "aex_missing" }, carol),
     );
     expect(failure.code).toBe(Code.NotFound);
-    expect(failure.rawMessage).toBe("AgentExecution not found: aex_missing");
+    expect(failure.rawMessage).toBe("AgentRun not found: aex_missing");
 
     const workflowFailure = await refusal(
       exchange(
@@ -342,7 +342,7 @@ describe("exchangeScopedToken — the mint gate", () => {
       ),
     );
     expect(workflowFailure.rawMessage).toBe(
-      "WorkflowExecution not found: wex_missing",
+      "WorkflowRun not found: wex_missing",
     );
   });
 
@@ -351,7 +351,7 @@ describe("exchangeScopedToken — the mint gate", () => {
       exchange({ arm: "agent-execution", executionId: CONNECT_ID }, carol),
     );
     expect(failure.code).toBe(Code.NotFound);
-    expect(failure.rawMessage).toBe(`AgentExecution not found: ${CONNECT_ID}`);
+    expect(failure.rawMessage).toBe(`AgentRun not found: ${CONNECT_ID}`);
   });
 
   it("the id decides which execution is read, never the arm — an agent id under the workflow arm mints for the agent run", async () => {

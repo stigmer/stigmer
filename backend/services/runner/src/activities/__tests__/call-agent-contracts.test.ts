@@ -145,10 +145,10 @@ describe("CallAgent server contract compliance", () => {
     });
   });
 
-  describe("AgentExecution create payload", () => {
+  describe("AgentRun create payload", () => {
     it("satisfies server create requirements", async () => {
       await exerciseCallAgent();
-      expect(() => assertCreateRequirements(capturedCreateExecution, "AgentExecution", "test"))
+      expect(() => assertCreateRequirements(capturedCreateExecution, "AgentRun", "test"))
         .not.toThrow();
     });
 
@@ -166,7 +166,7 @@ describe("CallAgent server contract compliance", () => {
       await exerciseCallAgent();
       expect(capturedCreateExecution.spec.target).toEqual({ case: "sessionId", value: "ses_contract_test" });
       expect(capturedCreateExecution.spec.message).toBe("Analyze cohort data");
-      expect(capturedCreateExecution.spec.parent.workflowExecutionId).toBe("wex_contract_test");
+      expect(capturedCreateExecution.spec.parent.workflowRunId).toBe("wex_contract_test");
       expect(capturedCreateExecution.spec.parent.signalWorkflowId).toBe("wfl_parent_123");
       expect(capturedCreateExecution.spec.parent.callbackToken).toEqual(new Uint8Array([1, 2, 3, 4]));
     });
@@ -177,7 +177,7 @@ describe("CallAgent server contract compliance", () => {
         ...capturedCreateExecution,
         metadata: { org: capturedCreateExecution.metadata.org },
       };
-      expect(() => assertCreateRequirements(withoutName, "AgentExecution", "test"))
+      expect(() => assertCreateRequirements(withoutName, "AgentRun", "test"))
         .toThrow(/metadata.name or metadata.slug/);
     });
   });
@@ -366,7 +366,7 @@ describe("CallAgent server contract compliance", () => {
   // -----------------------------------------------------------------------
   // Output schema propagation — verifies that output.schema from the
   // workflow task config is set as the spec's top-level
-  // structuredOutputSchema on the created AgentExecution, beside the step's
+  // structuredOutputSchema on the created AgentRun, beside the step's
   // settings on spec.runConfig. This is the exact failure mode from the
   // daily-notification-plan production bug.
   // -----------------------------------------------------------------------

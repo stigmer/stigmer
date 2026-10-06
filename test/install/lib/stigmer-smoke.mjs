@@ -364,13 +364,13 @@ export async function smokeOrganization(baseUrl, name, { org } = {}) {
   return id;
 }
 
-const TERMINAL_FAILURES = new Set(["EXECUTION_FAILED", "EXECUTION_CANCELLED", "EXECUTION_TERMINATED"]);
+const TERMINAL_FAILURES = new Set(["RUN_FAILED", "RUN_CANCELLED", "RUN_TERMINATED"]);
 
 /**
  * The end-to-end line every self-host smoke draws: in the smoke's organization
  * ({@link smokeOrganization}; `org` names one), a single `set_vars` workflow (sub-second, hermetic, no LLM, no MCP, no keys —
  * the conformance suite's canonical execution fixture), run it, and wait for
- * EXECUTION_COMPLETED. It completes only if the runner connected to Temporal
+ * RUN_COMPLETED. It completes only if the runner connected to Temporal
  * and polled the queue. Returns the organization, workflow and execution ids,
  * so an upgrade rehearsal can read them back. A terminal failure surfaces
  * immediately with the server's own error.
@@ -402,10 +402,10 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { o
 
   const execution = await connectJson(
     baseUrl,
-    "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create",
+    "ai.stigmer.agentic.workflowrun.v1.WorkflowRunCommandController/create",
     {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "WorkflowExecution",
+      kind: "WorkflowRun",
       metadata: { name: `smoke-wfx-${suffix}`, org: orgId },
       spec: { workflowId },
     },
@@ -414,17 +414,17 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { o
   if (!executionId) throw new Error(`execution create returned no id: ${JSON.stringify(execution)}`);
   log(`execution ${executionId} created — awaiting COMPLETED...`);
 
-  await pollUntil("execution EXECUTION_COMPLETED", timeoutMs, async () => {
+  await pollUntil("execution RUN_COMPLETED", timeoutMs, async () => {
     const current = await connectJson(
       baseUrl,
-      "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get",
+      "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get",
       { value: executionId },
     );
-    const phase = current.status?.phase ?? "EXECUTION_PHASE_UNSPECIFIED";
+    const phase = current.status?.phase ?? "RUN_PHASE_UNSPECIFIED";
     if (TERMINAL_FAILURES.has(phase)) {
       throw new PollStop(`execution reached ${phase}: ${JSON.stringify(current.status?.error ?? {})}`);
     }
-    return phase === "EXECUTION_COMPLETED";
+    return phase === "RUN_COMPLETED";
   });
   return { orgId, workflowId, executionId };
 }
@@ -432,7 +432,7 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { o
 /**
  * The agent line every self-host smoke draws after the workflow: in the smoke's
  * organization ({@link smokeOrganization}; `org` names one), an agent with no tools, send it one message, and wait for
- * EXECUTION_COMPLETED with the model's reply as the last message. It completes
+ * RUN_COMPLETED with the model's reply as the last message. It completes
  * only if the install wired a model the runner can reach, the runner called
  * it, and the answer travelled back to the record a user reads — which the
  * workflow line cannot show, since no workflow step calls a model. The smokes
@@ -477,9 +477,9 @@ export async function createSmokeAgent(baseUrl, { log = () => {}, org } = {}) {
  */
 async function startAgentConversation(baseUrl, { orgId, agentId, agentSlug }) {
   const create = (target) =>
-    connectJson(baseUrl, "ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create", {
+    connectJson(baseUrl, "ai.stigmer.agentic.agentrun.v1.AgentRunCommandController/create", {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentExecution",
+      kind: "AgentRun",
       metadata: { name: `smoke-aex-${uniqueSuffix()}`, org: orgId },
       spec: { ...target, message: "Say hello." },
     });
@@ -493,7 +493,7 @@ async function startAgentConversation(baseUrl, { orgId, agentId, agentSlug }) {
 }
 
 /**
- * One run of an existing agent, to EXECUTION_COMPLETED with the model's reply
+ * One run of an existing agent, to RUN_COMPLETED with the model's reply
  * as its last message. The upgrade rehearsal runs the agent an older release
  * stored this way, which is what shows the stored agent still works. Resolves
  * `{ executionId, reply }`.
@@ -505,13 +505,13 @@ export async function runAgentExecution(baseUrl, agent, timeoutMs, { expectText,
   if (!executionId) throw new Error(`agent execution create returned no id: ${JSON.stringify(execution)}`);
   log(`agent execution ${executionId} created — awaiting the model's reply...`);
 
-  const completed = await pollUntil("agent execution EXECUTION_COMPLETED", timeoutMs, async () => {
+  const completed = await pollUntil("agent execution RUN_COMPLETED", timeoutMs, async () => {
     const current = await readAgentExecution(baseUrl, executionId);
-    const phase = current.status?.phase ?? "EXECUTION_PHASE_UNSPECIFIED";
+    const phase = current.status?.phase ?? "RUN_PHASE_UNSPECIFIED";
     if (TERMINAL_FAILURES.has(phase)) {
       throw new PollStop(`agent execution reached ${phase}: ${current.status?.error || "(no error recorded)"}`);
     }
-    return phase === "EXECUTION_COMPLETED" ? current : false;
+    return phase === "RUN_COMPLETED" ? current : false;
   });
   const reply = lastAiReply(completed);
   if (!reply.includes(expectText)) {
@@ -536,7 +536,7 @@ function uniqueSuffix() {
 
 /** One agent execution, as the query lane returns it. */
 export async function readAgentExecution(baseUrl, executionId) {
-  return connectJson(baseUrl, "ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/get", {
+  return connectJson(baseUrl, "ai.stigmer.agentic.agentrun.v1.AgentRunQueryController/get", {
     value: executionId,
   });
 }
@@ -588,8 +588,8 @@ const READS = Object.freeze({
   organization: "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get",
   agent: "ai.stigmer.agentic.agent.v1.AgentQueryController/get",
   agentByReference: "ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference",
-  workflowExecution: "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get",
-  agentExecution: "ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/get",
+  workflowExecution: "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get",
+  agentExecution: "ai.stigmer.agentic.agentrun.v1.AgentRunQueryController/get",
 });
 
 /**
@@ -690,7 +690,7 @@ export async function assertStateSurvived(baseUrl, recorded) {
   }
 }
 
-const WORKFLOW_EXECUTION_QUERY = "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController";
+const WORKFLOW_EXECUTION_QUERY = "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController";
 
 /** A workflow's id, by its `org/slug` reference: what `stigmer run workflow <slug>` resolves. */
 export async function workflowIdByReference(baseUrl, { org, slug }) {
@@ -719,8 +719,8 @@ export async function waitForPendingApproval(baseUrl, { orgId, workflowId, timeo
     async () => {
       const list = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/listPendingApprovals`, { org: orgId, pageSize: 100 });
       for (const entry of list.entries ?? []) {
-        const execution = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/get`, { value: entry.executionId });
-        if (execution.spec?.workflowId === workflowId) return { executionId: entry.executionId, taskName: entry.taskName };
+        const execution = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/get`, { value: entry.runId });
+        if (execution.spec?.workflowId === workflowId) return { executionId: entry.runId, taskName: entry.taskName };
       }
       return false;
     },

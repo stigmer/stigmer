@@ -21,9 +21,9 @@ describe("apiResourceKindName", () => {
   it.each([
     [ApiResourceKind.organization, "organization"],
     [ApiResourceKind.agent, "agent"],
-    [ApiResourceKind.agent_run, "agent_execution"],
+    [ApiResourceKind.agent_run, "agent_run"],
     [ApiResourceKind.mcp_server, "mcp_server"],
-    [ApiResourceKind.workflow_run, "workflow_execution"],
+    [ApiResourceKind.workflow_run, "workflow_run"],
     [ApiResourceKind.execution_context, "execution_context"],
     [ApiResourceKind.skill, "skill"],
   ])("maps kind %d to Go's kind.String() value %j", (kind, expected) => {

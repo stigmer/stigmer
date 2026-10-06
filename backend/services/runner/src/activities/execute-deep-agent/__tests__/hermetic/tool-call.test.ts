@@ -122,7 +122,7 @@ describe("ExecuteDeepAgent hermetic — ungated tool call", () => {
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_COMPLETED,

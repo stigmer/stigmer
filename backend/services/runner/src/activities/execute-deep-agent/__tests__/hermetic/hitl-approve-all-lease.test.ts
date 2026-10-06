@@ -150,7 +150,7 @@ describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", 
 
     // ── Assert 2: A ran, B ran under the lease, no second interrupt ──────────
     expect(turn2.outcome.kind).toBe("returned");
-    expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+    expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     expect(record.persistedPhases.filter((p) => p === RunPhase.RUN_WAITING_FOR_APPROVAL)).toHaveLength(1);
 

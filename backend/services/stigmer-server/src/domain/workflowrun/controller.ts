@@ -9,7 +9,7 @@
  * Go writes them (no pipeline in list.go / list_by_workflow.go /
  * get_execution_summary.go / list_pending_approvals.go).
  *
- * Proven by workflowexecution.conformance.test.ts
+ * Proven by workflowrun.conformance.test.ts
  * (CONFORMANCE_TARGET=local) and __tests__/.
  *
  * Every chain opens with Authorize, and create also authorizes its run
@@ -117,7 +117,7 @@ import {
 import { newPinWorkflowVersionStep } from "./pin-workflow-version-step.js";
 import { sendSignal } from "./send-signal.js";
 import { getEventLog } from "./get-event-log.js";
-import { getExecutionSummary } from "./get-run-summary.js";
+import { getRunSummary } from "./get-run-summary.js";
 import { listPendingApprovals } from "./list-pending-approvals.js";
 import { readWorkflowExecutionList } from "./queries.js";
 import { workflowExecutionRunTarget } from "./run-target.js";
@@ -246,7 +246,7 @@ export function registerWorkflowExecutionServices(
     getEventLog: (req, ctx) => getEventLog(deps, req, callerIdentityOf(ctx)),
     subscribeEvents: (req, ctx) => subscribeEvents(deps, req, ctx),
     getRunSummary: (req, ctx) =>
-      getExecutionSummary(deps, req, callerIdentityOf(ctx)),
+      getRunSummary(deps, req, callerIdentityOf(ctx)),
     listPendingApprovals: (req, ctx) =>
       listPendingApprovals(deps, req, callerIdentityOf(ctx)),
   });

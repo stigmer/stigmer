@@ -1,4 +1,4 @@
-// Conformance suite for the AgentExecution messages read model: what a
+// Conformance suite for the AgentRun messages read model: what a
 // completed run's status.messages carries for a plain text turn, a thinking
 // turn, and MCP tool calls that succeed or fail — plus the model id the
 // provider actually received.
@@ -122,7 +122,7 @@ function expectCompleted(final: AgentRun): void {
   ).toBe(RunPhase.RUN_COMPLETED);
 }
 
-describe("AgentExecution messages — text and thinking turns", () => {
+describe("AgentRun messages — text and thinking turns", () => {
   it("a single text turn completes with one non-streaming AI message and no tool calls", async () => {
     mock.enqueue(anthropicText("Hello from the mock."));
 
@@ -154,7 +154,7 @@ describe("AgentExecution messages — text and thinking turns", () => {
   });
 });
 
-describe("AgentExecution messages — MCP tool calls", () => {
+describe("AgentRun messages — MCP tool calls", () => {
   it("a failing MCP tool does not fail the run: the fail ToolCall is recorded and the run completes", async () => {
     mock.enqueue(anthropicToolUse("call_fail_1", FAIL_TOOL_NAME, { message: "deliberate" }));
     mock.enqueue(anthropicText("The tool reported an error; moving on."));
@@ -197,7 +197,7 @@ describe("AgentExecution messages — MCP tool calls", () => {
   });
 });
 
-describe("AgentExecution messages — model resolution", () => {
+describe("AgentRun messages — model resolution", () => {
   it("a registry id in run_config.model_name reaches the provider as the registry's apiModelId", async () => {
     if (target.modelRegistryDocument === undefined) {
       throw new Error(`target ${target.name} exposes no model registry document; execution targets must`);

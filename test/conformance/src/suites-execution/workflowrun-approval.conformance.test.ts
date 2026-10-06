@@ -1,14 +1,14 @@
-// Conformance suite for WorkflowExecution human_input HITL (Class B).
+// Conformance suite for WorkflowRun human_input HITL (Class B).
 // Domain: agentic / workflowexecution — the submitWorkflowTaskApproval RPC and
 // the approval gate a workflow `human_input` task goes through.
 //
-// This is the workflow analogue of the AgentExecution tool-approval suite, but a
+// This is the workflow analogue of the AgentRun tool-approval suite, but a
 // genuinely different machine, so it is a separate file:
-//   - AgentExecution gates at the *execution* level (EXECUTION_WAITING_FOR_APPROVAL)
+//   - AgentRun gates at the *execution* level (RUN_WAITING_FOR_APPROVAL)
 //     and resolves a DB-backed pending_approvals projection via submitApproval.
-//   - WorkflowExecution has no execution-level waiting phase. A `human_input` task
+//   - WorkflowRun has no execution-level waiting phase. A `human_input` task
 //     gates at the *task* level (WORKFLOW_TASK_WAITING_APPROVAL) while the
-//     execution phase stays EXECUTION_IN_PROGRESS, and submitWorkflowTaskApproval
+//     execution phase stays RUN_IN_PROGRESS, and submitWorkflowTaskApproval
 //     resolves it by sending a Temporal signal (human_input_{task_name}). The
 //     handler returns the execution unchanged; status advances asynchronously, so
 //     the suite polls get() (task-level via awaitTaskWaitingApproval / awaitTaskStatus).
@@ -25,7 +25,7 @@
 //   with task_type WORKFLOW_TASK_APPROVAL while the execution stays IN_PROGRESS.
 // - submitWorkflowTaskApproval{execution_id, task_name, outcome, form_data?,
 //   reviewer?, comment?} resolves the gate; the named human_input task and the
-//   downstream task complete and the execution reaches EXECUTION_COMPLETED.
+//   downstream task complete and the execution reaches RUN_COMPLETED.
 // - The decision reaches the public event log: the gate's one approval_resolved
 //   event carries the submitted outcome and comment, auto_resolved false, and
 //   names the authorized caller as resolved_by and resolved_by_actor, the same
@@ -179,8 +179,8 @@ function gateOutputOf(exec: WorkflowRun): GateOutput {
   return output as GateOutput;
 }
 
-describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", () => {
-  it("[rpc:WorkflowExecutionQueryController.listPendingApprovals] gates at the task level (WAITING_APPROVAL / APPROVAL) while the execution stays IN_PROGRESS", async () => {
+describe("WorkflowRun submitWorkflowTaskApproval — gate & resolution", () => {
+  it("[rpc:WorkflowRunQueryController.listPendingApprovals] gates at the task level (WAITING_APPROVAL / APPROVAL) while the execution stays IN_PROGRESS", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionHumanInputWorkflow(org);
     const { executionId, gated } = await runToGate(org, workflowId);
@@ -223,7 +223,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     expect(drained.totalCount).toBe(0);
   });
 
-  it("[rpc:WorkflowExecutionCommandController.submitWorkflowTaskApproval] approve resolves the gate; the execution completes and the downstream task runs", async () => {
+  it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] approve resolves the gate; the execution completes and the downstream task runs", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionHumanInputWorkflow(org);
     const { executionId } = await runToGate(org, workflowId);
@@ -279,7 +279,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     ).toBe(creator);
   });
 
-  it("[rpc:WorkflowExecutionCommandController.submitWorkflowTaskApproval] a non-approve custom outcome (deny) is data: the gate resolves and the execution still completes", async () => {
+  it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] a non-approve custom outcome (deny) is data: the gate resolves and the execution still completes", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionHumanInputWorkflow(org);
     const { executionId } = await runToGate(org, workflowId);
@@ -303,7 +303,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     expect(resolved.outcome, `execution ${executionId}: the event carries the submitted outcome`).toBe("deny");
   });
 
-  it("[rpc:WorkflowExecutionCommandController.submitWorkflowTaskApproval] an outcome's `then` routes the workflow to the named task", async () => {
+  it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] an outcome's `then` routes the workflow to the named task", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionHumanInputWorkflow(org, {
       outcomes: [{ name: "approve" }, { name: "deny" }, { name: "revise", then: "reviseTask" }],
@@ -328,7 +328,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
   });
 });
 
-describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () => {
+describe("WorkflowRun submitWorkflowTaskApproval — timeout policy", () => {
   it("on_timeout=FAIL fails the execution when no decision arrives", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionHumanInputWorkflow(org, {
@@ -487,8 +487,8 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
   });
 });
 
-describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
-  it("[rpc:WorkflowExecutionCommandController.submitWorkflowTaskApproval] rejects an empty execution_id with InvalidArgument", () =>
+describe("WorkflowRun submitWorkflowTaskApproval — negatives", () => {
+  it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] rejects an empty execution_id with InvalidArgument", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitWorkflowTaskApproval({
@@ -500,7 +500,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
       "empty execution_id",
     ));
 
-  it("[rpc:WorkflowExecutionCommandController.submitWorkflowTaskApproval] rejects an empty task_name with InvalidArgument", () =>
+  it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] rejects an empty task_name with InvalidArgument", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitWorkflowTaskApproval({
@@ -512,7 +512,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
       "empty task_name",
     ));
 
-  it("[rpc:WorkflowExecutionCommandController.submitWorkflowTaskApproval] rejects an empty outcome with InvalidArgument", () =>
+  it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] rejects an empty outcome with InvalidArgument", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitWorkflowTaskApproval({
@@ -524,7 +524,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
       "empty outcome",
     ));
 
-  it("[rpc:WorkflowExecutionCommandController.submitWorkflowTaskApproval] returns NotFound for a missing execution", () =>
+  it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] returns NotFound for a missing execution", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitWorkflowTaskApproval({
@@ -536,7 +536,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
       "missing execution",
     ));
 
-  it("[rpc:WorkflowExecutionCommandController.submitWorkflowTaskApproval] returns InvalidArgument for an unknown task_name on a gated execution", async () => {
+  it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] returns InvalidArgument for an unknown task_name on a gated execution", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionHumanInputWorkflow(org);
     const { executionId } = await runToGate(org, workflowId);
@@ -562,7 +562,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
     await awaitTerminal(clients, executionId);
   });
 
-  it("[rpc:WorkflowExecutionCommandController.submitWorkflowTaskApproval] returns InvalidArgument for a real but non-human_input task", async () => {
+  it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] returns InvalidArgument for a real but non-human_input task", async () => {
     const { org } = await target.provisionTenancy();
     // A running wait execution exposes `waitTask` (type CUSTOM) in status.tasks
     // while the execution is signalable (IN_PROGRESS) — the lever to hit the
@@ -597,7 +597,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
     await clients.workflowExecutionCommand.cancel({ id: executionId });
   });
 
-  it("[rpc:WorkflowExecutionCommandController.submitWorkflowTaskApproval] returns FailedPrecondition for a submit on a terminal execution", async () => {
+  it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] returns FailedPrecondition for a submit on a terminal execution", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionHumanInputWorkflow(org);
     const { executionId } = await runToGate(org, workflowId);

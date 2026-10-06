@@ -8,7 +8,7 @@
  * denial ledger, so a FAILED tool call carrying Cursor's hook-block error text
  * with NO ledger entry was blocked by a hook Stigmer does not own. No approval
  * can unblock it (an approval grants a token only OUR hook reads), so the turn
- * boundary reports it and the activity RETURNS EXECUTION_FAILED with an error
+ * boundary reports it and the activity RETURNS RUN_FAILED with an error
  * that names the blocked tool. The golden
  * (`goldens/unattributed-hook-block.status.json`) pins that copy.
  *
@@ -152,7 +152,7 @@ describe("ExecuteCursor hermetic — unattributed hook block (#205)", () => {
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "an unattributed block RETURNS a terminal status").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_FAILED");
+    expect(slim.phase).toBe("RUN_FAILED");
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_FAILED,

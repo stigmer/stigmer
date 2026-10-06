@@ -5,7 +5,7 @@
  * deps object and one registration function.
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by agentexecution.conformance.test.ts
+ * Proven by agentrun.conformance.test.ts
  * (CONFORMANCE_TARGET=local) and __tests__/.
  *
  * Every chain opens with Authorize, and create also asks the run gate's
@@ -159,8 +159,8 @@ import {
 } from "./steps.js";
 import {
   getAgentUsageReport,
-  getExecutionSummary,
-  getExecutionUsageReport,
+  getRunSummary,
+  getRunUsageReport,
   getOrgUsageReport,
   getSessionUsageReport,
 } from "./usage.js";
@@ -327,7 +327,7 @@ export function registerAgentExecutionServices(
     getArtifactContent: (req, ctx) =>
       getArtifactContent(artifactDeps, req, callerIdentityOf(ctx)),
     getRunUsageReport: (req, ctx) =>
-      getExecutionUsageReport(deps, req, callerIdentityOf(ctx)),
+      getRunUsageReport(deps, req, callerIdentityOf(ctx)),
     getSessionUsageReport: (req, ctx) =>
       getSessionUsageReport(deps, req, callerIdentityOf(ctx)),
     getAgentUsageReport: (req, ctx) =>
@@ -335,7 +335,7 @@ export function registerAgentExecutionServices(
     getOrgUsageReport: (req, ctx) =>
       getOrgUsageReport(deps, req, callerIdentityOf(ctx)),
     getRunSummary: (req, ctx) =>
-      getExecutionSummary(deps, req, callerIdentityOf(ctx)),
+      getRunSummary(deps, req, callerIdentityOf(ctx)),
   });
 }
 

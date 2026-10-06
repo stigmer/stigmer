@@ -477,7 +477,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     });
 
     const invocation = await runCursorTurn(scenario);
-    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_FAILED");
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_FAILED");
     const final = scenario.record.lastFullStatus!;
     expect(final.error).toContain(settingsPath);
     expect(final.error).toContain("Run this session on Stigmer's native engine");

@@ -37,8 +37,8 @@ repository is in [references/test-discipline.md](references/test-discipline.md).
   `test/support/src/__tests__/`.
 
 Extend the existing `<domain>-<facet>.conformance.test.ts` when the facet
-exists; the execution class has one file per facet (`agentexecution-approval`,
-`agentexecution-file-review`, `workflowexecution-signal`, and the rest), and a
+exists; the execution class has one file per facet (`agentrun-approval`,
+`agentrun-file-review`, `workflowrun-signal`, and the rest), and a
 new file is a new facet, opened with an intent header that states the contract
 it pins and what is deliberately out of scope.
 

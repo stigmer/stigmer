@@ -120,7 +120,7 @@ describe("a workflow-forwarded decision names the person who made it (composed s
       AgentRunSchema,
       create(AgentRunSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
-        kind: "AgentExecution",
+        kind: "AgentRun",
         metadata: { id, name: slug, slug, org: ORG },
         spec: { message: "Say hello." },
         status,
@@ -139,7 +139,7 @@ describe("a workflow-forwarded decision names the person who made it (composed s
       WorkflowRunSchema,
       create(WorkflowRunSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
-        kind: "WorkflowExecution",
+        kind: "WorkflowRun",
         metadata: { id, name: slug, slug, org: ORG },
         spec: { workflowId: `wf_${id}` },
         status,

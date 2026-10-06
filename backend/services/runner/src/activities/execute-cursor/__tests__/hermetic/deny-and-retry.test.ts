@@ -160,7 +160,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
     expect(hookDecisions, "the real hook denied the gated shell call").toEqual(["deny"]);
     expect(turn1.outcome.kind, "an approval pause RETURNS to the workflow").toBe("returned");
     expect((turn1.outcome as { value: Record<string, unknown> }).value.phase).toBe(
-      "EXECUTION_WAITING_FOR_APPROVAL",
+      "RUN_WAITING_FOR_APPROVAL",
     );
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
@@ -195,7 +195,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
     expect(hookDecisions, "the SAME hook allows the approved re-issue").toEqual(["deny", "allow"]);
     expect(turn2.outcome.kind).toBe("returned");
     const slim2 = (turn2.outcome as { value: Record<string, unknown> }).value;
-    expect(slim2.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim2.phase).toBe("RUN_COMPLETED");
     expect(slim2.final_text).toBe(FINAL_TEXT);
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,

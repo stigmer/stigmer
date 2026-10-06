@@ -10,7 +10,7 @@
  *    completes. It holds under auto-approve-all, where no gate is installed,
  *    and inside a sub-agent whose own lists narrow the agent's.
  *  - A `tools` list that names nothing the turn has refuses the turn before
- *    a model is asked: EXECUTION_FAILED on the actionable surface, with the
+ *    a model is asked: RUN_FAILED on the actionable surface, with the
  *    resolution error's own sentence (naming the agent and its entries) as
  *    `status.error` and the one `Execution failed:` row.
  */

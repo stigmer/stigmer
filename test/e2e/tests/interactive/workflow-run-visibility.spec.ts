@@ -26,7 +26,7 @@ import { waitForPhaseBadge } from "../../helpers/workflow-run";
  * one person. That a teammate then reads the run, and loses it when the
  * setting goes back, needs a second person and is pinned on the enforcing
  * lane by the conformance suite
- * (test/conformance/src/suites-execution/workflowexecution-run-visibility.conformance.test.ts).
+ * (test/conformance/src/suites-execution/workflowrun-run-visibility.conformance.test.ts).
  */
 
 const ORG_RUNS_NOTE = "Every run of this workflow is visible to everyone in its organization.";

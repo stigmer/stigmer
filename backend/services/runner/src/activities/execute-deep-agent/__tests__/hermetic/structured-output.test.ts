@@ -130,7 +130,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     // ── Assert ───────────────────────────────────────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     expect(boundSchemaTools[0], "langchain bound the toolStrategy schema tool").toBe("extract-1");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const final = record.lastFullStatus!;
@@ -165,7 +165,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     // ── Assert ───────────────────────────────────────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     const final = record.lastFullStatus!;
     expect(final.structuredOutput, "extracted from the final text").toEqual(ANSWER);
     expect(slim.structured).toEqual(ANSWER);
@@ -207,7 +207,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
       // ── Assert ─────────────────────────────────────────────────────────────
       expect(invocation.outcome.kind).toBe("returned");
       const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-      expect(slim.phase).toBe("EXECUTION_COMPLETED");
+      expect(slim.phase).toBe("RUN_COMPLETED");
       const final = record.lastFullStatus!;
       expect(final.structuredOutput, "extracted by the second model").toEqual(ANSWER);
       expect(slim.structured).toEqual(ANSWER);

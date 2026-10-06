@@ -1,8 +1,8 @@
 {
   "name": "terminal-empty",
   "description": "A terminal execution projects no actionable file change sets (phase-aware), even with a fully captured ledger. The ledger itself is preserved; only the projection collapses.",
-  "execution_id": "aex_terminal",
-  "phase": "EXECUTION_COMPLETED",
+  "run_id": "aex_terminal",
+  "phase": "RUN_COMPLETED",
   "events": [
     {
       "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

@@ -440,7 +440,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       );
       expect(failure.code).toBe(Code.NotFound);
       expect(failure.rawMessage).toBe(
-        "WorkflowExecution not found: wex_nowhere",
+        "WorkflowRun not found: wex_nowhere",
       );
     });
   });

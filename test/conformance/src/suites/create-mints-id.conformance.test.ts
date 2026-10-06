@@ -239,8 +239,8 @@ const ROWS: readonly Row[] = [
     },
   },
   {
-    title: "[rpc:AgentExecutionCommandController.create] AgentExecution",
-    key: "AgentExecutionCommandController.create",
+    title: "[rpc:AgentRunCommandController.create] AgentRun",
+    key: "AgentRunCommandController.create",
     kind: ApiResourceKind.agent_run,
     edition: "engine",
     async send({ org }, chosenId) {
@@ -552,8 +552,8 @@ const ROWS: readonly Row[] = [
     },
   },
   {
-    title: "[rpc:WorkflowExecutionCommandController.create] WorkflowExecution",
-    key: "WorkflowExecutionCommandController.create",
+    title: "[rpc:WorkflowRunCommandController.create] WorkflowRun",
+    key: "WorkflowRunCommandController.create",
     kind: ApiResourceKind.workflow_run,
     edition: "engine",
     async send({ org }, chosenId) {

@@ -247,7 +247,7 @@ const SHAPES: ReadonlyArray<Shape> = [
   },
   {
     name: "restrict: executions in TEN sessions (the parent hop, dense)",
-    kind: "agent_execution",
+    kind: "agent_run",
     caller: FOUNDER,
     verb: "restrict",
     parents: Array.from({ length: 10 }, (_, i) => ({
@@ -264,7 +264,7 @@ const SHAPES: ReadonlyArray<Shape> = [
   },
   {
     name: "restrict: executions in a THOUSAND sessions (the parent hop, sparse)",
-    kind: "agent_execution",
+    kind: "agent_run",
     caller: FOUNDER,
     verb: "restrict",
     parents: Array.from({ length: 1_000 }, (_, i) => ({
@@ -281,7 +281,7 @@ const SHAPES: ReadonlyArray<Shape> = [
   },
   {
     name: "restrict: runs in ten workflows for a viewer (the `derived` rule reads each workflow's row)",
-    kind: "workflow_execution",
+    kind: "workflow_run",
     caller: VIEWER,
     verb: "restrict",
     parents: Array.from({ length: RUN_WORKFLOWS }, (_, i) => ({
@@ -292,7 +292,7 @@ const SHAPES: ReadonlyArray<Shape> = [
         visibility: ApiResourceVisibility.visibility_private,
         createdBy: FOUNDER,
         spec: {
-          executionVisibility: observableWorkflow(i)
+          runVisibility: observableWorkflow(i)
             ? WorkflowRunVisibility.organization
             : WorkflowRunVisibility.private,
         },
@@ -306,7 +306,7 @@ const SHAPES: ReadonlyArray<Shape> = [
       spec: { workflowId: `wfl_${i % RUN_WORKFLOWS}` },
     }),
     // The viewer reaches a run only through its workflow's
-    // `execution_viewer`; the cost measured is the rule's read of the
+    // `run_viewer`; the cost measured is the rule's read of the
     // workflow row behind every candidate.
     kept: (n) => {
       let kept = 0;

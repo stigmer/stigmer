@@ -301,13 +301,13 @@ async function assertExecutionSurvived(release, executionId, what) {
     await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
     const current = await connectJson(
       baseUrl,
-      "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get",
+      "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get",
       { value: executionId },
     );
     const phase = current.status?.phase;
-    if (phase !== "EXECUTION_COMPLETED") {
+    if (phase !== "RUN_COMPLETED") {
       throw new Error(
-        `after ${what}, execution ${executionId} reads ${phase}, want EXECUTION_COMPLETED`,
+        `after ${what}, execution ${executionId} reads ${phase}, want RUN_COMPLETED`,
       );
     }
     log(`after ${what}: execution ${executionId} still COMPLETED`);

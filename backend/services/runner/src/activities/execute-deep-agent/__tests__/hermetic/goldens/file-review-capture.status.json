@@ -31,13 +31,13 @@
       "timestamp": "2026-01-01T00:00:02.000Z"
     }
   ],
-  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "phase": "RUN_WAITING_FOR_APPROVAL",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "artifacts": [
     {
       "name": "notes.md",
       "sandboxPath": "notes.md",
-      "kind": "EXECUTION_ARTIFACT_KIND_FILE",
+      "kind": "RUN_ARTIFACT_KIND_FILE",
       "sizeBytes": "22",
       "storageKey": "artifacts/aex_hermetic_0001/notes.md",
       "createdAt": "2026-01-01T00:00:01.000Z",
@@ -56,7 +56,7 @@
     "requestedThinkingMode": "THINKING_MODE_DISABLED"
   },
   "fileReviewEventStream": {
-    "executionId": "aex_hermetic_0001",
+    "runId": "aex_hermetic_0001",
     "events": [
       {
         "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

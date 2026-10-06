@@ -30,7 +30,7 @@ describe("Python cross-package imports", () => {
     expect(pyProtoModuleAlias("ai.stigmer.platform.v1", "license_pb2")).toBe(
       "platform_license_pb2",
     );
-    expect(pyProtoModuleAlias("ai.stigmer.agentic.agentexecution.v1", "invocation_pb2")).toBe(
+    expect(pyProtoModuleAlias("ai.stigmer.agentic.agentrun.v1", "invocation_pb2")).toBe(
       "agentexecution_invocation_pb2",
     );
   });

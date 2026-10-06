@@ -10,8 +10,8 @@
  * in the child's place — so a second kind joining the set is a change in
  * what that driver checks, and must arrive as a reviewed edit of this
  * table, never as a silent consequence of a kind_meta edit. Kinds with
- * additional parents whose inheritance is partial (workflow_execution's
- * opt-in `execution_viewer from workflow`) own themselves and are pinned
+ * additional parents whose inheritance is partial (workflow_run's
+ * opt-in `run_viewer from workflow`) own themselves and are pinned
  * as `undefined`.
  */
 import { describe, expect, it } from "vitest";
@@ -21,7 +21,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { inheritedAuthorizationParentOf } from "../apiresource-meta.js";
 
 describe("inheritedAuthorizationParentOf — the parent a kind's authorization is", () => {
-  it("agent_execution's authorization is its session's: relation `session`, spec field `session_id`", () => {
+  it("agent_run's authorization is its session's: relation `session`, spec field `session_id`", () => {
     const parent = inheritedAuthorizationParentOf(
       ApiResourceKind.agent_run,
     );
@@ -37,7 +37,7 @@ describe("inheritedAuthorizationParentOf — the parent a kind's authorization i
       .filter((kind) => kind !== ApiResourceKind.api_resource_kind_unknown)
       .filter((kind) => inheritedAuthorizationParentOf(kind) !== undefined)
       .map((kind) => ApiResourceKind[kind]);
-    expect(inherited).toEqual(["agent_execution"]);
+    expect(inherited).toEqual(["agent_run"]);
   });
 
   it.each([

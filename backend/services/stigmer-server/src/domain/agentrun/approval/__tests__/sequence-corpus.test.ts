@@ -59,7 +59,7 @@ const silentLogger = createLogger({
 
 interface SequenceFile {
   name: string;
-  execution_id: string;
+  run_id: string;
   steps: SequenceStep[];
 }
 
@@ -68,7 +68,7 @@ interface SequenceStep {
   status: {
     phase?: string;
     messages?: unknown[];
-    sub_agent_executions?: unknown[];
+    sub_agent_runs?: unknown[];
   };
   decisions?: SequenceDecision[];
   expected: {
@@ -199,7 +199,7 @@ describe("shared HITL sequence corpus", () => {
       for (const step of seq.steps) {
         const messages = decodeMessages(step.status.messages as never);
         const subAgents = decodeSubAgents(
-          step.status.sub_agent_executions as never,
+          step.status.sub_agent_runs as never,
         );
         const phase = parsePhase(step.status.phase);
 
@@ -225,7 +225,7 @@ describe("shared HITL sequence corpus", () => {
           ).toBe(true);
         }
 
-        ensureApprovalRequests(status, seq.execution_id);
+        ensureApprovalRequests(status, seq.run_id);
 
         for (const d of step.decisions ?? []) {
           const tc = findToolCall(status, d.tool_call_id) as ToolCall;

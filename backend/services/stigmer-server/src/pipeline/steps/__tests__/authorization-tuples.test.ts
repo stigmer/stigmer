@@ -231,7 +231,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     expect(event?.requiresCreatorTuple).toBe(true);
   });
 
-  it("agent_execution: PARENT scope resolves the session link from spec.session_id, owner INHERITED", () => {
+  it("agent_run: PARENT scope resolves the session link from spec.session_id, owner INHERITED", () => {
     const execution = create(AgentRunSchema, {
       metadata: { id: "aexec_1", org: "acme" },
       spec: { target: { case: "sessionId", value: "ses_parent" } },
@@ -252,7 +252,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     expect(event?.ownerAttribution).toBe(OwnerAttributionType.INHERITED);
   });
 
-  it("agent_execution with no session id fails the request (Java's missing-parent arm)", () => {
+  it("agent_run with no session id fails the request (Java's missing-parent arm)", () => {
     const execution = create(AgentRunSchema, {
       metadata: { id: "aexec_2", org: "acme" },
     });
@@ -266,7 +266,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     ).toThrowError(/failed to create authorization tuples/);
   });
 
-  it("workflow_execution: org scope link PLUS the additional workflow parent from spec.workflow_id", () => {
+  it("workflow_run: org scope link PLUS the additional workflow parent from spec.workflow_id", () => {
     const run = create(WorkflowRunSchema, {
       metadata: { id: "wex_1", org: "acme" },
       spec: { workflowId: "wfl_parent" },
@@ -393,7 +393,7 @@ describe("cleanUpDeletedResource (the delete cleanup every chain and cascade sha
         message:
           "authorization cleanup failed — orphaned IAM policies may remain",
         fields: {
-          kind: "WorkflowExecution",
+          kind: "WorkflowRun",
           resourceId: "wex_cleanup_subject",
           error: "fga is down",
         },

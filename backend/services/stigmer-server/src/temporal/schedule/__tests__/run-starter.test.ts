@@ -208,7 +208,7 @@ describe("RunStarter.startRun — against a real store", () => {
     });
 
     expect(seen?.apiVersion).toBe("agentic.stigmer.ai/v1");
-    expect(seen?.kind).toBe("AgentExecution");
+    expect(seen?.kind).toBe("AgentRun");
     expect(seen?.metadata?.name).toBe("sch-01test-20260825t093000z");
     expect(seen?.metadata?.org).toBe("acme");
     expect(seen?.metadata?.labels[SCHEDULE_ID_LABEL_KEY]).toBe("sch_01test");

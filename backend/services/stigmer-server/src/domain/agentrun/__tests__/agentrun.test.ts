@@ -9,7 +9,7 @@
  * seed with SaveResource.
  *
  * Load-bearing pins the conformance suite cannot cover:
- *   - the MANGLED unknown-execution message on getExecutionUsageReport,
+ *   - the MANGLED unknown-execution message on getRunUsageReport,
  *     byte-for-byte (a faithful port of the Go message);
  *   - getAgentUsageReport org scoping (oss#389) incl. the no-name-oracle
  *     rule (Go get_agent_usage_report_test.go case-for-case);
@@ -18,7 +18,7 @@
  *     another request) and listBySession returning its parent whole;
  *   - update's status-clearing standard build and delete's audit-trail
  *     return, over the wire;
- *   - the populated getExecutionSummary arm (phase counts, active count,
+ *   - the populated getRunSummary arm (phase counts, active count,
  *     avg duration, failure ranks) that the zero-record conformance arm
  *     cannot reach.
  */
@@ -88,7 +88,7 @@ const silentLogger = createLogger({
 });
 
 const API_VERSION = "agentic.stigmer.ai/v1";
-const KIND = "AgentExecution";
+const KIND = "AgentRun";
 const ORG = "acme";
 
 // Requests name organizations by slug, which the serving chain turns into
@@ -514,7 +514,7 @@ describe("update / delete over the wire", () => {
 });
 
 describe("usage reports over the wire", () => {
-  it("getExecutionUsageReport answers the domain's NotFound copy for an unknown execution (#859)", async () => {
+  it("getRunUsageReport answers the domain's NotFound copy for an unknown execution (#859)", async () => {
     await expectCode(
       () => query.getRunUsageReport({ runId: "" }),
       Code.InvalidArgument,
@@ -524,10 +524,10 @@ describe("usage reports over the wire", () => {
       () => query.getRunUsageReport({ runId: "aexec_missing" }),
       Code.NotFound,
     );
-    expect(err.rawMessage).toBe("agent_execution not found: aexec_missing");
+    expect(err.rawMessage).toBe("agent_run not found: aexec_missing");
   });
 
-  it("getExecutionUsageReport answers the zero aggregate for a seeded execution", async () => {
+  it("getRunUsageReport answers the zero aggregate for a seeded execution", async () => {
     const id = await seed(seedInput());
     const report = await query.getRunUsageReport({ runId: id });
     expect(report.aggregate).toBeDefined();
@@ -743,7 +743,7 @@ describe("subscribe — the first domain stream through the real transport", () 
       }
     }, Code.NotFound);
     expect(unknownErr.rawMessage).toBe(
-      "AgentExecution not found: aexec_missing",
+      "AgentRun not found: aexec_missing",
     );
   });
 
@@ -1643,7 +1643,7 @@ describe("submitFileDecision over the wire", () => {
   });
 });
 
-describe("getExecutionSummary — the populated arm", () => {
+describe("getRunSummary — the populated arm", () => {
   it("counts phases, actives, completion durations, and failure ranks", async () => {
     // Seeded records carry no audit timestamps, so the window cutoff
     // never skips them (Go: a zero created_at disables the skip).

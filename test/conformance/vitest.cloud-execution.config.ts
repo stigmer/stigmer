@@ -33,7 +33,7 @@ export default defineConfig({
     exclude: [
       "src/suites-execution/schedule-firing.conformance.test.ts",
       "src/suites-execution/open-computer-use.conformance.test.ts",
-      "src/suites-execution/agentexecution-request-shape.conformance.test.ts",
+      "src/suites-execution/agentrun-request-shape.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-cloud-execution.ts"],
     // Judges every test on the RPCs it sent: a `[rpc:...]` tag it never sent

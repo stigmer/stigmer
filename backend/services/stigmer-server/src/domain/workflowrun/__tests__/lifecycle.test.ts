@@ -283,7 +283,7 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
       Code.NotFound,
     );
     expect(missing.rawMessage).toBe(
-      "workflow_execution not found: wfx_missing",
+      "workflow_run not found: wfx_missing",
     );
   });
 
@@ -299,7 +299,7 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
       Code.FailedPrecondition,
     );
     expect(cancelErr.rawMessage).toBe(
-      "cannot cancel execution in phase EXECUTION_COMPLETED; only PENDING, IN_PROGRESS, or PAUSED can be cancelled",
+      "cannot cancel execution in phase RUN_COMPLETED; only PENDING, IN_PROGRESS, or PAUSED can be cancelled",
     );
 
     const terminateErr = await expectCode(
@@ -312,7 +312,7 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
       Code.FailedPrecondition,
     );
     expect(terminateErr.rawMessage).toBe(
-      "cannot terminate execution in phase EXECUTION_COMPLETED; only PENDING, IN_PROGRESS, or PAUSED can be terminated",
+      "cannot terminate execution in phase RUN_COMPLETED; only PENDING, IN_PROGRESS, or PAUSED can be terminated",
     );
 
     const paused = await seed(RunPhase.RUN_PAUSED);
@@ -326,7 +326,7 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
       Code.FailedPrecondition,
     );
     expect(pauseErr.rawMessage).toBe(
-      "cannot pause execution in phase EXECUTION_COMPLETED; only PENDING or IN_PROGRESS can be paused",
+      "cannot pause execution in phase RUN_COMPLETED; only PENDING or IN_PROGRESS can be paused",
     );
 
     const resumeErr = await expectCode(
@@ -339,7 +339,7 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
       Code.FailedPrecondition,
     );
     expect(resumeErr.rawMessage).toBe(
-      "cannot resume execution in phase EXECUTION_COMPLETED; only PAUSED executions can be resumed",
+      "cannot resume execution in phase RUN_COMPLETED; only PAUSED executions can be resumed",
     );
     // PAUSED is resumable — engineless it fails at the ENGINE, not the
     // validator (proving validator pass-through).
@@ -364,7 +364,7 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
       Code.FailedPrecondition,
     );
     expect(recoverErr.rawMessage).toBe(
-      "cannot recover execution in phase EXECUTION_COMPLETED; only FAILED executions can be recovered",
+      "cannot recover execution in phase RUN_COMPLETED; only FAILED executions can be recovered",
     );
   });
 

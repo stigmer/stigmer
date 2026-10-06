@@ -66,7 +66,7 @@ export interface SummaryDeps {
   readonly listReadScope: ListReadScope | undefined;
 }
 
-export async function getExecutionSummary(
+export async function getRunSummary(
   deps: SummaryDeps,
   req: GetRunSummaryRequest,
   identity: CallerIdentity,

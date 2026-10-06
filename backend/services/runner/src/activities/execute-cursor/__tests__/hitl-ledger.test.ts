@@ -1698,7 +1698,7 @@ describe("watchDenialLedger", () => {
 // structured "denied by hook" signal, so the only stream trace is Cursor's
 // generic hook-block error text on the FAILED call. The detector matches this
 // turn's hook-blocked FAILED rows against the FULL ledger (all kinds) and
-// reports the leftovers — which the activity surfaces as EXECUTION_FAILED
+// reports the leftovers — which the activity surfaces as RUN_FAILED
 // instead of the silent completion the issue describes. These pin the whole
 // attribution matrix.
 describe("detectUnattributedHookBlocks (issue #205)", () => {

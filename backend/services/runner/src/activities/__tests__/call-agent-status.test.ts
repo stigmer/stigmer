@@ -55,7 +55,7 @@ describe("call-agent-status file-review activities", () => {
       expect(options.updatePendingFileReviews).toBe(true);
       expect(options.pendingUpdateChildAgentExecutionId).toBe("aex_child");
       expect(status.pendingFileReviews).toHaveLength(1);
-      expect(status.pendingFileReviews[0].childAgentExecutionId).toBe("aex_child");
+      expect(status.pendingFileReviews[0].childAgentRunId).toBe("aex_child");
       expect(status.pendingFileReviews[0].changeSetId).toEqual(["fcs_1", "fcs_2"]);
     });
 
@@ -122,7 +122,7 @@ describe("call-agent-status file-review activities", () => {
       const { status, options } = capturedUpdates[0];
       expect(options.updatePendingApprovals).toBe(true);
       expect(options.pendingUpdateChildAgentExecutionId).toBe("aex_child");
-      expect(status.pendingApprovals[0].childAgentExecutionId).toBe("aex_child");
+      expect(status.pendingApprovals[0].childAgentRunId).toBe("aex_child");
       expect(status.pendingApprovals[0].approval.toolCallId).toBe("tc_1");
     });
 

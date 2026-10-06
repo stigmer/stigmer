@@ -127,7 +127,7 @@ describe("ExecuteCursor hermetic — todo writes", () => {
 
     // ── Assert: outcome ──────────────────────────────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
-    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
     // ── Assert: the transcript — a row per write, on the message that proposed it ──

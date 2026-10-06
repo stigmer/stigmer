@@ -82,7 +82,7 @@ describe("read-surface authorization", () => {
           }),
           handlerContext(),
         ).next(),
-      "unauthorized to get workflow execution stream",
+      "unauthorized to get workflow run stream",
     );
   });
 
@@ -98,7 +98,7 @@ describe("read-surface authorization", () => {
           create(SubscribeEventsRequestSchema, { runId: "wfe_01denied" }),
           handlerContext(),
         ).next(),
-      "unauthorized to subscribe to workflow execution events",
+      "unauthorized to subscribe to workflow run events",
     );
   });
 
@@ -114,7 +114,7 @@ describe("read-surface authorization", () => {
           create(GetEventLogRequestSchema, { runId: "wfe_01denied" }),
           testCallerIdentity(),
         ),
-      "unauthorized to get workflow execution event log",
+      "unauthorized to get workflow run event log",
     );
   });
 

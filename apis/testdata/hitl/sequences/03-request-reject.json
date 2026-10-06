@@ -1,12 +1,12 @@
 {
   "name": "request-reject",
   "description": "The REJECTED lifecycle: a gated call is requested, then a user rejects it. The rejection resolves the request in both projections.",
-  "execution_id": "exec-reject",
+  "run_id": "exec-reject",
   "steps": [
     {
       "name": "seed: tc1 gated",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",
@@ -44,7 +44,7 @@
       "name": "reject tc1",
       "description": "A SubmitApproval site with a REJECT decision; the call is no longer pending and the ledger records REJECTED.",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",

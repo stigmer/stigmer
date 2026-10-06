@@ -164,7 +164,7 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     expect(readFileSync(join(repo, FILE), "utf-8"), "the working tree holds the candidate").toBe(AFTER);
     expect(invocation.outcome.kind, "a review pause RETURNS to the workflow").toBe("returned");
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe(
-      "EXECUTION_WAITING_FOR_APPROVAL",
+      "RUN_WAITING_FOR_APPROVAL",
     );
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,

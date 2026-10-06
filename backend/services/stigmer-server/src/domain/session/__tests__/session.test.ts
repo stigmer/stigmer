@@ -225,7 +225,7 @@ async function seedExecution(
   const id = `aex_sessiontest_${executionCounter}`;
   const execution = create(AgentRunSchema, {
     apiVersion: API_VERSION,
-    kind: "AgentExecution",
+    kind: "AgentRun",
     metadata: { id, name: `Execution ${executionCounter}`, org: ORG },
     spec: { target: { case: "sessionId", value: sessionId } },
     status: { phase },
@@ -801,13 +801,13 @@ describe("session updateSubject — field-level RMW (#540 spec_audit slot)", () 
 
 describe("session delete — active-execution guard and cascade", () => {
   const activePhases: ReadonlyArray<[string, RunPhase]> = [
-    ["EXECUTION_PENDING", RunPhase.RUN_PENDING],
-    ["EXECUTION_IN_PROGRESS", RunPhase.RUN_IN_PROGRESS],
+    ["RUN_PENDING", RunPhase.RUN_PENDING],
+    ["RUN_IN_PROGRESS", RunPhase.RUN_IN_PROGRESS],
     [
-      "EXECUTION_WAITING_FOR_APPROVAL",
+      "RUN_WAITING_FOR_APPROVAL",
       RunPhase.RUN_WAITING_FOR_APPROVAL,
     ],
-    ["EXECUTION_PAUSED", RunPhase.RUN_PAUSED],
+    ["RUN_PAUSED", RunPhase.RUN_PAUSED],
   ];
 
   for (const [name, phase] of activePhases) {

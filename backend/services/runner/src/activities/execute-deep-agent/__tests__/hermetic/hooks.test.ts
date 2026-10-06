@@ -35,7 +35,7 @@
  * allows after (it keeps state in `${CLAUDE_PLUGIN_DATA}`) runs again on
  * resume and now allows, and the call the person rejected still never runs.
  *
- * Two refusals settle as the tool lists' does, EXECUTION_FAILED on the
+ * Two refusals settle as the tool lists' does, RUN_FAILED on the
  * actionable surface with their own sentence: a referenced plugin that cannot
  * be read, and a hook that reads a variable the run does not give the agent.
  *

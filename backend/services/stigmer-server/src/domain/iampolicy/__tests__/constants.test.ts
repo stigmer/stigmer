@@ -343,8 +343,8 @@ describe("byte-pinned copy", () => {
     expect(policyNotFoundMessage("iamp_x")).toBe(
       "IAM policy not found: iamp_x",
     );
-    expect(noGrantableRolesMessage("agent_execution")).toBe(
-      "No roles can be granted on resource kind 'agent_execution'. Role assignments for this resource kind are system-managed.",
+    expect(noGrantableRolesMessage("agent_run")).toBe(
+      "No roles can be granted on resource kind 'agent_run'. Role assignments for this resource kind are system-managed.",
     );
     expect(
       roleNotGrantableMessage("editor", "organization", [

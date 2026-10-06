@@ -185,7 +185,7 @@ describe("list read scope (composed server, fake scope)", () => {
         AgentRunSchema,
         create(AgentRunSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
-          kind: "AgentExecution",
+          kind: "AgentRun",
           metadata: { id, name: id, org: acmeId },
           spec: { target: { case: "sessionId", value: "ses_mine" } },
           status: {
@@ -208,7 +208,7 @@ describe("list read scope (composed server, fake scope)", () => {
         WorkflowRunSchema,
         create(WorkflowRunSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
-          kind: "WorkflowExecution",
+          kind: "WorkflowRun",
           metadata: { id, name: id, org },
           status: {
             audit: {

@@ -1,6 +1,6 @@
 /**
  * Pins the store-fault contract of the workflow's two targeted-update
- * loads (updateVisibility and updateExecutionVisibility): a typed
+ * loads (updateVisibility and updateRunVisibility): a typed
  * ResourceNotFoundError answers NotFound with the domain's pinned copy
  * (`workflow not found: <id>`), and any other store failure is an
  * infrastructure fault answered as a sanitized Internal, never a NotFound
@@ -107,7 +107,7 @@ describe("updateVisibility — LoadWorkflowForVisibilityUpdate", () => {
   });
 });
 
-describe("updateExecutionVisibility — LoadWorkflowForExecutionVisibilityUpdate", () => {
+describe("updateRunVisibility — LoadWorkflowForExecutionVisibilityUpdate", () => {
   function surfaceError(store: Store): Promise<ConnectError> {
     return errorOf(() =>
       workflowCommand(store).updateRunVisibility({

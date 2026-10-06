@@ -175,7 +175,7 @@ describe("artifact domain — create & content addressing", () => {
   });
 
   it("derives the org from a REAL stored source execution (the proxy trick)", async () => {
-    // Seed a workflow_execution row carrying an org. The row is written
+    // Seed a workflow_run row carrying an org. The row is written
     // through the Artifact schema — the SAME wire-layout proxy the reader
     // uses (all resources share metadata at field 3).
     const executionId = "wexec_01orgproxy";
@@ -250,7 +250,7 @@ describe("artifact domain — create & content addressing", () => {
 });
 
 describe("artifact domain — read surfaces", () => {
-  it("get resolves by id; listByExecution filters on the matching source arm", async () => {
+  it("get resolves by id; listByRun filters on the matching source arm", async () => {
     const executionId = `wexec_01list${++counter}`;
     const created = await command.create(
       artifactInput({ workflowExecutionId: executionId }),
@@ -272,11 +272,11 @@ describe("artifact domain — read surfaces", () => {
     expect(other.entries).toHaveLength(0);
   });
 
-  it("listByExecution without any filter answers InvalidArgument", async () => {
+  it("listByRun without any filter answers InvalidArgument", async () => {
     const err = await grpcError(() => query.listByRun({}));
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toBe(
-      "workflow_execution_id or agent_execution_id is required",
+      "workflow_run_id or agent_run_id is required",
     );
   });
 

@@ -33,7 +33,7 @@
       "timestamp": "2026-01-01T00:00:30.000Z"
     }
   ],
-  "phase": "EXECUTION_COMPLETED",
+  "phase": "RUN_COMPLETED",
   "startedAt": "2026-01-01T00:00:22.000Z",
   "completedAt": "2026-01-01T00:00:32.000Z",
   "streamingUsage": {
@@ -49,7 +49,7 @@
     "requestedThinkingMode": "THINKING_MODE_DISABLED"
   },
   "fileReviewEventStream": {
-    "executionId": "aex_hermetic_0001",
+    "runId": "aex_hermetic_0001",
     "events": [
       {
         "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

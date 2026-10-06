@@ -2,7 +2,7 @@
  * Pins the run gate's two questions in agent-execution create over the
  * real router:
  *   - AuthorizeRunTarget, before anything stored is read: a turn in an
- *     existing session asks session#can_create_execution_in with the
+ *     existing session asks session#can_create_run_in with the
  *     session copy, and a denied caller is never asked the second
  *     question;
  *   - AuthorizeRunAgent, after ResolveRunAgent stamped the agent the turn
@@ -165,7 +165,7 @@ function createInput(
 ) {
   return {
     apiVersion: API_VERSION,
-    kind: "AgentExecution",
+    kind: "AgentRun",
     metadata: { name: "run-gate-exec", org: ORG },
     spec: { message: "hello", target, runConfig },
   };

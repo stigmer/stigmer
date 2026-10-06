@@ -69,7 +69,7 @@ import type { ExecutionStatusWriter } from "../activities.js";
 import { UPDATE_EXECUTION_STATUS_ACTIVITY_NAME } from "../names.js";
 
 const UPDATE_STATUS_PROCEDURE =
-  "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus";
+  "/ai.stigmer.agentic.agentrun.v1.AgentRunCommandController/updateStatus";
 
 type UpdateStatusActivity = (id: string, status: JsonValue) => Promise<void>;
 
@@ -171,7 +171,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
       AgentRunSchema,
       create(AgentRunSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
-        kind: "AgentExecution",
+        kind: "AgentRun",
         metadata: { id, name: "own-behalf", org: "acme" },
         spec: { target: { case: "sessionId", value: "ses_1" } },
         status: { agentId: "agt_1", phase, messages },
@@ -441,7 +441,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
 
   it("surfaces the lane's NotFound as the activity's failure for a deleted execution", async () => {
     await expect(
-      updateStatus("aex_ownbehalf_missing", { phase: "EXECUTION_FAILED" }),
+      updateStatus("aex_ownbehalf_missing", { phase: "RUN_FAILED" }),
     ).rejects.toThrow(/not found/i);
     expect(authorizerCalls).toHaveLength(0);
   });

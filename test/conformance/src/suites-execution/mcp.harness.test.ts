@@ -1,6 +1,6 @@
 // Execution-engine harness smoke test for the MCP tool fixture (Class B).
 // Domain: agentic / agentexecution — proves the tool surface is wired, not the
-// HITL contract (that lives in agentexecution-approval.conformance.test.ts).
+// HITL contract (that lives in agentrun-approval.conformance.test.ts).
 //
 // This is the cheap, permanent guard that the local-execution target's MCP
 // machinery works end-to-end: an HTTP McpServer is registered (create only — no

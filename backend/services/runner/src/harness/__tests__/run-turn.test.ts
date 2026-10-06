@@ -172,14 +172,14 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       // The engine edits a file and answers in JSON (tier 1 extracts it; no
       // LLM is asked), then the runtime pauses for the review.
       const first = await driver.turn([scenario.flowingWrite("fake-review-structured-w", "answer.md"), scenario.say('{"answer": 42}')]);
-      expect(slimOf(subject, first).phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+      expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
       expect(driver.record.lastFullStatus?.structuredOutput, "resolved before the WAITING persist").toEqual({ answer: 42 });
 
       clock.tick();
       driver.record.decideCapturedFileChanges({ approve: ["answer.md"] }, new Date().toISOString());
       const second = await driver.turn([]);
       const slim = slimOf(subject, second);
-      expect(slim.phase).toBe("EXECUTION_COMPLETED");
+      expect(slim.phase).toBe("RUN_COMPLETED");
       expect(slim.structured, "the pure-reconcile completion carries the answer as a value").toEqual({ answer: 42 });
       expect(slim.final_text).toBe('{"answer": 42}');
     });
@@ -214,7 +214,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const driver = new RuntimeExecutionDriver(leaving, "fake-streams-and-leaves");
       const invocation = await driver.turn([]);
 
-      expect(slimOf(leaving.subject, invocation).phase).toBe("EXECUTION_COMPLETED");
+      expect(slimOf(leaving.subject, invocation).phase).toBe("RUN_COMPLETED");
       const final = driver.record.lastFullStatus!;
       expect(final.messages.map((m) => [m.content, m.isStreaming]), "the message the adapter left open is closed").toEqual([["half a thou", false]]);
       const row = final.messages[0]!.toolCalls[0]!;
@@ -237,7 +237,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const driver = new RuntimeExecutionDriver(harness, "fake-timeline-completed");
       const lines = await turnPhasesLines(async () => {
         const invocation = await driver.turn([scenario.say("Reading it."), scenario.read("t1", "notes.md"), scenario.say("Done.")]);
-        expect(slimOf(subject, invocation).phase).toBe("EXECUTION_COMPLETED");
+        expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
       });
 
       expect(lines).toHaveLength(1);
@@ -255,7 +255,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const driver = new RuntimeExecutionDriver(harness, "fake-timeline-failed");
       const lines = await turnPhasesLines(async () => {
         const invocation = await driver.turn([scenario.say("Checking."), scenario.fail("engine gave up")]);
-        expect(slimOf(subject, invocation).phase).toBe("EXECUTION_FAILED");
+        expect(slimOf(subject, invocation).phase).toBe("RUN_FAILED");
       });
 
       expect(lines).toHaveLength(1);
@@ -304,7 +304,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
       const invocation = await driver.turn([scenario.say("Nothing to change.")]);
 
-      expect(slimOf(subject, invocation).phase).toBe("EXECUTION_COMPLETED");
+      expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
       expect(finalize, "the completion epilogue's one call").toHaveBeenCalledTimes(1);
     });
 
@@ -314,14 +314,14 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const { driver } = driverWithLocalWorkspace("fake-writeback-review");
 
       const first = await driver.turn([scenario.flowingWrite("fake-writeback-review-w", "answer.md"), scenario.say("Written.")]);
-      expect(slimOf(subject, first).phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+      expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
       expect(finalize, "a turn paused for review has pushed nothing").toHaveBeenCalledTimes(0);
 
       clock.tick();
       driver.record.decideCapturedFileChanges({ approve: ["answer.md"] }, new Date().toISOString());
       const second = await driver.turn([]);
 
-      expect(slimOf(subject, second).phase).toBe("EXECUTION_COMPLETED");
+      expect(slimOf(subject, second).phase).toBe("RUN_COMPLETED");
       expect(finalize, "the resolved review's one call; the completion path does not run again").toHaveBeenCalledTimes(1);
     });
 
@@ -331,7 +331,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const { driver } = driverWithLocalWorkspace("fake-writeback-diverged");
 
       const first = await driver.turn([scenario.flowingWrite("fake-writeback-diverged-w", "answer.md"), scenario.say("Written.")]);
-      expect(slimOf(subject, first).phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+      expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
 
       // What the reviewer approved must be what applies. On the git substrate
       // the reconcile re-asserts the approved bytes from the pinned capture
@@ -347,7 +347,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       decided.afterSha256 = "deadbeef".repeat(8);
       const second = await driver.turn([]);
 
-      expect(slimOf(subject, second).phase).toBe("EXECUTION_COMPLETED");
+      expect(slimOf(subject, second).phase).toBe("RUN_COMPLETED");
       const final = driver.record.lastFullStatus!;
       expect(
         final.messages.some((m) => m.content.startsWith(TERMINAL_COPY.fileReview.applyFailedPrefix)),

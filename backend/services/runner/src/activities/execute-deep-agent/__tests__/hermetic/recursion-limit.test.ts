@@ -129,7 +129,7 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
     // ── Assert: the slim the workflow receives ───────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_TERMINATED");
+    expect(slim.phase).toBe("RUN_TERMINATED");
     expect(String(slim.error).startsWith(TOOL_CALL_LIMIT_ERROR_PREFIX), "the cross-repo prefix").toBe(true);
 
     // ── Assert: what the control plane holds ─────────────────────────────────

@@ -82,7 +82,7 @@ function expectCompleted(final: WorkflowRun): void {
   ).toBe(RunPhase.RUN_COMPLETED);
 }
 
-describe("WorkflowExecution llm_call — completion", () => {
+describe("WorkflowRun llm_call — completion", () => {
   it("a plain llm_call completes", async () => {
     mock.enqueue(anthropicText("HELLO"));
 
@@ -111,7 +111,7 @@ describe("WorkflowExecution llm_call — completion", () => {
   });
 });
 
-describe("WorkflowExecution llm_call — task I/O and token accounting", () => {
+describe("WorkflowRun llm_call — task I/O and token accounting", () => {
   it("task status carries task_type, output and token counts; the execution totals sum them", async () => {
     mock.enqueue(anthropicText("Hello there.", { inputTokens: 150, outputTokens: 20 }));
 
@@ -140,7 +140,7 @@ describe("WorkflowExecution llm_call — task I/O and token accounting", () => {
   });
 });
 
-describe("WorkflowExecution llm_call — model resolution", () => {
+describe("WorkflowRun llm_call — model resolution", () => {
   it("an llm_call's registry model id reaches the provider as the registry's apiModelId", async () => {
     if (target.modelRegistryDocument === undefined) {
       throw new Error(`target ${target.name} exposes no model registry document; execution targets must`);

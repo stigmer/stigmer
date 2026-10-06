@@ -87,7 +87,7 @@ const EXECUTION_FAULT_COPY = "failed to load workflow execution";
 const WORKFLOW_FAULT_COPY = "failed to load workflow";
 
 const MISSING = (): Error =>
-  new ResourceNotFoundError(`workflow_execution/${EXECUTION_ID}`);
+  new ResourceNotFoundError(`workflow_run/${EXECUTION_ID}`);
 const LOCKED = (): Error => new Error("SQLITE_BUSY: database is locked");
 
 function handlerContext(): HandlerContext {
@@ -170,7 +170,7 @@ describe.each(LIFECYCLE_VERBS)("%s — LoadExecutionById", (_verb, run) => {
 
     expect(error.code).toBe(Code.NotFound);
     expect(error.rawMessage).toBe(
-      `workflow_execution not found: ${EXECUTION_ID}`,
+      `workflow_run not found: ${EXECUTION_ID}`,
     );
   });
 
@@ -195,7 +195,7 @@ const COMMAND_VERBS: ReadonlyArray<
 > = [
   [
     "sendSignal — LoadExecutionByExecutionId",
-    `workflow_execution not found: ${EXECUTION_ID}`,
+    `workflow_run not found: ${EXECUTION_ID}`,
     (store) =>
       sendSignal(
         {
@@ -213,7 +213,7 @@ const COMMAND_VERBS: ReadonlyArray<
   ],
   [
     "submitApproval — LoadExisting",
-    `workflow_execution not found: ${EXECUTION_ID}`,
+    `workflow_run not found: ${EXECUTION_ID}`,
     (store) =>
       submitApproval(
         {
@@ -232,7 +232,7 @@ const COMMAND_VERBS: ReadonlyArray<
   ],
   [
     "submitFileDecision — LoadExisting",
-    `workflow_execution not found: ${EXECUTION_ID}`,
+    `workflow_run not found: ${EXECUTION_ID}`,
     (store) =>
       submitFileDecision(
         {
@@ -254,7 +254,7 @@ const COMMAND_VERBS: ReadonlyArray<
   ],
   [
     "submitWorkflowTaskApproval — LoadExecutionForApproval",
-    `WorkflowExecution not found: ${EXECUTION_ID}`,
+    `WorkflowRun not found: ${EXECUTION_ID}`,
     (store) =>
       submitWorkflowTaskApproval(
         {
@@ -316,7 +316,7 @@ describe("subscribe — the snapshot read", () => {
 
     expect(error.code).toBe(Code.NotFound);
     expect(error.rawMessage).toBe(
-      `WorkflowExecution not found: ${EXECUTION_ID}`,
+      `WorkflowRun not found: ${EXECUTION_ID}`,
     );
     expect(broker.getSubscriberCount(EXECUTION_ID)).toBe(0);
   });
@@ -351,7 +351,7 @@ describe("subscribeEvents — the existence check", () => {
 
     expect(error.code).toBe(Code.NotFound);
     expect(error.rawMessage).toBe(
-      `WorkflowExecution not found: ${EXECUTION_ID}`,
+      `WorkflowRun not found: ${EXECUTION_ID}`,
     );
   });
 

@@ -629,7 +629,7 @@ execution); a `*.conformance.test.ts` asserts a domain's full contract. They are
 distinct on purpose: the smoke test is a permanent, cheap liveness guard, and
 an execution **domain** enters the suite whole, on this same harness.
 
-`workflowexecution.conformance.test.ts` is the first such whole domain. It uses
+`workflowrun.conformance.test.ts` is the first such whole domain. It uses
 two hermetic fixtures: `set_vars` (sub-second, for create/complete/query/terminal
 cases) and `wait` (a durable Temporal timer, for acting on a genuinely *running*
 execution — IN_PROGRESS, cancel, terminate, pause/resume). It asserts the
@@ -641,7 +641,7 @@ the server's controller unit tests rather than asserted here. Class B files run
 serially (`fileParallelism: false`) so multiple suites don't boot
 multiple Temporal+runner stacks at once.
 
-`agentexecution.conformance.test.ts` is the second whole execution domain. An
+`agentrun.conformance.test.ts` is the second whole execution domain. An
 agent run always hits an LLM, so the `local-execution` target also boots a
 **TS-pure mock-LLM proxy** (`test/support/src/mock-llm.ts`): a long-lived HTTP server with
 a programmable response queue that replays canned Anthropic SSE to the runner via
@@ -659,7 +659,7 @@ built-in prompt. A turn on an agent starts its conversation with
 runs on its status. The two
 execution domains share one enum-agnostic poll core (`support/execution-poll.ts`).
 
-`agentexecution-approval.conformance.test.ts` adds the **HITL tool-approval**
+`agentrun-approval.conformance.test.ts` adds the **HITL tool-approval**
 (`submitApproval`) contract. It is the first slice that exercises a real *tool*:
 an agent can only reach `EXECUTION_WAITING_FOR_APPROVAL` when it references an
 McpServer that exposes an approval-gated tool, so the `local-execution` target
@@ -682,7 +682,7 @@ not stable black-box observables (per-tool-call *final* status after the approva
 resume, and `args_preview`), exactly the boundary the integration HITL suite
 draws.
 
-`workflowexecution-approval.conformance.test.ts` adds the **workflow `human_input`
+`workflowrun-approval.conformance.test.ts` adds the **workflow `human_input`
 HITL** (`submitWorkflowTaskApproval`) contract — the workflow analogue of the
 agent suite, but a genuinely different machine, so it is a separate file. A
 WorkflowExecution has **no execution-level waiting phase**: a `human_input` task
@@ -720,7 +720,7 @@ behaviorally via routing). The sibling `submitApproval` (the workflow->child-age
 tool-forwarding composite) is a **different mechanism** and lives in its own file,
 described next.
 
-`workflowexecution-child-approval.conformance.test.ts` adds the **child-agent
+`workflowrun-child-approval.conformance.test.ts` adds the **child-agent
 approval FORWARDING** (`submitApproval`) contract — distinct from `human_input`
 (above): a workflow invokes an agent via an `agent_call` task, and when that
 *child* AgentExecution gates on a tool, the gate surfaces at the parent's

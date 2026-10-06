@@ -6,7 +6,7 @@
 // as two files.
 //
 // Domain: agentic — the env layering that populates an ExecutionContext at
-// run start, exercised through AgentExecution. A turn's value layers are the
+// run start, exercised through AgentRun. A turn's value layers are the
 // lane's (a PlatformClient's, a schedule's or a workflow task's
 // environment_refs) and its own runtime_env; the agent's declarations are
 // the key whitelist; and a declared key no layer carries is filled from the
@@ -79,7 +79,7 @@ interface MergeSetup {
 
 // Drives the AGENT env-merge path end to end: the caller's personal
 // Environment -> Agent (env whitelist) -> Session on the agent ->
-// AgentExecution (runtime_env) in the session. A held mock turn keeps the run
+// AgentRun (runtime_env) in the session. A held mock turn keeps the run
 // non-terminal for the read.
 async function runAgentMerge(org: string, setup: MergeSetup) {
   const personal = await clients.environmentCommand.create(

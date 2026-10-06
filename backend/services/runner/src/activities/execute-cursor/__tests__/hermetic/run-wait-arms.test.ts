@@ -10,7 +10,7 @@
  * poisoned-handle recovery on a RESUMED agent is `recovery-fresh-agent.test.ts`):
  *
  *  1. A NON-RETRYABLE error (auth class): the classifier files it as
- *     `auth`, neither recovery spine fires, the turn RETURNS EXECUTION_FAILED
+ *     `auth`, neither recovery spine fires, the turn RETURNS RUN_FAILED
  *     with the classified error verbatim, and the agent is PARKED (Phase 13's
  *     terminal parks the handle whatever the phase — a bad key is not a bad
  *     handle). Golden `goldens/run-error-non-retryable.status.json`.
@@ -27,7 +27,7 @@
  *  3. An SDK-SIDE CANCEL: the run is cancelled from outside the runner (no
  *     runner flag set — not a pause, stall, cost cap or denial), the stream
  *     ends, the boundary passes, and `run.wait()` answers `cancelled`. The turn
- *     RETURNS EXECUTION_CANCELLED with no error and no system message, and the
+ *     RETURNS RUN_CANCELLED with no error and no system message, and the
  *     agent is parked. Golden `goldens/run-cancelled.status.json`.
  *
  * All three are RETURN arms: a Temporal retry would re-run the identical
@@ -126,7 +126,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "a classified failure RETURNS").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_FAILED");
+    expect(slim.phase).toBe("RUN_FAILED");
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_FAILED,
@@ -199,7 +199,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     // ── Assert: outcome ──────────────────────────────────────────────────────
     expect(invocation.outcome.kind, "a recovered turn RETURNS like any completion").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     expect(slim.final_text).toBe(FINAL_TEXT);
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
@@ -263,7 +263,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "a cancelled run RETURNS").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_CANCELLED");
+    expect(slim.phase).toBe("RUN_CANCELLED");
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_CANCELLED,

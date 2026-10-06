@@ -445,7 +445,7 @@ function deriveTaskStates(
  * Why progress events drive gating: a child's tool/file gate is surfaced
  * snapshot-only (`child_approval_required` signal → `status.pending_approvals`
  * on the parent — no workflow event is emitted; source-confirmed in
- * `test/conformance/src/suites-execution/workflowexecution-child-approval.conformance.test.ts`).
+ * `test/conformance/src/suites-execution/workflowrun-child-approval.conformance.test.ts`).
  * The `approval_requested` event exists only for human_input tasks. Without
  * this derivation the stream never shows an agent_call task as
  * `waiting_approval`, and every waiting_approval consumer (thread/graph

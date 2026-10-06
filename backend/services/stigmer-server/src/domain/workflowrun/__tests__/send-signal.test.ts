@@ -113,7 +113,7 @@ describe("sendSignal validation + phase arms (send_signal_test.go)", () => {
       () => sendSignal(deps(), input("", "sig"), testCallerIdentity()),
       Code.InvalidArgument,
     );
-    expect(missing.rawMessage).toBe("execution_id is required");
+    expect(missing.rawMessage).toBe("run_id is required");
     const id = await seed(RunPhase.RUN_IN_PROGRESS);
     const noName = await expectCode(
       () => sendSignal(deps(), input(id, ""), testCallerIdentity()),
@@ -127,7 +127,7 @@ describe("sendSignal validation + phase arms (send_signal_test.go)", () => {
       () => sendSignal(deps(), input("wfx_missing"), testCallerIdentity()),
       Code.NotFound,
     );
-    expect(err.rawMessage).toBe("workflow_execution not found: wfx_missing");
+    expect(err.rawMessage).toBe("workflow_run not found: wfx_missing");
   });
 
   it("terminal phases refuse FailedPrecondition with the pinned copy", async () => {
@@ -137,7 +137,7 @@ describe("sendSignal validation + phase arms (send_signal_test.go)", () => {
       Code.FailedPrecondition,
     );
     expect(err.rawMessage).toBe(
-      "cannot send signal to execution in phase EXECUTION_COMPLETED; only PENDING or IN_PROGRESS executions can receive signals",
+      "cannot send signal to execution in phase RUN_COMPLETED; only PENDING or IN_PROGRESS executions can receive signals",
     );
   });
 

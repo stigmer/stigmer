@@ -6,7 +6,7 @@
 // A run is its person's: whoever started it reads it, and a workflow being
 // visible to the organization (who may see and run it) exposes nobody's
 // runs. The workflow's owner opts the organization in with
-// updateExecutionVisibility, and the level reaches every run of the
+// updateRunVisibility, and the level reaches every run of the
 // workflow, past runs included, until it is set back. Pinned on the
 // target's ENFORCING EXECUTION LANE with the founder (the workflow's owner,
 // who starts the run), a member of the founder's organization (who can see
@@ -86,8 +86,8 @@ async function expectRefused(
   expect(listed.entries.map((entry) => entry.metadata?.id), `${who} lists the run`).not.toContain(runId);
 }
 
-describe("WorkflowExecution run visibility — who observes a workflow's runs (on the enforcing execution lane)", () => {
-  it("[rpc:WorkflowExecutionQueryController.get] [rpc:WorkflowExecutionQueryController.listByWorkflow] a teammate is refused a PRIVATE workflow's run, reads it once the owner opens the runs to the organization, and loses it when they are closed again", async (ctx) => {
+describe("WorkflowRun run visibility — who observes a workflow's runs (on the enforcing execution lane)", () => {
+  it("[rpc:WorkflowRunQueryController.get] [rpc:WorkflowRunQueryController.listByWorkflow] a teammate is refused a PRIVATE workflow's run, reads it once the owner opens the runs to the organization, and loses it when they are closed again", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const home = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy(home));

@@ -78,7 +78,7 @@ describe.each(driverFixtures([ApiResourceKind.agent_run]))(
           AgentRunSchema,
           create(AgentRunSchema, {
             apiVersion: "agentic.stigmer.ai/v1",
-            kind: "AgentExecution",
+            kind: "AgentRun",
             metadata: { id, name: id, org: "org-a" },
             spec: {
               target: { case: "sessionId", value: "ses_a" },

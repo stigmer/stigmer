@@ -26,7 +26,7 @@ interface ScenarioFixture {
   name: string;
   input: {
     messages?: unknown[];
-    sub_agent_executions?: unknown[];
+    sub_agent_runs?: unknown[];
   };
   expected: {
     pending_approvals?: unknown[];
@@ -47,7 +47,7 @@ describe("shared HITL scenario corpus", () => {
       const fx = readCorpusJson(file) as unknown as ScenarioFixture;
 
       const messages = decodeMessages(fx.input.messages as never);
-      const subAgents = decodeSubAgents(fx.input.sub_agent_executions as never);
+      const subAgents = decodeSubAgents(fx.input.sub_agent_runs as never);
       const want = decodePendingApprovals(
         fx.expected.pending_approvals as never,
       );

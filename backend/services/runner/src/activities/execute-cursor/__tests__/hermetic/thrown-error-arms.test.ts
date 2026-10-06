@@ -1,6 +1,6 @@
 /**
  * Hermetic goldens: the THROWN-ERROR ARMS of the outer catch — an error that
- * escapes a setup phase, before any stream ran, becomes EXECUTION_FAILED with
+ * escapes a setup phase, before any stream ran, becomes RUN_FAILED with
  * two system messages and the activity RETURNS.
  *
  * The outer `catch` of the activity has two arms for an error that is not a
@@ -25,7 +25,7 @@
  *     the error's constructor name. Golden `goldens/resolution-error.status.json`.
  *
  * Both fail BEFORE the first status persist, so the ONLY phase the control
- * plane ever sees for these executions is EXECUTION_FAILED — `persistedPhases`
+ * plane ever sees for these executions is RUN_FAILED — `persistedPhases`
  * is `[FAILED]`, not `[IN_PROGRESS, FAILED]`.
  *
  * Golden hunk since #1096: `sdk-error-at-create`
@@ -135,7 +135,7 @@ describe("ExecuteCursor hermetic — thrown-error arms of the outer catch", () =
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "the SDK arm RETURNS the failed status").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_FAILED");
+    expect(slim.phase).toBe("RUN_FAILED");
     expect(record.persistedPhases, "nothing was persisted before the failure").toEqual([
       RunPhase.RUN_FAILED,
     ]);
@@ -182,7 +182,7 @@ describe("ExecuteCursor hermetic — thrown-error arms of the outer catch", () =
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "the generic arm RETURNS the failed status").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_FAILED");
+    expect(slim.phase).toBe("RUN_FAILED");
     expect(record.persistedPhases).toEqual([RunPhase.RUN_FAILED]);
     const final = record.lastFullStatus!;
     expect(final.error).toBe(`[Error] ${CONTROL_PLANE_FAULT}`);

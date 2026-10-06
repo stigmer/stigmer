@@ -1,4 +1,4 @@
-// Conformance suite for the WorkflowExecution domain (Class B).
+// Conformance suite for the WorkflowRun domain (Class B).
 // Domain: agentic / workflowexecution — a single run of a Workflow through the
 // engine (Temporal orchestrator + TS runner), driven via the raw proto stubs.
 //
@@ -87,8 +87,8 @@ async function createExecution(org: string, workflowId: string, name = uniqueNam
   return execution;
 }
 
-describe("WorkflowExecution conformance — CRUD & identity", () => {
-  it("[rpc:WorkflowExecutionCommandController.create] create assigns a wex_ id, echoes the workflow ref, and starts PENDING", async () => {
+describe("WorkflowRun conformance — CRUD & identity", () => {
+  it("[rpc:WorkflowRunCommandController.create] create assigns a wex_ id, echoes the workflow ref, and starts PENDING", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const name = uniqueName("wfx");
@@ -103,7 +103,7 @@ describe("WorkflowExecution conformance — CRUD & identity", () => {
     expect(created.status?.phase).toBe(RunPhase.RUN_PENDING);
   });
 
-  it("[rpc:WorkflowExecutionCommandController.create] a run named by its workflow alone pins the workflow's head version; a later save moves only later runs", async () => {
+  it("[rpc:WorkflowRunCommandController.create] a run named by its workflow alone pins the workflow's head version; a later save moves only later runs", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf-pin");
     const v1 = await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "v1" }));
@@ -125,7 +125,7 @@ describe("WorkflowExecution conformance — CRUD & identity", () => {
 
   // The engine-backed half of the create-id rule (stigmer/stigmer#1489): the
   // Class A row for this create runs only where an engine backs Class A.
-  it("[rpc:WorkflowExecutionCommandController.create] create never keeps a metadata.id the caller sent", async () => {
+  it("[rpc:WorkflowRunCommandController.create] create never keeps a metadata.id the caller sent", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const name = uniqueName("wfx");
@@ -144,7 +144,7 @@ describe("WorkflowExecution conformance — CRUD & identity", () => {
     expect(read.metadata?.id, `a read of ${id} answers the execution it names`).toBe(id);
   });
 
-  it("[rpc:WorkflowExecutionQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
+  it("[rpc:WorkflowRunQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const created = await createExecution(org, workflowId);
@@ -157,7 +157,7 @@ describe("WorkflowExecution conformance — CRUD & identity", () => {
     assertResourceParity(WorkflowRunSchema, created, fetched, "create vs get");
   });
 
-  it("[rpc:WorkflowExecutionCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
+  it("[rpc:WorkflowRunCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const created = await clients.workflowExecutionCommand.create(
@@ -171,10 +171,10 @@ describe("WorkflowExecution conformance — CRUD & identity", () => {
     await expectGrpcCode(() => clients.workflowExecutionQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("[rpc:WorkflowExecutionQueryController.get] get rejects an empty id with InvalidArgument", () =>
+  it("[rpc:WorkflowRunQueryController.get] get rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(() => clients.workflowExecutionQuery.get({ value: "" }), Code.InvalidArgument, "get empty id"));
 
-  it("[rpc:WorkflowExecutionQueryController.get] get of a missing id returns NotFound", () =>
+  it("[rpc:WorkflowRunQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(
       () => clients.workflowExecutionQuery.get({ value: "wex_doesnotexist" }),
       Code.NotFound,
@@ -182,7 +182,7 @@ describe("WorkflowExecution conformance — CRUD & identity", () => {
     ));
 });
 
-describe("WorkflowExecution conformance — completion", () => {
+describe("WorkflowRun conformance — completion", () => {
   it("a completed run populates started_at, completed_at, tasks, and temporal_workflow_id", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
@@ -202,8 +202,8 @@ describe("WorkflowExecution conformance — completion", () => {
   });
 });
 
-describe("WorkflowExecution conformance — queries", () => {
-  it("[rpc:WorkflowExecutionQueryController.list] list includes created executions", async () => {
+describe("WorkflowRun conformance — queries", () => {
+  it("[rpc:WorkflowRunQueryController.list] list includes created executions", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const a = await createExecution(org, workflowId);
@@ -216,7 +216,7 @@ describe("WorkflowExecution conformance — queries", () => {
     expect(ids).toContain(b.metadata?.id);
   });
 
-  it("[rpc:WorkflowExecutionQueryController.listByWorkflow] listByWorkflow returns only the executions for the given workflow", async () => {
+  it("[rpc:WorkflowRunQueryController.listByWorkflow] listByWorkflow returns only the executions for the given workflow", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const otherWorkflowId = await provisionWorkflow(org);
@@ -232,26 +232,26 @@ describe("WorkflowExecution conformance — queries", () => {
     expect(ids).not.toContain(other.metadata?.id);
   });
 
-  it("[rpc:WorkflowExecutionQueryController.listByWorkflow] listByWorkflow returns an empty list for an unknown workflow", async () => {
+  it("[rpc:WorkflowRunQueryController.listByWorkflow] listByWorkflow returns an empty list for an unknown workflow", async () => {
     const listed = await clients.workflowExecutionQuery.listByWorkflow({ workflowId: "wfl_doesnotexist" });
     expect(listed.entries).toHaveLength(0);
   });
 
-  it("[rpc:WorkflowExecutionQueryController.listByWorkflow] listByWorkflow rejects an empty workflow_id with InvalidArgument", () =>
+  it("[rpc:WorkflowRunQueryController.listByWorkflow] listByWorkflow rejects an empty workflow_id with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.workflowExecutionQuery.listByWorkflow({ workflowId: "" }),
       Code.InvalidArgument,
       "listByWorkflow empty workflow_id",
     ));
 
-  it("[rpc:WorkflowExecutionQueryController.getEventLog] getEventLog rejects an empty execution_id with InvalidArgument", () =>
+  it("[rpc:WorkflowRunQueryController.getEventLog] getEventLog rejects an empty execution_id with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.workflowExecutionQuery.getEventLog({ runId: "" }),
       Code.InvalidArgument,
       "getEventLog empty execution_id",
     ));
 
-  it("[rpc:WorkflowExecutionQueryController.getEventLog] getEventLog of an unknown execution returns an empty page (not NotFound)", async (ctx) => {
+  it("[rpc:WorkflowRunQueryController.getEventLog] getEventLog of an unknown execution returns an empty page (not NotFound)", async (ctx) => {
     // Single-user-posture arm: the multi-tenant edition's authorization
     // fails closed on a fabricated id (PermissionDenied, no existence leak)
     // before the handler runs — the fabricated-id class. Only the
@@ -263,8 +263,8 @@ describe("WorkflowExecution conformance — queries", () => {
   });
 });
 
-describe("WorkflowExecution conformance — lifecycle (running execution)", () => {
-  it("observes EXECUTION_IN_PROGRESS once the runner picks the execution up", async () => {
+describe("WorkflowRun conformance — lifecycle (running execution)", () => {
+  it("observes RUN_IN_PROGRESS once the runner picks the execution up", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWaitWorkflow(org);
     const created = await createExecution(org, workflowId);
@@ -276,7 +276,7 @@ describe("WorkflowExecution conformance — lifecycle (running execution)", () =
     await clients.workflowExecutionCommand.cancel({ id: created.metadata!.id });
   });
 
-  it("[rpc:WorkflowExecutionCommandController.cancel] cancel transitions a running execution to CANCELLED with completed_at", async () => {
+  it("[rpc:WorkflowRunCommandController.cancel] cancel transitions a running execution to CANCELLED with completed_at", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWaitWorkflow(org);
     const created = await createExecution(org, workflowId);
@@ -288,7 +288,7 @@ describe("WorkflowExecution conformance — lifecycle (running execution)", () =
     expect(cancelled.status?.completedAt, "cancel records completed_at").toBeDefined();
   });
 
-  it("[rpc:WorkflowExecutionCommandController.terminate] terminate transitions a running execution to TERMINATED", async () => {
+  it("[rpc:WorkflowRunCommandController.terminate] terminate transitions a running execution to TERMINATED", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWaitWorkflow(org);
     const created = await createExecution(org, workflowId);
@@ -300,7 +300,7 @@ describe("WorkflowExecution conformance — lifecycle (running execution)", () =
     expect(terminated.status?.phase).toBe(RunPhase.RUN_TERMINATED);
   });
 
-  it("[rpc:WorkflowExecutionCommandController.pause] [rpc:WorkflowExecutionCommandController.resume] pause then resume moves a running execution PAUSED -> IN_PROGRESS", async () => {
+  it("[rpc:WorkflowRunCommandController.pause] [rpc:WorkflowRunCommandController.resume] pause then resume moves a running execution PAUSED -> IN_PROGRESS", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWaitWorkflow(org);
     const created = await createExecution(org, workflowId);
@@ -317,8 +317,8 @@ describe("WorkflowExecution conformance — lifecycle (running execution)", () =
   });
 });
 
-describe("WorkflowExecution conformance — lifecycle preconditions & negatives", () => {
-  it("[rpc:WorkflowExecutionCommandController.cancel] cancel of a completed execution is rejected with FailedPrecondition", async () => {
+describe("WorkflowRun conformance — lifecycle preconditions & negatives", () => {
+  it("[rpc:WorkflowRunCommandController.cancel] cancel of a completed execution is rejected with FailedPrecondition", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const created = await createExecution(org, workflowId);
@@ -331,7 +331,7 @@ describe("WorkflowExecution conformance — lifecycle preconditions & negatives"
     );
   });
 
-  it("[rpc:WorkflowExecutionCommandController.terminate] terminate of a completed execution is rejected with FailedPrecondition", async () => {
+  it("[rpc:WorkflowRunCommandController.terminate] terminate of a completed execution is rejected with FailedPrecondition", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const created = await createExecution(org, workflowId);
@@ -344,7 +344,7 @@ describe("WorkflowExecution conformance — lifecycle preconditions & negatives"
     );
   });
 
-  it("[rpc:WorkflowExecutionCommandController.recover] recover of a non-failed execution is rejected with FailedPrecondition", async () => {
+  it("[rpc:WorkflowRunCommandController.recover] recover of a non-failed execution is rejected with FailedPrecondition", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const created = await createExecution(org, workflowId);
@@ -357,35 +357,35 @@ describe("WorkflowExecution conformance — lifecycle preconditions & negatives"
     );
   });
 
-  it("[rpc:WorkflowExecutionCommandController.cancel] cancel rejects an empty id with InvalidArgument", () =>
+  it("[rpc:WorkflowRunCommandController.cancel] cancel rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.workflowExecutionCommand.cancel({ id: "" }),
       Code.InvalidArgument,
       "cancel empty id",
     ));
 
-  it("[rpc:WorkflowExecutionCommandController.cancel] cancel of a missing execution returns NotFound", () =>
+  it("[rpc:WorkflowRunCommandController.cancel] cancel of a missing execution returns NotFound", () =>
     expectGrpcCode(
       () => clients.workflowExecutionCommand.cancel({ id: "wex_doesnotexist" }),
       Code.NotFound,
       "cancel missing execution",
     ));
 
-  it("[rpc:WorkflowExecutionCommandController.pause] pause of a missing execution returns NotFound", () =>
+  it("[rpc:WorkflowRunCommandController.pause] pause of a missing execution returns NotFound", () =>
     expectGrpcCode(
       () => clients.workflowExecutionCommand.pause({ id: "wex_doesnotexist" }),
       Code.NotFound,
       "pause missing execution",
     ));
 
-  it("[rpc:WorkflowExecutionCommandController.sendSignal] sendSignal rejects an empty execution_id with InvalidArgument", () =>
+  it("[rpc:WorkflowRunCommandController.sendSignal] sendSignal rejects an empty execution_id with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.workflowExecutionCommand.sendSignal({ runId: "", signalName: "go" }),
       Code.InvalidArgument,
       "sendSignal empty execution_id",
     ));
 
-  it("[rpc:WorkflowExecutionCommandController.sendSignal] sendSignal to a missing execution returns NotFound", () =>
+  it("[rpc:WorkflowRunCommandController.sendSignal] sendSignal to a missing execution returns NotFound", () =>
     expectGrpcCode(
       () => clients.workflowExecutionCommand.sendSignal({ runId: "wex_doesnotexist", signalName: "go" }),
       Code.NotFound,
@@ -393,8 +393,8 @@ describe("WorkflowExecution conformance — lifecycle preconditions & negatives"
     ));
 });
 
-describe("WorkflowExecution conformance — create negative paths", () => {
-  it("[rpc:WorkflowExecutionCommandController.create] rejects a wrong api_version (InvalidArgument)", async () => {
+describe("WorkflowRun conformance — create negative paths", () => {
+  it("[rpc:WorkflowRunCommandController.create] rejects a wrong api_version (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     await expectGrpcCode(
@@ -410,7 +410,7 @@ describe("WorkflowExecution conformance — create negative paths", () => {
     );
   });
 
-  it("[rpc:WorkflowExecutionCommandController.create] rejects a wrong kind (InvalidArgument)", async () => {
+  it("[rpc:WorkflowRunCommandController.create] rejects a wrong kind (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     await expectGrpcCode(
@@ -426,7 +426,7 @@ describe("WorkflowExecution conformance — create negative paths", () => {
     );
   });
 
-  it("[rpc:WorkflowExecutionCommandController.create] rejects a create with no metadata (InvalidArgument)", async () => {
+  it("[rpc:WorkflowRunCommandController.create] rejects a create with no metadata (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     await expectGrpcCode(
@@ -441,7 +441,7 @@ describe("WorkflowExecution conformance — create negative paths", () => {
     );
   });
 
-  it("[rpc:WorkflowExecutionCommandController.create] rejects a create with no workflow reference (InvalidArgument)", async () => {
+  it("[rpc:WorkflowRunCommandController.create] rejects a create with no workflow reference (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     // spec.workflow_id is the run's one target, required by the proto rule;
     // the Class A suite pins the same refusal before the engine gate.
@@ -458,7 +458,7 @@ describe("WorkflowExecution conformance — create negative paths", () => {
     );
   });
 
-  it("[rpc:WorkflowExecutionCommandController.create] rejects a create against an unknown workflow (NotFound)", async () => {
+  it("[rpc:WorkflowRunCommandController.create] rejects a create against an unknown workflow (NotFound)", async () => {
     const { org } = await target.provisionTenancy();
     const err = await expectGrpcCode(
       () =>
@@ -476,7 +476,7 @@ describe("WorkflowExecution conformance — create negative paths", () => {
     }
   });
 
-  it("[rpc:WorkflowExecutionCommandController.create] rejects a duplicate create (contract: AlreadyExists)", async () => {
+  it("[rpc:WorkflowRunCommandController.create] rejects a duplicate create (contract: AlreadyExists)", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const name = uniqueName("dup");
@@ -489,7 +489,7 @@ describe("WorkflowExecution conformance — create negative paths", () => {
     );
   });
 
-  it("[rpc:WorkflowExecutionCommandController.create] rejects a create with no name (contract: InvalidArgument)", async () => {
+  it("[rpc:WorkflowRunCommandController.create] rejects a create with no name (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     // workflow_id is valid so resolution proceeds to ResolveSlugStep, which is
@@ -517,13 +517,13 @@ describe("WorkflowExecution conformance — create negative paths", () => {
 // collectStream, the bounded reader that keeps the idle-forever quirk
 // (pinned below) from hanging the suite.
 
-describe("WorkflowExecution conformance — event log pagination & streaming", () => {
+describe("WorkflowRun conformance — event log pagination & streaming", () => {
   // The server saves an execution's terminal status and then, in a second
   // write, the events of the same update (update-status.ts: the merge, then
   // PersistEvents), so a read right after the phase turns terminal can find
   // the log one event short, and this walk sees has_more false too early.
   // quarantined: stigmer/stigmer#1634
-  it.skip("[rpc:WorkflowExecutionQueryController.getEventLog] getEventLog walks the after_sequence cursor: page_size 1, has_more, exhaustion", async () => {
+  it.skip("[rpc:WorkflowRunQueryController.getEventLog] getEventLog walks the after_sequence cursor: page_size 1, has_more, exhaustion", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const created = await createExecution(org, workflowId);
@@ -564,7 +564,7 @@ describe("WorkflowExecution conformance — event log pagination & streaming", (
     expect(full.latestSequence).toBe(4n);
   });
 
-  it("[rpc:WorkflowExecutionQueryController.subscribeEvents] subscribeEvents replays a terminal run's whole log and closes cleanly", async () => {
+  it("[rpc:WorkflowRunQueryController.subscribeEvents] subscribeEvents replays a terminal run's whole log and closes cleanly", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const created = await createExecution(org, workflowId);
@@ -584,7 +584,7 @@ describe("WorkflowExecution conformance — event log pagination & streaming", (
     expect(stream.messages[3]?.eventType).toBe(WorkflowEventType.run_completed);
   });
 
-  it("[rpc:WorkflowExecutionQueryController.subscribe] subscribe sends the snapshot but never closes on an already-terminal run (the pinned idle-forever quirk)", async () => {
+  it("[rpc:WorkflowRunQueryController.subscribe] subscribe sends the snapshot but never closes on an already-terminal run (the pinned idle-forever quirk)", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const created = await createExecution(org, workflowId);
@@ -607,7 +607,7 @@ describe("WorkflowExecution conformance — event log pagination & streaming", (
     expect(stream.messages[0]?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
-  it("[rpc:WorkflowExecutionCommandController.submitFileDecision] submitFileDecision refuses an execution with no pending file reviews (FailedPrecondition)", async () => {
+  it("[rpc:WorkflowRunCommandController.submitFileDecision] submitFileDecision refuses an execution with no pending file reviews (FailedPrecondition)", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const created = await createExecution(org, workflowId);

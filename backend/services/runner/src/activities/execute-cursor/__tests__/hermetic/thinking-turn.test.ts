@@ -114,7 +114,7 @@ describe("ExecuteCursor hermetic — thinking on both sides of a tool call", () 
 
     // ── Assert: outcome ──────────────────────────────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
-    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
     // ── Assert: the segmentation ─────────────────────────────────────────────

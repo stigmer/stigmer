@@ -1,8 +1,8 @@
 {
   "name": "cas-partial-blocked",
   "description": "A CAS-only change set (all files captured to the content-addressed store, no git substrate) that is PARTIAL_BLOCKED: one reviewable file plus one unreviewable (binary, diff_complete=false) file. A FILE-scoped decision on the reviewable file leaves the set AWAITING_REVIEW because the unreviewable file is still undecided. Locks the CAS_MANIFEST SnapshotRef round-trip and that a partial decision under CAS does not fully-decide the set.",
-  "execution_id": "aex_cas_partial",
-  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "run_id": "aex_cas_partial",
+  "phase": "RUN_WAITING_FOR_APPROVAL",
   "events": [
     {
       "eventId": "cs10:cs10:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

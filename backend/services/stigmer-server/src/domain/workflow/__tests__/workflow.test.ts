@@ -17,7 +17,7 @@
  *   - audit rows SURVIVE workflow delete (execution viewers need them,
  *     oss#582);
  *   - run visibility: stored at create, kept by update and apply, changed
- *     by updateExecutionVisibility alone, and never a version;
+ *     by updateRunVisibility alone, and never a version;
  *   - an agent_call that names its organization by slug saves through the
  *     create and update chains, stored by the organization's id.
  */
@@ -113,7 +113,7 @@ function workflowInput(overrides?: {
   tag?: string;
   description?: string;
   env?: Record<string, { isSecret?: boolean; optional?: boolean }>;
-  executionVisibility?: WorkflowRunVisibility;
+  runVisibility?: WorkflowRunVisibility;
 }) {
   counter += 1;
   const name = overrides?.name ?? `Test Workflow ${counter}`;
@@ -135,7 +135,7 @@ function workflowInput(overrides?: {
       description: overrides?.description ?? "",
       env: overrides?.env ?? {},
       runVisibility:
-        overrides?.executionVisibility ??
+        overrides?.runVisibility ??
         WorkflowRunVisibility.unspecified,
       document: {
         dsl: "1.0.0",
@@ -441,10 +441,10 @@ describe("validateSpec (persist-free verdicts)", () => {
 });
 
 describe("run visibility (spec.execution_visibility)", () => {
-  it("is stored at create, changed by updateExecutionVisibility alone, and never mints a version", async () => {
+  it("is stored at create, changed by updateRunVisibility alone, and never mints a version", async () => {
     const created = await command.create(
       workflowInput({
-        executionVisibility: WorkflowRunVisibility.organization,
+        runVisibility: WorkflowRunVisibility.organization,
       }),
     );
     const id = created.metadata!.id;
@@ -485,7 +485,7 @@ describe("run visibility (spec.execution_visibility)", () => {
     );
     const stale = workflowInput({
       name,
-      executionVisibility: WorkflowRunVisibility.private,
+      runVisibility: WorkflowRunVisibility.private,
       variables: { greeting: "changed" },
     });
     stale.metadata!.id = id;

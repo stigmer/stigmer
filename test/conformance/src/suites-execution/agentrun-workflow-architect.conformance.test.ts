@@ -1,6 +1,6 @@
 // Conformance suite for the Workflow Architect: a fixture agent that designs
 // Workflow YAML through the `stigmer mcp-server` tools, run as an ordinary
-// AgentExecution against the real mcp-server over stdio.
+// AgentRun against the real mcp-server over stdio.
 // Domain: agentic / agentexecution — an agent's tool loop over a stdio
 // MCP server, observed through the transcript. This is the one always-on
 // CI proof of the runner's stdio lane and the mcp-server roster.

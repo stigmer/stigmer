@@ -221,7 +221,7 @@ describe("toProtoEvent", () => {
       });
 
       expect(evt.eventType).toBe(WorkflowEventType.run_started);
-      expect(evt.payload.case).toBe("executionStarted");
+      expect(evt.payload.case).toBe("runStarted");
       if (evt.payload.case !== "runStarted") throw new Error("unexpected");
       expect(evt.payload.value.totalTasks).toBe(5);
       expect(evt.payload.value.workflowId).toBe("wf-123");
@@ -239,7 +239,7 @@ describe("toProtoEvent", () => {
       });
 
       expect(evt.eventType).toBe(WorkflowEventType.run_completed);
-      expect(evt.payload.case).toBe("executionCompleted");
+      expect(evt.payload.case).toBe("runCompleted");
       if (evt.payload.case !== "runCompleted") throw new Error("unexpected");
       expect(evt.payload.value.durationMs).toBe(BigInt(12000));
       expect(evt.payload.value.totalCostMicros).toBe(BigInt(500000));
@@ -258,7 +258,7 @@ describe("toProtoEvent", () => {
       });
 
       expect(evt.eventType).toBe(WorkflowEventType.run_failed);
-      expect(evt.payload.case).toBe("executionFailed");
+      expect(evt.payload.case).toBe("runFailed");
       if (evt.payload.case !== "runFailed") throw new Error("unexpected");
       expect(evt.payload.value.error).toBe("API call failed");
       expect(evt.payload.value.failedTaskName).toBe("callApi");

@@ -762,7 +762,7 @@ export interface AgentCallWorkspaceEntry {
 }
 
 /**
- * Mirrors the shared `ai.stigmer.agentic.agentexecution.v1.RunConfig`
+ * Mirrors the shared `ai.stigmer.agentic.agentrun.v1.RunConfig`
  * (issue #358) — the same settings vocabulary schedules embed. The step's
  * settings become the child turn's `spec.run_config` field for field; the
  * control plane resolves the settings the turn runs with from them and the

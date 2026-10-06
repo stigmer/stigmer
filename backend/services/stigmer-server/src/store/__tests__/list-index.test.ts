@@ -144,13 +144,13 @@ describe("listIndexFactsOf", () => {
       kind: ApiResourceKind.artifact,
       schema: ArtifactSchema,
       revision: 1,
-      keys: { agent_execution: field("spec.source.agent_execution_id") },
+      keys: { agent_run: field("spec.source.agent_run_id") },
     });
     const artifact = create(ArtifactSchema, {
       spec: { source: { agentRunId: "aex_1" } },
     });
     expect(listIndexFactsOf(artifacts, artifact).keys).toEqual([
-      { key: "agent_execution", value: "aex_1" },
+      { key: "agent_run", value: "aex_1" },
     ]);
   });
 

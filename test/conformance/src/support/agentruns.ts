@@ -43,7 +43,7 @@ import { type PollCoreOptions, pollUntil } from "./run-poll";
 import { makeHttpMcpServer } from "./mcpservers";
 
 export const AGENT_EXECUTION_API_VERSION = "agentic.stigmer.ai/v1";
-export const AGENT_EXECUTION_KIND = "AgentExecution";
+export const AGENT_EXECUTION_KIND = "AgentRun";
 
 export interface AgentExecutionOptions {
   org: string;

@@ -1,8 +1,8 @@
 {
   "name": "capture-only",
   "description": "Baseline + candidate captured, no decisions yet -> one AWAITING_REVIEW change set with two changes.",
-  "execution_id": "aex_capture_only",
-  "phase": "EXECUTION_IN_PROGRESS",
+  "run_id": "aex_capture_only",
+  "phase": "RUN_IN_PROGRESS",
   "events": [
     {
       "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

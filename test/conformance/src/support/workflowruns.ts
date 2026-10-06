@@ -23,7 +23,7 @@ import { type ExecutionValueInit, makeExecutionValues } from "./executioncontext
 import { type PollCoreOptions, pollUntil } from "./run-poll";
 
 export const WORKFLOW_EXECUTION_API_VERSION = "agentic.stigmer.ai/v1";
-export const WORKFLOW_EXECUTION_KIND = "WorkflowExecution";
+export const WORKFLOW_EXECUTION_KIND = "WorkflowRun";
 
 export interface WorkflowExecutionOptions {
   org: string;

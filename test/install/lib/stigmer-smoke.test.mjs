@@ -250,8 +250,8 @@ const MY_ORGS = "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/
 const STIGMER_ORG = { metadata: { id: "stigmer", slug: "stigmer", name: "Stigmer" } };
 const OTHER_ORG = { metadata: { id: "acme", slug: "acme", name: "acme" } };
 const AGENT_CREATE = "ai.stigmer.agentic.agent.v1.AgentCommandController/create";
-const AEX_CREATE = "ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create";
-const AEX_GET = "ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/get";
+const AEX_CREATE = "ai.stigmer.agentic.agentrun.v1.AgentRunCommandController/create";
+const AEX_GET = "ai.stigmer.agentic.agentrun.v1.AgentRunQueryController/get";
 const REPLY = "This is the Stigmer fake model's default reply; no real model was called.";
 
 function agentLane(executionAt, aexCreate = () => ({ metadata: { id: "aex_smoke_1" } })) {
@@ -266,7 +266,7 @@ function agentLane(executionAt, aexCreate = () => ({ metadata: { id: "aex_smoke_
 }
 
 function completedWith(messages) {
-  return { metadata: { id: "aex_smoke_1" }, status: { phase: "EXECUTION_COMPLETED", messages } };
+  return { metadata: { id: "aex_smoke_1" }, status: { phase: "RUN_COMPLETED", messages } };
 }
 
 test("an agent run starts a conversation on the agent's reference", async () => {
@@ -321,7 +321,7 @@ test("an agent run on a server that predates agent references names the agent by
 test("an agent run passes on the model's reply, and yields the ids an upgrade reads back", async () => {
   const lane = await agentLane((n) =>
     n === 1
-      ? { status: { phase: "EXECUTION_IN_PROGRESS", messages: [] } }
+      ? { status: { phase: "RUN_IN_PROGRESS", messages: [] } }
       : completedWith([
           { type: "MESSAGE_HUMAN", content: "Say hello." },
           { type: "MESSAGE_AI", content: REPLY },
@@ -361,13 +361,13 @@ test("an agent run that completes without the model's reply fails, naming both t
 
 test("an agent run that fails ends the wait at once with the execution's error", async () => {
   const lane = await agentLane(() => ({
-    status: { phase: "EXECUTION_FAILED", error: "400 invalid_request_error: the model refused" },
+    status: { phase: "RUN_FAILED", error: "400 invalid_request_error: the model refused" },
   }));
   const started = Date.now();
   try {
     await assert.rejects(
       runAgentToReply(lane.baseUrl, 60_000, { expectText: REPLY }),
-      /agent execution reached EXECUTION_FAILED: 400 invalid_request_error: the model refused/,
+      /agent execution reached RUN_FAILED: 400 invalid_request_error: the model refused/,
     );
     assert.ok(Date.now() - started < 5_000, "the failure waited for the deadline");
     assert.equal(lane.calls(AEX_GET), 1);
@@ -453,16 +453,16 @@ test("a workflow run that fails ends the wait at once (#1514)", async () => {
     [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
     [ORG_CREATE]: () => ({ metadata: { id: "org_smoke_1" } }),
     "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": () => ({ metadata: { id: "wfl_smoke_1" } }),
-    "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create": () => ({
+    "ai.stigmer.agentic.workflowrun.v1.WorkflowRunCommandController/create": () => ({
       metadata: { id: "wex_smoke_1" },
     }),
-    "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get": () => ({
-      status: { phase: "EXECUTION_FAILED", error: { message: "set_vars failed" } },
+    "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get": () => ({
+      status: { phase: "RUN_FAILED", error: { message: "set_vars failed" } },
     }),
   });
   const started = Date.now();
   try {
-    await assert.rejects(runSetVarsWorkflow(lane.baseUrl, 60_000), /execution reached EXECUTION_FAILED: .*set_vars failed/);
+    await assert.rejects(runSetVarsWorkflow(lane.baseUrl, 60_000), /execution reached RUN_FAILED: .*set_vars failed/);
     assert.ok(Date.now() - started < 5_000, "the failure waited for the deadline");
   } finally {
     await lane.close();
@@ -499,8 +499,8 @@ const SNAPSHOT = Object.freeze({
   agentOrg: { id: "org_ag", name: "smoke-agent-org-1", slug: "smoke-agent-org-1" },
   agent: { id: "agt_1", name: "smoke-agent-1", slug: "smoke-agent-1" },
   agentByReference: { id: "agt_1", name: "smoke-agent-1", slug: "smoke-agent-1" },
-  workflowExecution: { id: "wex_1", name: "smoke-wfx-1", slug: "smoke-wfx-1", phase: "EXECUTION_COMPLETED" },
-  agentExecution: { id: "aex_1", name: "smoke-aex-1", slug: "smoke-aex-1", phase: "EXECUTION_COMPLETED", reply: REPLY },
+  workflowExecution: { id: "wex_1", name: "smoke-wfx-1", slug: "smoke-wfx-1", phase: "RUN_COMPLETED" },
+  agentExecution: { id: "aex_1", name: "smoke-aex-1", slug: "smoke-aex-1", phase: "RUN_COMPLETED", reply: REPLY },
 });
 
 function readOf(changes) {
@@ -524,8 +524,8 @@ test("compareState names every changed field and every missing resource at once"
 });
 
 test("compareState names an execution that is no longer COMPLETED", () => {
-  assert.deepEqual(compareState(SNAPSHOT, readOf({ workflowExecution: { phase: "EXECUTION_PENDING" } })), [
-    'workflowExecution.phase: was "EXECUTION_COMPLETED", now "EXECUTION_PENDING"',
+  assert.deepEqual(compareState(SNAPSHOT, readOf({ workflowExecution: { phase: "RUN_PENDING" } })), [
+    'workflowExecution.phase: was "RUN_COMPLETED", now "RUN_PENDING"',
   ]);
 });
 
@@ -552,16 +552,16 @@ async function stateLane() {
     [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
     [ORG_CREATE]: create("org"),
     "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": create("wfl"),
-    "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create": create("wex", {
-      status: { phase: "EXECUTION_COMPLETED" },
+    "ai.stigmer.agentic.workflowrun.v1.WorkflowRunCommandController/create": create("wex", {
+      status: { phase: "RUN_COMPLETED" },
     }),
     [AGENT_CREATE]: create("agt"),
     [AEX_CREATE]: create("aex", {
-      status: { phase: "EXECUTION_COMPLETED", messages: [{ type: "MESSAGE_AI", content: REPLY }] },
+      status: { phase: "RUN_COMPLETED", messages: [{ type: "MESSAGE_AI", content: REPLY }] },
     }),
     "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get": get,
     "ai.stigmer.agentic.agent.v1.AgentQueryController/get": get,
-    "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get": get,
+    "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get": get,
     [AEX_GET]: get,
     "ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference": (body) =>
       [...rows.values()].find((row) => row.metadata.slug === body.slug && body.kind === "agent"),
@@ -796,7 +796,7 @@ test("a boot that logs no derived callback fails", () => {
   assert.throws(() => assertOAuthCallbackFromPublicOrigin(log, "http://127.0.0.1:7234"), /logged no derived OAuth callback/);
 });
 
-const WEX_QUERY = "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController";
+const WEX_QUERY = "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController";
 
 test("a pending approval is found by the workflow its execution runs, once it reaches the queue", async () => {
   // An entry's workflowName is its execution's own name, so the probe reads
@@ -811,8 +811,8 @@ test("a pending approval is found by the workflow its execution runs, once it re
       if (procedure === `${WEX_QUERY}/listPendingApprovals`) {
         listed += 1;
         listedOrgs.push(JSON.parse(text).org);
-        const entries = [{ executionId: "wex_other", workflowName: "wfx-1", taskName: "review" }];
-        if (listed > 1) entries.push({ executionId: "wex_gate", workflowName: "wfx-2", taskName: "review" });
+        const entries = [{ runId: "wex_other", workflowName: "wfx-1", taskName: "review" }];
+        if (listed > 1) entries.push({ runId: "wex_gate", workflowName: "wfx-2", taskName: "review" });
         response.end(JSON.stringify({ entries }));
       } else {
         const id = JSON.parse(text).value;

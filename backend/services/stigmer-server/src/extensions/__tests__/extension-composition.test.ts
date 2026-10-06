@@ -1469,7 +1469,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
           AgentRunSchema,
           create(AgentRunSchema, {
             apiVersion: "agentic.stigmer.ai/v1",
-            kind: "AgentExecution",
+            kind: "AgentRun",
             metadata: { id: runId, name: runId, org: seededOrgId },
             spec: { target: { case: "sessionId", value: sessionId } },
             status: { phase: RunPhase.RUN_COMPLETED },
@@ -1507,7 +1507,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
         AgentRunSchema,
         create(AgentRunSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
-          kind: "AgentExecution",
+          kind: "AgentRun",
           metadata: { id: runId, name: runId, org: seededOrgId },
           spec: { target: { case: "sessionId", value: sessionId } },
           status: { phase: RunPhase.RUN_COMPLETED },
@@ -1723,7 +1723,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
   }
 
   // The run audience of a workflow (`spec.execution_visibility`): open
-  // source derives `execution_viewer` from the row when a check asks; an
+  // source derives `run_viewer` from the row when a check asks; an
   // edition that stores tuples hears it here. The event carries the
   // audience the level now names — the whole target state, so a retry or a
   // repeat converges — and fires from the two doors that may set the level:
@@ -1763,7 +1763,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       ]);
     });
 
-    it("updateExecutionVisibility fires the level's audience every time, the empty one included", async () => {
+    it("updateRunVisibility fires the level's audience every time, the empty one included", async () => {
       const workflow = await workflows().create(
         workflowInput("seeded-toggled-runs", WorkflowRunVisibility.private),
       );

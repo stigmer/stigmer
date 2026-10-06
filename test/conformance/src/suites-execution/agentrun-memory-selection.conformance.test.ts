@@ -4,7 +4,7 @@
 // memories, observed through the RecalledMemoriesReport on execution status
 // and through the one embeddings call the retriever makes.
 //
-// agentexecution-memory-retrieval.conformance.test.ts pins the NO-embedder
+// agentrun-memory-retrieval.conformance.test.ts pins the NO-embedder
 // posture (the mock fences the OpenAI path, the retriever degrades to wholesale
 // with an honest report). This file flips the mock's embeddings posture on
 // (MockLlmProxy.serveEmbeddings, computed vectors — header of mock-llm.ts) and
@@ -94,7 +94,7 @@ async function runExecution(org: string): Promise<AgentRun> {
 }
 
 describe.skipIf(!canSeedMemories)(
-  "AgentExecution memory retrieval (embedder posture)",
+  "AgentRun memory retrieval (embedder posture)",
   () => {
     it("at the threshold with an embedder present: wholesale, no embeddings call, selection_active false", async () => {
       const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD, fund);

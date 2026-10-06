@@ -17,7 +17,7 @@
  *    this arm wrote PAUSED and the pause row, so a cancelled run ended with an
  *    instruction to resume it;
  *  - a worker shutdown (the runner's per-queue shutdown signal is aborted AND
- *    cancellation is delivered) persists EXECUTION_FAILED with the error copy
+ *    cancellation is delivered) persists RUN_FAILED with the error copy
  *    "Execution interrupted: runner worker was shut down. Retry or resume." and
  *    throws "Activity cancelled (worker shutdown, not user pause)".
  *

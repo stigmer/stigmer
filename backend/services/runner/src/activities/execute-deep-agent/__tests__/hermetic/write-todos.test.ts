@@ -119,7 +119,7 @@ describe("ExecuteDeepAgent hermetic — write_todos", () => {
 
     // ── Assert: outcome ──────────────────────────────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
-    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
     // ── Assert: the row stays in the transcript, classified TODO ─────────────

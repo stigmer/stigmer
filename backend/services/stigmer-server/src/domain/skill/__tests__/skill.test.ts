@@ -581,19 +581,19 @@ describe("delete", () => {
   });
 });
 
-describe("pushFromExecutionArtifact — validation surface (the happy path is the integration layer's)", () => {
+describe("pushFromRunArtifact — validation surface (the happy path is the integration layer's)", () => {
   it("rejects missing required fields — the protovalidate interceptor answers on the wire (both editions run it before the handler's manual arms)", async () => {
     const cases: Array<[Record<string, string>, string]> = [
       [
         { storageKey: "artifacts/aex_x/skill.zip", org: ORG },
-        "execution_id: must be at least 1 characters [string.min_len]",
+        "run_id: must be at least 1 characters [string.min_len]",
       ],
       [
-        { executionId: "aex_x", org: ORG },
+        { runId: "aex_x", org: ORG },
         "storage_key: must be at least 1 characters [string.min_len]",
       ],
       [
-        { executionId: "aex_x", storageKey: "artifacts/aex_x/skill.zip" },
+        { runId: "aex_x", storageKey: "artifacts/aex_x/skill.zip" },
         "org: value is required [required]",
       ],
     ];

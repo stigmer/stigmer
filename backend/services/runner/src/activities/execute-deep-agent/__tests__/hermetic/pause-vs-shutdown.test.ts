@@ -27,7 +27,7 @@
  *     (`pause.loop.mid-tool`, the cancel arriving on the persist that carried
  *     the row).
  *  2. WORKER SHUTDOWN: the queue's shutdown signal is aborted before the
- *     cancel, so the interruption is EXECUTION_FAILED with the interrupted
+ *     cancel, so the interruption is RUN_FAILED with the interrupted
  *     copy and one row, thrown as
  *     `CancelledFailure("Activity cancelled (worker shutdown, not user pause)")`
  *     (#776) — the workflow re-invokes instead of waiting for a resume. The

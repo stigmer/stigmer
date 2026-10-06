@@ -46,7 +46,7 @@ interface ExpectedSet {
 interface Vector {
   name: string;
   description?: string;
-  execution_id: string;
+  run_id: string;
   phase: string;
   events: JsonValue[];
   expected: ExpectedSet[];
@@ -93,7 +93,7 @@ describe("file-review fold — cross-edition corpus parity", () => {
         fromJson(FileReviewEventSchema, ev),
       );
       const stream = create(FileReviewEventStreamSchema, {
-        runId: vector.execution_id,
+        runId: vector.run_id,
         events,
       });
 

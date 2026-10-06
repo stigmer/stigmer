@@ -183,7 +183,7 @@ describe("platform domain (composed server)", () => {
     expect(checkedAt).toBeLessThanOrEqual(after + 1000);
   });
 
-  it("mints for the agent_execution_id arm, bound to exactly that execution", async () => {
+  it("mints for the agent_run_id arm, bound to exactly that run", async () => {
     const out = await client.getRunnerScopedToken({
       scope: { case: "agentRunId", value: "aexec_01platformtest" },
     });
@@ -199,7 +199,7 @@ describe("platform domain (composed server)", () => {
     );
   });
 
-  it("mints for the workflow_execution_id arm", async () => {
+  it("mints for the workflow_run_id arm", async () => {
     const out = await client.getRunnerScopedToken({
       scope: { case: "workflowRunId", value: "wexec_01platformtest" },
     });

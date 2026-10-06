@@ -84,7 +84,7 @@ async function runExecution(org: string) {
   return settled;
 }
 
-describe("AgentExecution memory retrieval (no-embedder posture)", () => {
+describe("AgentRun memory retrieval (no-embedder posture)", () => {
   it.skipIf(!capabilities.firstPartyMemoryCapture)("injects wholesale below the threshold with an honest report and no embeddings attempt", async () => {
     const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, 1, fund);
     const settled = await runExecution(org);

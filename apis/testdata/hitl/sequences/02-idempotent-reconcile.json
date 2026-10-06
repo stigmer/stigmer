@@ -1,12 +1,12 @@
 {
   "name": "idempotent-reconcile",
   "description": "Replaying the same write site must not duplicate events. A superseded call is retracted once; re-running the identical UpdateStatus authors nothing new and equality still holds (append-if-absent by deterministic event_id).",
-  "execution_id": "exec-idem",
+  "run_id": "exec-idem",
   "steps": [
     {
       "name": "seed: tc1 and tc-keep gated",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",
@@ -62,7 +62,7 @@
       "name": "supersede tc1",
       "description": "tc1 advances off WAITING with no decision; tc-keep stays gated. tc1 is retracted (SUPERSEDED).",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",
@@ -112,7 +112,7 @@
       "name": "reconcile again (identical state)",
       "description": "Re-running the identical UpdateStatus must append nothing: no duplicate REQUESTED for tc-keep, no second RETRACTED for tc1.",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",

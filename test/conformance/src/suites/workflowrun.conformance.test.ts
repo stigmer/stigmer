@@ -1,4 +1,4 @@
-// WorkflowExecution conformance — the ENGINELESS surface (Class A): the
+// WorkflowRun conformance — the ENGINELESS surface (Class A): the
 // create-time checks that stand before the engine gate, the gate itself,
 // and every read RPC's zero-record/validation contract.
 // Domain: conformance suites.
@@ -13,7 +13,7 @@
 // on every target. Everything else asserts what the
 // read surfaces truthfully answer when NOTHING has ever run:
 //
-//   - getExecutionSummary's zero shape, including the success_rate -1
+//   - getRunSummary's zero shape, including the success_rate -1
 //     sentinel ("no terminal runs yet" — distinguishable from a real 0%),
 //     the ALWAYS-present zero cost summary, and avg_duration's deliberate
 //     absence (an average over nothing is not 0).
@@ -62,8 +62,8 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("WorkflowExecution conformance — a run names its workflow (Class A)", () => {
-  it("[rpc:WorkflowExecutionCommandController.create] a run naming no workflow is refused InvalidArgument before any engine check", async () => {
+describe("WorkflowRun conformance — a run names its workflow (Class A)", () => {
+  it("[rpc:WorkflowRunCommandController.create] a run naming no workflow is refused InvalidArgument before any engine check", async () => {
     const { org } = await target.provisionTenancy();
     // Code only: the proto validation layer answers, so the message is the
     // interceptor's rendering, not a contract.
@@ -75,8 +75,8 @@ describe("WorkflowExecution conformance — a run names its workflow (Class A)",
   });
 });
 
-describe("WorkflowExecution conformance — the engine gate (Class A)", () => {
-  it("[rpc:WorkflowExecutionCommandController.create] create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
+describe("WorkflowRun conformance — the engine gate (Class A)", () => {
+  it("[rpc:WorkflowRunCommandController.create] create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
     // Only the engineless local CRUD targets can observe this boundary —
     // scheduleFiring doubles as "a Temporal engine backs this target" (its
     // local-CRUD value documents 'no Temporal behind this target at all'),
@@ -110,8 +110,8 @@ describe("WorkflowExecution conformance — the engine gate (Class A)", () => {
   });
 });
 
-describe("WorkflowExecution conformance — zero-record read surfaces (Class A)", () => {
-  it("[rpc:WorkflowExecutionQueryController.getExecutionSummary] getExecutionSummary answers the pinned zero shape", async () => {
+describe("WorkflowRun conformance — zero-record read surfaces (Class A)", () => {
+  it("[rpc:WorkflowRunQueryController.getRunSummary] getRunSummary answers the pinned zero shape", async () => {
     const { org } = await target.provisionTenancy();
     const summary = await clients.workflowExecutionQuery.getRunSummary({ org });
 
@@ -139,14 +139,14 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     expect(summary.costByWorkflow).toHaveLength(0);
   });
 
-  it("[rpc:WorkflowExecutionQueryController.listPendingApprovals] listPendingApprovals answers the empty page", async () => {
+  it("[rpc:WorkflowRunQueryController.listPendingApprovals] listPendingApprovals answers the empty page", async () => {
     const { org } = await target.provisionTenancy();
     const approvals = await clients.workflowExecutionQuery.listPendingApprovals({ org });
     expect(approvals.entries).toHaveLength(0);
     expect(approvals.totalCount).toBe(0);
   });
 
-  it("[rpc:WorkflowExecutionQueryController.getEventLog] getEventLog: empty id refuses; an UNKNOWN id answers an empty page, not NotFound", async () => {
+  it("[rpc:WorkflowRunQueryController.getEventLog] getEventLog: empty id refuses; an UNKNOWN id answers an empty page, not NotFound", async () => {
     // Code only: the proto validation layer fires before the handler's own
     // required-id check, so the message is the interceptor's, not a pin.
     await expectGrpcCode(
@@ -171,7 +171,7 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     }
   });
 
-  it("[rpc:WorkflowExecutionQueryController.subscribe] [rpc:WorkflowExecutionQueryController.subscribeEvents] the subscribe lanes refuse empty ids (InvalidArgument) and unknown ids (NotFound)", async () => {
+  it("[rpc:WorkflowRunQueryController.subscribe] [rpc:WorkflowRunQueryController.subscribeEvents] the subscribe lanes refuse empty ids (InvalidArgument) and unknown ids (NotFound)", async () => {
     // Unlike getEventLog, both streaming lanes CHECK existence before
     // streaming — a long-lived subscription to a typo'd id must fail
     // loudly, not idle forever on an empty poll loop.
@@ -223,12 +223,12 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
   });
 });
 
-describe("WorkflowExecution conformance — submitFileDecision negatives (Class A)", () => {
+describe("WorkflowRun conformance — submitFileDecision negatives (Class A)", () => {
   // Single-user-posture arms: the multi-tenant edition's authorization
   // interceptor resolves the execution BEFORE proto validation, so
   // structurally invalid or unknown ids surface as NotFound/PermissionDenied
   // there instead — a verified ordering divergence.
-  it("[rpc:WorkflowExecutionCommandController.submitFileDecision] rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
+  it("[rpc:WorkflowRunCommandController.submitFileDecision] rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
     if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     // Proto-validation arms: min_len on the ids/digest, defined-and-nonzero
     // on the enums — all fire before the execution load, so a fake id is
@@ -274,7 +274,7 @@ describe("WorkflowExecution conformance — submitFileDecision negatives (Class 
     );
   });
 
-  it("[rpc:WorkflowExecutionCommandController.submitFileDecision] an unknown execution answers NotFound", async (ctx) => {
+  it("[rpc:WorkflowRunCommandController.submitFileDecision] an unknown execution answers NotFound", async (ctx) => {
     if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     await expectGrpcCode(
       () =>

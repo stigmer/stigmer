@@ -37,7 +37,7 @@ import {
 
 interface FileReviewFixture {
   name: string;
-  execution_id: string;
+  run_id: string;
   phase: string;
   events: unknown[];
   expected: FileChangeSetSummary[];
@@ -89,7 +89,7 @@ describe("shared file-review projection corpus", () => {
       const fx = readCorpusJson(file) as unknown as FileReviewFixture;
 
       const stream = create(FileReviewEventStreamSchema, {
-        runId: fx.execution_id,
+        runId: fx.run_id,
       });
       for (const raw of fx.events) {
         stream.events.push(fromJson(FileReviewEventSchema, raw as never));

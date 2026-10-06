@@ -130,7 +130,7 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
     // ── Turn 2: A runs, gate B pauses ────────────────────────────────────────
     const turn2 = await runDeepAgentTurn(scenario, { turnSeq: 1 });
     expect(turn2.outcome.kind).toBe("returned");
-    expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+    expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_WAITING_FOR_APPROVAL");
     const atGateB = record.lastFullStatus!;
     const rowsAtB = atGateB.messages.flatMap((m) => m.toolCalls);
     expect(rowsAtB.map((tc) => [tc.id, tc.status]), "A committed and kept, B waiting").toEqual([
@@ -151,7 +151,7 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
     // ── Turn 3: B runs, the run completes ────────────────────────────────────
     const turn3 = await runDeepAgentTurn(scenario, { turnSeq: 2 });
     expect(turn3.outcome.kind).toBe("returned");
-    expect((turn3.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+    expect((turn3.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(record.persistedPhases.filter((p) => p === RunPhase.RUN_WAITING_FOR_APPROVAL)).toHaveLength(2);
     const final = record.lastFullStatus!;
     const rows = final.messages.flatMap((m) => m.toolCalls);

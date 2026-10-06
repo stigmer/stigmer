@@ -1,5 +1,5 @@
 // Unit arms for the per-tool-call facts of a sample, over hand-built
-// AgentExecution messages and turn timelines.
+// AgentRun messages and turn timelines.
 // Domain: conformance benchmark.
 //
 // Pinned: rows are read in start order across messages, whichever message

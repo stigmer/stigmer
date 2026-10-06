@@ -9,7 +9,7 @@
  * create's engine-gate refusal (create.go engineUnavailableMessage) —
  * kept identical across AgentExecution and WorkflowExecution so both
  * domains present one symmetric create-boundary contract. Pinned by the
- * conformance engine-gate tests (agentexecution.conformance.test.ts).
+ * conformance engine-gate tests (agentrun.conformance.test.ts).
  */
 export const ENGINE_UNAVAILABLE_MESSAGE =
   "The execution engine is temporarily unavailable. Please try again shortly.";
@@ -59,7 +59,7 @@ export function workflowParentMismatchMessage(
   parentId: string,
   labelId: string,
 ): string {
-  return `parent.workflow_execution_id '${parentId}' differs from the stigmer.ai/workflow-execution-id label '${labelId}'; a turn belongs to one workflow run`;
+  return `parent.workflow_run_id '${parentId}' differs from the stigmer.ai/workflow-execution-id label '${labelId}'; a turn belongs to one workflow run`;
 }
 
 /**

@@ -335,7 +335,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             ["aex_m1", "ses_member"],
             ["aex_orphan", "ses_gone"],
           ] as const) {
-            await save("agent_execution", {
+            await save("agent_run", {
               id,
               org: ORG,
               visibility: ApiResourceVisibility.visibility_private,
@@ -353,7 +353,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: MEMBER,
             spec: {
-              executionVisibility: WorkflowRunVisibility.organization,
+              runVisibility: WorkflowRunVisibility.organization,
             },
           });
           await save("workflow", {
@@ -361,16 +361,16 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: FOUNDER,
-            spec: { executionVisibility: WorkflowRunVisibility.private },
+            spec: { runVisibility: WorkflowRunVisibility.private },
           });
-          await save("workflow_execution", {
+          await save("workflow_run", {
             id: "wex_member_observable",
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: MEMBER,
             spec: { workflowId: "wfl_observable" },
           });
-          await save("workflow_execution", {
+          await save("workflow_run", {
             id: "wex_founder_private",
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
@@ -471,7 +471,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             ).toEqual([]);
           });
 
-          it("a run of an org-observable workflow reaches the organization's viewers through `execution_viewer`; a run of a private one is its starter's alone", async () => {
+          it("a run of an org-observable workflow reaches the organization's viewers through `run_viewer`; a run of a private one is its starter's alone", async () => {
             expect(
               await listAs(
                 resolved(VIEWER),
@@ -763,8 +763,8 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             expect(principalReads).toBe(1);
           });
 
-          it("a list of runs reads each run's workflow row once beside the organization — the `execution_viewer` rule reads the workflow's run audience, which a candidate's facts do not carry (stated, not hidden)", async () => {
-            // The viewer started neither run, so `execution_viewer from
+          it("a list of runs reads each run's workflow row once beside the organization — the `run_viewer` rule reads the workflow's run audience, which a candidate's facts do not carry (stated, not hidden)", async () => {
+            // The viewer started neither run, so `run_viewer from
             // workflow` is evaluated for both: the two workflow rows, the
             // one organization.
             await listAs(

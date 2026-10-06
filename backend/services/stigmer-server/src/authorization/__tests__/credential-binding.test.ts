@@ -226,8 +226,8 @@ describe("the rule, for a caller bound to one organization", () => {
     const f = fixture([
       row("session", "ses_a", ALPHA),
       row("session", "ses_b", BETA),
-      row("agent_execution", "aex_a", ALPHA),
-      row("agent_execution", "aex_b", BETA),
+      row("agent_run", "aex_a", ALPHA),
+      row("agent_run", "aex_b", BETA),
     ]);
     const binding = newCredentialBinding(f.deps);
     const caller = boundTo(ALPHA);

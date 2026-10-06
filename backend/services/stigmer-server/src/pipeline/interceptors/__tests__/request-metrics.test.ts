@@ -64,7 +64,7 @@ const COUNT = "stigmer.grpc.request.count";
 const DURATION = "stigmer.grpc.request.duration";
 const AGENT_SERVICE = "ai.stigmer.agentic.agent.v1.AgentCommandController";
 const EXECUTION_SERVICE =
-  "ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController";
+  "ai.stigmer.agentic.agentrun.v1.AgentRunQueryController";
 
 const VALID_AGENT = {
   apiVersion: "agentic.stigmer.ai/v1",

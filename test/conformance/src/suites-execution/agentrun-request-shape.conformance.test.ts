@@ -212,7 +212,7 @@ const ADAPTIVE_MODEL = "claude-sonnet-5";
 const BUDGET_MODEL = "claude-haiku-4.5";
 const THINKING_REQUIRED_MODEL = "claude-fable-5";
 
-describe("AgentExecution request shape — what the native harness sends the model for a bare agent", () => {
+describe("AgentRun request shape — what the native harness sends the model for a bare agent", () => {
   it("the system prompt blocks, as the provider receives them, match the golden", async () => {
     const { org, agentRef } = await createBareAgent();
     const { request } = await runAgentTurn(org, agentRef);
@@ -304,7 +304,7 @@ async function createAgentWithSkills(): Promise<{ org: string; agentRef: AgentRe
   return { org, agentRef: agentRefOf(agent) };
 }
 
-describe("AgentExecution request shape — the system prompt is the session's, the payload the turn's", () => {
+describe("AgentRun request shape — the system prompt is the session's, the payload the turn's", () => {
   it("nine skills, three turns with different messages, an attachment and a referenced file: system and tools stay byte-identical", async () => {
     const { org, agentRef } = await createAgentWithSkills();
     const filename = "cross-turn-notes.txt";
@@ -341,7 +341,7 @@ describe("AgentExecution request shape — the system prompt is the session's, t
   });
 });
 
-describe("AgentExecution request shape — thinking, per the model's native registry row", () => {
+describe("AgentRun request shape — thinking, per the model's native registry row", () => {
   it("ENABLED on an adaptive row sends adaptive thinking with summarized display, and drops the think tool", async () => {
     const row = requireNativeRow(await registry(), ADAPTIVE_MODEL);
     expect(row.thinkingForm, `${ADAPTIVE_MODEL} is the adaptive row this arm pins`).toBe("adaptive");

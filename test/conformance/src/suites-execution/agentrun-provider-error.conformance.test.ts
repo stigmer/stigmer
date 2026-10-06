@@ -1,4 +1,4 @@
-// Conformance suite for provider-error ATTRIBUTION on a failed AgentExecution:
+// Conformance suite for provider-error ATTRIBUTION on a failed AgentRun:
 // when the model call behind the platform proxy fails, whose fault does
 // status.error say it is?
 // Domain: agentic / agentexecution — the failure copy a customer reads.
@@ -111,7 +111,7 @@ const ANTHROPIC_BILLING_BODY = {
   },
 };
 
-// How long a rejected turn may take to become EXECUTION_FAILED. A 400 fails in
+// How long a rejected turn may take to become RUN_FAILED. A 400 fails in
 // one round trip. A 503 does not: the runner's agent loop wraps the model call
 // in LangChain's AsyncCaller, which retries 5xx six times with exponential
 // backoff — the proxy's `x-should-retry: false` hint stops the provider SDK's
@@ -159,7 +159,7 @@ function expectPlatformAttributed(final: AgentRun): void {
   }
 }
 
-describe("AgentExecution provider-error attribution (proxy mode)", () => {
+describe("AgentRun provider-error attribution (proxy mode)", () => {
   it("a platform-capacity 503 fails the run attributed to the platform: LLM_PLATFORM_CAPACITY, credits not charged, no provider prose", async () => {
     mock.enqueueError(503, {
       headers: { "x-should-retry": "false" },

@@ -68,8 +68,8 @@ afterAll(async () => {
 const RECORDED = "Recorded version: answer every question in the voice of a lighthouse keeper.";
 const SAVED_LATER = "Saved later: answer every question in the voice of a ship's cook.";
 
-describe("AgentExecution — the agent version a turn runs", () => {
-  it("[rpc:AgentExecutionCommandController.create] a turn records its agent and the version it started on; a client-sent value never survives", async () => {
+describe("AgentRun — the agent version a turn runs", () => {
+  it("[rpc:AgentRunCommandController.create] a turn records its agent and the version it started on; a client-sent value never survives", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-version") }));
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
@@ -88,7 +88,7 @@ describe("AgentExecution — the agent version a turn runs", () => {
     expect(completed.status?.agentVersionHash).toBe(agent.status!.versionHash);
   });
 
-  it("[rpc:AgentExecutionCommandController.recover] a turn recovered after its agent's author saved a new version runs the version it recorded", async () => {
+  it("[rpc:AgentRunCommandController.recover] a turn recovered after its agent's author saved a new version runs the version it recorded", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("agent-version-recover");
     const v1 = await clients.agentCommand.apply(makeAgent({ org, name, instructions: RECORDED }));
@@ -146,8 +146,8 @@ async function agentSavedTwice(org: string) {
   return { v1, v2 };
 }
 
-describe("AgentExecution — a conversation runs the version its session pinned", () => {
-  it("[rpc:AgentExecutionCommandController.create] a later turn runs the version the conversation pinned, though the author saved a new head", async () => {
+describe("AgentRun — a conversation runs the version its session pinned", () => {
+  it("[rpc:AgentRunCommandController.create] a later turn runs the version the conversation pinned, though the author saved a new head", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("agent-pin-kept");
     const v1 = await clients.agentCommand.apply(makeAgent({ org, name, instructions: RECORDED }));
@@ -180,7 +180,7 @@ describe("AgentExecution — a conversation runs the version its session pinned"
     expect(lastSystemPrompt(), "the model met the head's instructions").toContain(SAVED_LATER);
   });
 
-  it("[rpc:AgentExecutionCommandController.create] a new conversation whose agent_ref names a tag runs the tagged version, not the head", async () => {
+  it("[rpc:AgentRunCommandController.create] a new conversation whose agent_ref names a tag runs the tagged version, not the head", async () => {
     const { org } = await target.provisionTenancy();
     const { v1 } = await agentSavedTwice(org);
     await clients.agentCommand.tagVersion({ agentId: v1.metadata!.id, versionHash: v1.status!.versionHash, tag: "stable" });

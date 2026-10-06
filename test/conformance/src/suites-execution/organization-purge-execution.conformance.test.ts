@@ -55,7 +55,7 @@ afterAll(async () => {
 });
 
 describe("Organization purge with a live run", () => {
-  it("[rpc:OrganizationCommandController.delete] [rpc:AgentExecutionQueryController.get] [rpc:AgentExecutionCommandController.submitApproval] a run parked at a gate answers not found once its organization is deleted, and the purge stops and removes it before the slug comes free", async () => {
+  it("[rpc:OrganizationCommandController.delete] [rpc:AgentRunQueryController.get] [rpc:AgentRunCommandController.submitApproval] a run parked at a gate answers not found once its organization is deleted, and the purge stops and removes it before the slug comes free", async () => {
     const { org } = await target.provisionTenancy();
     const slug = await organizationSlug(clients.organizationQuery, org);
     const server = await createConnectedMcpServer(clients, mcp, fixtures, {

@@ -145,7 +145,7 @@ afterEach(() => {
 function newExecution(sessionId: string): AgentRun {
   return create(AgentRunSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "AgentExecution",
+    kind: "AgentRun",
     metadata: { name: "exec", org: "test-org" },
     spec: {
       target:

@@ -52,13 +52,13 @@ const silentLogger = createLogger({
 function wfApproval(childId: string, toolCallId: string) {
   return {
     approval: { toolCallId, toolName: "deploy_code" },
-    childAgentExecutionId: childId,
+    childAgentRunId: childId,
   };
 }
 
 function wfFileReview(childId: string, ...changeSetIds: string[]) {
   return {
-    childAgentExecutionId: childId,
+    childAgentRunId: childId,
     changeSetId: changeSetIds,
   };
 }

@@ -104,7 +104,7 @@ describe("ExecuteDeepAgent hermetic — two gated calls in one round (sqlite)", 
       // ── Turn 1: one pause, both rows waiting, nothing run ──────────────────
       const turn1 = await runDeepAgentTurn(scenario, { turnSeq: 0 });
       expect(turn1.outcome.kind).toBe("returned");
-      expect((turn1.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+      expect((turn1.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_WAITING_FOR_APPROVAL");
       expect(record.waitingToolCalls().map((tc) => tc.id).sort()).toEqual([CALL_A.id, CALL_B.id]);
       expect(linesIn(env, "ran-a.log") + linesIn(env, "ran-b.log"), "nothing runs before a decision").toBe(0);
 
@@ -115,7 +115,7 @@ describe("ExecuteDeepAgent hermetic — two gated calls in one round (sqlite)", 
       // ── Turn 2: the resume carries both decisions ──────────────────────────
       const turn2 = await runDeepAgentTurn(scenario, { turnSeq: 1 });
       expect(turn2.outcome.kind).toBe("returned");
-      expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+      expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
       expect(record.persistedPhases.filter((p) => p === RunPhase.RUN_WAITING_FOR_APPROVAL)).toHaveLength(1);
 
       const rows = record.lastFullStatus!.messages.flatMap((m) => m.toolCalls);

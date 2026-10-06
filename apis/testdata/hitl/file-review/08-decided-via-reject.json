@@ -1,8 +1,8 @@
 {
   "name": "decided-via-reject",
   "description": "A set whose only change is covered by a single FILE-scoped REJECT decision (no reconcile yet) -> status DECIDED with one decision. Pins that isFullyDecided is ACTION-AGNOSTIC: a discard counts toward coverage exactly like a keep, guarding against a future 'count only APPROVEs' regression. (A reject-then-reconcile fixture is deliberately omitted: it projects identically to the approve-then-reconcile fixture 03, so it would add no projection-parity value; reject's byte-level snap-back is proven by the runner-level offline test, not this projection corpus.)",
-  "execution_id": "aex_decided_reject",
-  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "run_id": "aex_decided_reject",
+  "phase": "RUN_WAITING_FOR_APPROVAL",
   "events": [
     {
       "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

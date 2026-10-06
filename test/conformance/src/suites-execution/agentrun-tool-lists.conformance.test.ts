@@ -80,7 +80,7 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("AgentExecution tool lists — out of scope is refused, never gated", () => {
+describe("AgentRun tool lists — out of scope is refused, never gated", () => {
   it.each([
     { posture: "the approval default", autoApproveAll: false },
     { posture: "auto_approve_all", autoApproveAll: true },

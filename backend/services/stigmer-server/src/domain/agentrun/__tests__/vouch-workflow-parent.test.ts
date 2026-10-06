@@ -247,7 +247,7 @@ describe("VouchWorkflowParent", () => {
     );
     expect(error.code).toBe(Code.InvalidArgument);
     expect(error.rawMessage).toBe(
-      "parent.workflow_execution_id 'wfx_1' differs from the stigmer.ai/workflow-execution-id label 'wfx_2'; a turn belongs to one workflow run",
+      "parent.workflow_run_id 'wfx_1' differs from the stigmer.ai/workflow-execution-id label 'wfx_2'; a turn belongs to one workflow run",
     );
   });
 });

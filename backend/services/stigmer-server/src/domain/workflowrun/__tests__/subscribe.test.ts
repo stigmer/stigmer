@@ -35,7 +35,7 @@ const silentLogger = createLogger({
 function execWithPhase(id: string, phase: RunPhase): WorkflowRun {
   return create(WorkflowRunSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "WorkflowExecution",
+    kind: "WorkflowRun",
     metadata: { id, name: id },
     status: { phase },
   });

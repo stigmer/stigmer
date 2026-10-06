@@ -141,7 +141,7 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
       // ── Assert 1: WAITING_FOR_APPROVAL, one WAITING row, returned ──────────
       expect(turn1.outcome.kind, "an approval pause RETURNS").toBe("returned");
       expect((turn1.outcome as { value: Record<string, unknown> }).value.phase).toBe(
-        "EXECUTION_WAITING_FOR_APPROVAL",
+        "RUN_WAITING_FOR_APPROVAL",
       );
       expect(record.persistedPhases).toEqual([
         RunPhase.RUN_IN_PROGRESS,
@@ -167,7 +167,7 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
 
       // ── Assert 2: COMPLETED, the row terminal, one copy, run 1 preserved ───
       expect(turn2.outcome.kind).toBe("returned");
-      expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+      expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
       expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
       const final = record.lastFullStatus!;
