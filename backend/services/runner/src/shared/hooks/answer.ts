@@ -9,7 +9,7 @@
  *    `defer`) with its reason, `updatedInput` and `additionalContext`; the
  *    deprecated top-level `decision` (`approve`, `block`) with `reason`; and
  *    on PostToolUse a top-level `decision: "block"` with `reason`.
- *  - A decision that carries no reason takes the hook's `systemMessage`, the
+ *  - A decision that carries no reason (or a blank one) takes the hook's `systemMessage`, the
  *    text Claude Code shows the person, as its reason, so a refusal says why
  *    (hookify answers a block this way). Here that reason reaches the model
  *    too, as every hook reason does. A `systemMessage` that is not the
@@ -69,7 +69,7 @@ export function parsePreToolUse(result: HookRunResult): PreToolUseAnswer {
   const decision = typeof permission === "string" && DECISIONS.has(permission)
     ? (permission as HookDecision)
     : legacyDecision(json["decision"]);
-  const ownReason = stringField(specific, "permissionDecisionReason") ?? stringField(json, "reason");
+  const ownReason = nonBlank(stringField(specific, "permissionDecisionReason")) ?? nonBlank(stringField(json, "reason"));
   logIgnoredFields(json, decision !== undefined, ownReason !== undefined);
   const reason = ownReason ?? (decision !== undefined ? stringField(json, "systemMessage") : undefined);
   const updatedInput = objectField(specific ?? {}, "updatedInput");
@@ -93,7 +93,7 @@ export function parsePostToolUse(result: HookRunResult): PostToolUseAnswer {
     return result.exitCode === 0 ? {} : { error: exitError(result) };
   }
   const blocks = json["decision"] === "block";
-  const ownReason = stringField(json, "reason");
+  const ownReason = nonBlank(stringField(json, "reason"));
   logIgnoredFields(json, blocks, ownReason !== undefined);
   const blockReason = blocks ? (ownReason ?? stringField(json, "systemMessage") ?? "A hook flagged this result.") : undefined;
   const additionalContext = stringField(objectField(json, "hookSpecificOutput"), "additionalContext");
@@ -168,6 +168,11 @@ function objectField(source: Record<string, unknown>, key: string): Record<strin
 function stringField(source: Record<string, unknown> | undefined, key: string): string | undefined {
   const value = source?.[key];
   return typeof value === "string" ? value : undefined;
+}
+
+/** A reason that says nothing (empty or whitespace) is no reason. */
+function nonBlank(text: string | undefined): string | undefined {
+  return text !== undefined && text.trim() !== "" ? text : undefined;
 }
 
 function capped(text: string): string {

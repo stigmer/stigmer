@@ -112,6 +112,15 @@ describe("parsePreToolUse", () => {
     ]);
   });
 
+  it("takes the systemMessage over a blank reason", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const stdout = json({ hookSpecificOutput: { permissionDecision: "deny", permissionDecisionReason: " " }, systemMessage: "why" });
+    expect(parsePreToolUse(ran({ stdout }))).toEqual({ decision: "deny", reason: "why" });
+    expect(parsePreToolUse(ran({ stdout: json({ decision: "block", reason: "", systemMessage: "legacy why" }) })).reason).toBe("legacy why");
+    expect(parsePostToolUse(ran({ stdout: json({ decision: "block", reason: "", systemMessage: "post why" }) })).blockReason).toBe("post why");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("caps a systemMessage taken as the reason", () => {
     const stdout = json({ hookSpecificOutput: { permissionDecision: "deny" }, systemMessage: "x".repeat(HOOK_TEXT_CAP + 50) });
     expect(parsePreToolUse(ran({ stdout })).reason).toHaveLength(HOOK_TEXT_CAP);
