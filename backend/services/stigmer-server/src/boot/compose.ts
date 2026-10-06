@@ -225,12 +225,10 @@ import {
 } from "./skill-transfer-origin.js";
 import type { ServerExtension } from "../extensions/registry.js";
 import { registerWorkflowServices } from "../domain/workflow/controller.js";
-import {
-  bundledModelRegistryDocument,
-  bundledTaskKindRegistryDocument,
-} from "../domain/workflow/registry/bundled.js";
-import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
-import { ModelRegistryStore } from "../domain/workflow/registry/model-registry-store.js";
+import { bundledTaskKindRegistryDocument } from "../domain/workflow/registry/bundled.js";
+import type { ModelCatalogProvider } from "../modelcatalog/model-catalog-provider.js";
+import { ModelRegistryStore } from "../modelcatalog/model-registry-store.js";
+import { bundledModelRegistryDocument } from "../modelcatalog/bundled.js";
 import { InProcessValidator } from "../domain/workflow/validation/validator.js";
 import { registerWorkflowExecutionServices } from "../domain/workflowrun/controller.js";
 import { StreamBroker as WorkflowExecutionStreamBroker } from "../domain/workflowrun/stream-broker.js";
@@ -995,8 +993,8 @@ export async function composeServer(
   // The model catalog: ONE provider instance feeds workflow
   // validation, the pin checks, and the transport's registry lane, so the
   // pickers and validation can never drift — on either arm. With
-  // no extension provider composed, the OSS domain-owned ModelRegistryStore
-  // (restoring Go's ownership) is constructed and
+  // no extension provider composed, the OSS ModelRegistryStore (the
+  // bundled catalog in src/modelcatalog) is constructed and
   // this root owns its refresh lifecycle; with one composed, the OSS store
   // and its hourly upstream refresh are never built — a substituted
   // composition must not keep fetching registry data nobody reads.
@@ -1708,7 +1706,7 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       listReadScope,
-      // The SAME domain-owned registry instance the workflow validator
+      // The SAME composed catalog provider the workflow validator
       // and the registry lanes read — the channel model-pin rule
       // (stigmer/stigmer#774) can never drift from the served pickers.
       modelRegistry: modelCatalog,

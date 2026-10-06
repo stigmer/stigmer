@@ -1,11 +1,11 @@
 /**
  * Model-registry document store — ports the Go server's ModelRegistryStore
- * (pkg/domain/workflow/registry/model_registry_store.go). Domain-owned, as
- * in Go: the workflow validators and the transport's /v1/proxy/model-registry
- * lane read this ONE store, so the document the pickers see and the set
- * validation accepts can never drift. The serving/refresh half first
- * lived under src/transport/; the workflow domain owns it now and added
- * the catalog indexes.
+ * (pkg/domain/workflow/registry/model_registry_store.go). The model catalog
+ * is its own module, not any one domain's: every domain that pins a model
+ * (agents, runs, schedules, shares, channels, workflow validation) and the
+ * transport's /v1/proxy/model-registry lane read this ONE store, so the
+ * document the pickers see and the set validation accepts can never
+ * drift.
  *
  * The store always holds a complete, valid document: it starts from the
  * bundled build-time snapshot (offline-install contract — a server with no
@@ -29,7 +29,7 @@
  * read to the current DocumentModelCatalog, swapped atomically per
  * accepted document.
  */
-import type { Logger } from "../../../boot/logger.js";
+import type { Logger } from "../boot/logger.js";
 import { DocumentModelCatalog } from "./document-catalog.js";
 import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 

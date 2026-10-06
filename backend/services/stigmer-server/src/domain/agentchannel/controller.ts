@@ -110,7 +110,7 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import type { ChannelRuntime } from "./channel-runtime.js";
 import { INSTALL_UNAVAILABLE_MESSAGE } from "./constants.js";
 import {

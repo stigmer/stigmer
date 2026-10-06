@@ -57,7 +57,7 @@ import {
   evaluateAuthorizer,
 } from "../../pipeline/steps/authorize.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
-import { savedChoiceWithoutModelRefusal } from "../workflow/registry/run-config-checks.js";
+import { savedChoiceWithoutModelRefusal } from "../../modelcatalog/run-config-checks.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -406,7 +406,7 @@ export function newResolveShareDefaultsStep(
 
 /**
  * A share's saved settings name the model their tier or thinking is for
- * (registry/run-config-checks.ts): refused at create, apply and update.
+ * (modelcatalog/run-config-checks.ts): refused at create, apply and update.
  */
 function refuseSavedChoiceWithoutModel(share: AgentShare): void {
   const reason = savedChoiceWithoutModelRefusal(

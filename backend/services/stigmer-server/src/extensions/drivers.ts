@@ -62,7 +62,7 @@ import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
 import type { PlatformClientStore } from "../domain/platformclient/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
-import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../modelcatalog/model-catalog-provider.js";
 import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
 import type { PlatformTokenKeyRing } from "../platformtoken/key-ring.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";

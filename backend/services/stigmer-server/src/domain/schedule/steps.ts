@@ -31,9 +31,9 @@ import { scheduleModelPinningRefusal } from "../../temporal/schedule/model-pinni
 import {
   harnessName,
   unknownModelPinRefusal,
-} from "../workflow/registry/pin-validation.js";
-import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
-import { savedChoiceWithoutModelRefusal } from "../workflow/registry/run-config-checks.js";
+} from "../../modelcatalog/pin-validation.js";
+import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
+import { savedChoiceWithoutModelRefusal } from "../../modelcatalog/run-config-checks.js";
 import { validateScheduleCron, validateScheduleTimeZone } from "./cron.js";
 
 export interface ScheduleValidationDeps {

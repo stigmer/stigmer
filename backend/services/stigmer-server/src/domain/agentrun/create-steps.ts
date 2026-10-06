@@ -68,7 +68,7 @@ import {
 } from "./resolve-run-config.js";
 import { serviceTierRefusal } from "./validate-service-tier.js";
 import { thinkingModeRefusal } from "./validate-thinking-mode.js";
-import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import { notifyStatusObservers } from "./status-observers.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
 import type { WorkflowRunQueue } from "../../temporal/workflowexecution/dispatch.js";

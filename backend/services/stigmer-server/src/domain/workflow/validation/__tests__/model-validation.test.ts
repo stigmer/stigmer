@@ -15,7 +15,7 @@ import { WorkflowSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/
 import type { WorkflowSpec } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 
 import { createLogger } from "../../../../boot/logger.js";
-import { ModelRegistryStore } from "../../registry/model-registry-store.js";
+import { ModelRegistryStore } from "../../../../modelcatalog/model-registry-store.js";
 import { validateModelReferences } from "../model-validation.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });

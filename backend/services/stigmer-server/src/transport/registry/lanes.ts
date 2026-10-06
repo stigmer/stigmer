@@ -6,11 +6,11 @@
  * (test/conformance/src/suites/registry-proxy.conformance.test.ts) is the
  * executable spec these lanes are built against.
  *
- * The documents come from the workflow domain's registry module — the
- * domain owns the registry, the transport serves FROM it (Go's ownership,
- * restored; the model-registry store's
- * refresh lifecycle is the composition root's concern now, not a lane
- * concern).
+ * The transport serves documents it does not own: the model registry from
+ * the composed ModelCatalogProvider (src/modelcatalog), the task-kind
+ * registry from the workflow domain's bundled file. The model-registry
+ * store's refresh lifecycle is the composition root's concern, not a lane
+ * concern.
  *
  * Behavior per lane (Go task_kind_registry.go:33-51):
  *   OPTIONS → 204 + the fixed registryCORS allow-lists,
@@ -19,7 +19,7 @@
  *   other   → 405 (with the allow-all header — the CORS wrap is
  *             unconditional in Go).
  */
-import type { ModelCatalogProvider } from "../../domain/workflow/registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import { applyRegistryCorsHeaders, handleRegistryPreflight } from "../cors.js";
 import type { LaneHandler } from "../lanes.js";
 

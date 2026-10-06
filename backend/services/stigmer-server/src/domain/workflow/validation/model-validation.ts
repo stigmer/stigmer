@@ -9,7 +9,8 @@
  * in every picker after a refresh must also validate.
  *
  * Harness names, suggestion machinery, and the write-time pin-existence
- * rule all live in the registry module (the shared validation authority) —
+ * rule all live in the model catalog (src/modelcatalog, the shared
+ * validation authority) —
  * this module consumes them so workflow errors and schedule/channel pin
  * errors suggest identically. The message strings are pinned identical to
  * the cloud Java ModelValidationHelper — keep them in lockstep.
@@ -21,16 +22,16 @@ import type { EvalTaskConfig } from "@stigmer/protos/ai/stigmer/agentic/workflow
 import type { LlmCallTaskConfig } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/llm_call_pb";
 
 import { tryUnmarshalTaskConfig } from "../converter/unmarshal.js";
-import type { ModelCatalogProvider } from "../registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../../../modelcatalog/model-catalog-provider.js";
 import {
   HARNESS_NAME_NATIVE,
   harnessName,
   suggestSimilarModels,
-} from "../registry/pin-validation.js";
+} from "../../../modelcatalog/pin-validation.js";
 import {
   savedServiceTierRefusal,
   savedThinkingModeRefusal,
-} from "../registry/run-config-checks.js";
+} from "../../../modelcatalog/run-config-checks.js";
 
 /**
  * Checks that model IDs specified in workflow tasks are valid entries in
@@ -74,7 +75,7 @@ export function validateModelReferences(
         // Variant-attribute validation is independent of the model check
         // below: FAST/ENABLED with no model_name must fail even though
         // the model loop skips (#357/#772; saved settings name their own
-        // model, registry/run-config-checks.ts).
+        // model, modelcatalog/run-config-checks.ts).
         const site = {
           prefix: `task '${task.name}' (agent_call): `,
           fieldPath: "run_config",

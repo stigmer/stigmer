@@ -5,9 +5,9 @@
  * demux and lane router included, so the contract is enforced in this
  * package's own gate as well as by the conformance suite over the wire.
  *
- * The byte-pin of the bundled data files against Go's embeds lives with
- * the data now — src/domain/workflow/registry/__tests__/bundled.test.ts
- * (the registry moved home to the domain).
+ * The bundled model snapshot is checked twice: by this file's
+ * embedded-snapshot case (served with no network behind it) and by the
+ * catalog's own tests in src/modelcatalog/__tests__/.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

@@ -14,7 +14,7 @@
  *     existence is never re-judged at run time, oss#774);
  *   - service_tier FAST and thinking_mode ENABLED need a model the engine
  *     prices fast or marks able to think, and saved settings name their own
- *     model (registry/run-config-checks.ts, the workflow step's checks).
+ *     model (modelcatalog/run-config-checks.ts, the workflow step's checks).
  * An engine with no model is valid: "new conversations on this agent start
  * on Cursor". Bounds are proto-validated (non-negative) and need no engine.
  *
@@ -30,15 +30,15 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
-import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import {
   harnessName,
   unknownModelPinRefusal,
-} from "../workflow/registry/pin-validation.js";
+} from "../../modelcatalog/pin-validation.js";
 import {
   savedServiceTierRefusal,
   savedThinkingModeRefusal,
-} from "../workflow/registry/run-config-checks.js";
+} from "../../modelcatalog/run-config-checks.js";
 
 const SITE = { prefix: "", fieldPath: "spec.run_config" } as const;
 

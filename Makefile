@@ -194,12 +194,12 @@ gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync t
 # Source of truth for the model registry is the cloud platform's database
 # (a baseline plus ledger-derived overrides, served publicly). The bundled
 # copy here is a build-time snapshot: the server prefers a live refresh from
-# the same endpoint at runtime (see registry.ModelRegistryStore), so this
+# the same endpoint at runtime (see src/modelcatalog/model-registry-store.ts), so this
 # target is a convenience that keeps the offline fallback reasonably fresh —
 # it is no longer correctness-critical.
 MODEL_REGISTRY_UPSTREAM ?= https://api.stigmer.ai
 
-MODEL_REGISTRY_DATA := $(SERVER_DIR)/src/domain/workflow/registry/data
+MODEL_REGISTRY_DATA := $(SERVER_DIR)/src/modelcatalog/data
 
 sync-model-registry: ## Refresh the bundled model-registry.json snapshot from the public cloud endpoint
 	@curl -fsSL "$(MODEL_REGISTRY_UPSTREAM)/api/v1/public/model-registry" \

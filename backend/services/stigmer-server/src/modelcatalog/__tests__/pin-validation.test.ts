@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-import { createLogger } from "../../../../boot/logger.js";
+import { createLogger } from "../../boot/logger.js";
 import { ModelRegistryStore } from "../model-registry-store.js";
 import {
   HARNESS_NAME_CURSOR,

@@ -26,7 +26,7 @@ import { createVerifierChainInterceptor } from "../../../pipeline/interceptors/a
 import { errorOf, failingStore } from "../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
-import type { ModelCatalogProvider } from "../../workflow/registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../../../modelcatalog/model-catalog-provider.js";
 import type { Store } from "../../../store/interface.js";
 
 import { registerAgentServices } from "../controller.js";

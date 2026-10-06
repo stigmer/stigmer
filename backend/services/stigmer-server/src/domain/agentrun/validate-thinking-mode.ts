@@ -37,13 +37,13 @@ import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enu
 
 import { invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
-import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import {
   ADAPTIVE_THINKING_CAPABILITY_KEY,
   THINKING_CAPABILITY_KEY,
   THINKING_REQUIRED_CAPABILITY_KEY,
-} from "../workflow/registry/model-registry-store.js";
-import { canThinkOn } from "../workflow/registry/run-config-checks.js";
+} from "../../modelcatalog/model-registry-store.js";
+import { canThinkOn } from "../../modelcatalog/run-config-checks.js";
 
 import {
   runConfigLayerName,
