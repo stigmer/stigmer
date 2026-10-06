@@ -35,30 +35,30 @@
 import { toJson, type JsonValue } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
 import type {
-  AgentExecution,
-  AgentExecutionStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRun,
+  AgentRunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type {
   AgentMessage,
   ToolCall,
   ToolCallOutputRef,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type {
   GetArtifactContentResponse,
-  ListAgentExecutionsBySessionRequest,
-  AgentExecutionList,
+  ListAgentRunsBySessionRequest,
+  AgentRunList,
   GetArtifactContentRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import {
   GetArtifactContentRequestSchema,
-  ListAgentExecutionsBySessionRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+  ListAgentRunsBySessionRequestSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { resolvedSubject } from "../session.js";
@@ -105,7 +105,7 @@ export interface ResolvedToolOutput {
  * rules' verdicts precomputed so consumers never re-derive them. */
 export interface TranscriptTurn {
   /** The execution, verbatim — messages, tool calls, sub-agents, timestamps. */
-  readonly execution: AgentExecution;
+  readonly execution: AgentRun;
   /**
    * The user prose that opened this turn, or `null` when the turn has none
    * (programmatic create, `"execute"` placeholder, Build-from-plan label) —
@@ -164,7 +164,7 @@ export interface AssembleSessionTranscriptOptions {
  */
 export function assembleSessionTranscript(
   session: Session,
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
   options?: AssembleSessionTranscriptOptions,
 ): SessionTranscript {
   const includeSuperseded = options?.includeSuperseded === true;
@@ -206,10 +206,10 @@ export interface SessionTranscriptClient {
   readonly session: {
     get(id: string): Promise<Session>;
   };
-  readonly agentExecution: {
+  readonly agentRun: {
     listBySession(
-      input: ListAgentExecutionsBySessionRequest,
-    ): Promise<AgentExecutionList>;
+      input: ListAgentRunsBySessionRequest,
+    ): Promise<AgentRunList>;
     getArtifactContent(
       input: GetArtifactContentRequest,
     ): Promise<GetArtifactContentResponse>;
@@ -248,8 +248,8 @@ export async function fetchSessionTranscript(
 ): Promise<SessionTranscript> {
   const [session, list] = await Promise.all([
     client.session.get(sessionId),
-    client.agentExecution.listBySession(
-      create(ListAgentExecutionsBySessionRequestSchema, { sessionId }),
+    client.agentRun.listBySession(
+      create(ListAgentRunsBySessionRequestSchema, { sessionId }),
     ),
   ]);
 
@@ -285,8 +285,8 @@ export async function fetchSessionTranscript(
  * execution's id, and the key is the record of that.
  */
 export async function resolveOffloadedOutputs(
-  client: Pick<SessionTranscriptClient, "agentExecution">,
-  executions: readonly AgentExecution[],
+  client: Pick<SessionTranscriptClient, "agentRun">,
+  executions: readonly AgentRun[],
   options?: { readonly concurrency?: number },
 ): Promise<Record<string, ResolvedToolOutput>> {
   const refs = new Map<string, ToolCallOutputRef>();
@@ -324,9 +324,9 @@ export async function resolveOffloadedOutputs(
         return;
       }
       try {
-        const response = await client.agentExecution.getArtifactContent(
+        const response = await client.agentRun.getArtifactContent(
           create(GetArtifactContentRequestSchema, {
-            executionId,
+            runId: executionId,
             storageKey: ref.storageKey,
           }),
         );
@@ -352,12 +352,12 @@ export async function resolveOffloadedOutputs(
 /** Every tool call in an execution's status — the parent transcript's plus
  * each embedded sub-agent transcript's. */
 function* allToolCalls(
-  status: AgentExecutionStatus | undefined,
+  status: AgentRunStatus | undefined,
 ): Generator<ToolCall> {
   if (!status) return;
   const messageLists: readonly (readonly AgentMessage[])[] = [
     status.messages,
-    ...status.subAgentExecutions.map((sa) => sa.messages),
+    ...status.subAgentRuns.map((sa) => sa.messages),
   ];
   for (const messages of messageLists) {
     for (const message of messages) {
@@ -458,7 +458,7 @@ export function transcriptToMarkdown(
     renderMessages(
       out,
       turn.execution.status?.messages ?? [],
-      turn.execution.status?.subAgentExecutions ?? [],
+      turn.execution.status?.subAgentRuns ?? [],
       resolvedOutputs,
       turn.userPrompt,
     );
@@ -482,7 +482,7 @@ function turnHeaderSuffix(turn: TranscriptTurn): string {
 function renderMessages(
   out: string[],
   messages: readonly AgentMessage[],
-  subAgents: readonly SubAgentExecution[],
+  subAgents: readonly SubAgentRun[],
   resolvedOutputs: Readonly<Record<string, ResolvedToolOutput>>,
   userPrompt: string | null,
 ): void {
@@ -617,7 +617,7 @@ function toolCallStatusLabel(status: ToolCallStatus): string | null {
 
 function renderSubAgent(
   out: string[],
-  subAgent: SubAgentExecution,
+  subAgent: SubAgentRun,
   resolvedOutputs: Readonly<Record<string, ResolvedToolOutput>>,
 ): void {
   const nested: string[] = [];
@@ -636,7 +636,7 @@ function renderSubAgent(
   out.push("", blockquote(nested.join("\n")));
 }
 
-function subAgentSuffix(subAgent: SubAgentExecution): string {
+function subAgentSuffix(subAgent: SubAgentRun): string {
   const duration = formatDuration(subAgent.startedAt, subAgent.completedAt);
   return duration ? ` (${duration})` : "";
 }
@@ -695,7 +695,7 @@ function fenced(content: string, language = ""): string {
  */
 export function transcriptToJson(transcript: SessionTranscript): JsonValue {
   const turns: JsonValue[] = transcript.turns.map((turn) => {
-    const execution = toJson(AgentExecutionSchema, turn.execution, {
+    const execution = toJson(AgentRunSchema, turn.execution, {
       useProtoFieldName: true,
     });
     if (

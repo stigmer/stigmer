@@ -43,9 +43,9 @@ from ._gen._agent import (
     RunConfigInput,
     SubAgentInput,
 )
-from ._gen._agentexecution import (
-    AgentExecutionClient,
-    AgentExecutionInput,
+from ._gen._agentrun import (
+    AgentRunClient,
+    AgentRunInput,
     AttachmentInput,
 )
 from ._gen._apikey import ApiKeyClient, ApiKeyInput
@@ -80,7 +80,7 @@ from ._gen._workflow import (
     WorkflowInput,
     WorkflowTaskInput,
 )
-from ._gen._workflowexecution import WorkflowExecutionClient, WorkflowExecutionInput
+from ._gen._workflowrun import WorkflowRunClient, WorkflowRunInput
 
 # --- Shared types (generated) ----------------------------------------------
 
@@ -145,7 +145,7 @@ __all__ = [
     "SearchResponse",
     # Resource clients
     "AgentClient",
-    "AgentExecutionClient",
+    "AgentRunClient",
     "ApiKeyClient",
     "EnvironmentClient",
     "ExecutionContextClient",
@@ -160,10 +160,10 @@ __all__ = [
     "RoutedSkillClient",
     "MAX_INLINE_ARTIFACT_BYTES",
     "WorkflowClient",
-    "WorkflowExecutionClient",
+    "WorkflowRunClient",
     # Input types
     "AgentInput",
-    "AgentExecutionInput",
+    "AgentRunInput",
     "ApiKeyInput",
     "ApiResourceRefInput",
     "AttachmentInput",
@@ -190,7 +190,7 @@ __all__ = [
     "StdioServerConfigInput",
     "SubAgentInput",
     "WorkflowDocumentInput",
-    "WorkflowExecutionInput",
+    "WorkflowRunInput",
     "WorkflowInput",
     "WorkflowTaskInput",
     "WorkspaceEntryInput",
