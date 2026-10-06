@@ -68,8 +68,9 @@ export function newStartWorkflowStep(
       const executionId = execution.metadata?.id ?? "";
 
       const engineState = deps.engineState();
-      // Reached only if the engine disconnects between the gate and here; modeled the same way Go's non-nil assumption is — a
-      // loud failure, not a silent skip.
+      // Reached only if the engine disconnects between the gate and here;
+      // modeled the same way Go's non-nil assumption is — a loud failure,
+      // not a silent skip.
       let startError: Error | undefined;
       if (!engineState.connected) {
         startError = new Error(
