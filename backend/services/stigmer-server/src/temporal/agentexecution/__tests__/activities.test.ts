@@ -2,7 +2,9 @@
  * Server-side activity tests — pins the contracts of activities.ts:
  *
  *   - UpdateExecutionStatus owns only the payload boundary: it decodes
- *     the proto-JSON status into a typed UpdateStatus input and hands it
+ *     the proto-JSON status into a typed UpdateStatus input (a status a
+ *     runner wrote before the run rename, with retired names, included;
+ *     any other unknown name refused) and hands it
  *     to the in-process status edge (stigmer#979) — the lane's answer,
  *     success or ConnectError, IS the activity's outcome. The lane itself
  *     (transport, interceptors, handler, merge, hooks, broadcast) is
@@ -197,6 +199,39 @@ describe("UpdateExecutionStatus activity", () => {
         ) => Promise<void>
       )("aex_upd_bad", { phase: { not: "a phase" } }),
     ).rejects.toThrow();
+    expect(writes).toHaveLength(0);
+  });
+
+  it("decodes a status recorded before the run rename, its retired names read as the current ones", async () => {
+    const { activities, writes } = newFixture();
+    // The status JSON the user-cancel replay history records for this
+    // activity's input, written before agent executions became runs.
+    await (
+      activities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as (
+        id: string,
+        status: JsonValue,
+      ) => Promise<void>
+    )("aex_recorded", {
+      messages: [{ type: "MESSAGE_SYSTEM", content: "Execution was cancelled." }],
+      phase: "EXECUTION_CANCELLED",
+      subAgentExecutions: [{ id: "sub_1", name: "researcher" }],
+    });
+
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.status?.phase).toBe(RunPhase.RUN_CANCELLED);
+    expect(writes[0]?.status?.subAgentRuns[0]?.name).toBe("researcher");
+    // A free-form string is data, never a name: it survives as written.
+    expect(writes[0]?.status?.messages[0]?.content).toBe("Execution was cancelled.");
+  });
+
+  it("still refuses a name that is neither current nor retired, before the edge is reached", async () => {
+    const { activities, writes } = newFixture();
+    const update = activities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as (
+      id: string,
+      status: JsonValue,
+    ) => Promise<void>;
+    await expect(update("aex_unknown_value", { phase: "EXECUTION_EXPLODED" })).rejects.toThrow();
+    await expect(update("aex_unknown_field", { executionPhase: "RUN_FAILED" })).rejects.toThrow();
     expect(writes).toHaveLength(0);
   });
 

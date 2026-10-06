@@ -804,11 +804,31 @@ export interface CallAgentMetadata {
   readonly taskName: string;
 }
 
+/**
+ * The engine's callback result for an agent call. Its keys are a contract
+ * with the server's agent workflow and are recorded in the histories of
+ * runs in flight, so the child's id stays `agent_execution_id` here.
+ */
 export interface AgentCallResult {
   readonly structured?: unknown;
   readonly final_text?: string;
   readonly agent_execution_id?: string;
   readonly usage_summary?: AgentUsageSummary;
+}
+
+/**
+ * An agent_call step's output, as workflow expressions read it: the
+ * callback result with the child run's id under `agent_run_id`, plus the
+ * engine's __stigmer_* cost keys.
+ */
+export interface AgentCallOutput {
+  readonly structured?: unknown;
+  readonly final_text?: string;
+  readonly agent_run_id?: string;
+  readonly usage_summary?: AgentUsageSummary;
+  readonly __stigmer_cost_micros?: number;
+  readonly input_tokens?: number;
+  readonly output_tokens?: number;
 }
 
 export interface AgentUsageSummary {

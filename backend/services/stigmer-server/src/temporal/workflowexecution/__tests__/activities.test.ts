@@ -226,6 +226,56 @@ describe("UpdateWorkflowExecutionStatus activity (real store)", () => {
     }
   });
 
+  it("decodes a status recorded before the run rename, its retired names read as the current ones", async () => {
+    const id = "wfe-activity-recorded";
+    await store.saveResource(
+      ApiResourceKind.workflow_run,
+      id,
+      WorkflowRunSchema,
+      create(WorkflowRunSchema, {
+        metadata: { id, name: id },
+        status: { phase: RunPhase.RUN_IN_PROGRESS },
+      }),
+    );
+
+    // The status JSON the child-failed replay history records for this
+    // activity's input, written before workflow executions became runs.
+    await activity()(id, {
+      phase: "EXECUTION_FAILED",
+      error: "Workflow execution failed: Child Workflow execution failed: child engine boom",
+    });
+
+    const stored = await store.getResource(
+      ApiResourceKind.workflow_run,
+      id,
+      WorkflowRunSchema,
+    );
+    expect(stored.status?.phase).toBe(RunPhase.RUN_FAILED);
+    expect(stored.status?.error).toBe(
+      "Workflow execution failed: Child Workflow execution failed: child engine boom",
+    );
+  });
+
+  it("refuses a status name that is neither current nor retired", async () => {
+    const id = "wfe-activity-unknown";
+    await store.saveResource(
+      ApiResourceKind.workflow_run,
+      id,
+      WorkflowRunSchema,
+      create(WorkflowRunSchema, {
+        metadata: { id, name: id },
+        status: { phase: RunPhase.RUN_IN_PROGRESS },
+      }),
+    );
+    await expect(activity()(id, { phase: "EXECUTION_EXPLODED" })).rejects.toThrow();
+    const stored = await store.getResource(
+      ApiResourceKind.workflow_run,
+      id,
+      WorkflowRunSchema,
+    );
+    expect(stored.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
+  });
+
   it("writes NO workflow_execution_events (the activity never touches the event log)", async () => {
     const id = "wfe-activity-2";
     await store.saveResource(

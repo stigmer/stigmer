@@ -9,7 +9,7 @@
  *
  * Supported delivery targets:
  * - webhook: HTTP POST with Content-Type: application/cloudevents+json
- * - signal:  signal to another workflow execution's listen task, routed
+ * - signal:  signal to another workflow run's listen task, routed
  *            through the server's SendSignal lane
  *
  * Signal delivery is deliberately server-mediated (oss#517): a direct
@@ -39,8 +39,8 @@ export interface WebhookDeliveryTarget {
 }
 
 export interface SignalDeliveryTarget {
-  /** Target workflow execution id ("wfx_..."), as returned by run/create. */
-  readonly execution_id: string;
+  /** Target workflow run id ("wex_..."), as returned by run/create. */
+  readonly run_id: string;
   /** Signal name matching the target's listen task event id (verbatim). */
   readonly signal_name: string;
 }
@@ -80,7 +80,7 @@ function buildEnvelope(
   config: EmitEventConfig,
   executionId: string,
 ): Record<string, unknown> {
-  const source = config.event.source || `/workflows/executions/${executionId}`;
+  const source = config.event.source || `/workflows/runs/${executionId}`;
 
   const envelope: Record<string, unknown> = {
     id: randomUUID(),
@@ -142,6 +142,25 @@ async function deliverWebhook(
   }
 }
 
+/**
+ * The key a signal target named its run by before the rename of executions
+ * to runs (October 2026). A workflow's definition is recorded in the
+ * history of each of its runs when the run starts, so a run in flight
+ * across that release still carries it. Read only when `run_id` is absent;
+ * it goes once no run started before that release can still be running.
+ */
+const RETIRED_SIGNAL_RUN_ID_KEY = "execution_id";
+
+function signalTargetRunId(target: SignalDeliveryTarget): string {
+  if (target.run_id) {
+    return target.run_id;
+  }
+  const retired = (target as { readonly [RETIRED_SIGNAL_RUN_ID_KEY]?: unknown })[
+    RETIRED_SIGNAL_RUN_ID_KEY
+  ];
+  return typeof retired === "string" ? retired : "";
+}
+
 async function deliverSignal(
   envelope: Record<string, unknown>,
   target: SignalDeliveryTarget,
@@ -150,10 +169,11 @@ async function deliverSignal(
   // Refuse the pre-oss#517 field by name: direct-addressing raw Temporal
   // workflow ids is exactly the capability server mediation removes.
   const legacyWorkflowId = (target as { workflow_id?: unknown }).workflow_id;
-  if (!target.execution_id) {
+  const runId = signalTargetRunId(target);
+  if (!runId) {
     const reason = legacyWorkflowId
-      ? "signal delivery addresses workflow executions by 'execution_id' (\"wfx_...\"); 'workflow_id' is not supported"
-      : "signal delivery requires 'execution_id'";
+      ? "signal delivery addresses workflow runs by 'run_id' (\"wex_...\"); 'workflow_id' is not supported"
+      : "signal delivery requires 'run_id'";
     return {
       target: `signal:${String(legacyWorkflowId ?? "")}/${target.signal_name ?? ""}`,
       error: reason,
@@ -161,14 +181,14 @@ async function deliverSignal(
   }
   if (!target.signal_name) {
     return {
-      target: `signal:${target.execution_id}/`,
+      target: `signal:${runId}/`,
       error: "signal delivery requires 'signal_name'",
     };
   }
 
   try {
     await client.sendWorkflowSignal(
-      target.execution_id,
+      runId,
       target.signal_name,
       envelope as JsonObject,
       { timeoutMs: SIGNAL_TIMEOUT_MS },
@@ -176,11 +196,11 @@ async function deliverSignal(
     return null;
   } catch (err) {
     // Server refusals arrive as ConnectErrors whose messages carry the code
-    // (e.g. [not_found], [failed_precondition] for terminal executions) —
+    // (e.g. [not_found], [failed_precondition] for terminal runs) —
     // surfaced verbatim in delivery_errors, same contract as the webhook arm.
     const message = err instanceof Error ? err.message : String(err);
     return {
-      target: `signal:${target.execution_id}/${target.signal_name}`,
+      target: `signal:${runId}/${target.signal_name}`,
       error: message,
     };
   }

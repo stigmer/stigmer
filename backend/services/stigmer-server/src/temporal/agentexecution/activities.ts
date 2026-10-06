@@ -47,7 +47,7 @@
  * TS lane works; the divergence is disclosed.
  */
 import { Buffer } from "node:buffer";
-import { create, fromJson, toJson } from "@bufbuild/protobuf";
+import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 import type { Client } from "@temporalio/client";
 
@@ -74,6 +74,7 @@ import {
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "./names.js";
+import { decodeRunStatusJson } from "./execution-json.js";
 
 /**
  * The worker's own-behalf status edge — the agentexecution UpdateStatus
@@ -147,7 +148,7 @@ export function createAgentExecutionActivities(
       executionId: string,
       statusJson: JsonValue,
     ): Promise<void> => {
-      const status = fromJson(AgentRunStatusSchema, statusJson);
+      const status = decodeRunStatusJson(AgentRunStatusSchema, statusJson);
       await deps.statusWriter().updateStatus(
         create(AgentRunUpdateStatusInputSchema, {
           runId: executionId,

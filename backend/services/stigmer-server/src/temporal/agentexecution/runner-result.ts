@@ -3,7 +3,7 @@
  * pkg/domain/agentexecution/temporal/activities/execute_deep_agent.go.
  *
  * The TS runner returns a plain JSON object: the proto-JSON fields of the
- * slim AgentExecutionStatus (phase, error, pendingApprovals, …) plus
+ * slim AgentRunStatus (phase, error, pendingApprovals, …) plus
  * non-proto extras (structured_output / final_text). An untyped record
  * preserves all fields — proto and non-proto — across the data converter,
  * exactly Go's map[string]interface{} posture. The tolerant phase
@@ -15,6 +15,8 @@
  * every activity result.
  */
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+
+import { currentRunEnumValueName } from "./execution-json.js";
 
 /** Go activities.RunnerActivityResult (map[string]interface{}). */
 export type RunnerActivityResult = Record<string, unknown>;
@@ -33,8 +35,9 @@ export function getPhaseFromResult(
   if (typeof phase === "string") {
     // Proto-JSON uses string enum names; the generated TS enum keys ARE
     // the proto value names, so this lookup is Go's ExecutionPhase_value
-    // map exactly.
-    const value = (RunPhase as Record<string, unknown>)[phase];
+    // map exactly. A result recorded before the run rename names the
+    // phase by its retired name (EXECUTION_COMPLETED), which replays here.
+    const value = (RunPhase as Record<string, unknown>)[currentRunEnumValueName(phase)];
     if (typeof value === "number") {
       return value as RunPhase;
     }

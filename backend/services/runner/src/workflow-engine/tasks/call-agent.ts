@@ -20,6 +20,7 @@ import type {
   TaskExecutorFn,
   TaskExecutionContext,
   AgentCallConfig,
+  AgentCallOutput,
   AgentCallResult,
   CallAgentMetadata,
 } from "../types.js";
@@ -28,24 +29,32 @@ import { resolveConfigExpressions } from "../resolve.js";
 import { validateAgentCallOutput } from "./call-agent-output.js";
 
 /**
- * Enriches an AgentCallResult with __stigmer_* keys so that
- * extractCostFromOutput (in do-executor) can pick up cost/token data.
+ * The step's output as a workflow reads it. The child run's id is
+ * `agent_run_id`, the key workflow expressions read
+ * (`${ .triage.agent_run_id }`); the engine's callback result names it
+ * `agent_execution_id`, an engine key that runs in flight still carry, so
+ * the step renames it here rather than at the callback.
  *
- * Agent usage_summary only provides total_tokens (no input/output split).
- * We map total_tokens to input_tokens and leave output_tokens at 0.
- * The do-executor sets metadata `token_attribution: "total_only"` so
- * the frontend can avoid displaying a misleading split.
+ * Also adds the __stigmer_* keys so that extractCostFromOutput (in
+ * do-executor) can pick up cost/token data. Agent usage_summary only
+ * provides total_tokens (no input/output split): total_tokens maps to
+ * input_tokens and output_tokens stays 0. The do-executor sets metadata
+ * `token_attribution: "total_only"` so the frontend can avoid displaying a
+ * misleading split.
  */
-function enrichResultWithCost(result: AgentCallResult): AgentCallResult {
+function toStepOutput(result: AgentCallResult): AgentCallOutput {
+  const { agent_execution_id: agentRunId, ...rest } = result;
+  const output: AgentCallOutput =
+    agentRunId === undefined ? rest : { ...rest, agent_run_id: agentRunId };
   const usage = result.usage_summary;
-  if (!usage) return result;
+  if (!usage) return output;
 
   return {
-    ...result,
+    ...output,
     __stigmer_cost_micros: Math.round((usage.estimated_cost_usd ?? 0) * 1_000_000),
     input_tokens: usage.total_tokens ?? 0,
     output_tokens: 0,
-  } as AgentCallResult;
+  };
 }
 
 export class CallAgentTaskBuilder implements TaskBuilder {
@@ -95,7 +104,7 @@ export class CallAgentTaskBuilder implements TaskBuilder {
         attempts++;
 
         if (!outputContract?.schema) {
-          return enrichResultWithCost(lastResult);
+          return toStepOutput(lastResult);
         }
 
         const validation = validateAgentCallOutput(
@@ -104,7 +113,7 @@ export class CallAgentTaskBuilder implements TaskBuilder {
         );
 
         if (validation.valid) {
-          return enrichResultWithCost(lastResult);
+          return toStepOutput(lastResult);
         }
 
         const onInvalid = outputContract.on_invalid ?? "ON_INVALID_FAIL";
@@ -120,7 +129,7 @@ export class CallAgentTaskBuilder implements TaskBuilder {
           return {
             __flow_directive__: outputContract.fallback_task ?? "continue",
             validation_errors: validation.errors,
-            original_output: lastResult,
+            original_output: toStepOutput(lastResult),
           };
         }
       } while (attempts <= maxRetries);

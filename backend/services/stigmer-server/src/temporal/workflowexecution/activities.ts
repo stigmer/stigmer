@@ -30,7 +30,7 @@
  * bigint int64 fields of typed messages. Server-internal payloads; only
  * the activity NAMES are byte-pinned.
  */
-import { create, fromJson } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
 
@@ -55,6 +55,7 @@ import { DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME } from "../../domain/executionco
 import type { WorkflowSandboxTerminalObserver } from "../../sandbox/steps.js";
 import type { Store } from "../../store/interface.js";
 import { UPDATE_WORKFLOW_EXECUTION_STATUS_ACTIVITY_NAME } from "./names.js";
+import { decodeRunStatusJson } from "../agentexecution/execution-json.js";
 
 export interface WorkflowExecutionActivityDeps {
   readonly store: Store;
@@ -98,7 +99,7 @@ export function createWorkflowExecutionActivities(
       executionId: string,
       statusJson: JsonValue,
     ): Promise<void> => {
-      const statusUpdates = fromJson(WorkflowRunStatusSchema, statusJson);
+      const statusUpdates = decodeRunStatusJson(WorkflowRunStatusSchema, statusJson);
 
       let updated: WorkflowRun;
       // The phase BEFORE this merge, read under the write lock — the
