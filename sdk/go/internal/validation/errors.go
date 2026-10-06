@@ -123,7 +123,7 @@ func NewValidationErrorWithCause(field, value, rule, message string, err error) 
 //
 // It provides context about which type and field caused the conversion failure.
 type ConversionError struct {
-	Type    string // The type being converted (e.g., "Agent", "Workflow")
+	Type    string // The type being converted (e.g., "Agent", "Skill")
 	Field   string // The field that caused the error (optional)
 	Message string // Human-readable error message
 	Err     error  // Underlying error, if any
@@ -195,7 +195,7 @@ func NewConversionErrorWithCause(typeName, field, message string, err error) *Co
 //	    // Handle required field error
 //	}
 type ResourceError struct {
-	ResourceType string // The type of resource (e.g., "Agent", "Workflow")
+	ResourceType string // The type of resource (e.g., "Agent", "Skill")
 	ResourceName string // The name of the resource (e.g., "code-reviewer")
 	Operation    string // The operation that failed (e.g., "validation", "synthesis", "conversion")
 	Message      string // Human-readable error message
@@ -246,7 +246,7 @@ func (e *ResourceError) WithField(field, value, rule string) *ValidationError {
 // NewResourceError creates a new resource error.
 //
 // Parameters:
-//   - resourceType: the type of resource (e.g., "Agent", "Workflow")
+//   - resourceType: the type of resource (e.g., "Agent", "Skill")
 //   - resourceName: the name of the resource
 //   - operation: the operation that failed (e.g., "validation", "synthesis")
 //   - message: human-readable error message
@@ -262,7 +262,7 @@ func NewResourceError(resourceType, resourceName, operation, message string) *Re
 // NewResourceErrorWithCause creates a new resource error with an underlying cause.
 //
 // Parameters:
-//   - resourceType: the type of resource (e.g., "Agent", "Workflow")
+//   - resourceType: the type of resource (e.g., "Agent", "Skill")
 //   - resourceName: the name of the resource
 //   - operation: the operation that failed
 //   - message: human-readable error message
@@ -280,7 +280,7 @@ func NewResourceErrorWithCause(resourceType, resourceName, operation, message st
 // ResourceErrorf creates a new resource error with a formatted message.
 //
 // Parameters:
-//   - resourceType: the type of resource (e.g., "Agent", "Workflow")
+//   - resourceType: the type of resource (e.g., "Agent", "Skill")
 //   - resourceName: the name of the resource
 //   - operation: the operation that failed
 //   - format: format string for the message
@@ -315,7 +315,7 @@ var (
 // or writing manifests to disk.
 //
 // SynthesisError provides context about:
-//   - Phase: which synthesis phase failed (e.g., "agents", "workflows", "dependencies")
+//   - Phase: which synthesis phase failed (e.g., "agents", "skills", "dependencies")
 //   - ResourceType: the type of resource being synthesized (if applicable)
 //   - ResourceName: the name of the specific resource (if applicable)
 //
@@ -329,7 +329,7 @@ var (
 //	    Err:          originalErr,
 //	}
 type SynthesisError struct {
-	Phase        string // The synthesis phase (e.g., "agents", "workflows", "dependencies")
+	Phase        string // The synthesis phase (e.g., "agents", "skills", "dependencies")
 	ResourceType string // Optional: the type of resource being synthesized
 	ResourceName string // Optional: the name of the resource
 	Message      string // Human-readable error message
@@ -374,7 +374,7 @@ func (e *SynthesisError) Is(target error) bool {
 // NewSynthesisError creates a new synthesis error for a phase.
 //
 // Parameters:
-//   - phase: the synthesis phase that failed (e.g., "agents", "workflows")
+//   - phase: the synthesis phase that failed (e.g., "agents", "skills")
 //   - message: human-readable error message
 func NewSynthesisError(phase, message string) *SynthesisError {
 	return &SynthesisError{
@@ -402,7 +402,7 @@ func NewSynthesisErrorWithCause(phase, message string, err error) *SynthesisErro
 //
 // Parameters:
 //   - phase: the synthesis phase that failed
-//   - resourceType: the type of resource (e.g., "Agent", "Workflow")
+//   - resourceType: the type of resource (e.g., "Agent", "Skill")
 //   - resourceName: the name of the resource
 //   - message: human-readable error message
 //   - err: underlying error
