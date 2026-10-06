@@ -5,7 +5,7 @@
  * reader (the runner, history, billing, recover) reads that answer.
  *
  * Three layers, most specific first (RunConfig's contract in
- * agentexecution/v1/invocation.proto):
+ * agentrun/v1/invocation.proto):
  *   1. the turn's own: spec.run_config, which on an edition lane is
  *      replaced by the surface's saved settings (a visitor's own are never
  *      read);

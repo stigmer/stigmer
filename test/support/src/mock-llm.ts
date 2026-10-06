@@ -1,8 +1,8 @@
 // A long-lived, programmable mock LLM proxy for the execution suites.
 // Domain: test support (model fakes).
 //
-// An AgentExecution runs a real LLM loop in the runner, so unlike the data-only
-// WorkflowExecution fixtures it cannot be driven offline by jq alone. This mock
+// An AgentRun runs a real LLM loop in the runner, so unlike the data-only
+// WorkflowRun fixtures it cannot be driven offline by jq alone. This mock
 // stands in for the upstream provider: the runner is pointed at it via
 // STIGMER_PROXY_ENDPOINT (a base-URL override, NOT a "mock" model name), and it
 // replays canned Anthropic responses as Server-Sent Events that the runner's
@@ -41,7 +41,7 @@
 // signature this mock owns.
 //
 // The `delayMs` knob holds a response open, keeping an execution IN_PROGRESS for
-// a controllable window — the AgentExecution analogue of the WorkflowExecution
+// a controllable window — the AgentRun analogue of the WorkflowRun
 // `wait` timer, and the lever for cancel/terminate/pause/resume on a genuinely
 // running execution. A held response must tolerate the client aborting the call
 // (cancel/terminate close the socket mid-delay), so the handler no-ops cleanly
@@ -288,8 +288,8 @@ export class MockLlmProxy {
   }
 
   // Append a turn that responds with an HTTP error instead of a body — the
-  // lever for driving an execution to EXECUTION_FAILED deterministically. Lands now
-  // to keep the deferred AgentExecution-recover end-to-end slice cheap to add later
+  // lever for driving an execution to RUN_FAILED deterministically. Lands now
+  // to keep the deferred AgentRun-recover end-to-end slice cheap to add later
   // (that slice is blocked on the recovery-mechanism redesign).
   //
   // Status choice matters: the runner's agent loop wraps the LLM call in
@@ -302,7 +302,7 @@ export class MockLlmProxy {
   // SDK's own retries, not LangChain's — so an arm that scripts a 5xx (the
   // platform-capacity 503 the attribution suite carries) budgets for it. The
   // deep-agent activity runs with MaximumAttempts:1, so the first thrown error
-  // becomes a terminal EXECUTION_FAILED with no Temporal retry.
+  // becomes a terminal RUN_FAILED with no Temporal retry.
   //
   // `headers` and `body` let an arm script the provider's failure byte-exact —
   // the raw Anthropic billing envelope, the platform's capacity rewrite — so the

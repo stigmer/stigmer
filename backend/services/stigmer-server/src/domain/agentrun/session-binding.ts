@@ -3,7 +3,7 @@
  * the two steps that hold the binding on every write path.
  *
  * ValidateSessionOrganization (create, stigmer/stigmer#1580). The run gate
- * admits a turn by the session (`can_create_execution_in`), never by
+ * admits a turn by the session (`can_create_run_in`), never by
  * `metadata.org`, and create is `is_skip_authorization`; without this step
  * a caller who may add turns to a session could file one under any
  * organization string it sends, and the execution's organization tuple and

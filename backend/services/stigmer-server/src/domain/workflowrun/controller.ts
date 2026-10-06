@@ -1,5 +1,5 @@
 /**
- * WorkflowExecution controller — ports pkg/domain/workflowexecution/
+ * WorkflowRun controller — ports pkg/domain/workflowexecution/
  * controller (command + query sides): the workflow-run record surface.
  * One Go controller implements both services; this module mirrors that
  * with one deps object and one registration function.

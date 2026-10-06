@@ -1,6 +1,6 @@
 /**
  * Authors the PERSISTED approval-event stream
- * (AgentExecutionStatus.approval_event_stream) — ports approval/author.go.
+ * (AgentRunStatus.approval_event_stream) — ports approval/author.go.
  *
  * Two commands, one writer per event type:
  *   - ensureApprovalRequests authors REQUESTED events (the UpdateStatus

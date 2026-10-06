@@ -244,7 +244,7 @@ describe("sub-agent row badges (MessageThread integration)", () => {
       content: "Delegating.",
       toolCalls: [
         create(ToolCallSchema, {
-          id: "sa-1", // matches the SubAgentExecution id
+          id: "sa-1", // matches the SubAgentRun id
           name: "task",
           status: ToolCallStatus.TOOL_CALL_COMPLETED,
         }),

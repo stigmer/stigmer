@@ -28,7 +28,7 @@ export interface WorkflowArtifactsTabProps {
  * Artifacts facet for the workflow run panel (a
  * `useWorkflowRunRailViews` rail view): a VS Code-style dense list of
  * the run's outputs across ALL tasks (data/http/llm/agent — the
- * server aggregates via `listByExecution`), one row per artifact.
+ * server aggregates via `listByRun`), one row per artifact.
  *
  * Clicking a row opens the artifact as an editor-pane document
  * (`WorkflowArtifactDocument`); the hover Download mints a fresh URL. Rows

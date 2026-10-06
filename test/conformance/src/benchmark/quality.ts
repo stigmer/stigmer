@@ -1,7 +1,7 @@
 // The judge of a quality task: hands a composed subject (subject.ts) to the
 // platform's own `eval` task in a set_vars -> eval workflow
 // (support/workflows.ts makeEvalWorkflow), and reads its verdict off the
-// terminal WorkflowExecution.
+// terminal WorkflowRun.
 // Domain: conformance benchmark (the quality cells' grade).
 //
 // The judge is a pinned model in EVAL_MULTI_CRITERIA mode: it scores each of

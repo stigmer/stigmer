@@ -1,11 +1,11 @@
 // Enum-agnostic execution polling core.
 // Domain: conformance support (execution engine).
 //
-// Both execution domains (WorkflowExecution, AgentExecution) are *running things*
+// Both execution domains (WorkflowRun, AgentRun) are *running things*
 // whose phase advances asynchronously, so their suites must poll-don't-sleep:
 // fetch the resource on an interval until a phase is observed, never block on a
 // fixed timer. The rhythm is identical across domains; only two things genuinely
-// differ — each owns a distinct proto `ExecutionPhase` enum and a distinct `get`
+// differ — each owns a distinct proto `RunPhase` enum and a distinct `get`
 // client. This core captures the shared rhythm parameterized on exactly those
 // two, so the per-domain modules (workflowexecutions.ts / agentexecutions.ts) add
 // only typed builders, phase constants, and a diagnostic renderer over it.

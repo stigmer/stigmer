@@ -1,7 +1,7 @@
-// Canonical WorkflowExecution fixtures + execution polling helpers.
+// Canonical WorkflowRun fixtures + execution polling helpers.
 // Domain: conformance support (execution engine).
 //
-// A WorkflowExecution is created against a Workflow's wfl_ id; the server pins
+// A WorkflowRun is created against a Workflow's wfl_ id; the server pins
 // the workflow's current version and dispatches to the runner. Unlike the
 // flat CRUD resources, an execution is a *running thing* — so this module also
 // owns the poll-don't-sleep helpers the execution suites use to await a phase,
@@ -37,7 +37,7 @@ export interface WorkflowExecutionOptions {
   runtimeEnv?: Record<string, ExecutionValueInit>;
 }
 
-// A complete, valid WorkflowExecution create request. execution_target is left
+// A complete, valid WorkflowRun create request. execution_target is left
 // unset (-> LOCAL -> the stigmer_runner queue).
 export function makeWorkflowExecution(
   opts: WorkflowExecutionOptions,
@@ -75,7 +75,7 @@ export interface PollOptions extends PollCoreOptions {
 // Polls get() until `predicate` holds, returning the matching execution.
 // Throws with the last observed phase on timeout (never sleeps blindly).
 // Delegates the timing loop to the shared, enum-agnostic core; this module owns
-// only the WorkflowExecution-typed getter and the phase rendering.
+// only the WorkflowRun-typed getter and the phase rendering.
 export function pollExecution(
   clients: ConformanceClients,
   executionId: string,

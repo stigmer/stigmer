@@ -7,7 +7,7 @@
  * artifacts are write-once and never garbage-collected.
  *
  * Wiring mirrors Go's: the store and skill artifact storage are required;
- * execution artifact storage (pushFromExecutionArtifact) and the transfer
+ * execution artifact storage (pushFromRunArtifact) and the transfer
  * lane (createArtifactUploadUrl / getArtifactDownloadUrl / push-by-ref)
  * are OPTIONAL modeled states — Go injects them via setters, here they are
  * optional deps; every absent-surface answer is a deliberate arm, not an
@@ -159,7 +159,7 @@ export interface SkillControllerDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly artifactStorage: SkillArtifactStorage;
   /**
-   * Execution artifact storage for pushFromExecutionArtifact (Go
+   * Execution artifact storage for pushFromRunArtifact (Go
    * SetExecutionArtifactStorage). Optional — absent answers Internal
    * "execution artifact storage not configured".
    */
@@ -209,7 +209,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * pipeline's message type is the request, so the resource rides SKILL_KEY.
  *
  * `method` is the AUTHORIZING descriptor, passed by the caller because two
- * RPCs run this pipeline: push itself and pushFromExecutionArtifact (which
+ * RPCs run this pipeline: push itself and pushFromRunArtifact (which
  * delegates here after its artifact download). Each authorizes under its
  * OWN annotation — a hardcoded method.push would silently evaluate the
  * wrong config the day the two annotations diverge (the runLifecyclePipeline

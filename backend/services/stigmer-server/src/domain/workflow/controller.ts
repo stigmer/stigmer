@@ -10,14 +10,14 @@
  * single-holder (oss#341). Every version step is the shared machinery,
  * bound in version-resolution.ts. Who observes the workflow's runs is
  * `spec.execution_visibility`, set at create and changed only by
- * updateExecutionVisibility (execution-visibility.ts).
+ * updateRunVisibility (run-visibility.ts).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by workflow.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/.
  *
  * Every chain opens with Authorize; create, delete, updateVisibility and
- * updateExecutionVisibility run the shared tuple-lifecycle steps against
+ * updateRunVisibility run the shared tuple-lifecycle steps against
  * the composed lifecycle;
  * getByReference and listVersions authorize the resolved workflow as `get`
  * would. getVersion evaluates its annotation through authorizeDirect;
@@ -200,7 +200,7 @@ export function registerWorkflowServices(
     update: (workflow, ctx) => update(deps, workflow, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     updateRunVisibility: (input, ctx) =>
-      updateExecutionVisibility(deps, input, ctx),
+      updateRunVisibility(deps, input, ctx),
     delete: (id, ctx) => deleteWorkflow(deps, id, ctx),
     // validateSpec deliberately evaluates NO authorization despite its
     // can_create_workflow annotation: nothing is loaded or persisted, and
@@ -618,7 +618,7 @@ function newIndexWorkflowAfterVisibilityUpdateStep(
 }
 
 // ---------------------------------------------------------------------------
-// updateExecutionVisibility — who observes the workflow's runs: a targeted
+// updateRunVisibility — who observes the workflow's runs: a targeted
 // spec update (only spec.execution_visibility changes) and the one door
 // that changes it after create. can_manage_audience is the owner's, never
 // an editor's. Open source authorizes run reads from the row itself, so
@@ -630,7 +630,7 @@ function newIndexWorkflowAfterVisibilityUpdateStep(
 type UpdateExecutionVisibilityDesc =
   typeof WorkflowCommandController.method.updateRunVisibility.input;
 
-async function updateExecutionVisibility(
+async function updateRunVisibility(
   deps: WorkflowControllerDeps,
   input: UpdateWorkflowRunVisibilityInput,
   ctx: HandlerContext,

@@ -1,5 +1,5 @@
 /**
- * AgentExecution usage reports — ports usage_aggregation.go plus the four
+ * AgentRun usage reports — ports usage_aggregation.go plus the four
  * report pipelines (get_execution_usage_report.go,
  * get_session_usage_report.go, get_agent_usage_report.go,
  * get_org_usage_report.go) and the dashboard summary
@@ -118,7 +118,7 @@ export function mergeModelBreakdowns(): ModelUsage[] {
 }
 
 /**
- * Projects a full AgentExecution into the lightweight per-execution
+ * Projects a full AgentRun into the lightweight per-execution
  * summary (Go buildExecutionSummary). Token/cost fields stay zero.
  */
 export function buildExecutionSummary(
@@ -402,7 +402,7 @@ async function resolveAgentNameFromStore(
 }
 
 // ---------------------------------------------------------------------------
-// getExecutionUsageReport — the ONE report that 404s.
+// getRunUsageReport — the ONE report that 404s.
 // Chain per Go: ValidateExecutionUsageReport → LoadExecution →
 // BuildExecutionUsageReport.
 // ---------------------------------------------------------------------------
@@ -786,7 +786,7 @@ function requireReport<T>(value: unknown, message: string): T {
 }
 
 // ---------------------------------------------------------------------------
-// getExecutionSummary — the dashboard aggregate (get_execution_summary.go,
+// getRunSummary — the dashboard aggregate (get_execution_summary.go,
 // a direct handler in Go as well — no pipeline). Cost is deliberately
 // absent from this shape (AD-DASH-005: the dashboard sources cost from
 // getOrgUsageReport to prevent double-counting).

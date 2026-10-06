@@ -7,7 +7,7 @@
  * making *progress*: a turn that wedges inside the harness stream loop (a tool
  * call that never returns, a model connection that silently dies) keeps
  * heartbeating forever and never times out. The execution then sits at
- * EXECUTION_IN_PROGRESS indefinitely.
+ * RUN_IN_PROGRESS indefinitely.
  *
  * This watchdog closes that gap. It is an *out-of-band* timer: callers report
  * progress via {@link StallWatchdog.recordActivity} on every stream event AND

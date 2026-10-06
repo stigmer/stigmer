@@ -20,7 +20,7 @@
  * rather than leaving a hole; the tuple source never loads a row for it
  * and the list scope never lists it.
  *
- * The derived rules: on the workflow, `execution_viewer`, which its
+ * The derived rules: on the workflow, `run_viewer`, which its
  * execution visibility decides (execution-viewer.ts); on the organization, `parent_org` and
  * `child_org`, which a child's `spec.parent_org` decides
  * (child-organizations.ts).

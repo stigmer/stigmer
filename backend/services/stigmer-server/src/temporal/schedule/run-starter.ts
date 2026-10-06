@@ -1,6 +1,6 @@
 /**
  * The RunStarter — ports pkg/domain/schedule/temporal/runstarter.go: turns
- * one schedule fire into one AgentExecution through the in-process gRPC
+ * one schedule fire into one AgentRun through the in-process gRPC
  * client, so the FULL create pipeline runs (session auto-create, execution
  * context, persist, workflow start). Where the cloud starter mints a
  * schedule token and re-enters the pipeline behind FGA gates, OSS has no

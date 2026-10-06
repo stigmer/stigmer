@@ -1,7 +1,7 @@
 /**
  * ReconcileFileChangeProgress — ports filereview/progress.go: the
  * defense-in-depth clear for the transient
- * AgentExecutionStatus.file_change_progress field (mid-run live capture).
+ * AgentRunStatus.file_change_progress field (mid-run live capture).
  *
  * Progress is a runner-owned, latest-snapshot DISPLAY field (the
  * file-review analogue of setup_progress), NOT part of the append-only

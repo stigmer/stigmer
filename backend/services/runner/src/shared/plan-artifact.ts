@@ -3,7 +3,7 @@
  *
  * When an execution runs in Plan mode (InteractionMode.PLAN), the agent's final
  * message IS the plan. We publish that text as a first-class plan markdown
- * ExecutionArtifact so the UI can render a reviewable Plan card with
+ * RunArtifact so the UI can render a reviewable Plan card with
  * copy/download, and a follow-up "Implement" execution can reference it
  * deterministically.
  *
@@ -195,7 +195,7 @@ export function extractFinalPlanText(status: AgentRunStatus): string | undefined
 }
 
 /**
- * Publishes `planText` as a plan ExecutionArtifact (named from its title —
+ * Publishes `planText` as a plan RunArtifact (named from its title —
  * see {@link planArtifactName}) and registers it on `status.artifacts`.
  * Idempotent: re-publishing replaces any existing plan artifact — matched by
  * {@link isPlanArtifactName}, not exact name, so a re-plan whose title changed

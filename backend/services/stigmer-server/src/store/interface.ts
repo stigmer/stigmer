@@ -86,7 +86,7 @@ export interface WorkflowExecutionEventRecord {
   readonly sequenceNumber: number;
   readonly eventType: string;
   readonly taskName: string;
-  /** protobuf-serialized WorkflowExecutionEvent. */
+  /** protobuf-serialized WorkflowRunEvent. */
   readonly data: Uint8Array;
   readonly createdAt: string;
 }

@@ -4,7 +4,7 @@
  * the schemas that wrote them no longer exist — a WorkflowInstance row
  * (api_version 1, kind 2, metadata 3, spec 4 { workflow_id 1,
  * description 2, environment_refs 3, execution_visibility 4 }, status 5),
- * a WorkflowExecution row whose spec carries the retired
+ * a WorkflowRun row whose spec carries the retired
  * workflow_instance_id (field 1) and callback_token (field 7), and a
  * Workflow row whose status carries the retired default_instance_id
  * (field 1). Shared by the module's unit test, the frozen-envelope test
@@ -35,7 +35,7 @@ export function retiredWorkflowInstanceRow(options: {
   readonly environmentRefs?: ReadonlyArray<
     MessageInitShape<typeof ApiResourceReferenceSchema>
   >;
-  /** The retired WorkflowExecutionVisibility number; 0 is not written. */
+  /** The retired WorkflowRunVisibility number; 0 is not written. */
   readonly executionVisibility?: number;
 }): Uint8Array {
   const spec = new BinaryWriter();
@@ -79,7 +79,7 @@ export function retiredWorkflowInstanceRow(options: {
 }
 
 /**
- * A WorkflowExecution row as an earlier release stored it: the retired
+ * A WorkflowRun row as an earlier release stored it: the retired
  * instance id written ahead of the given spec as field 1 (omitted when
  * empty, as proto3 omits an empty string), the retired callback token
  * after it as field 7 (when given), and the status it carried.

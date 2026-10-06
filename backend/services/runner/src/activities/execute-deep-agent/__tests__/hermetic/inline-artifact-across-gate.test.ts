@@ -7,7 +7,7 @@
  * Turn 1: the model writes a report (`write_file`; under capture mode in a
  * non-git session workspace the write FLOWS into the CAS ledger), and
  * `streaming-side-effects.ts` hands the path to `InlinePublisher`, which
- * uploads the bytes to artifact storage and appends an `ExecutionArtifact`
+ * uploads the bytes to artifact storage and appends an `RunArtifact`
  * (`storageKey = artifacts/<executionId>/<name>`, a content hash, the
  * scripted clock) to the status — a mid-turn publish the Cursor harness never
  * performs. The model then proposes a gated `execute`; WAITING_FOR_APPROVAL.

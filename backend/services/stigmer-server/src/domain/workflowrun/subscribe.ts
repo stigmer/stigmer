@@ -1,7 +1,7 @@
 /**
  * Subscribe — ports controller/subscribe.go: the real-time
  * workflow-execution stream (the broker's read path), streaming full
- * WorkflowExecution snapshots. The generator shape follows the sibling
+ * WorkflowRun snapshots. The generator shape follows the sibling
  * agentexecution subscribe (itself derived from transport/health.ts
  * watch); every delivery rule ports verbatim:
  *

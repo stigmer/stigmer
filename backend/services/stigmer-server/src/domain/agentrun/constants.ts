@@ -1,5 +1,5 @@
 /**
- * AgentExecution byte-pinned wire copy — every string a client can observe
+ * AgentRun byte-pinned wire copy — every string a client can observe
  * from this domain, copied character-for-character from the Go controller
  * (pkg/domain/agentexecution/controller). Coexistence rule: the Go server
  * is the behavioral reference; do not "improve" copy here (guidelines §2).
@@ -7,7 +7,7 @@
 
 /**
  * create's engine-gate refusal (create.go engineUnavailableMessage) —
- * kept identical across AgentExecution and WorkflowExecution so both
+ * kept identical across AgentRun and WorkflowRun so both
  * domains present one symmetric create-boundary contract. Pinned by the
  * conformance engine-gate tests (agentrun.conformance.test.ts).
  */
@@ -18,7 +18,7 @@ export const ENGINE_UNAVAILABLE_MESSAGE =
  * The run gate's deny copy per request shape (wire copy, asserted by the
  * conformance run-gate suite). NEW copy quotes the handle single-quoted
  * (the rule since 2026-08-26).
- * An AgentExecution is a RUN in the ubiquitous language, hence "run";
+ * An AgentRun is a RUN in the ubiquitous language, hence "run";
  * a turn added to an existing conversation is "an execution in a session",
  * the session's own permission.
  */

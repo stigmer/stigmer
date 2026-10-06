@@ -3,7 +3,7 @@
  *
  * All harnesses expose an agent to-do tool — the Cursor SDK emits `TodoWrite`
  * (legacy) / `updateTodos` (current), the native deepagents harness emits
- * `write_todos` — and each writes the SAME `AgentExecutionStatus.todos` proto
+ * `write_todos` — and each writes the SAME `AgentRunStatus.todos` proto
  * map that the clients (React `TodoCard`, CLI) render. This module is the single
  * place that maps a raw tool payload into that map, so the one transcript builder
  * (`harness/transcript/builder.ts`, both harnesses since #1097) has one mapping.

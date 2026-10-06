@@ -1,13 +1,13 @@
 /**
  * Local activities for surfacing child agent HITL approval state
- * on the parent WorkflowExecution.
+ * on the parent WorkflowRun.
  *
  * These run as Temporal local activities (proxyLocalActivities) with
  * short timeouts. Failures are best-effort — they update the platform
  * UI but do not block the workflow.
  *
  * - UpdateWorkflowTaskApprovalStatus: sets pending_approvals on the
- *   WorkflowExecution when a child agent enters a tool-approval gate.
+ *   WorkflowRun when a child agent enters a tool-approval gate.
  * - ClearWorkflowApprovalStatus: clears pending_approvals when the
  *   child agent activity completes (approvals resolved).
  *
@@ -150,7 +150,7 @@ export async function getAwaitingFileReviewChangeSetIds(
 }
 
 /**
- * Queries the child AgentExecution for progress data that can be
+ * Queries the child AgentRun for progress data that can be
  * emitted as an `agent_call_progress` event on the parent workflow.
  *
  * Returns a lightweight summary derived from the agent's status:

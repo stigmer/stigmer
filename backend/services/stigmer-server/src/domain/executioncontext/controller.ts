@@ -32,7 +32,7 @@
  * run id refuses rather than chooses when it meets more than one
  * (contexts-for-execution.ts).
  *
- * Every chain opens with Authorize; create asks can_create_execution_in on
+ * Every chain opens with Authorize; create asks can_create_run_in on
  * the organization (AuthorizeCreate), and create and delete run the shared
  * tuple-lifecycle steps against the composed lifecycle; getByReference
  * loads, then authorizes the loaded context exactly as `get` would
@@ -400,7 +400,7 @@ async function getByReference(
  * GetByExecutionId — the runner's secret-delivery path: the unified TS
  * runner fetches the merged environment variables here before executing
  * an agent or workflow (and during MCP connect discovery). The
- * execution_id corresponds to a WorkflowExecution ID, AgentExecution ID,
+ * execution_id corresponds to a WorkflowRun ID, AgentRun ID,
  * or connect-flow execution id.
  *
  * The response carries DECRYPTED is_secret values only when the caller

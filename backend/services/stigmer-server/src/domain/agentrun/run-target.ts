@@ -5,7 +5,7 @@
  *
  *   1. agentExecutionRunTarget (AuthorizeRunTarget, before anything stored
  *      is read): a turn added to an existing conversation asks the
- *      session's own permission, session#can_create_execution_in. A new
+ *      session's own permission, session#can_create_run_in. A new
  *      conversation asks nothing here: its session create (run as the
  *      caller by CreateSessionIfNeeded) asks can_create_session on the
  *      organization and can_execute on the agent it names.
@@ -16,7 +16,7 @@
  *      through a conversation they still own, and nothing a client sends
  *      reaches the check: BuildNewState cleared status before the stamp.
  *
- * No agent is the built-in assistant (agentexecution/v1/spec.proto): there
+ * No agent is the built-in assistant (agentrun/v1/spec.proto): there
  * is no blueprint to spend, so the second resolver answers no target. Both
  * are pure over the record being built.
  */

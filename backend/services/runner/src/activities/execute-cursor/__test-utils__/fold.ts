@@ -1,6 +1,6 @@
 /**
  * Drive Cursor SDK events through the REAL pair the harness runs in production
- * — `CursorTranslator` into `TranscriptBuilder` over an `AgentExecutionStatus`
+ * — `CursorTranslator` into `TranscriptBuilder` over an `AgentRunStatus`
  * — and hand back what they built. The unit-test seam that replaced
  * `new <accumulator>(messages, options)` in #1097 (the accumulator folded
  * rows itself; now the translator emits events and the shared builder folds

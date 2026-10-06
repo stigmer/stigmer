@@ -1,6 +1,6 @@
 // Conformance suite for sub-agent delegation on an AgentRun: the parent's
 // `task` tool call, the child's own transcript under status.sub_agent_executions,
-// and the field contract of a completed SubAgentExecution.
+// and the field contract of a completed SubAgentRun.
 // Domain: agentic / agentexecution — the delegation surface a console renders
 // as a nested run.
 //

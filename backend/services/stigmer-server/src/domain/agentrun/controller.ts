@@ -1,5 +1,5 @@
 /**
- * AgentExecution controller — ports pkg/domain/agentexecution/controller
+ * AgentRun controller — ports pkg/domain/agentexecution/controller
  * (command + query sides): the deepest domain's request surface. One Go
  * controller implements both services; this module mirrors that with one
  * deps object and one registration function.
@@ -15,7 +15,7 @@
  * handlers — subscribe and the two artifact reads — evaluate their
  * annotation through authorizeDirect; uploadAttachment is authorized at
  * the create its storage key feeds. list, listBySession and
- * getExecutionSummary narrow through the composed list read scope.
+ * getRunSummary narrow through the composed list read scope.
  * Subscribe streams ride the in-memory stream broker; there is
  * no Redis. Per-RPC posture: docs/authorization-coverage.md §16.
  */

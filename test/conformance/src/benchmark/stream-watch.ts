@@ -1,4 +1,4 @@
-// Watches one execution through `AgentExecution.subscribe`, the lane a console
+// Watches one execution through `AgentRun.subscribe`, the lane a console
 // reads a turn on, and stamps on the client's clock the instants the parity
 // work is judged by: when the user first saw something (a root AI or THINKING
 // row with content), when the agent's work was done and offered for review (a

@@ -2,7 +2,7 @@
  * Local activities for emitting workflow execution events.
  *
  * Converts plain event descriptors (safe for the Temporal deterministic
- * sandbox) into WorkflowExecutionEvent proto objects and sends them
+ * sandbox) into WorkflowRunEvent proto objects and sends them
  * alongside a status update via gRPC. Failures propagate so the local
  * activity's retry policy fires — safe because sequence numbers are
  * workflow-assigned (stable across attempts) and the store skips
@@ -97,7 +97,7 @@ const TASK_KIND_MAP: Record<string, number> = {
 
 /**
  * Maps DSL task kind strings to the runtime WorkflowTaskType enum
- * for the per-task status snapshot on WorkflowExecutionStatus.tasks[].
+ * for the per-task status snapshot on WorkflowRunStatus.tasks[].
  */
 const TASK_KIND_TO_TYPE_MAP: Record<string, WorkflowTaskType> = {
   "call:agent": WorkflowTaskType.WORKFLOW_TASK_AGENT_INVOCATION,
@@ -492,7 +492,7 @@ function structToPlain(value: JsonObject | undefined): unknown {
 /**
  * Loads recovery context data from the previous run's status snapshot.
  *
- * Fetches the WorkflowExecution and extracts status.tasks[] as plain
+ * Fetches the WorkflowRun and extracts status.tasks[] as plain
  * serializable objects. The workflow sandbox builds the RecoveryContext
  * from this data via buildRecoveryContext().
  *

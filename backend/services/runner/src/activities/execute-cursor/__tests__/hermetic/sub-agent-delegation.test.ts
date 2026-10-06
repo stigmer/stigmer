@@ -5,7 +5,7 @@
  *
  * Invariant pinned: the translator opens a sub-agent for every
  * `tool_call` named `task` (`sub_agent_started` before the row's own start) as
- * well as writing the row to the root transcript. The `running` event opens a `SubAgentExecution` keyed by the
+ * well as writing the row to the root transcript. The `running` event opens a `SubAgentRun` keyed by the
  * task call id (`name` from `subagentType`, `subject` from `description`,
  * `input` from `prompt`, IN_PROGRESS); the `completed` event closes it
  * COMPLETED with `output` (the stringified result) and rebuilds its transcript

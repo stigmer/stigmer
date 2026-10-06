@@ -22,7 +22,7 @@ Handles two parallel apply paths:
    it through the kind's `apply` RPC.
 
 2. **Skill packages** (directory artifacts): `pushSkillPackage(params)`
-   delegates to the server-side `pushFromExecutionArtifact` RPC.
+   delegates to the server-side `pushFromRunArtifact` RPC.
 
 Follows the established mutation hook pattern: `isApplying` + `error` +
 `clearError`. The result is returned from the promise (not stored in
@@ -43,7 +43,7 @@ function useApplyResource(): UseApplyResourceReturn
     clearError: { type: "() => void", description: "Clear the error state (e.g., when the user dismisses an error message)." },
     error: { type: "Error | null", description: "Error from the last failed operation, or `null` when healthy." },
     isApplying: { type: "boolean", description: "`true` while an apply or push operation is in-flight." },
-    pushSkillPackage: { type: "(params: PushSkillParams) => Promise<ApplyResourceResult>", description: "Push a skill package from a run artifact to an organization.  Uses the server-side `pushFromExecutionArtifact` RPC — the server reads the ZIP from run storage and pushes it as a skill. No ZIP download reaches the browser." },
+    pushSkillPackage: { type: "(params: PushSkillParams) => Promise<ApplyResourceResult>", description: "Push a skill package from a run artifact to an organization.  Uses the server-side `pushFromRunArtifact` RPC — the server reads the ZIP from run storage and pushes it as a skill. No ZIP download reaches the browser." },
   }}
 />
 
@@ -721,7 +721,7 @@ simple `if (result.detected)` check.
 Skill detection is a **parallel** path to YAML resource detection:
 
 - **YAML detection** (`detectStigmerResource`): Agents, MCP Servers — applied via `apply()`
-- **Package detection** (`detectSkillPackage`): Skill packages (directory with SKILL.md) — pushed via `pushFromExecutionArtifact()`
+- **Package detection** (`detectSkillPackage`): Skill packages (directory with SKILL.md) — pushed via `pushFromRunArtifact()`
 
 
 ### StigmerResourceDetection

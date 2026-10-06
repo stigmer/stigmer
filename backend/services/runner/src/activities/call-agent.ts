@@ -1,5 +1,5 @@
 /**
- * CallAgent Temporal activity — creates a Stigmer AgentExecution via
+ * CallAgent Temporal activity — creates a Stigmer AgentRun via
  * the platform gRPC API and uses Temporal async completion.
  *
  * Flow:
@@ -10,7 +10,7 @@
  * 4. Apply the Session on the agent's reference (idempotent get-or-create
  *    by name); the server pins the agent's current version on create and
  *    keeps that pin when a retry re-applies the same reference
- * 5. Create the AgentExecution in that session, linked to the workflow run
+ * 5. Create the AgentRun in that session, linked to the workflow run
  *    by `parent` (workflow execution id, the workflow to signal, the task
  *    token), carrying the step's settings as the turn's request
  *    (`spec.run_config`, never an approval mode) and its output schema

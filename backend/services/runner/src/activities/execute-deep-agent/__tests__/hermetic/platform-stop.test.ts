@@ -1,6 +1,6 @@
 /**
  * Hermetic golden: the PLATFORM STOP — the control plane answers a mid-stream
- * persist with `ExecutionControlSignal.STOP`.
+ * persist with `RunControlSignal.STOP`.
  *
  * What the arm does: the record's `controlSignal` answers STOP on the first
  * full write that carries a tool row (the tool-call boundary forces that

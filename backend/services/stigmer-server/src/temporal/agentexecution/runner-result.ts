@@ -36,7 +36,7 @@ export function getPhaseFromResult(
     // Proto-JSON uses string enum names; the generated TS enum keys ARE
     // the proto value names, so this lookup is Go's ExecutionPhase_value
     // map exactly. A result recorded before the run rename names the
-    // phase by its retired name (EXECUTION_COMPLETED), which replays here.
+    // phase by its retired name (RUN_COMPLETED), which replays here.
     const value = (RunPhase as Record<string, unknown>)[currentRunEnumValueName(phase)];
     if (typeof value === "number") {
       return value as RunPhase;

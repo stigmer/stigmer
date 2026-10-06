@@ -1,6 +1,6 @@
 /**
  * SubmitFileDecision — ports submit_file_decision.go: forwards a
- * file-review keep/discard decision to the child AgentExecution whose
+ * file-review keep/discard decision to the child AgentRun whose
  * gate is surfaced on this workflow via status.pending_file_reviews. The
  * (child, change_set_id) pair must be surfaced on the parent — a caller
  * can never decide on a gate the workflow has not surfaced.

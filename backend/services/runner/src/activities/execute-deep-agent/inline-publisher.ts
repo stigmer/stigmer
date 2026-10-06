@@ -115,7 +115,7 @@ export class InlinePublisher {
       // CAS capture gate and the transcript args scrub: under the global bypass
       // (spec.auto_approve_all) a secret write is not blocked up front, so it
       // would otherwise be uploaded here (keyed by basename) and registered as an
-      // ExecutionArtifact. Fail-closed and unconditional — the same name-based
+      // RunArtifact. Fail-closed and unconditional — the same name-based
       // gate the capture path uses, so the decision has one source of truth.
       if (isSecretLikePath(sandboxPath)) {
         console.log(

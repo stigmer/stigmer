@@ -4,7 +4,7 @@
 // A turn that edits files in a git workspace does not gate per tool call: the
 // runner captures the whole delta at the turn boundary and the server projects
 // it onto status.file_change_sets as a FileChangeSet AWAITING_REVIEW while the
-// execution sits in EXECUTION_WAITING_FOR_APPROVAL with ZERO pending_approvals
+// execution sits in RUN_WAITING_FOR_APPROVAL with ZERO pending_approvals
 // (the two gates are siblings, not one). Decisions go through
 // submitFileDecision at FILE or CHANGE_SET scope, bound to the digest the
 // reviewer saw; the runner reconciles the approved bytes and the ledger records

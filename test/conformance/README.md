@@ -41,7 +41,7 @@ Covered against the `local` target:
   stays as defence in depth, pinned by the runner's unit tests. A run names
   its workflow alone, and the workflow carries its runs' audience
   (`spec.execution_visibility`: who may observe them, changed only through
-  `updateExecutionVisibility` by the owner, and the one field outside the
+  `updateRunVisibility` by the owner, and the one field outside the
   version); a version covers everything else a run reads, a step's
   `environment_refs` and the declared keys included. An `agent_call` step's
   name is unique across the whole workflow.

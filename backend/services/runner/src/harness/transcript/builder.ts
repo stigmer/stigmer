@@ -1,6 +1,6 @@
 /**
  * TranscriptBuilder — folds `TranscriptEvent`s into the transcript half of
- * the AgentExecutionStatus proto it is handed: messages, tool-call rows and
+ * the AgentRunStatus proto it is handed: messages, tool-call rows and
  * their approval status, sub-agent rows, todos, artifacts, write-backs.
  *
  * The one transcript builder, for every harness (#1097). It

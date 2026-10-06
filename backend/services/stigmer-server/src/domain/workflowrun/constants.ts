@@ -1,5 +1,5 @@
 /**
- * WorkflowExecution byte-pinned wire copy and identifiers — every string a
+ * WorkflowRun byte-pinned wire copy and identifiers — every string a
  * client or the Temporal wire can observe from this domain, copied
  * character-for-character from the Go controller
  * (pkg/domain/workflowexecution/controller). Coexistence rule: the Go
@@ -9,7 +9,7 @@
 
 /**
  * create's engine-gate refusal (create.go engineUnavailableMessage) —
- * deliberately identical across AgentExecution and WorkflowExecution so
+ * deliberately identical across AgentRun and WorkflowRun so
  * both domains present one symmetric create-boundary contract. Pinned by
  * the Class A conformance engine-gate test.
  */

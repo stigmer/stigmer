@@ -1,5 +1,5 @@
 /**
- * Pins a workflow's run audience outside the wire (execution-visibility.ts)
+ * Pins a workflow's run audience outside the wire (run-visibility.ts)
  * and its place outside the version (steps.ts `workflowVersionHash`):
  *   - the version hash ignores the run audience and nothing else: two
  *     specs that differ only in it hash the same, a declared-env edit moves

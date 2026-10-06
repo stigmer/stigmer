@@ -14,7 +14,7 @@
  * 2. Register the name in shared/tool-kind.ts `TOOL_NAME_TO_KIND` and its
  *    lockstep mirrors (test/fixtures/tool-view/classification.json, the SDK
  *    fallback resolver), and extend the ToolKind enum comment in
- *    agentexecution/v1/enum.proto with a `Native:` clause.
+ *    agentrun/v1/enum.proto with a `Native:` clause.
  * 3. Name the primary argument to match the SDK's presentation `primaryField`
  *    for the tool's kind (sdk/react tool-categories.ts) so both harnesses
  *    render identically.

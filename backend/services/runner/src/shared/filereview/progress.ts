@@ -1,6 +1,6 @@
 /**
  * Mid-run live capture — the harness-agnostic glue that turns a per-turn
- * workspace delta into the transient `AgentExecutionStatus.file_change_progress`
+ * workspace delta into the transient `AgentRunStatus.file_change_progress`
  * snapshot the "N files changed so far" strip renders.
  *
  * THE MODEL

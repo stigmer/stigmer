@@ -577,7 +577,7 @@ export type FailureSurface = "engine" | "actionable" | "internal";
  *    stopped its run to gate a call and then found nothing to pause for
  *    (an unattended denial settled as skipped). Not `interrupted`: the
  *    runtime's `stopSignal` never fired. The runtime writes
- *    `EXECUTION_CANCELLED` with no copy and completes the turn.
+ *    `RUN_CANCELLED` with no copy and completes the turn.
  *  - `awaiting_approval`: the engine proposed at least one gated side effect
  *    and stopped. The WAITING_APPROVAL rows are already on the status; the
  *    runtime persists them and returns to the workflow, which reinvokes with

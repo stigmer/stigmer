@@ -42,7 +42,7 @@
  * source has today. `agent_execution.can_edit` derives from the SESSION's
  * owner, not the execution's stamp, so the person this verifier admits
  * must be the session's owner for the runner to report at all. They
- * coincide because a session's `can_create_execution_in` is its viewers,
+ * coincide because a session's `can_create_run_in` is its viewers,
  * and in open source a session has no viewer but its owner: the contract
  * lists `viewer` as grantable on a session, but open source's grant scope
  * is organization-only (domain/iampolicy/grant-scope.ts) and the session

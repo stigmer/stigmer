@@ -118,7 +118,7 @@ export interface TurnBoundaryResult {
    * (issue #205): a foreign hook the set-aside missed — or our own hook with
    * a failed ledger append — denied them, and Stigmer cannot approve on its
    * behalf. When the turn is not otherwise pausing, the caller must surface an
-   * explicit EXECUTION_FAILED instead of completing with the work silently
+   * explicit RUN_FAILED instead of completing with the work silently
    * undone (a pausing turn is not silent — the caller logs and pauses as usual).
    */
   readonly unattributedHookBlocks: readonly UnattributedHookBlock[];

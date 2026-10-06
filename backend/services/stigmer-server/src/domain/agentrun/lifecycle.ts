@@ -795,7 +795,7 @@ function runRecoverPipeline(
  * deleted the EC, so a fresh start would hydrate with an empty
  * environment. Re-resolving from CURRENT configuration is the point
  * ("fix the API key, then recover"). DELIBERATE divergence from
- * WorkflowExecution's graceful recreate: a failure here FAILS the
+ * WorkflowRun's graceful recreate: a failure here FAILS the
  * recover RPC — the agent EC carries OAuth tokens and declared env vars
  * the run genuinely needs; the execution stays FAILED and recover can be
  * retried. Stale-EC delete first (best-effort): the failure-path cleanup

@@ -1,8 +1,8 @@
 // Conformance suite for the settings a turn runs with (Class B).
 // Domain: agentic / agentexecution — status.run_config and status.approval_mode.
 //
-// The contract under test (RunConfig in agentexecution/v1/invocation.proto,
-// AgentExecutionStatus.run_config and approval_mode in api.proto): the server
+// The contract under test (RunConfig in agentrun/v1/invocation.proto,
+// AgentRunStatus.run_config and approval_mode in api.proto): the server
 // resolves a turn's settings once, at create, from the message
 // (spec.run_config), the defaults of the agent version the turn runs
 // (AgentSpec.run_config, on the engine AgentSpec.harness names) and the lane's

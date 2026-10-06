@@ -1,7 +1,7 @@
-// Canonical AgentExecution fixtures + execution polling helpers.
+// Canonical AgentRun fixtures + execution polling helpers.
 // Domain: conformance support (execution engine).
 //
-// An AgentExecution is one user message and the agent's response (a turn),
+// An AgentRun is one user message and the agent's response (a turn),
 // run through the engine (Temporal orchestrator + TS runner + a mock LLM). It
 // names its conversation through the spec's `target` oneof: an existing
 // session (`session_id`), or a new one (`session_spec`, the one-call
@@ -10,7 +10,7 @@
 // agent as a reference (`agentRef`, merged into the new session's spec), so
 // a turn on an agent never names an agent id: the server pins the agent and
 // version on the session and stamps them on the turn's status. Like
-// WorkflowExecution this is a *running thing*, so this module also exposes
+// WorkflowRun this is a *running thing*, so this module also exposes
 // phase-await helpers, delegating the timing loop to the shared poll core
 // so both execution domains share one definition — and the submit-approval
 // seam: the one place the approval read-model contract is
@@ -89,7 +89,7 @@ export interface AgentExecutionOptions {
   workspaceFileRefs?: string[];
 }
 
-// A complete, valid AgentExecution create request. run_config is left unset
+// A complete, valid AgentRun create request. run_config is left unset
 // unless provided, so the only variable inputs are the target, the message,
 // and the optional overrides.
 export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeof AgentRunSchema> {
@@ -152,7 +152,7 @@ export function sessionIdOf(execution: AgentRun | undefined): string {
 
 // Terminal = the engine will never move the phase again. PAUSED is NOT terminal
 // (resume revives it) and WAITING_FOR_APPROVAL is a wait, not an end state.
-// Note the AgentExecution enum numbering diverges from WorkflowExecution:
+// Note the AgentRun enum numbering diverges from WorkflowRun:
 // WAITING_FOR_APPROVAL=6, PAUSED=7, TERMINATED=8.
 const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
   RunPhase.RUN_COMPLETED,
@@ -255,7 +255,7 @@ export function awaitTerminal(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface SubmitApprovalPerContractOptions {
-  // Issues the decision. Resolves to the AgentExecution whose read model the
+  // Issues the decision. Resolves to the AgentRun whose read model the
   // contract is asserted on: the submit response for a direct submit; for the
   // workflow forwarder — whose own response is the PARENT, loaded before the
   // forward — a fresh get of the child.

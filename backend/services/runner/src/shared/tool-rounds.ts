@@ -3,7 +3,7 @@
  * signal that the budget ended a turn. The budget read is the one the turn
  * runs with (`status.run_config`), never the request's own.
  *
- * Implements the proto contract (agentexecution/v1/invocation.proto):
+ * Implements the proto contract (agentrun/v1/invocation.proto):
  *   - 0 / unset = unlimited: no round limit and no recursionLimit, preserving
  *     the run-until-done + loop-detection posture.
  *   - When set, valid range is 10–1000 rounds; out-of-range values are
@@ -91,7 +91,7 @@ function clampToolRounds(requested: number): number {
  * from other TERMINATED causes (Stigmer Cloud's channel reply extractor,
  * which shows channel users a friendly limit message instead of generic
  * error copy) match on this prefix with `startsWith`, because
- * AgentExecutionStatus carries no structured termination reason. Do not
+ * AgentRunStatus carries no structured termination reason. Do not
  * reword without updating them. `COST_LIMIT_ERROR_PREFIX` (`cost-guard.ts`)
  * mirrors it.
  */

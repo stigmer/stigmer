@@ -1,5 +1,5 @@
 /**
- * AgentExecution domain steps — the list-side chains from list.go and
+ * AgentRun domain steps — the list-side chains from list.go and
  * list_by_session.go, plus the full-scan load helper the usage reports
  * share.
  *
@@ -36,7 +36,7 @@ import type { ListIndexRow } from "../../store/list-index.js";
 import { agentExecutionListIndex } from "./list-index.js";
 
 /**
- * Inter-step key for the working page AND the final AgentExecutionList —
+ * Inter-step key for the working page AND the final AgentRunList —
  * Go reuses one key ("execution_list") for both, and the controller reads
  * the final response from it.
  */
@@ -181,7 +181,7 @@ export function newQueryExecutionsBySessionStep(
 
 /**
  * BuildExecutionListResponse — both list files: wraps the page into
- * AgentExecutionList; total_pages is 1 when the response is whole and 0
+ * AgentRunList; total_pages is 1 when the response is whole and 0
  * when a token follows (the contract's "not computed").
  */
 export function newBuildExecutionListResponseStep<

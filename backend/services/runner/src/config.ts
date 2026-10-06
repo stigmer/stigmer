@@ -167,7 +167,7 @@ export interface Config {
    * yet (stigmer/stigmer#1731). If the engine reports no activity for this
    * long, the turn runtime's stall watchdog (harness/run-turn.ts over
    * shared/stall-watchdog.ts) cancels the run and fails the execution with a
-   * StallTimeoutError rather than hanging at EXECUTION_IN_PROGRESS forever.
+   * StallTimeoutError rather than hanging at RUN_IN_PROGRESS forever.
    *
    * Larger than the shared DEFAULT_STALL_TIMEOUT_MS (120s) because opaque MCP /
    * GUI tool calls can legitimately run for minutes while emitting no stream

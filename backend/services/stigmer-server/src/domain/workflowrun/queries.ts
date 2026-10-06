@@ -1,6 +1,6 @@
 /**
  * The workflowexecution read surfaces' shared reads (list,
- * listByWorkflow, getExecutionSummary, listPendingApprovals), all through
+ * listByWorkflow, getRunSummary, listPendingApprovals), all through
  * the list index (list-index.ts beside this file; the store's contract in
  * store/interface.ts) — the request's org or workflow key narrows in the
  * store, newest created first. Malformed rows are skipped rather than

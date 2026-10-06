@@ -64,7 +64,7 @@ export interface UseApplyResourceReturn {
   /**
    * Push a skill package from a run artifact to an organization.
    *
-   * Uses the server-side `pushFromExecutionArtifact` RPC — the server reads
+   * Uses the server-side `pushFromRunArtifact` RPC — the server reads
    * the ZIP from run storage and pushes it as a skill. No ZIP download
    * reaches the browser.
    *
@@ -98,7 +98,7 @@ export interface UseApplyResourceReturn {
  *    it through the kind's `apply` RPC.
  *
  * 2. **Skill packages** (directory artifacts): `pushSkillPackage(params)`
- *    delegates to the server-side `pushFromExecutionArtifact` RPC.
+ *    delegates to the server-side `pushFromRunArtifact` RPC.
  *
  * Follows the established mutation hook pattern: `isApplying` + `error` +
  * `clearError`. The result is returned from the promise (not stored in

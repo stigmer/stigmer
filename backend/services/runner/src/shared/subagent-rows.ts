@@ -5,7 +5,7 @@
  * One function today: marking every non-terminal sub-agent CANCELLED when a
  * turn ends without them (a pause, a shutdown, a stall, a cost cap, an
  * infrastructure cancel), so the final snapshot has no permanent IN_PROGRESS
- * "zombie" delegation. Harness-agnostic (a `SubAgentExecution` is the
+ * "zombie" delegation. Harness-agnostic (a `SubAgentRun` is the
  * platform's row, not an engine's), read by the turn runtime's terminal
  * table and the Cursor settle alike.
  *

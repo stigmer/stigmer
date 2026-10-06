@@ -150,7 +150,7 @@ export interface CallGrpcTaskDef extends TaskBase {
 
 /**
  * Agent call — invokes a Stigmer agent as a workflow task. Uses
- * Temporal async completion: the activity creates an AgentExecution
+ * Temporal async completion: the activity creates an AgentRun
  * with a callback token, then the platform completes the activity
  * when the agent finishes. Separate from generic call:function
  * because it requires workflow-side signal handling for HITL.
@@ -444,7 +444,7 @@ export interface TaskExecutionContext {
    * Best-effort — failures are logged but do not block the workflow.
    *
    * Accepts plain event descriptors (no proto imports needed in the
-   * sandbox). The activity converts them to `WorkflowExecutionEvent`
+   * sandbox). The activity converts them to `WorkflowRunEvent`
    * proto objects before sending.
    */
   readonly emitEvents?: EmitEventsFn;
@@ -713,7 +713,7 @@ export interface TaskBuilder {
 
 /**
  * Invokes a Stigmer agent as an async-completion Temporal activity.
- * The activity creates a Session + AgentExecution with a callback
+ * The activity creates a Session + AgentRun with a callback
  * token. The platform completes the activity when the agent finishes.
  * While pending, the workflow listens for HITL approval signals.
  */
@@ -843,7 +843,7 @@ export interface AgentUsageSummary {
 //
 // Plain-object event descriptors that can be constructed inside the
 // Temporal deterministic sandbox (no proto imports, no I/O). The
-// emit activity converts these to WorkflowExecutionEvent proto
+// emit activity converts these to WorkflowRunEvent proto
 // objects before sending to the server.
 // ─────────────────────────────────────────────────────────────────────
 
@@ -1031,7 +1031,7 @@ export type EmitEventsFn = (events: WorkflowEventDescriptor[]) => Promise<void>;
 
 /**
  * Typed error for agent call failures that preserves the child
- * AgentExecution ID across the error propagation chain.
+ * AgentRun ID across the error propagation chain.
  *
  * The orchestrator throws this when the CallAgent activity fails,
  * carrying the child execution ID that was captured via the

@@ -3,7 +3,7 @@
 // Execution-level file-change rollup for the workflow panel's Changes facet.
 // Domain: workflow (the Changes-facet analog of useWorkflowRunArtifacts).
 //
-// Unlike Artifacts (a server-side aggregate: `artifact.listByExecution`) and
+// Unlike Artifacts (a server-side aggregate: `artifact.listByRun`) and
 // Usage (server-emitted budget checkpoints), file changes have NO parent-level
 // aggregate BY DESIGN: the server keeps diffs single-sourced on each child
 // AgentRun and surfaces only references from the parent (see

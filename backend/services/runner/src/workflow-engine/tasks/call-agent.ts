@@ -2,7 +2,7 @@
  * CallAgent task builder — invokes a Stigmer agent from a workflow.
  *
  * Unlike call:llm (synchronous activity), call:agent uses Temporal
- * async completion: the activity creates an AgentExecution with a
+ * async completion: the activity creates an AgentRun with a
  * callback token and returns pending. The platform completes the
  * activity when the agent finishes. While pending, the workflow
  * listens for `child_approval_required` signals for HITL propagation.

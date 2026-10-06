@@ -185,7 +185,7 @@ async function toProtoRun(
 }
 
 /**
- * Lowers an ExecutionPhase to the reason vocabulary the tick's verdict
+ * Lowers an RunPhase to the reason vocabulary the tick's verdict
  * writer uses ("run X ended failed") — Go executionPhaseWord.
  */
 function executionPhaseWord(phase: RunPhase): string {

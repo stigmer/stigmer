@@ -7,7 +7,7 @@
  * Direct handlers, matching Go: create takes CreateArtifactInput (spec +
  * content bytes — not a HasMetadata resource), delete is a soft
  * storage_state transition rather than the hard-delete pipeline; only
- * get/listByExecution ride pipelines. Proven by
+ * get/listByRun ride pipelines. Proven by
  * artifact.conformance.test.ts (CONFORMANCE_TARGET=local, incl. the
  * file-server lane), __tests__/artifact.test.ts and
  * __tests__/store-faults.test.ts.
@@ -120,7 +120,7 @@ export function registerArtifactServices(
   });
   router.service(ArtifactQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
-    listByRun: (req, ctx) => listByExecution(deps, req, ctx),
+    listByRun: (req, ctx) => listByRun(deps, req, ctx),
     getDownloadUrl: (id, ctx) =>
       getDownloadUrl(deps, id, callerIdentityOf(ctx)),
     getContent: (req, ctx) => getContent(deps, req, callerIdentityOf(ctx)),
@@ -475,7 +475,7 @@ const ARTIFACT_LIST_KEY = "artifactList";
  * mirrors the code, the mismatch is disclosed in the PR), unmarshal
  * failures skipped, TotalPages hardcoded to 1.
  */
-async function listByExecution(
+async function listByRun(
   deps: ArtifactControllerDeps,
   req: ListArtifactsByRunRequest,
   ctx: HandlerContext,
@@ -603,7 +603,7 @@ async function listByExecution(
  * local URLs never actually expire, and this is pinned as the wire
  * contract despite the semantic mismatch. The empty
  * download filename keeps the URL inline; attachment disposition is
- * opt-in only on the AgentExecution artifact download path.
+ * opt-in only on the AgentRun artifact download path.
  */
 async function getDownloadUrl(
   deps: ArtifactControllerDeps,
@@ -663,7 +663,7 @@ async function getDownloadUrl(
  * GetContent — Go's direct handler: the artifact bytes in the response
  * (no CORS concerns for SDK consumers), truncated to max_bytes with the
  * FULL blob size reported. Default/implicit cap 512KB, matching
- * AgentExecution.GetArtifactContent so the two content-read endpoints
+ * AgentRun.GetArtifactContent so the two content-read endpoints
  * behave identically.
  */
 async function getContent(

@@ -1,13 +1,13 @@
 /**
- * The `execution_viewer` derived rule of a workflow. The model
+ * The `run_viewer` derived rule of a workflow. The model
  * (fga/model/agentic/workflow.fga) keeps the workflow's RUN audience apart
  * from `viewer`, so making a workflow org-runnable never exposes other
  * people's run inputs and outputs; workflow_execution reads it through
- * `execution_viewer from workflow`.
+ * `run_viewer from workflow`.
  *
  * It is derived from `spec.execution_visibility`, which `kind_meta`
  * cannot express: `organization` derives
- * `#execution_viewer@organization:<org>#viewer`, the organization's full
+ * `#run_viewer@organization:<org>#viewer`, the organization's full
  * read audience, and `private` or unset derives nothing, so each run stays
  * the person's who started it. Pure over the row; no related row is read.
  * Which level names which audience is `executionAudienceShapes`

@@ -1,14 +1,14 @@
 /**
  * Hermetic golden: SUB-AGENT DELEGATION — the root agent hands a task to a
  * declared sub-agent through deepagents' `task` tool, and the sub-agent's
- * own turn is tracked as a `SubAgentExecution`.
+ * own turn is tracked as a `SubAgentRun`.
  *
  * Invariant pinned: `transformAndCompileSubagents` compiles the agent's
  * declared sub-agent (plus deepagents' built-in `general-purpose` and the
  * runner's `shell`) on the SAME model double through `modelFactory`; the root
  * proposes `task({ subagent_type, description })`; the tools node runs the
  * sub-agent graph under a nested namespace (`tools:<uuid>|...`); the
- * translator's `sub_agent_started` opens a `SubAgentExecution` keyed by the
+ * translator's `sub_agent_started` opens a `SubAgentRun` keyed by the
  * `task` call id (not by the namespace uuid, which never reaches the status),
  * the builder folds the nested model events into that row's own transcript
  * scope, and `sub_agent_finished` closes it COMPLETED when the `task` tool

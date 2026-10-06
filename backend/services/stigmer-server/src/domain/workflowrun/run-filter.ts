@@ -1,6 +1,6 @@
 /**
  * Execution list filtering and sorting — ports execution_filter.go
- * (execution history): the structured ExecutionFilterCriteria
+ * (execution history): the structured RunFilterCriteria
  * matcher, the sort-field comparator, and the legacy top-level phase
  * filter. Proven by __tests__/execution-filter.test.ts (Go's 11-case
  * execution_filter_test.go ported case-for-case).

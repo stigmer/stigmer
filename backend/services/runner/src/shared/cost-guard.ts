@@ -7,7 +7,7 @@
  * (`harness/run-turn.ts`) calls `costCapExceeded` on each usage delta an
  * adapter reports, and on an overrun stops the turn through the same abort
  * the stall watchdog and a platform STOP use, then settles `costCapArm`
- * (`harness/terminal-table.ts`): EXECUTION_TERMINATED, work checkpointed, the
+ * (`harness/terminal-table.ts`): RUN_TERMINATED, work checkpointed, the
  * conversation continuing on the next message — the recursion-limit
  * precedent, `toolCallLimitArm`.
  *
@@ -41,7 +41,7 @@ export function costCapExceeded(maxCostUsd: number, estimatedCostUsd: number): b
  * Stable prefix of the cost-limit terminal error. Mirrors the cross-repo
  * pattern of TOOL_CALL_LIMIT_ERROR_PREFIX (tool-rounds.ts): consumers
  * that need to distinguish "ran out of cost budget" from other TERMINATED
- * causes can match on this prefix, because AgentExecutionStatus carries no
+ * causes can match on this prefix, because AgentRunStatus carries no
  * structured termination reason. Do not reword without checking consumers.
  */
 export const COST_LIMIT_ERROR_PREFIX = "Agent reached the cost limit";

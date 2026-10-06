@@ -129,7 +129,7 @@ export interface ExecutionRecordInput {
   readonly agent: Agent | undefined;
   /**
    * What `UpdateStatus` answers for each FULL status write — the platform's
-   * STOP lever (`ExecutionControlSignal`), decided by the control plane per
+   * STOP lever (`RunControlSignal`), decided by the control plane per
    * write and read by the harness stream loop on its mid-stream persist.
    * Evaluated AFTER the write lands, on the snapshot just persisted, so a
    * policy can key on the transcript ("stop once the first assistant message

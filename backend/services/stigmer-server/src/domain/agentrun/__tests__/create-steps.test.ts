@@ -211,7 +211,7 @@ function recordingSessionCreator(
 
 // The built-in assistant's shape through CreateSessionIfNeeded: an
 // execution naming no session and no session_spec is legal
-// (agentexecution/v1/spec.proto), so the session is created with no agent
+// (agentrun/v1/spec.proto), so the session is created with no agent
 // and the turn's stamp is the empty one.
 describe("the built-in assistant (no session and no session_spec named)", () => {
   it("createSessionIfNeeded creates the session with no agent and points the turn at it", async () => {

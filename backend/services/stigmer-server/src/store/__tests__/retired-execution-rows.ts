@@ -1,6 +1,6 @@
 /**
  * Test support: the bytes an earlier release wrote for an agent execution
- * whose settings sat in AgentExecutionSpec field 4 (ExecutionConfig), built
+ * whose settings sat in AgentRunSpec field 4 (ExecutionConfig), built
  * by wire number because that schema no longer exists. ExecutionConfig's
  * numbers: model_name 1, context_management 2, max_tool_rounds 3,
  * max_tool_result_chars 4, max_cost_usd 5, interaction_mode 6,

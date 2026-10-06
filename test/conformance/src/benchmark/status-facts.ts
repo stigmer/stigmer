@@ -1,4 +1,4 @@
-// Reads what the terminal AgentExecution status carries into a benchmark
+// Reads what the terminal AgentRun status carries into a benchmark
 // sample: the runner's aggregate usage (tokens, the rate-card cost estimate,
 // the model it priced against), the server's own timestamps, and the outcome.
 // Domain: conformance benchmark (the status-borne facts).

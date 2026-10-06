@@ -1,5 +1,5 @@
 /**
- * TranscriptState — the AgentExecutionStatus proto `TranscriptBuilder` is
+ * TranscriptState — the AgentRunStatus proto `TranscriptBuilder` is
  * building into, held as one {@link Transcript} per scope: the root's over
  * `status.messages`, and one per sub-agent over its row's `messages`.
  *

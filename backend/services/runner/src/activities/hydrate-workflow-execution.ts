@@ -7,7 +7,7 @@
  * workflow engine (which expects a parsed {@link ExecuteServerlessWorkflowInput}).
  *
  * Hydration chain:
- *   1. Fetch WorkflowExecution → extract trigger_message and the pinned version
+ *   1. Fetch WorkflowRun → extract trigger_message and the pinned version
  *   2. Read the workflow's YAML at the version the run pinned (the live
  *      workflow only for a run saved before versioning, which pins none)
  *   3. Fetch ExecutionContext → flatten env data
@@ -57,7 +57,7 @@ export async function hydrateWorkflowExecution(
     );
   }
 
-  // 1. Fetch WorkflowExecution for trigger_message and version hash
+  // 1. Fetch WorkflowRun for trigger_message and version hash
   const workflowExecution = await fetchWorkflowExecution(client, execution_id);
   const triggerMessage = workflowExecution.spec?.triggerMessage ?? "";
   const versionHash = workflowExecution.status?.workflowVersionHash;

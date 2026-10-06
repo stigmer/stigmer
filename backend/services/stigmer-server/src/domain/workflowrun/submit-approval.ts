@@ -1,6 +1,6 @@
 /**
  * SubmitApproval — ports submit_approval.go: forwards a tool-call
- * approval decision to the child AgentExecution holding the gate. The
+ * approval decision to the child AgentRun holding the gate. The
  * child is identified by the child_agent_execution_id on
  * the pending_approvals entry matched by tool_call_id; the parent's own
  * state is returned unchanged (the gate clears later through the runner's

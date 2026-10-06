@@ -63,7 +63,7 @@ export type TerminalDisposition = { readonly kind: "return" } | { readonly kind:
 
 /** One arm of the table: what to write, and how to end. */
 export interface TerminalArm {
-  /** `EXECUTION_PHASE_UNSPECIFIED` writes no phase: the merge applies a phase only when one is sent. */
+  /** `RUN_PHASE_UNSPECIFIED` writes no phase: the merge applies a phase only when one is sent. */
   readonly phase: RunPhase;
   /** `status.error`; absent leaves it as it is (a pause is not an error). */
   readonly error?: string;

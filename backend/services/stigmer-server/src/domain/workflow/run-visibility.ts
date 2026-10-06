@@ -13,7 +13,7 @@
  *     (PreserveExecutionVisibility), the rule metadata.visibility follows
  *     (oss#573): the level has its own door, so a stale manifest value is
  *     routine and must not fail the update;
- *   - updateExecutionVisibility is that door: it asks can_manage_audience
+ *   - updateRunVisibility is that door: it asks can_manage_audience
  *     (the owner's, never an editor's), stores the level and tells the
  *     driver the audience it names, every time.
  *
@@ -53,7 +53,7 @@ import { workflowSearchExtractor } from "./search-extractor.js";
 
 type WorkflowDesc = typeof WorkflowSchema;
 
-/** Where the updateExecutionVisibility chain keeps the workflow it loaded and changes. */
+/** Where the updateRunVisibility chain keeps the workflow it loaded and changes. */
 export const UPDATE_EXECUTION_VISIBILITY_WORKFLOW_KEY =
   "updateExecutionVisibilityWorkflow";
 
@@ -106,7 +106,7 @@ export function newPreserveExecutionVisibilityStep(): PipelineStep<WorkflowDesc>
  * CreateExecutionVisibilityTuples — post-persist in the create chain,
  * beside CreateAuthorizationTuples: a workflow created with a level that
  * names an audience (ORGANIZATION) tells the driver, which writes the
- * `execution_viewer` tuple the runs are read through. A private or unset
+ * `run_viewer` tuple the runs are read through. A private or unset
  * create names nobody and fires nothing (there is no tuple to remove). The
  * failure copy is the create lane's own.
  */
@@ -131,7 +131,7 @@ export function newCreateExecutionVisibilityTuplesStep(
 
 /**
  * UpdateExecutionVisibilityTuples — post-persist in the
- * updateExecutionVisibility chain: fires the audience the new level names,
+ * updateRunVisibility chain: fires the audience the new level names,
  * the empty one included, every time. The event is the target state, so a
  * repeat of the same level converges and a transition away from
  * ORGANIZATION removes the tuple without knowing the old level.

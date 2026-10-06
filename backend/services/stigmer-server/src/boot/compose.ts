@@ -1881,7 +1881,7 @@ export async function composeServer(
       authorizationLifecycle,
       artifactStorage: skillArtifactStorage,
       // The agentexecution blob store (server.go:362-363) — read side of
-      // pushFromExecutionArtifact.
+      // pushFromRunArtifact.
       executionArtifactStorage: artifactStorage,
       staging: skillArchiveStaging,
     });

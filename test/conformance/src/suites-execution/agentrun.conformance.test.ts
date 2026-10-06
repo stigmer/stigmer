@@ -855,7 +855,7 @@ describe("AgentRun conformance — one-call session bootstrap (session_spec)", (
 // service's MinIO-backed artifact routes (stigmer#803), so every case here
 // runs unconditionally on every execution target (the retired
 // sharedRunnerArtifactStore gate — see target.ts).
-// The retired AgentExecutionSpec field that once let a caller name the
+// The retired AgentRunSpec field that once let a caller name the
 // turn's dispatch queue (activity_task_queue, number 11). Reserved on the
 // wire: a request carrying it is read with the field as an unknown one.
 const RETIRED_ACTIVITY_TASK_QUEUE_FIELD = 11;

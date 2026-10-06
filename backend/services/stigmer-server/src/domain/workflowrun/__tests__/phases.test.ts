@@ -1,6 +1,6 @@
 /**
  * Pins `isTerminalWorkflowExecutionPhase` (phases.ts) over every member
- * of the workflow ExecutionPhase enum, so the set is stated by
+ * of the workflow RunPhase enum, so the set is stated by
  * enumeration and a new phase added to the contract lands in exactly one
  * arm here. The contrast with subscribe.ts's `isWorkflowTerminalPhase`
  * (TERMINATED omitted on purpose) is pinned so the two are never merged.

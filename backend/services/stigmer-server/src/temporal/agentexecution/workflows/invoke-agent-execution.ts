@@ -742,7 +742,7 @@ interface PauseRecoveryOptions {
  * pause monitor; pause → persist PAUSED, wait for resume, re-invoke;
  * recoverable interruption → persist IN_PROGRESS, linear backoff,
  * re-invoke; anything else → wrapped failure. On completion, an
- * EXECUTION_FAILED result persists the fallback FAILED status and
+ * RUN_FAILED result persists the fallback FAILED status and
  * propagates as an error.
  */
 async function runWithPauseAndRecovery(
@@ -960,7 +960,7 @@ interface HitlLoopOptions {
  *
  * Fire-and-forget with the same posture as child_execution_started: a
  * completed/missing parent must never affect this run — the user can still
- * approve directly through AgentExecution.submitApproval.
+ * approve directly through AgentRun.submitApproval.
  */
 function signalParentApprovalRequired(
   parentWorkflowId: string,
