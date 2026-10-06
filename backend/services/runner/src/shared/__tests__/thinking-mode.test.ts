@@ -1,8 +1,8 @@
 /**
  * The native thinking mapping, enumerated: every effective mode against
  * every form a native registry row can declare, including the tri-state
- * `required` flag. The table is the contract the wire, the `think` tool and
- * the structured-output strategy all read, so it is pinned whole.
+ * `required` flag. The table is the contract the wire and the
+ * structured-output strategy both read, so it is pinned whole.
  */
 
 import { describe, expect, it } from "vitest";

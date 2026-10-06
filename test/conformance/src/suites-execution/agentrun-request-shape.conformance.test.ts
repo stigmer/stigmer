@@ -343,7 +343,7 @@ describe("AgentRun request shape — the system prompt is the session's, the pay
 });
 
 describe("AgentRun request shape — thinking, per the model's native registry row", () => {
-  it("ENABLED on an adaptive row sends adaptive thinking with summarized display, and drops the think tool", async () => {
+  it("ENABLED on an adaptive row sends adaptive thinking with summarized display, and binds no think tool", async () => {
     const row = requireNativeRow(await registry(), ADAPTIVE_MODEL);
     expect(row.thinkingForm, `${ADAPTIVE_MODEL} is the adaptive row this arm pins`).toBe("adaptive");
     const { org, agentRef } = await createBareAgent();
