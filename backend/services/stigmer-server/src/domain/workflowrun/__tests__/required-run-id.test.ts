@@ -2,7 +2,7 @@
  * Pins the empty-run-id refusal every workflow-run entry point that names a
  * run by id shares: the call answers InvalidArgument whose copy names the
  * wire field `run_id`, and it stops before any store read, broker, forwarder
- * or engine is touched. The copy is wire contract: the run-model rename moved
+ * or engine is touched. The copy is wire contract: the run rename moved
  * it from `execution_id`, and a client that matches on it reads the new field
  * name. The two decision-forwarding verbs refuse at ValidateProto (the
  * field's min_len rule), so their copy is the validator's; the others refuse

@@ -24,7 +24,7 @@
 // level, only the owner may change it (a member who can see and run the
 // workflow is refused, and so is an editor where the edition grants one),
 // and a toggle is no new version. Who the level then admits to a run is the
-// execution class's (workflowexecution-run-visibility).
+// execution class's (workflowrun-run-visibility).
 //
 // The version arms pin what a version covers: everything a run reads from
 // the workflow, so an edit to only a step's environment_refs or to the

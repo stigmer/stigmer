@@ -4,7 +4,7 @@
 // the provider receives on the first model call, photographed as file
 // goldens, and the facts about them that the platform's later work moves
 // deliberately.
-// Domain: agentic / agentexecution — the runner's outbound contract with the
+// Domain: agentic / agentrun — the runner's outbound contract with the
 // model, read at the one place it is observable offline: the mock proxy's
 // captured request bodies (test/support/src/mock-llm.ts), which are "everything the
 // model received over the wire".
@@ -76,7 +76,7 @@
 // traverse the mock, so the surface it pays for is not observable here);
 // the number of model rounds a task takes (the mock's script fixes it, so
 // only a live run can measure it); the model id the provider received
-// (agentexecution-messages' model-resolution arm); the `messages` array (the
+// (agentrun-messages' model-resolution arm); the `messages` array (the
 // transcript facet's, read from status), except for the one fact status
 // cannot show: which user message a turn's payload rides.
 //
@@ -221,7 +221,7 @@ describe("AgentRun request shape — what the native harness sends the model for
       true,
     );
     await expect(renderSystemPrompt(request)).toMatchFileSnapshot(
-      "./goldens/agentexecution-request-shape.native-bare-agent.system-prompt.md",
+      "./goldens/agentrun-request-shape.native-bare-agent.system-prompt.md",
     );
   });
 
@@ -231,7 +231,7 @@ describe("AgentRun request shape — what the native harness sends the model for
 
     expect(request.tools?.length ?? 0, "a bare native agent still binds the engine's built-in tools").toBeGreaterThan(0);
     await expect(renderToolSurface(request)).toMatchFileSnapshot(
-      "./goldens/agentexecution-request-shape.native-bare-agent.tool-surface.md",
+      "./goldens/agentrun-request-shape.native-bare-agent.tool-surface.md",
     );
   });
 

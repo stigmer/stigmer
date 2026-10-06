@@ -7,7 +7,7 @@
 // fixed timer. The rhythm is identical across domains; only two things genuinely
 // differ — each owns a distinct proto `RunPhase` enum and a distinct `get`
 // client. This core captures the shared rhythm parameterized on exactly those
-// two, so the per-domain modules (workflowexecutions.ts / agentexecutions.ts) add
+// two, so the per-domain modules (workflowruns.ts / agentruns.ts) add
 // only typed builders, phase constants, and a diagnostic renderer over it.
 import { setTimeout as delay } from "node:timers/promises";
 

@@ -1296,7 +1296,7 @@ mount this component rather than passing an `active` flag.
 // Inside a dialog, modal, or overlay:
 <ArtifactPreviewContent
   artifact={artifact}
-  executionId={run.id}
+  runId={run.id}
   org={activeOrg}
   isTerminal={isTerminalPhase(run.status?.phase)}
   onClose={() => setOpen(false)}
@@ -1341,7 +1341,7 @@ const [previewArtifact, setPreviewArtifact] =
 {previewArtifact && (
   <ArtifactPreviewModal
     artifact={previewArtifact}
-    executionId={run.id}
+    runId={run.id}
     org={activeOrg}
     isTerminal={isTerminalPhase(run.status?.phase)}
     open
@@ -1790,7 +1790,7 @@ const stream = useRunStream(activeId);
 
 <MessageThread
   runs={runs ?? []}
-  activeStreamRun={stream.execution}
+  activeStreamRun={stream.run}
 />
 ```
 
@@ -1874,7 +1874,7 @@ All visual properties flow through `--stgm-*` tokens.
 const stream = useRunStream(executionId);
 
 <div className="rounded-lg border border-border bg-card p-3">
-  <RunProgress run={stream.execution} />
+  <RunProgress run={stream.run} />
 </div>
 ```
 
@@ -2024,7 +2024,7 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 ```tsx
-const run = stream.execution;
+const run = stream.run;
 const todos = run?.status?.todos ?? {};
 
 <TodoList todos={todos} />

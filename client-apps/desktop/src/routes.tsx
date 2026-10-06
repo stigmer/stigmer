@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import {
   createHashRouter,
+  matchRoutes,
   Navigate,
   type RouteObject,
 } from "react-router-dom";
@@ -406,7 +407,18 @@ router.subscribe((state) => {
   }
 });
 
-const savedRoute = localStorage.getItem(ROUTE_STORAGE_KEY);
-if (savedRoute && savedRoute !== "/") {
+/**
+ * The saved route to reopen at launch, when it still names a screen. A
+ * path the app no longer routes (a screen removed or moved, such as a run's
+ * page before runs lived at /runs) opens the home screen instead of a page
+ * with no way out.
+ */
+export function restorableRoute(saved: string | null): string | undefined {
+  if (!saved || saved === "/") return undefined;
+  return matchRoutes(routes, saved) === null ? undefined : saved;
+}
+
+const savedRoute = restorableRoute(localStorage.getItem(ROUTE_STORAGE_KEY));
+if (savedRoute !== undefined) {
   router.navigate(savedRoute, { replace: true });
 }

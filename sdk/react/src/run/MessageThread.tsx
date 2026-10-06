@@ -1227,7 +1227,7 @@ export function buildThreadItems(
  *
  * <MessageThread
  *   runs={runs ?? []}
- *   activeStreamRun={stream.execution}
+ *   activeStreamRun={stream.run}
  * />
  * ```
  */

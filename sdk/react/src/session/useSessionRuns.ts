@@ -64,7 +64,7 @@ export interface UseSessionRunsReturn {
  *   return (
  *     <MessageThread
  *       runs={runs}
- *       activeStreamRun={stream.execution}
+ *       activeStreamRun={stream.run}
  *     />
  *   );
  * }

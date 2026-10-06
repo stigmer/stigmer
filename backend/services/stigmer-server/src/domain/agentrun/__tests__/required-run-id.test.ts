@@ -3,7 +3,7 @@
  * by id shares: the call answers InvalidArgument whose copy names the wire
  * field (`run_id`, or `agent_run_id` on the two decision verbs), and it stops
  * before any store read, broker or engine is touched. The copy is wire
- * contract: the run-model rename moved it from `execution_id`, and a client
+ * contract: the run rename moved it from `execution_id`, and a client
  * that matches on it reads the new field name. The two decision verbs refuse
  * at ValidateProto (the field's min_len rule), so their copy is the
  * validator's; the others refuse in their own hand-written step.

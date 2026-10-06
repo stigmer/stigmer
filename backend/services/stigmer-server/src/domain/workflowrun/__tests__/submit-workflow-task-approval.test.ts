@@ -7,7 +7,7 @@
  * token (a person spoken for by a third-party client), and a composition's
  * own lane class — each read from the payload the stub engine recorded.
  * The validation and phase arms, and the engineless refusal, are pinned
- * over the wire in workflowexecution.test.ts.
+ * over the wire in workflowrun.test.ts.
  */
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";

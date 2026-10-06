@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * agent run's status write and create, the workflow run's status write with
  * its pending-merge flags, and the event-log high-water mark that follows the
  * log's cursor across pages. Each request names the run by `run_id`, the
- * wire field the run-model rename settled on. The transport and the generated
+ * wire field the run rename settled on. The transport and the generated
  * clients are replaced at their module seams, so the request each method
  * builds is observed without a server.
  */

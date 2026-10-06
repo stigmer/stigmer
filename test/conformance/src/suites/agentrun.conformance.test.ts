@@ -1,5 +1,5 @@
 // Conformance suite for AgentRun create-time validation (CRUD-level).
-// Domain: agentic / agentexecution — the request-shape contract that fires
+// Domain: agentic / agentrun — the request-shape contract that fires
 // before any resource resolution, engine contact, or side effect.
 //
 // This file exists separately from the execution-engine suite

@@ -743,25 +743,25 @@ on `local-execution`.
 **The runner-behavior facets** replaced the Go `test/integration-offline`
 suite, arm for arm: a runner behavior a
 client reads off execution status is contract, and the execution class is its
-home. `agentexecution-messages` (the transcript: text, thinking, MCP tool
+home. `agentrun-messages` (the transcript: text, thinking, MCP tool
 calls that succeed or fail, the ToolCall field contract, and the model id the
-provider received after registry resolution), `agentexecution-subagent`
-(`task` delegation and `sub_agent_executions`), `agentexecution-provider-error`
+provider received after registry resolution), `agentrun-subagent`
+(`task` delegation and `sub_agent_runs`), `agentrun-provider-error`
 (who a proxy-mode provider fault is attributed to — the stigmer#330 incident
-shapes), `agentexecution-structured-output` (what the final message becomes on
+shapes), `agentrun-structured-output` (what the final message becomes on
 `structured_output`; the fallback's lack of schema validation is deliberately
-NOT pinned, see the file header), `agentexecution-file-review` and
+NOT pinned, see the file header), `agentrun-file-review` and
 `-file-review-progress` (apply-then-review: 15 decide-and-reconcile arms over a
 harness git workspace, the secret and binary rules, and the mid-run progress
-strip under the runner's capture throttle), `agentexecution-memory-selection`
+strip under the runner's capture throttle), `agentrun-memory-selection`
 (the embedder posture, beside `-memory-retrieval`'s no-embedder one),
-`agentexecution-workflow-architect` (a fixture agent on the real
-`stigmer mcp-server` over stdio, the always-on proof of the stdio lane), `workflowexecution-llm-call` and
-`workflowexecution-eval` (the LLM-backed workflow tasks), plus additions to
-`agentexecution` (idempotent cancel/terminate), `agentexecution-approval` (the
+`agentrun-workflow-architect` (a fixture agent on the real
+`stigmer mcp-server` over stdio, the always-on proof of the stdio lane), `workflowrun-llm-call` and
+`workflowrun-eval` (the LLM-backed workflow tasks), plus additions to
+`agentrun` (idempotent cancel/terminate), `agentrun-approval` (the
 approval ledger, the APPROVE_ALL lease across turns, durable resume) and
 `mcpserver-connect` (the stored `destructive_hint` per tool, and a connect
-that asks no model). `agentexecution-tool-lists` pins an agent's `tools` and
+that asks no model). `agentrun-tool-lists` pins an agent's `tools` and
 `disallowed_tools` on the native engine: a tool outside them is never
 offered, a call to it anyway is a failed tool call with the out-of-scope
 message, and no approval is requested for it, under the default and under
@@ -769,7 +769,7 @@ message, and no approval is requested for it, under the default and under
 `runner-ipc.harness` proves the manager-mode `ready` handshake end to
 end.
 
-`agentexecution-request-shape` reads the other direction of the wire: not
+`agentrun-request-shape` reads the other direction of the wire: not
 what the client sees on status but what the MODEL receives from the native
 harness for a bare agent, photographed as two readable file goldens under
 `suites-execution/goldens/` (the system prompt as the provider gets it — the
@@ -795,7 +795,7 @@ src/
   targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
   contract/         errors, parity
   support/          naming, workflows (set_vars + wait + human_input + agent_call + llm_call + eval), execution-poll,
-                    workflowexecutions, agentexecutions, file-review, workflow-architect, working-agent (the benchmark's
+                    workflowruns, agentruns, file-review, workflow-architect, working-agent (the benchmark's
                     working agent), agents, mcpservers, memories, skills, environments, executioncontexts, sessions,
                     request-shape (the golden renderers), …
   benchmark/        report (the contract a run writes), cells, quality-tasks, run (the direct-mode stack and driver), session
@@ -803,9 +803,9 @@ src/
                     workspace-facts, and subject + quality (the judge)  (the live benchmark's library; pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
   suites-execution/ *.harness.test.ts (engine, agent, mcp, runner-ipc, benchmark-readers, temporal-port-loss)
-                    + workflowexecution*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval,
+                    + workflowrun*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval,
                       run-visibility)
-                    + agentexecution*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
+                    + agentrun*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect,
                       request-shape, tool-lists)
                     + mcpserver-connect, mcp-caller-identity, mcp-server-address, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)

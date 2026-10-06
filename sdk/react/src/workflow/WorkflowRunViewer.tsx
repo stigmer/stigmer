@@ -191,7 +191,7 @@ export interface WorkflowRunViewerProps {
  * @example
  * ```tsx
  * <WorkflowRunViewer
- *   executionId="wfx_abc123"
+ *   runId="wex_abc123"
  *   onNavigateToAgentRun={(id) => router.push(`/sessions/${id}`)}
  * />
  * ```

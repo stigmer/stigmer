@@ -3,7 +3,9 @@
  * workflow run list, and /runs/<id> (where the dashboard, the sidebar and the
  * run list send a person) renders the run's page. Each page loads lazily, so
  * the test renders the matched route's element and waits for the page; the
- * pages themselves are stubbed and pinned by their own suites.
+ * pages themselves are stubbed and pinned by their own suites. The route
+ * saved at the last launch is reopened only while the app still routes it,
+ * so a run's address from before runs lived at /runs opens the home screen.
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -29,7 +31,7 @@ vi.mock("../pages/workflow/WorkflowRunDetailPage", () => ({
   default: () => <p>workflow run page</p>,
 }));
 
-import { router } from "../routes";
+import { restorableRoute, router } from "../routes";
 
 function renderRoute(path: string): void {
   const leaf = (matchRoutes(router.routes, path) ?? []).at(-1)?.route;
@@ -48,5 +50,22 @@ describe("desktop routes — run addresses", () => {
     renderRoute("/runs/wfr_1");
 
     expect(await screen.findByText("workflow run page")).toBeTruthy();
+  });
+});
+
+describe("desktop routes — the route reopened at launch", () => {
+  it("reopens a saved route the app still routes", () => {
+    expect(restorableRoute("/runs/wfr_1")).toBe("/runs/wfr_1");
+    expect(restorableRoute("/library/workflows/runs")).toBe("/library/workflows/runs");
+  });
+
+  it("opens the home screen for a saved route the app no longer routes", () => {
+    expect(restorableRoute("/executions/wex_1")).toBeUndefined();
+    expect(restorableRoute("/library/workflows/executions")).toBeUndefined();
+  });
+
+  it("opens the home screen when nothing, or home, was saved", () => {
+    expect(restorableRoute(null)).toBeUndefined();
+    expect(restorableRoute("/")).toBeUndefined();
   });
 });

@@ -80,7 +80,7 @@ export interface ArtifactPreviewContentProps {
  * // Inside a dialog, modal, or overlay:
  * <ArtifactPreviewContent
  *   artifact={artifact}
- *   executionId={run.id}
+ *   runId={run.id}
  *   org={activeOrg}
  *   isTerminal={isTerminalPhase(run.status?.phase)}
  *   onClose={() => setOpen(false)}
@@ -230,7 +230,7 @@ export interface ArtifactPreviewModalProps {
  * {previewArtifact && (
  *   <ArtifactPreviewModal
  *     artifact={previewArtifact}
- *     executionId={run.id}
+ *     runId={run.id}
  *     org={activeOrg}
  *     isTerminal={isTerminalPhase(run.status?.phase)}
  *     open

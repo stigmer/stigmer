@@ -34,7 +34,7 @@ export interface RunProgressProps {
  * const stream = useRunStream(executionId);
  *
  * <div className="rounded-lg border border-border bg-card p-3">
- *   <RunProgress run={stream.execution} />
+ *   <RunProgress run={stream.run} />
  * </div>
  * ```
  */

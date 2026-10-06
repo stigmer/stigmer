@@ -48,7 +48,7 @@ function todoSortKey(item: TodoItem): number {
  *
  * @example
  * ```tsx
- * const run = stream.execution;
+ * const run = stream.run;
  * const todos = run?.status?.todos ?? {};
  *
  * <TodoList todos={todos} />

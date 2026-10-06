@@ -108,7 +108,7 @@ async function fetchLiveWorkflowFallback(
  * When `execution` and `taskStates` are provided externally (from a
  * parent that already subscribes), the hook skips its own duplicate
  * subscriptions. When omitted, it falls back to independent fetching
- * for standalone `<WorkflowRunGraph executionId="..." />` usage.
+ * for standalone `<WorkflowRunGraph runId="..." />` usage.
  */
 export function useWorkflowRunGraph(
   options: UseWorkflowRunGraphOptions,

@@ -107,7 +107,7 @@ const defaultEdgeOptions = {
  *
  * @example
  * ```tsx
- * <WorkflowRunGraph executionId="wex_abc123" />
+ * <WorkflowRunGraph runId="wex_abc123" />
  * ```
  */
 export const WorkflowRunGraph = memo(function WorkflowRunGraph(
