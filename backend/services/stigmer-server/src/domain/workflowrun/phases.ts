@@ -1,6 +1,6 @@
 /**
  * The workflow execution's "will this run ever run again?" predicate —
- * the twin of domain/agentexecution/phases.ts `isTerminalExecutionPhase`,
+ * the twin of domain/agentrun/phases.ts `isTerminalExecutionPhase`,
  * stated once so every consumer names the same set: COMPLETED, FAILED,
  * CANCELLED and TERMINATED. PAUSED is NOT terminal (lifecycle.ts:
  * `applyLifecyclePhaseTransition` keeps `completed_at` as-is on a pause

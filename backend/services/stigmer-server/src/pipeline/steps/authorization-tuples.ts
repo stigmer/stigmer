@@ -65,7 +65,7 @@ import type {
 
 /**
  * Fires the driver's run-audience event for a workflow whose
- * `spec.execution_visibility` just persisted. No driver (or a driver
+ * `spec.run_visibility` just persisted. No driver (or a driver
  * without the optional method) = no-op — the OSS posture, where the
  * relation is derived from the row at check time. A driver throw fails
  * the request as Internal with `failureMessage`, after persist; the event
@@ -169,7 +169,7 @@ export function diffVisibilityShapes(
 /**
  * The run audience a workflow's execution visibility names — the
  * one mapping both editions read: open source's check-time derivation
- * (authorization/model/execution-viewer.ts) turns it into the tuple the
+ * (authorization/model/run-viewer.ts) turns it into the tuple the
  * check walks, and the lifecycle event hands it to an edition that stores
  * tuples. ORGANIZATION names the organization's viewers; PRIVATE and the
  * unset level name nobody, so each run stays its starter's.

@@ -61,6 +61,7 @@ import { fromBinary, toBinary, type JsonObject, type JsonValue } from "@bufbuild
 
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -121,6 +122,9 @@ const AGENT_CALL_RUN_KEY = "agent_run_id";
 /** The emit_event signal target's run key, before and after. */
 const RETIRED_SIGNAL_RUN_KEY = "execution_id";
 const SIGNAL_RUN_KEY = "run_id";
+
+/** A nested step's config key, in either spelling its JSON accepts. */
+const NESTED_STEP_CONFIG_KEYS = ["taskConfig", "task_config"] as const;
 
 /** The expression token a workflow reads the child run by, as a whole word. */
 const RETIRED_AGENT_CALL_RUN_TOKEN = /\bagent_execution_id\b/g;
@@ -237,7 +241,13 @@ function runKindRename(kind: string): string | undefined {
 function rewriteTasks(tasks: WorkflowTask[]): boolean {
   let changed = false;
   for (const task of tasks) {
-    if (task.taskConfig !== undefined && rewriteStepJson(task.taskConfig)) {
+    if (task.taskConfig === undefined) {
+      continue;
+    }
+    if (task.kind === WorkflowTaskKind.emit_event && renameSignalRunKeys(task.taskConfig)) {
+      changed = true;
+    }
+    if (rewriteStepJson(task.taskConfig)) {
       changed = true;
     }
   }
@@ -245,32 +255,57 @@ function rewriteTasks(tasks: WorkflowTask[]): boolean {
 }
 
 /**
- * Rewrites one step config in place, nested steps included: a signal
- * target's run key, and the agent_call run key in every expression.
- * Answers whether anything changed.
+ * Rewrites one step config in place, nested steps included: a nested
+ * emit_event step's signal targets, and the agent_call run key in every
+ * expression. Answers whether anything changed.
  */
 function rewriteStepJson(value: JsonObject): boolean {
   let changed = false;
-  for (const [key, item] of Object.entries(value)) {
-    if (
-      key === "signal" &&
-      isObject(item) &&
-      renameKey(item, RETIRED_SIGNAL_RUN_KEY, SIGNAL_RUN_KEY)
-    ) {
-      changed = true;
+  if (isEmitEventKind(value["kind"])) {
+    for (const key of NESTED_STEP_CONFIG_KEYS) {
+      const config = value[key];
+      if (config !== undefined && isObject(config) && renameSignalRunKeys(config)) {
+        changed = true;
+      }
     }
-    const next = value[key];
-    if (typeof next === "string") {
-      const rewritten = rewriteExpression(next);
-      if (rewritten !== next) {
+  }
+  for (const [key, item] of Object.entries(value)) {
+    if (typeof item === "string") {
+      const rewritten = rewriteExpression(item);
+      if (rewritten !== item) {
         value[key] = rewritten;
         changed = true;
       }
-    } else if (next !== undefined && rewriteNested(next)) {
+    } else if (rewriteNested(item)) {
       changed = true;
     }
   }
   return changed;
+}
+
+/**
+ * An emit_event step config's signal targets (`delivery[].signal`) name
+ * the run they signal by its new key. Nothing else in a step is a signal
+ * target, so no other `execution_id` is touched.
+ */
+function renameSignalRunKeys(config: JsonObject): boolean {
+  const delivery = config["delivery"];
+  if (!Array.isArray(delivery)) {
+    return false;
+  }
+  let changed = false;
+  for (const target of delivery) {
+    const signal = isObject(target) ? target["signal"] : undefined;
+    if (signal !== undefined && isObject(signal) && renameKey(signal, RETIRED_SIGNAL_RUN_KEY, SIGNAL_RUN_KEY)) {
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+/** A nested step's kind, as its JSON spells it: the enum value's name or its number. */
+function isEmitEventKind(kind: JsonValue | undefined): boolean {
+  return kind === "emit_event" || kind === WorkflowTaskKind.emit_event;
 }
 
 function rewriteNested(value: JsonValue): boolean {

@@ -1,7 +1,7 @@
 /**
  * The memory kind's shared reads, all through the list index (list-index.ts
  * beside this file; the store's contract in store/interface.ts): recall
- * (domain/agentexecution/create-steps.ts) and the per-subject cap read one
+ * (domain/agentrun/create-steps.ts) and the per-subject cap read one
  * subject's rows in one organization, `memory.list` reads one
  * organization's. Rows come newest created first, the index order, which
  * is exactly `compareCreatedAtDesc` (store/list-index.ts states it).

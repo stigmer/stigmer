@@ -98,7 +98,7 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
   });
 });
 
-describe("executionAudienceShapes (a workflow's run audience)", () => {
+describe("runAudienceShapes (a workflow's run audience)", () => {
   it("ORGANIZATION names the organization's viewers", () => {
     expect([
       ...runAudienceShapes(WorkflowRunVisibility.organization),

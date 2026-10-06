@@ -5,7 +5,7 @@
  * dispatch.
  *
  * The tree corresponds to Go's (config lives with the domain, like
- * src/domain/agentexecution/temporal/config.ts); the Temporal-importing
+ * src/domain/agentrun/temporal/config.ts); the Temporal-importing
  * slice (worker, workflow, engine client) lives in
  * src/temporal/workflowexecution/.
  *

@@ -17,7 +17,7 @@
  * server's own act — so the seeded child needs no session she owns. The
  * direct-call arms (every action, APPROVE_ALL's co-pending calls, both
  * file-decision scopes) are pinned in
- * domain/agentexecution/__tests__/agentexecution.test.ts.
+ * domain/agentrun/__tests__/agentrun.test.ts.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

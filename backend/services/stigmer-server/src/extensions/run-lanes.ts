@@ -4,7 +4,7 @@
  * mode are. Single instance, registered as `drivers.runLanes`.
  *
  * A turn's settings are resolved once, at create, by ResolveRunConfig
- * (domain/agentexecution/resolve-run-config.ts) from three layers: the
+ * (domain/agentrun/resolve-run-config.ts) from three layers: the
  * turn's own (the request, or the surface it came through), the defaults of
  * the agent it runs, and the lane's operator profile. The core knows its own
  * lanes: a schedule's fire (the reserved schedule label), a workflow's step

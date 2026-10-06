@@ -276,7 +276,7 @@ export async function callAgentAction(
   // (`spec.run_config`), field for field: zero or empty means "not set at
   // this layer" and is carried as such, never filled in here. The settings
   // the turn RUNS WITH are resolved once by the control plane at create
-  // (backend/services/stigmer-server/src/domain/agentexecution/resolve-run-config.ts):
+  // (backend/services/stigmer-server/src/domain/agentrun/resolve-run-config.ts):
   // the step's settings are the turn's layer, and the agent's defaults and
   // caps apply beneath it, so a step's bound can lower the agent's cap but
   // never raise it. The runner's guards read that resolution

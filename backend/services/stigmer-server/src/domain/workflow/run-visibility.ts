@@ -1,10 +1,10 @@
 /**
  * A workflow's run audience: who may observe its runs (executions), kept
  * apart from who may see and run the workflow itself. The level is
- * `spec.execution_visibility`; open source authorizes run reads from the
- * row at check time (authorization/model/execution-viewer.ts), and an
+ * `spec.run_visibility`; open source authorizes run reads from the
+ * row at check time (authorization/model/run-viewer.ts), and an
  * edition that stores tuples hears the audience the level names through
- * `onExecutionVisibilityChanged`.
+ * `onRunVisibilityChanged`.
  *
  * The level's lifecycle:
  *   - create stores whatever the request carried and, when the level names
@@ -75,7 +75,7 @@ function executionVisibilityEventOf(
 
 /**
  * PreserveExecutionVisibility — the run audience is update-immutable: the
- * stored `spec.execution_visibility` replaces whatever the request carried,
+ * stored `spec.run_visibility` replaces whatever the request carried,
  * after BuildUpdateState's full spec replacement, so a manifest re-applied
  * without the field, or with a stale level, never silently changes who
  * observes the runs. Runs after LoadExisting; Apply delegates to Update, so
@@ -186,7 +186,7 @@ export function newLoadWorkflowForExecutionVisibilityUpdateStep<
   };
 }
 
-/** Sets spec.execution_visibility and refreshes the status-audit fields. */
+/** Sets spec.run_visibility and refreshes the status-audit fields. */
 export function newSetWorkflowExecutionVisibilityStep<
   Desc extends DescMessage,
 >(

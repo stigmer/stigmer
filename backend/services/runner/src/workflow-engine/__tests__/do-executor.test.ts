@@ -1155,6 +1155,23 @@ describe("executeDoTasks — a failed call:agent task links its child run", () =
     expect(entry?.metadata).toEqual({ agent_run_id: "aex_child_7" });
   });
 
+  it("records the child's run id as agent_run_id on a completed task, under either output key", async () => {
+    for (const agentCallRunIdKey of ["agent_run_id", "agent_execution_id"] as const) {
+      const accumulator = new TaskStatusAccumulator();
+      const ctx = {
+        ...agentCallCtx(async () => ({ final_text: "done", agent_execution_id: "aex_child_8" }), accumulator),
+        agentCallRunIdKey,
+      };
+
+      await executeDoTasks(tasks, null, createState(), doc, evaluateExpressionBatch, ctx);
+
+      expect(accumulator.toArray()[0]?.metadata).toEqual({
+        token_attribution: "total_only",
+        agent_run_id: "aex_child_8",
+      });
+    }
+  });
+
   it("records no run id when the failure carries no child", async () => {
     const accumulator = new TaskStatusAccumulator();
     const ctx = agentCallCtx(async () => {

@@ -1722,7 +1722,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
     );
   }
 
-  // The run audience of a workflow (`spec.execution_visibility`): open
+  // The run audience of a workflow (`spec.run_visibility`): open
   // source derives `run_viewer` from the row when a check asks; an
   // edition that stores tuples hears it here. The event carries the
   // audience the level now names — the whole target state, so a retry or a

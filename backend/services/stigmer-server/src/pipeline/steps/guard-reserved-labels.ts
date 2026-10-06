@@ -165,7 +165,7 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
  * does the caller hold `can_write_reserved_labels` on `platform:stigmer`?
  * Exported for the one other write a caller cannot vouch for by itself
  * under the same rule — a turn's link to a workflow run
- * (domain/agentexecution/vouch-workflow-parent.ts). An authorization
+ * (domain/agentrun/vouch-workflow-parent.ts). An authorization
  * outage fails closed as a sanitized Internal (#478), never an answer.
  */
 export async function mayWriteReservedLabels(

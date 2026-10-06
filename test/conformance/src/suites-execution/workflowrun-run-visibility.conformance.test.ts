@@ -1,7 +1,7 @@
 // Conformance suite for a workflow's run visibility (Class B): who may
 // observe a workflow's runs.
 // Domain: agentic / workflowexecution — the read side of the workflow's
-// `spec.execution_visibility`.
+// `spec.run_visibility`.
 //
 // A run is its person's: whoever started it reads it, and a workflow being
 // visible to the organization (who may see and run it) exposes nobody's

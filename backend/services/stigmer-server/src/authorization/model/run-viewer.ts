@@ -5,12 +5,12 @@
  * people's run inputs and outputs; workflow_execution reads it through
  * `run_viewer from workflow`.
  *
- * It is derived from `spec.execution_visibility`, which `kind_meta`
+ * It is derived from `spec.run_visibility`, which `kind_meta`
  * cannot express: `organization` derives
  * `#run_viewer@organization:<org>#viewer`, the organization's full
  * read audience, and `private` or unset derives nothing, so each run stays
  * the person's who started it. Pure over the row; no related row is read.
- * Which level names which audience is `executionAudienceShapes`
+ * Which level names which audience is `runAudienceShapes`
  * (pipeline/steps/authorization-tuples.ts), the one mapping this
  * derivation and the lifecycle event a tuple-storing edition hears both
  * read, so the two editions cannot disagree about who sees the runs.

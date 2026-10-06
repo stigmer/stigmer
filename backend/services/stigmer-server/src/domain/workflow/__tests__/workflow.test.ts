@@ -440,7 +440,7 @@ describe("validateSpec (persist-free verdicts)", () => {
   });
 });
 
-describe("run visibility (spec.execution_visibility)", () => {
+describe("run visibility (spec.run_visibility)", () => {
   it("is stored at create, changed by updateRunVisibility alone, and never mints a version", async () => {
     const created = await command.create(
       workflowInput({

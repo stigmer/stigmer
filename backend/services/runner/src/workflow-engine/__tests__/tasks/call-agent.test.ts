@@ -2,8 +2,9 @@
  * The call:agent task builder (`tasks/call-agent.ts`): config expression
  * evaluation, the hand-off to `ctx.callAgent` (the task's name only; the
  * ids that link the child to the run are the engine's own, never workflow
- * data), output-contract validation and retries, and the event bracketing
- * around each call.
+ * data), output-contract validation and retries, the event bracketing
+ * around each call, and the key the output names the child run by (the
+ * run's own, `agent_execution_id` in a run started before the rename).
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -16,7 +17,10 @@ import { AgentCallError } from "../../types.js";
 let mockCallAgent: ReturnType<typeof vi.fn>;
 let mockEmitEvents: ReturnType<typeof vi.fn>;
 
-function makeCtx(opts?: { emitEvents?: EmitEventsFn }): TaskExecutionContext {
+function makeCtx(opts?: {
+  emitEvents?: EmitEventsFn;
+  agentCallRunIdKey?: TaskExecutionContext["agentCallRunIdKey"];
+}): TaskExecutionContext {
   return {
     evaluateExpressions: evaluateExpressionBatch,
     doc: { document: { dsl: "1.0.0", name: "test-workflow" }, do: [] },
@@ -30,6 +34,7 @@ function makeCtx(opts?: { emitEvents?: EmitEventsFn }): TaskExecutionContext {
     callFunction: () => { throw new Error("not used"); },
     callAgent: (...args: Parameters<TaskExecutionContext["callAgent"]>) => mockCallAgent(...args),
     emitEvents: opts?.emitEvents,
+    agentCallRunIdKey: opts?.agentCallRunIdKey,
   };
 }
 
@@ -68,6 +73,23 @@ describe("CallAgentTaskBuilder", () => {
     // The step names the child run as workflow expressions read it
     // (agent_run_id); the engine's callback key does not reach the output.
     expect(output).toEqual({ final_text: "Code looks good", agent_run_id: "aex-123" });
+  });
+
+  it("names the child run by the run's own key: agent_execution_id in a run started before the rename", async () => {
+    mockCallAgent.mockResolvedValue({ final_text: "done", agent_execution_id: "aex-old" });
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: { agent: "code-reviewer", message: "Review this code" },
+    };
+    const executor = new CallAgentTaskBuilder("reviewCode", taskDef).build();
+
+    expect(
+      await executor({}, createState(), makeCtx({ agentCallRunIdKey: "agent_execution_id" })),
+    ).toEqual({ final_text: "done", agent_execution_id: "aex-old" });
+    expect(
+      await executor({}, createState(), makeCtx({ agentCallRunIdKey: "agent_run_id" })),
+    ).toEqual({ final_text: "done", agent_run_id: "aex-old" });
   });
 
   it("hands over no link ids, whatever the workflow data carries", async () => {

@@ -22,6 +22,7 @@ import type {
   AgentCallConfig,
   AgentCallOutput,
   AgentCallResult,
+  AgentCallRunIdKey,
   CallAgentMetadata,
 } from "../types.js";
 import { AgentCallError } from "../types.js";
@@ -29,11 +30,21 @@ import { resolveConfigExpressions } from "../resolve.js";
 import { validateAgentCallOutput } from "./call-agent-output.js";
 
 /**
+ * Temporal patch id for naming an agent_call step's child run
+ * `agent_run_id` in its output. Wire bytes: a rename makes every history
+ * that carries the marker replay down the old path. The engine checks it
+ * once, at a run's start (`TaskExecutionContext.agentCallRunIdKey`).
+ */
+export const AGENT_CALL_RUN_ID_KEY_PATCH = "agent-call-output-agent-run-id";
+
+/**
  * The step's output as a workflow reads it. The child run's id is
  * `agent_run_id`, the key workflow expressions read
  * (`${ .triage.agent_run_id }`); the engine's callback result names it
  * `agent_execution_id`, an engine key that runs in flight still carry, so
- * the step renames it here rather than at the callback.
+ * the step renames it here rather than at the callback. A run started
+ * before the rename keeps `agent_execution_id` (`runIdKey`): its workflow's
+ * expressions were written against it, and its history recorded it.
  *
  * Also adds the __stigmer_* keys so that extractCostFromOutput (in
  * do-executor) can pick up cost/token data. Agent usage_summary only
@@ -42,10 +53,13 @@ import { validateAgentCallOutput } from "./call-agent-output.js";
  * `token_attribution: "total_only"` so the frontend can avoid displaying a
  * misleading split.
  */
-function toStepOutput(result: AgentCallResult): AgentCallOutput {
+function toStepOutput(
+  result: AgentCallResult,
+  runIdKey: AgentCallRunIdKey = "agent_run_id",
+): AgentCallOutput {
   const { agent_execution_id: agentRunId, ...rest } = result;
   const output: AgentCallOutput =
-    agentRunId === undefined ? rest : { ...rest, agent_run_id: agentRunId };
+    agentRunId === undefined ? rest : { ...rest, [runIdKey]: agentRunId };
   const usage = result.usage_summary;
   if (!usage) return output;
 
@@ -104,7 +118,7 @@ export class CallAgentTaskBuilder implements TaskBuilder {
         attempts++;
 
         if (!outputContract?.schema) {
-          return toStepOutput(lastResult);
+          return toStepOutput(lastResult, ctx.agentCallRunIdKey);
         }
 
         const validation = validateAgentCallOutput(
@@ -113,7 +127,7 @@ export class CallAgentTaskBuilder implements TaskBuilder {
         );
 
         if (validation.valid) {
-          return toStepOutput(lastResult);
+          return toStepOutput(lastResult, ctx.agentCallRunIdKey);
         }
 
         const onInvalid = outputContract.on_invalid ?? "ON_INVALID_FAIL";
@@ -129,7 +143,7 @@ export class CallAgentTaskBuilder implements TaskBuilder {
           return {
             __flow_directive__: outputContract.fallback_task ?? "continue",
             validation_errors: validation.errors,
-            original_output: toStepOutput(lastResult),
+            original_output: toStepOutput(lastResult, ctx.agentCallRunIdKey),
           };
         }
       } while (attempts <= maxRetries);

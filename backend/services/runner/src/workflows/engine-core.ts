@@ -33,6 +33,7 @@ import { orchestrateListenTask } from "./listen-orchestrator.js";
 import { orchestrateRunWorkflow } from "./run-orchestrator.js";
 import { orchestrateHumanInput } from "./human-input-orchestrator.js";
 import { executeDoTasks } from "../workflow-engine/do-executor.js";
+import { AGENT_CALL_RUN_ID_KEY_PATCH } from "../workflow-engine/tasks/call-agent.js";
 import { createState } from "../workflow-engine/state.js";
 import { buildRecoveryContext } from "../workflow-engine/recovery.js";
 import type { RecoveryContext } from "../workflow-engine/recovery.js";
@@ -44,6 +45,7 @@ import type {
   CallFunctionMetadata,
   CallAgentMetadata,
   AgentCallConfig,
+  AgentCallRunIdKey,
   ListenExecutionConfig,
   RunCommandConfig,
   RunWorkflowExecutionConfig,
@@ -224,6 +226,12 @@ export async function runWorkflowEngine(
   // gate. Remove the gate (and the activity's legacy counter) once
   // pre-patch executions have drained.
   const workflowAssignedSequences = patched("workflow-assigned-event-sequences");
+  // An agent_call step names its child run `agent_run_id` only in a run
+  // started after executions were named runs: a run started before keeps
+  // the key its workflow reads, decided here once so it holds throughout.
+  const agentCallRunIdKey: AgentCallRunIdKey = patched(AGENT_CALL_RUN_ID_KEY_PATCH)
+    ? "agent_run_id"
+    : "agent_execution_id";
   const eventLogHighWaterMark = await eventProxy.ResetEventSequence(executionId);
   let eventSequence = workflowAssignedSequences ? Number(eventLogHighWaterMark ?? 0) : 0;
   const nextEventSequence = workflowAssignedSequences
@@ -292,6 +300,7 @@ export async function runWorkflowEngine(
     // kernel never imports Temporal APIs — it receives patched() as an
     // opaque callback, like every other capability on this context).
     isPatched: (changeId: string) => patched(changeId),
+    agentCallRunIdKey,
     sleep: async (durationMs: number) => {
       try {
         await sleep(durationMs);

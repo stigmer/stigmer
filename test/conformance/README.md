@@ -40,7 +40,7 @@ Covered against the `local` target:
   types, so the write is the gate. The runner's own refusal of those names
   stays as defence in depth, pinned by the runner's unit tests. A run names
   its workflow alone, and the workflow carries its runs' audience
-  (`spec.execution_visibility`: who may observe them, changed only through
+  (`spec.run_visibility`: who may observe them, changed only through
   `updateRunVisibility` by the owner, and the one field outside the
   version); a version covers everything else a run reads, a step's
   `environment_refs` and the declared keys included. An `agent_call` step's

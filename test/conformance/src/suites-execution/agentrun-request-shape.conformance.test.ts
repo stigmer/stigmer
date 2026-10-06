@@ -35,7 +35,7 @@
 //   the `execute` schema at the same hook. The golden is the only photograph.
 //   The platform's memory-capture tool `remember` is NOT on a bare agent's
 //   surface: recall is an organization preference that defaults off
-//   (stigmer-server domain/agentexecution/create-steps.ts,
+//   (stigmer-server domain/agentrun/create-steps.ts,
 //   ComposeRecalledMemories), so the runner never synthesizes the attachment
 //   for it. An org that turns memory on adds one stdio MCP tool served by the
 //   `stigmer` command on PATH — a different photograph this facet does not

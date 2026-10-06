@@ -7,7 +7,7 @@
  *     core lanes, open source's own posture.
  *
  * What the step does with it is pinned beside the step
- * (domain/agentexecution/__tests__/resolve-run-config.test.ts).
+ * (domain/agentrun/__tests__/resolve-run-config.test.ts).
  */
 import { describe, expect, it } from "vitest";
 

@@ -12,7 +12,8 @@
  *   - a workflow's emit_event signal target and its expressions name runs
  *     by the new keys, nested steps included, its YAML regenerated from the
  *     rewritten spec and its version hash untouched; a free-form string is
- *     never rewritten; a workflow already current is left alone;
+ *     never rewritten, nor an `execution_id` that is not an emit_event
+ *     signal target; a workflow already current is left alone;
  *   - the event-type renames cover exactly the event log's run lifecycle
  *     types, each the old name of a current WorkflowEventType value;
  *   - bytes that do not decode throw (the step must not pass over them).
@@ -180,6 +181,41 @@ describe("renamedWorkflowRow", () => {
       "agent_execution_id is plain text",
       3,
     ]);
+  });
+
+  it("renames only an emit_event step's signal targets, nested ones in either config spelling", () => {
+    const workflow = workflowWithSteps("wfl_scoped", NEW_RUN_NAMES);
+    const payload = { signal: { execution_id: "kept as the event's own data" } };
+    workflow.spec!.tasks[2]!.taskConfig = {
+      event: { type: "ticket.done", data: payload },
+      delivery: [{ signal: { run_id: "${ .item.run }", signal_name: "done" } }],
+    };
+    workflow.spec!.tasks[1]!.taskConfig = {
+      each: "item",
+      in: "${ .items }",
+      do: [
+        {
+          name: "notify",
+          kind: "emit_event",
+          task_config: {
+            event: { type: "ticket.triaged", data: payload },
+            delivery: [{ signal: { execution_id: "${ .item.run }", signal_name: "done" } }],
+          },
+        },
+      ],
+    };
+    const migrated = fromBinary(WorkflowSchema, renamedWorkflowRow(toBinary(WorkflowSchema, workflow))!);
+    expect(migrated.spec?.tasks[1]?.taskConfig?.["do"]).toEqual([
+      {
+        name: "notify",
+        kind: "emit_event",
+        task_config: {
+          event: { type: "ticket.triaged", data: payload },
+          delivery: [{ signal: { run_id: "${ .item.run }", signal_name: "done" } }],
+        },
+      },
+    ]);
+    expect(migrated.spec?.tasks[2]?.taskConfig).toEqual(workflow.spec!.tasks[2]!.taskConfig);
   });
 
   it("leaves a workflow whose steps already read current alone", () => {

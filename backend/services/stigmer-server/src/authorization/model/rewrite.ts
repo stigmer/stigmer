@@ -34,7 +34,7 @@
  *
  * `derived` names the relations `kind_meta.authorization` cannot derive
  * from the row alone: `run_viewer` on a workflow
- * (`spec.execution_visibility`; execution-viewer.ts), and an
+ * (`spec.run_visibility`; run-viewer.ts), and an
  * organization's `parent_org` and `child_org` edges
  * (child-organizations.ts). The binding table (bindings.ts) attaches
  * them; the tuple source dispatches to them by relation.

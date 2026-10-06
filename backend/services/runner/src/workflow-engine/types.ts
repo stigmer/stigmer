@@ -473,6 +473,17 @@ export interface TaskExecutionContext {
   readonly isPatched?: (changeId: string) => boolean;
 
   /**
+   * The key an agent_call step's output names its child run by. A run
+   * started before executions were named runs keeps `agent_execution_id`,
+   * the key its workflow's expressions were written against and its history
+   * recorded; a run started after names it `agent_run_id`. The engine
+   * decides it once, at the run's start (a `patched()` gate,
+   * `AGENT_CALL_RUN_ID_KEY_PATCH`), so a run that crosses the upgrade keeps
+   * one key throughout. Absent means `agent_run_id`.
+   */
+  readonly agentCallRunIdKey?: AgentCallRunIdKey;
+
+  /**
    * Accumulates per-task status entries throughout the workflow run.
    * Passed to the emit activity on every event batch so the server
    * receives a complete snapshot of task statuses with each update.
@@ -821,10 +832,18 @@ export interface AgentCallResult {
  * callback result with the child run's id under `agent_run_id`, plus the
  * engine's __stigmer_* cost keys.
  */
+/**
+ * The key an agent_call step's output names its child run by: `agent_run_id`,
+ * or `agent_execution_id` in a run started before executions were named runs.
+ */
+export type AgentCallRunIdKey = "agent_run_id" | "agent_execution_id";
+
 export interface AgentCallOutput {
   readonly structured?: unknown;
   readonly final_text?: string;
   readonly agent_run_id?: string;
+  /** The child run's id in a run started before the rename (`AgentCallRunIdKey`). */
+  readonly agent_execution_id?: string;
   readonly usage_summary?: AgentUsageSummary;
   readonly __stigmer_cost_micros?: number;
   readonly input_tokens?: number;

@@ -9,7 +9,7 @@
  * the tag COLUMN as the source of truth; tagVersion moves tags
  * single-holder (oss#341). Every version step is the shared machinery,
  * bound in version-resolution.ts. Who observes the workflow's runs is
- * `spec.execution_visibility`, set at create and changed only by
+ * `spec.run_visibility`, set at create and changed only by
  * updateRunVisibility (run-visibility.ts).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
@@ -619,7 +619,7 @@ function newIndexWorkflowAfterVisibilityUpdateStep(
 
 // ---------------------------------------------------------------------------
 // updateRunVisibility — who observes the workflow's runs: a targeted
-// spec update (only spec.execution_visibility changes) and the one door
+// spec update (only spec.run_visibility changes) and the one door
 // that changes it after create. can_manage_audience is the owner's, never
 // an editor's. Open source authorizes run reads from the row itself, so
 // the persisted level is the grant; a composed tuple driver hears the

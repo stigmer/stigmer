@@ -21,7 +21,7 @@
  * and the list scope never lists it.
  *
  * The derived rules: on the workflow, `run_viewer`, which its
- * execution visibility decides (execution-viewer.ts); on the organization, `parent_org` and
+ * execution visibility decides (run-viewer.ts); on the organization, `parent_org` and
  * `child_org`, which a child's `spec.parent_org` decides
  * (child-organizations.ts).
  */

@@ -19,7 +19,7 @@
 // type, and for the task nested in a for_each.
 //
 // The run-visibility arms pin the workflow's second audience, who observes
-// its runs (`spec.execution_visibility`): it starts private, only
+// its runs (`spec.run_visibility`): it starts private, only
 // updateRunVisibility changes it, update and apply keep the stored
 // level, only the owner may change it (a member who can see and run the
 // workflow is refused, and so is an editor where the edition grants one),

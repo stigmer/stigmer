@@ -212,7 +212,7 @@ export function newPopulateServerlessValidationStepForUpdate(
 // the version unchanged and a running step read the edited refs
 // (stigmer#1906).
 //
-// The one exception is spec.execution_visibility, the run audience: it is
+// The one exception is spec.run_visibility, the run audience: it is
 // cleared before hashing, so changing who sees the runs mints no version.
 //
 // The hash is taken only when validation produced YAML (a VALID verdict),

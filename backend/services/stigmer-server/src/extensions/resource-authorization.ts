@@ -74,8 +74,8 @@
  *
  * One more structural relation rides the seam the same way: a workflow's
  * run audience, `run_viewer`, which open source derives from
- * `spec.execution_visibility` when a check asks
- * (authorization/model/execution-viewer.ts) and an edition that stores
+ * `spec.run_visibility` when a check asks
+ * (authorization/model/run-viewer.ts) and an edition that stores
  * tuples must write. `onRunVisibilityChanged` hands the driver the
  * audience the stored level names, from the two doors that may set it
  * (create, and updateRunVisibility; Update and Apply keep the
@@ -226,7 +226,7 @@ export interface ChildOrganizationLinkedEvent {
 }
 
 /**
- * Fired synchronously after a workflow's `spec.execution_visibility` is
+ * Fired synchronously after a workflow's `spec.run_visibility` is
  * persisted at create (only when the level names an audience) or by
  * updateRunVisibility (always). `shapes` is the audience the stored
  * level names — ["org-viewer"] for ORGANIZATION, [] for PRIVATE and unset
