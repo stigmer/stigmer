@@ -11,8 +11,7 @@ Everything the film shows on screen is real product state, authored here and app
 | `skills/rebooking-policy/` | The versioned policy skill, pushed with tag `stable` | S3c skill shot |
 | `resources/traveler-assist.yaml` | The hero agent YAML, written in narration order | S3b editor walk |
 | `resources/meridian-ops.yaml` | McpServer manifest with the pinned approval on `rebook_booking` | S3d |
-| `resources/disruption-digest.yaml` | Workflow with a real `budget` block | S5a canvas, S5b budget |
-| `resources/disruption-digest-schedule.yaml` | Daily 6:00 schedule (agent target — see note inside) | S5c |
+| `resources/disruption-digest-schedule.yaml` | Daily 6:00 schedule firing the hero agent with the digest prompt | S5c |
 | `resources/organization.yaml` | The `meridian-travel` org | throughout |
 | `embed/` | The Meridian product page carrying `<stigmer-agent>` + its static server | S4d |
 | `cloud/` | The S4d cloud preconditions: minimal seed + public-audience share (see its README) | S4d |

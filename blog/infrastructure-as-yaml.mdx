@@ -19,7 +19,7 @@ Before looking at YAML, here is what the stack contains and why each piece exist
 - **PostgreSQL** — relational database hosting three schemas: one for OpenFGA's authorization data, one for Temporal's workflow state, and one for Temporal's visibility queries
 - **MongoDB** — document store for Stigmer's application data (agents, sessions, skills, executions)
 - **Redis** — caching layer and pub/sub backbone
-- **Temporal** — durable execution engine that runs Agent and Workflow tasks reliably, surviving crashes and restarts
+- **Temporal** — durable execution engine that runs Agent tasks reliably, surviving crashes and restarts
 - **OpenFGA** — fine-grained authorization service that evaluates access policies for every API call
 - **Cloudflare R2 bucket (Claim Check)** — stores large workflow payloads that would otherwise exceed Temporal's event history size limit
 - **Cloudflare R2 bucket (Skill Artifacts)** — stores skill packages uploaded via `stigmer push`

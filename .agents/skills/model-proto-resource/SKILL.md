@@ -175,7 +175,7 @@ From the repository root, `make codegen` regenerates every stub under
 and the task registry; all of it is committed and none of it is hand-edited.
 Then the checks the root guide's verification map names for `apis/**`:
 `make -C apis lint`, and for a `.proto` change
-`make check-docs-yaml gen-proto-sdk-docs-check gen-task-docs-check gen-task-registry-check`;
+`make check-docs-yaml gen-proto-sdk-docs-check gen-task-registry-check`;
 `make -C apis fmt` before committing. `buf breaking` runs in CI: a renamed
 field, enum value or service is a wire break and needs a migration plan, not a
 cleanup commit.

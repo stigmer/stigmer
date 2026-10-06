@@ -2,15 +2,14 @@
 title: Encrypt Temporal payloads at rest
 description:
   Opt-in AES-256-GCM encryption for every Temporal payload the runner produces,
-  so decrypted workflow secrets never rest in Temporal history or appear in the
-  Temporal UI. Two environment variables on the runner and the server.
+  so decrypted secrets never rest in Temporal history or appear in the Temporal
+  UI. Two environment variables on the runner and the server.
 ---
 
-Agent Runs and Workflow Runs move data through Temporal: activity inputs and
-results, expression markers, workflow results. Without encryption, that data —
-including execution-context secrets a workflow interpolates into task configs —
-rests in durable Temporal history, readable by anyone with access to the
-Temporal UI or database.
+Agent Runs move data through Temporal: activity inputs and results, workflow
+results. Without encryption, that data — including the execution-context secrets
+a run resolves — rests in durable Temporal history, readable by anyone with
+access to the Temporal UI or database.
 
 Payload encryption closes the whole class at the codec layer: the runner
 encrypts **every payload its workers hand to Temporal** with AES-256-GCM before
@@ -19,8 +18,8 @@ carries a **decode-only** twin of the codec, so it can read runner results
 (agent activity results, MCP connect results) while its own orchestration
 history stays plaintext and UI-readable.
 
-Encryption is off by default and enabled by configuration alone — no code or
-workflow changes.
+Encryption is off by default and enabled by configuration alone — no code
+changes.
 
 ## Enable it
 
@@ -72,18 +71,8 @@ without a key:
 
 - **Server-side history** — orchestrator workflow inputs, signals sent by the
   server (approvals, pause/resume), memos, and search attributes.
-- **Workflow completion results** on the execution path — the runner completes
-  the cross-language child workflow with a data-less (void) result; outputs
-  reach you through the event log instead.
 - **Failure messages and stack traces** — Temporal stores these outside
   payloads, so errors stay debuggable in the UI.
-- **Event signals sent by `emit` tasks** — emit delivery is routed through the
-  server's `SendSignal` lane (the runner holds no Temporal client of its own),
-  so the signal payload is server-produced and follows the server-side
-  plaintext-by-design rule above, exactly like approval signals. Sender-side
-  encryption was rejected deliberately: emit→listen crosses runner boundaries,
-  and a receiver cannot be assumed to hold the sender's key. Treat event
-  payloads as boundary-crossing messages, not secret carriers.
 
 Encrypted payloads appear as opaque `binary/encrypted` blobs in the Temporal UI.
 Decoding them in the UI would require a Temporal codec server, which Stigmer

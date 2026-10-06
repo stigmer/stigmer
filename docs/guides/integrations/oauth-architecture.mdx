@@ -125,15 +125,15 @@ separation is a security boundary: the pre-flight path has no access to secrets.
 When an Agent runs, Environment variables are resolved from several sources. A
 source further down fills only the keys the earlier ones left empty:
 
-| Order | Source                        | What it provides                                                                                       |
-| ----- | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 1     | **The run's Environments**    | Values bound to the Schedule, Workflow task or PlatformClient that started the run, and per-run values |
-| 2     | **OAuth Managed Environment** | Access tokens acquired through OAuth connect flows                                                     |
-| 3     | **Personal Environment**      | API keys and credentials the person sending the message entered                                        |
+| Order | Source                        | What it provides                                                                        |
+| ----- | ----------------------------- | --------------------------------------------------------------------------------------- |
+| 1     | **The run's Environments**    | Values bound to the Schedule or PlatformClient that started the run, and per-run values |
+| 2     | **OAuth Managed Environment** | Access tokens acquired through OAuth connect flows                                      |
+| 3     | **Personal Environment**      | API keys and credentials the person sending the message entered                         |
 
 If you set up OAuth for a server and also enter an API key for the same variable
 in your personal Environment, the OAuth token is the one the run uses. A value
-bound to the Schedule or Workflow that started the run comes before both.
+bound to the Schedule that started the run comes before both.
 
 ## How tokens stay fresh
 

@@ -19,7 +19,7 @@ All Stigmer term definitions, capitalization rules, and context-specific usage
 guidance live in [`docs/vocabulary.md`](vocabulary.md). That file is the single
 source of truth.
 
-**Short version**: capitalize Stigmer domain terms (Agent, Skill, Workflow,
+**Short version**: capitalize Stigmer domain terms (Agent, Skill, Schedule,
 Session, etc.) when they refer to the platform concept. Lowercase when used
 generically. Use the canonical forms (gRPC, ID, IDs). Vale enforces these
 automatically via `vale/styles/Stigmer/terms.yml`.
@@ -33,8 +33,8 @@ writing context, and good/bad examples.
   - _How to create an Agent_ (correct)
   - _How To Create An Agent_ (incorrect)
 - Use **infinitive verb forms** for how-to titles.
-  - _How to deploy a Workflow_ (correct)
-  - _Deploying a Workflow_ (incorrect)
+  - _How to share an Agent_ (correct)
+  - _Sharing an Agent_ (incorrect)
 - Do not end headings with punctuation.
 
 ## Code blocks
@@ -116,9 +116,9 @@ one and sets the pace. `still` and `screenshot-journey` are rendered from real
 components by Scenar, never hand-captured — a screenshot taken by hand goes
 stale with no signal, so do not add one as a placeholder.
 
-Generated pages (the `cli/commands/`, `guides/workflows/task-types/`,
-`sdk/react/`, `sdk/resources/`, `sdk/ink/`, and `sdk/theme/` reference sets) are
-covered by cohort rules in the same file and need no per-page entry.
+Generated pages (the `cli/commands/`, `sdk/react/`, `sdk/resources/`,
+`sdk/ink/`, and `sdk/theme/` reference sets) are covered by cohort rules in the
+same file and need no per-page entry.
 
 When you add a page, add its entry. When you delete or move a page, update its
 entry (remove it, or re-key it) in the same commit. When you add or remove an
@@ -149,7 +149,7 @@ Link card grids for navigation hubs and landing pages.
 ```mdx
 <Cards>
   <Card href="/docs/concepts" title="Core Concepts">
-    Understand Agents, Workflows, Skills, and how they fit together.
+    Understand Agents, Sessions, Skills, and how they fit together.
   </Card>
   <Card href="/docs/getting-started" title="Getting Started">
     Install Stigmer and run your first Agent in under five minutes.
@@ -200,7 +200,7 @@ Wrap a Stigmer domain term in `<Term>` to show its definition on hover.
 Definitions come from the glossary at `site/src/components/docs/glossary.ts`.
 
 ```mdx
-When you create a <Term>Workflow</Term>, you define each step.
+When you create a <Term>Skill</Term>, you write its instructions.
 ```
 
 ### File trees
@@ -377,7 +377,7 @@ descriptions of architecture or data flow.
 ````mdx
 ```mermaid
 flowchart TB
-    A[Submit Workflow] --> B{Validate spec}
+    A[Submit Agent] --> B{Validate spec}
     B -->|Valid| C[Record version]
     B -->|Invalid| D[Return error]
 ```

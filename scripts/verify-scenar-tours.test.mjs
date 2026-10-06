@@ -392,13 +392,13 @@ test("extractStills finds single-line and Prettier-split tags, attributes in any
     '<Still id="agent-detail-tour/agent-detail" alt="The Agent detail page." />',
     "",
     "<Still",
-    '  alt="The workflow run detail."',
-    '  id="workflow-tour/run-detail"',
+    '  alt="The session view."',
+    '  id="session-tour/session-view"',
     "/>",
   ].join("\n");
   assert.deepEqual(extractStills(mdx), [
     { id: "agent-detail-tour/agent-detail", alt: "The Agent detail page.", selfClosing: true },
-    { id: "workflow-tour/run-detail", alt: "The workflow run detail.", selfClosing: true },
+    { id: "session-tour/session-view", alt: "The session view.", selfClosing: true },
   ]);
 });
 

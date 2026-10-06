@@ -1,6 +1,6 @@
 # Stigmer Examples
 
-This directory contains example agents and workflows to help you get started.
+This directory contains example agents and skills to help you get started.
 
 ## Agents
 
@@ -25,47 +25,6 @@ stigmer install claude-plugins-official/hookify
 ```bash
 stigmer apply -f examples/agents/support-bot.yaml
 stigmer agent execute support-bot "How do I reset my password?"
-```
-
-## Workflows
-
-### PR Review Workflow (`workflows/pr-review.yaml`)
-
-An automated code review workflow that:
-1. Fetches PR details from GitHub
-2. Analyzes code quality with AI agents
-3. Checks test coverage
-4. Generates a comprehensive review
-5. Posts the review as a GitHub comment
-
-**Usage**:
-```bash
-stigmer apply -f examples/workflows/pr-review.yaml
-stigmer run workflow pr-review-workflow
-```
-
-### Hello World Workflow (`workflows/hello-world.yaml`)
-
-A minimal starter workflow demonstrating basic workflow structure.
-
-**Usage**:
-```bash
-stigmer apply -f examples/workflows/hello-world.yaml
-stigmer run workflow hello-world
-```
-
-### Multi-Step Workflow (`workflows/multi-step.yaml`)
-
-A comprehensive example demonstrating:
-- Multiple task types (set_vars, http_call, agent_call, wait)
-- Flow control between tasks
-- Data export patterns
-- Context variable usage
-
-**Usage**:
-```bash
-stigmer apply -f examples/workflows/multi-step.yaml
-stigmer run workflow multi-step-example
 ```
 
 ## Skills
@@ -160,42 +119,6 @@ spec:
   mcpServers:
     - github
     - filesystem
-```
-
-### Workflow Template
-
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Workflow
-metadata:
-  name: my-workflow
-spec:
-  description: Brief description of your workflow
-  document:
-    dsl: "1.0.0"
-    namespace: my-namespace
-    name: my-workflow
-    version: "1.0.0"
-  tasks:
-    - name: first-task
-      kind: set_vars
-      task_config:
-        variables:
-          key: value
-      export:
-        as: "${.}"
-      flow:
-        then: second-task
-    
-    - name: second-task
-      kind: agent_call
-      task_config:
-        agent: my-agent
-        message: "Process this: ${context.first-task.key}"
-      export:
-        as: "${.result}"
-      flow:
-        then: end
 ```
 
 ## More Examples

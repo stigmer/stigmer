@@ -252,8 +252,8 @@ is.
 - **Kept valid.** If a listed Environment is deleted, runs fail to start with
   `NOT_FOUND` until you remove it from `environment_refs` or create it again.
 
-Runs started by a Schedule or by a Workflow's `agent_call` task receive their
-own Environments, not the PlatformClient's.
+Runs started by a Schedule receive their own Environments, not the
+PlatformClient's.
 
 ## Error handling
 
@@ -348,8 +348,8 @@ PlatformClient's own, or one of its child organizations), whatever roles the
 user holds elsewhere. `PERMISSION_DENIED` on a call that names another
 Organization's resource means the token is bound elsewhere. The token can still
 reach the user's own account and API keys, and, in a child organization, read
-and run the Agents, Skills, Workflows, MCP Servers and Plugins its parent shares
-with its children.
+and run the Agents, Skills, MCP Servers and Plugins its parent shares with its
+children.
 
 </Step>
 </Steps>

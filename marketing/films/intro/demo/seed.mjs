@@ -55,8 +55,7 @@ stigmer("--org", ORG, "push", "skill", join(here, "skills/rebooking-policy"), "-
 // 4. The agent (traveler-assist + fare-search sub-agent).
 stigmer("apply", "-f", join(here, "resources/traveler-assist.yaml"));
 
-// 5. The workflow and its daily schedule.
-stigmer("apply", "-f", join(here, "resources/disruption-digest.yaml"));
+// 5. The daily digest schedule.
 stigmer("apply", "-f", join(here, "resources/disruption-digest-schedule.yaml"));
 
 // 6. The hosted-chat share (share link + embed origins for the Meridian page).

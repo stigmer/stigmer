@@ -31,7 +31,7 @@ stigmer list types
 stigmer list agents --limit 10
 
 # Output as JSON for scripting
-stigmer list workflows --output json
+stigmer list skills --output json
 ```
 
 ## Options
@@ -41,7 +41,6 @@ stigmer list workflows --output json
 | `--json`         | `bool`   |         | shorthand for --output json                                  |
 | `--limit`        | `string` | `50`    | maximum number of results                                    |
 | `--output`, `-o` | `string` |         | output format: table, json, or yaml                          |
-| `--type`         | `string` |         | run type filter: agent or workflow (only for 'list runs')    |
 | `--verb`         | `string` |         | filter to types supporting this verb (only for 'list types') |
 
 ### Supported resource types
@@ -60,7 +59,6 @@ stigmer list workflows --output json
 | Schedule       | `schedules`, `schedule`, `sch`           |
 | Session        | `sessions`, `session`, `ses`             |
 | Skill          | `skills`, `skill`                        |
-| Workflow       | `workflows`, `workflow`, `wf`            |
 
 Both singular and plural forms are accepted.
 
@@ -85,10 +83,10 @@ stigmer list types --verb run
 stigmer list agents
 ```
 
-### List workflows with JSON output
+### List skills with JSON output
 
 ```bash
-stigmer list workflows --output json | jq '.[].metadata.name'
+stigmer list skills --output json | jq '.[].metadata.name'
 ```
 
 ### Paginate through many resources

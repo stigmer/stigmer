@@ -46,8 +46,8 @@ on the site. The sections, in sidebar order, are:
 | Directory          | Purpose                                             |
 | ------------------ | --------------------------------------------------- |
 | `getting-started/` | Cloud quickstart, local quickstart, first Skill     |
-| `concepts/`        | Core concepts (Agents, Skills, Workflows, etc.)     |
-| `tutorials/`       | Progressive tutorials (tools, approvals, Workflows) |
+| `concepts/`        | Core concepts (Agents, Skills, Sessions, etc.)      |
+| `tutorials/`       | Progressive tutorials (tools, approvals, Schedules) |
 | `sdks/`            | Per-language SDK guides                             |
 | `cli/`             | CLI overview and command reference                  |
 | `reference/`       | API reference                                       |
@@ -145,7 +145,7 @@ two-sentence plain-language definition.
 
 See [STYLE.md](STYLE.md) for the full style guide. The key points:
 
-- Capitalize Stigmer domain terms (Agent, Workflow, Skill, etc.).
+- Capitalize Stigmer domain terms (Agent, Session, Skill, etc.).
 - Use sentence casing for headings.
 - Always add language hints to code blocks.
 - Write for platform builders, not end users.

@@ -123,29 +123,6 @@ export const SHOTS = {
     await human.beat(20); // answer streams (policy question, no tools)
   },
 
-  /** S5a — the disruption-digest pipeline on the canvas. */
-  "s5a-workflow": async (page, human) => {
-    await ensureOrg(page, human);
-    await page.goto(lib(`workflows/${ORG}/disruption-digest`), { waitUntil: "networkidle" });
-    await human.beat(14);
-  },
-
-  /**
-   * S5b — the budget: a hard limit on what a run may spend. The scroll
-   * brings the budget block toward frame center (rough-cut gate note:
-   * the first take left it pinned to the bottom edge).
-   */
-  "s5b-budget": async (page, human) => {
-    await ensureOrg(page, human);
-    await page.goto(lib(`workflows/${ORG}/disruption-digest`), { waitUntil: "networkidle" });
-    await human.beat(1.5);
-    const budget = page.getByText(/budget/i).first();
-    await human.click(budget);
-    await human.beat(1);
-    await human.scroll(380, { durationMs: 2600 });
-    await human.beat(9);
-  },
-
   /** S5c — the daily schedule. */
   "s5c-schedule": async (page, human) => {
     await ensureOrg(page, human);

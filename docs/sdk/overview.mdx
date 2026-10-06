@@ -360,7 +360,7 @@ try {
 
 ## Pagination
 
-The lists that grow without bound (Sessions, Agent Runs and Workflow Runs) page
+The lists that grow without bound (Sessions and Agent Runs) page
 by cursor, newest first. Pass `pageSize` (at most 100; zero
 returns the whole list) and read `nextPageToken` from the result. Pass that
 token back as `pageToken` to get the next page. An empty token means you have
@@ -442,7 +442,7 @@ do {
 
 ## Streaming
 
-Agent Runs and Workflow Runs support server-streaming via a `subscribe` method.
+Agent Runs support server-streaming via a `subscribe` method.
 You receive snapshots of the run state as it progresses — messages arriving, tool calls executing, and phases changing.
 
 <SDKTabs>
@@ -510,9 +510,8 @@ while (stream.hasNext()) {
 </Tab>
 </SDKTabs>
 
-For a detailed guide on reading run snapshots, handling stream completion, and
-subscribing to Workflow Runs, see the
-[Streaming guide](/docs/sdk/streaming).
+For a detailed guide on reading run snapshots and handling stream completion,
+see the [Streaming guide](/docs/sdk/streaming).
 
 ## What's next
 

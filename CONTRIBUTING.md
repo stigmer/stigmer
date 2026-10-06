@@ -45,7 +45,7 @@ stigmer/
 │   ├── libs/                      # Shared libraries (TypeScript)
 │   └── services/
 │       ├── stigmer-server/        # Main gRPC server (TypeScript)
-│       └── runner/                # Unified TypeScript runner (agent sessions + workflow tasks)
+│       └── runner/                # Unified TypeScript runner (agent sessions)
 │           └── src/harness/README.md  # Adding a harness: start here
 ├── client-apps/
 │   ├── cli/                       # TypeScript CLI (stigmer command)
@@ -166,16 +166,16 @@ The repository carries its own guidance for coding agents (Cursor, Codex and sim
 **Example**:
 
 ```go
-// CreateExecution creates a new workflow execution in the backend.
-// Returns an error if the workflow definition is not found.
-func (b *Backend) CreateExecution(ctx context.Context, req *pb.CreateExecutionRequest) (*pb.Execution, error) {
-    if req.WorkflowId == "" {
-        return nil, errors.New("workflow_id is required")
+// CreateSession creates a new session with an agent in the backend.
+// Returns an error if the agent is not found.
+func (b *Backend) CreateSession(ctx context.Context, req *pb.CreateSessionRequest) (*pb.Session, error) {
+    if req.AgentId == "" {
+        return nil, errors.New("agent_id is required")
     }
     
     // Implementation...
     
-    return execution, nil
+    return session, nil
 }
 ```
 
@@ -188,25 +188,25 @@ func (b *Backend) CreateExecution(ctx context.Context, req *pb.CreateExecutionRe
 **Example**:
 
 ```python
-def create_execution(workflow_id: str, inputs: dict[str, str]) -> Execution:
-    """Create a new workflow execution.
+def create_session(agent_id: str, inputs: dict[str, str]) -> Session:
+    """Create a new session with an agent.
     
     Args:
-        workflow_id: Unique identifier for the workflow definition
-        inputs: Key-value pairs for workflow inputs
+        agent_id: Unique identifier for the agent
+        inputs: Key-value pairs for the session's inputs
         
     Returns:
-        The created execution object
+        The created session object
         
     Raises:
-        ValueError: If workflow_id is empty
+        ValueError: If agent_id is empty
     """
-    if not workflow_id:
-        raise ValueError("workflow_id is required")
+    if not agent_id:
+        raise ValueError("agent_id is required")
     
     # Implementation...
     
-    return execution
+    return session
 ```
 
 ### Protobuf
@@ -222,43 +222,43 @@ def create_execution(workflow_id: str, inputs: dict[str, str]) -> Execution:
 **Required for**:
 - All new backend functionality
 - SDK methods
-- Workflow and agent execution logic
+- Agent execution logic
 
 **Example**:
 
 ```go
-func TestCreateExecution(t *testing.T) {
+func TestCreateSession(t *testing.T) {
     backend := setupTestBackend(t)
     
-    req := &pb.CreateExecutionRequest{
-        WorkflowId: "wf-test-123",
+    req := &pb.CreateSessionRequest{
+        AgentId: "agt-test-123",
         Inputs: map[string]string{"key": "value"},
     }
     
-    exec, err := backend.CreateExecution(context.Background(), req)
+    session, err := backend.CreateSession(context.Background(), req)
     assert.NoError(t, err)
-    assert.NotEmpty(t, exec.Id)
-    assert.Equal(t, "wf-test-123", exec.WorkflowId)
+    assert.NotEmpty(t, session.Id)
+    assert.Equal(t, "agt-test-123", session.AgentId)
 }
 ```
 
 ### Integration Tests
 
-Integration tests live in `tests/integration/`. They test complete workflows:
+Integration tests live in `tests/integration/`. They test complete flows:
 
 ```go
 func TestLocalBackendEndToEnd(t *testing.T) {
     // Initialize local backend
     backend := setupLocalBackend(t)
     
-    // Create workflow
-    workflow := createTestWorkflow(t, backend)
+    // Create agent
+    agent := createTestAgent(t, backend)
     
     // Execute
-    execution := executeWorkflow(t, backend, workflow.Id)
+    run := executeAgent(t, backend, agent.Id)
     
     // Verify results
-    assert.Equal(t, pb.ExecutionStatus_COMPLETED, execution.Status)
+    assert.Equal(t, pb.ExecutionStatus_COMPLETED, run.Status)
 }
 ```
 
@@ -304,9 +304,9 @@ docs/
 Generated from Protobuf comments:
 
 ```protobuf
-// CreateExecution creates a new workflow execution.
-// The workflow definition must exist in the backend.
-rpc CreateExecution(CreateExecutionRequest) returns (Execution);
+// CreateSession creates a new session with an agent.
+// The agent must exist in the backend.
+rpc CreateSession(CreateSessionRequest) returns (Session);
 ```
 
 Appears in generated docs automatically.

@@ -148,17 +148,16 @@ stigmer delete plugin thermos
 ```
 
 This removes the plugin and everything it installed. It is refused while an
-Agent or Workflow of your own still uses one of the plugin's Skills or MCP
-Servers; detach them first.
+Agent of your own still uses one of the plugin's Skills or MCP Servers; detach
+them first.
 
 ## Stigmer's own overlay
 
 A plugin can carry a folder named `ai.stigmer/` with Stigmer resources the other
 tools ignore: an `agent.yaml` to author the Agent yourself instead of taking the
-composed one, `workflows/` for Workflows that use the plugin's tools, and
-`mcp-servers/` overlays that set OAuth or transport details on a declared
-server. Each document names the plugin's own resources and nothing else; a
-document that names something outside the plugin is refused.
+composed one, and `mcp-servers/` overlays that set OAuth or transport details on
+a declared server. Each document names the plugin's own resources and nothing
+else; a document that names something outside the plugin is refused.
 
 The manifest may also carry presentation under `extensions["ai.stigmer"]`, the
 extension slot the Agent Plugins format reserves for a host: `displayName` (the

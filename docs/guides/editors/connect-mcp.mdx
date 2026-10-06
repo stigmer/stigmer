@@ -2,14 +2,14 @@
 title: Connect Stigmer to your AI editor
 description:
   Add the Stigmer MCP connector to Claude Code, Cursor, or Claude Desktop so
-  your AI assistant can look up, validate, and create Stigmer resources for you.
+  your AI assistant can look up and create Stigmer resources for you.
 ---
 
 Stigmer runs a hosted MCP server at `https://mcp.stigmer.ai`. Connecting it to
 your AI editor lets the assistant you already use — Claude Code, Cursor, or
-Claude Desktop — search your Agents, validate Workflows, and create resources on
-your behalf. You describe what you want in plain language; the assistant does
-the work through the connector.
+Claude Desktop — search your Agents, start runs, and create resources on your
+behalf. You describe what you want in plain language; the assistant does the
+work through the connector.
 
 <Callout type="info">
   This guide uses the hosted endpoint, which is the right choice if you use
@@ -139,8 +139,7 @@ connected.
 
 With the connector in place, your assistant can work with Stigmer directly:
 
-- **Look up resources** — list Agents, inspect a Workflow, or read a Skill.
-- **Validate before you push** — check Workflow YAML for errors as you write it.
+- **Look up resources** — list Agents, inspect an MCP Server, or read a Skill.
 - **Create resources** — author Agents and MCP servers from a description.
 
 When your assistant authors Agents, Skills and MCP servers, it writes a plugin:

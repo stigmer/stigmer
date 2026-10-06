@@ -1,9 +1,9 @@
 ---
 title: Runners
 description:
-  A Runner is the process that executes your Agents and Workflows. Learn where
-  it sits in the resource model, where one comes from in each way of running
-  Stigmer, and how work reaches it.
+  A Runner is the process that executes your Agents. Learn where it sits in the
+  resource model, where one comes from in each way of running Stigmer, and how
+  work reaches it.
 ---
 
 Every [Agent](/docs/concepts/agents) needs somewhere to run. An Agent definition
@@ -77,10 +77,9 @@ run is recorded as the person who started it.
 
 A runner that is absent is noticed only when a run has nobody to take it. An
 Agent Run waits five minutes for a runner and then fails with a message that
-names the runner as the likely cause; a Workflow Run waits until a runner
-returns. A runner that stops in the middle of an Agent turn is detected through
-the heartbeat it sends Temporal every 30 seconds, and the turn resumes from the
-runner's checkpoint once a runner is back.
+names the runner as the likely cause. A runner that stops in the middle of an
+Agent turn is detected through the heartbeat it sends Temporal every 30 seconds,
+and the turn resumes from the runner's checkpoint once a runner is back.
 
 ## What's next
 
@@ -104,6 +103,4 @@ depends on what you want to do:
   the Cursor execution engine for coding-focused capabilities.
 
 The next concept page covers [Harnesses](/docs/concepts/harnesses) — the
-execution engines that power your Agent's Sessions. After that,
-[Workflows](/docs/concepts/workflows) — multi-step automation sequences that
-chain Agent calls, HTTP requests, and approval gates into structured processes.
+execution engines that power your Agent's Sessions.

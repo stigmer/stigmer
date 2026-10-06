@@ -668,9 +668,6 @@ function generatedDocHint(docsDir: string, p: string): string {
   if (rel.startsWith("sdk/resources/")) {
     return "this page is generated — fix the example in the resource's apis/**/docs/overview.md, then run 'make gen-proto-sdk-docs'";
   }
-  if (rel.startsWith("guides/workflows/task-types/")) {
-    return "this page is generated — fix apis/ai/stigmer/agentic/workflow/v1/tasks/meta/<kind>.yaml (or the index enrichment template), then run 'make gen-task-docs'";
-  }
   if (rel.startsWith("cli/commands/")) {
     return "this page is generated — fix the CLI source, then run 'make gen-cli-docs'";
   }

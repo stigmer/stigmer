@@ -85,12 +85,12 @@ never changes the slug.
 ### Plugins
 
 A Plugin groups the resources that belong together within an Organization: the
-Agent, Skills, MCP Servers and Workflows one folder installs. It is the unit of
-install, upgrade and removal: `stigmer push plugin <dir>` installs the folder as
-one Plugin, the Marketplace installs one from a catalogue, and removing the
-Plugin removes every resource it brought. A Plugin is not written as YAML; it is
-read from a folder in the open Agent Plugins format (or the Cursor, Claude Code
-or Codex dialect), and the resource the server keeps records what landed:
+Agent, Skills and MCP Servers one folder installs. It is the unit of install,
+upgrade and removal: `stigmer push plugin <dir>` installs the folder as one
+Plugin, the Marketplace installs one from a catalogue, and removing the Plugin
+removes every resource it brought. A Plugin is not written as YAML; it is read
+from a folder in the open Agent Plugins format (or the Cursor, Claude Code or
+Codex dialect), and the resource the server keeps records what landed:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -193,12 +193,11 @@ Organization owned, in three steps:
    Schedules and its Channels all get "not found", and nothing new can start
    inside it. Every role anyone held in it is gone.
 2. **Within minutes.** In the background, Stigmer stops anything still running
-   (Schedules, runs, sandboxes), then removes every Agent, Session, Workflow,
-   file, Skill, MCP Server, Plugin, Environment and secret, Channel and its
-   conversations, and every permission that named the Organization. Where an
-   edition seals secrets with a key per Organization (Stigmer Cloud), that key
-   is destroyed too, so a copy of a secret in an old backup can no longer be
-   read.
+   (Schedules, runs, sandboxes), then removes every Agent, Session, file, Skill,
+   MCP Server, Plugin, Environment and secret, Channel and its conversations,
+   and every permission that named the Organization. Where an edition seals
+   secrets with a key per Organization (Stigmer Cloud), that key is destroyed
+   too, so a copy of a secret in an old backup can no longer be read.
 3. **When that finishes.** The Organization's slug is free for someone else, and
    not before.
 
@@ -239,7 +238,7 @@ read it:
 | Visibility              | Meaning                                                                                                                                 |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `visibility_private`    | The person who created it, and anyone granted access to it directly                                                                     |
-| `visibility_org`        | Everyone in the owning Organization (the default for Agents, Skills, MCP Servers, Workflows and Plugins)                                |
+| `visibility_org`        | Everyone in the owning Organization (the default for Agents, Skills, MCP Servers and Plugins)                                           |
 | `visibility_child_orgs` | Everyone in every child organization of the owning Organization (see [Parent and child organizations](#parent-and-child-organizations)) |
 
 Nothing an Organization owns is visible outside it unless it is a parent sharing
@@ -270,10 +269,10 @@ skill_refs:
 ```
 
 Stigmer checks every reference when you save: the referenced resource must
-exist, and an Agent or Workflow may not be more visible than the Skills, MCP
-Servers and Agents it references, so what a person can run they can also read. A
-reference that fails either check is refused with the field and the reason
-named, rather than failing later at run time.
+exist, and an Agent may not be more visible than the Skills, MCP Servers and
+Agents it references, so what a person can run they can also read. A reference
+that fails either check is refused with the field and the reason named, rather
+than failing later at run time.
 
 This keeps resource definitions portable — they reference resources by name, not
 by internal IDs. Stigmer stores a reference's Organization by id, so a stored

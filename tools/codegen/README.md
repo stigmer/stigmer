@@ -17,7 +17,6 @@ Everything runs from TypeScript source via the repo-pinned `tsx` (never bare `np
 | `sdk-client-java` | `sdk/java/src/main/java/ai/stigmer/sdk/gen` | `make -C sdk/java codegen` |
 | `mcp-ts` | `mcp-server/src/gen` (apply-input modules) | `make -C mcp-server codegen` |
 | `sdk-docs` | `docs/sdk/resources/*.mdx` | `make gen-proto-sdk-docs` |
-| `task-docs` | `docs/guides/workflows/task-types/*.mdx` | `make gen-task-docs` |
 | `task-registry` | `task-kind-registry.json` + JSON Schemas (synced into the server embed) | `make gen-task-registry` |
 | `docs-yaml-check` | none — pass/fail validation of docs YAML blocks | `make check-docs-yaml` |
 
@@ -44,8 +43,8 @@ Generator flags:
 - `--schema-dir` — schema root (default `tools/codegen/schemas`)
 - `--output-dir` — output directory (required for all generating targets)
 - `--target` — one of the targets above (required)
-- `--meta-dir` — sidecar YAML metadata dir (`task-registry`, `task-docs`)
-- `--apis-dir` — proto root (`sdk-docs`, `task-docs`)
+- `--meta-dir` — sidecar YAML metadata dir (`task-registry`)
+- `--apis-dir` — proto root (`sdk-docs`)
 - `--docs-dir` — docs root (`docs-yaml-check` only)
 - `--authoring-dirs` — comma-separated raw authoring surfaces (`docs-yaml-check`)
 - `--rules` — protovalidate rule mode `off`/`report`/`enforce` (`docs-yaml-check`)
@@ -60,7 +59,7 @@ tools/codegen/
 │   │                               #   per target: main.ts (dispatch),
 │   │                               #   sdk-client*.ts, mcp-ts.ts + mcp-model.ts,
 │   │                               #   sdk-docs.ts, task-registry.ts,
-│   │                               #   task-docs.ts, docs-yaml-*.ts)
+│   │                               #   docs-yaml-*.ts)
 │   ├── stubscrub/                  # @internal scrub for protoc-copied stubs
 │   ├── internalcomment/            # the @internal comment-section contract
 │   ├── decode-manifest/            # debug: binary Agent manifest → JSON

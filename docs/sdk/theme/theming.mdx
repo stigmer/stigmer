@@ -35,7 +35,7 @@ from colliding — in either direction:
   Stigmer components render. This holds everywhere, including host elements
   inside the provider subtree.
 - **The `.stgm` scope and cascade layer.** Styles that cannot be namespaced
-  (vendor CSS such as the workflow graph's) are scoped to the `.stgm`
+  (the element resets) are scoped to the `.stgm`
   containers, and everything lives in `@layer stgm`, so your unlayered host
   CSS wins ties against Stigmer rules by default.
 - **The `--stgm-*` namespace** keeps token names from clashing with your own

@@ -17,7 +17,7 @@ interface TermProps {
  *
  * @example
  * ```mdx
- * When you create a <Term>Workflow</Term>, you define each step.
+ * When you create a <Term>Skill</Term>, you write its instructions.
  * ```
  */
 export function Term({ children }: TermProps) {

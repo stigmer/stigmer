@@ -1,11 +1,10 @@
 # Agent guide: stigmer
 
-Stigmer is an open-source platform for AI agents and automation workflows:
-agents, workflows, skills and MCP servers are declared as YAML resources, served
-by a TypeScript control plane over a public gRPC/Connect contract, and consumed
-through generated SDKs, a CLI, a web console and a desktop app. This file is the
-always-on guide for the whole repository. Keep it short; it is paid for in every
-conversation.
+Stigmer is an open-source platform for AI agents: agents, skills and MCP servers
+are declared as YAML resources, served by a TypeScript control plane over a
+public gRPC/Connect contract, and consumed through generated SDKs, a CLI, a web
+console and a desktop app. This file is the always-on guide for the whole
+repository. Keep it short; it is paid for in every conversation.
 
 ## How guidance is organised
 
@@ -36,8 +35,7 @@ skill" when it could be misread.
   `@stigmer/server`. Own lockfile. `backend/services/stigmer-server/fga/` is the
   authorization model every edition reads.
 - `backend/services/runner/`: the Temporal worker that executes agent sessions
-  and workflow tasks through two harnesses (Cursor, native deep-agent). Own
-  lockfile.
+  through two harnesses (Cursor, native deep-agent). Own lockfile.
 - `backend/libs/ts/`: `temporal-codecs`, `zip-structure`, `plugin-package` (the
   Agent Plugins reader the CLI validates with and the server installs from),
   `outbound` (the egress address policy and the MCP OAuth rules the server, the
@@ -101,8 +99,8 @@ Run the checks for every path prefix a change touches, then quote each check's
 summary line in the final message. Never report unverified work as done.
 
 - `apis/**`: `make -C apis lint`; for `.proto` changes also
-  `make check-docs-yaml gen-proto-sdk-docs-check gen-task-docs-check gen-task-registry-check`,
-  and `buf breaking` runs in CI.
+  `make check-docs-yaml gen-proto-sdk-docs-check gen-task-registry-check`, and
+  `buf breaking` runs in CI.
 - `backend/services/stigmer-server/**`: `make test-server`.
   `backend/services/stigmer-server/fga/**`: also
   `make test-authorization-model`. `tools/codegen/src/authorization-model/**`:

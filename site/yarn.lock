@@ -329,22 +329,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@dagrejs/dagre@npm:^1.1.4":
-  version: 1.1.8
-  resolution: "@dagrejs/dagre@npm:1.1.8"
-  dependencies:
-    "@dagrejs/graphlib": "npm:2.2.4"
-  checksum: 10c0/3f4f99beb1c791c4c35fcab7a6891731a712931f076ae27b380afa4077e81a1f46341cd0ac8f21df29bf7b458e631b780e819846140a9e4f89e36faf907cdc66
-  languageName: node
-  linkType: hard
-
-"@dagrejs/graphlib@npm:2.2.4":
-  version: 2.2.4
-  resolution: "@dagrejs/graphlib@npm:2.2.4"
-  checksum: 10c0/14597ea9294c46b2571aee78bcaad3a24e3e5e0ebcdf198b6eae5b3805f99af727ac54a477dd9152e8b0a576efea0528fb7d4919c74801e9f669c90e5e6f5bd9
-  languageName: node
-  linkType: hard
-
 "@discoveryjs/json-ext@npm:0.5.7":
   version: 0.5.7
   resolution: "@discoveryjs/json-ext@npm:0.5.7"
@@ -2695,36 +2679,35 @@ __metadata:
 
 "@stigmer/embed@file:../sdk/embed::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/embed@file:../sdk/embed#../sdk/embed::hash=db4483&locator=stigmer-site%40workspace%3A."
-  checksum: 10c0/3b609b4939223ee942c03f5af5cd2400b0a7031634432c3d4683aa2a5439fd4b59b4ab2b0043eade6b11eb487ff1b105028b95dd1947e76e51da50a379b4c78b
+  resolution: "@stigmer/embed@file:../sdk/embed#../sdk/embed::hash=e42016&locator=stigmer-site%40workspace%3A."
+  checksum: 10c0/47532d853fb918cd99acebf7ec6e06342cc391d5ffbf41ed945771bc6c47cccfe38f991189ed95fbcb9ae790ae480fd2c5635a4d73cf9d60629ad02ca84daade
   languageName: node
   linkType: hard
 
 "@stigmer/plugin-package@file:../backend/libs/ts/plugin-package::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/plugin-package@file:../backend/libs/ts/plugin-package#../backend/libs/ts/plugin-package::hash=04e919&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/plugin-package@file:../backend/libs/ts/plugin-package#../backend/libs/ts/plugin-package::hash=105ef8&locator=stigmer-site%40workspace%3A."
   dependencies:
     fflate: "npm:^0.8.3"
     yaml: "npm:^2.8.2"
-  checksum: 10c0/4e9f5032fbf1e1b7f808d1f462a1c73f57902d25f5dc12795ce9a0e80888aea72956c2f7cfd3ec7709802e67920f35219d3a7bedd598880a4c31e5410d9d71b8
+  checksum: 10c0/24516720514f8e55ef1fc76477a30dfdd832f62fd97dd7f55dc65ed3afb3d6be9776970f6d61f91fe938d6c2661d4b319f4601c56afd886162baca4f6465915a
   languageName: node
   linkType: hard
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=76aa23&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=67e4c3&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/d3d1a1226e256726e9fc0c3c6f1fa6ed2bcdd54c4ffede4b9be687ca39e8170671a3b593c5e03f73192d2cd68be7c4dc972cfddcadee1a2b01bdc154d8fa68ca
+  checksum: 10c0/6f270a7becf7fa09abc9f56c005c29b0dc2e29a65db910f207032c8cc8f4f1a881ee6c3d7d0c86128c4f1a6f216dc976faaf79224abd4bf153ee2d7473e82a54
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=a2dae8&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=6055dc&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
-    "@dagrejs/dagre": "npm:^1.1.4"
     "@stigmer/plugin-package": "npm:*"
     "@stigmer/theme": "npm:*"
     diff: "npm:^8.0.3"
@@ -2751,14 +2734,11 @@ __metadata:
     "@stigmer/protos": "*"
     "@stigmer/sdk": "*"
     "@tanstack/react-table": ^8.20.0
-    "@xyflow/react": ^12.0.0
-    elkjs: ^0.9.0
     lucide-react: ">=0.400.0"
     mermaid: ^11.0.0
     react: ^19.0.0
     react-dom: ^19.0.0
     react-virtuoso: ^4.0.0
-    recharts: ^2.15.0
   peerDependenciesMeta:
     "@base-ui/react":
       optional: true
@@ -2780,23 +2760,17 @@ __metadata:
       optional: true
     "@tanstack/react-table":
       optional: true
-    "@xyflow/react":
-      optional: true
-    elkjs:
-      optional: true
     mermaid:
       optional: true
     react-virtuoso:
       optional: true
-    recharts:
-      optional: true
-  checksum: 10c0/5661bf5561838eb055dbc043201d9b52b83c5fcb76086f9beefef627a8562a0ffb320a625dfd0e0a4aac91dfca8713113307806b23356f06dc8f99df27ec0968
+  checksum: 10c0/29f3a4fb2b8dbe04796afa290e077651a3d0dedd4dabf7aaad84f3fd6239382dd4dc9fba8bdfa2252c4fdce8533e7dda0d151dcf99c7313d8b27078ab5cee21c
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=bab808&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=50eb94&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2808,17 +2782,17 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/5726ad24a17db3014f3bcf4359ca9446d2e78cf9afb341c2e460b6cdfdd9f79a9ac851c5ece7d703f782e21243ccd9b30e4547357ab800e9519a4d46cd683493
+  checksum: 10c0/ed23220829d8ad1783f0584556f296dc6af95c7f5d567f7360b60528e46b7a3c098d614db69debce31f8e675d99e143ac2be559745ca21b271fb2b566b77b9c6
   languageName: node
   linkType: hard
 
 "@stigmer/theme@file:../sdk/theme::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=73a02d&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=b10861&locator=stigmer-site%40workspace%3A."
   peerDependencies:
     clsx: ^2.0.0
     tailwind-merge: ^3.0.0
-  checksum: 10c0/7b311f39111ed4d596b0a9aaf60ea227ba87a73e0c39470d1d80dae08bd4483493c3f97453beb1a914cbe8d3863146f0862d956ce58ef4f539269fec33f4b310
+  checksum: 10c0/170461cc3e84dbba5fef58c943c5c8a44393e2ea0fd160d44293fab598627cbf819a165a2f73fadf2aae6a05e21cd47aadc1cb46b36566e096e6bd8ba6b40d3a
   languageName: node
   linkType: hard
 
@@ -3157,7 +3131,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/d3-drag@npm:*, @types/d3-drag@npm:^3.0.7":
+"@types/d3-drag@npm:*":
   version: 3.0.7
   resolution: "@types/d3-drag@npm:3.0.7"
   dependencies:
@@ -3219,7 +3193,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/d3-interpolate@npm:*, @types/d3-interpolate@npm:^3.0.1, @types/d3-interpolate@npm:^3.0.4":
+"@types/d3-interpolate@npm:*, @types/d3-interpolate@npm:^3.0.1":
   version: 3.0.4
   resolution: "@types/d3-interpolate@npm:3.0.4"
   dependencies:
@@ -3272,7 +3246,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/d3-selection@npm:*, @types/d3-selection@npm:^3.0.10":
+"@types/d3-selection@npm:*":
   version: 3.0.11
   resolution: "@types/d3-selection@npm:3.0.11"
   checksum: 10c0/0c512956c7503ff5def4bb32e0c568cc757b9a2cc400a104fc0f4cfe5e56d83ebde2a97821b6f2cb26a7148079d3b86a2f28e11d68324ed311cf35c2ed980d1d
@@ -3309,7 +3283,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/d3-transition@npm:*, @types/d3-transition@npm:^3.0.8":
+"@types/d3-transition@npm:*":
   version: 3.0.9
   resolution: "@types/d3-transition@npm:3.0.9"
   dependencies:
@@ -3318,7 +3292,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/d3-zoom@npm:*, @types/d3-zoom@npm:^3.0.8":
+"@types/d3-zoom@npm:*":
   version: 3.0.8
   resolution: "@types/d3-zoom@npm:3.0.8"
   dependencies:
@@ -3981,37 +3955,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@xyflow/react@npm:^12.10.2":
-  version: 12.10.2
-  resolution: "@xyflow/react@npm:12.10.2"
-  dependencies:
-    "@xyflow/system": "npm:0.0.76"
-    classcat: "npm:^5.0.3"
-    zustand: "npm:^4.4.0"
-  peerDependencies:
-    react: ">=17"
-    react-dom: ">=17"
-  checksum: 10c0/e6706bfd85c294c4b475851d4aa14f00a76e33106e67b620c349275c33f1bc46895a2daf75323630d049d6094b9f70d5fb940b823ac34dbf696449df4def1a94
-  languageName: node
-  linkType: hard
-
-"@xyflow/system@npm:0.0.76":
-  version: 0.0.76
-  resolution: "@xyflow/system@npm:0.0.76"
-  dependencies:
-    "@types/d3-drag": "npm:^3.0.7"
-    "@types/d3-interpolate": "npm:^3.0.4"
-    "@types/d3-selection": "npm:^3.0.10"
-    "@types/d3-transition": "npm:^3.0.8"
-    "@types/d3-zoom": "npm:^3.0.8"
-    d3-drag: "npm:^3.0.0"
-    d3-interpolate: "npm:^3.0.1"
-    d3-selection: "npm:^3.0.0"
-    d3-zoom: "npm:^3.0.0"
-  checksum: 10c0/49c78f7e7d1015bfd990011030d9375e237b7fd6bdbb3908f2b0cdb9cc7baddd49f104c0e75bf3a218ce9258845956293b62d81ff6df02db920c4ba3cabb3cfb
-  languageName: node
-  linkType: hard
-
 "abbrev@npm:^4.0.0":
   version: 4.0.0
   resolution: "abbrev@npm:4.0.0"
@@ -4582,13 +4525,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"classcat@npm:^5.0.3":
-  version: 5.0.5
-  resolution: "classcat@npm:5.0.5"
-  checksum: 10c0/ff8d273055ef9b518529cfe80fd0486f7057a9917373807ff802d75ceb46e8f8e148f41fa094ee7625c8f34642cfaa98395ff182d9519898da7cbf383d4a210d
-  languageName: node
-  linkType: hard
-
 "cli-width@npm:^4.1.0":
   version: 4.1.0
   resolution: "cli-width@npm:4.1.0"
@@ -4885,7 +4821,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"d3-drag@npm:2 - 3, d3-drag@npm:3, d3-drag@npm:^3.0.0":
+"d3-drag@npm:2 - 3, d3-drag@npm:3":
   version: 3.0.0
   resolution: "d3-drag@npm:3.0.0"
   dependencies:
@@ -5108,7 +5044,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"d3-zoom@npm:3, d3-zoom@npm:^3.0.0":
+"d3-zoom@npm:3":
   version: 3.0.0
   resolution: "d3-zoom@npm:3.0.0"
   dependencies:
@@ -10751,7 +10687,6 @@ __metadata:
     "@types/react-dom": "npm:^19.2.3"
     "@types/react-syntax-highlighter": "npm:^15.5.13"
     "@vitest/coverage-v8": "npm:3.2.6"
-    "@xyflow/react": "npm:^12.10.2"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
     edge-tts-universal: "npm:^1.4.0"
@@ -11639,7 +11574,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"use-sync-external-store@npm:^1.2.2, use-sync-external-store@npm:^1.6.0":
+"use-sync-external-store@npm:^1.6.0":
   version: 1.6.0
   resolution: "use-sync-external-store@npm:1.6.0"
   peerDependencies:
@@ -12184,26 +12119,6 @@ __metadata:
   version: 4.3.6
   resolution: "zod@npm:4.3.6"
   checksum: 10c0/860d25a81ab41d33aa25f8d0d07b091a04acb426e605f396227a796e9e800c44723ed96d0f53a512b57be3d1520f45bf69c0cb3b378a232a00787a2609625307
-  languageName: node
-  linkType: hard
-
-"zustand@npm:^4.4.0":
-  version: 4.5.7
-  resolution: "zustand@npm:4.5.7"
-  dependencies:
-    use-sync-external-store: "npm:^1.2.2"
-  peerDependencies:
-    "@types/react": ">=16.8"
-    immer: ">=9.0.6"
-    react: ">=16.8"
-  peerDependenciesMeta:
-    "@types/react":
-      optional: true
-    immer:
-      optional: true
-    react:
-      optional: true
-  checksum: 10c0/55559e37a82f0c06cadc61cb08f08314c0fe05d6a93815e41e3376130c13db22a5017cbb0cd1f018c82f2dad0051afe3592561d40f980bd4082e32005e8a950c
   languageName: node
   linkType: hard
 

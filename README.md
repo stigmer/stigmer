@@ -88,26 +88,6 @@ stigmer apply -f agent.yaml
 stigmer run support-bot "What's the status of issue #42?"
 ```
 
-### Workflows
-
-Multi-step automations that chain HTTP calls, agent calls, variable assignments, conditionals, and loops.
-
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Workflow
-metadata:
-  name: hello-world
-spec:
-  tasks:
-    - name: set-greeting
-      kind: set_vars
-      task_config:
-        variables:
-          greeting: "Hello, World!"
-```
-
-Tasks support `set_vars`, `http_call`, `agent_call`, `wait`, and control flow via `flow.then`. See [examples/workflows/](examples/workflows/) for patterns including multi-agent orchestration and conditional branching.
-
 ### Skills
 
 Versioned knowledge artifacts that agents use for domain expertise. A Skill is a directory with a `SKILL.md` file containing YAML frontmatter:
@@ -195,8 +175,8 @@ profile images. Use `brand/avatar.png` for GitHub and other profile uploads.
 - [Kubernetes](https://stigmer.ai/docs/guides/self-hosting/kubernetes) — The same stack on a cluster with the Helm chart (`oci://ghcr.io/stigmer/charts/stigmer`)
 - [CLI Reference](https://stigmer.ai/docs/cli) — Commands, flags, and examples
 - [SDK Reference](https://stigmer.ai/docs/sdk) — Go, TypeScript, Python, Java, React, and Ink
-- [Core Concepts](https://stigmer.ai/docs/concepts/what-is-stigmer) — Agents, Skills, Workflows, and how they fit together
-- [Examples](examples/) — Sample agents, workflows, and skills
+- [Core Concepts](https://stigmer.ai/docs/concepts/what-is-stigmer) — Agents, Skills, Sessions, and how they fit together
+- [Examples](examples/) — Sample agents and skills
 
 ## Development
 

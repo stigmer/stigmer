@@ -8,8 +8,8 @@ description: apply resources from files or a plugin directory
 
 Apply resource definitions to the Stigmer backend.
 
-`stigmer apply` is the primary way to deploy agents, workflows, MCP servers, and
-skills. It operates in two modes depending on what you point it at:
+`stigmer apply` is the primary way to deploy agents, MCP servers, and skills. It
+operates in two modes depending on what you point it at:
 
 - **File mode** (`-f`): Apply individual YAML resource files or a directory of
   them.
@@ -55,14 +55,14 @@ stigmer apply --dry-run
 ### File mode
 
 Apply individual YAML files or entire directories of resources. Supports agents,
-workflows, MCP servers, and multi-document YAML (separated by `---`).
+MCP servers, and multi-document YAML (separated by `---`).
 
 ```bash
 # Apply a single file
 stigmer apply -f agent.yaml
 
-# Apply a workflow with dry-run
-stigmer apply -f workflow.yaml --dry-run
+# Apply an MCP server with dry-run
+stigmer apply -f mcp-server.yaml --dry-run
 
 # Apply all YAML files in a directory
 stigmer apply -f ./manifests/
@@ -137,7 +137,7 @@ to validate, then apply.
 | [`stigmer push`](./push)         | Push a skill or a plugin folder          |
 | [`stigmer get`](./get)           | Inspect deployed resources               |
 | [`stigmer delete`](./delete)     | Remove resources from the backend        |
-| [`stigmer run`](./run)           | Execute a deployed agent or workflow     |
+| [`stigmer run`](./run)           | Execute a deployed agent                 |
 
 ## See also
 

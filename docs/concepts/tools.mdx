@@ -124,14 +124,14 @@ value.
 At runtime, variable values come from several sources. A source further down the
 table fills only the keys the earlier ones left empty:
 
-| Source                        | What it provides                                                                                                       |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **The run's Environments**    | Values bound to the Schedule, Workflow task or PlatformClient that started the run, and values passed for that one run |
-| **OAuth managed Environment** | Access tokens acquired through OAuth connect flows                                                                     |
-| **Personal Environment**      | API keys and credentials the person sending the message entered                                                        |
+| Source                        | What it provides                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **The run's Environments**    | Values bound to the Schedule or PlatformClient that started the run, and values passed for that one run |
+| **OAuth managed Environment** | Access tokens acquired through OAuth connect flows                                                      |
+| **Personal Environment**      | API keys and credentials the person sending the message entered                                         |
 
-So a credential bound for a Schedule or a Workflow is the one its runs use, and
-your own connections and keys fill what nothing else supplies.
+So a credential bound for a Schedule is the one its runs use, and your own
+connections and keys fill what nothing else supplies.
 [Environments](/docs/concepts/environments#how-a-run-gets-its-values) explains
 the order in full.
 

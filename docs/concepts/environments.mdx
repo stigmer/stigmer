@@ -14,8 +14,8 @@ a production API in production.
 
 Environments solve this. An Environment is a named, persistent collection of
 configuration values and secrets. You bind Environments to what starts a run (a
-Schedule, a Workflow task, a PlatformClient), and Stigmer resolves the values
-when each run starts.
+Schedule, a PlatformClient), and Stigmer resolves the values when each run
+starts.
 
 ## What an Environment looks like
 
@@ -52,9 +52,9 @@ Each variable has:
 
 ## Environment layering
 
-A Schedule, a Workflow's `agent_call` task and a PlatformClient each take a list
-of Environments in `environment_refs`. The Environments merge in order — later
-Environments override earlier ones for the same variable name:
+A Schedule and a PlatformClient each take a list of Environments in
+`environment_refs`. The Environments merge in order — later Environments
+override earlier ones for the same variable name:
 
 {/* prettier-ignore */}
 <Mermaid
@@ -150,8 +150,8 @@ An Environment is **private** by default: only you can use it, and only you can
 reveal its secret values. On Stigmer Cloud, you can share an Environment with
 your Organization by setting its visibility to **Organization**:
 
-- Agents and Workflows run in your Organization can use its values at runtime.
-  This includes runs by your teammates and visitor chats on
+- Agents run in your Organization can use its values at runtime. This includes
+  runs by your teammates and visitor chats on
   [shared Agents](/docs/guides/sharing/share-an-agent).
 - Members can see the Environment and its variable names, but secret values stay
   masked. Revealing a secret value remains yours alone, at every visibility
@@ -167,10 +167,9 @@ Every message in a [Session](/docs/concepts/sessions) is one run. When it
 starts, Stigmer fills the keys the Agent and the conversation's MCP Servers
 declare from these sources, in order:
 
-1. **The Environments bound to what started the run.** A Schedule's, a Workflow
-   `agent_call` task's, or the PlatformClient's `environment_refs`, when the run
-   came from one of them. A PlatformClient's Environments sit below the others,
-   so they supply defaults.
+1. **The Environments bound to what started the run.** A Schedule's or the
+   PlatformClient's `environment_refs`, when the run came from one of them. A
+   PlatformClient's Environments sit below the others, so they supply defaults.
 2. **Values passed for this one run.** The request's `runtime_env` overrides
    every Environment for the keys it carries and is deleted when the run ends.
 3. **Your connections and your personal Environment, for keys still missing.**
@@ -184,12 +183,6 @@ declare from these sources, in order:
 
 When the run declares any keys, a key nobody declared is dropped, whatever its
 source.
-
-A [Workflow run](/docs/concepts/workflows#where-a-run-gets-its-values) binds no
-Environments of its own. It reads the values passed with it, then, for the keys
-the Workflow declares that are still missing, the personal Environment of the
-person who started it. An `agent_call` step's own `environment_refs` reach that
-step's Agent, wherever the step sits in the Workflow.
 
 <Callout type="warn">
   The keys an Agent declares reach its tools and its shell, and those follow the
@@ -205,11 +198,10 @@ Stigmer merges the values into a single **ExecutionContext**. That merged map is
 what the runner uses at execution time. Different surfaces see different slices
 of it:
 
-| Surface                                              | What the Agent sees                                                                                                                                                                                                                                                                                                                  |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Shell commands** (native harness `execute` tool)   | The runner's own process variables, minus runner-internal credentials, plus only the ExecutionContext values the Agent declares in its `env`, and the `GITHUB_TOKEN` a git clone of the Workspace used. An Agent that declares nothing gets no ExecutionContext values in its shell.                                                 |
-| **MCP stdio servers**                                | Only variables declared in the MCP server's `env` map, taken from ExecutionContext, plus a minimal base set (`PATH`, `HOME`, and similar). A server that declares nothing gets only that base set — never the runner's own variables.                                                                                                |
-| **Workflow `run` tasks** (`run.shell`, `run.script`) | Only variables declared in the task's `environment` map, plus the same minimal base set. Declared values may reference `${.secrets.KEY}` / `${.env_vars.KEY}` — resolved at execution time; a missing key fails the task with a clear error. A task that declares nothing gets only the base set — never the runner's own variables. |
+| Surface                                            | What the Agent sees                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Shell commands** (native harness `execute` tool) | The runner's own process variables, minus runner-internal credentials, plus only the ExecutionContext values the Agent declares in its `env`, and the `GITHUB_TOKEN` a git clone of the Workspace used. An Agent that declares nothing gets no ExecutionContext values in its shell. |
+| **MCP stdio servers**                              | Only variables declared in the MCP server's `env` map, taken from ExecutionContext, plus a minimal base set (`PATH`, `HOME`, and similar). A server that declares nothing gets only that base set — never the runner's own variables.                                                |
 
 Agent shell commands inherit `PATH` and other host settings from the runner so
 local CLIs work, while ExecutionContext supplies the API keys and service URLs

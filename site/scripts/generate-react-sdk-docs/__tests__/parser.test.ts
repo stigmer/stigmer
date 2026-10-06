@@ -56,25 +56,25 @@ async function parse(children: Reflection[]) {
 describe("parseTypeDocJson — domains", () => {
   it("gives a known domain its title and description", async () => {
     const { domains } = await parse([
-      typeAlias(1, "RunEnvKeySource", "sdk/react/src/workflow/useRunEnvKeySources.ts"),
+      typeAlias(1, "SkillPickerProps", "sdk/react/src/skill/SkillPicker.tsx"),
     ]);
 
     expect(domains).toHaveLength(1);
     expect(domains[0]).toMatchObject({
-      slug: "workflow",
-      title: "Workflow",
-      description: "Hooks and components for workflow definitions, runs, and the visual builder.",
+      slug: "skill",
+      title: "Skill",
+      description: "Hooks and components for knowledge attachments, search, picker, and detail views.",
     });
-    expect(domains[0].types.map((t) => t.name)).toEqual(["RunEnvKeySource"]);
+    expect(domains[0].types.map((t) => t.name)).toEqual(["SkillPickerProps"]);
   });
 
   it("falls back to the slug for a domain with no metadata, and sorts domains by slug", async () => {
     const { domains } = await parse([
       typeAlias(1, "Zeta", "sdk/react/src/zz-unlisted/zeta.ts"),
-      typeAlias(2, "RunEnvKeySource", "sdk/react/src/workflow/useRunEnvKeySources.ts"),
+      typeAlias(2, "SkillPickerProps", "sdk/react/src/skill/SkillPicker.tsx"),
     ]);
 
-    expect(domains.map((d) => d.slug)).toEqual(["workflow", "zz-unlisted"]);
+    expect(domains.map((d) => d.slug)).toEqual(["skill", "zz-unlisted"]);
     expect(domains[1]).toMatchObject({ title: "zz-unlisted", description: "" });
   });
 

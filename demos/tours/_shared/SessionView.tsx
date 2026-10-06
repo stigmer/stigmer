@@ -265,10 +265,10 @@ function ThreadState({
                 reader={undefined}
                 view={panelView}
                 onViewChange={noop}
-                // Facet-only rail (a shipped WorkspaceSurface pattern — the
-                // workflow panel does the same): tours have no workspace
-                // file source, and a disabled Explorer/Search would depict
-                // an "unavailable here" state no configured console shows.
+                // Facet-only rail (a shipped WorkspaceSurface pattern): tours
+                // have no workspace file source, and a disabled
+                // Explorer/Search would depict an "unavailable here" state no
+                // configured console shows.
                 builtInViews={[]}
                 extraViews={railViews}
                 virtualDocuments={virtualDocuments}
