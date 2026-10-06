@@ -43,7 +43,8 @@ import { spawnServer, type RunningServer } from "@stigmer/test-support/server-pr
 import { spawnTemporal, type RunningTemporal } from "@stigmer/test-support/temporal";
 import { ensureLibraryServerEntry } from "@stigmer/test-support/ts-build";
 import { type AgentRefInit, BARE_AGENT_INSTRUCTIONS, agentRefOf, makeAgent } from "../support/agents";
-import { uniqueName, uniqueOrg } from "../support/naming";
+import { uniqueName } from "../support/naming";
+import { createUniqueOrganization } from "../support/organizations";
 import {
   provisionWorkingAgent,
   WORKING_AGENT_FIXTURE_DIR,
@@ -283,7 +284,10 @@ async function provisionAgent(
     });
     return { org: agent.org, agentRef: agent.agentRef, sessionSpec: workingAgentSessionSpec(agent, harness, BENCHMARK_SESSION_SUBJECT) };
   }
-  const org = uniqueOrg();
+  // A real Organization, never a bare name: every edition answers NOT_FOUND
+  // for one the server does not hold (support/organizations.ts).
+  const { id: org } = await createUniqueOrganization(stack.clients.organizationCommand, "a bare benchmark agent");
+  fixtures.defer(() => stack.clients.organizationCommand.delete({ value: org }));
   const agent = await stack.clients.agentCommand.create(
     makeAgent({ org, name: uniqueName("bench-agent"), instructions: BARE_AGENT_INSTRUCTIONS }),
   );
