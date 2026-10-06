@@ -110,7 +110,8 @@ notes the server keeps about each one — one flow, started from one button.
 
 When discovery finishes, the Tools tab fills in. A tool the server marks
 destructive (its author set the MCP annotation `destructiveHint: true`) asks for
-human approval before it runs. Every other tool runs without asking:
+human approval before it runs. Every other tool runs without asking, unless an
+Agent's hooks say otherwise:
 
 <ScenarEmbed
   id="mcp-server-connect-tour"

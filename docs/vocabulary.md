@@ -193,18 +193,20 @@ only MCP servers installs its servers and no agent of its own).
   `stigmer push plugin`); a plugin's page is where an install ends: it shows
   what it installed, says per MCP server what stands before its first tool call
   ("Sign in", "Signed in", the variables it needs, or nothing), starts a session
-  on its agent, and for a plugin with tools and no agent offers "Add to an
-  agent"; "Remove" is the console's word for `delete plugin`. A plugin is never
-  authored as YAML: its spec is read from the package manifest.
+  on its agent, lists its hooks with every command each runs beside the ones
+  Stigmer does not run, and offers "Add to an agent" for a plugin with tools and
+  no agent or with hooks; "Remove" is the console's word for `delete plugin`. A
+  plugin is never authored as YAML: its spec is read from the package manifest.
 - **File structure**: A plugin is a directory holding a manifest (`plugin.json`,
   `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
-  `.codex-plugin/plugin.json`), `skills/`, `mcp.json`, `agents/`, and Stigmer's
-  own `ai.stigmer/` overlay. Installing it materializes ordinary Skills, MCP
-  Servers, an Agent and Workflows, each labelled with the plugin's id; those
-  resources are the plugin's to redefine, so you change the plugin and push it
-  again rather than editing them, or compose your own Agent over them.
-- **What it is not**: a plugin does not run. The Agent it installs runs, in a
-  Session, on a Runner, exactly like an Agent you wrote by hand.
+  `.codex-plugin/plugin.json`), `skills/`, `mcp.json`, `agents/`, `hooks/`, and
+  Stigmer's own `ai.stigmer/` overlay. Installing it materializes ordinary
+  Skills, MCP Servers, an Agent and Workflows, each labelled with the plugin's
+  id; those resources are the plugin's to redefine, so you change the plugin and
+  push it again rather than editing them, or compose your own Agent over them.
+- **What it is not**: a plugin does not run on its own. The Agent it installs
+  runs, in a Session, on a Runner, exactly like an Agent you wrote by hand; the
+  plugin's hooks run within the tool calls of each Agent that names the plugin.
 
 **Good examples**:
 
@@ -522,9 +524,10 @@ action before proceeding.
   name in marketing.
 - **API surface**: There is no single `ApprovalFlow` resource. Approvals are
   configured through two mechanisms:
-  1. **Tool-call approval**---not configured: Stigmer asks before shell
-     commands, file writes and deletes, and MCP tools whose server marks them
-     destructive (`destructive_hint`). An Agent's `tools` and `disallowed_tools`
+  1. **Tool-call approval**---by default not configured: Stigmer asks before
+     shell commands, file writes and deletes, and MCP tools whose server marks
+     them destructive (`destructive_hint`). An Agent's hooks (`hooks`) decide
+     call by call: refuse, ask, or allow. Its `tools` and `disallowed_tools`
      lists decide which tools it has at all. Submitted via
      `AgentExecutionCommandController.submitApproval`. Statuses:
      `TOOL_CALL_WAITING_APPROVAL`, `TOOL_CALL_SKIPPED`. Actions: `APPROVE`,
@@ -552,6 +555,44 @@ action before proceeding.
 | Sales site | "Enable HITL for sensitive operations." | "HITL" is internal jargon.                                                 |
 | Quickstart | "Set `destructive_hint` on the tool."   | API-level detail in a tutorial. Say "the server marks the tool risky."     |
 | Any        | "Set up human-in-the-loop."             | Hyphenated compound used as an instruction. Prefer "add an approval flow." |
+
+---
+
+#### Hook
+
+A command that runs around an Agent's tool calls, in Claude Code's or Cursor's
+hooks format. Before a call it can refuse it, ask a person first, or let it run
+without the approval it would otherwise need; after a call it can tell the Agent
+something about the result. A plugin brings hooks, or an Agent carries a block
+written in it.
+
+- **User-facing alternative**: none needed. "Hook" is the word Claude Code and
+  Cursor use, and Stigmer runs their plugins' hooks unchanged.
+- **Capitalize**: No. A hook is part of a plugin or an Agent, not a Stigmer
+  resource kind: "the plugin's hooks", "switch the hooks on for an Agent".
+- **API surface**: `AgentSpec.hooks` (a plugin reference or an inline block),
+  `PluginStatus.hooks` (what a plugin recorded at install), `HookConfig` in
+  `plugin/v1/hooks.proto`. Console: the plugin's page and the Agent's page list
+  every hook with the command it runs; "Add to an agent" switches a plugin's
+  hooks on. Approvals a hook decides read "decided by the agent's hook" or
+  "decided by the `<plugin>` plugin's hook".
+- **What it is not**: a webhook, or a React hook in the SDK. Stigmer runs
+  command hooks on tool calls only; a plugin's hooks on other events are listed
+  as not run.
+
+**Good examples**:
+
+| Context  | Copy                                                                                                  |
+| -------- | ----------------------------------------------------------------------------------------------------- |
+| How-to   | "Switch the plugin's hooks on for your Agent, and they run on every tool call they match."            |
+| Concepts | "A hook can refuse a tool call, ask you first, or let it run. A refusal holds even in a trusted run." |
+
+**Bad examples**:
+
+| Context    | Copy                          | Problem                                                              |
+| ---------- | ----------------------------- | -------------------------------------------------------------------- |
+| Sales site | "Configure PreToolUse hooks." | An event name is reference detail. Say "a check before a tool runs." |
+| Any        | "Create a Hook resource."     | There is no Hook kind; hooks live in a plugin or an Agent.           |
 
 ---
 
@@ -1433,8 +1474,9 @@ shorthand exists or is planned.
 **What**: The word "approval" refers to two distinct mechanisms:
 
 1. **Tool-call approval**---an Agent pauses before executing a tool and asks a
-   human to approve. Required for shell commands, file writes and deletes, and
-   MCP tools their server marks destructive. Submitted via
+   human to approve. Required by default for shell commands, file writes and
+   deletes, and MCP tools their server marks destructive; an Agent's hooks can
+   refuse, ask about or allow any call. Submitted via
    `AgentExecutionCommandController.submitApproval`.
 
 2. **Workflow-task approval**---a dedicated Workflow task kind
@@ -1450,7 +1492,7 @@ both creates ambiguity in documentation.
 - `agentexecution/v1/approval.proto`, `agentexecution/v1/command.proto`
 - `workflowexecution/v1/api.proto` (WorkflowTask with WORKFLOW_TASK_APPROVAL)
 - `mcpserver/v1/status.proto` (`DiscoveredTool.destructive_hint`)
-- `agent/v1/spec.proto` (`tools`, `disallowed_tools`)
+- `agent/v1/spec.proto` (`tools`, `disallowed_tools`, `hooks`)
 
 **Recommendation**: In customer-facing documentation, distinguish between:
 

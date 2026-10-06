@@ -216,7 +216,7 @@ test.describe("Plugin install journey", () => {
     // Add to an agent: a new one, with the server already chosen.
     await page.getByRole("button", { name: "Add to an agent" }).click();
     const add = page.getByRole("dialog", { name: "Add to an agent" });
-    await expect(add.getByRole("list", { name: "Servers to add" })).toContainText(OAUTH_SERVER);
+    await expect(add.getByRole("list", { name: "What the agent gets" })).toContainText(OAUTH_SERVER);
     await add.getByRole("button", { name: "Create a new agent with these tools" }).click();
     await page.waitForURL(new RegExp(`/library/agents/new\\?mcp=${OAUTH_SERVER}$`), { timeout: 15_000 });
     // The wizard opened directly on its first step, the picker skipped.

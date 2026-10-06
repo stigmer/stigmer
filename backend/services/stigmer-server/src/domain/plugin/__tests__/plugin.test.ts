@@ -15,7 +15,8 @@
  * re-push of the same archive writes nothing; a client's edit, re-push or
  * delete of a member is refused naming the plugin while the plugin's own
  * upgrade drops what the archive dropped; uninstall removes every member
- * and is refused while a user's own agent still references one; a slug an
+ * and is refused while a user's own agent still references one or names
+ * the plugin in its hooks, a plugin that is only hooks included; a slug an
  * unmanaged resource holds refuses the install, and a user's row is never
  * adopted whichever side declares system content; a bad overlay refuses
  * before any write. A second composition, under an authorizer that decides
@@ -45,7 +46,10 @@ import type { PluginFixture } from "@stigmer/plugin-package/testing";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import {
+  AgentSpecSchema,
+  HookSourceSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
@@ -153,6 +157,33 @@ let counter = 0;
 function uniqueName(prefix: string): string {
   counter += 1;
   return `${prefix}-${counter}`;
+}
+
+/** A user's own agent that switches on the hooks of plugin `plugin`. */
+function agentUsingHooksOf(plugin: string, agent: string) {
+  return createMessage(AgentSchema, {
+    apiVersion: "agentic.stigmer.ai/v1",
+    kind: "Agent",
+    metadata: createMessage(ApiResourceMetadataSchema, {
+      org: ORG,
+      name: agent,
+    }),
+    spec: createMessage(AgentSpecSchema, {
+      instructions: "You work under the plugin's hooks.",
+      hooks: [
+        createMessage(HookSourceSchema, {
+          source: {
+            case: "plugin",
+            value: createMessage(ApiResourceReferenceSchema, {
+              org: ORG,
+              kind: ApiResourceKind.plugin,
+              slug: plugin,
+            }),
+          },
+        }),
+      ],
+    }),
+  });
 }
 
 /** A Cursor plugin with one skill, one sub-agent and one HTTP server: the thermos shape. */
@@ -926,6 +957,86 @@ describe("Plugin delete", () => {
       pluginQuery.get({ value: installed.metadata!.id }),
       Code.NotFound,
     );
+  });
+
+  it("is refused while a user's agent's hooks use a plugin that is only hooks, and succeeds once they are switched off", async () => {
+    const name = uniqueName("hooked");
+    const installed = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(
+        claudePlugin({
+          name,
+          hooks: {
+            PreToolUse: [
+              { hooks: [{ type: "command", command: "node guard.js" }] },
+            ],
+          },
+        }),
+      ),
+    });
+    const guarded = await agents.create(agentUsingHooksOf(name, `${name}-guarded`));
+    await expectCode(
+      plugins.delete({ value: installed.metadata!.id }),
+      Code.FailedPrecondition,
+      `plugin '${name}' is still used by agent '${name}-guarded'; switch the plugin's hooks off on them first`,
+    );
+    guarded.spec!.hooks = [];
+    await agents.update(guarded);
+    await plugins.delete({ value: installed.metadata!.id });
+    await expectCode(
+      pluginQuery.get({ value: installed.metadata!.id }),
+      Code.NotFound,
+    );
+  });
+
+  it("names both remedies when one agent uses a member and another the plugin's hooks", async () => {
+    const name = uniqueName("bothways");
+    const installed = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(
+        withFile(
+          thermosLike(name),
+          "hooks/hooks.json",
+          JSON.stringify({
+            version: 1,
+            hooks: { preToolUse: [{ command: "node guard.js" }] },
+          }),
+        ),
+      ),
+    });
+    expect(installed.status?.hooks?.groups).toHaveLength(1);
+    const guarded = await agents.create(agentUsingHooksOf(name, `${name}-guarded`));
+    const composer = await agents.create(
+      createMessage(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: createMessage(ApiResourceMetadataSchema, {
+          org: ORG,
+          name: `${name}-composer`,
+        }),
+        spec: createMessage(AgentSpecSchema, {
+          instructions: "You compose over the plugin's tools.",
+          mcpServerUsages: [
+            createMessage(McpServerUsageSchema, {
+              mcpServerRef: createMessage(ApiResourceReferenceSchema, {
+                org: ORG,
+                kind: ApiResourceKind.mcp_server,
+                slug: `${name}-github`,
+              }),
+            }),
+          ],
+        }),
+      }),
+    );
+    await expectCode(
+      plugins.delete({ value: installed.metadata!.id }),
+      Code.FailedPrecondition,
+      `plugin '${name}' is still used by agent '${name}-composer', agent '${name}-guarded'; ` +
+        "detach them from the plugin's skills and servers, and switch the plugin's hooks off on them, first",
+    );
+    await agents.delete({ value: guarded.metadata!.id });
+    await agents.delete({ value: composer.metadata!.id });
+    await plugins.delete({ value: installed.metadata!.id });
   });
 });
 

@@ -73,11 +73,12 @@ keeps its manifest in one): zip the folder and upload the `.zip` instead.
 
 Before anything is pushed, the console reads the plugin's files and shows the
 same description `stigmer validate -f` prints: the plugin's name, version and
-format; the Skills, MCP Servers and Sub-Agents it installs; the variables its
-tools need; the reader's warnings, which name every hook the plugin carries that
-Stigmer does not run; and what is not installed (rules, commands and the other
-components Stigmer does not read). A plugin the reader refuses is shown with
-every problem named, the way the CLI prints it.
+format; the Skills, MCP Servers and Sub-Agents it installs; its hooks, counted
+per event; the variables its tools and hooks need; the reader's warnings, which
+name every hook the plugin carries that Stigmer does not run; and what is not
+installed (rules, commands and the other components Stigmer does not read). A
+plugin the reader refuses is shown with every problem named, the way the CLI
+prints it.
 
 The preview also states one fact the CLI states only after the act:
 
@@ -92,8 +93,9 @@ The preview also states one fact the CLI states only after the act:
 
 Choose **Install** (or **Upgrade**). The console pushes the archive and opens
 the plugin's page, which is where the install ends: it lists what the install
-produced, each a link to its own page, together with the manifest's version,
-format and author, and the server's install warnings.
+produced, each a link to its own page; the plugin's hooks, with every command
+each runs and, under **Not run on Stigmer**, the hooks Stigmer leaves out; the
+manifest's version, format and author; and the server's other install warnings.
 
 Each MCP Server the plugin installed says, on its row, what stands between it
 and its first tool call. A server that signs in with OAuth and has no sign-in in
@@ -106,11 +108,13 @@ What comes next depends on what the plugin brought. When it carries an Agent,
 **Start session** is the page's primary action; the Agent declares the variables
 its tools need, so the first Session asks for them and saves them to your
 personal Environment, and from then on they are supplied to every Session on
-that Agent without asking. When it carries tools and no Agent, the page offers
-**Use these tools**: **Add to an agent** puts the servers on an Agent you
-already run (an Agent a plugin installed cannot take them; the dialog says so)
-or, through **Create a new agent with these tools**, opens the agent wizard with
-the servers already chosen.
+that Agent without asking. When it carries tools and no Agent, or hooks, the
+page offers **Use with an agent**: **Add to an agent** puts the servers and
+switches the hooks on for an Agent you already run (an Agent a plugin installed
+cannot take them; the dialog says so) or, through **Create a new agent with
+these tools**, opens the agent wizard with the servers already chosen.
+[Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks) covers the
+hooks.
 
 A Session on an Agent whose server nobody has signed in to yet asks for the
 sign-in before the first message, the way it asks for a missing variable.

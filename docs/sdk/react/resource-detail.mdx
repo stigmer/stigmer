@@ -97,7 +97,7 @@ function useDeleteResource(kind: DeletableResourceKind, resourceId: string | nul
 
 <TypeTable
   type={{
-    deleteResource: { type: "() => Promise<void>", description: "Delete the resource. Resolves on success, rejects on failure. Shows a success toast on completion and an error toast on failure." },
+    deleteResource: { type: "() => Promise<void>", description: "Delete the resource. Resolves on success, rejects on failure. Shows a success toast on completion and an error toast on failure, whose description is the server's sentence (a refusal says what still uses the resource and what to undo)." },
     error: { type: "Error | null", description: "Error from the last failed delete, or `null` when healthy." },
     isDeleting: { type: "boolean", description: "`true` while the delete request is in flight." },
   }}

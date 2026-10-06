@@ -197,7 +197,6 @@ export type IgnoredComponentKind =
   | "dependencies"
   | "evals"
   | "extension"
-  | "hooks"
   | "logo"
   | "lsp-servers"
   | "min-client-versions"

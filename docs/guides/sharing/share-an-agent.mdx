@@ -151,20 +151,21 @@ needs.
 
 ### Tool approvals never reach visitors
 
-Some tools require human approval before they run. A visitor is not an approver:
-they never see approval prompts, tool names, or platform mechanics. When a gated
-tool comes up in a visitor's chat, the platform skips it automatically and the
-Agent explains in plain language what it could not do — the chat always gets a
-reply.
+Some tools require human approval before they run, by default or because the
+Agent's hooks ask about them. A visitor is not an approver: they never see
+approval prompts, tool names, or platform mechanics. When a gated tool comes up
+in a visitor's chat, the platform skips it automatically and the Agent explains
+in plain language what it could not do — the chat always gets a reply. A call
+the Agent's hooks refuse is refused here as anywhere.
 
 For actions the visitor's own request authorizes — booking their appointment,
 creating their ticket — design the Agent to confirm the specifics in
 conversation first ("I'm about to book Monday 10 AM — shall I go ahead?"), and
 use a tool that runs without approval: an MCP tool its server does not mark
-destructive. Keep truly destructive operations marked: for visitors they are
-skipped, which is exactly right — a stranger with your link should not be able
-to trigger them at all. To keep the Agent away from a tool entirely, leave it
-out of the Agent's `tools` list.
+destructive and the Agent's hooks do not ask about. Keep truly destructive
+operations marked: for visitors they are skipped, which is exactly right — a
+stranger with your link should not be able to trigger them at all. To keep the
+Agent away from a tool entirely, leave it out of the Agent's `tools` list.
 
 ## Reset a public link
 

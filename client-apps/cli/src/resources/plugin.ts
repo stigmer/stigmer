@@ -66,13 +66,10 @@ import {
   OAuthConnectionHealth,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { PluginDialect as PluginDialectProto } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
-import {
-  HookFormat as HookFormatProto,
-  type HookConfig,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { hookFormatName, hooksSummary, type Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { createMatcher } from "./ignore/index.js";
@@ -318,32 +315,8 @@ function named(items: readonly string[]): string {
   return items.length === 0 ? "none" : `${items.length}: ${items.join(", ")}`;
 }
 
-const HOOK_FORMAT_LABELS = {
-  "claude-code": "Claude Code",
-  cursor: "Cursor",
-} as const;
-
-/**
- * `Claude Code format: PreToolUse 2, PostToolUse 1`: handlers per event, in
- * first-seen order. Hooks in either format run on both engines when an
- * agent references the plugin.
- */
-export function hooksSummary(
-  format: keyof typeof HOOK_FORMAT_LABELS,
-  groups: readonly {
-    readonly event: string;
-    readonly handlers: readonly unknown[];
-  }[],
-): string {
-  const perEvent = new Map<string, number>();
-  for (const group of groups)
-    perEvent.set(group.event, (perEvent.get(group.event) ?? 0) + group.handlers.length);
-  const counts = [...perEvent].map(([event, n]) => `${event} ${n}`).join(", ");
-  return `${HOOK_FORMAT_LABELS[format]} format: ${counts}`;
-}
-
 function installedHooksSummary(hooks: HookConfig): string {
-  return hooksSummary(hooks.format === HookFormatProto.CURSOR ? "cursor" : "claude-code", hooks.groups);
+  return hooksSummary(hookFormatName(hooks.format), hooks.groups);
 }
 
 // ─── Push ────────────────────────────────────────────────────────────────

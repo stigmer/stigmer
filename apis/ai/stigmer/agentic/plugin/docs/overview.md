@@ -14,6 +14,7 @@ thermos/
   skills/thermos/SKILL.md         # one Skill per skills/<name>/SKILL.md
   agents/reviewer.md              # one sub-agent of the plugin's Agent
   mcp.json                        # one McpServer per mcpServers entry
+  hooks/hooks.json                # tool-call hooks, recorded on status.hooks
   ai.stigmer/agent.yaml           # optional: the Agent that replaces the composed default
 ```
 
@@ -39,3 +40,5 @@ status:
     agents: 1
     workflows: 0
 ```
+
+A plugin's hooks, in Claude Code's or Cursor's format, are recorded on `status.hooks`; the hooks Stigmer does not run are named in `status.warnings`. An agent runs them when its `spec.hooks` names the plugin, as the agent the plugin installs does (the Agent resource's `agent-resource-guide.md`, Hooks). Deleting a plugin is refused while an agent outside it still names it in `spec.hooks` or references one of its members.

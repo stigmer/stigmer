@@ -82,6 +82,12 @@ serves a purpose:
 | `tools`             | Only these tools, in Claude Code's names — here no shell commands and no file writes   |
 | `env`               | Environment variables the Agent needs at runtime (API keys, URLs, configuration)       |
 
+Two more fields shape what the Agent's tools may do. `disallowed_tools` lists
+tools the Agent may never use, and `hooks` names the plugins whose hooks run
+around its tool calls, or carries hooks written in the Agent: commands that can
+refuse a call, ask a person first, or let it run.
+[Approval Flows](/docs/concepts/approval-flows) explains both.
+
 ## Blueprint vs. runtime
 
 An Agent definition is a **blueprint**. It contains zero secrets, zero

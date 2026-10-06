@@ -10,6 +10,16 @@ A customer support agent that can:
 - Answer questions using GitHub issues and documentation
 - Post to Slack for escalation
 - Access multiple MCP servers
+- Run hookify's hooks around its tool calls
+
+It references the `github` and `slack` MCP servers and the `hookify` plugin, so
+those exist in your organization first. hookify installs from Claude Code's
+official marketplace:
+
+```bash
+stigmer marketplace add anthropics/claude-plugins-official
+stigmer install claude-plugins-official/hookify
+```
 
 **Usage**:
 ```bash

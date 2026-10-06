@@ -5,9 +5,9 @@
  * declared variables and where they are asked; nothing for an open
  * server) from the server's persisted spec and its grant, never from the
  * member list; the cell sits beside the row's link, not inside it; a
- * plugin that installed servers and no agent gets "Use these tools" and
- * "Add to an agent" opens the dialog, while a plugin with an agent gets
- * neither and its variables sentence says the agent asks.
+ * plugin that installed servers and no agent gets "Use with an agent" and
+ * "Add to an agent" opens the dialog, while a plugin with an agent (and no
+ * hooks) gets neither and its variables sentence says the agent asks.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -126,18 +126,18 @@ describe("PluginDetailView: where an install ends", () => {
     expect(screen.getByText(/This plugin installed tools and no agent/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Add to an agent" }));
     const dialog = await screen.findByRole("dialog", { name: "Add to an agent" });
-    expect(within(dialog).getByRole("list", { name: "Servers to add" }).textContent).toContain("linear");
+    expect(within(dialog).getByRole("list", { name: "What the agent gets" }).textContent).toContain("linear");
     expect(within(dialog).getByRole("button", { name: "Add" })).toHaveProperty("disabled", true);
     expect(within(dialog).getByRole("button", { name: "Create a new agent with these tools" })).toBeTruthy();
   });
 
-  it("with an agent installed, the variables sentence says the agent asks, and there is no Use these tools", async () => {
+  it("with an agent installed, the variables sentence says the agent asks, and there is no Use with an agent", async () => {
     renderView({ warmth: "api-key" }, [
       { kind: ApiResourceKind.mcp_server, slug: "warmth" },
       { kind: ApiResourceKind.agent, slug: "thermos" },
     ]);
     await waitFor(() => expect(within(memberRow("warmth")).getByText(/the agent asks at its first session/)).toBeTruthy());
-    expect(screen.queryByText("Use these tools")).toBeNull();
+    expect(screen.queryByText("Use with an agent")).toBeNull();
     expect(screen.queryByRole("button", { name: "Add to an agent" })).toBeNull();
   });
 });

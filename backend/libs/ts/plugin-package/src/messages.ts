@@ -179,6 +179,8 @@ const WARNING_MESSAGES: Record<PluginWarningKind, Sentence> = {
     `hooks${at(c.path)} are in ${c.detail ?? "another"} format and are not run, because the plugin's Claude Code hooks are`,
   "skill-hooks-not-run": (c) =>
     `skill ${q(c.subject)}${at(c.path)} declares hooks in its frontmatter, which Stigmer does not run`,
+  "hooks-not-read": (c) =>
+    `${c.path ?? "hooks/"} is not read: Stigmer reads hooks in the Claude Code, Codex and Cursor layouts`,
   "settings-agent-unknown": (c) =>
     `plugin settings${at(c.path)} name ${q(c.detail)} as the main agent, which is not one of the plugin's agents, ignored`,
   "settings-key-ignored": (c) => `plugin settings${at(c.path)} have a key ${q(c.subject)} Stigmer does not apply, ignored`,

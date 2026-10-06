@@ -11,6 +11,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { useAgent } from "./useAgent.js";
 import { useUpdateAgent } from "./useUpdateAgent.js";
 import { toAgentUpdateInput } from "@stigmer/sdk";
+import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
@@ -24,6 +25,8 @@ import type { TabItem } from "../tabs/Tabs.js";
 import { DependencyGraph } from "../dependency-graph/DependencyGraph.js";
 import { useDependencyGraph } from "../dependency-graph/useDependencyGraph.js";
 import { AgentToolLists, hasToolLists } from "./AgentToolLists.js";
+import { AgentHooksSection } from "./AgentHooksSection.js";
+import { withPluginHooks } from "../plugin/plugin-on-agent.js";
 import { AgentRunDefaultsSection, type AgentRunDefaultsSave } from "./AgentRunDefaultsSection.js";
 import type { DependencyNode } from "../dependency-graph/types.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
@@ -156,7 +159,7 @@ export interface AgentDetailViewProps {
  * Fetches the agent via {@link useAgent} internally and renders its
  * full configuration inside a {@link ResourceDetailShell}: a
  * standardized header with action bar, followed by structured content
- * sections (instructions, MCP server usages, skills,
+ * sections (instructions, MCP server usages, tool lists, hooks, skills,
  * sub-agents, and environment variables). Sections with no data are
  * omitted entirely — reducing visual noise per Nielsen heuristic #8.
  *
@@ -227,16 +230,21 @@ export function AgentDetailView({
   } | null>(null);
 
   // Several fields saved as one edit (the run defaults write run_config
-  // and harness together); a failure is attributed to `field`.
+  // and harness together); a failure is attributed to `field`. A patch
+  // built from the current input (the Hooks section reads each plugin it
+  // adds first) is a function; its error is the save's.
   const saveFields = useCallback(
     async (
       field: string,
-      patch: Partial<import("@stigmer/sdk").AgentInput>,
+      patch:
+        | Partial<import("@stigmer/sdk").AgentInput>
+        | ((input: import("@stigmer/sdk").AgentInput) => Promise<Partial<import("@stigmer/sdk").AgentInput>>),
     ): Promise<boolean> => {
       if (!agent) return false;
       setSaveError(null);
-      const input = { ...toAgentUpdateInput(agent), ...patch };
+      const base = toAgentUpdateInput(agent);
       try {
+        const input = { ...base, ...(typeof patch === "function" ? await patch(base) : patch) };
         const updated = await update(input);
         onResourceUpdated?.(updated);
         refetch();
@@ -259,6 +267,39 @@ export function AgentDetailView({
       return saveFields(field, patch);
     },
     [saveFields],
+  );
+
+  // The Hooks section saves the plugin sources as listed: the sources kept
+  // stay in the agent's order with the inline block, and each plugin added
+  // is read once so `withPluginHooks` declares the variables its hooks read,
+  // the same edit the plugin page's "Add to an agent" makes.
+  // `hooksSaving` covers the plugin reads too, which run before the update
+  // marks the page as saving, so a second Save cannot start another cycle.
+  const stigmer = useStigmer();
+  const [hooksSaving, setHooksSaving] = useState(false);
+  const saveHookPlugins = useCallback(
+    (rows: ResourceRefRow[]): Promise<boolean> => {
+      setHooksSaving(true);
+      return saveFields("hooks", async (input) => {
+        const owner = input.org;
+        const key = (org: string, slug: string) => `${org || owner}/${slug}`;
+        const listed = new Set(rows.map((row) => key(row.org, row.slug)));
+        const kept = (input.hooks ?? []).filter(
+          (source) => source.plugin === undefined || listed.has(key(source.plugin.org, source.plugin.slug)),
+        );
+        const keptKeys = new Set(kept.flatMap((source) => (source.plugin ? [key(source.plugin.org, source.plugin.slug)] : [])));
+        let next: import("@stigmer/sdk").AgentInput = { ...input, hooks: kept };
+        for (const row of rows.filter((candidate) => !keptKeys.has(key(candidate.org, candidate.slug)))) {
+          const config = (await stigmer.plugin.getByReference({ org: row.org, slug: row.slug })).status?.hooks;
+          if (config === undefined || config.groups.length === 0) {
+            throw new Error(`plugin '${row.slug}' has no hooks that run on Stigmer`);
+          }
+          next = withPluginHooks(next, { org: row.org, slug: row.slug }, config);
+        }
+        return { hooks: next.hooks, env: next.env };
+      }).finally(() => setHooksSaving(false));
+    },
+    [stigmer, saveFields],
   );
 
   const saveRunDefaults = useCallback(
@@ -442,6 +483,9 @@ export function AgentDetailView({
         isSaving={isUpdating}
         saveField={saveField}
         saveRunDefaults={saveRunDefaults}
+        saveHookPlugins={saveHookPlugins}
+        hooksSaving={hooksSaving}
+        onPluginClick={onPluginClick}
         saveError={saveError}
         clearSaveError={clearSaveError}
       />
@@ -483,6 +527,9 @@ function AgentOverview({
   isSaving,
   saveField,
   saveRunDefaults,
+  saveHookPlugins,
+  hooksSaving,
+  onPluginClick,
   saveError,
   clearSaveError,
 }: {
@@ -498,6 +545,9 @@ function AgentOverview({
     value: import("@stigmer/sdk").AgentInput[K],
   ) => Promise<boolean>;
   readonly saveRunDefaults?: (save: AgentRunDefaultsSave) => Promise<boolean>;
+  readonly saveHookPlugins?: (plugins: ResourceRefRow[]) => Promise<boolean>;
+  readonly hooksSaving?: boolean;
+  readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
   readonly saveError?: { field: string; message: string } | null;
   readonly clearSaveError?: () => void;
 }) {
@@ -598,6 +648,7 @@ function AgentOverview({
   const showEnv = editable || (spec?.env && Object.keys(spec.env).length > 0);
 
   const [mcpEditing, setMcpEditing] = useState(false);
+  const [hooksEditing, setHooksEditing] = useState(false);
   const [skillsEditing, setSkillsEditing] = useState(false);
   const [envEditing, setEnvEditing] = useState(false);
 
@@ -607,6 +658,13 @@ function AgentOverview({
     (editing: boolean) => {
       if (editing) clearSaveError?.();
       setMcpEditing(editing);
+    },
+    [clearSaveError],
+  );
+  const handleHooksEditingChange = useCallback(
+    (editing: boolean) => {
+      if (editing) clearSaveError?.();
+      setHooksEditing(editing);
     },
     [clearSaveError],
   );
@@ -708,6 +766,18 @@ function AgentOverview({
           <AgentToolLists tools={spec.tools} disallowedTools={spec.disallowedTools} />
         </Section>
       )}
+
+      <AgentHooksSection
+        hooks={spec?.hooks ?? []}
+        agentOrg={agentOrg}
+        onPluginClick={onPluginClick}
+        editable={!!editable && saveHookPlugins !== undefined}
+        isSaving={isSaving || hooksSaving}
+        error={errorFor("hooks")}
+        editing={hooksEditing}
+        onEditingChange={handleHooksEditingChange}
+        onSave={saveHookPlugins}
+      />
 
       {showSkills && (
         <Section title="Skills" count={spec?.skillRefs.length} onEdit={editable ? () => handleSkillsEditingChange(!skillsEditing) : undefined}>

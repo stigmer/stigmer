@@ -4,8 +4,9 @@
  * What a plugin would install, in the CLI's words, before the act.
  *
  * `stigmer validate -f` prints the plugin's name, version and format; what
- * it installs (skills, MCP servers, sub-agents, the variables its tools
- * will ask for); the reader's warnings; what is not installed. Every
+ * it installs (skills, MCP servers, sub-agents, its hooks, the variables
+ * its tools and hooks will ask for); the reader's warnings; what is not
+ * installed. Every
  * console path that ends in a push shows the same facts through this one
  * component (the Marketplace's install dialog, the upload page's preview),
  * plus the fact the CLI states only after the act: whether the
@@ -15,6 +16,7 @@
  */
 
 import { cn } from "@stigmer/theme";
+import { hooksSummary } from "@stigmer/sdk";
 import type { PluginPackage } from "@stigmer/plugin-package";
 import { DIALECT_LABELS } from "@stigmer/plugin-package/client";
 import { ErrorMessage } from "../error/ErrorMessage.js";
@@ -52,6 +54,7 @@ export function InstallPreview({ prepared, relation, className }: InstallPreview
             ["Skills", named(plugin.skills.map((s) => s.name))],
             ["MCP servers", named(plugin.mcpServers.map((s) => `${s.name} (${s.transport})`))],
             ["Sub-agents", named(plugin.subAgents.map((a) => a.name))],
+            ["Hooks", plugin.hooks === undefined ? "none" : hooksSummary(plugin.hooks.format, plugin.hooks.groups)],
             [
               "Variables",
               named(

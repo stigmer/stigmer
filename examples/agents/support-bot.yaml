@@ -36,3 +36,10 @@ spec:
     - mcp__github__search_issues
     - mcp__github__get_issue
     - mcp__slack
+
+  # Run hookify's hooks around every tool call: a hook can refuse a call, ask
+  # a person first, or let it run. Install the plugin first (examples/README.md).
+  hooks:
+    - plugin:
+        kind: plugin
+        slug: hookify

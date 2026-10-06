@@ -130,8 +130,8 @@ The value is a number of seconds. `--timeout` always bounds `--dry-run`'s local
 discovery; for a real connect it bounds the wait only when set explicitly — the
 connect keeps running server-side and persists its result, so a timeout here
 means "stop waiting", not "the connect failed". Without an explicit `--timeout`,
-a real connect waits for the server to finish (sandbox start, discovery, and
-tool classification can take a few minutes).
+a real connect waits for the server to finish (sandbox start and discovery can
+take a few minutes).
 
 ## Global Flags
 
