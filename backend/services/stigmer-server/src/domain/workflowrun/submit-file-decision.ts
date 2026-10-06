@@ -95,7 +95,7 @@ export async function submitFileDecision(
       name: "LoadExisting",
       async execute(ctx) {
         if (ctx.input.runId === "") {
-          throw invalidArgumentError("execution_id is required");
+          throw invalidArgumentError("run_id is required");
         }
         let execution: WorkflowRun;
         try {
@@ -106,7 +106,7 @@ export async function submitFileDecision(
           );
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
-            throw notFoundError("workflow_execution", ctx.input.runId);
+            throw notFoundError("workflow_run", ctx.input.runId);
           }
           throw internalError(error, "failed to load workflow execution");
         }

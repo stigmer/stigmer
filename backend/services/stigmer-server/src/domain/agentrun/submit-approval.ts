@@ -49,7 +49,7 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
-import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks.js";
+import type { AgentRunStatusObserver } from "../../extensions/status-hooks.js";
 import {
   failedPreconditionError,
   internalError,
@@ -88,7 +88,7 @@ export interface SubmitApprovalDeps {
   /** The composed slot registrations — this chain's approval gate slot. */
   readonly gateSteps: ResolvedGateSteps;
   /** The stale-workflow reconcile's →FAILED stamp is a notified transition. */
-  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  readonly statusObservers: ReadonlyArray<AgentRunStatusObserver>;
 }
 
 type SubmitApprovalDesc =
@@ -125,7 +125,7 @@ export async function submitApproval(
       async execute(ctx) {
         const executionId = ctx.input.agentRunId;
         if (executionId === "") {
-          throw invalidArgumentError("agent_execution_id is required");
+          throw invalidArgumentError("agent_run_id is required");
         }
         let execution: AgentRun;
         try {
@@ -136,7 +136,7 @@ export async function submitApproval(
           );
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
-            throw notFoundError("agent_execution", executionId);
+            throw notFoundError("agent_run", executionId);
           }
           throw internalError(error, "failed to load agent execution");
         }
@@ -160,7 +160,7 @@ export async function submitApproval(
           currentPhase !== RunPhase.RUN_IN_PROGRESS
         ) {
           throw failedPreconditionError(
-            `execution ${executionId} is in phase ${protoName(RunPhaseSchema, currentPhase)}, approval requires EXECUTION_WAITING_FOR_APPROVAL or EXECUTION_IN_PROGRESS`,
+            `execution ${executionId} is in phase ${protoName(RunPhaseSchema, currentPhase)}, approval requires RUN_WAITING_FOR_APPROVAL or RUN_IN_PROGRESS`,
           );
         }
 
@@ -300,7 +300,7 @@ export async function submitApproval(
           );
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
-            throw notFoundError("agent_execution", executionId);
+            throw notFoundError("agent_run", executionId);
           }
           throw internalError(error, "failed to persist approval decision");
         }

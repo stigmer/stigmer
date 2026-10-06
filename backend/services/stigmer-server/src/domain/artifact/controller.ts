@@ -192,7 +192,7 @@ async function createArtifact(
     (source.workflowRunId === "" && source.agentRunId === "")
   ) {
     throw invalidArgumentError(
-      "spec.source must include workflow_execution_id or agent_execution_id",
+      "spec.source must include workflow_run_id or agent_run_id",
     );
   }
 
@@ -501,7 +501,7 @@ async function listByExecution(
         const input = stepCtx.input;
         if (input.workflowRunId === "" && input.agentRunId === "") {
           throw invalidArgumentError(
-            "workflow_execution_id or agent_execution_id is required",
+            "workflow_run_id or agent_run_id is required",
           );
         }
       },

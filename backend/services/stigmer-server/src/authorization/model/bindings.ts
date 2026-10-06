@@ -55,7 +55,7 @@ import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { childOrg, parentOrg } from "./child-organizations.js";
-import { executionViewer } from "./run-viewer.js";
+import { runViewer } from "./run-viewer.js";
 import type { DerivedRelation } from "./rewrite.js";
 
 /** A type with no stored resource: it resolves over tuples alone (the module header). */
@@ -105,7 +105,7 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.skill, { schema: SkillSchema }],
   [
     ApiResourceKind.workflow,
-    { schema: WorkflowSchema, derived: { execution_viewer: executionViewer } },
+    { schema: WorkflowSchema, derived: { run_viewer: runViewer } },
   ],
   [ApiResourceKind.workflow_run, { schema: WorkflowRunSchema }],
 ]);

@@ -52,7 +52,7 @@ export async function hydrateWorkflowExecution(
   const { execution_id, workflow_id, org_id } = input;
   if (!workflow_id) {
     throw ApplicationFailure.nonRetryable(
-      `WorkflowExecution '${execution_id}' names no workflow — cannot resolve its workflow`,
+      `WorkflowRun '${execution_id}' names no workflow — cannot resolve its workflow`,
       "MISSING_WORKFLOW_REFERENCE",
     );
   }
@@ -122,7 +122,7 @@ async function fetchWorkflowExecution(
   } catch (err: unknown) {
     if (isNotFound(err)) {
       throw ApplicationFailure.nonRetryable(
-        `WorkflowExecution '${executionId}' not found`,
+        `WorkflowRun '${executionId}' not found`,
         "WORKFLOW_EXECUTION_NOT_FOUND",
       );
     }

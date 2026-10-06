@@ -54,7 +54,7 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
-import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks.js";
+import type { AgentRunStatusObserver } from "../../extensions/status-hooks.js";
 import {
   failedPreconditionError,
   internalError,
@@ -118,7 +118,7 @@ export interface LifecycleDeps {
   /** The composed slot registrations — recover's pre-side-effect slot. */
   readonly gateSteps: ResolvedGateSteps;
   /** The composed status-transition observers. */
-  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  readonly statusObservers: ReadonlyArray<AgentRunStatusObserver>;
   /** The sandbox lane — recover re-ensures the session sandbox. */
   readonly sandboxLane: SandboxLane;
   /** Dispatch config for the sandbox ensure's target/queue resolution. */
@@ -157,7 +157,7 @@ function newLoadExecutionByIdStep<Desc extends DescMessage>(
         );
       } catch (error) {
         if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("agent_execution", executionId);
+          throw notFoundError("agent_run", executionId);
         }
         throw internalError(error, "failed to load agent execution");
       }
@@ -392,7 +392,7 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
         );
       } catch (error) {
         if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("agent_execution", executionId);
+          throw notFoundError("agent_run", executionId);
         }
         throw internalError(error, "failed to persist execution");
       }

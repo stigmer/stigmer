@@ -45,8 +45,8 @@ import type { RunLanes } from "../../extensions/run-lanes.js";
 import type { VisitorClassifier } from "../../extensions/visitor-classifier.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import type {
-  AgentExecutionResponseDecorator,
-  AgentExecutionStatusObserver,
+  AgentRunResponseDecorator,
+  AgentRunStatusObserver,
 } from "../../extensions/status-hooks.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
@@ -259,8 +259,8 @@ export interface AgentExecutionControllerDeps {
    * The composed status-transition hooks — consumed at
    * the five phase-transition persist sites (status-observers.ts).
    */
-  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
-  readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
+  readonly statusObservers: ReadonlyArray<AgentRunStatusObserver>;
+  readonly responseDecorators: ReadonlyArray<AgentRunResponseDecorator>;
   /**
    * The sandbox lane: disabled on the OSS default; the create
    * and recover chains ensure the session sandbox through it after their

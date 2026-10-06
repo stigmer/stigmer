@@ -89,13 +89,13 @@ import type { GateSlotName } from "../gate-slots.js";
 import type { OrganizationDirectory } from "../organization-directory.js";
 import type {
   ChildOrganizationLinkedEvent,
-  ExecutionVisibilityChangedEvent,
+  RunVisibilityChangedEvent,
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
   ResourceDeletedEvent,
   VisibilityChangedEvent,
 } from "../resource-authorization.js";
-import type { AgentExecutionStatusTransition } from "../status-hooks.js";
+import type { AgentRunStatusTransition } from "../status-hooks.js";
 import type { ServerExtension } from "../registry.js";
 import type { IdentityVerifier } from "../identity.js";
 import type { ResourceRowReader } from "../resource-row-reader.js";
@@ -931,7 +931,7 @@ describe("extension composition (gate slots + status hooks)", () => {
   let server: ComposedServer;
   let dir: string;
   let portTransport: Transport;
-  const observed: AgentExecutionStatusTransition[] = [];
+  const observed: AgentRunStatusTransition[] = [];
 
   const sessionGate: PipelineStep<DescMessage> = {
     name: "FakeSessionGate",
@@ -1151,7 +1151,7 @@ describe("extension composition (gate slots + status hooks)", () => {
     expect(observed).toHaveLength(1);
     expect(observed[0]?.oldPhase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(observed[0]?.newPhase).toBe(RunPhase.RUN_COMPLETED);
-    expect(observed[0]?.execution.metadata?.id).toBe(executionId);
+    expect(observed[0]?.run.metadata?.id).toBe(executionId);
 
     // A repeat report with the phase unchanged decorates the reply but
     // does NOT re-notify (the phase-change rule).
@@ -1177,7 +1177,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
   const deletedEvents: ResourceDeletedEvent[] = [];
   const visibilityEvents: VisibilityChangedEvent[] = [];
   const childLinkEvents: ChildOrganizationLinkedEvent[] = [];
-  const executionVisibilityEvents: ExecutionVisibilityChangedEvent[] = [];
+  const executionVisibilityEvents: RunVisibilityChangedEvent[] = [];
   let failCreates = false;
   let failDeletes = false;
   const failDeleteKinds = new Set<ApiResourceKind>();
@@ -1199,7 +1199,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
     async onVisibilityChanged(event): Promise<void> {
       visibilityEvents.push(event);
     },
-    async onExecutionVisibilityChanged(event): Promise<void> {
+    async onRunVisibilityChanged(event): Promise<void> {
       if (failExecutionVisibility) {
         throw new Error("fga is down");
       }

@@ -105,7 +105,7 @@ export async function updateStatus(
       name: "ValidateUpdateStatusInput",
       execute(ctx) {
         if (ctx.input.runId === "") {
-          throw invalidArgumentError("execution_id is required");
+          throw invalidArgumentError("run_id is required");
         }
         if (ctx.input.status === undefined) {
           throw invalidArgumentError("status is required");
@@ -135,7 +135,7 @@ export async function updateStatus(
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
             // Go's LoadExistingExecution answers this exact NotFound.
-            throw notFoundError("WorkflowExecution", ctx.input.runId);
+            throw notFoundError("WorkflowRun", ctx.input.runId);
           }
           throw internalError(error, "failed to update execution status");
         }

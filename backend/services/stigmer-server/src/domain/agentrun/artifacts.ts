@@ -219,7 +219,7 @@ export async function getArtifactContent(
   identity: CallerIdentity,
 ): Promise<GetArtifactContentResponse> {
   if (req.runId === "") {
-    throw invalidArgumentError("execution_id is required");
+    throw invalidArgumentError("run_id is required");
   }
   if (req.storageKey === "") {
     throw invalidArgumentError("storage_key is required");
@@ -410,7 +410,7 @@ export async function getArtifactDownloadUrl(
   identity: CallerIdentity,
 ): Promise<GetArtifactDownloadUrlResponse> {
   if (req.runId === "") {
-    throw invalidArgumentError("execution_id is required");
+    throw invalidArgumentError("run_id is required");
   }
   if (req.storageKey === "") {
     throw invalidArgumentError("storage_key is required");

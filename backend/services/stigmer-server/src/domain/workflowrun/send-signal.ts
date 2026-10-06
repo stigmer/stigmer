@@ -96,7 +96,7 @@ export async function sendSignal(
       name: "ValidateSignalInput",
       execute(ctx) {
         if (ctx.input.runId === "") {
-          throw invalidArgumentError("execution_id is required");
+          throw invalidArgumentError("run_id is required");
         }
         if (ctx.input.signalName === "") {
           throw invalidArgumentError("signal_name is required");
@@ -115,7 +115,7 @@ export async function sendSignal(
           );
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
-            throw notFoundError("workflow_execution", ctx.input.runId);
+            throw notFoundError("workflow_run", ctx.input.runId);
           }
           throw internalError(error, "failed to load workflow execution");
         }

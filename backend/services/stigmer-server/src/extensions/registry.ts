@@ -92,9 +92,9 @@ import type {
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 import type { ResourceRowReader } from "./resource-row-reader.js";
 import type {
-  AgentExecutionResponseDecorator,
-  AgentExecutionStatusHooks,
-  AgentExecutionStatusObserver,
+  AgentRunResponseDecorator,
+  AgentRunStatusHooks,
+  AgentRunStatusObserver,
 } from "./status-hooks.js";
 
 /**
@@ -190,7 +190,7 @@ export interface ServerExtension {
     ReadonlyArray<PipelineStep<DescMessage>>
   >;
   /** Agent-execution status observers/decorators. */
-  readonly statusTransitionHooks?: AgentExecutionStatusHooks;
+  readonly statusTransitionHooks?: AgentRunStatusHooks;
   /** Driver substitutions (see drivers.ts). */
   readonly drivers?: ExtensionDrivers;
   /** Service registrations, appended to the routes closure after the OSS set. */
@@ -255,8 +255,8 @@ export interface ResolvedExtensions {
   readonly callerGuards: ReadonlyArray<CallerGuard>;
   /** Slot name → steps, validated against DECLARED_GATE_SLOTS. */
   readonly gateSteps: ResolvedGateSteps;
-  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
-  readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
+  readonly statusObservers: ReadonlyArray<AgentRunStatusObserver>;
+  readonly responseDecorators: ReadonlyArray<AgentRunResponseDecorator>;
   readonly drivers: ResolvedExtensionDrivers;
   readonly services: ReadonlyArray<ResolvedServiceRegistration>;
   readonly workers: ReadonlyArray<WorkerFactory>;
@@ -412,8 +412,8 @@ export function resolveExtensions(
   const identityVerifiers: IdentityVerifier[] = [];
   const callerGuards: CallerGuard[] = [];
   const gateSteps = new Map<string, ReadonlyArray<PipelineStep<DescMessage>>>();
-  const statusObservers: AgentExecutionStatusObserver[] = [];
-  const responseDecorators: AgentExecutionResponseDecorator[] = [];
+  const statusObservers: AgentRunStatusObserver[] = [];
+  const responseDecorators: AgentRunResponseDecorator[] = [];
   const services: ResolvedServiceRegistration[] = [];
   const workers: WorkerFactory[] = [];
   const onComposed: ResolvedUnitHook<(composed: ComposedServices) => void>[] =

@@ -117,10 +117,10 @@ export type {
 } from "./extensions/authorizer.js";
 export type { GateSlotName } from "./extensions/gate-slots.js";
 export type {
-  AgentExecutionResponseDecorator,
-  AgentExecutionStatusHooks,
-  AgentExecutionStatusObserver,
-  AgentExecutionStatusTransition,
+  AgentRunResponseDecorator,
+  AgentRunStatusHooks,
+  AgentRunStatusObserver,
+  AgentRunStatusTransition,
 } from "./extensions/status-hooks.js";
 export type { ExtensionDrivers } from "./extensions/drivers.js";
 export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
@@ -129,8 +129,8 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 // tests pin against.
 export type {
   ChildOrganizationLinkedEvent,
-  ExecutionAudienceShape,
-  ExecutionVisibilityChangedEvent,
+  RunAudienceShape,
+  RunVisibilityChangedEvent,
   OrganizationAffiliationEvent,
   PolicyGrantedEvent,
   PolicyRevokedEvent,
@@ -369,7 +369,7 @@ export { resolveRunConfig } from "./domain/agentrun/resolve-run-config.js";
 // whichever chain created the row.
 export {
   diffVisibilityShapes,
-  executionAudienceShapes,
+  runAudienceShapes,
   resolveResourceCreatedEvent,
   visibilityShapesFor,
 } from "./pipeline/steps/authorization-tuples.js";

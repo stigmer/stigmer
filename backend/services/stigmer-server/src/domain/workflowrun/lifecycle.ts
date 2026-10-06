@@ -157,7 +157,7 @@ function newLoadExecutionByIdStep<Desc extends DescMessage>(
         );
       } catch (error) {
         if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("workflow_execution", executionId);
+          throw notFoundError("workflow_run", executionId);
         }
         throw internalError(error, "failed to load workflow execution");
       }
@@ -333,7 +333,7 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
         );
       } catch (error) {
         if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("workflow_execution", executionId);
+          throw notFoundError("workflow_run", executionId);
         }
         throw internalError(error, "failed to persist execution");
       }

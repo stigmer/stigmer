@@ -79,7 +79,7 @@ export async function* subscribeExecution(
 ): AsyncGenerator<WorkflowRun> {
   // Go ValidateSubscribeInputStep.
   if (request.runId === "") {
-    throw invalidArgumentError("execution_id is required");
+    throw invalidArgumentError("run_id is required");
   }
   // The annotation's can_view check, once at subscription start — the
   // stream cannot run inside the pipeline executor, so the Authorize
@@ -109,7 +109,7 @@ export async function* subscribeExecution(
       );
     } catch (error) {
       if (error instanceof ResourceNotFoundError) {
-        throw notFoundError("WorkflowExecution", id);
+        throw notFoundError("WorkflowRun", id);
       }
       throw internalError(error, "failed to load workflow execution");
     }

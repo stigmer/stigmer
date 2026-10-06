@@ -63,7 +63,7 @@ import { createLogger } from "../../../boot/logger.js";
 import type { AuthzCheck } from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { ServerExtension } from "../../../extensions/registry.js";
-import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
+import type { AgentRunStatusTransition } from "../../../extensions/status-hooks.js";
 import { createAgentExecutionActivities } from "../activities.js";
 import type { ExecutionStatusWriter } from "../activities.js";
 import { UPDATE_EXECUTION_STATUS_ACTIVITY_NAME } from "../names.js";
@@ -84,7 +84,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     identity: CallerIdentity;
     check: AuthzCheck;
   }> = [];
-  const transitions: AgentExecutionStatusTransition[] = [];
+  const transitions: AgentRunStatusTransition[] = [];
 
   // The cloud's shape: every check that reaches the Authorizer is a
   // genuine denial (an FGA store holds no grant for the server's own
@@ -251,7 +251,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     expect(transitions).toHaveLength(1);
     expect(transitions[0]?.oldPhase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(transitions[0]?.newPhase).toBe(RunPhase.RUN_FAILED);
-    expect(transitions[0]?.execution.metadata?.id).toBe(
+    expect(transitions[0]?.run.metadata?.id).toBe(
       "aex_ownbehalf_observed",
     );
   });

@@ -65,7 +65,7 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { trustedLocalIdentity } from "../../../pipeline/interceptors/auth.js";
-import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
+import type { AgentRunStatusTransition } from "../../../extensions/status-hooks.js";
 import type {
   ConnectedExecutionEngine,
   ExecutionEngineState,
@@ -1334,7 +1334,7 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
     const id = await seed(
       gatedSeed({ toolCalls: [{ id: "tc-obs", name: "Write" }] }),
     );
-    const observed: AgentExecutionStatusTransition[] = [];
+    const observed: AgentRunStatusTransition[] = [];
     const deps = {
       ...stubDeps(
         stubConnectedEngine({
@@ -1344,7 +1344,7 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
         }),
       ),
       statusObservers: [
-        (t: AgentExecutionStatusTransition): void => void observed.push(t),
+        (t: AgentRunStatusTransition): void => void observed.push(t),
       ],
     };
 
@@ -1366,7 +1366,7 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
       RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
     expect(observed[0]?.newPhase).toBe(RunPhase.RUN_FAILED);
-    expect(observed[0]?.execution.metadata?.id).toBe(id);
+    expect(observed[0]?.run.metadata?.id).toBe(id);
   });
 });
 
@@ -1554,7 +1554,7 @@ describe("submitFileDecision over the wire", () => {
   it("the workflow-gone reconcile notifies the composed status observers", async () => {
     const { init, changeSetId, aggregate } = ledgerSeed();
     const id = await seed(init);
-    const observed: AgentExecutionStatusTransition[] = [];
+    const observed: AgentRunStatusTransition[] = [];
     const deps = {
       store: server.store,
       logger: silentLogger,
@@ -1570,7 +1570,7 @@ describe("submitFileDecision over the wire", () => {
           }),
         }) as ExecutionEngineState,
       statusObservers: [
-        (t: AgentExecutionStatusTransition): void => void observed.push(t),
+        (t: AgentRunStatusTransition): void => void observed.push(t),
       ],
     };
 

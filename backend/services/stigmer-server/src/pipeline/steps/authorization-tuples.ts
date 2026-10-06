@@ -54,8 +54,8 @@ import type {
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type {
-  ExecutionAudienceShape,
-  ExecutionVisibilityChangedEvent,
+  RunAudienceShape,
+  RunVisibilityChangedEvent,
   ResolvedParentLink,
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
@@ -73,14 +73,14 @@ import type {
  */
 export async function notifyExecutionVisibilityChanged(
   lifecycle: ResourceAuthorizationLifecycle | undefined,
-  event: ExecutionVisibilityChangedEvent,
+  event: RunVisibilityChangedEvent,
   failureMessage: string,
 ): Promise<void> {
-  if (lifecycle?.onExecutionVisibilityChanged === undefined) {
+  if (lifecycle?.onRunVisibilityChanged === undefined) {
     return;
   }
   try {
-    await lifecycle.onExecutionVisibilityChanged(event);
+    await lifecycle.onRunVisibilityChanged(event);
   } catch (error) {
     throw internalError(error, failureMessage);
   }
@@ -174,15 +174,15 @@ export function diffVisibilityShapes(
  * tuples. ORGANIZATION names the organization's viewers; PRIVATE and the
  * unset level name nobody, so each run stays its starter's.
  */
-export function executionAudienceShapes(
+export function runAudienceShapes(
   level: WorkflowRunVisibility,
-): ReadonlySet<ExecutionAudienceShape> {
+): ReadonlySet<RunAudienceShape> {
   switch (level) {
     case WorkflowRunVisibility.organization:
-      return new Set<ExecutionAudienceShape>(["org-viewer"]);
+      return new Set<RunAudienceShape>(["org-viewer"]);
     case WorkflowRunVisibility.private:
     case WorkflowRunVisibility.unspecified:
-      return new Set<ExecutionAudienceShape>();
+      return new Set<RunAudienceShape>();
     default: {
       const exhaustive: never = level;
       throw new Error(`unknown execution visibility: ${String(exhaustive)}`);

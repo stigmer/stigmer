@@ -70,7 +70,7 @@ export async function* subscribeEvents(
   context: HandlerContext,
 ): AsyncGenerator<WorkflowRunEvent> {
   if (request.runId === "") {
-    throw invalidArgumentError("execution_id is required");
+    throw invalidArgumentError("run_id is required");
   }
   // The annotation's can_view check, once at subscription start (the
   // pre-stream Authorize evaluation — see subscribe.ts).
@@ -91,7 +91,7 @@ export async function* subscribeEvents(
     );
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
-      throw notFoundError("WorkflowExecution", executionId);
+      throw notFoundError("WorkflowRun", executionId);
     }
     throw internalError(error, "failed to load workflow execution");
   }

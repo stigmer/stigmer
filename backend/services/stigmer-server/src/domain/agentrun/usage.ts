@@ -435,7 +435,7 @@ export async function getExecutionUsageReport(
       name: "ValidateExecutionUsageReport",
       execute(ctx) {
         if (ctx.input.runId === "") {
-          throw invalidArgumentError("execution_id is required");
+          throw invalidArgumentError("run_id is required");
         }
       },
     })
@@ -481,7 +481,7 @@ function newLoadExecutionStep(store: Store): PipelineStep<ExecutionReportDesc> {
         );
       } catch (error) {
         if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("agent_execution", executionId);
+          throw notFoundError("agent_run", executionId);
         }
         throw internalError(error, "failed to load agent execution");
       }

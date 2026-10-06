@@ -50,7 +50,7 @@ export async function getEventLog(
   identity: CallerIdentity,
 ): Promise<GetEventLogResponse> {
   if (req.runId === "") {
-    throw invalidArgumentError("execution_id is required");
+    throw invalidArgumentError("run_id is required");
   }
   // The annotation's can_view check (validate → authorize, the Java
   // WorkflowExecutionGetEventLogHandler order). The

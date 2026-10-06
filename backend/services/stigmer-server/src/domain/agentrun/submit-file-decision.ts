@@ -46,7 +46,7 @@ import { enumToJson } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
-import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks.js";
+import type { AgentRunStatusObserver } from "../../extensions/status-hooks.js";
 import {
   failedPreconditionError,
   internalError,
@@ -87,7 +87,7 @@ export interface SubmitFileDecisionDeps {
   readonly broker: StreamBroker;
   readonly engineState: ExecutionEngineStateProvider;
   /** The stale-workflow reconcile's →FAILED stamp is a notified transition. */
-  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  readonly statusObservers: ReadonlyArray<AgentRunStatusObserver>;
 }
 
 type SubmitFileDecisionDesc =
@@ -124,7 +124,7 @@ export async function submitFileDecision(
       async execute(ctx) {
         const executionId = ctx.input.agentRunId;
         if (executionId === "") {
-          throw invalidArgumentError("agent_execution_id is required");
+          throw invalidArgumentError("agent_run_id is required");
         }
         let execution: AgentRun;
         try {
@@ -135,7 +135,7 @@ export async function submitFileDecision(
           );
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
-            throw notFoundError("agent_execution", executionId);
+            throw notFoundError("agent_run", executionId);
           }
           throw internalError(error, "failed to load agent execution");
         }
@@ -218,7 +218,7 @@ export async function submitFileDecision(
           );
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
-            throw notFoundError("agent_execution", executionId);
+            throw notFoundError("agent_run", executionId);
           }
           // A precondition failure re-detected under the lock is already a
           // status error (client fault); surface it verbatim rather than

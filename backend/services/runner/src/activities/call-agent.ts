@@ -326,7 +326,7 @@ export async function callAgentAction(
   await client.createAgentExecution(
     create(AgentRunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentExecution",
+      kind: "AgentRun",
       metadata: create(ApiResourceMetadataSchema, {
         name: executionName,
         org: orgId,

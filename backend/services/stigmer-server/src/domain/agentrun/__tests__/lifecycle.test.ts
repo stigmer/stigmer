@@ -75,7 +75,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
-import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
+import type { AgentRunStatusTransition } from "../../../extensions/status-hooks.js";
 import { KeyedSerializer } from "../../../pipeline/keyed-serializer.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
@@ -703,7 +703,7 @@ describe("lifecycle pipelines", () => {
   // chokepoint never sees MUST reach the composed observers (a billing
   // composition's finalize settles on exactly these).
   it("cancel notifies the composed status observers with the persisted transition", async () => {
-    const observed: AgentExecutionStatusTransition[] = [];
+    const observed: AgentRunStatusTransition[] = [];
     const deps: LifecycleDeps = {
       ...lifecycleDeps(connected(stubConnectedEngine())),
       statusObservers: [(t) => void observed.push(t)],
@@ -715,13 +715,13 @@ describe("lifecycle pipelines", () => {
     expect(observed).toHaveLength(1);
     expect(observed[0]?.oldPhase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(observed[0]?.newPhase).toBe(RunPhase.RUN_CANCELLED);
-    expect(observed[0]?.execution.metadata?.id).toBe(id);
+    expect(observed[0]?.run.metadata?.id).toBe(id);
     // The observer sees the PERSISTED snapshot (post-merge contract).
-    expect(observed[0]?.execution.status?.completedAt).not.toBe("");
+    expect(observed[0]?.run.status?.completedAt).not.toBe("");
   });
 
   it("terminate notifies the composed status observers", async () => {
-    const observed: AgentExecutionStatusTransition[] = [];
+    const observed: AgentRunStatusTransition[] = [];
     const deps: LifecycleDeps = {
       ...lifecycleDeps(connected(stubConnectedEngine())),
       statusObservers: [(t) => void observed.push(t)],
@@ -739,7 +739,7 @@ describe("lifecycle pipelines", () => {
   });
 
   it("an idempotent already-in-target cancel notifies nothing (no write, no transition)", async () => {
-    const observed: AgentExecutionStatusTransition[] = [];
+    const observed: AgentRunStatusTransition[] = [];
     const deps: LifecycleDeps = {
       ...lifecycleDeps(connected(stubConnectedEngine())),
       statusObservers: [(t) => void observed.push(t)],

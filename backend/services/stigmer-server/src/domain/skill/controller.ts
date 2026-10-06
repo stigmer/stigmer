@@ -352,7 +352,7 @@ async function pushFromExecutionArtifact(
   }
 
   if (req.runId === "") {
-    throw invalidArgumentError("execution_id is required");
+    throw invalidArgumentError("run_id is required");
   }
   if (req.storageKey === "") {
     throw invalidArgumentError("storage_key is required");

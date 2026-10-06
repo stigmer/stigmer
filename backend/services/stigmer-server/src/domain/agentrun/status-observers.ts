@@ -38,13 +38,13 @@ import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 
 import type { Logger } from "../../boot/logger.js";
 import type {
-  AgentExecutionResponseDecorator,
-  AgentExecutionStatusObserver,
+  AgentRunResponseDecorator,
+  AgentRunStatusObserver,
 } from "../../extensions/status-hooks.js";
 
 /** The deps every notifying site threads (a slice of its own deps). */
 export interface StatusObserverDeps {
-  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  readonly statusObservers: ReadonlyArray<AgentRunStatusObserver>;
   readonly logger: Logger;
 }
 
@@ -64,7 +64,7 @@ export async function notifyStatusObservers(
   }
   for (const observer of deps.statusObservers) {
     try {
-      await observer({ execution, oldPhase, newPhase });
+      await observer({ run: execution, oldPhase, newPhase });
     } catch (error) {
       deps.logger.warn("status observer failed (extension bug, ignored)", {
         executionId: execution.metadata?.id ?? "",
@@ -85,7 +85,7 @@ export async function notifyStatusObservers(
  * RPC. Returns the decorated reply.
  */
 export async function applyResponseDecorators(
-  decorators: ReadonlyArray<AgentExecutionResponseDecorator>,
+  decorators: ReadonlyArray<AgentRunResponseDecorator>,
   logger: Logger,
   execution: AgentRun,
   response: UpdateStatusResponse,

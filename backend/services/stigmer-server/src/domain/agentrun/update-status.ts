@@ -60,8 +60,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type {
-  AgentExecutionResponseDecorator,
-  AgentExecutionStatusObserver,
+  AgentRunResponseDecorator,
+  AgentRunStatusObserver,
 } from "../../extensions/status-hooks.js";
 import {
   internalError,
@@ -107,9 +107,9 @@ export interface UpdateStatusDeps {
   readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
   /** The composed status-transition observers. */
-  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  readonly statusObservers: ReadonlyArray<AgentRunStatusObserver>;
   /** The composed reply decorators — the querySignal seam. */
-  readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
+  readonly responseDecorators: ReadonlyArray<AgentRunResponseDecorator>;
 }
 
 type UpdateStatusDesc =
@@ -145,7 +145,7 @@ export async function updateStatus(
       name: "ValidateUpdateStatusInput",
       execute(ctx) {
         if (ctx.input.runId === "") {
-          throw invalidArgumentError("execution_id is required");
+          throw invalidArgumentError("run_id is required");
         }
         if (ctx.input.status === undefined) {
           throw invalidArgumentError("status is required");
@@ -176,7 +176,7 @@ export async function updateStatus(
           );
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
-            throw notFoundError("AgentExecution", ctx.input.runId);
+            throw notFoundError("AgentRun", ctx.input.runId);
           }
           throw internalError(error, "failed to update execution status");
         }

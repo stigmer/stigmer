@@ -18,7 +18,7 @@ import {
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 
 import type { Logger } from "../../../boot/logger.js";
-import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
+import type { AgentRunStatusTransition } from "../../../extensions/status-hooks.js";
 import {
   applyResponseDecorators,
   notifyStatusObservers,
@@ -43,11 +43,11 @@ function execution(id: string) {
 
 describe("notifyStatusObservers", () => {
   it("fires only when the phase actually changed", async () => {
-    const seen: AgentExecutionStatusTransition[] = [];
+    const seen: AgentRunStatusTransition[] = [];
     const { logger } = silentLoggerWithCapture();
     const deps = {
       statusObservers: [
-        (t: AgentExecutionStatusTransition) => void seen.push(t),
+        (t: AgentRunStatusTransition) => void seen.push(t),
       ],
       logger,
     };
@@ -69,7 +69,7 @@ describe("notifyStatusObservers", () => {
     expect(seen).toHaveLength(1);
     expect(seen[0]?.oldPhase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(seen[0]?.newPhase).toBe(RunPhase.RUN_COMPLETED);
-    expect(seen[0]?.execution.metadata?.id).toBe("aexec_changed");
+    expect(seen[0]?.run.metadata?.id).toBe("aexec_changed");
   });
 
   it("runs observers in registration order, awaiting each", async () => {

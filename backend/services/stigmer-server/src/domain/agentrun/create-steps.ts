@@ -57,7 +57,7 @@ import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import { accountForCaller } from "../identityaccount/resolve.js";
 import { listSubjectMemories } from "../memory/queries.js";
 
-import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks.js";
+import type { AgentRunStatusObserver } from "../../extensions/status-hooks.js";
 
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineDispatchError } from "./engine.js";
@@ -690,7 +690,7 @@ export function newStartWorkflowStep(deps: {
   logger: Logger;
   engineState: ExecutionEngineStateProvider;
   /** The failure arm's PENDING→FAILED stamp is a notified transition. */
-  statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  statusObservers: ReadonlyArray<AgentRunStatusObserver>;
   /** The queue a vouched parent link routes the turn to (vouch-workflow-parent.ts). */
   workflowRunQueue: WorkflowRunQueue;
 }): PipelineStep<CreateDesc> {
@@ -797,5 +797,5 @@ export function newStartWorkflowStep(deps: {
 
 /** Unknown-execution NotFound with Go's kind naming for these paths. */
 export function agentExecutionNotFound(executionId: string): ConnectError {
-  return notFoundError("agent_execution", executionId);
+  return notFoundError("agent_run", executionId);
 }

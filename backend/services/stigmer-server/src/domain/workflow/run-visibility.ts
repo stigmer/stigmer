@@ -35,14 +35,14 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type {
-  ExecutionVisibilityChangedEvent,
+  RunVisibilityChangedEvent,
   ResourceAuthorizationLifecycle,
 } from "../../extensions/resource-authorization.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import {
-  executionAudienceShapes,
+  runAudienceShapes,
   notifyExecutionVisibilityChanged,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
@@ -60,12 +60,12 @@ export const UPDATE_EXECUTION_VISIBILITY_WORKFLOW_KEY =
 /** The run-audience event for a persisted workflow: the audience its stored level names. */
 function executionVisibilityEventOf(
   workflow: Workflow,
-): ExecutionVisibilityChangedEvent {
+): RunVisibilityChangedEvent {
   return {
     workflowId: workflow.metadata?.id ?? "",
     orgId: workflow.metadata?.org ?? "",
     shapes: [
-      ...executionAudienceShapes(
+      ...runAudienceShapes(
         workflow.spec?.runVisibility ??
           WorkflowRunVisibility.unspecified,
       ),

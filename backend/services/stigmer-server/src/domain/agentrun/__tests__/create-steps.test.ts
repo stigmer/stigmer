@@ -98,7 +98,7 @@ const noRunConfigReads = {
   store: {} as Store,
   modelRegistry: {} as ModelCatalogProvider,
 };
-import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
+import type { AgentRunStatusTransition } from "../../../extensions/status-hooks.js";
 import type {
   ExecutionEngineState,
   StartInvokeWorkflowInput,
@@ -1337,7 +1337,7 @@ describe("agentCallTaskEnvironmentRefs", () => {
 // exactly this).
 describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
   it("persists FAILED and notifies the observers before surfacing Internal", async () => {
-    const observed: AgentExecutionStatusTransition[] = [];
+    const observed: AgentRunStatusTransition[] = [];
     const step = newStartWorkflowStep({
       store,
       logger: silentLogger,
@@ -1351,7 +1351,7 @@ describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
           }),
         }) as ExecutionEngineState,
       statusObservers: [
-        (t: AgentExecutionStatusTransition): void => void observed.push(t),
+        (t: AgentRunStatusTransition): void => void observed.push(t),
       ],
       workflowRunQueue: newWorkflowRunQueue(routing(WORKFLOW_ROUTING_GLOBAL)),
     });

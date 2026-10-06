@@ -34,7 +34,7 @@ import type {
 import {
   cleanUpDeletedResource,
   diffVisibilityShapes,
-  executionAudienceShapes,
+  runAudienceShapes,
   resolveResourceCreatedEvent,
   visibilityShapesFor,
 } from "../authorization-tuples.js";
@@ -101,16 +101,16 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
 describe("executionAudienceShapes (a workflow's run audience)", () => {
   it("ORGANIZATION names the organization's viewers", () => {
     expect([
-      ...executionAudienceShapes(WorkflowRunVisibility.organization),
+      ...runAudienceShapes(WorkflowRunVisibility.organization),
     ]).toEqual(["org-viewer"]);
   });
 
   it("PRIVATE and the unset level name nobody, so each run stays its triggerer's", () => {
     expect([
-      ...executionAudienceShapes(WorkflowRunVisibility.private),
+      ...runAudienceShapes(WorkflowRunVisibility.private),
     ]).toEqual([]);
     expect([
-      ...executionAudienceShapes(WorkflowRunVisibility.unspecified),
+      ...runAudienceShapes(WorkflowRunVisibility.unspecified),
     ]).toEqual([]);
   });
 });

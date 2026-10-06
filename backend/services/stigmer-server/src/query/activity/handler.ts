@@ -207,7 +207,7 @@ export class ActivityHandler {
       entries.push(
         create(RecentActivityEntrySchema, {
           id: execution.metadata?.id ?? "",
-          type: "workflow_execution",
+          type: "workflow_run",
           subject: name === "" ? UNTITLED_EXECUTION_SUBJECT : name,
           updatedAt: extractUpdatedAt(execution.status?.audit),
           status: resolvePhase(

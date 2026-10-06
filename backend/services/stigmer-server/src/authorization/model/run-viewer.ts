@@ -20,13 +20,13 @@ import { isMessage } from "@bufbuild/protobuf";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 
-import { executionAudienceShapes } from "../../pipeline/steps/authorization-tuples.js";
+import { runAudienceShapes } from "../../pipeline/steps/authorization-tuples.js";
 
 import type { Tuple } from "../tuples.js";
 
 import type { DerivedRelation } from "./rewrite.js";
 
-export const executionViewer: DerivedRelation = (object, row) => {
+export const runViewer: DerivedRelation = (object, row) => {
   if (!isMessage(row, WorkflowSchema)) {
     return Promise.resolve([]);
   }
@@ -37,12 +37,12 @@ export const executionViewer: DerivedRelation = (object, row) => {
     return Promise.resolve([]);
   }
   return Promise.resolve(
-    [...executionAudienceShapes(level)].map((shape): Tuple => {
+    [...runAudienceShapes(level)].map((shape): Tuple => {
       switch (shape) {
         case "org-viewer":
           return {
             object,
-            relation: "execution_viewer",
+            relation: "run_viewer",
             subject: {
               form: "userset",
               object: { type: "organization", id: org },

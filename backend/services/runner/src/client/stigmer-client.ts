@@ -677,7 +677,7 @@ export class StigmerClient {
   }
 
   async createAgentExecution(execution: AgentRun): Promise<AgentRun> {
-    assertCreateRequirements(execution, "AgentExecution", "createAgentExecution");
+    assertCreateRequirements(execution, "AgentRun", "createAgentExecution");
     return this.executionCommand.create(execution);
   }
 

@@ -26,7 +26,7 @@ import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workfl
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type {
-  ExecutionVisibilityChangedEvent,
+  RunVisibilityChangedEvent,
   ResourceAuthorizationLifecycle,
 } from "../../../extensions/resource-authorization.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
@@ -94,14 +94,14 @@ function workflow(
 /** A driver that records each run-audience event, and throws when told to. */
 function recordingLifecycle(fail = false): {
   lifecycle: ResourceAuthorizationLifecycle;
-  events: ExecutionVisibilityChangedEvent[];
+  events: RunVisibilityChangedEvent[];
 } {
-  const events: ExecutionVisibilityChangedEvent[] = [];
+  const events: RunVisibilityChangedEvent[] = [];
   const lifecycle: ResourceAuthorizationLifecycle = {
     onResourceCreated: () => Promise.resolve(),
     onResourceDeleted: () => Promise.resolve(),
     onVisibilityChanged: () => Promise.resolve(),
-    onExecutionVisibilityChanged: (event) => {
+    onRunVisibilityChanged: (event) => {
       events.push(event);
       return fail
         ? Promise.reject(new Error("tuple store unavailable"))

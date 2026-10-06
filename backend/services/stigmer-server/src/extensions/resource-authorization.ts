@@ -76,7 +76,7 @@
  * run audience, `execution_viewer`, which open source derives from
  * `spec.execution_visibility` when a check asks
  * (authorization/model/execution-viewer.ts) and an edition that stores
- * tuples must write. `onExecutionVisibilityChanged` hands the driver the
+ * tuples must write. `onRunVisibilityChanged` hands the driver the
  * audience the stored level names, from the two doors that may set it
  * (create, and updateExecutionVisibility; Update and Apply keep the
  * stored level, domain/workflow/execution-visibility.ts). Synchronous,
@@ -111,7 +111,7 @@ export type VisibilityTupleShape = "org-viewer" | "child-org-viewer";
  * relation: making a workflow's RUNS observable never widens who can see
  * or run the workflow itself (fga/model/agentic/workflow.fga).
  */
-export type ExecutionAudienceShape = "org-viewer";
+export type RunAudienceShape = "org-viewer";
 
 /**
  * One resolved structural link from the created resource to a parent
@@ -235,10 +235,10 @@ export interface ChildOrganizationLinkedEvent {
  * or a transition whose old level it never saw all converge. The workflow
  * is the one kind that carries a run audience.
  */
-export interface ExecutionVisibilityChangedEvent {
+export interface RunVisibilityChangedEvent {
   readonly workflowId: string;
   readonly orgId: string;
-  readonly shapes: ReadonlyArray<ExecutionAudienceShape>;
+  readonly shapes: ReadonlyArray<RunAudienceShape>;
 }
 
 /**
@@ -307,8 +307,8 @@ export interface ResourceAuthorizationLifecycle {
    * target state). Absent method = no run-audience tuple is written (the
    * OSS posture: the relation is derived from the row at check time).
    */
-  onExecutionVisibilityChanged?(
-    event: ExecutionVisibilityChangedEvent,
+  onRunVisibilityChanged?(
+    event: RunVisibilityChangedEvent,
   ): Promise<void>;
   /**
    * OPTIONAL: synchronous, AFTER the row

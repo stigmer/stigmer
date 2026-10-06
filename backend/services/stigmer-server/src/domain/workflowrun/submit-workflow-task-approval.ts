@@ -95,7 +95,7 @@ export async function submitWorkflowTaskApproval(
       name: "ValidateTaskApprovalInput",
       execute(ctx) {
         if (ctx.input.runId === "") {
-          throw invalidArgumentError("execution_id is required");
+          throw invalidArgumentError("run_id is required");
         }
         if (ctx.input.taskName === "") {
           throw invalidArgumentError("task_name is required");
@@ -117,7 +117,7 @@ export async function submitWorkflowTaskApproval(
           );
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
-            throw notFoundError("WorkflowExecution", ctx.input.runId);
+            throw notFoundError("WorkflowRun", ctx.input.runId);
           }
           throw internalError(error, "failed to load workflow execution");
         }
