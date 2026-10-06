@@ -39,7 +39,7 @@
  *     organization data.
  * It is ADMITTED OUTSIDE only along the model's one path across
  * organizations, and only for a permission that reads or runs: a
- * blueprint (agent, MCP server, plugin, skill, workflow) that the bound
+ * blueprint (agent, MCP server, plugin, skill) that the bound
  * organization's own parent shares with its children at
  * `visibility_child_orgs` (connecting is how an MCP server runs). A
  * blueprint another organization shares with
@@ -140,7 +140,6 @@ export const BOUND_ELSEWHERE_DENY_REASON =
  */
 const SHARED_BLUEPRINTS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.agent,
-  ApiResourceKind.workflow,
   ApiResourceKind.mcp_server,
   ApiResourceKind.plugin,
   ApiResourceKind.skill,

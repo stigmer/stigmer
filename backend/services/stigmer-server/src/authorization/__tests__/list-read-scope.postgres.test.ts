@@ -12,8 +12,7 @@
  * and nothing personal; the founder — an admin — sees the organization's
  * blueprints and NOT its members' sessions, keys, environments or
  * memories (the model's own line, now list-visible); an execution is its session's and
- * an orphaned execution is nobody's; a run whose workflow is
- * org-observable reaches the organization's viewers; a memory with no
+ * an orphaned execution is nobody's; a memory with no
  * subject is nobody's. Then the contract: a scope only narrows
  * and never reorders; the `internal` class is the in-process skip on the
  * enumeration verb and a loud consumer bug on the restrict verb (the
@@ -22,12 +21,11 @@
  * fault throws and is never an empty answer; an undeclared kind is a
  * consumer bug, loud; the enumeration verb equals the restrict verb over
  * the whole kind; and the reads are counted — distinct parents, never
- * candidates, and a run's workflow row read once for its run audience.
+ * candidates.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -87,11 +85,9 @@ const SEEDED_KINDS = [
   ApiResourceKind.agent,
   ApiResourceKind.session,
   ApiResourceKind.agent_run,
-  ApiResourceKind.workflow_run,
   ApiResourceKind.memory,
   ApiResourceKind.api_key,
   ApiResourceKind.environment,
-  ApiResourceKind.workflow,
 ];
 
 function resolved(accountId: string): CallerIdentity {
@@ -344,40 +340,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             });
           }
 
-          // Runs: the member's run of an org-observable workflow and the
-          // founder's run of a private one; both workflows are private
-          // themselves, so a run is reached only through its audience.
-          await save("workflow", {
-            id: "wfl_observable",
-            org: ORG,
-            visibility: ApiResourceVisibility.visibility_private,
-            createdBy: MEMBER,
-            spec: {
-              runVisibility: WorkflowRunVisibility.organization,
-            },
-          });
-          await save("workflow", {
-            id: "wfl_private",
-            org: ORG,
-            visibility: ApiResourceVisibility.visibility_private,
-            createdBy: FOUNDER,
-            spec: { runVisibility: WorkflowRunVisibility.private },
-          });
-          await save("workflow_run", {
-            id: "wex_member_observable",
-            org: ORG,
-            visibility: ApiResourceVisibility.visibility_private,
-            createdBy: MEMBER,
-            spec: { workflowId: "wfl_observable" },
-          });
-          await save("workflow_run", {
-            id: "wex_founder_private",
-            org: ORG,
-            visibility: ApiResourceVisibility.visibility_private,
-            createdBy: FOUNDER,
-            spec: { workflowId: "wfl_private" },
-          });
-
           // Memories: one with no subject (every open-source memory row
           // today), one whose subject is the member.
           await save("memory", {
@@ -469,27 +431,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             expect(
               await listAs(resolved(ADMIN), ApiResourceKind.agent_run),
             ).toEqual([]);
-          });
-
-          it("a run of an org-observable workflow reaches the organization's viewers through `run_viewer`; a run of a private one is its starter's alone", async () => {
-            expect(
-              await listAs(
-                resolved(VIEWER),
-                ApiResourceKind.workflow_run,
-              ),
-            ).toEqual(["wex_member_observable"]);
-            expect(
-              await listAs(
-                resolved(FOUNDER),
-                ApiResourceKind.workflow_run,
-              ),
-            ).toEqual(["wex_member_observable", "wex_founder_private"]);
-            expect(
-              await listAs(
-                resolved(MEMBER),
-                ApiResourceKind.workflow_run,
-              ),
-            ).toEqual(["wex_member_observable"]);
           });
 
           it("a memory is its SUBJECT's and a memory with no subject is nobody's — the founder lists none, the member lists the one about them", async () => {
@@ -761,18 +702,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             expect(storeReads).toEqual({ rows: 1, scans: 0 });
             expect(accountReads).toBe(1);
             expect(principalReads).toBe(1);
-          });
-
-          it("a list of runs reads each run's workflow row once beside the organization — the `run_viewer` rule reads the workflow's run audience, which a candidate's facts do not carry (stated, not hidden)", async () => {
-            // The viewer started neither run, so `run_viewer from
-            // workflow` is evaluated for both: the two workflow rows, the
-            // one organization.
-            await listAs(
-              resolved(VIEWER),
-              ApiResourceKind.workflow_run,
-              rowsOf(ApiResourceKind.workflow_run),
-            );
-            expect(storeReads).toEqual({ rows: 3, scans: 0 });
           });
 
           it("the enumeration verb scans the kind exactly once", async () => {

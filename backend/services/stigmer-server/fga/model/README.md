@@ -10,20 +10,20 @@ This follows the Google Zanzibar pattern used by Google Drive: "Specific people"
 
 ## The Authorization Tiers
 
-Workflows follow a three-tier hierarchy; agents have two, because a conversation names its agent directly:
+An agent is a blueprint; a person talks to it in a session, and every turn of that conversation is an agent run. The session names its agent directly, and a run answers exactly what its session answers:
 
 ```
-Blueprint (Agent, Workflow)       ← discoverability and usability
-  └── Run (WorkflowRun)           ← who can observe runs (the workflow's run visibility)
+Blueprint (Agent)                 ← discoverability and usability
   └── Session → AgentRun          ← a person's conversation and its turns
 ```
 
-Each tier has independent but composable visibility:
+Each has its own visibility:
 
 | Tier | Default Visibility | Supports Child Orgs | Inheritance |
 |------|-------------------|-------------------|-------------|
 | **Blueprint** | Org members | Yes (`child_org_viewer`) | — |
-| **Run** | Owner only, widened by its parent | No (inherited) | Workflow: the workflow's opt-in `run_viewer`. Agent: from session |
+| **Session** | Owner only, widened by explicit grants or the channel or schedule that runs it | No | — |
+| **Run** | Whatever its session answers | No | From session |
 
 ## The Visibility Spectrum
 
@@ -39,27 +39,25 @@ Individual grants (`resource#viewer@identity_account:<user>`) work at any visibi
 
 ### Roles on blueprints: viewer, editor, owner
 
-A blueprint (`agent`, `workflow`, `mcp_server`) is granted to a person or a team in one of three roles:
+A blueprint (`agent`, `mcp_server`) is granted to a person or a team in one of three roles:
 
 | Role | Can | Cannot |
 |---|---|---|
-| `viewer` | read it and use it: run an agent or workflow, use an MCP server, clone it | change it |
+| `viewer` | read it and use it: run an agent, use an MCP server, clone it | change it |
 | `editor` | everything a viewer can, and change its definition (`can_edit`): update, tag a version, schedule an agent | delete it, or decide who else reaches it |
 | `owner` | everything (the creator, and the organization's admins by inheritance) | |
 
-Who else reaches a resource is the owner's, through two permissions. `can_grant_access` is granting and revoking. `can_manage_audience` is every act that changes the audience without a grant: `updateVisibility` on every kind, `updateRunVisibility` on a workflow, publishing an agent on a share link and binding it to a channel. They are two permissions because the self-check answers `can_grant_access` false wherever the edition grants no roles on the kind (the console then hides grant controls), while every edition lets an owner change an audience. An editor is a viewer (`viewer: ... or editor`), so the model's invariant "you can run what you can read" holds for editors too. The open-source server grants no per-resource role (its policy grant scope is the organization only); the hosted edition and Enterprise grant these.
+Who else reaches a resource is the owner's, through two permissions. `can_grant_access` is granting and revoking. `can_manage_audience` is every act that changes the audience without a grant: `updateVisibility` on every kind, publishing an agent on a share link and binding it to a channel. They are two permissions because the self-check answers `can_grant_access` false wherever the edition grants no roles on the kind (the console then hides grant controls), while every edition lets an owner change an audience. An editor is a viewer (`viewer: ... or editor`), so the model's invariant "you can run what you can read" holds for editors too. The open-source server grants no per-resource role (its policy grant scope is the organization only); the hosted edition and Enterprise grant these.
 
-## Agent vs Workflow Asymmetry
+## Agents, Sessions and Runs
 
 ```
-Agent Path:     Agent → Session (personal) → AgentRun
-Workflow Path:  Workflow → WorkflowRun
+Agent (blueprint) → Session (personal) → AgentRun
 ```
 
-- **Agent runs** inherit from sessions. Sessions are always personal — even if the agent is org-visible, conversations remain private. Sharing a session requires explicit viewer grants. The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
-- **Workflow runs** are private to the person who started each one, and inherit the workflow's opt-in `run_viewer`: a workflow whose run visibility is ORGANIZATION shows every run, past runs included, to the whole organization. Zero per-run tuples needed. A workflow's own visibility never exposes its runs.
-
-This asymmetry is intentional: agents are conversational (privacy always), workflows are operational (observability is the workflow owner's opt-in).
+- **An agent's audience is not its conversations' audience.** An org-visible agent lets every member read and run it; each member's conversation with it stays private to that member.
+- **Sessions** are personal: the owner sees one, and nobody else does until an explicit viewer grant shares it. A session started by a channel or a schedule is also visible to whoever can view that channel or schedule (`viewer from channel`, `viewer from schedule`). The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
+- **Agent runs** hold nothing of their own. A run answers exactly what its session answers, so sharing a session shares its whole history, past turns included, with zero per-run tuples.
 
 ## What the model deliberately cannot say: the runtime lanes' blueprint reads
 
@@ -75,7 +73,7 @@ Templates discoverable by all org members, with optional child-organization visi
 define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or editor or child_org_viewer
 ```
 
-Resources: `agent`, `workflow`, `skill`, `mcp_server`, `plugin`
+Resources: `agent`, `skill`, `mcp_server`, `plugin`
 
 ### Personal Resource (Sessions)
 
@@ -100,19 +98,18 @@ Resources: `environment`. It is personal by default and shared with the organiza
 
 ### Inherited Visibility (Runs)
 
-Permissions inherited from parent resource:
+Permissions inherited from the parent resource:
 
 ```fga
-# Workflow run inherits the workflow's opt-in run audience
-define viewer: ([identity_account, team#member] and affiliated from organization) or owner or run_viewer from workflow
-
-# Agent run inherits from session
+# An agent run inherits from its session
+define owner: owner from session
 define viewer: viewer from session or owner
+define can_view: viewer or can_view from session
 ```
 
-Resources: `workflow_run`, `agent_run`
+Resources: `agent_run`
 
-An agent run holds nothing of its own: its one direct relation is the `session` link, every other relation is read through it, and its `can_view` answers exactly what the session's does. That is what lets a list ask about the session in the run's place, and `src/authorization/model/__tests__/registry.test.ts` holds it for every kind whose `kind_meta` makes its authorization its parent's. A relation that would give a run something of its own is a design change of the list read scope first. A workflow run is not such a kind, because its opt-in `run_viewer` is its own.
+An agent run holds nothing of its own: its one direct relation is the `session` link, every other relation is read through it, and its `can_view` answers exactly what the session's does. That is what lets a list ask about the session in the run's place, and `src/authorization/model/__tests__/registry.test.ts` holds it for every kind whose `kind_meta` makes its authorization its parent's. A relation that would give a run something of its own is a design change of the list read scope first.
 
 ### Bounded by the Organization (every direct grant)
 
@@ -166,7 +163,7 @@ Platform capabilities live on `platform:stigmer`: one `operator` role, narrow ro
 ## Shapes to Avoid
 
 - A relation used as a tupleset (`admin from organization` reads `organization`) must be direct: only `[type]` references, no `or`, `from` or `and`. Put a computed arm on each permission instead. OpenFGA refuses the model otherwise.
-- A tuple-to-userset (`run_viewer from workflow`) works only if the parent type defines that relation; read the parent's file first.
+- A tuple-to-userset (`viewer from session`) works only if the parent type defines that relation; read the parent's file first.
 - A mid-chain role in a read grant is wrong, and no type admits one: `resource#viewer@organization:acme#member` would exclude every viewer-role user, and single sign-on provisions the viewer role by default. A read grant names the widest audience, `organization#viewer`.
 - A new file must be listed in `fga.mod`, in dependency order; the generator refuses a `.fga` file that `fga.mod` does not list.
 - A suite holds `check` and `list_objects` assertions only: the built-in evaluator's kit refuses any other key (`list_users` included), and an assertion it cannot run would be proven on one engine only.
@@ -215,30 +212,6 @@ organization:stigmer#child_org@organization:acme-cust    ← on the parent
 
 Both edges are written once, when the child is created; a child has no `owner` tuple. The parent's admins hold `parent_admin` on the child, which feeds only the management permissions (`can_view_settings`, `can_edit`, `can_delete`, `can_grant_access`, `can_view_access`, `can_assign_roles`, `can_view_billing`), never a role: they manage the child and read none of its resources. A parent admin who needs to look inside grants themselves a role in the child, which the child's members and access history show.
 
-### Workflow with org run visibility
-
-```
-workflow:support-triage#organization@organization:acme
-workflow:support-triage#owner@identity_account:alice
-workflow:support-triage#viewer@organization:acme#viewer            ← ORG visibility
-workflow:support-triage#run_viewer@organization:acme#viewer  ← ORG run visibility
-```
-
-### Run (Inherits the Workflow's Run Visibility)
-
-```
-workflow_run:ticket-4567#organization@organization:acme
-workflow_run:ticket-4567#workflow@workflow:support-triage
-workflow_run:ticket-4567#owner@identity_account:support-agent-1
-```
-
-Everyone in the Acme org can view — IF the workflow opted into org run
-observability (`run_viewer@organization:acme#viewer`; workflow
-visibility alone never exposes run history):
-```
-can_view → viewer → run_viewer from workflow → organization:acme#viewer
-```
-
 ### Session (Personal)
 
 ```
@@ -247,6 +220,17 @@ session:chat-123#owner@identity_account:bob
 ```
 
 Only Bob can view. To share: `session:chat-123#viewer@identity_account:alice`
+
+### Run (Inherits Its Session)
+
+```
+agent_run:turn-7#session@session:chat-123
+```
+
+Whoever can view the session views the run, and nobody else:
+```
+can_view → can_view from session:chat-123 → owner (bob), a viewer grant, or the session's channel or schedule
+```
 
 ### Team (Shared With as One)
 
@@ -299,8 +283,7 @@ fga/
 │       ├── agent_channel.fga       # An agent's distribution channels (owner-scoped)
 │       ├── agent_share.fga         # An agent's shared pages (owner-scoped)
 │       ├── channel_app.fga         # Bring-your-own channel provider apps (restricted)
-│       ├── agent_run.fga     # Agent runs (inherits from session)
-│       ├── artifact.fga            # Files a run produces (org and owner)
+│       ├── agent_run.fga           # Agent runs (inherits from session)
 │       ├── environment.fga         # Config and secrets (personal, shareable with the org)
 │       ├── execution_context.fga   # Ephemeral runtime contexts (owner-only)
 │       ├── mcp_server.fga          # MCP tool servers (open access)
@@ -308,9 +291,7 @@ fga/
 │       ├── plugin.fga              # Installed plugins, the unit of install
 │       ├── schedule.fga            # Scheduled agent runs (owner-scoped)
 │       ├── session.fga             # Conversations (personal)
-│       ├── skill.fga               # Knowledge bases (open access)
-│       ├── workflow.fga            # Workflow blueprints (open access)
-│       └── workflow_run.fga  # Workflow runs (private; the workflow's opt-in run visibility)
+│       └── skill.fga               # Knowledge bases (open access)
 └── tests/                          # The suites: `fga model test` documents, one per behaviour
 ```
 

@@ -113,14 +113,13 @@ type organization
     # RESOURCE CREATION PERMISSIONS
     # ========================================
     define can_create_agent: admin
-    define can_create_workflow: admin
     define can_create_session: member or guest
     define can_create_environment: member
     define can_create_skill: admin
     # A plugin install writes several resources in one act — the skill bar.
     define can_create_plugin: admin
     # An MCP server is an organization's blueprint, authored by admins like
-    # agents, workflows and skills; members connect one with their own
+    # agents and skills; members connect one with their own
     # credentials (stigmer#1209, the release note of v3.22.0).
     define can_create_mcp_server: admin
     define can_create_idp: admin

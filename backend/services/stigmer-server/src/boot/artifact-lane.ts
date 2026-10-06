@@ -3,7 +3,7 @@
  * storage mints downloads under, on a server that was not told.
  *
  * The artifact download lane is a second loopback listener beside the
- * unified port (domain/artifact/file-server.ts), bound only when artifact
+ * unified port (artifactstorage/file-server.ts), bound only when artifact
  * storage is local. `ARTIFACT_HTTP_PORT` and `ARTIFACT_LOCAL_SERVE_URL`
  * place it explicitly; unset, both follow the unified port, and this module
  * is the one place that says how.

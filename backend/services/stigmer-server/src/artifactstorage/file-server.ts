@@ -1,24 +1,27 @@
 /**
- * The artifact HTTP file server — ports the local-download lane from Go
- * pkg/server/server.go (artifactDownloadHandler + the boot block, lines
- * 849–926): a second listener on 127.0.0.1:ARTIFACT_HTTP_PORT (unset: the
- * unified port + 1, ephemeral beside an ephemeral unified port — the rule is
+ * The local download lane: an HTTP listener that serves the bytes local
+ * artifact storage (artifact-storage.ts) holds, at the URLs its
+ * getSignedUrl mints. Two kinds of file reach a caller through it: an agent
+ * run's files (agentRun.getArtifactDownloadUrl) and the skill and plugin
+ * archives a runner mounts (the staging driver's download links). The lane
+ * ports Go pkg/server/server.go's artifactDownloadHandler and its boot block:
+ * a second listener on 127.0.0.1:ARTIFACT_HTTP_PORT (unset: the unified
+ * port + 1, ephemeral beside an ephemeral unified port — the rule is
  * boot/artifact-lane.ts), started only when artifact storage is LOCAL,
  * serving GET /<key> as the exact bytes LocalArtifactStorage wrote. Unlike
  * Go, a bind failure fails the boot: the composition binds the lane before
- * SERVING and lets listen()'s rejection stand (stigmer#1089). The lane
- * lives in its owning domain — it is NOT a unified-port lane (Go runs it
- * as a separate listener, and so does
- * this port).
+ * SERVING and lets listen()'s rejection stand (stigmer#1089). It is not a
+ * unified-port lane: Go ran it as a separate listener, and so does this
+ * port.
  *
- * Disposition contract (proven by the artifact suite's file-server block):
- * a request carrying ?download=<name> (set by getSignedUrl) is served as a
- * browser download named by that parameter — mirroring the R2 backend,
- * which signs Content-Disposition into the presigned URL. Requests without
- * the parameter are served INLINE with no disposition header.
+ * Disposition contract (proven by __tests__/file-server.test.ts): a request
+ * carrying ?download=<name> (set by getSignedUrl) is served as a browser
+ * download named by that parameter — mirroring the R2 backend, which signs
+ * Content-Disposition into the presigned URL. Requests without the
+ * parameter are served INLINE with no disposition header.
  *
- * Two disclosed nuances versus Go's http.FileServer (neither pinned by the
- * suite, both recorded in the PR):
+ * Two disclosed nuances versus Go's http.FileServer (neither pinned by a
+ * test):
  *   - No Content-Type header: Go sniffs one (net/http DetectContentType);
  *     porting the whole sniffing algorithm for an unpinned header is not
  *     parity the register demands, and an absent header lets clients apply
@@ -31,8 +34,8 @@ import { stat } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 
-import { contentDispositionAttachment, LOCAL_DOWNLOAD_QUERY_PARAM } from "../../artifactstorage/artifact-storage.js";
-import type { Logger } from "../../boot/logger.js";
+import { contentDispositionAttachment, LOCAL_DOWNLOAD_QUERY_PARAM } from "./artifact-storage.js";
+import type { Logger } from "../boot/logger.js";
 
 export interface ArtifactFileServerOptions {
   /** The artifact root — the base path IS the root (#285). */

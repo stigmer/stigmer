@@ -75,10 +75,9 @@
  * and its row is never read — the facts are exactly what the derivation
  * reads (facts.ts). The seed stands in for the row only where the row
  * would have been read for FACTS; a declaration's `derived` rule reads
- * the row it needs through the loader as before (`run_viewer` reads
- * the workflow's run-visibility level, a spec field the facts do not
- * carry), so listing workflows costs one row read per candidate, stated
- * in the scope's cost pins.
+ * the row it needs through the loader as before (an organization's
+ * `parent_org` reads the child's `spec.parent_org`, a spec field the
+ * facts do not carry).
  *
  * A row is read where the composition keeps it. Open source's kinds are
  * read through the generic Store. An `identity_account` object is read

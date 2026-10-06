@@ -20,10 +20,8 @@
  * rather than leaving a hole; the tuple source never loads a row for it
  * and the list scope never lists it.
  *
- * The derived rules: on the workflow, `run_viewer`, which its
- * execution visibility decides (run-viewer.ts); on the organization, `parent_org` and
- * `child_org`, which a child's `spec.parent_org` decides
- * (child-organizations.ts).
+ * The derived rules: on the organization, `parent_org` and `child_org`,
+ * which a child's `spec.parent_org` decides (child-organizations.ts).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -31,7 +29,6 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
@@ -41,8 +38,6 @@ import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_p
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -55,7 +50,6 @@ import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { childOrg, parentOrg } from "./child-organizations.js";
-import { runViewer } from "./run-viewer.js";
 import type { DerivedRelation } from "./rewrite.js";
 
 /** A type with no stored resource: it resolves over tuples alone (the module header). */
@@ -94,7 +88,6 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.agent_share, { schema: AgentShareSchema }],
   [ApiResourceKind.channel_app, { schema: ChannelAppSchema }],
   [ApiResourceKind.agent_run, { schema: AgentRunSchema }],
-  [ApiResourceKind.artifact, { schema: ArtifactSchema }],
   [ApiResourceKind.environment, { schema: EnvironmentSchema }],
   [ApiResourceKind.execution_context, { schema: ExecutionContextSchema }],
   [ApiResourceKind.mcp_server, { schema: McpServerSchema }],
@@ -103,9 +96,4 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.schedule, { schema: ScheduleSchema }],
   [ApiResourceKind.session, { schema: SessionSchema }],
   [ApiResourceKind.skill, { schema: SkillSchema }],
-  [
-    ApiResourceKind.workflow,
-    { schema: WorkflowSchema, derived: { run_viewer: runViewer } },
-  ],
-  [ApiResourceKind.workflow_run, { schema: WorkflowRunSchema }],
 ]);

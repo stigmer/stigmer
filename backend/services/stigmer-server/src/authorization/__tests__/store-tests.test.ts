@@ -49,7 +49,6 @@ const SUITES = new URL("../../../fga/tests/", import.meta.url);
 const DOCUMENTS = [
   "agent-channel-owner.fga.yaml",
   "agent-share-owner.fga.yaml",
-  "artifact-org-and-owner.fga.yaml",
   "blueprint-editor.fga.yaml",
   "blueprint-private-visibility.fga.yaml",
   "channel-app-administration.fga.yaml",
@@ -76,7 +75,6 @@ const DOCUMENTS = [
   "schedule-session-visibility.fga.yaml",
   "session-personal-resource.fga.yaml",
   "team-membership.fga.yaml",
-  "workflow-run-sharing.fga.yaml",
 ] as const;
 
 describe("the model's suites over the built-in evaluator", () => {
