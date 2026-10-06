@@ -8,7 +8,9 @@
  * reads the plugin once and declares the variables its hooks read as
  * required secrets, exactly as the plugin page's "Add to an agent" does; a
  * plugin with no hooks that run, or one the server cannot read, is refused
- * before any save; a refused save shows the server's sentence in the section.
+ * before any save; Save stays disabled while the plugins are read, so a second
+ * click starts no second save; a refused save shows the server's sentence in
+ * the section.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -56,7 +58,7 @@ const inlineSource = { source: { case: "inline" as const, value: INLINE_HOOKS } 
 function renderView(
   agent: Agent,
   plugins: Record<string, Plugin>,
-  props: { editable?: boolean; refuseUpdate?: boolean } = {},
+  props: { editable?: boolean; refuseUpdate?: boolean; readGate?: Promise<void> } = {},
 ) {
   const update = vi.fn(async (input: AgentInput) => {
     if (props.refuseUpdate) throw new ConnectError("plugin 'acme/guard' is already listed in hooks", Code.InvalidArgument);
@@ -64,6 +66,7 @@ function renderView(
     return agent;
   });
   const getPlugin = vi.fn(async (ref: { org: string; slug: string }) => {
+    await props.readGate;
     const found = plugins[ref.slug];
     if (found === undefined) throw new ConnectError("plugin not found", Code.NotFound);
     return found;
@@ -180,6 +183,32 @@ describe("AgentDetailView hooks", () => {
 
     expect(await screen.findByText(/plugin not found/)).toBeTruthy();
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it("keeps Save disabled while it reads the plugins, so a second click saves nothing more", async () => {
+    let open = () => {};
+    const readGate = new Promise<void>((resolve) => {
+      open = resolve;
+    });
+    const { update, getPlugin } = renderView(
+      agentWith({ instructions: "Answer tickets." }),
+      { guard: plugin("guard", GUARD_HOOKS) },
+      { editable: true, readGate },
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit hooks" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add plugin" }));
+    const slug = screen.getByPlaceholderText("slug");
+    fireEvent.change(slug, { target: { value: "guard" } });
+    fireEvent.keyDown(slug, { key: "Enter" });
+    const save = screen.getByRole("button", { name: "Save changes" });
+    fireEvent.click(save);
+    await waitFor(() => expect(save).toHaveProperty("disabled", true));
+    fireEvent.click(save);
+    open();
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    expect(getPlugin).toHaveBeenCalledTimes(1);
   });
 
   it("shows the server's refusal in the section", async () => {

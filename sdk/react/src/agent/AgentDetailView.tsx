@@ -273,10 +273,14 @@ export function AgentDetailView({
   // stay in the agent's order with the inline block, and each plugin added
   // is read once so `withPluginHooks` declares the variables its hooks read,
   // the same edit the plugin page's "Add to an agent" makes.
+  // `hooksSaving` covers the plugin reads too, which run before the update
+  // marks the page as saving, so a second Save cannot start another cycle.
   const stigmer = useStigmer();
+  const [hooksSaving, setHooksSaving] = useState(false);
   const saveHookPlugins = useCallback(
-    (rows: ResourceRefRow[]): Promise<boolean> =>
-      saveFields("hooks", async (input) => {
+    (rows: ResourceRefRow[]): Promise<boolean> => {
+      setHooksSaving(true);
+      return saveFields("hooks", async (input) => {
         const owner = input.org;
         const key = (org: string, slug: string) => `${org || owner}/${slug}`;
         const listed = new Set(rows.map((row) => key(row.org, row.slug)));
@@ -293,7 +297,8 @@ export function AgentDetailView({
           next = withPluginHooks(next, { org: row.org, slug: row.slug }, config);
         }
         return { hooks: next.hooks, env: next.env };
-      }),
+      }).finally(() => setHooksSaving(false));
+    },
     [stigmer, saveFields],
   );
 
@@ -479,6 +484,7 @@ export function AgentDetailView({
         saveField={saveField}
         saveRunDefaults={saveRunDefaults}
         saveHookPlugins={saveHookPlugins}
+        hooksSaving={hooksSaving}
         onPluginClick={onPluginClick}
         saveError={saveError}
         clearSaveError={clearSaveError}
@@ -522,6 +528,7 @@ function AgentOverview({
   saveField,
   saveRunDefaults,
   saveHookPlugins,
+  hooksSaving,
   onPluginClick,
   saveError,
   clearSaveError,
@@ -539,6 +546,7 @@ function AgentOverview({
   ) => Promise<boolean>;
   readonly saveRunDefaults?: (save: AgentRunDefaultsSave) => Promise<boolean>;
   readonly saveHookPlugins?: (plugins: ResourceRefRow[]) => Promise<boolean>;
+  readonly hooksSaving?: boolean;
   readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
   readonly saveError?: { field: string; message: string } | null;
   readonly clearSaveError?: () => void;
@@ -764,7 +772,7 @@ function AgentOverview({
         agentOrg={agentOrg}
         onPluginClick={onPluginClick}
         editable={!!editable && saveHookPlugins !== undefined}
-        isSaving={isSaving}
+        isSaving={isSaving || hooksSaving}
         error={errorFor("hooks")}
         editing={hooksEditing}
         onEditingChange={handleHooksEditingChange}

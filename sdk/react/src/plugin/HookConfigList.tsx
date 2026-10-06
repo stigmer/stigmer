@@ -3,7 +3,8 @@
 // agent page. One row per group: the event in plain words beside its own
 // name ("Before a tool call · PreToolUse"), the matcher ("every tool" when
 // empty or `*`), and each handler's command and arguments verbatim, with its
-// timeout and `if` condition when set. Verbatim for the reason
+// timeout and `if` condition when set, and whether it refuses the call when
+// it fails or times out (Cursor's `failClosed`). Verbatim for the reason
 // `AgentToolLists` gives: the exact strings are what runs, and a person
 // deciding whether to trust a plugin reads every command it will run. The
 // words come from `@stigmer/sdk` (`hook-words.ts`), which the CLI prints
@@ -74,18 +75,20 @@ function HandlerRow({ handler }: { readonly handler: HookHandler }) {
     handler.condition !== "" ? { label: "only if", value: handler.condition } : null,
     handler.timeoutSeconds > 0 ? { label: "timeout", value: `${handler.timeoutSeconds}s` } : null,
   ].filter((detail): detail is { label: string; value: string } => detail !== null);
+  const anyDetail = details.length > 0 || handler.failClosed;
   return (
     <li className="stg:flex stg:min-w-0 stg:flex-col stg:gap-0.5">
       <code className="stg:block stg:min-w-0 stg:whitespace-pre-wrap stg:break-all stg:rounded stg:bg-muted-subtle stg:px-1.5 stg:py-1 stg:font-mono stg:text-xs stg:text-foreground">
         {[handler.command, ...handler.args.map(argWord)].join(" ")}
       </code>
-      {details.length > 0 && (
+      {anyDetail && (
         <span className="stg:flex stg:flex-wrap stg:gap-x-3 stg:text-xs stg:text-muted-foreground">
           {details.map((detail) => (
             <span key={detail.label}>
               {detail.label} <code className="stg:break-all stg:font-mono">{detail.value}</code>
             </span>
           ))}
+          {handler.failClosed && <span>refuses the call if it fails or times out</span>}
         </span>
       )}
     </li>

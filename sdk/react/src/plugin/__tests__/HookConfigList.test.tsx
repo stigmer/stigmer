@@ -4,13 +4,16 @@
  * own name; an empty matcher and `*` read "every tool" and any other matcher
  * is shown verbatim; every handler's command and arguments verbatim (an
  * argument with a space quoted, so where it ends stays readable); a
- * handler's `if` condition and timeout when set, and nothing when not; an
- * event without plain words shown by its name alone.
+ * handler's `if` condition and timeout when set, and nothing when not; a
+ * handler that fails closed says so; every event the plugin reader runs has
+ * plain words; an event without plain words shown by its name alone.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { HookConfigSchema, HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { RUN_EVENTS } from "@stigmer/plugin-package";
+import { hookEventLabel } from "@stigmer/sdk";
 import { HookConfigList } from "../HookConfigList.js";
 
 afterEach(cleanup);
@@ -53,6 +56,29 @@ describe("HookConfigList", () => {
     expect(within(rows[2]!).getByText("After a tool call")).toBeTruthy();
     expect(within(rows[2]!).getByText("on every tool")).toBeTruthy();
     expect(within(rows[2]!).getByText("./log.sh")).toBeTruthy();
+  });
+
+  it("says when a handler refuses the call if it fails or times out", () => {
+    render(
+      <HookConfigList
+        config={create(HookConfigSchema, {
+          format: HookFormat.CURSOR,
+          groups: [
+            { event: "preToolUse", handlers: [{ command: "./strict.sh", failClosed: true }] },
+            { event: "postToolUse", handlers: [{ command: "./lenient.sh" }] },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getAllByText("refuses the call if it fails or times out")).toHaveLength(1);
+    expect(screen.getByText("refuses the call if it fails or times out").closest("li")?.textContent).toContain("./strict.sh");
+  });
+
+  it("has plain words for every event the plugin reader runs, in both formats", () => {
+    for (const events of Object.values(RUN_EVENTS)) {
+      for (const event of events) expect(hookEventLabel(event), event).not.toBeNull();
+    }
   });
 
   it("names a Cursor-format set, and shows an event without plain words by its name alone", () => {
