@@ -1,15 +1,15 @@
 ---
 title: Billing
 description:
-  How Stigmer Cloud billing works — prepaid credits, per-token pricing,
-  execution reservations, automatic recharge, and balance management.
+  How Stigmer Cloud billing works — prepaid credits, per-token pricing, run
+  reservations, automatic recharge, and balance management.
 ---
 
 ## Overview
 
 Stigmer Cloud uses a **prepaid credit wallet**. You purchase credits before
-running Agents. Each LLM call during an Agent Execution is metered and the cost
-is debited from your balance in real time.
+running Agents. Each LLM call during an Agent Run is metered and the cost is
+debited from your balance in real time.
 
 - **1 credit = $0.01 USD** (10,000 micro-USD internally)
 - Credits are dollar-denominated — no abstract unit conversion
@@ -61,9 +61,9 @@ both execution harnesses:
 | Cursor  | 10%        | Provider rate × 1.10 |
 
 The commission covers the operational stack Stigmer runs around every call: the
-LLM proxy, cache-aware metering, cost caps, and execution lifecycle management.
-For example, if a model's provider input rate is $3.00 per million tokens, you
-pay $3.30 per million input tokens on either harness.
+LLM proxy, cache-aware metering, cost caps, and run lifecycle management. For
+example, if a model's provider input rate is $3.00 per million tokens, you pay
+$3.30 per million input tokens on either harness.
 
 ### Cursor Token Rate
 
@@ -181,10 +181,10 @@ conversation length:
 
 Stigmer caps spend automatically so a runaway Agent cannot drain your balance:
 
-- Each execution **reserves** budget up front and stops when the balance is
-  exhausted — see [Execution billing lifecycle](#execution-billing-lifecycle).
-- `low_balance_warning` then `stop_execution` signals tell the Agent to wrap up
-  as the balance runs down — see
+- Each Agent Run **reserves** budget up front and stops when the balance is
+  exhausted — see [Run billing lifecycle](#run-billing-lifecycle).
+- `low_balance_warning` then `stop_run` signals tell the Agent to wrap up as the
+  balance runs down — see
   [Low balance and stop behavior](#low-balance-and-stop-behavior).
 - [Automatic recharge](#automatic-recharge) with a **monthly cap** keeps you
   topped up without unbounded spend.
@@ -192,16 +192,15 @@ Stigmer caps spend automatically so a runaway Agent cannot drain your balance:
   [run settings](/docs/concepts/agents#run-settings)) stops one message once its
   estimated cost reaches the cap.
 
-## Execution billing lifecycle
+## Run billing lifecycle
 
-When an Agent Execution runs on Stigmer Cloud, billing follows a four-phase
+When an Agent Run happens on Stigmer Cloud, billing follows a four-phase
 lifecycle:
 
 ### 1. Authorization
 
 Before the Agent Runner starts, the billing system **reserves** credits from
-your available balance. This reservation ensures the execution has budget to
-operate.
+your available balance. This reservation ensures the run has budget to operate.
 
 - Default reservation: $1.00
 - Minimum balance to start: $0.05
@@ -217,19 +216,19 @@ from the reservation.
 
 After each debit, a **billing signal** is returned:
 
-- `continue` — balance is healthy
+- `continue_run` — balance is healthy
 - `low_balance_warning` — balance is getting low
-- `stop_execution` — balance is exhausted; the Agent should wrap up
+- `stop_run` — balance is exhausted; the Agent should wrap up
 
 ### 3. Finalization
 
-When the execution completes (success, failure, or cancellation), unused
-reservation credits are **released** back to your available balance. A summary
-of the execution's total cost is recorded.
+When the run completes (success, failure, or cancellation), unused reservation
+credits are **released** back to your available balance. A summary of the run's
+total cost is recorded.
 
 ### 4. Reservation expiry (safety net)
 
-If an execution never finalizes (crash, network partition), reservations expire
+If a run never finalizes (crash, network partition), reservations expire
 automatically after 1 hour. Expired reservations release unused credits back to
 the available balance.
 
@@ -237,8 +236,8 @@ the available balance.
 
 Your billing account tracks credits in two buckets:
 
-- **Available** — credits you can use for new executions
-- **Reserved** — credits held by active execution reservations
+- **Available** — credits you can use for new runs
+- **Reserved** — credits held by active run reservations
 
 The invariant is: `total = available + reserved`.
 
@@ -282,13 +281,13 @@ seconds). The monthly cap resets on the first day of each UTC month.
 
 ## Low balance and stop behavior
 
-When your balance gets low during an execution:
+When your balance gets low during a run:
 
 1. At the **low balance threshold**, a `low_balance_warning` signal is sent to
    the Runner and automatic recharge is triggered (if configured)
-2. At **zero balance**, a `stop_execution` signal tells the Runner to finish the
+2. At **zero balance**, a `stop_run` signal tells the Runner to finish the
    current LLM call and stop — the Agent summarizes its progress and exits
-3. **New executions** cannot start when the available balance is below $0.05
+3. **New runs** cannot start when the available balance is below $0.05
 
 ## Credit ledger
 
@@ -298,8 +297,8 @@ Every balance-affecting operation produces an **immutable ledger entry**:
 - `auto_recharge_credit` — automatic top-up
 - `promotional_credit` — trial or campaign grant
 - `usage_debit` — LLM call cost deduction
-- `reservation_hold` — credits reserved at execution start
-- `reservation_release` — unused credits returned after execution
+- `reservation_hold` — credits reserved at run start
+- `reservation_release` — unused credits returned after the run
 - `adjustment_credit` / `adjustment_debit` — operator or credit-issuer
   adjustments
 - `refund_reversal` — Stripe refund reversal

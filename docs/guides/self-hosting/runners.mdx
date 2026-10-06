@@ -61,11 +61,11 @@ The [authentication guide](./authentication#what-changes) has the rules.
 Nothing on the server notices a runner leaving; it finds out when a run has
 nobody to take it. What happens next depends on the kind of run:
 
-- **An Agent run waits five minutes, then fails.** Its status carries the
+- **An Agent Run waits five minutes, then fails.** Its status carries the
   reason: `No worker available to execute activity`, followed by the three usual
   causes, starting with "the Stigmer runner is not running". The console and the
   CLI both show it. Start the run again once the runner is back.
-- **A Workflow run waits.** It has no deadline of its own, so a Workflow started
+- **A Workflow Run waits.** It has no deadline of its own, so a Workflow started
   while the runner is down begins as soon as a runner polls the queue again.
 
 A runner that dies in the middle of an Agent turn is a different case. The
@@ -199,7 +199,7 @@ kubectl apply -f https://github.com/kubernetes-sigs/agent-sandbox/releases/downl
 
 Each sandbox is one `Sandbox` in the namespace `STIGMER_SANDBOX_K8S_NAMESPACE`
 names. It holds the runner's pod, a 10Gi `ReadWriteOnce` workspace claim on the
-cluster's default storage class for a Session or a workflow run, and a Secret
+cluster's default storage class for a Session or a Workflow Run, and a Secret
 with the runner's token and secrets. Deleting the `Sandbox` deletes the rest. A
 pod lost to a node, or deleted by hand, comes back with its files. When a
 stopped sandbox starts again, it runs the server's current runner image and

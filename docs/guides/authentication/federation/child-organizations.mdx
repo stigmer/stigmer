@@ -655,8 +655,8 @@ Set an Agent, Skill, Workflow, MCP Server or Plugin in your Organization to
 `visibility: child-orgs` in a skill's frontmatter) and everyone in every child
 organization can read and run it, including children you create later. Nobody
 outside your children can, and your own Organization keeps seeing it as an
-Organization-visible resource. Sessions, executions and Environments are never
-shared this way: each child runs the shared blueprint inside its own boundary.
+Organization-visible resource. Sessions, runs and Environments are never shared
+this way: each child runs the shared blueprint inside its own boundary.
 
 A child organization can reference your shared blueprint by `org/slug` (an
 Agent's skill or MCP server, a Workflow's agent call); any other organization's

@@ -38,7 +38,7 @@ const HOME_PLACEHOLDER = "Describe what you need help with\u2026";
 
 /**
  * The session panel facets a tour can open. Mirrors the ids
- * `useSessionRailViews` composes; a facet the depicted execution does not
+ * `useSessionRailViews` composes; a facet the depicted run does not
  * offer (e.g. `"artifacts"` with no artifacts) degrades to the first
  * offered view — the surface's own stale-id rule.
  */
@@ -48,12 +48,12 @@ interface SessionViewProps {
   /** When set, renders the conversation via `MessageThread`. */
   readonly execution?: AgentRun;
   /**
-   * Render the execution's pending-approval gates inline on their tool rows.
+   * Render the run's pending-approval gates inline on their tool rows.
    * `MessageThread` gates approval UI on the presence of an
    * `onApprovalSubmit` handler (`includeApprovals = onApprovalSubmit !=
    * null`) — but a playback has no decision to route, so the demo layer
    * names the *intent* and passes an inert handler to the SDK internally.
-   * The depicted execution must carry `status.pendingApprovals` whose
+   * The depicted run must carry `status.pendingApprovals` whose
    * `toolCallId` matches an inline tool call, or the gate falls through to
    * the bottom backstop card (which ticks an elapsed-time counter, and a
    * live clock breaks a packed embed's determinism).
@@ -91,11 +91,11 @@ interface SessionViewProps {
    */
   readonly panelView?: SessionPanelFacetId;
   /**
-   * Opens this artifact (by `ExecutionArtifact.name`) as a document tab in
+   * Opens this artifact (by `RunArtifact.name`) as a document tab in
    * the panel's editor area — the shipped open-artifact presentation
    * (`ArtifactDocument`, Apply CTA included). Only meaningful with
    * `panelView` set; the named artifact must exist on the depicted
-   * execution.
+   * run.
    */
   readonly openArtifactName?: string;
 }
@@ -200,7 +200,7 @@ function ThreadState({
     [agentRef],
   );
 
-  // The console's own derivations (pure aggregations over the execution):
+  // The console's own derivations (pure aggregations over the run):
   // the chip badge is writeBackCount + artifactCount, exactly as
   // SessionViewer computes it, and the rail comes from useSessionRailViews
   // so labels, icons, badges, and contextual visibility can never drift
@@ -208,7 +208,7 @@ function ThreadState({
   const { artifacts, artifactCount } = useSessionArtifacts(executions);
   const { writeBackCount } = useSessionWriteBacks(executions);
   const railViews = useSessionRailViews({
-    allExecutions: executions,
+    allRuns: executions,
     org: DEMO_ORG,
     sessionConfig,
     // Supplying the open-artifact callbacks (inert here) selects the
@@ -233,7 +233,7 @@ function ThreadState({
         content: (
           <ArtifactDocument
             artifact={openEntry.artifact}
-            executionId={openEntry.executionId}
+            runId={openEntry.runId}
             org={DEMO_ORG}
             isTerminal={openEntry.isTerminal}
           />
@@ -250,7 +250,7 @@ function ThreadState({
         conversation={
           <div className="sx-session__thread">
             <MessageThread
-              executions={executions}
+              runs={executions}
               onApprovalSubmit={showApprovals ? noop : undefined}
               contentColumn="center"
             />

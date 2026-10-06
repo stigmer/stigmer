@@ -117,7 +117,7 @@ export const approvalFlowSteps: ScenarioStep<ApprovalFlowStep>[] = [
   {
     delayMs: 2500,
     data: { view: "conversation", execution: completedExecution },
-    narration: "Once approved, the agent completes the return and confirms the details. The execution waited safely until a human said yes.",
+    narration: "Once approved, the agent completes the return and confirms the details. The run waited safely until a human said yes.",
   },
 ];
 

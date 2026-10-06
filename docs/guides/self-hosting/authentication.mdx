@@ -292,20 +292,20 @@ From the boot that read the issuer, every request needs a credential:
   on its first start, deleting nothing.
 - **Runs belong to the person who started them, whoever's key the runner
   holds.** For each run, the server gives the runner a credential for that run
-  alone, and everything the runner does for it, including the Sessions and
-  executions it creates, the status it reports and the memories its Agent
-  proposes with `remember`, is recorded as that person. Connecting an MCP Server
-  that declares credentials works the same way: the runner reads those
-  credentials as the person who asked for the connect. A Workflow shared with
-  the Organization runs the Agents it calls as the person who ran the Workflow,
-  so that person must be able to view them; a call to a private Agent fails at
-  the Agent's read. A run that was already in flight when you turned
-  authentication on belongs to no signed-in person and stops with a message
-  saying so; start it again while signed in. A run's credential is written into
-  the run's Temporal history and stays valid for ten minutes after the run ends,
-  so protect Temporal the way you protect the database. The Helm chart's bundled
-  Temporal admits only the Stigmer pod; a Temporal of your own can require TLS,
-  mutual TLS or an API key, and both the server and the runner can present them
+  alone, and everything the runner does for it, including the Sessions and runs
+  it creates, the status it reports and the memories its Agent proposes with
+  `remember`, is recorded as that person. Connecting an MCP Server that declares
+  credentials works the same way: the runner reads those credentials as the
+  person who asked for the connect. A Workflow shared with the Organization runs
+  the Agents it calls as the person who ran the Workflow, so that person must be
+  able to view them; a call to a private Agent fails at the Agent's read. A run
+  that was already in flight when you turned authentication on belongs to no
+  signed-in person and stops with a message saying so; start it again while
+  signed in. A run's credential is written into the run's Temporal history and
+  stays valid for ten minutes after the run ends, so protect Temporal the way
+  you protect the database. The Helm chart's bundled Temporal admits only the
+  Stigmer pod; a Temporal of your own can require TLS, mutual TLS or an API key,
+  and both the server and the runner can present them
   ([Bring your own Postgres and Temporal](./kubernetes#bring-your-own-postgres-and-temporal)).
   To end a run's credential, end the run: cancel it and the credential is dead
   ten minutes later. To end every run's credential at once, rotate

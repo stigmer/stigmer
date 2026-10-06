@@ -26,7 +26,7 @@ import "@stigmer/theme/presets/monochrome.css";
  * pending approval gate — the exact chrome issue #187 is about. Built once
  * at module level; only the theme scope around it changes.
  */
-const demoExecution = samples.agentExecution({
+const demoExecution = samples.agentRun({
   phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
   messages: [
     create(AgentMessageSchema, {
@@ -41,7 +41,7 @@ const demoExecution = samples.agentExecution({
   ],
 });
 // The user's prompt lives in spec.message (MessageThread synthesizes the
-// bubble from it) — real executions never repeat it in status.messages.
+// bubble from it) — real runs never repeat it in status.messages.
 demoExecution.spec!.message =
   "Can you clean up the stale feature flags in the billing service?";
 
@@ -55,7 +55,7 @@ const demoApproval = create(PendingApprovalSchema, {
 demoExecution.status!.pendingApprovals = [demoApproval];
 
 const noopApprovalSubmit = () => {
-  // Playground only — there is no execution to approve.
+  // Playground only — there is no run to approve.
 };
 
 const COLOR_MODES = ["light", "dark"] as const;
@@ -129,7 +129,7 @@ export function ThemingPlayground() {
         style={{ height: DEMO_SHELL_HEIGHT }}
       >
         <MessageThread
-          executions={[demoExecution]}
+          runs={[demoExecution]}
           onApprovalSubmit={noopApprovalSubmit}
           className="h-full"
           contentColumn="center"

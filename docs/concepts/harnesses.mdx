@@ -92,7 +92,7 @@ The Harness you choose depends on what your Agent needs to do.
 | **Best for**                | General-purpose agents, custom model selection, production workloads  | Developer-facing agents, coding tasks, Cursor model access                   |
 
 <Callout type="info">
-  A Session's Harness is immutable after the first execution runs. Choose the
+  A Session's Harness is immutable after the first Agent Run starts. Choose the
   right Harness when you create the Session — you cannot switch later.
 </Callout>
 
@@ -128,7 +128,7 @@ flowchart LR
 ```
 
 One [Runner](/docs/concepts/runners) serves both harnesses. The Harness is a
-property of the Session and travels with each execution on the same task queue;
+property of the Session and travels with each Agent Run on the same task queue;
 the runner reads it and hands the work to the matching runtime. You don't need
 separate runner processes, or separate queues, for each Harness.
 

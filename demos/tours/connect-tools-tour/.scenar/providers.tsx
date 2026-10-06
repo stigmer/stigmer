@@ -3,8 +3,8 @@
  *
  * Every beat is prop-driven: the connected server arrives through
  * `McpServerDetailView`'s `mcpServerState` prop, the approval-story
- * executions through `ComposerView`'s `execution` prop, and the widget rail
- * renders purely from those executions. The router registers no fixture
+ * runs through `ComposerView`'s `execution` prop, and the widget rail
+ * renders purely from those runs. The router registers no fixture
  * (the fixture-determinism rule, demos/README.md: fixtures only for
  * tour-constant data, props for anything that changes per step — and
  * nothing here is fetched at all).

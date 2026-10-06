@@ -23,7 +23,7 @@ interface ComposerViewProps {
   agentRef?: { org: string; slug: string };
   /**
    * When provided, `MessageThread` renders `ApprovalCard` items for
-   * pending approvals on the active execution. The callback receives
+   * pending approvals on the active run. The callback receives
    * the tool call ID, the chosen action, and an optional comment.
    */
   onApprovalSubmit?: (
@@ -39,7 +39,7 @@ interface ComposerViewProps {
  * Handles three visual states driven by props:
  * 1. **Empty** — `SessionComposer` in its "ready" state
  * 2. **Typing** — `SessionComposer` with pre-filled text
- * 3. **Conversation** — `MessageThread` showing execution messages
+ * 3. **Conversation** — `MessageThread` showing run messages
  */
 export function ComposerView({
   execution,
@@ -54,7 +54,7 @@ export function ComposerView({
         {execution ? (
           <div className="flex h-full flex-col" style={{ zoom: DEMO_CONTENT_ZOOM }}>
             <MessageThread
-              executions={[execution]}
+              runs={[execution]}
               className="max-h-[390px] px-3 py-2"
               onApprovalSubmit={onApprovalSubmit}
             />

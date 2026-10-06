@@ -7,7 +7,12 @@ action:
 swap:
   # --- Agentic pillar ---
   '\bagent\b': Agent
-  agent execution: Agent Execution
+  agent run: Agent Run
+  # Former name of an Agent Run; the engine's own words stay in code spans.
+  agent execution: Agent Run
+  agent executions: Agent Runs
+  Agent Execution: Agent Run
+  Agent Executions: Agent Runs
   agent instance: Agent Instance
   agent runner: Agent Runner
   execution context: Execution Context
@@ -25,7 +30,12 @@ swap:
   # --- Workflow pillar ---
   '\bworkflow\b': Workflow
   '\bworkflows\b': Workflows
-  workflow execution: Workflow Execution
+  workflow run: Workflow Run
+  # Former name of a Workflow Run; the engine's own words stay in code spans.
+  workflow execution: Workflow Run
+  workflow executions: Workflow Runs
+  Workflow Execution: Workflow Run
+  Workflow Executions: Workflow Runs
   workflow instance: Workflow Instance
   workflow runner: Workflow Runner
 

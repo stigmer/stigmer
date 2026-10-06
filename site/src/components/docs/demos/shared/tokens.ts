@@ -12,7 +12,7 @@
 export const DEMO_CONTENT_ZOOM = 0.9;
 
 /**
- * Zoom applied to SDK widgets in the right sidebar (ExecutionProgress,
+ * Zoom applied to SDK widgets in the right sidebar (RunProgress,
  * UsageWidget, ArtifactsWidget). Slightly higher than DEMO_CONTENT_ZOOM
  * because the sidebar is narrower and widgets are already compact.
  */

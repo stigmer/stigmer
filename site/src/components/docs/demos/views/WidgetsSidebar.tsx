@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   ArtifactsWidget,
-  ExecutionProgress,
+  RunProgress,
   UsageWidget,
   WriteBacksWidget,
 } from "@stigmer/react";
@@ -12,9 +12,9 @@ import { DEMO_ORG } from "../fixtures";
 import { DEMO_SIDEBAR_ZOOM } from "../shared/tokens";
 
 interface WidgetsSidebarProps {
-  /** Active or most recent execution (for phase badge / todos). */
+  /** Active or most recent run (for phase badge / todos). */
   readonly execution: AgentRun | null;
-  /** All session executions (for aggregate widgets). */
+  /** All session runs (for aggregate widgets). */
   readonly executions: readonly AgentRun[];
   readonly org: string;
 }
@@ -35,13 +35,13 @@ export function WidgetsSidebar({
   return (
     <div className="flex flex-col gap-2 p-2" style={{ zoom: DEMO_SIDEBAR_ZOOM }}>
       <div className="rounded-lg border border-border bg-card p-2">
-        <ExecutionProgress execution={execution} />
+        <RunProgress run={execution} />
       </div>
 
-      <UsageWidget executions={executions} />
-      <WriteBacksWidget executions={executions} />
+      <UsageWidget runs={executions} />
+      <WriteBacksWidget runs={executions} />
       <div data-cursor-target="artifact-widget">
-        <ArtifactsWidget executions={executions} org={org} />
+        <ArtifactsWidget runs={executions} org={org} />
       </div>
     </div>
   );
@@ -49,7 +49,7 @@ export function WidgetsSidebar({
 
 /**
  * Convenience wrapper that renders a `WidgetsSidebar` with standard
- * demo props for a single execution.
+ * demo props for a single run.
  */
 export function renderWidgetsSidebar(execution: AgentRun): ReactNode {
   return (

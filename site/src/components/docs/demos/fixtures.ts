@@ -24,7 +24,7 @@ export const MOCK_WORKSPACE: UseWorkspaceEntriesReturn = {
 };
 
 /**
- * Build an execution snapshot where the first human message goes into
+ * Build a run snapshot where the first human message goes into
  * `spec.message` and the remaining messages go into `status.messages`.
  *
  * `MessageThread` synthesizes a human bubble from `spec.message`
@@ -45,7 +45,7 @@ export function snapshot(
       ? [...msgs.slice(0, firstHumanIdx), ...msgs.slice(firstHumanIdx + 1)]
       : msgs;
 
-  const exec = samples.agentExecution({
+  const exec = samples.agentRun({
     phase,
     messages: statusMessages,
     artifacts,

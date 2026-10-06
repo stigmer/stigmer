@@ -70,15 +70,15 @@ export const DEMO_RECENT_ACTIVITY: readonly RecentActivityEntry[] = [
 ];
 
 /**
- * Build an execution snapshot where the first human message goes into
+ * Build a run snapshot where the first human message goes into
  * `spec.message` and the rest into `status.messages`. `MessageThread`
  * synthesizes the human bubble from `spec.message`, so this split avoids
  * rendering it twice.
  *
- * The default `EXECUTION_IN_PROGRESS` phase suits mid-conversation frames
- * (`MessageThread`/`ExecutionProgress` render it as a "working" indicator
+ * The default `RUN_IN_PROGRESS` phase suits mid-conversation frames
+ * (`MessageThread`/`RunProgress` render it as a "working" indicator
  * without fetching anything — they are presentational); pass
- * `EXECUTION_COMPLETED` for a finished conversation.
+ * `RUN_COMPLETED` for a finished conversation.
  */
 export function snapshot(
   msgs: AgentMessage[],
@@ -92,7 +92,7 @@ export function snapshot(
       ? [...msgs.slice(0, firstHumanIdx), ...msgs.slice(firstHumanIdx + 1)]
       : msgs;
 
-  const exec = samples.agentExecution({ phase, messages: statusMessages, artifacts });
+  const exec = samples.agentRun({ phase, messages: statusMessages, artifacts });
   exec.spec!.message = specMessage;
   return exec;
 }

@@ -49,8 +49,8 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
   },
-  execution: {
-    title: "Execution",
+  run: {
+    title: "Run",
     description:
       "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
   },
@@ -67,7 +67,7 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
   workflow: {
     title: "Workflow",
     description:
-      "Hooks and components for workflow definitions, executions, and the visual builder.",
+      "Hooks and components for workflow definitions, runs, and the visual builder.",
   },
   runner: {
     title: "Runner",
@@ -285,9 +285,9 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
 const PROTO_TYPE_TO_SLUG: Record<string, string> = {
   Session: "session",
   Agent: "agent",
-  AgentExecution: "agent-execution",
+  AgentRun: "agent-run",
   Workflow: "workflow",
-  WorkflowExecution: "workflow-execution",
+  WorkflowRun: "workflow-run",
   Environment: "environment",
   McpServer: "mcp-server",
   Skill: "skill",

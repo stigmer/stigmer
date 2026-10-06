@@ -11,8 +11,8 @@ make the risky actions pause for a human decision.
 
 This is not a logging feature. When an Agent encounters an action that requires
 approval, it stops, presents what it wants to do and why, and waits for a human
-to approve, skip, or reject before proceeding. The Agent's execution is durable
-— it waits indefinitely without losing state.
+to approve, skip, or reject before proceeding. The Agent Run is durable — it
+waits indefinitely without losing state.
 
 ## How it works
 
@@ -129,7 +129,7 @@ conversation and memory tools, and `think`, are outside the lists.
 
 ## Approving everything
 
-`auto_approve_all` on an execution skips every approval, which suits automated
+`auto_approve_all` on an Agent Run skips every approval, which suits automated
 processes where a human has already authorized the operation. At an approval,
 **Approve all** for one kind of tool (every shell command, or every tool of one
 server) stops asking about that kind for the rest of the run. Neither widens the
@@ -161,7 +161,7 @@ When a tool call triggers an approval:
 | **Skip**    | The tool call is skipped — the Agent continues without this action      |
 | **Reject**  | The tool call is rejected — the Agent receives the rejection and adapts |
 
-The execution is durable throughout this process. If the server restarts while
+The Agent Run is durable throughout this process. If the server restarts while
 waiting for approval, the Agent resumes from the same waiting state.
 
 ## Designing for approvals
