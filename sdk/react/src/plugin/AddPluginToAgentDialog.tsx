@@ -7,7 +7,8 @@
  * variables those hooks read), an agent is picked from the organization's,
  * and everything is added in one save; or, for a user with no agent to add
  * servers to, a way into the creation wizard with the servers already
- * chosen, through the host's callback.
+ * chosen, through the host's callback (the wizard takes no hooks, so the
+ * dialog says a new agent gets the tools only).
  *
  * The pick is fetched before Add is offered (`useAddPluginToAgent`): an
  * agent a plugin installed cannot be edited, and the built-in assistant is
@@ -159,6 +160,11 @@ function DialogContent({
             </p>
           )}
           {flow.error && <ErrorMessage error={flow.error} title="The agent could not be changed" />}
+          {onCreateAgent && servers.length > 0 && hooks !== undefined && (
+            <p className="stg:text-xs stg:text-muted-foreground">
+              A new agent gets the tools only; switch the plugin&apos;s hooks on from its page once it exists.
+            </p>
+          )}
         </>
       )}
 

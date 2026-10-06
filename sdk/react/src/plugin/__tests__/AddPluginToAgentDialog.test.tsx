@@ -7,7 +7,8 @@
  * Add saves once and says what was added, or that the agent had it all; an
  * agent a plugin installed is
  * refused before Add is offered; "Create a new agent with these tools"
- * shows only when the plugin brings servers.
+ * shows only when the plugin brings servers, and says a new agent gets the
+ * tools only when the plugin brings hooks too.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -85,6 +86,7 @@ describe("AddPluginToAgentDialog", () => {
     expect(offer.textContent).toContain("This plugin's hooks");
     expect(offer.textContent).toContain("Claude Code format: PreToolUse 1");
     expect(within(dialog).getByRole("button", { name: "Create a new agent with these tools" })).toBeTruthy();
+    expect(within(dialog).getByText(/A new agent gets the tools only/)).toBeTruthy();
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Pick reviewer" }));
     expect(await within(dialog).findByText(/The hooks read API_TOKEN\. The agent will ask for it when a session starts\./)).toBeTruthy();

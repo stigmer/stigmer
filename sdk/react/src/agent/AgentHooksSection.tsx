@@ -3,9 +3,9 @@
 // The agent page's Hooks section: which hooks guard this agent's tool calls,
 // and every command they run. Each plugin source names its plugin (a link to
 // the plugin's page) and lists the hooks the plugin recorded at install,
-// read by reference; a plugin the server cannot read says that the agent's
+// read by reference; a plugin that is not installed says that the agent's
 // next run will be refused, which is what the runner does with a hook source
-// it cannot load. The inline block reads "Written in this agent". Both lists
+// it cannot load, and a read that fails otherwise says only that. The inline block reads "Written in this agent". Both lists
 // are `HookConfigList`, the plugin page's.
 //
 // When the page is editable, the plugin sources are edited with the generic
@@ -146,9 +146,13 @@ function PluginHooksRow({ row, onPluginClick }: { readonly row: ResourceRefRow; 
       </div>
       {isLoading ? (
         <p className="stg:px-3 stg:py-2 stg:text-sm stg:text-muted-foreground">Reading the plugin&apos;s hooks…</p>
-      ) : error !== null || plugin === null ? (
+      ) : error !== null ? (
+        <p role="note" className="stg:px-3 stg:py-2 stg:text-sm stg:text-muted-foreground">
+          This plugin&apos;s hooks could not be read.
+        </p>
+      ) : plugin === null ? (
         <p role="note" className="stg:px-3 stg:py-2 stg:text-sm stg:text-destructive">
-          This plugin could not be read; the agent&apos;s next run will be refused.
+          This plugin is not installed; the agent&apos;s next run will be refused.
         </p>
       ) : hooks !== undefined && hooks.groups.length > 0 ? (
         <HookConfigList config={hooks} />

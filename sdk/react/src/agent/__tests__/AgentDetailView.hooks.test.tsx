@@ -2,8 +2,9 @@
  * AgentDetailView's Hooks section: which hooks guard an agent's tool calls,
  * and every command they run. Pins: a plugin source names its plugin (a link
  * through `onPluginClick`) and lists the hooks the plugin recorded, read by
- * reference; the inline block reads "Written in this agent"; a plugin the
- * server cannot read says the next run will be refused. Editing: removing a
+ * reference; the inline block reads "Written in this agent"; a plugin that is
+ * not installed says the next run will be refused, and a read that fails
+ * otherwise says only that it could not be read. Editing: removing a
  * plugin saves the remaining sources with the inline block kept; adding one
  * reads the plugin once and declares the variables its hooks read as
  * required secrets, exactly as the plugin page's "Add to an agent" does; a
@@ -22,7 +23,7 @@ import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/pl
 import { HookFormat, type HookConfig, HookConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import type { AgentInput } from "@stigmer/sdk";
+import { StigmerError, type AgentInput } from "@stigmer/sdk";
 import { samples } from "../../test/samples";
 import { AgentDetailView } from "../AgentDetailView";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
@@ -67,8 +68,10 @@ function renderView(
   });
   const getPlugin = vi.fn(async (ref: { org: string; slug: string }) => {
     await props.readGate;
+    if (ref.slug === "broken") throw new ConnectError("upstream unavailable", Code.Unavailable);
     const found = plugins[ref.slug];
-    if (found === undefined) throw new ConnectError("plugin not found", Code.NotFound);
+    // What the SDK throws for a plugin that is not installed.
+    if (found === undefined) throw new StigmerError("not-found", "plugin not found", Code.NotFound);
     return found;
   });
   const onPluginClick = vi.fn();
@@ -103,10 +106,17 @@ describe("AgentDetailView hooks", () => {
     expect(onPluginClick).toHaveBeenCalledWith({ org: ACME_ID, slug: "guard" });
   });
 
-  it("says a plugin it cannot read leaves the agent's next run refused", async () => {
+  it("says a plugin that is not installed leaves the agent's next run refused", async () => {
     renderView(agentWith({ instructions: "Answer tickets.", hooks: [pluginSource("gone")] }), {});
 
-    expect(await screen.findByText(/This plugin could not be read; the agent's next run will be refused/)).toBeTruthy();
+    expect(await screen.findByText(/This plugin is not installed; the agent's next run will be refused/)).toBeTruthy();
+  });
+
+  it("says only that a plugin's hooks could not be read when the read fails otherwise", async () => {
+    renderView(agentWith({ instructions: "Answer tickets.", hooks: [pluginSource("broken")] }), {});
+
+    expect(await screen.findByText("This plugin's hooks could not be read.")).toBeTruthy();
+    expect(screen.queryByText(/next run will be refused/)).toBeNull();
   });
 
   it("shows no Hooks section for a read-only agent with none", async () => {
