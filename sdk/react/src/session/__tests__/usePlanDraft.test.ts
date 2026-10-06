@@ -10,7 +10,7 @@ afterEach(cleanup);
 
 function plan(executionId: string, contentHash: string): SessionPlan {
   return {
-    executionId,
+    runId: executionId,
     artifact: create(RunArtifactSchema, {
       name: "plan.md",
       kind: RunArtifactKind.FILE,

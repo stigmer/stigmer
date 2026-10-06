@@ -122,7 +122,7 @@ describe("findLatestSessionPlan", () => {
     ];
 
     const plan = findLatestSessionPlan(execs);
-    expect(plan?.executionId).toBe("e3");
+    expect(plan?.runId).toBe("e3");
     expect(plan?.artifact.storageKey).toBe("artifacts/e3/plan.md");
   });
 
@@ -131,7 +131,7 @@ describe("findLatestSessionPlan", () => {
       executionWithId("e1", artifact({ name: PLAN_ARTIFACT_NAME })),
       executionWithId("e2", artifact({ name: "data.json" })),
     ];
-    expect(findLatestSessionPlan(execs)?.executionId).toBe("e1");
+    expect(findLatestSessionPlan(execs)?.runId).toBe("e1");
   });
 
   it("skips an execution whose plan artifact lacks a usable execution id", () => {
@@ -139,6 +139,6 @@ describe("findLatestSessionPlan", () => {
       executionWithId("e1", artifact({ name: PLAN_ARTIFACT_NAME })),
       executionWith(artifact({ name: PLAN_ARTIFACT_NAME })),
     ];
-    expect(findLatestSessionPlan(execs)?.executionId).toBe("e1");
+    expect(findLatestSessionPlan(execs)?.runId).toBe("e1");
   });
 });

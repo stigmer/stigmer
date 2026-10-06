@@ -20,7 +20,7 @@ export interface UseExportCSVReturn {
  *
  * Operates entirely client-side from data already in memory — no
  * additional RPC calls. Supports two formats:
- * - `daily_summary` — one row per day with date, executions, tokens, cost
+ * - `daily_summary` — one row per day with date, runs, tokens, cost
  * - `model_breakdown` — one row per model with calls, tokens, cost
  *
  * @param report - The org usage report data (from `useOrgUsageReport`).
@@ -57,7 +57,7 @@ function buildDailySummaryCSV(
   report: GetOrgUsageReportOutput,
   org: string,
 ): { csv: string; filename: string } {
-  const header = "Date,Executions,Tokens,Cost (USD)";
+  const header = "Date,Runs,Tokens,Cost (USD)";
   const rows = report.dailyCosts.map((entry) => {
     const cost = (Number(entry.billableCostMicros) / 1_000_000).toFixed(6);
     return `${entry.date},${entry.runCount},${entry.totalTokens},${cost}`;

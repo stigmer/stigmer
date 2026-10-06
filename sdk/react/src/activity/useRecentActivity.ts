@@ -12,7 +12,7 @@ import type { RecentActivityEntry, RecentActivityType } from "./types.js";
 export interface UseRecentActivityOptions {
   /**
    * Maximum entries to return. The server merges sessions and workflow
-   * executions into a single sorted list and returns at most `pageSize`.
+   * runs into a single sorted list and returns at most `pageSize`.
    *
    * @default 30
    */
@@ -50,7 +50,7 @@ const EPOCH = new Date(0);
 /**
  * Fetches recent activity via the unified `listRecentActivity` RPC,
  * which returns a merged, time-sorted list of the caller's most
- * recent sessions and workflow executions in a single call.
+ * recent sessions and workflow runs in a single call.
  *
  * The server handles:
  * - Per-resource authorization filtering (hosted edition: FGA `can_view`
@@ -123,8 +123,8 @@ function normalizeEntry(entry: ProtoEntry): RecentActivityEntry {
 
   return {
     id: entry.id,
-    type: entry.type === "session" ? "session" : "workflow_execution",
-    subject: entry.subject || (entry.type === "session" ? "Untitled session" : "Untitled execution"),
+    type: entry.type === "session" ? "session" : "workflow_run",
+    subject: entry.subject || (entry.type === "session" ? "Untitled session" : "Untitled run"),
     updatedAt: updatedAt.getTime() > 0 ? updatedAt : EPOCH,
     status: entry.status || undefined,
   };

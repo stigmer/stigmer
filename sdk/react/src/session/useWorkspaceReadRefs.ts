@@ -18,7 +18,7 @@ import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
  * exact, immune to branch eventual-consistency.
  *
  * **Ref selection:** the latest write-back with a non-empty `commitSha` wins
- * per workspace entry, across all executions in chronological order. FAILED
+ * per workspace entry, across all runs in chronological order. FAILED
  * write-back records carry no SHA and never regress the ref.
  *
  * **Entry matching** mirrors the runner's `WriteBackCoordinator.resolveEntry`:
@@ -31,14 +31,14 @@ import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
  * that don't change any write-back SHA return the identical array, so
  * downstream listing/content effects never churn.
  *
- * @param executions - All executions for the session, in chronological order
+ * @param runs - All runs for the session, in chronological order
  *   (same input contract as {@link useSessionWriteBacks}).
  * @param entries - The session's workspace entries. Returned as-is (same
  *   reference) when no entry derives a ref.
  *
  * @example
  * ```tsx
- * const surfaceEntries = useWorkspaceReadRefs(flow.allExecutions, flow.workspace.entries);
+ * const surfaceEntries = useWorkspaceReadRefs(flow.allRuns, flow.workspace.entries);
  * <WorkspaceSurface entries={surfaceEntries} ... />
  * ```
  *

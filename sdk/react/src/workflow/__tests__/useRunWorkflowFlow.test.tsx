@@ -48,7 +48,7 @@ const mockListEnvironments = vi.fn();
 
 function makeMockClient(): Stigmer {
   return {
-    workflowExecution: { create: mockCreate },
+    workflowRun: { create: mockCreate },
     environment: { list: mockListEnvironments },
   } as unknown as Stigmer;
 }
@@ -513,7 +513,7 @@ describe("useRunWorkflowFlow", () => {
     it("is true when the workflow's runs are visible to its organization", () => {
       const opts = defaultOptions({
         workflow: makeWorkflow({
-          spec: { executionVisibility: WorkflowRunVisibility.organization },
+          spec: { runVisibility: WorkflowRunVisibility.organization },
         }),
       });
       const { result } = renderWithClient(opts);
@@ -523,9 +523,9 @@ describe("useRunWorkflowFlow", () => {
     it.each([
       WorkflowRunVisibility.private,
       WorkflowRunVisibility.unspecified,
-    ])("is false for run visibility %s", (executionVisibility) => {
+    ])("is false for run visibility %s", (runVisibility) => {
       const opts = defaultOptions({
-        workflow: makeWorkflow({ spec: { executionVisibility } }),
+        workflow: makeWorkflow({ spec: { runVisibility } }),
       });
       const { result } = renderWithClient(opts);
       expect(result.current.runsVisibleToOrganization).toBe(false);

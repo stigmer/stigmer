@@ -27,7 +27,7 @@ const STATUS_INDICATOR: Record<number, { symbol: string; color?: string }> = {
   [ToolCallStatus.TOOL_CALL_RUNNING]: { symbol: "⠋", color: "yellow" },
   [ToolCallStatus.TOOL_CALL_COMPLETED]: { symbol: "✓", color: "green" },
   [ToolCallStatus.TOOL_CALL_FAILED]: { symbol: "✗", color: "red" },
-  // Platform-settled when the execution terminalized mid-call (issue #207):
+  // Platform-settled when the run terminalized mid-call (issue #207):
   // a neutral "cut short" glyph, distinct from the pending fallback "○".
   [ToolCallStatus.TOOL_CALL_INTERRUPTED]: { symbol: "⊘", color: "gray" },
 };

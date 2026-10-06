@@ -1,6 +1,6 @@
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { StreamState } from "./store/conversation-store.js";
-import { isTerminalPhase } from "../execution/execution-phases.js";
+import { isTerminalPhase } from "../run/run-phases.js";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 // ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ export interface StreamControllerWatchdog {
 
 /**
  * Framework-agnostic finite state machine that manages the lifecycle
- * of a single execution stream subscription.
+ * of a single run stream subscription.
  *
  * Responsibilities:
  * - Track FSM state transitions (idle → connecting → streaming → complete/error)
@@ -124,7 +124,7 @@ export class StreamController {
   }
 
   /**
-   * Transition to `connecting` for the given execution ID.
+   * Transition to `connecting` for the given run ID.
    * If already active for a different ID, resets first.
    */
   start(executionId: string): void {

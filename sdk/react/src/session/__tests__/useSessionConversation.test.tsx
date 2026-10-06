@@ -100,7 +100,7 @@ function createMockStigmer(methods: MockMethods): Stigmer {
     session: {
       get: methods.sessionGet,
     },
-    agentExecution: {
+    agentRun: {
       listBySession: methods.listBySession,
       create: methods.executionCreate,
       subscribe: methods.subscribe,
@@ -198,7 +198,7 @@ describe("useSessionConversation", () => {
     });
   });
 
-  it("completedExecutions excludes the active non-terminal execution", async () => {
+  it("completedRuns excludes the active non-terminal execution", async () => {
     const completed = makeExecution("e1", RunPhase.RUN_COMPLETED);
     const active = makeExecution("e2", RunPhase.RUN_IN_PROGRESS);
     methods.listBySession.mockResolvedValue({
@@ -211,8 +211,8 @@ describe("useSessionConversation", () => {
     );
 
     await waitFor(() => {
-      expect(result.current.completedExecutions).toHaveLength(1);
-      expect(result.current.completedExecutions[0]).toBe(completed);
+      expect(result.current.completedRuns).toHaveLength(1);
+      expect(result.current.completedRuns[0]).toBe(completed);
     });
   });
 
@@ -299,7 +299,7 @@ describe("useSessionConversation", () => {
       );
     });
 
-    // Both clear together once the real execution record takes over.
+    // Both clear together once the real run record takes over.
     await waitFor(() => {
       expect(result.current.pendingUserMessage).toBeNull();
       expect(result.current.pendingAttachments).toBeNull();
@@ -526,7 +526,7 @@ describe("useSessionConversation", () => {
   });
 
   it("full follow-up lifecycle: active execution completes → canSendFollowUp → sendFollowUp succeeds", async () => {
-    // Start with one IN_PROGRESS execution (simulates a Cursor execution running)
+    // Start with one IN_PROGRESS run (simulates a Cursor run running)
     const activeExec = makeExecution("exec-1", RunPhase.RUN_IN_PROGRESS);
     methods.listBySession.mockResolvedValue({ entries: [activeExec] });
 
@@ -540,17 +540,17 @@ describe("useSessionConversation", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    // Initially canSendFollowUp should be false (execution is active)
+    // Initially canSendFollowUp should be false (run is active)
     expect(result.current.canSendFollowUp).toBe(false);
 
-    // Stream delivers EXECUTION_COMPLETED — simulating Cursor run finishing
+    // Stream delivers RUN_COMPLETED — simulating Cursor run finishing
     const completedExec = makeExecution("exec-1", RunPhase.RUN_COMPLETED);
     act(() => {
       execStream.push(completedExec);
     });
 
-    // After stream completes, the hook should refetch executions.
-    // Mock the refetch to return the completed execution.
+    // After stream completes, the hook should refetch runs.
+    // Mock the refetch to return the completed run.
     methods.listBySession.mockResolvedValue({ entries: [completedExec] });
 
     // Wait for canSendFollowUp to become true
@@ -682,7 +682,7 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
     mockStigmer = createMockStigmer(methods);
   });
 
-  it("hides a superseded execution from completedExecutions", async () => {
+  it("hides a superseded execution from completedRuns", async () => {
     const cancelled = makeExecution("e1", RunPhase.RUN_CANCELLED);
     const successor = makeExecution("e2", RunPhase.RUN_COMPLETED, {
       supersedes: "e1",
@@ -697,8 +697,8 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.completedExecutions).toHaveLength(1);
-    expect(result.current.completedExecutions[0]).toBe(successor);
+    expect(result.current.completedRuns).toHaveLength(1);
+    expect(result.current.completedRuns[0]).toBe(successor);
   });
 
   it("hides every link of a chained supersede (A <- B <- C)", async () => {
@@ -717,12 +717,12 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.completedExecutions).toHaveLength(1);
-    expect(result.current.completedExecutions[0]).toBe(c);
+    expect(result.current.completedRuns).toHaveLength(1);
+    expect(result.current.completedRuns[0]).toBe(c);
   });
 
   it("filters via the streaming successor's link before the list refetch delivers it", async () => {
-    // The stopped turn is still the only listed execution; its successor
+    // The stopped turn is still the only listed run; its successor
     // exists only as the live stream — the supersede link must be read off
     // the stream copy for the old turn to disappear immediately.
     const stopped = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
@@ -742,7 +742,7 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
 
     await act(async () => {
       await result.current.sendFollowUp("corrected message", {
-        supersedesExecutionId: "e1",
+        supersedesRunId: "e1",
       });
     });
 
@@ -755,7 +755,7 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
     });
 
     await waitFor(() => {
-      expect(result.current.completedExecutions).toHaveLength(0);
+      expect(result.current.completedRuns).toHaveLength(0);
     });
   });
 
@@ -774,10 +774,10 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.completedExecutions).toHaveLength(2);
+    expect(result.current.completedRuns).toHaveLength(2);
   });
 
-  it("sendFollowUp forwards supersedesExecutionId to execution creation", async () => {
+  it("sendFollowUp forwards supersedesRunId to execution creation", async () => {
     methods.listBySession.mockResolvedValue({ entries: [] });
     methods.executionCreate.mockResolvedValue(
       makeExecution("e2", RunPhase.RUN_PENDING),
@@ -791,14 +791,14 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
 
     await act(async () => {
       await result.current.sendFollowUp("corrected message", {
-        supersedesExecutionId: "e1",
+        supersedesRunId: "e1",
       });
     });
 
     expect(methods.executionCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         message: "corrected message",
-        supersedesExecutionId: "e1",
+        supersedesRunId: "e1",
       }),
     );
   });
@@ -806,7 +806,7 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
   it("keeps active-id resolution on the raw list when the superseded turn is still winding down", async () => {
     // e1 was cancelled but has not reached a terminal phase yet; e2 (its
     // successor) is the active turn. The display filter hides e1, but the
-    // active execution must still resolve to e2 from the UNfiltered list.
+    // active run must still resolve to e2 from the UNfiltered list.
     const windingDown = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
     const successor = makeExecution("e2", RunPhase.RUN_IN_PROGRESS, {
       supersedes: "e1",
@@ -821,8 +821,8 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.activeStreamExecution?.metadata?.id).toBe("e2");
-    expect(result.current.completedExecutions).toHaveLength(0);
+    expect(result.current.activeStreamRun?.metadata?.id).toBe("e2");
+    expect(result.current.completedRuns).toHaveLength(0);
   });
 });
 
@@ -834,14 +834,14 @@ describe("useSessionConversation — local runner worker lifecycle", () => {
   function createMockAdapter(): RunnerAdapter & {
     onSessionOpened: ReturnType<typeof vi.fn>;
     onSessionClosed: ReturnType<typeof vi.fn>;
-    onWorkflowExecutionCreated: ReturnType<typeof vi.fn>;
-    onWorkflowExecutionTerminated: ReturnType<typeof vi.fn>;
+    onWorkflowRunCreated: ReturnType<typeof vi.fn>;
+    onWorkflowRunTerminated: ReturnType<typeof vi.fn>;
   } {
     return {
       onSessionOpened: vi.fn().mockResolvedValue(undefined),
       onSessionClosed: vi.fn().mockResolvedValue(undefined),
-      onWorkflowExecutionCreated: vi.fn().mockResolvedValue(undefined),
-      onWorkflowExecutionTerminated: vi.fn().mockResolvedValue(undefined),
+      onWorkflowRunCreated: vi.fn().mockResolvedValue(undefined),
+      onWorkflowRunTerminated: vi.fn().mockResolvedValue(undefined),
     };
   }
 

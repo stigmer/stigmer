@@ -50,40 +50,40 @@ export {
 } from "./useWorkflowCount.js";
 
 export {
-  useWorkflowExecutionList,
-  type UseWorkflowExecutionListOptions,
-  type UseWorkflowExecutionListReturn,
-} from "./useWorkflowExecutionList.js";
+  useWorkflowRunList,
+  type UseWorkflowRunListOptions,
+  type UseWorkflowRunListReturn,
+} from "./useWorkflowRunList.js";
 
-// Execution viewer — data hooks
+// Run viewer — data hooks
 export {
-  useWorkflowExecution,
-  type UseWorkflowExecutionReturn,
-} from "./useWorkflowExecution.js";
-
-export {
-  useWorkflowExecutionEventLog,
-  type UseWorkflowExecutionEventLogOptions,
-  type UseWorkflowExecutionEventLogReturn,
-} from "./useWorkflowExecutionEventLog.js";
+  useWorkflowRun,
+  type UseWorkflowRunReturn,
+} from "./useWorkflowRun.js";
 
 export {
-  useWorkflowExecutionArtifacts,
-  type UseWorkflowExecutionArtifactsReturn,
-} from "./useWorkflowExecutionArtifacts.js";
-
-// Execution viewer — behavior hooks
-export {
-  useWorkflowExecutionEventStream,
-  type UseWorkflowExecutionEventStreamOptions,
-  type UseWorkflowExecutionEventStreamReturn,
-} from "./useWorkflowExecutionEventStream.js";
+  useWorkflowRunEventLog,
+  type UseWorkflowRunEventLogOptions,
+  type UseWorkflowRunEventLogReturn,
+} from "./useWorkflowRunEventLog.js";
 
 export {
-  useWorkflowExecutionActions,
-  type UseWorkflowExecutionActionsOptions,
-  type UseWorkflowExecutionActionsReturn,
-} from "./useWorkflowExecutionActions.js";
+  useWorkflowRunArtifacts,
+  type UseWorkflowRunArtifactsReturn,
+} from "./useWorkflowRunArtifacts.js";
+
+// Run viewer — behavior hooks
+export {
+  useWorkflowRunEventStream,
+  type UseWorkflowRunEventStreamOptions,
+  type UseWorkflowRunEventStreamReturn,
+} from "./useWorkflowRunEventStream.js";
+
+export {
+  useWorkflowRunActions,
+  type UseWorkflowRunActionsOptions,
+  type UseWorkflowRunActionsReturn,
+} from "./useWorkflowRunActions.js";
 
 // YAML editor — behavior hooks
 export {
@@ -153,9 +153,9 @@ export {
 
 // Workflow styled components
 export {
-  WorkflowExecutionPhaseBadge,
-  type WorkflowExecutionPhaseBadgeProps,
-} from "./WorkflowExecutionPhaseBadge.js";
+  WorkflowRunPhaseBadge,
+  type WorkflowRunPhaseBadgeProps,
+} from "./WorkflowRunPhaseBadge.js";
 
 export {
   WorkflowTaskList,
@@ -169,31 +169,31 @@ export {
   type WorkflowDetailViewProps,
 } from "./WorkflowDetailView.js";
 
-// Execution viewer — styled components
+// Run viewer — styled components
 export {
-  WorkflowExecutionViewer,
-  type WorkflowExecutionViewerProps,
-  type WorkflowExecutionPanelMode,
-} from "./WorkflowExecutionViewer.js";
+  WorkflowRunViewer,
+  type WorkflowRunViewerProps,
+  type WorkflowRunPanelMode,
+} from "./WorkflowRunViewer.js";
 
 export {
-  WorkflowExecutionHeader,
-  type WorkflowExecutionHeaderProps,
-} from "./WorkflowExecutionHeader.js";
+  WorkflowRunHeader,
+  type WorkflowRunHeaderProps,
+} from "./WorkflowRunHeader.js";
 
-// Execution panel — the single WorkspaceSurface-based side panel
+// Run panel — the single WorkspaceSurface-based side panel
 // (Artifacts/Changes/Usage facets, virtual document tabs) and its
 // controller/assembler hooks.
 export {
-  useWorkflowExecutionPanel,
+  useWorkflowRunPanel,
   workflowArtifactTabPath,
-  type WorkflowExecutionPanelController,
-  type UseWorkflowExecutionPanelOptions,
-} from "./useWorkflowExecutionPanel.js";
+  type WorkflowRunPanelController,
+  type UseWorkflowRunPanelOptions,
+} from "./useWorkflowRunPanel.js";
 export {
-  useWorkflowExecutionRailViews,
-  type UseWorkflowExecutionRailViewsOptions,
-} from "./useWorkflowExecutionRailViews.js";
+  useWorkflowRunRailViews,
+  type UseWorkflowRunRailViewsOptions,
+} from "./useWorkflowRunRailViews.js";
 export {
   DIAGNOSIS_DOCUMENT_ENTRY_ID,
   DIAGNOSIS_DOCUMENT_PATH,
@@ -211,13 +211,13 @@ export {
   type WorkflowUsageTabProps,
 } from "./facets/WorkflowUsageTab.js";
 export {
-  useWorkflowExecutionFileChanges,
+  useWorkflowRunFileChanges,
   enumerateAgentCallChildren,
   agentCallChildrenSignature,
   type AgentCallChild,
-  type UseWorkflowExecutionFileChangesOptions,
-  type UseWorkflowExecutionFileChangesReturn,
-} from "./useWorkflowExecutionFileChanges.js";
+  type UseWorkflowRunFileChangesOptions,
+  type UseWorkflowRunFileChangesReturn,
+} from "./useWorkflowRunFileChanges.js";
 export {
   WorkflowArtifactDocument,
   type WorkflowArtifactDocumentProps,
@@ -225,7 +225,7 @@ export {
 export {
   WorkflowAgentCallTranscript,
   type WorkflowAgentCallTranscriptProps,
-  type WorkflowAgentExecutionHitl,
+  type WorkflowAgentRunHitl,
 } from "./WorkflowAgentCallTranscript.js";
 export {
   useWorkflowArtifactDownload,
@@ -293,9 +293,9 @@ export {
 
 // Dashboard — styled components
 export {
-  ExecutionSummaryWidget,
-  type ExecutionSummaryWidgetProps,
-} from "./ExecutionSummaryWidget.js";
+  RunSummaryWidget,
+  type RunSummaryWidgetProps,
+} from "./RunSummaryWidget.js";
 
 export {
   PendingApprovalsWidget,
@@ -412,9 +412,9 @@ export {
 } from "./CostByWorkflowChart.js";
 
 export {
-  ExecutionTrendChart,
-  type ExecutionTrendChartProps,
-} from "./ExecutionTrendChart.js";
+  RunTrendChart,
+  type RunTrendChartProps,
+} from "./RunTrendChart.js";
 
 // Workflow Architect — YAML extraction utility
 export {
@@ -469,11 +469,11 @@ export {
 
 // Workflow Architect — diagnose behavior hook (replaces diagnoseExecution)
 export {
-  useDiagnoseExecutionFlow,
+  useDiagnoseRunFlow,
   type DiagnosePhase,
-  type UseDiagnoseExecutionFlowOptions,
-  type UseDiagnoseExecutionFlowReturn,
-} from "./useDiagnoseExecutionFlow.js";
+  type UseDiagnoseRunFlowOptions,
+  type UseDiagnoseRunFlowReturn,
+} from "./useDiagnoseRunFlow.js";
 
 // Workflow Architect — diagnose styled component (replaces WorkflowRepairCard)
 export {
@@ -492,9 +492,9 @@ export { STARTER_WORKFLOW_YAML } from "./starter-workflow-yaml.js";
 
 // Navigation resolution hook
 export {
-  useResolveAgentExecutionSession,
-  type UseResolveAgentExecutionSessionReturn,
-} from "./useResolveAgentExecutionSession.js";
+  useResolveAgentRunSession,
+  type UseResolveAgentRunSessionReturn,
+} from "./useResolveAgentRunSession.js";
 
 // Canonical kind metadata (replaces triplicated categorizeKind)
 export { categorizeKind, kindToDisplayName } from "./kind-metadata.js";
@@ -539,7 +539,7 @@ export {
   postprocessElkResult,
 } from "./layout/index.js";
 
-// Execution graph — mode context
+// Run graph — mode context
 export {
   WorkflowGraphModeProvider,
   useWorkflowGraphMode,
@@ -547,7 +547,7 @@ export {
   type WorkflowGraphModeProviderProps,
 } from "./WorkflowGraphModeContext.js";
 
-// Execution graph — types
+// Run graph — types
 export type {
   NodeExecutionStatus,
   NodeExecutionState,
@@ -559,36 +559,36 @@ export {
   deriveForkProgress,
   type EdgeExecutionState,
   type ForkProgress,
-} from "./execution/index.js";
+} from "./run/index.js";
 
-// Execution graph — behavior hook
+// Run graph — behavior hook
 export {
-  useWorkflowExecutionGraph,
-  type UseWorkflowExecutionGraphOptions,
-  type UseWorkflowExecutionGraphReturn,
-} from "./useWorkflowExecutionGraph.js";
+  useWorkflowRunGraph,
+  type UseWorkflowRunGraphOptions,
+  type UseWorkflowRunGraphReturn,
+} from "./useWorkflowRunGraph.js";
 
-// Execution graph — styled component
+// Run graph — styled component
 export {
-  WorkflowExecutionGraph,
-  type WorkflowExecutionGraphProps,
-} from "./WorkflowExecutionGraph.js";
+  WorkflowRunGraph,
+  type WorkflowRunGraphProps,
+} from "./WorkflowRunGraph.js";
 
-// Execution visibility and accessibility
+// Run visibility and accessibility
 export {
-  useFollowExecution,
+  useFollowRun,
   type FollowState,
-  type UseFollowExecutionOptions,
-  type UseFollowExecutionReturn,
-} from "./useFollowExecution.js";
+  type UseFollowRunOptions,
+  type UseFollowRunReturn,
+} from "./useFollowRun.js";
 export {
   useActiveTaskName,
   type ActiveTaskInfo,
 } from "./useActiveTaskName.js";
 export {
-  ExecutionActiveTaskIndicator,
-  type ExecutionActiveTaskIndicatorProps,
-} from "./ExecutionActiveTaskIndicator.js";
+  RunActiveTaskIndicator,
+  type RunActiveTaskIndicatorProps,
+} from "./RunActiveTaskIndicator.js";
 export { useExecutionAnnouncements } from "./useExecutionAnnouncements.js";
 export {
   useApprovalBoundary,
@@ -676,33 +676,33 @@ export {
   type ViewYamlDialogProps,
 } from "./ViewYamlDialog.js";
 
-// Execution history — derivation, hooks, and components
+// Run history — derivation, hooks, and components
 export {
-  deriveExecutionRow,
-  deriveExecutionRows,
-  sortExecutionRows,
-  filterExecutionRows,
+  deriveRunRow,
+  deriveRunRows,
+  sortRunRows,
+  filterRunRows,
   deriveFailureAnalysis,
-  useExecutionHistoryData,
-  ExecutionHistoryTable,
-  ExecutionFilterBar,
+  useRunHistoryData,
+  RunHistoryTable,
+  RunFilterBar,
   HealthMetricsStrip,
   FailureAnalysisPanel,
-  WorkflowExecutionHistory,
-  type ExecutionRow,
-  type ExecutionSortField as ExecutionHistorySortField,
+  WorkflowRunHistory,
+  type RunRow,
+  type RunSortField as ExecutionHistorySortField,
   type SortDirection as ExecutionHistorySortDirection,
-  type ExecutionClientFilters,
+  type RunClientFilters,
   type FailureGroup,
   type FailureInstance,
-  type UseExecutionHistoryDataOptions,
-  type UseExecutionHistoryDataReturn,
-  type ExecutionHistoryTableProps,
-  type ExecutionFilterBarProps,
+  type UseRunHistoryDataOptions,
+  type UseRunHistoryDataReturn,
+  type RunHistoryTableProps,
+  type RunFilterBarProps,
   type HealthMetricsStripProps,
   type FailureAnalysisPanelProps,
-  type WorkflowExecutionHistoryProps,
-} from "./execution-history/index.js";
+  type WorkflowRunHistoryProps,
+} from "./run-history/index.js";
 
 // Overview page redesign — behavior hook
 export {
@@ -772,31 +772,31 @@ export {
 
 // Run visibility — who sees every run of a workflow
 export {
-  useUpdateWorkflowExecutionVisibility,
-  type UseUpdateWorkflowExecutionVisibilityReturn,
-} from "./useUpdateWorkflowExecutionVisibility.js";
+  useUpdateWorkflowRunVisibility,
+  type UseUpdateWorkflowRunVisibilityReturn,
+} from "./useUpdateWorkflowRunVisibility.js";
 export {
   RunVisibilityControl,
   type RunVisibilityControlProps,
 } from "./RunVisibilityControl.js";
 
-// Execution Comparison — run-vs-run comparison
+// Run Comparison — run-vs-run comparison
 export {
   type TaskComparison,
-  type ExecutionComparison,
-  deriveExecutionComparison,
-  useExecutionComparison,
-  type UseExecutionComparisonOptions,
-  type UseExecutionComparisonReturn,
-  ExecutionComparisonPicker,
-  type ExecutionComparisonPickerProps,
+  type RunComparison,
+  deriveRunComparison,
+  useRunComparison,
+  type UseRunComparisonOptions,
+  type UseRunComparisonReturn,
+  RunComparisonPicker,
+  type RunComparisonPickerProps,
   ComparisonSummaryCards,
   type ComparisonSummaryCardsProps,
   TaskComparisonTable,
   type TaskComparisonTableProps,
-  ExecutionComparisonView,
-  type ExecutionComparisonViewProps,
-} from "./execution-comparison/index.js";
+  RunComparisonView,
+  type RunComparisonViewProps,
+} from "./run-comparison/index.js";
 
 // Workflow versioning — data hooks
 export {

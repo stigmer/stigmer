@@ -28,7 +28,7 @@ import type { SessionRunConfig } from "./run-config.js";
 export interface NewSessionViewerProps {
   /** Organization id (a slug is also accepted). Required for session creation. */
   readonly org: string;
-  /** Called after the session and first execution are created. */
+  /** Called after the session and first run are created. */
   readonly onSessionCreated: (sessionId: string) => void;
   /** Called on error (for toast notifications or other UI feedback). */
   readonly onError?: (message: string) => void;
@@ -72,7 +72,7 @@ export interface NewSessionViewerProps {
 
   /**
    * Supplies host-app environment variables for the session's first
-   * execution (e.g. short-lived credentials for MCP tools, minted as
+   * run (e.g. short-lived credentials for MCP tools, minted as
    * the signed-in user). Evaluated at submit time, before the session
    * is created; host values win over composer-collected env on key
    * collisions. If the provider throws, the submission fails with an
@@ -103,7 +103,7 @@ export interface NewSessionViewerProps {
   readonly audience?: SessionAudience;
 
   /**
-   * Owner-pinned model/tier for the session's first execution
+   * Owner-pinned model/tier for the session's first run
    * (stigmer/stigmer#664). Same contract as
    * {@link SessionViewerProps.runConfig}: wins over the
    * composer and the restored preference, hides the model picker, and
@@ -308,7 +308,7 @@ export function NewSessionViewer({
   }, [isGuest, initialAgentRef, setAgentRef, setResolution]);
 
   // The unified-panel controller (shared with SessionViewer). The
-  // launcher has no execution yet, so the FSM inputs are static. It has no
+  // launcher has no run yet, so the FSM inputs are static. It has no
   // streaming column to isolate either, so subscribing to the editor group in
   // the body is harmless — unlike `SessionViewer`, which subscribes one level
   // down. Homes on Config: pre-session the Explorer is empty, while Config
@@ -376,7 +376,7 @@ export function NewSessionViewer({
       executionTarget: undefined,
       modelId: flow.modelId,
       // Pre-session arming (#816): the switch covers the session this
-      // surface will create — the bootstrap execution carries
+      // surface will create — the bootstrap run carries
       // spec.auto_approve_all. Guests never get it (they never render the
       // panel either — belt and braces for the operator-consent withhold).
       autoApprove: isGuest
@@ -400,13 +400,13 @@ export function NewSessionViewer({
     ],
   );
 
-  // Launcher facets: Config only — no executions exist yet, so the
+  // Launcher facets: Config only — no runs exist yet, so the
   // execution-derived facets (Changes/Artifacts/Usage) don't apply.
   const railViews = useSessionRailViews({
-    allExecutions: [],
+    allRuns: [],
     org,
     sessionConfig,
-    includeExecutionFacets: false,
+    includeRunFacets: false,
   });
 
   // Explorer-footer folder attach (desktop only — needs the native picker).

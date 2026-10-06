@@ -12,7 +12,7 @@ import {
   type UseWorkflowDashboardSummaryOptions,
 } from "./useWorkflowDashboardSummary.js";
 import { usePendingApprovals } from "./usePendingApprovals.js";
-import { ExecutionSummaryWidget } from "./ExecutionSummaryWidget.js";
+import { RunSummaryWidget } from "./RunSummaryWidget.js";
 import { PendingApprovalsWidget } from "./PendingApprovalsWidget.js";
 import { FailedRunsWidget } from "./FailedRunsWidget.js";
 import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
@@ -24,7 +24,7 @@ export interface WorkflowDashboardProps {
   readonly timeWindow?: UseWorkflowDashboardSummaryOptions["timeWindow"];
   /** Called when the user clicks "Review" on a pending approval. */
   readonly onApprovalClick?: (executionId: string) => void;
-  /** Called when the user clicks "View" on a failed execution. */
+  /** Called when the user clicks "View" on a failed run. */
   readonly onFailedRunClick?: (executionId: string) => void;
   readonly className?: string;
 }
@@ -32,13 +32,13 @@ export interface WorkflowDashboardProps {
 const FAILED_LIST_INITIAL: readonly WorkflowRun[] = [];
 
 /**
- * Composed dashboard widget that aggregates execution KPIs,
+ * Composed dashboard widget that aggregates run KPIs,
  * pending approvals, and recent failures into a responsive layout.
  *
  * Composes three sub-widgets:
- * - **ExecutionSummaryWidget** — phase counts, cost, duration
+ * - **RunSummaryWidget** — phase counts, cost, duration
  * - **PendingApprovalsWidget** — human_input tasks awaiting decisions
- * - **FailedRunsWidget** — recent failed executions (from existing list API)
+ * - **FailedRunsWidget** — recent failed runs (from existing list API)
  *
  * All data fetching is internal. The consumer provides org context and
  * navigation callbacks.
@@ -47,8 +47,8 @@ const FAILED_LIST_INITIAL: readonly WorkflowRun[] = [];
  * ```tsx
  * <WorkflowDashboard
  *   org="acme"
- *   onApprovalClick={(id) => navigate(`/workflows/executions/${id}`)}
- *   onFailedRunClick={(id) => navigate(`/workflows/executions/${id}`)}
+ *   onApprovalClick={(id) => navigate(`/runs/${id}`)}
+ *   onFailedRunClick={(id) => navigate(`/runs/${id}`)}
  * />
  * ```
  */
@@ -102,7 +102,7 @@ export const WorkflowDashboard = memo(function WorkflowDashboard({
       aria-label="Workflow dashboard"
       className={cn("stg:space-y-6", className)}
     >
-      <ExecutionSummaryWidget
+      <RunSummaryWidget
         summary={summary}
         isLoading={summaryLoading}
       />
@@ -115,7 +115,7 @@ export const WorkflowDashboard = memo(function WorkflowDashboard({
           onReviewClick={onApprovalClick}
         />
         <FailedRunsWidget
-          executions={failedRuns}
+          runs={failedRuns}
           isLoading={failedLoading}
           onViewClick={onFailedRunClick}
         />

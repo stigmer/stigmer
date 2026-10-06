@@ -36,7 +36,7 @@ function createDeferredUploadMock() {
   );
 
   const client = {
-    agentExecution: { uploadAttachment },
+    agentRun: { uploadAttachment },
     environment: { getPersonal: vi.fn().mockResolvedValue(null) },
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),

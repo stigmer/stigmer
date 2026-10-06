@@ -3,7 +3,7 @@ import {
   navigateToWorkflowDetail,
   openRunDialog,
   fillRunDialog,
-  submitRunAndWaitForExecution,
+  submitRunAndWaitForRunPage,
 } from "../../helpers/workflow-detail";
 import {
   waitForPhaseBadge,
@@ -47,7 +47,7 @@ test.describe("Workflow execution via Run button", () => {
     await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
     await openRunDialog(page);
     await fillRunDialog(page, { triggerMessage: "e2e trigger" });
-    await submitRunAndWaitForExecution(page);
+    await submitRunAndWaitForRunPage(page);
 
     await assertNoErrorBoundary(page);
     await expect(page.getByRole("status").first()).toBeVisible({
@@ -61,7 +61,7 @@ test.describe("Workflow execution via Run button", () => {
   }) => {
     await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
     await openRunDialog(page);
-    await submitRunAndWaitForExecution(page);
+    await submitRunAndWaitForRunPage(page);
     await assertNoErrorBoundary(page);
 
     await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
@@ -83,7 +83,7 @@ test.describe("Workflow execution via Run button", () => {
       testWaitWorkflow.slug,
     );
     await openRunDialog(page);
-    await submitRunAndWaitForExecution(page);
+    await submitRunAndWaitForRunPage(page);
     await assertNoErrorBoundary(page);
 
     await waitForPhaseBadge(page, "Running", { timeout: 15_000 });
@@ -107,7 +107,7 @@ test.describe("Workflow execution via Run button", () => {
     await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
 
     await openRunDialog(page);
-    await submitRunAndWaitForExecution(page);
+    await submitRunAndWaitForRunPage(page);
     await assertNoErrorBoundary(page);
 
     const firstUrl = page.url();
@@ -116,15 +116,15 @@ test.describe("Workflow execution via Run button", () => {
     await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
 
     await openRunDialog(page);
-    await submitRunAndWaitForExecution(page);
+    await submitRunAndWaitForRunPage(page);
     await assertNoErrorBoundary(page);
 
     const secondUrl = page.url();
     await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
     expect(firstUrl).not.toBe(secondUrl);
-    expect(firstUrl).toMatch(/\/executions\/wex_/);
-    expect(secondUrl).toMatch(/\/executions\/wex_/);
+    expect(firstUrl).toMatch(/\/runs\/wex_/);
+    expect(secondUrl).toMatch(/\/runs\/wex_/);
   });
 
   test("cancel a running execution", async ({ page, testWaitWorkflow }) => {
@@ -134,7 +134,7 @@ test.describe("Workflow execution via Run button", () => {
       testWaitWorkflow.slug,
     );
     await openRunDialog(page);
-    await submitRunAndWaitForExecution(page);
+    await submitRunAndWaitForRunPage(page);
     await assertNoErrorBoundary(page);
 
     await waitForPhaseBadge(page, "Running", { timeout: 15_000 });

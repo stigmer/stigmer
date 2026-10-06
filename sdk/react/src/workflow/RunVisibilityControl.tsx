@@ -9,7 +9,7 @@
  * organization see and run a workflow never exposes anyone's runs; this
  * setting does, and it reaches runs already finished as well as future
  * ones, so the copy says so. Writes go through
- * {@link useUpdateWorkflowExecutionVisibility}; the server refuses anyone
+ * {@link useUpdateWorkflowRunVisibility}; the server refuses anyone
  * without `can_manage_audience`, and the workflow page offers the control
  * only to those who hold it. `unspecified` reads as private (the default).
  *
@@ -21,14 +21,14 @@ import { cn } from "@stigmer/theme";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { getUserMessage } from "@stigmer/sdk";
-import { useUpdateWorkflowExecutionVisibility } from "./useUpdateWorkflowExecutionVisibility.js";
+import { useUpdateWorkflowRunVisibility } from "./useUpdateWorkflowRunVisibility.js";
 
 /** Props for {@link RunVisibilityControl}. */
 export interface RunVisibilityControlProps {
   /** Id of the workflow whose run visibility is edited. */
   readonly workflowId: string;
-  /** Current `execution_visibility` from the workflow spec. */
-  readonly executionVisibility: WorkflowRunVisibility;
+  /** Current `run_visibility` from the workflow spec. */
+  readonly runVisibility: WorkflowRunVisibility;
   /** Called with the updated workflow after a successful change, so the host can refresh its copy. */
   readonly onChanged?: (workflow: Workflow) => void;
 }
@@ -69,11 +69,11 @@ const RUN_VISIBILITY_OPTIONS: readonly RunVisibilityOption[] = [
  */
 export function RunVisibilityControl({
   workflowId,
-  executionVisibility,
+  runVisibility: executionVisibility,
   onChanged,
 }: RunVisibilityControlProps) {
-  const { updateExecutionVisibility, isUpdating, error } =
-    useUpdateWorkflowExecutionVisibility();
+  const { updateRunVisibility, isUpdating, error } =
+    useUpdateWorkflowRunVisibility();
 
   const current =
     executionVisibility === WorkflowRunVisibility.unspecified
@@ -84,13 +84,13 @@ export function RunVisibilityControl({
     async (value: WorkflowRunVisibility) => {
       if (value === current || isUpdating) return;
       try {
-        const updated = await updateExecutionVisibility(workflowId, value);
+        const updated = await updateRunVisibility(workflowId, value);
         onChanged?.(updated);
       } catch {
         // The hook's error state renders below.
       }
     },
-    [current, isUpdating, updateExecutionVisibility, workflowId, onChanged],
+    [current, isUpdating, updateRunVisibility, workflowId, onChanged],
   );
 
   return (

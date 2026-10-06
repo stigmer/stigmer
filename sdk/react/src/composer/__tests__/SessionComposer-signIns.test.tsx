@@ -46,7 +46,7 @@ beforeAll(() => {
 
 function createMinimalStigmerMock(): Stigmer {
   return {
-    agentExecution: { uploadAttachment: vi.fn() },
+    agentRun: { uploadAttachment: vi.fn() },
     environment: { getPersonal: vi.fn().mockResolvedValue(null) },
     mcpServer: { getByReference: vi.fn().mockRejectedValue(new Error("no backend in this test")) },
     baseUrl: "http://localhost:8080",

@@ -13,12 +13,12 @@ import { toError } from "../internal/toError.js";
 /** Return value of {@link useTriggerSchedule}. */
 export interface UseTriggerScheduleReturn {
   /**
-   * Fire the schedule once, now — a real agent execution, outside the
+   * Fire the schedule once, now — a real agent run, outside the
    * cron cadence. Resolves with the {@link ScheduleTriggerResult}: the
-   * run's REAL outcome (started with an execution id, or refused with the
-   * gate's copy), so a caller can navigate to the execution or surface
+   * run's REAL outcome (started with a run id, or refused with the
+   * gate's copy), so a caller can navigate to the run or surface
    * the refusal. Refetch the schedule afterwards to pick up the freshly
-   * stamped `status.last_fire_at` / `status.last_execution_id`.
+   * stamped `status.last_fire_at` / `status.last_run_id`.
    */
   readonly triggerSchedule: (scheduleId: string) => Promise<ScheduleTriggerResult>;
   /** `true` while the trigger request is in flight. */
@@ -39,14 +39,14 @@ export interface UseTriggerScheduleReturn {
  *   copy verbatim (byte-identical across editions) and the promise
  *   rejects.
  * - A **success** means the fire happened. The result's `outcome` then
- *   says what the RUN did: `STARTED` (an execution was created — a
+ *   says what the RUN did: `STARTED` (a run was created — a
  *   success toast), or `REFUSED` / `TARGET_MISSING` (a launch gate said
  *   no — an error toast carrying the gate's `refusalReason` verbatim).
  *   The promise RESOLVES in every one of these cases: a refused run is a
  *   successful trigger honestly reported, and the caller decides what to
- *   do with it (navigate to the execution, show the reason).
+ *   do with it (navigate to the run, show the reason).
  *
- * Triggering starts a real, billable execution — gate the call behind a
+ * Triggering starts a real, billable run — gate the call behind a
  * confirmation (the detail view uses `ConfirmDialog`).
  */
 export function useTriggerSchedule(): UseTriggerScheduleReturn {

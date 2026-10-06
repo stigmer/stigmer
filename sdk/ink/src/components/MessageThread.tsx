@@ -25,16 +25,16 @@ import { displayFileChangeSets } from "@stigmer/sdk";
 import { MessageEntry } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SubAgentBlock } from "./SubAgentBlock.js";
-import { ExecutionProgress } from "./ExecutionProgress.js";
+import { RunProgress } from "./RunProgress.js";
 import { ApprovalPrompt } from "./ApprovalPrompt.js";
 import { FileReviewRecord } from "./FileReviewRecord.js";
 
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
-  /** Completed executions in chronological order. */
-  readonly executions: readonly AgentRun[];
-  /** The currently streaming execution (appended after `executions`). */
-  readonly activeStreamExecution?: AgentRun | null;
+  /** Completed runs in chronological order. */
+  readonly runs: readonly AgentRun[];
+  /** The currently streaming run (appended after `executions`). */
+  readonly activeStreamRun?: AgentRun | null;
   /** Optimistic user message shown before the stream delivers it. */
   readonly pendingUserMessage?: string | null;
   /** Callback for approval actions. Shows approval UI when provided. */
@@ -75,10 +75,10 @@ function isSettledSet(status: FileChangeSetStatus): boolean {
 }
 
 /**
- * Builds the observational thread items for a single execution: the spec
+ * Builds the observational thread items for a single run: the spec
  * message, each AI/human message, tool-call groups, and sub-agent blocks —
  * plus (when `includeFileReviewRecords`) a read-only settled record appended at
- * the execution's tail for each decided/reconciled/failed change set.
+ * the run's tail for each decided/reconciled/failed change set.
  */
 function buildExecutionSegment(
   exec: AgentRun,
@@ -136,7 +136,7 @@ function buildExecutionSegment(
 
   if (includeFileReviewRecords) {
     // `displayFileChangeSets` returns the server projection for a live
-    // execution and folds the durable ledger for a terminal one, so a settled
+    // run and folds the durable ledger for a terminal one, so a settled
     // record renders for both. Appended at the segment tail (the terminal
     // analogue of the web's last-stamped-row anchor); this is the only trace a
     // shell-made set — which stamps no rows — leaves behind.
@@ -153,47 +153,47 @@ function buildExecutionSegment(
  * Builds the full thread item list and the index at which the live region
  * begins (`liveStart`).
  *
- * The split is by execution identity, not a trailing count: every completed
- * execution's items are immutable history (safe for ink's append-only
- * `<Static>`), while the active execution's items — plus the trailing transient
+ * The split is by run identity, not a trailing count: every completed
+ * run's items are immutable history (safe for ink's append-only
+ * `<Static>`), while the active run's items — plus the trailing transient
  * items (phase, approvals, optimistic pending message) — stay live so their
  * review badges can transition and the optimistic message can be cleared
  * without shrinking the Static array.
  */
 function buildThreadItems(
   executions: readonly AgentRun[],
-  activeStreamExecution: AgentRun | null | undefined,
+  activeStreamRun: AgentRun | null | undefined,
   pendingUserMessage: string | null | undefined,
   includeApprovals: boolean,
   includeFileReviewRecords: boolean,
 ): { items: ThreadItem[]; liveStart: number } {
   const items: ThreadItem[] = [];
-  const allExecutions = activeStreamExecution
-    ? [...executions, activeStreamExecution]
+  const allRuns = activeStreamRun
+    ? [...executions, activeStreamRun]
     : executions;
 
   // Boundary between immutable history and the live region. When there is an
-  // active execution, it is the item count right before that execution's
+  // active run, it is the item count right before that run's
   // segment; otherwise the transient tail (below) is the only live region.
   let liveStart = 0;
   let liveStartSet = false;
 
-  for (let ei = 0; ei < allExecutions.length; ei++) {
-    if (activeStreamExecution && ei === executions.length) {
+  for (let ei = 0; ei < allRuns.length; ei++) {
+    if (activeStreamRun && ei === executions.length) {
       liveStart = items.length;
       liveStartSet = true;
     }
-    items.push(...buildExecutionSegment(allExecutions[ei], ei, includeFileReviewRecords));
+    items.push(...buildExecutionSegment(allRuns[ei], ei, includeFileReviewRecords));
   }
 
   if (!liveStartSet) {
-    // No active execution: every execution body is history; only the transient
+    // No active run: every run body is history; only the transient
     // tail appended below (e.g. an optimistic pending message) stays live.
     liveStart = items.length;
   }
 
   // --- Transient tail (always live) ---
-  const lastExec = allExecutions[allExecutions.length - 1];
+  const lastExec = allRuns[allRuns.length - 1];
   const lastPhase =
     lastExec?.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
 
@@ -231,13 +231,13 @@ function buildThreadItems(
 
 /**
  * Builds the id→change-set map that backs the file-review row badges, folding
- * every execution's change sets (via `displayFileChangeSets`, which reads the
+ * every run's change sets (via `displayFileChangeSets`, which reads the
  * live projection or the durable ledger). The active stream wins on an id
  * collision so a live decision is reflected before it is persisted.
  */
 function buildChangeSetsById(
   executions: readonly AgentRun[],
-  activeStreamExecution: AgentRun | null | undefined,
+  activeStreamRun: AgentRun | null | undefined,
 ): FileReviewContextValue {
   const changeSetsById = new Map<string, FileChangeSet>();
   for (const exec of executions) {
@@ -245,8 +245,8 @@ function buildChangeSetsById(
       changeSetsById.set(set.id, set);
     }
   }
-  if (activeStreamExecution) {
-    for (const set of displayFileChangeSets(activeStreamExecution.status)) {
+  if (activeStreamRun) {
+    for (const set of displayFileChangeSets(activeStreamRun.status)) {
       changeSetsById.set(set.id, set);
     }
   }
@@ -255,23 +255,23 @@ function buildChangeSetsById(
 
 /**
  * Renders a continuous conversation thread from one or more
- * `AgentExecution` snapshots in the terminal.
+ * `AgentRun` snapshots in the terminal.
  *
  * Composes {@link MessageEntry}, {@link ToolCallGroup}, {@link SubAgentBlock},
- * {@link ExecutionProgress}, {@link ApprovalPrompt}, and (for settled change
+ * {@link RunProgress}, {@link ApprovalPrompt}, and (for settled change
  * sets) {@link FileReviewRecord} into a scrolling terminal log.
  *
- * Completed executions are rendered via Ink's `<Static>` component so they are
+ * Completed runs are rendered via Ink's `<Static>` component so they are
  * written once and don't re-render, keeping terminal output efficient for long
- * conversations. The active execution renders live so its file-review row
+ * conversations. The active run renders live so its file-review row
  * badges transition (Pending review → Kept/Discarded) in place, then freeze
- * into `<Static>` when the execution reaches a terminal phase. The thread is
+ * into `<Static>` when the run reaches a terminal phase. The thread is
  * wrapped in a `FileReviewContext` provider so every {@link ToolCallItem}
  * can badge its stamped edit rows.
  */
 export function MessageThread({
-  executions,
-  activeStreamExecution,
+  runs: executions,
+  activeStreamRun,
   pendingUserMessage,
   onApprovalSubmit,
   submittingApprovalIds,
@@ -283,14 +283,14 @@ export function MessageThread({
     () =>
       buildThreadItems(
         executions,
-        activeStreamExecution,
+        activeStreamRun,
         pendingUserMessage,
         includeApprovals,
         showFileReviewRecords,
       ),
     [
       executions,
-      activeStreamExecution,
+      activeStreamRun,
       pendingUserMessage,
       includeApprovals,
       showFileReviewRecords,
@@ -298,8 +298,8 @@ export function MessageThread({
   );
 
   const fileReviewContext = useMemo(
-    () => buildChangeSetsById(executions, activeStreamExecution),
-    [executions, activeStreamExecution],
+    () => buildChangeSetsById(executions, activeStreamRun),
+    [executions, activeStreamRun],
   );
 
   // The single active decision surface: stdin is delivered to every mounted
@@ -351,7 +351,7 @@ function renderItem(
     case "sub-agent":
       return <SubAgentBlock subAgent={item.subAgent} defaultExpanded={expandToolCalls} />;
     case "phase":
-      return <ExecutionProgress phase={item.phase} />;
+      return <RunProgress phase={item.phase} />;
     case "file-review-record":
       return <FileReviewRecord fileChangeSet={item.set} />;
     case "approval":

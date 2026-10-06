@@ -11,7 +11,7 @@ import { useAgent } from "../agent/useAgent.js";
  *
  * The four flows ({@link useWorkflowArchitectFlow},
  * {@link useRefineWorkflowFlow}, {@link useExplainWorkflowFlow},
- * {@link useDiagnoseExecutionFlow}) open a Session on this agent in the
+ * {@link useDiagnoseRunFlow}) open a Session on this agent in the
  * user's Organization. Nothing in a fresh install provides it: the agent
  * arrives with Stigmer's own plugin (stigmer/stigmer#1172). Until an agent
  * with this slug exists in the Organization, the entry points that would

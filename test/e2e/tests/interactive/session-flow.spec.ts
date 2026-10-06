@@ -62,7 +62,7 @@ test.describe("Session chat flow (canary)", () => {
     await expect(userMsg).toBeVisible({ timeout: 10_000 });
     await expect(userMsg).toContainText("Testing message visibility");
 
-    // Drain the turn before ending: the execution this message started must
+    // Drain the turn before ending: the run this message started must
     // consume its scripted response, or the next test's queue reset races it.
     await waitForAIResponse(page, { timeout: 90_000 });
   });

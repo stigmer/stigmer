@@ -5,19 +5,19 @@ import { useSessionUsage, formatCost, formatTokenCount } from "@stigmer/react";
 
 /** Props for {@link UsageWidget}. */
 export interface UsageWidgetProps {
-  /** All executions for the current session (completed + active). */
-  readonly executions: readonly AgentRun[];
+  /** All runs for the current session (completed + active). */
+  readonly runs: readonly AgentRun[];
 }
 
 /**
  * Compact terminal widget showing session-level token usage and cost.
  *
- * Aggregates usage data from `usageSummary` across all executions
+ * Aggregates usage data from `usageSummary` across all runs
  * in the session. Renders nothing when no usage data is available.
  *
  * Uses the headless {@link useSessionUsage} hook from `@stigmer/react`.
  */
-export function UsageWidget({ executions }: UsageWidgetProps) {
+export function UsageWidget({ runs: executions }: UsageWidgetProps) {
   const usage = useSessionUsage(executions);
 
   if (!usage.hasUsage) return null;

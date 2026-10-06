@@ -95,7 +95,7 @@ export function findOrgByRef(
  * Must be rendered inside a {@link StigmerProvider}. Mount it BELOW
  * `FetchCacheProvider` (when one is used): switching the active org clears
  * the nearest fetch cache, so view state cached under the previous org
- * context — session and execution entries are keyed by id, not org — can
+ * context — session and run entries are keyed by id, not org — can
  * never bleed into the new one. Navigation on switch stays the host's
  * responsibility via `OrgSwitcher`'s `onOrgChanged` callback.
  *

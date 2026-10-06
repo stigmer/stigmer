@@ -4,7 +4,7 @@ import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/ap
 import {
   ScheduleDetailView,
   useBreadcrumbOverride,
-  useResolveAgentExecutionSession,
+  useResolveAgentRunSession,
   useOrgSlugForId,
 } from "@stigmer/react";
 
@@ -22,11 +22,11 @@ export default function ScheduleDetailPage() {
   const slugForOrg = useOrgSlugForId();
   const { setLabel } = useBreadcrumbOverride();
 
-  // A schedule's last execution is an agent execution (aex_…); on
+  // A schedule's last run is an agent run (aex_…); on
   // desktop it is viewed through its parent session — the same
-  // resolve-then-navigate pattern as WorkflowExecutionDetailPage.
+  // resolve-then-navigate pattern as WorkflowRunDetailPage.
   const [pendingExecutionId, setPendingExecutionId] = useState<string | null>(null);
-  const { sessionId } = useResolveAgentExecutionSession(pendingExecutionId);
+  const { sessionId } = useResolveAgentRunSession(pendingExecutionId);
 
   useEffect(() => {
     if (sessionId) {
@@ -54,7 +54,7 @@ export default function ScheduleDetailPage() {
       onNavigateToAgent={(agentOrg, agentSlug) =>
         navigate(`/library/agents/${slugForOrg(agentOrg)}/${agentSlug}`)
       }
-      onNavigateToExecution={setPendingExecutionId}
+      onNavigateToRun={setPendingExecutionId}
       onDeleted={() => navigate("/library/schedules")}
     />
   );

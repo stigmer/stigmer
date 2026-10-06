@@ -24,7 +24,7 @@ beforeAll(() => {
  * End-to-end composer wiring for the thinking mode (stigmer/stigmer#772) —
  * the SessionComposer-serviceTier twin. The toolbar's ModelSelector toggle
  * must reach composer state, and an active enabled selection must ride the
- * submit context to execution create. This seam (SessionComposer →
+ * submit context to run create. This seam (SessionComposer →
  * ComposerToolbar props → submit context) is exactly where the #357 tier
  * toggle originally shipped dead while every layer unit-tested green.
  */
@@ -85,7 +85,7 @@ const NATIVE_ALWAYS_THINKS: ModelInfo = {
 
 function createMinimalStigmerMock(): Stigmer {
   return {
-    agentExecution: { uploadAttachment: vi.fn() },
+    agentRun: { uploadAttachment: vi.fn() },
     environment: { getPersonal: vi.fn().mockResolvedValue(null) },
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),

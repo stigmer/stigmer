@@ -6,14 +6,14 @@ import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/e
 import type { AgentResolution } from "../agent/index.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
-import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables.js";
+import { useSessionVariables, type UseSessionVariablesReturn } from "../run/useSessionVariables.js";
 import type { SessionComposerSubmitContext, InteractionModeOption } from "../composer/index.js";
 import { fromProtoInteractionMode } from "../composer/index.js";
 import { fromProtoHarness, type HarnessOption } from "../models/harness.js";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { fromProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target.js";
 import { useSessionConversation, type UseSessionConversationReturn } from "./useSessionConversation.js";
-import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
+import { resolveRunRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
 import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useSessionAgentVersion, type UseSessionAgentVersionReturn } from "./useSessionAgentVersion.js";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel.js";
@@ -39,7 +39,7 @@ export interface UseSessionPageFlowOptions {
   readonly org: string;
   /**
    * Supplies host-app environment variables for every follow-up
-   * execution. Evaluated once per follow-up, at send time, so
+   * run. Evaluated once per follow-up, at send time, so
    * short-lived credentials stay fresh.
    *
    * Host values win over composer-collected env on key collisions. If
@@ -67,7 +67,7 @@ export interface UseSessionPageFlowOptions {
    * it wins over composer state, the persisted Console preference, and
    * the last execution's model — and therefore also covers retries,
    * which re-enter the same submit path. Ignored for the `"guest"`
-   * audience (the server-side share policy owns guest execution
+   * audience (the server-side share policy owns guest run
    * config). See {@link SessionRunConfig}.
    */
   readonly runConfig?: SessionRunConfig;
@@ -91,7 +91,7 @@ export interface UseSessionPageFlowReturn {
   readonly conv: UseSessionConversationReturn;
 
   /**
-   * Session's execution harness (read-only, derived from session spec).
+   * Session's run harness (read-only, derived from session spec).
    *
    * Use this to:
    * - Filter the model selector for follow-up messages
@@ -207,7 +207,7 @@ export interface UseSessionPageFlowReturn {
    *    (`UseSessionPageFlowOptions.accountDefaults`, guests excluded);
    * 4. the host's app-wide `StigmerProvider` `approvalDefaults` (#302,
    *    guests excluded);
-   * 5. the active in-flight execution having been created with
+   * 5. the active in-flight run having been created with
    *    `spec.auto_approve_all` (e.g. armed on the new-session surface), so
    *    the state survives the launcher → session-page handoff.
    *
@@ -236,7 +236,7 @@ export interface UseSessionPageFlowReturn {
    * Wraps {@link UseSessionConversationReturn.submitApproval}: when the action is
    * `APPROVAL_ACTION_APPROVE_ALL`, it also flips the session-scoped
    * {@link autoApproveAll} preference so future follow-ups skip the gate. The
-   * server independently auto-approves the rest of the current execution.
+   * server independently auto-approves the rest of the current run.
    */
   readonly submitApproval: UseSessionConversationReturn["submitApproval"];
 
@@ -265,15 +265,15 @@ export interface UseSessionPageFlowReturn {
   readonly submitError: Error | null;
 
   /**
-   * The most relevant execution for sidebar display — the active
-   * streaming execution, or the last completed one.
+   * The most relevant run for sidebar display — the active
+   * streaming run, or the last completed one.
    */
-  readonly displayExecution: UseSessionConversationReturn["activeStreamExecution"];
+  readonly displayRun: UseSessionConversationReturn["activeStreamRun"];
 
   /**
-   * All executions for widget display (completed + active stream).
+   * All runs for widget display (completed + active stream).
    */
-  readonly allExecutions: UseSessionConversationReturn["completedExecutions"];
+  readonly allRuns: UseSessionConversationReturn["completedRuns"];
 
   /**
    * Sandbox workspace root for file path normalization, or `undefined`
@@ -304,8 +304,8 @@ export interface UseSessionPageFlowReturn {
  * return (
  *   <>
  *     <MessageThread
- *       executions={flow.conv.completedExecutions}
- *       activeStreamExecution={flow.conv.activeStreamExecution}
+ *       runs={flow.conv.completedRuns}
+ *       activeStreamRun={flow.conv.activeStreamRun}
  *       sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
  *     />
  *     <SessionComposer
@@ -328,7 +328,7 @@ export function useSessionPageFlow(
 ): UseSessionPageFlowReturn {
   const { sessionId, org, getRuntimeEnv } = options;
   const isGuest = options.audience === "guest";
-  // Guests never carry a client pin: guest execution config is owned by
+  // Guests never carry a client pin: guest run config is owned by
   // the server-side share policy, and the no-modelName guest invariant
   // is test-pinned.
   const runConfig = isGuest ? undefined : options.runConfig;
@@ -365,9 +365,9 @@ export function useSessionPageFlow(
   // what the visitor sent.
   const lastRequestedModelId = useMemo(() => {
     if (isGuest) return undefined;
-    const lastExec = conv.completedExecutions.at(-1);
+    const lastExec = conv.completedRuns.at(-1);
     return lastExec?.spec?.runConfig?.modelName || undefined;
-  }, [isGuest, conv.completedExecutions]);
+  }, [isGuest, conv.completedRuns]);
 
   // Interaction mode mirrors the model derivation: an explicit user override
   // wins; otherwise reflect the latest execution's mode so a completed Plan
@@ -376,9 +376,9 @@ export function useSessionPageFlow(
   const lastExecInteractionMode = useMemo(
     () =>
       fromProtoInteractionMode(
-        conv.completedExecutions.at(-1)?.spec?.interactionMode,
+        conv.completedRuns.at(-1)?.spec?.interactionMode,
       ),
-    [conv.completedExecutions],
+    [conv.completedRuns],
   );
   const [interactionModeOverride, setInteractionMode] =
     useState<InteractionModeOption | null>(null);
@@ -408,11 +408,11 @@ export function useSessionPageFlow(
   // - `hostSeed`: the host's provider-level approvalDefaults (#302) — an
   //   app-level trust judgment. Guests inherit neither seed (a share-link
   //   visitor is not the operator either trust judgment covers).
-  // - `runArmed`: the ACTIVE execution was created with
+  // - `runArmed`: the ACTIVE run was created with
   //   spec.auto_approve_all, so the switch reflects an armed in-flight run —
   //   this is what carries the state across the new-session → session-page
-  //   handoff. Deliberately derived from the active execution ONLY, never
-  //   from history: deriving from past executions would silently survive a
+  //   handoff. Deliberately derived from the active run ONLY, never
+  //   from history: deriving from past runs would silently survive a
   //   reload independent of the seeds above.
   //
   // The explicit choice lives only in memory for the life of this page —
@@ -422,7 +422,7 @@ export function useSessionPageFlow(
   const [autoApproveChoice, setAutoApproveChoice] = useState<boolean | null>(null);
   const accountSeed = !isGuest && (options.accountDefaults?.autoApprove ?? false);
   const hostSeed = !isGuest && (approvalDefaults?.autoApproveAll ?? false);
-  const runArmed = conv.activeStreamExecution?.spec?.autoApproveAll === true;
+  const runArmed = conv.activeStreamRun?.spec?.autoApproveAll === true;
   const autoApproveAll = autoApproveChoice ?? (accountSeed || hostSeed || runArmed);
   const setAutoApproveAll = useCallback((value: boolean) => {
     setAutoApproveChoice(value);
@@ -432,7 +432,7 @@ export function useSessionPageFlow(
     async (toolCallId, action, comment) => {
       // "Approve & don't ask again": remember the choice for the rest of this
       // live session so future follow-ups carry auto_approve_all. The control
-      // plane separately resolves the current execution's remaining gates and
+      // plane separately resolves the current run's remaining gates and
       // the runner skips the gate for the rest of that run.
       if (action === ApprovalAction.APPROVE_ALL) {
         setAutoApproveChoice(true);
@@ -645,7 +645,7 @@ export function useSessionPageFlow(
         // Evaluated per follow-up so short-lived host credentials are
         // current; host values win over composer-collected env.
         runtimeEnv = getRuntimeEnv
-          ? await resolveExecutionRuntimeEnv(getRuntimeEnv, context?.runtimeEnv)
+          ? await resolveRunRuntimeEnv(getRuntimeEnv, context?.runtimeEnv)
           : context?.runtimeEnv;
       } catch (err) {
         setSubmitError(err instanceof Error ? err : new Error(String(err)));
@@ -676,7 +676,7 @@ export function useSessionPageFlow(
         // not from the composer (the pre-arm toggle was removed).
         autoApproveAll: autoApproveAll || undefined,
         workspaceFileRefs: context?.workspaceFileRefs,
-        supersedesExecutionId: context?.supersedesExecutionId,
+        supersedesRunId: context?.supersedesRunId,
       });
 
       sessionVariables.clear();
@@ -688,18 +688,18 @@ export function useSessionPageFlow(
   // Derived display state
   // -------------------------------------------------------------------------
 
-  const displayExecution = useMemo(() => {
-    if (conv.activeStreamExecution) return conv.activeStreamExecution;
-    const completed = conv.completedExecutions;
+  const displayRun = useMemo(() => {
+    if (conv.activeStreamRun) return conv.activeStreamRun;
+    const completed = conv.completedRuns;
     return completed.length > 0 ? completed[completed.length - 1] : null;
-  }, [conv.activeStreamExecution, conv.completedExecutions]);
+  }, [conv.activeStreamRun, conv.completedRuns]);
 
-  const allExecutions = useMemo(
+  const allRuns = useMemo(
     () => [
-      ...conv.completedExecutions,
-      ...(conv.activeStreamExecution ? [conv.activeStreamExecution] : []),
+      ...conv.completedRuns,
+      ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
     ],
-    [conv.completedExecutions, conv.activeStreamExecution],
+    [conv.completedRuns, conv.activeStreamRun],
   );
 
   const sandboxWorkspaceRoot = useMemo(() => {
@@ -735,8 +735,8 @@ export function useSessionPageFlow(
     submitApproval,
     handleSubmit,
     submitError,
-    displayExecution,
-    allExecutions,
+    displayRun,
+    allRuns,
     sandboxWorkspaceRoot,
   };
 }

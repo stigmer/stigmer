@@ -63,7 +63,7 @@ function synthesizePastedImageName(mimeType: string, now: Date): string {
  *
  * Unique names are load-bearing, not cosmetic: attachments mount at
  * `.stigmer/inputs/{filename}`, and two same-named attachments either fail
- * the execution (deep-agent harness) or silently overwrite each other
+ * the run (deep-agent harness) or silently overwrite each other
  * (Cursor harness). Files with real names (pasted from a file manager) are
  * returned unchanged.
  *

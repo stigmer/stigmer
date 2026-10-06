@@ -14,12 +14,12 @@ import type { EnvVarInput, Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import { PublicBaseUrlContext } from "../../public-base-url-context";
-import type { UseSessionVariablesReturn } from "../../execution/useSessionVariables";
+import type { UseSessionVariablesReturn } from "../../run/useSessionVariables";
 import { SessionComposer } from "../SessionComposer";
 
 function clientAt(baseUrl: string): Stigmer {
   return {
-    agentExecution: { uploadAttachment: vi.fn() },
+    agentRun: { uploadAttachment: vi.fn() },
     environment: { getPersonal: vi.fn().mockResolvedValue(null) },
     baseUrl,
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),

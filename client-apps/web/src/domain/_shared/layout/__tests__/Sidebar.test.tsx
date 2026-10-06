@@ -45,11 +45,11 @@ vi.mock("@/domain/session/session-navigation", () => ({
   }),
 }));
 
-vi.mock("@/domain/workflow/execution-navigation", () => ({
-  useExecutionNavigation: () => ({
-    activeExecutionId: null,
+vi.mock("@/domain/workflow/run-navigation", () => ({
+  useRunNavigation: () => ({
+    activeRunId: null,
     isExecutionZone: false,
-    navigateToExecution: () => undefined,
+    navigateToRun: () => undefined,
   }),
 }));
 

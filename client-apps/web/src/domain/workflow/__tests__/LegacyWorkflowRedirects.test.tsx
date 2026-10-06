@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 
 import {
   LegacyWorkflowDetailRedirect,
-  LegacyWorkflowExecutionRedirect,
+  LegacyWorkflowRunRedirect,
 } from "../LegacyWorkflowRedirects";
 
 // These components exist because a server-side redirect() cannot carry
@@ -50,16 +50,16 @@ describe("LegacyWorkflowDetailRedirect", () => {
   });
 });
 
-describe("LegacyWorkflowExecutionRedirect", () => {
-  it("redirects /workflows/executions/[id] to the executions zone", () => {
+describe("LegacyWorkflowRunRedirect", () => {
+  it("redirects /workflows/executions/[id] to the runs zone", () => {
     setPath("/workflows/executions/wfe_123");
-    render(<LegacyWorkflowExecutionRedirect />);
-    expect(replaceSpy).toHaveBeenCalledWith("/executions/wfe_123");
+    render(<LegacyWorkflowRunRedirect />);
+    expect(replaceSpy).toHaveBeenCalledWith("/runs/wfe_123");
   });
 
   it("stays put on the build-time placeholder document", () => {
     setPath("/workflows/executions/__placeholder__");
-    render(<LegacyWorkflowExecutionRedirect />);
+    render(<LegacyWorkflowRunRedirect />);
     expect(replaceSpy).not.toHaveBeenCalled();
   });
 });

@@ -40,7 +40,7 @@ export {
   type LineStats,
   type SettledCounts,
 } from "./file-review.js";
-export { ExecutionProgress, type ExecutionProgressProps } from "./components/ExecutionProgress.js";
+export { RunProgress, type RunProgressProps } from "./components/RunProgress.js";
 export { FollowUpInput, type FollowUpInputProps } from "./components/FollowUpInput.js";
 export { UsageWidget, type UsageWidgetProps } from "./components/UsageWidget.js";
 export { ContextGauge, type ContextGaugeProps } from "./components/ContextGauge.js";

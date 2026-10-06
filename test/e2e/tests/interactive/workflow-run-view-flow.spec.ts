@@ -1,16 +1,16 @@
 import { test, expect } from "../../fixtures";
-import { createTestWorkflowExecution } from "../../fixtures/seed-helpers";
+import { createTestWorkflowRun } from "../../fixtures/seed-helpers";
 import {
-  navigateToExecution,
+  navigateToRun,
   waitForPhaseBadge,
   getCenterViewSwitcher,
-  getExecutionThread,
+  getRunThread,
   getThreadTaskCards,
   getThreadTaskCard,
 } from "../../helpers/workflow-run";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 
-// End-to-end flow on the thread-primary execution page (the 2026-07
+// End-to-end flow on the thread-primary run page (the 2026-07
 // redesign): the retired "Execution timeline" list's promise — every
 // executed task is visible with its outcome — now lives on the thread's
 // task cards. Task-name assertions must scope to the thread: the page
@@ -23,13 +23,13 @@ test.describe("Workflow execution flow", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
 
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
@@ -43,13 +43,13 @@ test.describe("Workflow execution flow", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
 
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
@@ -69,13 +69,13 @@ test.describe("Workflow execution flow", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
 
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
@@ -92,13 +92,13 @@ test.describe("Workflow execution flow", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
@@ -116,7 +116,7 @@ test.describe("Workflow execution flow", () => {
       expect(badgeBox).not.toBeNull();
       expect(badgeBox!.y).toBeGreaterThanOrEqual(0);
 
-      const thread = getExecutionThread(page);
+      const thread = getRunThread(page);
       await expect(thread).toBeVisible();
       const threadBox = await thread.boundingBox();
       expect(threadBox).not.toBeNull();
@@ -134,16 +134,16 @@ test.describe("Workflow execution flow", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
       // Land on the session-zone home so the sidebar "Recents" render, then
-      // wait for this execution to surface as an in-app link.
+      // wait for this run to surface as an in-app link.
       await page.goto("/");
-      const link = page.locator(`a[href="/executions/${execution.id}"]`);
+      const link = page.locator(`a[href="/runs/${execution.id}"]`);
       await expect(link).toBeVisible({ timeout: 20_000 });
 
       // A full document navigation would wipe this window-scoped sentinel;
@@ -155,7 +155,7 @@ test.describe("Workflow execution flow", () => {
 
       await link.click();
 
-      await expect(page).toHaveURL(new RegExp(`/executions/${execution.id}$`));
+      await expect(page).toHaveURL(new RegExp(`/runs/${execution.id}$`));
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
       await expect(getCenterViewSwitcher(page)).toBeVisible();

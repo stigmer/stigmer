@@ -1,6 +1,6 @@
 # @stigmer/react
 
-React provider, hooks, and feature components for the Stigmer platform SDK. Ships the same session, execution, and resource surfaces the Stigmer Console is built from — style-isolated, theme-aware, and embeddable in any React application. This README covers the foundational wiring (provider, theming, local execution); the full hook and component catalog is documented in the [React SDK reference](https://stigmer.ai/docs/sdk/react), and the [Add agent chat to your app](https://stigmer.ai/docs/getting-started/embed-agent) tutorial is the fastest path to a working embed.
+React provider, hooks, and feature components for the Stigmer platform SDK. Ships the same session, run, and resource surfaces the Stigmer Console is built from — style-isolated, theme-aware, and embeddable in any React application. This README covers the foundational wiring (provider, theming, local run); the full hook and component catalog is documented in the [React SDK reference](https://stigmer.ai/docs/sdk/react), and the [Add agent chat to your app](https://stigmer.ai/docs/getting-started/embed-agent) tutorial is the fastest path to a working embed.
 
 ## Install
 
@@ -56,7 +56,7 @@ Three things are required:
 | `client` | `Stigmer` | Yes | A configured `@stigmer/sdk` client instance. |
 | `colorMode` | `"light" \| "dark" \| "system"` | No | Controls light/dark appearance. Defaults to `"light"`. |
 | `deploymentMode` | `"local" \| "cloud"` | No | Backend deployment mode. Defaults to `"cloud"`. |
-| `executionTarget` | `"local" \| "cloud"` | No | Default execution target for sessions and workflow executions created in this provider. Omit to let the server decide. See [Local Execution](#local-execution). |
+| `executionTarget` | `"local" \| "cloud"` | No | Default execution target for sessions and workflow runs created in this provider. Omit to let the server decide. See [Local Execution](#local-execution). |
 | `runnerAdapter` | `RunnerAdapter` | No | Runner lifecycle adapter, required when `executionTarget` is `"local"`. Omit for cloud. See [Local Execution](#local-execution). |
 | `publicBaseUrl` | `string` | No | The absolute address the Stigmer API is reached at from outside the page, for the URLs components show a user to copy (channel-app webhook URLs, the platform client snippet). Omit when the client's `baseUrl` is absolute; pass it when the client uses a relative `baseUrl` behind a same-origin proxy. Without either, those surfaces say the address is unknown. |
 | `preset` | `ThemePresetId` | No | Built-in theme preset to apply. Omit for the default Stigmer palette. |
@@ -214,11 +214,11 @@ Two marker attributes are stable public selectors: `data-stgm-root` on the in-tr
 
 ## Local Execution
 
-By default, agent and workflow execution runs in the cloud — the Stigmer server provisions a sandbox with a runner. Desktop apps, CLIs, and self-hosted deployments can instead run execution on the client. Two provider props control this.
+By default, agent and workflow runs execute in the cloud — the Stigmer server provisions a sandbox with a runner. Desktop apps, CLIs, and self-hosted deployments can instead execute runs on the client. Two provider props control this.
 
 ### `executionTarget`
 
-Sets where sessions and workflow executions created within the provider run:
+Sets where sessions and workflow runs created within the provider run:
 
 | Value | Behavior |
 |-------|----------|
@@ -226,7 +226,7 @@ Sets where sessions and workflow executions created within the provider run:
 | `"cloud"` | The server provisions a cloud sandbox automatically. |
 | `undefined` (default) | The server decides based on deployment context — local for OSS/self-hosted, cloud for managed. |
 
-This is an app-level setting: every session and workflow execution created in the provider tree inherits it. For one-off overrides, `@stigmer/sdk` accepts a per-call `executionTarget` on `session.create()` and `workflowExecution.create()`, which takes precedence over the provider value.
+This is an app-level setting: every session and workflow run created in the provider tree inherits it. For one-off overrides, `@stigmer/sdk` accepts a per-call `executionTarget` on `session.create()` and `workflowRun.create()`, which takes precedence over the provider value.
 
 ### `runnerAdapter`
 
@@ -254,19 +254,19 @@ Cloud consumers omit `runnerAdapter` entirely.
 interface RunnerAdapter {
   onSessionOpened(sessionId: string): Promise<void>;
   onSessionClosed(sessionId: string): Promise<void>;
-  onWorkflowExecutionCreated(executionId: string): Promise<void>;
-  onWorkflowExecutionTerminated(executionId: string): Promise<void>;
+  onWorkflowRunCreated(runId: string): Promise<void>;
+  onWorkflowRunTerminated(runId: string): Promise<void>;
 }
 ```
 
-SDK hooks call these methods at the matching lifecycle points — but only when a `runnerAdapter` is provided **and** the resolved execution target is `"local"`. A Session is a long-lived, multi-turn conversation with **no terminal phase**, so its worker is tied to whether the session is open: it is attached while the session view is open and detached when it closes. A Workflow Execution runs to a terminal phase, so its worker is tied to creation and completion.
+SDK hooks call these methods at the matching lifecycle points — but only when a `runnerAdapter` is provided **and** the resolved execution target is `"local"`. A Session is a long-lived, multi-turn conversation with **no terminal phase**, so its worker is tied to whether the session is open: it is attached while the session view is open and detached when it closes. A Workflow Run runs to a terminal phase, so its worker is tied to creation and completion.
 
 | Method | Invoked by | When |
 |--------|------------|------|
 | `onSessionOpened` | `useSessionConversation` (and the new-session flow's eager attach) | While a local session is open — re-attaching on every open, so follow-ups always have a poller. |
 | `onSessionClosed` | `useSessionConversation` | When the session view closes (unmount or session change). |
-| `onWorkflowExecutionCreated` | `useRunWorkflowFlow` | After a local workflow execution is created. |
-| `onWorkflowExecutionTerminated` | `useWorkflowExecution` | When the execution reaches a terminal phase. |
+| `onWorkflowRunCreated` | `useRunWorkflowFlow` | After a local workflow run is created. |
+| `onWorkflowRunTerminated` | `useWorkflowRun` | When the run reaches a terminal phase. |
 
 > Implement `onSessionOpened` / `onSessionClosed` **idempotently** — `onSessionOpened` can be called again for an already-open session (e.g. on re-open), and the reference desktop adapter maps them to `addSession` / `removeSession`, which already de-duplicate. Adapter errors are swallowed for the session view so a transient runner hiccup never crashes an open conversation.
 

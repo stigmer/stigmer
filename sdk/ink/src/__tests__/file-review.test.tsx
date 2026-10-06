@@ -489,7 +489,7 @@ describe("MessageThread — file-review integration", () => {
   it("badges a settled row and appends a settled record for a completed execution", () => {
     const exec = execWithStampedEdit(FileChangeSetStatus.RECONCILED, true);
     const { lastFrame } = render(
-      <MessageThread executions={[exec]} showFileReviewRecords expandToolCalls />,
+      <MessageThread runs={[exec]} showFileReviewRecords expandToolCalls />,
     );
     const out = lastFrame() ?? "";
     expect(out).toContain("Kept"); // per-row badge
@@ -499,7 +499,7 @@ describe("MessageThread — file-review integration", () => {
   it("does not render a settled record for an AWAITING set (that is the prompt's job)", () => {
     const exec = execWithStampedEdit(FileChangeSetStatus.AWAITING_REVIEW, false);
     const { lastFrame } = render(
-      <MessageThread executions={[]} activeStreamExecution={exec} showFileReviewRecords expandToolCalls />,
+      <MessageThread runs={[]} activeStreamRun={exec} showFileReviewRecords expandToolCalls />,
     );
     const out = lastFrame() ?? "";
     expect(out).toContain("Pending review"); // the row still badges
@@ -735,7 +735,7 @@ describe("FileDiffBody", () => {
   it("shows a loading notice while an offloaded side is in flight", () => {
     const change = changeWith({ id: "load", after: offloadedSide("artifacts/aex-1/after") });
     const client = fakeClient({
-      agentExecution: { getArtifactContent: () => new Promise(() => {}) },
+      agentRun: { getArtifactContent: () => new Promise(() => {}) },
     });
     const out = renderWithClient(<FileDiffBody change={change} />, client).lastFrame() ?? "";
     expect(out).toContain("Loading diff");
@@ -744,7 +744,7 @@ describe("FileDiffBody", () => {
   it("reports a server-truncated offloaded side as un-diffable inline", async () => {
     const change = changeWith({ id: "trunc", after: offloadedSide("artifacts/aex-1/after") });
     const client = fakeClient({
-      agentExecution: {
+      agentRun: {
         getArtifactContent: async () => ({
           content: new TextEncoder().encode("way too big"),
           contentType: "text/plain",
@@ -765,7 +765,7 @@ describe("FileDiffBody", () => {
   it("surfaces a fetch failure as an honest error notice", async () => {
     const change = changeWith({ id: "err", after: offloadedSide("artifacts/aex-1/after") });
     const client = fakeClient({
-      agentExecution: {
+      agentRun: {
         getArtifactContent: async () => {
           throw new Error("boom");
         },

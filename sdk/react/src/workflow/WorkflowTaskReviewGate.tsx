@@ -28,8 +28,8 @@ export interface WorkflowTaskReviewGateProps {
   readonly payloadArtifactId?: string | null;
   /**
    * Called when the reviewer submits a decision. The consumer (typically
-   * {@link WorkflowExecutionViewer}) wires this to
-   * `useWorkflowExecutionActions().submitTaskApproval`.
+   * {@link WorkflowRunViewer}) wires this to
+   * `useWorkflowRunActions().submitTaskApproval`.
    */
   readonly onSubmit: (
     taskName: string,
@@ -62,7 +62,7 @@ export interface WorkflowTaskReviewGateProps {
  *    {@link WorkflowTaskApprovalCard} renders with the payload shown as
  *    structured data. An unrecognized hint never blocks the gate.
  *
- * Both mount points — the execution inspector's Approval tab and the
+ * Both mount points — the run inspector's Approval tab and the
  * timeline's inline event card — render this component, so custom
  * renderers light up everywhere a gate appears without per-surface wiring.
  */

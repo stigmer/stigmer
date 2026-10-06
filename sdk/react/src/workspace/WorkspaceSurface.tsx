@@ -75,7 +75,7 @@ export interface SurfaceRailView {
 
 /**
  * A host-injected virtual document: an editor tab whose content is not a
- * workspace file — the session's `plan.md` today; execution artifacts are the
+ * workspace file — the session's `plan.md` today; run artifacts are the
  * anticipated next family.
  *
  * The editor-area counterpart of {@link SurfaceRailView}'s rail injection:
@@ -128,7 +128,7 @@ export interface WorkspaceSurfaceProps {
    * all of them; hosts without a workspace file source pass `[]` so the rail
    * carries only their injected `extraViews` — an honest facet-only surface
    * instead of inert Explorer/Search icons (an opt-in behavior change with a
-   * backward-compatible default). The workflow execution panel does this
+   * backward-compatible default). The workflow run panel does this
    * until a workspace source wires a lister.
    */
   readonly builtInViews?: readonly BuiltInViewId[];

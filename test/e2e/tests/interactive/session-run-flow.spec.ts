@@ -23,7 +23,7 @@ const HAS_LLM_KEY = !!(
 );
 
 // Simulated model latency for every canned turn in this file: these tests
-// assert MID-execution states (disabled composer), so the execution must stay
+// assert MID-execution states (disabled composer), so the run must stay
 // observable for longer than the page needs to reflect it — a zero-latency
 // turn can complete before the UI ever shows the run (stigmer/stigmer#743).
 const TURN_DELAY_MS = 2_000;
@@ -58,12 +58,12 @@ const SESSION_START_MS = START_SESSION_WAITS_MS.composer + START_SESSION_WAITS_M
 const CASE_BUDGET_MS = SESSION_START_MS + 4 * TURN_BUDGET_MS + 60_000;
 
 /**
- * Agent execution through the session surface, anchored to the signals the
+ * Agent run through the session surface, anchored to the signals the
  * CURRENT session viewer exposes (stigmer/stigmer#743 re-anchor): the
  * composer disables while a run is active and re-enables after, and the
  * response lands in the thread. The pre-redesign sidebar "Execution
  * progress" phase region these tests originally pinned is no longer
- * rendered by any console page — execution phases are deliberately not a
+ * rendered by any console page — run phases are deliberately not a
  * header/sidebar surface anymore.
  */
 test.describe("Agent execution via session", () => {
@@ -100,7 +100,7 @@ test.describe("Agent execution via session", () => {
     const form = getSessionComposer(page);
     await expect(form).toBeVisible({ timeout: 15_000 });
 
-    // Disabled while the execution is active — the in-progress signal.
+    // Disabled while the run is active — the in-progress signal.
     await assertComposerDisabled(page);
 
     // The settled response is the completion signal on this surface.
@@ -191,7 +191,7 @@ test.describe("Agent execution via session", () => {
     await expect(chip).toHaveCount(0);
 
     // Drain the follow-up's turn before ending: the send above started a
-    // second execution; its settled response re-enables the composer.
+    // second run; its settled response re-enables the composer.
     await expect(getAIResponses(page)).toHaveCount(2, { timeout: TURN_BUDGET_MS });
     await assertComposerEnabled(page);
   });
@@ -207,7 +207,7 @@ test.describe("Agent execution via session", () => {
     await startNewSession(page, "Say exactly: first");
     await assertNoErrorBoundary(page);
 
-    // Wait for the first execution to complete.
+    // Wait for the first run to complete.
     await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
     await assertComposerEnabled(page);
 
@@ -220,10 +220,10 @@ test.describe("Agent execution via session", () => {
       { timeout: 10_000 },
     );
 
-    // New execution should start — composer disables again.
+    // New run should start — composer disables again.
     await assertComposerDisabled(page);
 
-    // Thread ends with two settled AI responses — the second execution's
+    // Thread ends with two settled AI responses — the second run's
     // completion signal — and the composer re-enables.
     await expect(getAIResponses(page)).toHaveCount(2, { timeout: TURN_BUDGET_MS });
     await expect(getAIResponses(page).last()).not.toHaveAttribute(

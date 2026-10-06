@@ -5,7 +5,7 @@ import type { ModelInfo } from "./registry.js";
 /**
  * String form of the thinking mode for component props and hook inputs
  * (stigmer/stigmer#772). Mirrors {@link ServiceTierOption}: components
- * speak strings, execution creation speaks proto.
+ * speak strings, run creation speaks proto.
  *
  * "disabled" is the model's base variant; "enabled" is the model's
  * extended-reasoning variant — selectable only for models whose

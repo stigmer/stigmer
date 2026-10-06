@@ -20,10 +20,10 @@ export interface ScheduleRunsTableProps {
   /** ID of the schedule whose run history to show. */
   readonly scheduleId: string;
   /**
-   * Called when the user activates a run's execution reference
+   * Called when the user activates a run's run reference
    * (`aex_…`). When omitted, the id renders as plain text.
    */
-  readonly onNavigateToExecution?: (executionId: string) => void;
+  readonly onNavigateToRun?: (executionId: string) => void;
   /**
    * The instant relative timestamps are computed against.
    * Injectable for deterministic tests and Scenar fixtures.
@@ -40,12 +40,12 @@ export interface ScheduleRunsTableProps {
  * Paginated run-history table for a schedule — the fire ledger,
  * rendered in full.
  *
- * Every fire leaves a row, INCLUDING fires that created no execution (a
+ * Every fire leaves a row, INCLUDING fires that created no run (a
  * refused launch gate, a missing target agent), carrying the refusing
  * gate's copy verbatim. Columns: outcome, origin, fired time (relative,
  * with the absolute instant on hover), duration (recorded → completed;
  * "—" while a run is in flight or when no run was created), and the
- * execution reference.
+ * run reference.
  *
  * Owns its data: give it a `scheduleId` and it fetches via
  * {@link useScheduleRuns} with internal page state. To force a refresh
@@ -61,13 +61,13 @@ export interface ScheduleRunsTableProps {
  * ```tsx
  * <ScheduleRunsTable
  *   scheduleId={schedule.metadata.id}
- *   onNavigateToExecution={(id) => router.push(`/executions/${id}`)}
+ *   onNavigateToRun={(id) => router.push(`/runs/${id}`)}
  * />
  * ```
  */
 export function ScheduleRunsTable({
   scheduleId,
-  onNavigateToExecution,
+  onNavigateToRun,
   now,
   pageSize = 25,
   className,
@@ -124,7 +124,7 @@ export function ScheduleRunsTable({
             Duration
           </span>
           <span role="columnheader" className="stg:text-right">
-            Execution
+            Run
           </span>
         </div>
         {runs.map((run, i) => (
@@ -132,7 +132,7 @@ export function ScheduleRunsTable({
             key={runKey(run, i)}
             run={run}
             now={renderNow}
-            onNavigateToExecution={onNavigateToExecution}
+            onNavigateToRun={onNavigateToRun}
           />
         ))}
       </div>
@@ -151,18 +151,18 @@ export function ScheduleRunsTable({
 }
 
 // Mobile keeps the three load-bearing columns (outcome, fired,
-// execution); origin and duration join at the sm breakpoint.
+// run); origin and duration join at the sm breakpoint.
 const rowGridClasses =
   "stg:grid stg:grid-cols-[7rem_1fr_auto] stg:items-center stg:gap-x-4 stg:sm:grid-cols-[7rem_5.5rem_1fr_5rem_minmax(0,12rem)]";
 
 function RunTableRow({
   run,
   now,
-  onNavigateToExecution,
+  onNavigateToRun,
 }: {
   readonly run: ScheduleRun;
   readonly now: Date;
-  readonly onNavigateToExecution?: (executionId: string) => void;
+  readonly onNavigateToRun?: (executionId: string) => void;
 }) {
   const fireDate = run.nominalFireTime
     ? timestampDate(run.nominalFireTime)
@@ -210,10 +210,10 @@ function RunTableRow({
       </span>
       <span role="cell" className="stg:min-w-0 stg:text-right">
         {run.runId ? (
-          onNavigateToExecution ? (
+          onNavigateToRun ? (
             <button
               type="button"
-              onClick={() => onNavigateToExecution(run.runId)}
+              onClick={() => onNavigateToRun(run.runId)}
               className={cn(
                 "stg:max-w-full stg:truncate stg:font-mono stg:text-[0.65rem] stg:text-primary stg:underline-offset-2 stg:hover:underline",
                 "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
@@ -248,7 +248,7 @@ function RunTableRow({
 
 /**
  * Compact run list: badge, origin, relative time, refusal reason, and
- * execution link per row — the at-a-glance form used by the detail
+ * run link per row — the at-a-glance form used by the detail
  * view's Overview tab. Presentational: runs come in as props (the
  * caller owns the fetch, so one hook can also feed the Runs tab badge).
  *
@@ -259,12 +259,12 @@ export function ScheduleRunsCompactList({
   runs,
   isLoading,
   now,
-  onNavigateToExecution,
+  onNavigateToRun,
 }: {
   readonly runs: readonly ScheduleRun[];
   readonly isLoading: boolean;
   readonly now: Date;
-  readonly onNavigateToExecution?: (executionId: string) => void;
+  readonly onNavigateToRun?: (executionId: string) => void;
 }) {
   if (isLoading && runs.length === 0) {
     return (
@@ -284,7 +284,7 @@ export function ScheduleRunsCompactList({
           key={runKey(run, i)}
           run={run}
           now={now}
-          onNavigateToExecution={onNavigateToExecution}
+          onNavigateToRun={onNavigateToRun}
         />
       ))}
     </ul>
@@ -294,11 +294,11 @@ export function ScheduleRunsCompactList({
 function CompactRunRow({
   run,
   now,
-  onNavigateToExecution,
+  onNavigateToRun,
 }: {
   readonly run: ScheduleRun;
   readonly now: Date;
-  readonly onNavigateToExecution?: (executionId: string) => void;
+  readonly onNavigateToRun?: (executionId: string) => void;
 }) {
   const fireDate = run.nominalFireTime
     ? timestampDate(run.nominalFireTime)
@@ -339,10 +339,10 @@ function CompactRunRow({
         </p>
       )}
       {run.runId &&
-        (onNavigateToExecution ? (
+        (onNavigateToRun ? (
           <button
             type="button"
-            onClick={() => onNavigateToExecution(run.runId)}
+            onClick={() => onNavigateToRun(run.runId)}
             className={cn(
               "stg:self-start stg:font-mono stg:text-[0.65rem] stg:text-primary stg:underline-offset-2 stg:hover:underline",
               "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",

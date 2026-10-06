@@ -1,14 +1,14 @@
 import { test, expect } from "../../fixtures";
-import { createTestWorkflowExecution } from "../../fixtures/seed-helpers";
+import { createTestWorkflowRun } from "../../fixtures/seed-helpers";
 import {
-  navigateToExecution,
+  navigateToRun,
   waitForPhaseBadge,
   switchCenterView,
-  getExecutionGraph,
+  getRunGraph,
 } from "../../helpers/workflow-run";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 
-// The execution page is thread-primary (the 2026-07 redesign): the DAG
+// The run page is thread-primary (the 2026-07 redesign): the DAG
 // graph is a passive visualization behind the "Graph" center-view radio,
 // CSS-hidden by default. Every test here switches views first — and all
 // graph locators scope through the graph wrapper, because the hidden
@@ -20,25 +20,25 @@ import { assertNoErrorBoundary } from "../../helpers/navigation";
 //   (workflow-execution-thread.spec.ts); the graph wires no selection.
 // - "Event Timeline" drawer: retired with the bottom drawer; per-task
 //   visibility is the thread's job.
-test.describe("Workflow execution graph", () => {
+test.describe("Workflow run graph", () => {
   test("Graph view renders the workflow graph canvas", async ({
     page,
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
 
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
       await switchCenterView(page, "graph");
 
-      await expect(getExecutionGraph(page)).toBeVisible({ timeout: 10_000 });
+      await expect(getRunGraph(page)).toBeVisible({ timeout: 10_000 });
     } finally {
       await execution.cleanup();
     }
@@ -49,19 +49,19 @@ test.describe("Workflow execution graph", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
 
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
       await switchCenterView(page, "graph");
 
-      const completedNodes = getExecutionGraph(page).locator(
+      const completedNodes = getRunGraph(page).locator(
         '[data-execution-status="completed"]',
       );
       await expect(completedNodes.first()).toBeVisible({ timeout: 10_000 });
@@ -75,19 +75,19 @@ test.describe("Workflow execution graph", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
 
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
       await switchCenterView(page, "graph");
 
-      const graph = getExecutionGraph(page);
+      const graph = getRunGraph(page);
       await expect(graph).toBeVisible({ timeout: 10_000 });
 
       const firstNode = graph.locator("[data-execution-status]").first();
@@ -120,19 +120,19 @@ test.describe("Workflow execution graph", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
 
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
       await switchCenterView(page, "graph");
 
-      const controls = getExecutionGraph(page).locator(".react-flow__controls");
+      const controls = getRunGraph(page).locator(".react-flow__controls");
       await expect(controls).toBeVisible({ timeout: 10_000 });
     } finally {
       await execution.cleanup();
@@ -144,24 +144,24 @@ test.describe("Workflow execution graph", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
 
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
       await switchCenterView(page, "graph");
-      await expect(getExecutionGraph(page)).toBeVisible({ timeout: 10_000 });
+      await expect(getRunGraph(page)).toBeVisible({ timeout: 10_000 });
 
       // The toggle contract: both views stay mounted (no React Flow
       // remount, no stream reconnect), the inactive one CSS-hidden.
       await switchCenterView(page, "thread");
-      await expect(getExecutionGraph(page)).toBeHidden();
-      await expect(getExecutionGraph(page)).toBeAttached();
+      await expect(getRunGraph(page)).toBeHidden();
+      await expect(getRunGraph(page)).toBeAttached();
     } finally {
       await execution.cleanup();
     }

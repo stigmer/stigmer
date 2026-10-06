@@ -1,15 +1,15 @@
 import { test, expect } from "../../fixtures";
-import { createTestWorkflowExecution } from "../../fixtures/seed-helpers";
+import { createTestWorkflowRun } from "../../fixtures/seed-helpers";
 import { navigateToWorkflowDetail } from "../../helpers/workflow-detail";
-import { awaitWorkflowExecutionCompleted } from "../../helpers/workflow-run";
+import { awaitWorkflowRunCompleted } from "../../helpers/workflow-run";
 
 /**
- * The Executions tab of a workflow detail page: the history table, the
+ * The Runs tab of a workflow detail page: the history table, the
  * health metrics strip, the phase filters, and a row that opens its
- * execution.
+ * run.
  *
  * Each case seeds its own workflow (`testWorkflow`, two `set_vars` tasks
- * that need no model) and runs one execution of it to completion on the
+ * that need no model) and runs one run of it to completion on the
  * stack's real runner, so the tab has exactly one completed row to show.
  */
 
@@ -19,15 +19,15 @@ test.describe("Workflow execution history", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(stigmerClient, testWorkflow.id, {
+    const execution = await createTestWorkflowRun(stigmerClient, testWorkflow.id, {
       org: testWorkflow.org,
     });
     try {
-      await awaitWorkflowExecutionCompleted(stigmerClient, execution.id);
+      await awaitWorkflowRunCompleted(stigmerClient, execution.id);
       await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
       await page.getByRole("tab", { name: "Executions" }).click();
 
-      const table = page.getByRole("table", { name: "Execution history" });
+      const table = page.getByRole("table", { name: "Run history" });
       await expect(table).toBeVisible({ timeout: 15_000 });
       for (const name of ["Name", "Status", "Duration"]) {
         await expect(table.getByRole("columnheader", { name })).toBeVisible();
@@ -45,15 +45,15 @@ test.describe("Workflow execution history", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(stigmerClient, testWorkflow.id, {
+    const execution = await createTestWorkflowRun(stigmerClient, testWorkflow.id, {
       org: testWorkflow.org,
     });
     try {
-      await awaitWorkflowExecutionCompleted(stigmerClient, execution.id);
+      await awaitWorkflowRunCompleted(stigmerClient, execution.id);
       await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
       await page.getByRole("tab", { name: "Executions" }).click();
 
-      await expect(page.getByLabel("Execution health metrics")).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByLabel("Run health metrics")).toBeVisible({ timeout: 15_000 });
     } finally {
       await execution.cleanup();
     }
@@ -64,20 +64,20 @@ test.describe("Workflow execution history", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(stigmerClient, testWorkflow.id, {
+    const execution = await createTestWorkflowRun(stigmerClient, testWorkflow.id, {
       org: testWorkflow.org,
     });
     try {
-      await awaitWorkflowExecutionCompleted(stigmerClient, execution.id);
+      await awaitWorkflowRunCompleted(stigmerClient, execution.id);
       await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
       await page.getByRole("tab", { name: "Executions" }).click();
 
-      const filters = page.getByLabel("Execution filters");
+      const filters = page.getByLabel("Run filters");
       await expect(filters.getByRole("button", { name: /Completed/ })).toBeVisible({
         timeout: 15_000,
       });
       const failed = filters.getByRole("button", { name: /Failed/ });
-      const rows = page.getByRole("table", { name: "Execution history" }).locator("tbody tr");
+      const rows = page.getByRole("table", { name: "Run history" }).locator("tbody tr");
       await expect(rows).toHaveCount(1);
 
       await failed.click();
@@ -97,16 +97,16 @@ test.describe("Workflow execution history", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(stigmerClient, testWorkflow.id, {
+    const execution = await createTestWorkflowRun(stigmerClient, testWorkflow.id, {
       org: testWorkflow.org,
     });
     try {
-      await awaitWorkflowExecutionCompleted(stigmerClient, execution.id);
+      await awaitWorkflowRunCompleted(stigmerClient, execution.id);
       await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
       await page.getByRole("tab", { name: "Executions" }).click();
 
       await page
-        .getByRole("table", { name: "Execution history" })
+        .getByRole("table", { name: "Run history" })
         .locator("tbody tr")
         .first()
         .click({ timeout: 15_000 });

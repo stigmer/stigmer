@@ -3,20 +3,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { isTerminalPhase } from "../execution/execution-phases.js";
+import { isTerminalPhase } from "../run/run-phases.js";
 import {
   useWorkspaceEditorsStoreRef,
   type OpenFileOptions,
   type WorkspaceEditorsStore,
 } from "../internal/store/index.js";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../execution/artifact-document.js";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../run/artifact-document.js";
 import { artifactKey } from "./useSessionArtifacts.js";
 
 /** Options for {@link useSessionPanel}. */
 export interface UseSessionPanelOptions {
   /**
-   * The display execution's phase, or `null` before any execution exists.
+   * The display run's phase, or `null` before any run exists.
    * A transition between running and terminal resets the user's sticky view
    * pick (mirroring the retired inspector-tab FSM).
    */

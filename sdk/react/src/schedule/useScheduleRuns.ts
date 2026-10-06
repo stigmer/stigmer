@@ -43,12 +43,12 @@ const INITIAL_PAGE: RunsPage = { runs: [], totalCount: 0 };
  * Data hook that fetches a schedule's run history, newest first — the
  * fire ledger.
  *
- * Every fire leaves a row, INCLUDING the fires that created no execution
+ * Every fire leaves a row, INCLUDING the fires that created no run
  * (a refused launch gate, a missing target agent), carrying the refusing
  * gate's copy verbatim. This is the surface that finally explains
  * `status.consecutive_failures`: the reason is one row away instead of
  * buried in server logs. Rows for in-flight runs are enriched server-side
- * with the execution's live phase, so outcomes never lie.
+ * with the run's live phase, so outcomes never lie.
  *
  * Pass `null` as `scheduleId` to skip fetching (stable no-op) — the
  * detail view does this while the schedule itself is still loading.

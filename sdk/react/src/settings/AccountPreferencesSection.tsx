@@ -16,7 +16,7 @@ export function AccountPreferencesSection() {
         Account Preferences
       </h2>
       <p className="stg:text-muted-foreground stg:mb-6 stg:text-xs">
-        Personal standing context shared with agents on executions you run.
+        Personal standing context shared with agents on runs you start.
       </p>
 
       <AccountPreferencesPanel />

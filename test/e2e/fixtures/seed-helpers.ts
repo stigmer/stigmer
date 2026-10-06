@@ -168,7 +168,7 @@ export async function createTestWorkflow(
   };
 }
 
-export interface TestWorkflowExecutionResult {
+export interface TestWorkflowRunResult {
   id: string;
   workflowId: string;
   cleanup: () => Promise<void>;
@@ -440,11 +440,11 @@ function buildStoredZip(fileName: string, content: string): Uint8Array {
   return new Uint8Array(Buffer.concat([localBlock, centralBlock, eocd]));
 }
 
-export async function createTestWorkflowExecution(
+export async function createTestWorkflowRun(
   client: Stigmer,
   workflowId: string,
   opts?: { org?: string; triggerMessage?: string },
-): Promise<TestWorkflowExecutionResult> {
+): Promise<TestWorkflowRunResult> {
   const org = opts?.org ?? DEFAULT_ORG;
   const name = `e2e-exec-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 

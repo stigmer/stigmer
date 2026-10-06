@@ -5,32 +5,32 @@ import {
   useOrg,
   OperationalDashboard,
   CostByWorkflowChart,
-  ExecutionTrendChart,
+  RunTrendChart,
   useWorkflowDashboardSummary,
   type DashboardFailedRun,
 } from "@stigmer/react";
-import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
+import { useRunNavigation } from "@/domain/workflow/run-navigation";
 
 export function DashboardPage() {
   const { activeOrg } = useOrg();
   const org = activeOrg?.metadata?.id ?? "";
-  const { navigateToExecution } = useExecutionNavigation();
+  const { navigateToRun } = useRunNavigation();
 
   const { summary: workflowSummary, isLoading: workflowSummaryLoading } =
     useWorkflowDashboardSummary({ org, refetchInterval: 60_000 });
 
   const handleApprovalClick = useCallback(
     (executionId: string) => {
-      navigateToExecution(executionId);
+      navigateToRun(executionId);
     },
-    [navigateToExecution],
+    [navigateToRun],
   );
 
   const handleFailedRunClick = useCallback(
     (id: string, _type: DashboardFailedRun["type"]) => {
-      navigateToExecution(id);
+      navigateToRun(id);
     },
-    [navigateToExecution],
+    [navigateToRun],
   );
 
   return (
@@ -57,7 +57,7 @@ export function DashboardPage() {
           />
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <ExecutionTrendChart
+          <RunTrendChart
             summary={workflowSummary ?? null}
             isLoading={workflowSummaryLoading}
           />

@@ -6,7 +6,7 @@ import { assertNoErrorBoundary } from "../../helpers/navigation";
 import {
   navigateToWorkflowDetail,
   openRunDialog,
-  submitRunAndWaitForExecution,
+  submitRunAndWaitForRunPage,
 } from "../../helpers/workflow-detail";
 import { waitForPhaseBadge } from "../../helpers/workflow-run";
 
@@ -59,10 +59,10 @@ test.describe("Workflow run visibility", () => {
     await openRunDialog(page);
     const runDialog = page.getByRole("dialog");
     await expect(runDialog.getByText(ORG_RUNS_NOTE)).toHaveCount(0);
-    await submitRunAndWaitForExecution(page);
+    await submitRunAndWaitForRunPage(page);
     await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
-    const runId = /\/executions\/(wex_[0-9a-z]+)/.exec(page.url())?.[1];
+    const runId = /\/runs\/(wex_[0-9a-z]+)/.exec(page.url())?.[1];
     expect(runId, `the execution page URL names the run: ${page.url()}`).toBeDefined();
     const run = await stigmerClient.workflowRun.get(runId!);
     expect(run.spec?.workflowId, "the run names its workflow").toBe(testWorkflow.id);

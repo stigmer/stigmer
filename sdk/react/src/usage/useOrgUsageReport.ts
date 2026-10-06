@@ -35,7 +35,7 @@ export interface UseOrgUsageReportReturn {
 /**
  * Data hook that fetches the organization-level usage report.
  *
- * Calls `stigmer.agentExecution.getOrgUsageReport` with the provided
+ * Calls `stigmer.agentRun.getOrgUsageReport` with the provided
  * org ID and date range. The server returns aggregated totals, a
  * per-model breakdown, the top agents by cost, and a daily cost trend.
  *

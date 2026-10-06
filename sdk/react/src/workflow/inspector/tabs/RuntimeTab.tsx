@@ -17,7 +17,7 @@ const AI_KINDS = new Set(["agent_call", "llm_call", "eval"]);
 const INVOCATION_KINDS = new Set(["http_call", "grpc_call", "activity_call", "run_workflow"]);
 
 /**
- * Runtime tab — timeout, retry, budget, and execution policies.
+ * Runtime tab — timeout, retry, budget, and run policies.
  *
  * Content varies by task kind category:
  * - agent_call: model + budget per run (the shared run_config block)

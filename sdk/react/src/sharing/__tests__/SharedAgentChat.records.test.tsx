@@ -8,7 +8,7 @@ import type { SessionComposerProps } from "../../composer";
 // What the hosted share page writes, end to end through the real launcher and
 // new-session flow down to the client call.
 //
-// A visitor's first message is one AgentExecution create whose target is a
+// A visitor's first message is one AgentRun create whose target is a
 // new session spec. It must name the share's organization explicitly
 // (`metadata.org = profile.org`) and start the session on the share's agent
 // reference exactly as the profile gives it, version included. The server's
@@ -67,7 +67,7 @@ const createExecution = vi.fn(async (_input: Record<string, unknown>) => ({
   spec: { target: { case: "sessionId", value: "ses_1" } },
 }));
 
-const client = { agentExecution: { create: createExecution } };
+const client = { agentRun: { create: createExecution } };
 
 function Providers({ children }: { children: ReactNode }) {
   return (
@@ -100,7 +100,7 @@ describe("SharedAgentChat — the records a visitor's first message writes", () 
     await waitFor(() => expect(createExecution).toHaveBeenCalledTimes(1));
 
     const input = createExecution.mock.calls[0][0];
-    // metadata.org of the execution, and of the session the server creates
+    // metadata.org of the run, and of the session the server creates
     // from its spec, is the share's organization, set explicitly.
     expect(input.org).toBe(PROFILE.org);
     // A new conversation: the target is the session spec, never an id.

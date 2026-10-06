@@ -207,11 +207,11 @@ function SvgShell({
 }
 
 // ---------------------------------------------------------------------------
-// Execution status styling
+// Run status styling
 // ---------------------------------------------------------------------------
 
 /**
- * CSS class overrides per execution status. Applied to both CssShell and
+ * CSS class overrides per run status. Applied to both CssShell and
  * SvgShell outer containers. Uses opacity and border-color tokens.
  * Never uses color alone — badges provide text/icon differentiation.
  */
@@ -246,7 +246,7 @@ function svgStrokeForStatus(status: NodeExecutionStatus, fallback: string): stri
 // ---------------------------------------------------------------------------
 
 /**
- * CSS class overrides per diff status. Priority over execution and error
+ * CSS class overrides per diff status. Priority over run and error
  * styling — diffStatus > executionStatus > errorCount > categoryColor.
  */
 const DIFF_STATUS_CSS: Record<NodeDiffStatus, string> = {

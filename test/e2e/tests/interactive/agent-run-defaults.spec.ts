@@ -160,7 +160,7 @@ test.describe("An agent's run defaults in the console", () => {
               .status?.phase,
           { timeout: 90_000 },
         )
-        .toBe(3); // EXECUTION_COMPLETED
+        .toBe(3); // RUN_COMPLETED
       const built = await stigmerClient.agentRun.get(build.metadata?.id ?? "");
       expect(built.spec?.buildFromPlan).toBe(true);
     } finally {

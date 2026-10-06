@@ -46,7 +46,7 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 | Property             | Resource           |
 |----------------------|--------------------|
 | `agent`              | Agent              |
-| `agentExecution`     | AgentExecution     |
+| `agentRun`           | AgentRun           |
 | `apiKey`             | ApiKey             |
 | `environment`        | Environment        |
 | `executionContext`   | ExecutionContext    |
@@ -58,7 +58,7 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 | `session`            | Session            |
 | `skill`              | Skill              |
 | `workflow`           | Workflow           |
-| `workflowExecution`  | WorkflowExecution  |
+| `workflowRun`        | WorkflowRun        |
 | `search`             | Cross-resource search |
 | `billing`            | Billing (credits, ledger, Stripe) |
 
@@ -137,13 +137,13 @@ const results = await stigmer.search.query({
 Resources with streaming RPCs return `AsyncGenerator`:
 
 ```typescript
-for await (const event of stigmer.agentExecution.watch("execution-id")) {
+for await (const event of stigmer.agentRun.watch("run-id")) {
   console.log(event);
 }
 
 // With cancellation
 const controller = new AbortController();
-for await (const event of stigmer.agentExecution.watch("execution-id", controller.signal)) {
+for await (const event of stigmer.agentRun.watch("run-id", controller.signal)) {
   if (shouldStop(event)) {
     controller.abort();
   }
@@ -208,12 +208,12 @@ Exactly one of `apiKey` or `getAccessToken` must be provided.
 
 ## Local Execution
 
-Agent and workflow execution runs in the cloud by default — the Stigmer server provisions a sandbox with a runner. To run execution on the client (a desktop app, CLI, or self-hosted deployment), set the execution target.
+Agent and workflow runs execute in the cloud by default — the Stigmer server provisions a sandbox with a runner. To execute runs on the client (a desktop app, CLI, or self-hosted deployment), set the execution target.
 
 ### Selecting the target
 
 ```typescript
-// App-level default for every session and workflow execution
+// App-level default for every session and workflow run
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
   getAccessToken: () => authStore.getToken(),
@@ -229,7 +229,7 @@ const session = await stigmer.session.create({
 });
 ```
 
-`workflowExecution.create()` accepts the same per-call `executionTarget`.
+`workflowRun.create()` accepts the same per-call `executionTarget`.
 
 ### `RunnerAdapter`
 
@@ -241,8 +241,8 @@ import type { RunnerAdapter } from "@stigmer/sdk";
 const adapter: RunnerAdapter = {
   onSessionOpened: async (sessionId) => { /* start a worker for this session */ },
   onSessionClosed: async (sessionId) => { /* stop it */ },
-  onWorkflowExecutionCreated: async (executionId) => { /* start a worker */ },
-  onWorkflowExecutionTerminated: async (executionId) => { /* stop it */ },
+  onWorkflowRunCreated: async (runId) => { /* start a worker */ },
+  onWorkflowRunTerminated: async (runId) => { /* stop it */ },
 };
 ```
 
@@ -254,7 +254,7 @@ import { createRunnerAdapter } from "@stigmer/sdk";
 const adapter = createRunnerAdapter(myRunnerHost);
 ```
 
-A Session has no terminal phase, so its worker is tied to whether the session is **open**: attach on `onSessionOpened`, detach on `onSessionClosed` (and keep both idempotent — `onSessionOpened` may fire again on re-open). A Workflow Execution runs to a terminal phase, so its worker is tied to create/terminate.
+A Session has no terminal phase, so its worker is tied to whether the session is **open**: attach on `onSessionOpened`, detach on `onSessionClosed` (and keep both idempotent — `onSessionOpened` may fire again on re-open). A Workflow Run runs to a terminal phase, so its worker is tied to create/terminate.
 
 The SDK does not invoke these methods on its own in a non-React host — you wire the adapter to your own open/close and create/terminate code paths. In React apps, `@stigmer/react` does this wiring automatically: pass `executionTarget` and `runnerAdapter` to `StigmerProvider` and the SDK hooks invoke the adapter at the right lifecycle points.
 

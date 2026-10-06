@@ -297,21 +297,21 @@ describe("StreamController", () => {
       ]);
     });
 
-    it("handles EXECUTION_FAILED as terminal", () => {
+    it("handles RUN_FAILED as terminal", () => {
       controller.handleSnapshot(
         makeSnapshot(RunPhase.RUN_FAILED),
       );
       expect(controller.state.stage).toBe("complete");
     });
 
-    it("handles EXECUTION_CANCELLED as terminal", () => {
+    it("handles RUN_CANCELLED as terminal", () => {
       controller.handleSnapshot(
         makeSnapshot(RunPhase.RUN_CANCELLED),
       );
       expect(controller.state.stage).toBe("complete");
     });
 
-    it("handles EXECUTION_TERMINATED as terminal", () => {
+    it("handles RUN_TERMINATED as terminal", () => {
       controller.handleSnapshot(
         makeSnapshot(RunPhase.RUN_TERMINATED),
       );

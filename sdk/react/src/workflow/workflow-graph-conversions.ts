@@ -451,9 +451,9 @@ export function graphToWorkflowInput(
 // ---------------------------------------------------------------------------
 
 /**
- * Execution status for a single node in the execution graph.
+ * Run status for a single node in the run graph.
  * Derived from `DerivedTaskState` in the event store, plus a synthetic
- * `"not_reached"` value for nodes the execution has not touched.
+ * `"not_reached"` value for nodes the run has not touched.
  */
 export type NodeExecutionStatus =
   | "not_reached"
@@ -509,7 +509,7 @@ export interface CanvasTaskNodeData extends Record<string, unknown> {
 export interface CanvasTransitionEdgeData extends Record<string, unknown> {
   label?: string;
   /** Edge execution state. Present only in execution mode. */
-  executionState?: import("./execution").EdgeExecutionState;
+  executionState?: import("./run").EdgeExecutionState;
   /** Edge diff state. Present only in diff mode. */
   diffState?: import("./diff/types").EdgeDiffStatus;
 }

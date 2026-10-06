@@ -9,9 +9,9 @@ import {
   extractLeadingH1,
   unwrapEnclosingMarkdownFence,
 } from "../internal/markdown-components.js";
-import { useArtifactContent } from "../execution/useArtifactContent.js";
-import { useBuildFromPlanHotkey } from "../execution/use-build-from-plan-hotkey.js";
-import { formatArtifactSize } from "../execution/artifact-utils.js";
+import { useArtifactContent } from "../run/useArtifactContent.js";
+import { useBuildFromPlanHotkey } from "../run/use-build-from-plan-hotkey.js";
+import { formatArtifactSize } from "../run/artifact-utils.js";
 import type { SessionPlan } from "../library/detect-plan-artifact.js";
 import type { PlanDraftController } from "./usePlanDraft.js";
 
@@ -27,7 +27,7 @@ export interface PlanEditorProps {
   readonly draft?: PlanDraftController;
   /** Builds from the plan — the same action as the thread card's primary. */
   readonly onBuildFromPlan?: () => void;
-  /** Disables the Build action (execution in flight, or build submitting). */
+  /** Disables the Build action (run in flight, or build submitting). */
   readonly buildDisabled?: boolean;
   /**
    * Renders the plan as a historical, read-only document: no Edit view, no
@@ -51,7 +51,7 @@ type PlanEditorView = "rendered" | "source" | "edit";
  * - **Edit** — a plain-textarea editor over a LOCAL draft
  *   ({@link PlanDraftController}); the published artifact is never mutated.
  *   Building from an edited plan delivers the draft to the implement
- *   execution (edit-as-input).
+ *   run (edit-as-input).
  *
  * All views show the *effective* plan — the draft when one exists, the
  * published artifact otherwise — so what the user reviews is exactly what
@@ -85,7 +85,7 @@ export function PlanEditor({
 
   const { content, isTruncated, isLoading, error, refetch } =
     useArtifactContent(
-      plan.executionId,
+      plan.runId,
       plan.artifact.storageKey,
       undefined,
       plan.artifact.contentHash,

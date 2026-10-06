@@ -93,7 +93,7 @@ export interface ResizableSplitProps {
    * Called whenever the resizable pane width changes (during drag
    * and on initial mount from persisted state). Consumers use this
    * to thread the width into layout-dependent calculations like
-   * `WorkflowExecutionGraph.panelOffsetPx`.
+   * `WorkflowRunGraph.panelOffsetPx`.
    */
   readonly onResize?: (widthPx: number) => void;
   /** Additional CSS class names for the root flex container. */

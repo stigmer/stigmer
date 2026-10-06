@@ -1,6 +1,6 @@
 # Stigmer Web Console
 
-Browser-based interface for Stigmer — run agents, monitor executions, manage sessions, and browse the resource catalog.
+Browser-based interface for Stigmer — run agents, monitor runs, manage sessions, and browse the resource catalog.
 
 ## Development
 
@@ -58,7 +58,7 @@ src/
 ├── auth/           # Auth module (configurable: disabled or OIDC)
 ├── components/     # UI components organized by domain
 │   ├── catalog/    # Resource catalog (agents, skills, MCP servers)
-│   ├── execution/  # Agent execution streaming and controls
+│   ├── execution/  # Agent run streaming and controls
 │   ├── layout/     # App shell, sidebar, top bar
 │   └── ui/         # Shared primitives (shadcn-ui)
 ├── config/         # App configuration (env, navigation, draft)

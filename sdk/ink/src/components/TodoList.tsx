@@ -5,7 +5,7 @@ import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_
 
 /** Props for {@link TodoList}. */
 export interface TodoListProps {
-  /** Map of todo item IDs to their current state, as provided by the execution status. */
+  /** Map of todo item IDs to their current state, as provided by the run status. */
   readonly todos: { readonly [key: string]: TodoItem };
 }
 

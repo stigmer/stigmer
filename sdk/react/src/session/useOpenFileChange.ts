@@ -9,7 +9,7 @@ import { findChangeForSelection } from "../workspace/findChangeForSelection.js";
 import { useSessionFileChanges } from "./useSessionFileChanges.js";
 
 /**
- * Stable empty executions passed to {@link useSessionFileChanges} while no file
+ * Stable empty runs passed to {@link useSessionFileChanges} while no file
  * is open, so the (fetch-free) net-change fold stays trivial during streaming
  * and only folds once a file is actually being viewed.
  */
@@ -32,12 +32,12 @@ const EMPTY_EXECUTIONS: readonly AgentRun[] = [];
  */
 export function useOpenFileChange(
   selectedFile: SelectedWorkspaceFile | null | undefined,
-  allExecutions: readonly AgentRun[],
+  allRuns: readonly AgentRun[],
   entries: readonly WorkspaceEntry[] | undefined,
   sandboxWorkspaceRoot: string | undefined,
 ): FileChange | null {
   const { fileChanges } = useSessionFileChanges(
-    selectedFile ? allExecutions : EMPTY_EXECUTIONS,
+    selectedFile ? allRuns : EMPTY_EXECUTIONS,
   );
   return useMemo(
     () =>

@@ -16,8 +16,8 @@ import { UsageTab } from "./facets/UsageTab.js";
 
 /** Options for {@link useSessionRailViews}. */
 export interface UseSessionRailViewsOptions {
-  /** All executions in the session — drives Changes/Artifacts/Usage. */
-  readonly allExecutions: readonly AgentRun[];
+  /** All runs in the session — drives Changes/Artifacts/Usage. */
+  readonly allRuns: readonly AgentRun[];
   /** Organization id for artifact Apply CTA (a slug is also accepted). */
   readonly org: string;
   /** Session configuration for the Config facet. */
@@ -46,10 +46,10 @@ export interface UseSessionRailViewsOptions {
   /**
    * Whether to offer the execution-derived facets (Changes / Artifacts /
    * Usage). The launcher passes `false` — before a session exists there are no
-   * executions to aggregate, so only Config applies.
+   * runs to aggregate, so only Config applies.
    * @default true
    */
-  readonly includeExecutionFacets?: boolean;
+  readonly includeRunFacets?: boolean;
   /**
    * Whether the session is expected to push approved changes to a git remote
    * (a cloud session with git workspace entries). When `true` the Changes
@@ -60,7 +60,7 @@ export interface UseSessionRailViewsOptions {
    */
   readonly expectsWriteBack?: boolean;
   /**
-   * Whether the session's latest execution is settled (terminal) — forwarded
+   * Whether the session's latest run is settled (terminal) — forwarded
    * to the Changes facet's pre-push states (its `isSettled` prop).
    * @default false
    */
@@ -78,7 +78,7 @@ export interface UseSessionRailViewsOptions {
  * (with count badges).
  */
 export function useSessionRailViews({
-  allExecutions,
+  allRuns,
   org,
   sessionConfig,
   onApplied,
@@ -86,12 +86,12 @@ export function useSessionRailViews({
   onOpenPlan,
   onOpenArtifact,
   onActivateArtifact,
-  includeExecutionFacets = true,
+  includeRunFacets = true,
   expectsWriteBack = false,
   changesSettled = false,
 }: UseSessionRailViewsOptions): readonly SurfaceRailView[] {
-  const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(allExecutions);
-  const { hasArtifacts, artifactCount } = useSessionArtifacts(allExecutions);
+  const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(allRuns);
+  const { hasArtifacts, artifactCount } = useSessionArtifacts(allRuns);
 
   return useMemo(() => {
     const views: SurfaceRailView[] = [];
@@ -105,7 +105,7 @@ export function useSessionRailViews({
       });
     }
 
-    if (includeExecutionFacets) {
+    if (includeRunFacets) {
       // Offered when a write-back exists OR the session is expected to
       // produce one — the facet then carries an honest pre-push state
       // instead of being invisible until the first push.
@@ -117,7 +117,7 @@ export function useSessionRailViews({
           badge: writeBackCount > 0 ? writeBackCount : undefined,
           content: (
             <ChangesTab
-              executions={allExecutions}
+              runs={allRuns}
               expectsWriteBack={expectsWriteBack}
               isSettled={changesSettled}
             />
@@ -133,7 +133,7 @@ export function useSessionRailViews({
           badge: artifactCount,
           content: (
             <ArtifactsTab
-              executions={allExecutions}
+              runs={allRuns}
               org={org}
               onApplied={onApplied}
               onImplementPlan={onImplementPlan}
@@ -149,21 +149,21 @@ export function useSessionRailViews({
         id: "usage",
         label: "Usage",
         icon: <UsageIcon />,
-        content: <UsageTab executions={allExecutions} />,
+        content: <UsageTab runs={allRuns} />,
       });
     }
 
     return views;
   }, [
     sessionConfig,
-    includeExecutionFacets,
+    includeRunFacets,
     expectsWriteBack,
     changesSettled,
     hasWriteBacks,
     writeBackCount,
     hasArtifacts,
     artifactCount,
-    allExecutions,
+    allRuns,
     org,
     onApplied,
     onImplementPlan,

@@ -78,7 +78,7 @@ export interface SetCursorMemberKeyEnabledParams {
  * Client for managed Cursor accounts (platform operators only).
  *
  * A Cursor account is one managed Cursor team: its Admin API key (roster
- * and spend, never executions), its member execution keys, and its org
+ * and spend, never runs), its member execution keys, and its org
  * assignments. Every method requires `can_manage_cursor_accounts` on
  * `platform:stigmer`; key material is always redacted in responses.
  */

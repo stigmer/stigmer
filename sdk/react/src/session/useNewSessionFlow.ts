@@ -8,14 +8,14 @@ import { useModelRegistry } from "../models/index.js";
 import { parseModelKey } from "../models/registry.js";
 import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
-import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables.js";
+import { useSessionVariables, type UseSessionVariablesReturn } from "../run/useSessionVariables.js";
 import type { SessionComposerSubmitContext } from "../composer/index.js";
-import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
+import { useCreateAgentRun } from "../run/useCreateAgentRun.js";
 import type { ExecutionTargetOption } from "./execution-target.js";
 import { useExecutionTarget } from "../execution-target-context.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useRunnerAdapter } from "../runner-adapter.js";
-import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
+import { resolveRunRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience } from "./audience.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
 import {
@@ -38,7 +38,7 @@ const STORAGE_KEY_HARNESS = "stigmer:session:harness";
  * carry no share linkage) — the server cannot distinguish the
  * latter from ordinary Console traffic, so share-surface policy must be
  * applied where the surface is known. Server-side guest-token gates own the
- * abuse controls (rate limits, bounded execution profile).
+ * abuse controls (rate limits, bounded run profile).
  */
 const GUEST_HARNESS: HarnessOption = "cursor";
 
@@ -50,10 +50,10 @@ function modelStorageKey(harness: HarnessOption): string {
 
 /** Options for {@link useNewSessionFlow}. */
 export interface UseNewSessionFlowOptions {
-  /** Organization id (a slug is also accepted). Required for session and execution creation. */
+  /** Organization id (a slug is also accepted). Required for session and run creation. */
   readonly org: string;
   /**
-   * Called after a session and its first execution are created successfully.
+   * Called after a session and its first run are created successfully.
    * The consumer is responsible for navigation (e.g. `router.push`).
    */
   readonly onSessionCreated: (sessionId: string) => void;
@@ -78,7 +78,7 @@ export interface UseNewSessionFlowOptions {
   readonly executionTarget?: ExecutionTargetOption;
   /**
    * Supplies host-app environment variables for the session's first
-   * execution. Evaluated once per submission, at submit time, so
+   * run. Evaluated once per submission, at submit time, so
    * short-lived credentials stay fresh; evaluated **before** the session
    * is created so a credential failure never strands an empty session.
    *
@@ -173,13 +173,13 @@ export interface UseNewSessionFlowOptions {
    */
   readonly sessionContext?: string;
   /**
-   * Owner-pinned model/tier for the session's first execution
+   * Owner-pinned model/tier for the session's first run
    * (stigmer/stigmer#664). Stamped at submit, winning over the
    * composer's selection and the restored Console preference. Pair
    * with the same pin on the conversation surface
    * (`useSessionPageFlow` / `SessionViewer`) so follow-ups match.
    * Ignored for the `"guest"` audience (the platform share policy owns
-   * guest execution config). See {@link SessionRunConfig}.
+   * guest run config). See {@link SessionRunConfig}.
    */
   readonly runConfig?: SessionRunConfig;
 }
@@ -262,17 +262,17 @@ export interface UseNewSessionFlowReturn {
   /** Set the user's explicit auto-approve choice for the created session. */
   readonly setAutoApproveAll: (value: boolean) => void;
 
-  /** `true` while the create session + execution flow is in flight. */
+  /** `true` while the create session + run flow is in flight. */
   readonly isSubmitting: boolean;
   /** Human-readable error from the last failed submission, or `null`. */
   readonly submitError: string | null;
 
   /**
-   * Create a session with the first execution.
+   * Create a session with the first run.
    *
    * Composes all managed state (agent, workspace, MCP servers, skills,
    * model, session variables) into a single bootstrap RPC —
-   * `agentExecution.create` with an embedded session spec — then calls
+   * `agentRun.create` with an embedded session spec — then calls
    * `onSessionCreated` on success.
    *
    * The `model` parameter overrides `modelId` for this submission only
@@ -291,8 +291,8 @@ export interface UseNewSessionFlowReturn {
  * Manages all the state required to configure and submit a new session:
  * model selection (with localStorage persistence), agent resolution,
  * MCP server/skill selection, workspace entries, and session
- * variables. On submission, creates the session and its first execution
- * with a single one-call bootstrap RPC (`agentExecution.create` with an
+ * variables. On submission, creates the session and its first run
+ * with a single one-call bootstrap RPC (`agentRun.create` with an
  * embedded session spec), then notifies the consumer via
  * `onSessionCreated`.
  *
@@ -340,10 +340,10 @@ export function useNewSessionFlow(
   } = options;
   const isGuest = options.audience === "guest";
   // Guests never inherit account defaults — the platform share policy owns
-  // guest execution config (GUEST_HARNESS reasoning), and identity-derived
+  // guest run config (GUEST_HARNESS reasoning), and identity-derived
   // preferences must never shape a share/embed surface.
   const accountDefaults = isGuest ? undefined : options.accountDefaults;
-  // Guests never carry a client pin: guest execution config is owned by
+  // Guests never carry a client pin: guest run config is owned by
   // the server-side share policy (GUEST_HARNESS reasoning). Validated at
   // render so a statically-wrong pin (fast tier, no model) fails in the
   // embedder's dev loop, not as the end user's failed send.
@@ -428,7 +428,7 @@ export function useNewSessionFlow(
   );
 
   const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
-  const { create: createExecution } = useCreateAgentExecution();
+  const { create: createExecution } = useCreateAgentRun();
   const workspace = useWorkspaceEntries();
   const sessionVariables = useSessionVariables();
 
@@ -570,7 +570,7 @@ export function useNewSessionFlow(
         // strand an empty session. Without a provider the composer env
         // passes through untouched — no extra await on the hot path.
         const runtimeEnv = getRuntimeEnv
-          ? await resolveExecutionRuntimeEnv(getRuntimeEnv, context?.runtimeEnv)
+          ? await resolveRunRuntimeEnv(getRuntimeEnv, context?.runtimeEnv)
           : context?.runtimeEnv;
 
         const sessionSpecBase = {
@@ -579,7 +579,7 @@ export function useNewSessionFlow(
             : undefined,
           mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
-          // The typed-wins merge happens downstream in useCreateAgentExecution;
+          // The typed-wins merge happens downstream in useCreateAgentRun;
           // both fields are forwarded verbatim here.
           metadata,
           sessionContext,
@@ -593,7 +593,7 @@ export function useNewSessionFlow(
           // The owner pin wins over the composer and the restored
           // preference (#664), its tier and thinking as the surface set
           // them. The effective model carries the account-default seed
-          // explicitly (the preference is a seed; the execution spec is
+          // explicitly (the preference is a seed; the run spec is
           // the record); where the agent's default applies it is absent.
           // The composer's context carries only the tier and thinking the
           // person chose.
@@ -637,13 +637,13 @@ export function useNewSessionFlow(
 
         // One-call bootstrap: the embedded session spec and the first
         // message travel in a single create — the server creates the
-        // session and dispatches the execution atomically.
+        // session and dispatches the run atomically.
         const { sessionId } = await createExecution({
           ...executionFields,
           sessionSpec: { ...sessionSpecBase, agentRef: sessionAgentRef },
         });
 
-        // Local execution: attach the session's runner worker now that the
+        // Local run: attach the session's runner worker now that the
         // session ID is known. The session view (useSessionConversation)
         // owns the steady-state lifecycle, but it is not mounted yet —
         // navigation happens after onSessionCreated below. Attaching after

@@ -14,8 +14,8 @@ import {
   TaskCompletedPayloadSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
-import { WorkflowExecutionEventStore } from "../../internal/store/workflow-execution-event-store";
+import type { DerivedTaskState } from "../../internal/store/workflow-run-event-store";
+import { WorkflowRunEventStore } from "../../internal/store/workflow-run-event-store";
 import { projectThreadItems } from "../thread/project-thread-items";
 import { threadCardVariant } from "../thread/thread-presentation";
 
@@ -28,7 +28,7 @@ function taskState(overrides: Partial<DerivedTaskState> & { taskName: string }):
     tokensUsed: 0n,
     attemptNumber: 1,
     error: "",
-    childExecutionId: "",
+    childRunId: "",
     agentSlug: "",
     currentToolName: "",
     messagesCount: 0,
@@ -89,7 +89,7 @@ describe("projectThreadItems", () => {
           currentToolName: "web_search",
           messagesCount: 7,
           toolCallsCount: 3,
-          childExecutionId: "aex_child_1",
+          childRunId: "aex_child_1",
           tokensUsed: 1_234n,
         }),
       ),
@@ -102,7 +102,7 @@ describe("projectThreadItems", () => {
       currentToolName: "web_search",
       messagesCount: 7,
       toolCallsCount: 3,
-      childExecutionId: "aex_child_1",
+      childRunId: "aex_child_1",
     });
   });
 
@@ -365,7 +365,7 @@ function completedEvent(seq: number, taskName: string): WorkflowRunEvent {
 
 describe("fan-out ordering through the store derivation", () => {
   it("keeps first-started order while parallel branches complete out of order", () => {
-    const store = new WorkflowExecutionEventStore();
+    const store = new WorkflowRunEventStore();
 
     // prepare settles, then the fan-out burst: four branches start
     // back-to-back before any of them finishes.

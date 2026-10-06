@@ -6,7 +6,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useApprovalBoundary } from "../useApprovalBoundary";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
+import type { DerivedTaskState } from "../../internal/store/workflow-run-event-store";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 
 function makeState(overrides: Partial<DerivedTaskState> = {}): DerivedTaskState {
@@ -19,7 +19,7 @@ function makeState(overrides: Partial<DerivedTaskState> = {}): DerivedTaskState 
     tokensUsed: BigInt(0),
     attemptNumber: 1,
     error: "",
-    childExecutionId: "",
+    childRunId: "",
     agentSlug: "",
     currentToolName: "",
     messagesCount: 0,

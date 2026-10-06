@@ -21,7 +21,7 @@ import {
 } from "@stigmer/react";
 import { useRouteDetailYieldsToOverlay } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
-import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
+import { useRunNavigation } from "@/domain/workflow/run-navigation";
 import { WORKFLOW_DELETE_DESCRIPTION } from "@/domain/workflow/workflow-delete-confirmation";
 
 const elkWorkerFactory = () =>
@@ -37,7 +37,7 @@ export function WorkflowDetailPageInner({
   slug,
 }: WorkflowDetailPageInnerProps) {
   const router = useRouter();
-  const { navigateToExecution } = useExecutionNavigation();
+  const { navigateToRun } = useRunNavigation();
   const elkEngine = useElkLayoutEngine({ workerFactory: elkWorkerFactory });
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
@@ -74,10 +74,10 @@ export function WorkflowDetailPageInner({
 
   const handleRunSuccess = useCallback(
     (executionId: string) => {
-      toast.success("Workflow execution started");
-      navigateToExecution(executionId);
+      toast.success("Workflow run started");
+      navigateToRun(executionId);
     },
-    [navigateToExecution],
+    [navigateToRun],
   );
 
   const handleRunError = useCallback((message: string) => {
@@ -110,9 +110,9 @@ export function WorkflowDetailPageInner({
 
   const handleViewLatestRun = useCallback(
     (executionId: string) => {
-      navigateToExecution(executionId);
+      navigateToRun(executionId);
     },
-    [navigateToExecution],
+    [navigateToRun],
   );
 
   const handleDelete = useCallback(async () => {
@@ -230,7 +230,7 @@ export function WorkflowDetailPageInner({
           additionalTabs={additionalTabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          onExecutionClick={(id) => navigateToExecution(id)}
+          onRunClick={(id) => navigateToRun(id)}
           onOpenInEditor={handleOpenInEditor}
           onViewLatestRun={handleViewLatestRun}
         />

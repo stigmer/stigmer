@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
+import type { DerivedTaskState } from "../internal/store/workflow-run-event-store.js";
 
 /**
  * Active task status returned by {@link useActiveTaskName}.
@@ -29,7 +29,7 @@ export interface ActiveTaskInfo {
  * not array/object reference) to avoid downstream re-renders.
  *
  * "Active" means either `running` or `waiting_approval` — both represent
- * states where the execution is at a specific task and the user cares
+ * states where the run is at a specific task and the user cares
  * about its identity.
  *
  * When multiple tasks are running simultaneously (fork branches), returns

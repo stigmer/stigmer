@@ -1,6 +1,6 @@
 /**
  * Pins the workflow's run visibility control: a change calls the workflow's
- * own `updateExecutionVisibility` RPC with the workflow's id and the chosen
+ * own `updateRunVisibility` RPC with the workflow's id and the chosen
  * level, hands the host the updated workflow on success (so a host's own
  * copy, the run dialog's, follows the change), never calls for the level already
  * set, reads an unspecified level as private, and shows the server's
@@ -20,18 +20,18 @@ afterEach(() => {
 });
 
 function renderControl(
-  executionVisibility: WorkflowRunVisibility,
-  updateExecutionVisibility: (input: unknown) => Promise<unknown>,
+  runVisibility: WorkflowRunVisibility,
+  updateRunVisibility: (input: unknown) => Promise<unknown>,
 ) {
   const onChanged = vi.fn();
   const client = {
-    workflow: { updateExecutionVisibility },
+    workflow: { updateRunVisibility },
   } as unknown as Stigmer;
   render(
     <StigmerContext.Provider value={client}>
       <RunVisibilityControl
         workflowId="wf_1"
-        executionVisibility={executionVisibility}
+        runVisibility={runVisibility}
         onChanged={onChanged}
       />
     </StigmerContext.Provider>,
@@ -44,7 +44,7 @@ function option(name: RegExp): HTMLElement {
 }
 
 describe("RunVisibilityControl", () => {
-  it("calls the workflow's updateExecutionVisibility with its id and the chosen level", async () => {
+  it("calls the workflow's updateRunVisibility with its id and the chosen level", async () => {
     const updated = { metadata: { id: "wf_1" } };
     const update = vi.fn(async () => updated);
     const { onChanged } = renderControl(WorkflowRunVisibility.private, update);
@@ -55,10 +55,10 @@ describe("RunVisibilityControl", () => {
     expect(onChanged).toHaveBeenCalledWith(updated);
     expect(update).toHaveBeenCalledTimes(1);
     const input = (update.mock.calls[0] as unknown as [
-      { resourceId: string; executionVisibility: WorkflowRunVisibility },
+      { resourceId: string; runVisibility: WorkflowRunVisibility },
     ])[0];
     expect(input.resourceId).toBe("wf_1");
-    expect(input.executionVisibility).toBe(WorkflowRunVisibility.organization);
+    expect(input.runVisibility).toBe(WorkflowRunVisibility.organization);
   });
 
   it("reads an unspecified level as private and does not call for the level already set", () => {

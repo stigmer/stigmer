@@ -9,11 +9,11 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import type { ModelUsage, StreamingUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
 import { useStigmer } from "../hooks.js";
-import { isTerminalPhase } from "../execution/execution-phases.js";
+import { isTerminalPhase } from "../run/run-phases.js";
 import { useFetch } from "../internal/useFetch.js";
 
 /**
- * Poll cadence for the session usage report while an execution is in flight.
+ * Poll cadence for the session usage report while a run is in flight.
  * The proxy writes one authoritative billing record per turn, so polling lets
  * the settled cost climb live during the run rather than only at completion.
  */
@@ -44,19 +44,19 @@ export interface ModelCostEntry {
 /**
  * Per-execution model provenance from billing records (stigmer/stigmer#362).
  */
-export interface ExecutionUsageEntry {
-  /** Execution identifier (`metadata.id`). */
-  readonly executionId: string;
+export interface RunUsageEntry {
+  /** Run identifier (`metadata.id`). */
+  readonly runId: string;
   /**
    * Billing-resolved primary model — what the provider actually served.
-   * For a Cursor Auto execution this is the after-the-fact answer to
+   * For a Cursor Auto run this is the after-the-fact answer to
    * "which model did Auto pick", which the requested model (empty by
    * definition there) can never give.
    */
   readonly resolvedModel: string;
-  /** Billable cost in USD for this execution. */
+  /** Billable cost in USD for this run. */
   readonly billableCostUsd: number;
-  /** `true` while this execution's records are still provisional. */
+  /** `true` while this run's records are still provisional. */
   readonly isEstimated: boolean;
 }
 
@@ -84,7 +84,7 @@ export interface UseSessionUsageReturn {
    * the streaming fallback deliberately contributes none, because the
    * runner only knows what it REQUESTED, never what the provider served.
    */
-  readonly executionBreakdown: readonly ExecutionUsageEntry[];
+  readonly runBreakdown: readonly RunUsageEntry[];
   /** Model with the highest usage in this session. */
   readonly primaryModel: string;
   /** Provider of the primary model. */
@@ -108,7 +108,7 @@ const EMPTY: UseSessionUsageReturn = {
   cacheCreationTokens: 0,
   llmCallCount: 0,
   modelBreakdown: [],
-  executionBreakdown: [],
+  runBreakdown: [],
   primaryModel: "",
   primaryProvider: "",
   hasUsage: false,
@@ -149,8 +149,8 @@ function mapReport(report: GetSessionUsageReportOutput): UseSessionUsageReturn {
     cacheCreationTokens: Number(agg.cacheCreationInputTokens),
     llmCallCount,
     modelBreakdown: report.modelBreakdown.map(mapModelUsage),
-    executionBreakdown: report.runs.map((e) => ({
-      executionId: e.runId,
+    runBreakdown: report.runs.map((e) => ({
+      runId: e.runId,
       resolvedModel: e.primaryModel,
       billableCostUsd: microsToUsd(e.billableCostMicros),
       isEstimated: e.isEstimated,
@@ -163,7 +163,7 @@ function mapReport(report: GetSessionUsageReportOutput): UseSessionUsageReturn {
 }
 
 /**
- * Aggregate streaming-reported usage from execution status objects.
+ * Aggregate streaming-reported usage from run status objects.
  * Used as a fallback when the server-side session usage report is empty
  * (e.g., Cursor harness where the proxy does not capture main agent turns).
  */
@@ -205,7 +205,7 @@ function aggregateStreamingUsage(
     // No executionBreakdown here on purpose: the runner only knows the
     // REQUESTED model; resolved-model rows exist only once billing
     // records land (#362).
-    executionBreakdown: [],
+    runBreakdown: [],
     modelBreakdown: model
       ? [
           {
@@ -235,11 +235,11 @@ function aggregateStreamingUsage(
  *
  * - When billing records exist (proxy-metered), the billing report is shown
  *   as authoritative (`isEstimated: false`).
- * - When execution is in-flight and only streaming data is available,
+ * - When run is in-flight and only streaming data is available,
  *   streaming is shown with `isEstimated: true`.
  * - The two sources are never mixed in the same display.
  *
- * @param executions - All executions for a session (completed + active).
+ * @param runs - All runs for a session (completed + active).
  */
 export function useSessionUsage(
   executions: readonly AgentRun[],
@@ -254,7 +254,7 @@ export function useSessionUsage(
     [executions],
   );
 
-  // Any execution still in flight means more authoritative records are coming,
+  // Any run still in flight means more authoritative records are coming,
   // so the report must be polled to stay current during the run.
   const hasActiveExecution = useMemo(
     () =>
@@ -285,7 +285,7 @@ export function useSessionUsage(
     },
   );
 
-  // When the last execution settles, poll stops — do one final fetch so the
+  // When the last run settles, poll stops — do one final fetch so the
   // authoritative total (incl. the final turn) replaces the live estimate
   // promptly instead of waiting for a remount.
   const wasActiveRef = useRef(hasActiveExecution);
@@ -305,7 +305,7 @@ export function useSessionUsage(
     const billingReport = report ? mapReport(report) : EMPTY;
 
     // Authoritative proxy-metered report wins as soon as any record exists.
-    // While an execution runs, per-turn records land continuously and polling
+    // While a run runs, per-turn records land continuously and polling
     // keeps this total fresh, so it is never shadowed by a stale snapshot.
     if (billingReport.hasUsage) return billingReport;
 

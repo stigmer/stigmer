@@ -48,7 +48,7 @@ const NOW = new Date("2026-08-04T10:00:00Z");
 function makeSchedule(overrides?: {
   enabled?: boolean;
   pausedReason?: string;
-  lastExecutionId?: string;
+  lastRunId?: string;
   cron?: string;
   consecutiveFailures?: number;
   environmentRefs?: readonly { org: string; slug: string }[];
@@ -95,7 +95,7 @@ function makeSchedule(overrides?: {
     status: {
       nextFireAt: timestampFromDate(new Date(NOW.getTime() + 3 * 3_600_000)),
       lastFireAt: timestampFromDate(new Date(NOW.getTime() - 5 * 60_000)),
-      lastRunId: overrides?.lastExecutionId ?? "aex_01run",
+      lastRunId: overrides?.lastRunId ?? "aex_01run",
       consecutiveFailures:
         overrides?.consecutiveFailures ?? (overrides?.pausedReason ? 5 : 0),
       pausedReason: overrides?.pausedReason ?? "",
@@ -255,7 +255,7 @@ describe("ScheduleDetailView", () => {
     await waitFor(() =>
       expect(client.schedule.trigger).toHaveBeenCalledWith("sch_01example"),
     );
-    // Refetch picks up the new last_execution_id.
+    // Refetch picks up the new last_run_id.
     await waitFor(() =>
       expect(client.schedule.getByReference.mock.calls.length).toBeGreaterThan(1),
     );
@@ -286,9 +286,9 @@ describe("ScheduleDetailView", () => {
   });
 
   it("navigates to the execution on a started run", async () => {
-    const onNavigateToExecution = vi.fn();
+    const onNavigateToRun = vi.fn();
     const client = makeClient(makeSchedule());
-    renderView(client, { onNavigateToExecution });
+    renderView(client, { onNavigateToRun });
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(screen.getByRole("button", { name: "Run now" }));
@@ -296,7 +296,7 @@ describe("ScheduleDetailView", () => {
     fireEvent.click(screen.getByText("Start run"));
 
     await waitFor(() =>
-      expect(onNavigateToExecution).toHaveBeenCalledWith("aex_01triggered"),
+      expect(onNavigateToRun).toHaveBeenCalledWith("aex_01triggered"),
     );
   });
 
@@ -327,10 +327,10 @@ describe("ScheduleDetailView", () => {
 
   it("navigates through the callback seams", async () => {
     const onNavigateToAgent = vi.fn();
-    const onNavigateToExecution = vi.fn();
+    const onNavigateToRun = vi.fn();
     renderView(makeClient(makeSchedule()), {
       onNavigateToAgent,
-      onNavigateToExecution,
+      onNavigateToRun,
     });
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
@@ -338,7 +338,7 @@ describe("ScheduleDetailView", () => {
     expect(onNavigateToAgent).toHaveBeenCalledWith("isc", "fee-reminder");
 
     fireEvent.click(screen.getByRole("button", { name: "aex_01run" }));
-    expect(onNavigateToExecution).toHaveBeenCalledWith("aex_01run");
+    expect(onNavigateToRun).toHaveBeenCalledWith("aex_01run");
   });
 
   it("renders references as plain text without navigation callbacks", async () => {

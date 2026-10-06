@@ -8,21 +8,21 @@ import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agen
  * A single write-back entry enriched with the execution context that
  * produced it.
  *
- * The `executionId` links the write-back to its originating execution
+ * The `executionId` links the write-back to its originating run
  * for traceability in the UI (e.g., tooltip or detail view).
  */
 export interface SessionWriteBackEntry {
   /** The proto write-back record containing branch, PR URL, and commit details. */
   readonly writeBack: WorkspaceWriteBack;
-  /** ID of the execution that produced this write-back. */
-  readonly executionId: string;
+  /** ID of the run that produced this write-back. */
+  readonly runId: string;
 }
 
 /** Return value of {@link useSessionWriteBacks}. */
 export interface UseSessionWriteBacksReturn {
   /** All write-backs from the session, ordered by workspace entry name. */
   readonly writeBacks: readonly SessionWriteBackEntry[];
-  /** `true` when there is at least one write-back across all executions. */
+  /** `true` when there is at least one write-back across all runs. */
   readonly hasWriteBacks: boolean;
   /** Total number of write-backs. */
   readonly writeBackCount: number;
@@ -30,31 +30,31 @@ export interface UseSessionWriteBacksReturn {
 
 /**
  * Pure derivation hook that aggregates workspace write-backs across all
- * executions in a session into a flat, deduplicated list.
+ * runs in a session into a flat, deduplicated list.
  *
  * Follows the same pattern as {@link useSessionArtifacts}: `useMemo`-based
  * derivation, no side effects, no data fetching. Takes the same
  * `executions` array input.
  *
  * **Dedup semantics:** Write-backs are keyed by `workspace_entry_name`.
- * When multiple executions write back to the same workspace entry (e.g.,
- * a follow-up execution on the same git repo), the latest execution's
- * write-back wins — each execution creates its own branch/PR, and the
+ * When multiple runs write back to the same workspace entry (e.g.,
+ * a follow-up run on the same git repo), the latest run's
+ * write-back wins — each run creates its own branch/PR, and the
  * most recent one is the one users care about.
  *
  * **Sorting:** Entries are sorted alphabetically by workspace entry name.
  *
- * @param executions - All executions for a session, in chronological
- *   order. Pass both completed and active-stream executions.
+ * @param runs - All runs for a session, in chronological
+ *   order. Pass both completed and active-stream runs.
  *
  * @example
  * ```tsx
  * const conv = useSessionConversation(sessionId, org);
- * const allExecutions = [
- *   ...conv.completedExecutions,
- *   ...(conv.activeStreamExecution ? [conv.activeStreamExecution] : []),
+ * const allRuns = [
+ *   ...conv.completedRuns,
+ *   ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
  * ];
- * const { writeBacks, hasWriteBacks } = useSessionWriteBacks(allExecutions);
+ * const { writeBacks, hasWriteBacks } = useSessionWriteBacks(allRuns);
  * ```
  *
  * @see useWorkspaceWriteBacks — single-execution write-back derivation
@@ -72,7 +72,7 @@ export function useSessionWriteBacks(
       for (const wb of execution.status?.workspaceWriteBacks ?? []) {
         entryMap.set(wb.workspaceEntryName, {
           writeBack: wb,
-          executionId,
+          runId: executionId,
         });
       }
     }

@@ -46,7 +46,7 @@ function makeExecution(opts: {
   return exec;
 }
 
-/** A live Plan-mode execution with the given messages — the common case. */
+/** A live Plan-mode run with the given messages — the common case. */
 function livePlanExecution(...messages: ReturnType<typeof makeMessage>[]) {
   return makeExecution({
     phase: RunPhase.RUN_IN_PROGRESS,

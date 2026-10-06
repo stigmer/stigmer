@@ -21,7 +21,7 @@
  *   derivation, personal environments) and never fall back to the
  *   built-in assistant. Approval mechanics are
  *   also withheld: the HITL gate protects the ORG's tools and
- *   an anonymous visitor is not its trustee — guest executions run in
+ *   an anonymous visitor is not its trustee — guest runs run in
  *   unattended approval mode server-side (gated tools auto-skip and the
  *   agent explains in plain language), so tool-approval vocabulary never
  *   reaches a guest.
@@ -31,7 +31,7 @@
  *   runtime owns. No composer, no approval/edit/retry/build
  *   affordances, no access management — the server enforces the same
  *   boundary (channel viewers hold `can_view` only, never
- *   `can_create_execution_in`), so the presentation simply never
+ *   `can_create_run_in`), so the presentation simply never
  *   offers what the caller could not do. The session panel stays
  *   available read-only: usage, artifacts, and setup inspection are
  *   the point of observability. `SessionViewer` also self-selects this

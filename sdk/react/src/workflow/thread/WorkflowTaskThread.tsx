@@ -3,7 +3,7 @@
 import { memo, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
+import type { DerivedTaskState } from "../../internal/store/workflow-run-event-store.js";
 import { useAutoScroll } from "../../internal/useAutoScroll.js";
 import { JumpToLatestButton } from "../../internal/JumpToLatestButton.js";
 import { BoundedContent } from "../../internal/BoundedContent.js";
@@ -19,7 +19,7 @@ import {
   SlashCircleIcon,
 } from "../../internal/thread-card/index.js";
 import { formatMetaChips } from "../format-utils.js";
-import type { UseWorkflowExecutionActionsReturn } from "../useWorkflowExecutionActions.js";
+import type { UseWorkflowRunActionsReturn } from "../useWorkflowRunActions.js";
 import { WorkflowAgentCallTranscript } from "../WorkflowAgentCallTranscript.js";
 import { WorkflowTaskReviewGate } from "../WorkflowTaskReviewGate.js";
 import { WorkflowTaskApprovalSummary } from "../WorkflowTaskApprovalSummary.js";
@@ -39,17 +39,17 @@ import type {
 
 /**
  * The workflow-level HITL wiring a decision-capable thread needs — a `Pick`
- * of the single `useWorkflowExecutionActions` instance's return (cannot
- * drift; same convention as `WorkflowAgentExecutionHitl`). Covers all three
+ * of the single `useWorkflowRunActions` instance's return (cannot
+ * drift; same convention as `WorkflowAgentRunHitl`). Covers all three
  * gate kinds: child tool approvals, child file reviews, and task-level
  * (human_input) approvals — the gating card is the ONLY decision
  * surface, so the thread carries the full set. Decisions route through the
- * WORKFLOW-level RPCs only — never the child's own `agentExecution.*` path,
+ * WORKFLOW-level RPCs only — never the child's own `agentRun.*` path,
  * whose authorization checks the runner-spawned child rather than the
- * workflow execution the operator owns.
+ * workflow run the operator owns.
  */
 export type WorkflowThreadHitl = Pick<
-  UseWorkflowExecutionActionsReturn,
+  UseWorkflowRunActionsReturn,
   | "submitApproval"
   | "approvalSubmittingToolCallIds"
   | "approvalErrorsByToolCallId"
@@ -63,18 +63,18 @@ export type WorkflowThreadHitl = Pick<
 
 /** Props for {@link WorkflowTaskThread}. */
 export interface WorkflowTaskThreadProps {
-  /** Live derived task states from the execution event stream. */
+  /** Live derived task states from the run event stream. */
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
-  /** Total planned tasks (from `execution_started`); `0` when unknown. */
+  /** Total planned tasks (from `run_started`); `0` when unknown. */
   readonly totalTasks: number;
-  /** Whether the execution is still running (drives streaming affordances). */
+  /** Whether the run is still running (drives streaming affordances). */
   readonly isRunning: boolean;
   /**
-   * Open an AGENT_CALL task's child execution as a standalone page — the
+   * Open an AGENT_CALL task's child run as a standalone page — the
    * inline transcript's deep-dive pop-out. Host-routed. Omitted →
    * the affordance is not rendered.
    */
-  readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
+  readonly onNavigateToAgentRun?: (agentExecutionId: string) => void;
   /**
    * Workflow-level HITL wiring (see {@link WorkflowThreadHitl}). When
    * provided, a gating task's card renders its decision surface directly in
@@ -110,7 +110,7 @@ export interface WorkflowTaskThreadProps {
 }
 
 /**
- * Session-style task thread for a workflow execution: one card per task in
+ * Session-style task thread for a workflow run: one card per task in
  * execution order (first-started first), streaming live as the
  * run progresses, with a collapsed preview and an expandable detail body
  * per card — the workflow analog of the session viewer's tool-call cards.
@@ -145,7 +145,7 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
   taskStates,
   totalTasks,
   isRunning,
-  onNavigateToAgentExecution,
+  onNavigateToAgentRun,
   hitl,
   taskSnapshotsByName,
   scrollOnSend = true,
@@ -196,7 +196,7 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
               <ThreadTaskCard
                 key={item.taskName}
                 item={item}
-                onNavigateToAgentExecution={onNavigateToAgentExecution}
+                onNavigateToAgentRun={onNavigateToAgentRun}
                 // HITL props reach ONLY gating cards: the bundle's
                 // identity moves whenever any gate's in-flight/error state
                 // flips (fresh Set/Map fields), so handing it to every card
@@ -262,7 +262,7 @@ function ThreadEmptyState({ isRunning }: { readonly isRunning: boolean }) {
     <div role="status" className="stg:px-4 stg:py-10 stg:text-center stg:text-sm stg:text-muted-foreground">
       {isRunning
         ? "Waiting for the first task to start…"
-        : "No task activity was recorded for this execution."}
+        : "No task activity was recorded for this run."}
     </div>
   );
 }
@@ -303,12 +303,12 @@ function ThreadEmptyState({ isRunning }: { readonly isRunning: boolean }) {
  */
 const ThreadTaskCard = memo(function ThreadTaskCard({
   item,
-  onNavigateToAgentExecution,
+  onNavigateToAgentRun,
   hitl,
   snapshot,
 }: {
   readonly item: WorkflowThreadItem;
-  readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
+  readonly onNavigateToAgentRun?: (agentExecutionId: string) => void;
   readonly hitl?: WorkflowThreadHitl;
   readonly snapshot?: WorkflowTask;
 }) {
@@ -351,7 +351,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
   // own ApprovalCard/FileReviewDock), so the generic HITL section below is
   // for task-level (human_input) gates only.
   const showTranscript =
-    item.variant === "agent-call" && item.childExecutionId !== "";
+    item.variant === "agent-call" && item.childRunId !== "";
   const showHitl =
     !!hitl && item.status === "waiting_approval" && !showTranscript;
   // A resolved human_input gate presents its decision report in place of
@@ -456,7 +456,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
       {/* The child's inline transcript — the agent-call card's body for
           every state: streaming while the child runs, full history once
           settled, the child's own gates decided in place. The task's
-          own error (e.g. "child execution failed") renders above it. */}
+          own error (e.g. "child run failed") renders above it. */}
       {showTranscript && (
         <ThreadCardBody cursorTarget="task-transcript">
           <div className="stg:flex stg:flex-col stg:gap-2">
@@ -472,10 +472,10 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
                 the thread's active tail — pinning the outer thread keeps
                 the transcript's continuation in view as it streams. */}
             <WorkflowAgentCallTranscript
-              childExecutionId={item.childExecutionId}
+              childRunId={item.childRunId}
               agentSlug={item.agentSlug || undefined}
               hitl={hitl}
-              onNavigateToAgentExecution={onNavigateToAgentExecution}
+              onNavigateToAgentRun={onNavigateToAgentRun}
             />
           </div>
         </ThreadCardBody>

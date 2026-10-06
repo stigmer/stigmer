@@ -32,7 +32,7 @@ import type { Stigmer } from "@stigmer/sdk";
 import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
 import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { StigmerProvider } from "../provider";
-import { TodoList } from "../execution/TodoList.js";
+import { TodoList } from "../run/TodoList.js";
 import { UNSTYLED_FIELDSET, UNSTYLED_LIST } from "../internal/element-resets.js";
 import { MARKDOWN_COMPONENTS } from "../internal/markdown-components.js";
 

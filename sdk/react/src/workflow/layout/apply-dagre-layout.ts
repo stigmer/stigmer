@@ -10,7 +10,7 @@ import { registryNodeDimensions } from "./registry-dimensions.js";
  * immediate rendering without a blank-canvas flash.
  *
  * This is the shared layout utility used by both the interactive canvas
- * editor (initial YAML parse) and the read-only execution graph.
+ * editor (initial YAML parse) and the read-only run graph.
  *
  * @param graph   The graph model to lay out.
  * @param config  Optional dagre spacing overrides. Defaults to {@link DAGRE_CONFIG}.

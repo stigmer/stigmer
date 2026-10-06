@@ -11,11 +11,11 @@ import { renderHook, act } from "@testing-library/react";
 vi.mock("../../session/useCreateSession", () => ({
   useCreateSession: vi.fn(),
 }));
-vi.mock("../../execution/useCreateAgentExecution", () => ({
-  useCreateAgentExecution: vi.fn(),
+vi.mock("../../run/useCreateAgentRun", () => ({
+  useCreateAgentRun: vi.fn(),
 }));
-vi.mock("../../execution/useExecutionStream", () => ({
-  useExecutionStream: vi.fn(),
+vi.mock("../../run/useRunStream", () => ({
+  useRunStream: vi.fn(),
 }));
 vi.mock("../../internal/store", () => ({
   useConversationStoreRef: vi.fn(() => ({ current: null })),
@@ -23,8 +23,8 @@ vi.mock("../../internal/store", () => ({
 
 import { useExplainWorkflowFlow } from "../useExplainWorkflowFlow";
 import { useCreateSession } from "../../session/useCreateSession";
-import { useCreateAgentExecution } from "../../execution/useCreateAgentExecution";
-import { useExecutionStream } from "../../execution/useExecutionStream";
+import { useCreateAgentRun } from "../../run/useCreateAgentRun";
+import { useRunStream } from "../../run/useRunStream";
 
 const mockCreateSession = vi.fn();
 const mockCreateExecution = vi.fn();
@@ -39,13 +39,13 @@ describe("useExplainWorkflowFlow", () => {
       error: null,
       clearError: vi.fn(),
     });
-    (useCreateAgentExecution as ReturnType<typeof vi.fn>).mockReturnValue({
+    (useCreateAgentRun as ReturnType<typeof vi.fn>).mockReturnValue({
       create: mockCreateExecution,
       isCreating: false,
       error: null,
       clearError: vi.fn(),
     });
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue({
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue({
       execution: null,
       phase: 0,
       isStreaming: false,

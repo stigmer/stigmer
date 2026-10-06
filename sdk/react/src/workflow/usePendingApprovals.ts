@@ -37,7 +37,7 @@ const INITIAL_DATA: PendingApprovalsData = {
 /**
  * Data hook that fetches pending human_input approvals for an organization.
  *
- * Returns workflow executions with active human_input tasks awaiting
+ * Returns workflow runs with active human_input tasks awaiting
  * reviewer decisions. Includes task name, requester, and timeout info.
  *
  * Auto-refreshes every 30 seconds by default since pending approvals

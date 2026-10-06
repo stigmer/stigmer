@@ -23,8 +23,8 @@ const BOUND_SESSION = {
 const mockConv = {
   session: BOUND_SESSION as unknown,
   isLoading: false,
-  completedExecutions: [] as unknown[],
-  activeStreamExecution: null,
+  completedRuns: [] as unknown[],
+  activeStreamRun: null,
   workspaceEntries: [] as unknown[],
   submitApproval: vi.fn(),
   sendFollowUp: mockSendFollowUp,
@@ -52,7 +52,7 @@ vi.mock("../../workspace", () => ({
   }),
 }));
 
-vi.mock("../../execution/useSessionVariables", () => ({
+vi.mock("../../run/useSessionVariables", () => ({
   useSessionVariables: () => ({ variables: [], isEmpty: true, clear: vi.fn() }),
 }));
 

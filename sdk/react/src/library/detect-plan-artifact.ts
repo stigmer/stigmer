@@ -4,12 +4,12 @@ import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/
 
 /**
  * The session's current plan: the published plan artifact (a `*.plan.md` FILE)
- * of the most recent execution that produced one, plus the execution it belongs
+ * of the most recent run that produced one, plus the run it belongs
  * to (artifact content RPCs are execution-scoped).
  */
 export interface SessionPlan {
-  /** ID of the execution that published the plan. */
-  readonly executionId: string;
+  /** ID of the run that published the plan. */
+  readonly runId: string;
   /** The published plan artifact (`*.plan.md`). */
   readonly artifact: RunArtifact;
 }
@@ -59,8 +59,8 @@ export function isPlanArtifact(artifact: RunArtifact): boolean {
 }
 
 /**
- * Finds the plan artifact on a completed execution, or `undefined` when none
- * was published (older executions, or a plan that failed to upload).
+ * Finds the plan artifact on a completed run, or `undefined` when none
+ * was published (older runs, or a plan that failed to upload).
  *
  * Returns the latest `plan.md` if more than one is present — the runner
  * replaces rather than appends, so this is defensive.
@@ -77,13 +77,13 @@ export function findPlanArtifact(
 }
 
 /**
- * Finds the session's LATEST plan across all executions — the plan the panel's
- * plan document tab edits and the "Build" action implements. Executions are
+ * Finds the session's LATEST plan across all runs — the plan the panel's
+ * plan document tab edits and the "Build" action implements. Runs are
  * scanned newest-first (the array is chronological), mirroring the thread's
  * latest-plan-owns-the-build-action rule so every surface agrees on which
  * plan is current.
  *
- * Returns `undefined` when no execution in the session published a plan.
+ * Returns `undefined` when no run in the session published a plan.
  */
 export function findLatestSessionPlan(
   executions: readonly AgentRun[],
@@ -93,7 +93,7 @@ export function findLatestSessionPlan(
     const artifact = findPlanArtifact(execution);
     const executionId = execution.metadata?.id;
     if (artifact && executionId) {
-      return { executionId, artifact };
+      return { runId: executionId, artifact };
     }
   }
   return undefined;

@@ -29,8 +29,8 @@ vi.mock("../../hooks", () => {
 });
 
 const mockCreateExecution = vi.fn();
-vi.mock("../../execution/useCreateAgentExecution", () => ({
-  useCreateAgentExecution: () => ({
+vi.mock("../../run/useCreateAgentRun", () => ({
+  useCreateAgentRun: () => ({
     create: mockCreateExecution,
     isCreating: false,
     error: null,
@@ -59,7 +59,7 @@ const mockSessionVariables = {
   clear: vi.fn(),
   toMap: vi.fn().mockReturnValue(new Map()),
 };
-vi.mock("../../execution/useSessionVariables", () => ({
+vi.mock("../../run/useSessionVariables", () => ({
   useSessionVariables: () => mockSessionVariables,
 }));
 
@@ -96,14 +96,14 @@ function createWrapper(
 function createMockAdapter(): RunnerAdapter & {
   onSessionOpened: ReturnType<typeof vi.fn>;
   onSessionClosed: ReturnType<typeof vi.fn>;
-  onWorkflowExecutionCreated: ReturnType<typeof vi.fn>;
-  onWorkflowExecutionTerminated: ReturnType<typeof vi.fn>;
+  onWorkflowRunCreated: ReturnType<typeof vi.fn>;
+  onWorkflowRunTerminated: ReturnType<typeof vi.fn>;
 } {
   return {
     onSessionOpened: vi.fn().mockResolvedValue(undefined),
     onSessionClosed: vi.fn().mockResolvedValue(undefined),
-    onWorkflowExecutionCreated: vi.fn().mockResolvedValue(undefined),
-    onWorkflowExecutionTerminated: vi.fn().mockResolvedValue(undefined),
+    onWorkflowRunCreated: vi.fn().mockResolvedValue(undefined),
+    onWorkflowRunTerminated: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -535,7 +535,7 @@ describe("useNewSessionFlow", () => {
 
     it("forwards metadata and sessionContext verbatim in the sessionSpec", async () => {
       // The typed-wins merge onto the reserved key happens downstream in
-      // useCreateAgentExecution (covered by its own tests); the flow's job
+      // useCreateAgentRun (covered by its own tests); the flow's job
       // is faithful forwarding.
       const opts = {
         ...defaultOptions(),
@@ -974,7 +974,7 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      // No orphan session, no execution — the failure is fully pre-flight.
+      // No orphan session, no run — the failure is fully pre-flight.
       expect(mockCreateExecution).not.toHaveBeenCalled();
       expect(result.current.submitError).toContain("token mint failed");
       expect(opts.onError).toHaveBeenCalled();

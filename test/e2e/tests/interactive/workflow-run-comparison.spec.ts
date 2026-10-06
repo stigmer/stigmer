@@ -1,11 +1,11 @@
 import { test, expect } from "../../fixtures";
 import {
   createTestWaitWorkflow,
-  createTestWorkflowExecution,
+  createTestWorkflowRun,
 } from "../../fixtures/seed-helpers";
 import {
-  awaitWorkflowExecutionCompleted,
-  navigateToExecution,
+  awaitWorkflowRunCompleted,
+  navigateToRun,
   waitForPhaseBadge,
 } from "../../helpers/workflow-run";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
@@ -16,13 +16,13 @@ test.describe("Workflow execution comparison", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
@@ -39,19 +39,19 @@ test.describe("Workflow execution comparison", () => {
   }) => {
     // A bespoke wait workflow (not the shared testWaitWorkflow fixture): the
     // running-window clock starts at API create, BEFORE navigation, and a
-    // cold dev-server compile of the execution route can exceed the
-    // fixture's 10s default — the execution would complete before the
+    // cold dev-server compile of the run route can exceed the
+    // fixture's 10s default — the run would complete before the
     // header renders. 30s matches this spec's sibling tolerances.
     const waitWorkflow = await createTestWaitWorkflow(stigmerClient, {
       waitDurationSeconds: 30,
     });
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       waitWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
 
       // Anchor on the non-terminal badge first so the hidden-assertion
@@ -71,11 +71,11 @@ test.describe("Workflow execution comparison", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const exec1 = await createTestWorkflowExecution(
+    const exec1 = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
-    const exec2 = await createTestWorkflowExecution(
+    const exec2 = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
@@ -83,14 +83,14 @@ test.describe("Workflow execution comparison", () => {
     try {
       // The picker offers only finished runs, and exec2's page shows only
       // exec2's phase: wait for exec1 on the server first (#1552).
-      await awaitWorkflowExecutionCompleted(stigmerClient, exec1.id);
-      await navigateToExecution(page, exec2.id);
+      await awaitWorkflowRunCompleted(stigmerClient, exec1.id);
+      await navigateToRun(page, exec2.id);
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
       await page.getByRole("button", { name: /Compare with/ }).click();
 
-      const dialog = page.getByRole("dialog", { name: "Select execution to compare" });
+      const dialog = page.getByRole("dialog", { name: "Select run to compare" });
       await expect(dialog).toBeVisible({ timeout: 5_000 });
 
       const options = dialog.getByRole("option");
@@ -106,11 +106,11 @@ test.describe("Workflow execution comparison", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const exec1 = await createTestWorkflowExecution(
+    const exec1 = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
-    const exec2 = await createTestWorkflowExecution(
+    const exec2 = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
@@ -118,18 +118,18 @@ test.describe("Workflow execution comparison", () => {
     try {
       // The picker offers only finished runs, and exec2's page shows only
       // exec2's phase: wait for exec1 on the server first (#1552).
-      await awaitWorkflowExecutionCompleted(stigmerClient, exec1.id);
-      await navigateToExecution(page, exec2.id);
+      await awaitWorkflowRunCompleted(stigmerClient, exec1.id);
+      await navigateToRun(page, exec2.id);
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
       await page.getByRole("button", { name: /Compare with/ }).click();
-      const dialog = page.getByRole("dialog", { name: "Select execution to compare" });
+      const dialog = page.getByRole("dialog", { name: "Select run to compare" });
       await expect(dialog).toBeVisible({ timeout: 5_000 });
 
       await dialog.getByRole("button", { name: "Compare" }).click();
 
-      const comparisonSection = page.getByRole("region", { name: "Execution comparison" });
+      const comparisonSection = page.getByRole("region", { name: "Run comparison" });
       await expect(comparisonSection).toBeVisible({ timeout: 10_000 });
 
       const summaryCards = page.getByLabel("Comparison summary");
@@ -148,11 +148,11 @@ test.describe("Workflow execution comparison", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const exec1 = await createTestWorkflowExecution(
+    const exec1 = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
-    const exec2 = await createTestWorkflowExecution(
+    const exec2 = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
@@ -160,19 +160,19 @@ test.describe("Workflow execution comparison", () => {
     try {
       // The picker offers only finished runs, and exec2's page shows only
       // exec2's phase: wait for exec1 on the server first (#1552).
-      await awaitWorkflowExecutionCompleted(stigmerClient, exec1.id);
-      await navigateToExecution(page, exec2.id);
+      await awaitWorkflowRunCompleted(stigmerClient, exec1.id);
+      await navigateToRun(page, exec2.id);
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
       await page.getByRole("button", { name: /Compare with/ }).click();
-      const dialog = page.getByRole("dialog", { name: "Select execution to compare" });
+      const dialog = page.getByRole("dialog", { name: "Select run to compare" });
       await dialog.getByRole("button", { name: "Compare" }).click();
 
-      const comparisonSection = page.getByRole("region", { name: "Execution comparison" });
+      const comparisonSection = page.getByRole("region", { name: "Run comparison" });
       await expect(comparisonSection).toBeVisible({ timeout: 10_000 });
 
-      await page.getByRole("button", { name: "Back to execution" }).click();
+      await page.getByRole("button", { name: "Back to run" }).click();
 
       await expect(comparisonSection).toBeHidden({ timeout: 5_000 });
 

@@ -8,7 +8,7 @@ import type {
   DailyCostEntry,
   GetOrgUsageReportOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import { formatCost, formatTokenCount } from "../execution/UsageWidget.js";
+import { formatCost, formatTokenCount } from "../run/UsageWidget.js";
 import { useOrgUsageReport } from "./useOrgUsageReport.js";
 import {
   DATE_RANGE_PRESETS,
@@ -243,7 +243,7 @@ function SummaryCards({
           <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCompactNumber(report.totalRuns)}
           </div>
-          <div className="stg:text-[0.65rem] stg:text-muted-foreground">Executions</div>
+          <div className="stg:text-[0.65rem] stg:text-muted-foreground">Runs</div>
         </div>
         <div className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-3.5 stg:py-2.5">
           <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
@@ -465,7 +465,7 @@ function EmptyState() {
       <ChartIcon className="stg:text-muted-foreground stg:mb-3 stg:size-8" />
       <p className="stg:text-sm stg:font-medium stg:text-foreground">No usage data yet</p>
       <p className="stg:mt-1 stg:max-w-xs stg:text-xs stg:text-muted-foreground">
-        Usage data will appear here once agents start running executions
+        Usage data will appear here once agents start runs
         in this organization.
       </p>
     </div>

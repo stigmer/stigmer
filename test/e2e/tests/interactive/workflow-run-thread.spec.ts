@@ -1,20 +1,20 @@
 import { test, expect } from "../../fixtures";
-import { createTestWorkflowExecution } from "../../fixtures/seed-helpers";
+import { createTestWorkflowRun } from "../../fixtures/seed-helpers";
 import {
-  navigateToExecution,
+  navigateToRun,
   waitForPhaseBadge,
   getCenterViewSwitcher,
   getCenterViewWrapper,
-  getExecutionThread,
+  getRunThread,
   getThreadTaskCards,
   getThreadTaskCard,
-  openExecutionPanel,
+  openRunPanel,
   getPanelToggle,
   getPanelResizeHandle,
 } from "../../helpers/workflow-run";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 
-// The task thread is the PRIMARY surface of the redesigned execution page
+// The task thread is the PRIMARY surface of the redesigned run page
 // (the thread-primary redesign): one card per started task,
 // with the card as the single home for that task's status, timing, and
 // I/O. This file is the successor of the retired waterfall and inspector
@@ -27,13 +27,13 @@ test.describe("Workflow execution thread", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
 
       const switcher = getCenterViewSwitcher(page);
@@ -41,7 +41,7 @@ test.describe("Workflow execution thread", () => {
         switcher.getByRole("radio", { name: "Thread" }),
       ).toHaveAttribute("aria-checked", "true");
 
-      await expect(getExecutionThread(page)).toBeVisible();
+      await expect(getRunThread(page)).toBeVisible();
       await expect(getCenterViewWrapper(page, "graph")).toBeHidden();
       await expect(getCenterViewWrapper(page, "graph")).toBeAttached();
     } finally {
@@ -54,13 +54,13 @@ test.describe("Workflow execution thread", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
@@ -90,13 +90,13 @@ test.describe("Workflow execution thread", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
@@ -116,13 +116,13 @@ test.describe("Workflow execution thread", () => {
     stigmerClient,
     testWaitWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWaitWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
       // The wait workflow blocks ~10s before completing.
       await waitForPhaseBadge(page, "Completed", { timeout: 45_000 });
@@ -149,17 +149,17 @@ test.describe("Workflow execution thread", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
-      await expect(getExecutionThread(page)).toContainText("2 of 2 tasks", {
+      await expect(getRunThread(page)).toContainText("2 of 2 tasks", {
         timeout: 15_000,
       });
     } finally {
@@ -172,13 +172,13 @@ test.describe("Workflow execution thread", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
 
       // The a11y promise the graph's announcer used to carry: one
@@ -197,20 +197,20 @@ test.describe("Workflow execution thread", () => {
     stigmerClient,
     testWorkflow,
   }) => {
-    const execution = await createTestWorkflowExecution(
+    const execution = await createTestWorkflowRun(
       stigmerClient,
       testWorkflow.id,
     );
 
     try {
-      await navigateToExecution(page, execution.id);
+      await navigateToRun(page, execution.id);
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
       // Collapsed by default: the resize handle is aria-hidden until open.
       await expect(getPanelResizeHandle(page)).not.toBeVisible();
 
-      await openExecutionPanel(page);
+      await openRunPanel(page);
 
       // The execution-level facet rail (labels may carry count badges).
       for (const facet of [/^Artifacts/, /^Changes/, /^Usage/]) {

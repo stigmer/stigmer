@@ -38,6 +38,6 @@ test.describe("Dashboard", () => {
     await expect(summary.getByText("No approvals pending")).toBeVisible();
     await expect(summary.getByText("No recent failures")).toBeVisible();
     await expect(page.getByText("No cost data available")).toBeVisible();
-    await expect(page.getByText("No execution data available")).toBeVisible();
+    await expect(page.getByText("No run data available")).toBeVisible();
   });
 });

@@ -16,7 +16,7 @@ import type {
  *   oversized files, caps results, and returns the `{ matches, truncated }`
  *   shape directly.
  * - Returns `null` for non-local entries (git content is not searchable on
- *   desktop — the runner clones repos at execution time), mirroring
+ *   desktop — the runner clones repos at run time), mirroring
  *   `useNativeWorkspaceFiles`/`useNativeWorkspaceFileReader`.
  * - Real failures (unreadable root) surface as a rejected invoke and propagate
  *   to the caller — never collapsed into `null`.

@@ -48,8 +48,8 @@ const ConversationsPage = lazy(() => import("./pages/conversations/Conversations
 const WorkflowListPage = lazy(() => import("./pages/workflow/WorkflowListPage"));
 const WorkflowNewPage = lazy(() => import("./pages/workflow/WorkflowNewPage"));
 const WorkflowDetailPage = lazy(() => import("./pages/workflow/WorkflowDetailPage"));
-const WorkflowExecutionListPage = lazy(() => import("./pages/workflow/WorkflowExecutionListPage"));
-const WorkflowExecutionDetailPage = lazy(() => import("./pages/workflow/WorkflowExecutionDetailPage"));
+const WorkflowRunListPage = lazy(() => import("./pages/workflow/WorkflowRunListPage"));
+const WorkflowRunDetailPage = lazy(() => import("./pages/workflow/WorkflowRunDetailPage"));
 const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
 const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
@@ -282,20 +282,20 @@ const routes: RouteObject[] = [
             ),
           },
           {
-            path: "workflows/executions",
+            path: "workflows/runs",
             element: (
               <LazyPage>
-                <WorkflowExecutionListPage />
+                <WorkflowRunListPage />
               </LazyPage>
             ),
           },
         ],
       },
       {
-        path: "executions/:id",
+        path: "runs/:id",
         element: (
           <LazyPage>
-            <WorkflowExecutionDetailPage />
+            <WorkflowRunDetailPage />
           </LazyPage>
         ),
       },

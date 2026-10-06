@@ -21,7 +21,7 @@ export interface WorkspaceSummaryProps {
  *
  * This is the display-only counterpart to {@link WorkspaceEditor},
  * designed for contexts where workspace data is shown but not edited
- * (e.g., execution detail views, session summaries).
+ * (e.g., run detail views, session summaries).
  *
  * Renders its content without card chrome (no border, background, or
  * elevation). The consumer controls the container styling.

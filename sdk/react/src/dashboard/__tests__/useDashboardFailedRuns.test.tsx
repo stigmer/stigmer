@@ -12,10 +12,10 @@ function createMockStigmer(overrides: {
   workflowList?: (...args: unknown[]) => Promise<unknown>;
 } = {}) {
   return {
-    agentExecution: {
+    agentRun: {
       list: overrides.agentList ?? vi.fn().mockResolvedValue({ entries: [] }),
     },
-    workflowExecution: {
+    workflowRun: {
       list: overrides.workflowList ?? vi.fn().mockResolvedValue({ entries: [] }),
     },
   } as never;

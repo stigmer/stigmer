@@ -9,7 +9,7 @@ import type { AgentEnvFormVariable } from "./AgentEnvForm.js";
 /**
  * One MCP server the agent uses that authenticates by OAuth and has no
  * usable grant in the organization. The agent is not ready until each is
- * signed in: execution would start and fail at the first tool call, so the
+ * signed in: run would start and fail at the first tool call, so the
  * composer asks first, the way it asks for a missing variable. Grants are
  * per organization today, so one colleague's sign-in serves everyone.
  */
@@ -30,7 +30,7 @@ export interface PendingSignIn {
 
 /**
  * Describes how the agent was resolved, determining how the caller
- * should create the session and its first execution.
+ * should create the session and its first run.
  *
  * Every mode starts the conversation on the agent itself (the session's
  * `agentRef`); the mode says where the keys the agent declares come from:
@@ -48,7 +48,7 @@ export type AgentResolution =
       readonly mode: "saved";
     }
   | {
-      /** Secrets were collected but not persisted — pass to execution only. */
+      /** Secrets were collected but not persisted — pass to run only. */
       readonly mode: "oneTime";
       /** Collected secrets to forward as execution-scoped runtime env vars. */
       readonly runtimeEnv: Record<string, EnvVarInput>;

@@ -9,7 +9,7 @@ import { SessionView } from "./SessionView.js";
 export interface SessionAppProps {
   /** Session ID to display and converse in. */
   readonly sessionId: string;
-  /** Organization slug for creating follow-up executions. */
+  /** Organization slug for creating follow-up runs. */
   readonly org: string;
   /** Stigmer API server URL. */
   readonly baseUrl: string;
@@ -18,12 +18,12 @@ export interface SessionAppProps {
   /** Dynamic token provider for authentication. */
   readonly getAccessToken?: TokenProvider;
   /**
-   * Default interaction mode for follow-up executions.
+   * Default interaction mode for follow-up runs.
    *
    * - `"agent"` (default): full tool access.
    * - `"plan"`: read-only analysis, no file mutations.
    *
-   * When set, all follow-up executions in this session use this mode
+   * When set, all follow-up runs in this session use this mode
    * unless overridden by the user.
    */
   readonly mode?: "agent" | "plan";

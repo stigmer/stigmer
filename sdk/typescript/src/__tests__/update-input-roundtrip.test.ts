@@ -901,7 +901,7 @@ describe("toWorkflowUpdateInput", () => {
     );
   });
 
-  it("preserves execution_visibility when only the description changes", () => {
+  it("preserves run_visibility when only the description changes", () => {
     const rebuilt = buildWorkflowProto({
       ...toWorkflowUpdateInput(fixture()),
       description: "Nightly triage, revised.",

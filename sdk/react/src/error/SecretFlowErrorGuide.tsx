@@ -46,7 +46,7 @@ function isFailedPreconditionError(error: Error): boolean {
 /**
  * Contextual recovery guidance for secret-flow errors.
  *
- * Detects `FAILED_PRECONDITION` errors from execution creation that
+ * Detects `FAILED_PRECONDITION` errors from run creation that
  * indicate missing MCP server environment variables, and renders
  * actionable guidance alongside the technical error message.
  *

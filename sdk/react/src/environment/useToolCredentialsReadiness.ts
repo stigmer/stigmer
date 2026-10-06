@@ -7,7 +7,7 @@ import { useStigmer } from "../hooks.js";
 
 /**
  * Readiness of a connection's tool credentials for its visitors'
- * executions. Shared vocabulary for every connection kind that binds
+ * runs. Shared vocabulary for every connection kind that binds
  * `environment_refs` (shares, channels):
  *
  * - `na` — nothing to check: the caller decided the check does not

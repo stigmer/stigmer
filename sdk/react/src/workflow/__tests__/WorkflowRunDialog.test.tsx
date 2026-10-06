@@ -53,7 +53,7 @@ const DECLARED_ENV = {
 
 function makeWorkflow(overrides?: {
   org?: string;
-  executionVisibility?: WorkflowRunVisibility;
+  runVisibility?: WorkflowRunVisibility;
 }): Workflow {
   return {
     metadata: {
@@ -64,8 +64,8 @@ function makeWorkflow(overrides?: {
     },
     spec: {
       env: DECLARED_ENV,
-      executionVisibility:
-        overrides?.executionVisibility ?? WorkflowRunVisibility.private,
+      runVisibility:
+        overrides?.runVisibility ?? WorkflowRunVisibility.private,
     },
   } as unknown as Workflow;
 }
@@ -96,7 +96,7 @@ function makeClient(
         : Promise.resolve(answer),
   );
   const client = {
-    workflowExecution: { create },
+    workflowRun: { create },
     environment: { list },
   } as unknown as Stigmer;
   return { client, create, list };
@@ -233,7 +233,7 @@ describe("WorkflowRunDialog", () => {
     const { client } = makeClient([]);
     renderDialog(
       makeWorkflow({
-        executionVisibility: WorkflowRunVisibility.organization,
+        runVisibility: WorkflowRunVisibility.organization,
       }),
       client,
     );

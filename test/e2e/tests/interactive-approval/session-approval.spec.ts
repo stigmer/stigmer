@@ -5,8 +5,8 @@
 // — plus genuine browser concerns (the orphan-vs-inline DOM split, scroll-driven
 // peek bar). Determinism is from the mock, not a live model.
 //
-// The execution is SEEDED via the node SDK client (agent + native session +
-// gated execution); the browser is used only to render and resolve the gate. The
+// The run is SEEDED via the node SDK client (agent + native session +
+// gated run); the browser is used only to render and resolve the gate. The
 // gated tool is the built-in `execute` (approval category `shell`), which gates
 // fail-closed in EVERY stack shape with no MCP fixture or agent override. It
 // deliberately is NOT `write_file`: this stack has a capture substrate (local
@@ -23,8 +23,8 @@ import {
   getMockControlUrl,
   seedGatedSession,
   shellBlock,
-  awaitExecutionPhase,
-  awaitExecutionTerminal,
+  awaitRunPhase,
+  awaitRunTerminal,
   awaitMockRemaining,
   approveButton,
   approveAllButton,
@@ -34,7 +34,7 @@ import {
   approvalPeekBar,
   autoApproveIndicator,
   messageThread,
-  type SeededGatedExecution,
+  type SeededGatedRun,
 } from "../../helpers/approval";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
@@ -47,12 +47,12 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     "Requires the mock-LLM stack — run via `make test-e2e-approval` (STIGMER_E2E_MOCK_LLM=1)",
   );
   // Serial (shared single-FIFO mock queue) with generous headroom: each test
-  // boots a real execution to a gate and resolves it through the browser, on top
+  // boots a real run to a gate and resolves it through the browser, on top
   // of first-route Next compilation.
   test.describe.configure({ mode: "serial", timeout: 90_000 });
 
   const control = new MockControl(mockUrl ?? "");
-  let seeded: SeededGatedExecution | null = null;
+  let seeded: SeededGatedRun | null = null;
 
   test.afterEach(async () => {
     if (seeded) {
@@ -68,9 +68,9 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     stigmerClient,
   }) => {
     seeded = await seedGatedSession(stigmerClient, control);
-    await awaitExecutionPhase(
+    await awaitRunPhase(
       stigmerClient,
-      seeded.executionId,
+      seeded.runId,
       RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
@@ -87,16 +87,16 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     await approveButton(page).click();
 
     // The real submitApproval RPC fired and the run resumed to completion.
-    const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
+    const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
     expect(phase, "approved execution completes").toBe(RunPhase.RUN_COMPLETED);
     await assertComposerEnabled(page);
   });
 
   test("Skip resolves the gate and the run completes", async ({ page, stigmerClient }) => {
     seeded = await seedGatedSession(stigmerClient, control);
-    await awaitExecutionPhase(
+    await awaitRunPhase(
       stigmerClient,
-      seeded.executionId,
+      seeded.runId,
       RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
@@ -104,15 +104,15 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     await expect(skipButton(page)).toBeVisible({ timeout: 30_000 });
     await skipButton(page).click();
 
-    const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
+    const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
     expect(phase, "skipped execution completes").toBe(RunPhase.RUN_COMPLETED);
   });
 
   test("Reject resolves the gate and the run completes", async ({ page, stigmerClient }) => {
     seeded = await seedGatedSession(stigmerClient, control);
-    await awaitExecutionPhase(
+    await awaitRunPhase(
       stigmerClient,
-      seeded.executionId,
+      seeded.runId,
       RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
@@ -122,7 +122,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
 
     // REJECT fails the tool, not the run: the agent is told and continues to
     // completion (matches the conformance + Go HITL contract).
-    const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
+    const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
     expect(phase, "rejected execution still completes").toBe(RunPhase.RUN_COMPLETED);
   });
 
@@ -140,9 +140,9 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
         shellBlock("call_all_2", "echo co-pending-two"),
       ],
     });
-    await awaitExecutionPhase(
+    await awaitRunPhase(
       stigmerClient,
-      seeded.executionId,
+      seeded.runId,
       RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
@@ -157,7 +157,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     // and the run completes un-gated (a plain APPROVE would have re-gated the
     // second call and never settled).
     await expect(autoApproveIndicator(page)).toBeVisible({ timeout: 15_000 });
-    const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
+    const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
     expect(phase, "approve-all completes the run un-gated").toBe(RunPhase.RUN_COMPLETED);
   });
 
@@ -170,7 +170,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
   // nonTerminalTranscriptRegression) then rejected the update, and gate B landed
   // as WAITING_FOR_APPROVAL with pending_approvals_count=0 and auto-resumed with
   // no approval. The fix seeds status from the persisted transcript whenever the
-  // execution already has history (the turn runtime's seed,
+  // run already has history (the turn runtime's seed,
   // harness/turn-context.ts `seedFromPersistedStatus`), so gate B's update is a
   // superset of gate A rather than a replacement. Pinned by the native hermetic
   // golden execute-deep-agent/__tests__/hermetic/hitl-sequential-gates.test.ts.
@@ -201,9 +201,9 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     });
 
     // Gate A. Mock queue depth after the runner serves turn A: [B, text] = 2.
-    await awaitExecutionPhase(
+    await awaitRunPhase(
       stigmerClient,
-      seeded.executionId,
+      seeded.runId,
       RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
@@ -221,9 +221,9 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     // Waiting on this deterministic signal (not the coarse phase, which has not
     // yet cleared A's gate) is what makes the next assertion target gate B.
     await awaitMockRemaining(control, 1);
-    await awaitExecutionPhase(
+    await awaitRunPhase(
       stigmerClient,
-      seeded.executionId,
+      seeded.runId,
       RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
@@ -235,7 +235,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     await approveButton(page).click();
 
     // Approving B drains the terminating text turn (queue -> 0) and the run ends.
-    const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
+    const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
     expect(phase, "second approval completes the multi-step run").toBe(
       RunPhase.RUN_COMPLETED,
     );
@@ -257,9 +257,9 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
       seeded = await seedGatedSession(stigmerClient, control, {
         gateBlocks: [shellBlock("call_peek", tallCommand)],
       });
-      await awaitExecutionPhase(
+      await awaitRunPhase(
         stigmerClient,
-        seeded.executionId,
+        seeded.runId,
         RunPhase.RUN_WAITING_FOR_APPROVAL,
       );
 
@@ -280,7 +280,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
 
       // Resolve so the run terminates cleanly (and the queue drains).
       await approveButton(page).click();
-      const phase = await awaitExecutionTerminal(stigmerClient, seeded.executionId);
+      const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
       expect(phase).toBe(RunPhase.RUN_COMPLETED);
     });
   });

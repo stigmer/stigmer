@@ -14,7 +14,7 @@ afterEach(cleanup);
 const PLAN_TEXT = "# Rollout Plan\n\n## Phase 1\n\nDo the first thing.";
 
 const plan: SessionPlan = {
-  executionId: "aex_1",
+  runId: "aex_1",
   artifact: create(RunArtifactSchema, {
     name: "plan.md",
     kind: RunArtifactKind.FILE,
@@ -26,7 +26,7 @@ const plan: SessionPlan = {
 
 function stigmerMock(opts?: { text?: string; truncated?: boolean }): Stigmer {
   return {
-    agentExecution: {
+    agentRun: {
       getArtifactContent: vi.fn().mockResolvedValue({
         content: new TextEncoder().encode(opts?.text ?? PLAN_TEXT),
         contentType: "text/markdown",
@@ -161,7 +161,7 @@ describe("PlanEditor", () => {
 
   it("renders an error state with retry when the content fetch fails", async () => {
     const failing = {
-      agentExecution: {
+      agentRun: {
         getArtifactContent: vi.fn().mockRejectedValue(new Error("boom")),
       },
     } as unknown as Stigmer;

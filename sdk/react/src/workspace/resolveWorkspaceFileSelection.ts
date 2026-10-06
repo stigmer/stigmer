@@ -27,7 +27,7 @@
 // never open. Extending this to arbitrary/absolute paths belongs to a later
 // slice that resolves against the authoritative file-tree index.
 
-import { classifyPath } from "../execution/file-path-resolver.js";
+import { classifyPath } from "../run/file-path-resolver.js";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 

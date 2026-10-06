@@ -5,9 +5,9 @@ import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/ap
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { getUserMessage } from "@stigmer/sdk";
 import { useCreateSession } from "../session/useCreateSession.js";
-import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
-import { useExecutionStream } from "../execution/useExecutionStream.js";
-import { isTerminalPhase } from "../execution/execution-phases.js";
+import { useCreateAgentRun } from "../run/useCreateAgentRun.js";
+import { useRunStream } from "../run/useRunStream.js";
+import { isTerminalPhase } from "../run/run-phases.js";
 import { useConversationStoreRef } from "../internal/store/index.js";
 import {
   extractWorkflowYaml,
@@ -20,7 +20,7 @@ import { workflowArchitectRef } from "./workflow-architect.js";
  * Lifecycle phases for the workflow refinement flow.
  *
  * - `idle` — panel open, no conversation yet
- * - `starting` — creating session (first turn) + execution
+ * - `starting` — creating session (first turn) + run
  * - `streaming` — agent is working (tool calls, validation, refinement)
  * - `complete` — agent finished, YAML was extracted (diff showing)
  * - `ready` — agent finished without YAML (clarifying question / explanation),
@@ -37,7 +37,7 @@ export type RefinePhase =
 
 /** Options for {@link useRefineWorkflowFlow}. */
 export interface UseRefineWorkflowFlowOptions {
-  /** Organization id for session and execution creation (a slug is also accepted). */
+  /** Organization id for session and run creation (a slug is also accepted). */
   readonly org: string;
   /** Live YAML from the editor. Captured via ref at send-time, not reactively. */
   readonly currentYaml: string;
@@ -49,11 +49,11 @@ export interface UseRefineWorkflowFlowOptions {
 export interface UseRefineWorkflowFlowReturn {
   /** Current lifecycle phase. */
   readonly phase: RefinePhase;
-  /** Completed execution snapshots for MessageThread (chronological). */
-  readonly completedExecutions: readonly AgentRun[];
-  /** Currently streaming execution, or null when idle/between turns. */
-  readonly activeExecution: AgentRun | null;
-  /** `true` while the agent execution is actively streaming. */
+  /** Completed run snapshots for MessageThread (chronological). */
+  readonly completedRuns: readonly AgentRun[];
+  /** Currently streaming run, or null when idle/between turns. */
+  readonly activeRun: AgentRun | null;
+  /** `true` while the agent run is actively streaming. */
   readonly isStreaming: boolean;
   /** Extracted YAML from the latest turn (null unless phase is `complete`). */
   readonly extractedYaml: string | null;
@@ -78,9 +78,9 @@ const MIN_INSTRUCTION_LENGTH = 5;
  * using the Organization's Workflow Architect agent (`workflow-architect.ts`).
  *
  * Manages a multi-turn conversation within a single Session:
- * - First turn creates a Session + AgentExecution
+ * - First turn creates a Session + AgentRun
  * - Subsequent turns reuse the Session (conversational context)
- * - Each turn streams agent messages via {@link useExecutionStream}
+ * - Each turn streams agent messages via {@link useRunStream}
  * - YAML is extracted from agent responses via {@link extractWorkflowYaml}
  *
  * The `currentYaml` prop is captured at send-time (ref-based, not reactive)
@@ -106,7 +106,7 @@ export function useRefineWorkflowFlow(
 
   const [phase, setPhase] = useState<RefinePhase>("idle");
   const [executionId, setExecutionId] = useState<string | null>(null);
-  const [completedExecutions, setCompletedExecutions] = useState<
+  const [completedRuns, setCompletedRuns] = useState<
     AgentRun[]
   >([]);
   const [extracted, setExtracted] = useState<ExtractedWorkflowYaml | null>(
@@ -132,9 +132,9 @@ export function useRefineWorkflowFlow(
   const prevTerminalRef = useRef(false);
 
   const { create: createSession } = useCreateSession();
-  const { create: createExecution } = useCreateAgentExecution();
+  const { create: createExecution } = useCreateAgentRun();
   const conversationStore = useConversationStoreRef();
-  const stream = useExecutionStream(executionId, {
+  const stream = useRunStream(executionId, {
     store: conversationStore,
   });
 
@@ -151,12 +151,12 @@ export function useRefineWorkflowFlow(
     if (isTerminal && !prevTerminalRef.current) {
       prevTerminalRef.current = true;
 
-      if (stream.execution) {
-        setCompletedExecutions((prev) => [...prev, stream.execution!]);
+      if (stream.run) {
+        setCompletedRuns((prev) => [...prev, stream.run!]);
       }
 
       // Primary: read from structured output (deterministic)
-      const structuredOutput = stream.execution?.status?.structuredOutput as
+      const structuredOutput = stream.run?.status?.structuredOutput as
         | Record<string, unknown>
         | undefined;
 
@@ -175,7 +175,7 @@ export function useRefineWorkflowFlow(
         }
       } else {
         // Fallback: regex extraction (backward compat / extraction failure)
-        const result = extractWorkflowYaml(stream.execution);
+        const result = extractWorkflowYaml(stream.run);
         if (result) {
           setExtracted(result);
           setPhase("complete");
@@ -186,7 +186,7 @@ export function useRefineWorkflowFlow(
 
       setExecutionId(null);
     }
-  }, [phase, stream.phase, stream.execution]);
+  }, [phase, stream.phase, stream.run]);
 
   // -------------------------------------------------------------------------
   // Stream error surfacing
@@ -264,7 +264,7 @@ export function useRefineWorkflowFlow(
 
         const message = buildMessage(trimmed);
 
-        const { executionId: newExecutionId } = await createExecution({
+        const { runId: newExecutionId } = await createExecution({
           org: activeSession.org,
           sessionId: activeSession.id,
           message,
@@ -309,7 +309,7 @@ export function useRefineWorkflowFlow(
   const reset = useCallback(() => {
     setPhase("idle");
     setExecutionId(null);
-    setCompletedExecutions([]);
+    setCompletedRuns([]);
     setExtracted(null);
     setError(null);
     sessionRef.current = null;
@@ -323,8 +323,8 @@ export function useRefineWorkflowFlow(
   return useMemo(
     () => ({
       phase,
-      completedExecutions,
-      activeExecution: stream.execution,
+      completedRuns,
+      activeRun: stream.run,
       isStreaming: stream.isStreaming || stream.isConnecting,
       extractedYaml: extracted?.yaml ?? null,
       explanation: extracted?.explanation ?? null,
@@ -336,8 +336,8 @@ export function useRefineWorkflowFlow(
     }),
     [
       phase,
-      completedExecutions,
-      stream.execution,
+      completedRuns,
+      stream.run,
       stream.isStreaming,
       stream.isConnecting,
       extracted,

@@ -54,7 +54,7 @@ export interface UseEmbeddedRunnerResult {
   updateRunnerToken: (token: string | null) => Promise<void>;
   /**
    * Re-read the runner's live session/execution state. Used to reflect the
-   * runner's truth after a remove (which may defer teardown while an execution
+   * runner's truth after a remove (which may defer teardown while a run
    * runs in the background) and by periodic polling so background-run
    * indicators clear once a run drains.
    */
@@ -219,7 +219,7 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
 
   const removeSession = useCallback(async (sessionId: string): Promise<void> => {
     await invoke("remove_session", { sessionId });
-    // The runner keeps the worker alive in the background when an execution is
+    // The runner keeps the worker alive in the background when a run is
     // still in flight (deferred teardown), so reconcile from the runner's truth
     // rather than optimistically dropping the session — a backgrounded run must
     // stay visible (and drives the "running in background" indicator).

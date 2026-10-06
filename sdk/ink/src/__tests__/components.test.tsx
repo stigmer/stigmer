@@ -9,7 +9,7 @@ import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/m
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { MessageEntry } from "../components/MessageEntry.js";
-import { ExecutionProgress } from "../components/ExecutionProgress.js";
+import { RunProgress } from "../components/RunProgress.js";
 import { ToolCallItem } from "../components/ToolCallItem.js";
 import { ApprovalPrompt } from "../components/ApprovalPrompt.js";
 import { MessageThread } from "../components/MessageThread.js";
@@ -69,10 +69,10 @@ describe("MessageEntry", () => {
   });
 });
 
-describe("ExecutionProgress", () => {
+describe("RunProgress", () => {
   it("shows 'Running' for in-progress phase", () => {
     const { lastFrame } = render(
-      <ExecutionProgress phase={RunPhase.RUN_IN_PROGRESS} />,
+      <RunProgress phase={RunPhase.RUN_IN_PROGRESS} />,
     );
     const output = lastFrame() ?? "";
     expect(output).toContain("Running");
@@ -80,7 +80,7 @@ describe("ExecutionProgress", () => {
 
   it("shows 'Completed' with check for completed phase", () => {
     const { lastFrame } = render(
-      <ExecutionProgress phase={RunPhase.RUN_COMPLETED} />,
+      <RunProgress phase={RunPhase.RUN_COMPLETED} />,
     );
     const output = lastFrame() ?? "";
     expect(output).toContain("Completed");
@@ -89,7 +89,7 @@ describe("ExecutionProgress", () => {
 
   it("shows 'Failed' for failed phase", () => {
     const { lastFrame } = render(
-      <ExecutionProgress phase={RunPhase.RUN_FAILED} />,
+      <RunProgress phase={RunPhase.RUN_FAILED} />,
     );
     const output = lastFrame() ?? "";
     expect(output).toContain("Failed");
@@ -97,7 +97,7 @@ describe("ExecutionProgress", () => {
 
   it("shows 'Waiting for approval' for approval phase", () => {
     const { lastFrame } = render(
-      <ExecutionProgress
+      <RunProgress
         phase={RunPhase.RUN_WAITING_FOR_APPROVAL}
       />,
     );
@@ -107,7 +107,7 @@ describe("ExecutionProgress", () => {
 
   it("renders nothing for unspecified phase", () => {
     const { lastFrame } = render(
-      <ExecutionProgress
+      <RunProgress
         phase={RunPhase.RUN_PHASE_UNSPECIFIED}
       />,
     );
@@ -394,7 +394,7 @@ describe("MessageThread — multi-approval keyboard arbitration", () => {
     const exec = execWithApprovals("tc-1", "tc-2");
 
     const { stdin } = render(
-      <MessageThread executions={[exec]} onApprovalSubmit={onApprovalSubmit} />,
+      <MessageThread runs={[exec]} onApprovalSubmit={onApprovalSubmit} />,
     );
     stdin.write("y");
 
@@ -407,7 +407,7 @@ describe("MessageThread — multi-approval keyboard arbitration", () => {
     const exec = execWithApprovals("tc-1");
 
     const { stdin } = render(
-      <MessageThread executions={[exec]} onApprovalSubmit={onApprovalSubmit} />,
+      <MessageThread runs={[exec]} onApprovalSubmit={onApprovalSubmit} />,
     );
     stdin.write("y");
 

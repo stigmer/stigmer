@@ -18,7 +18,7 @@ import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/ap
 let mockFileChanges: FileChange[] = [];
 vi.mock("../useSessionFileChanges", () => ({
   useSessionFileChanges: (executions: readonly unknown[]) => ({
-    // Honor the EMPTY_EXECUTIONS gate: no executions in → no changes out.
+    // Honor the EMPTY_EXECUTIONS gate: no runs in → no changes out.
     fileChanges: executions.length > 0 ? mockFileChanges : [],
     hasFileChanges: executions.length > 0 && mockFileChanges.length > 0,
     fileChangeCount: executions.length > 0 ? mockFileChanges.length : 0,
@@ -35,7 +35,7 @@ const gitEntry = {
   gitBranch: "main",
 };
 const entries = [gitEntry] as never;
-const allExecutions = [{} as AgentRun];
+const allRuns = [{} as AgentRun];
 const root = "/home/daytona/workspace";
 
 function modifyChange(path: string): FileChange {
@@ -51,7 +51,7 @@ describe("useOpenFileChange", () => {
   it("returns the matching change for the open file", () => {
     mockFileChanges = [modifyChange("src/a.ts")];
     const { result } = renderHook(() =>
-      useOpenFileChange({ entryId: "e1", path: "src/a.ts" }, allExecutions, entries, root),
+      useOpenFileChange({ entryId: "e1", path: "src/a.ts" }, allRuns, entries, root),
     );
     expect(result.current).toBe(mockFileChanges[0]);
   });
@@ -59,7 +59,7 @@ describe("useOpenFileChange", () => {
   it("returns null when the open file was not changed this session", () => {
     mockFileChanges = [modifyChange("src/a.ts")];
     const { result } = renderHook(() =>
-      useOpenFileChange({ entryId: "e1", path: "src/other.ts" }, allExecutions, entries, root),
+      useOpenFileChange({ entryId: "e1", path: "src/other.ts" }, allRuns, entries, root),
     );
     expect(result.current).toBeNull();
   });
@@ -67,7 +67,7 @@ describe("useOpenFileChange", () => {
   it("returns null when no file is open (fold is skipped)", () => {
     mockFileChanges = [modifyChange("src/a.ts")];
     const { result } = renderHook(() =>
-      useOpenFileChange(null, allExecutions, entries, root),
+      useOpenFileChange(null, allRuns, entries, root),
     );
     expect(result.current).toBeNull();
   });
@@ -75,7 +75,7 @@ describe("useOpenFileChange", () => {
   it("returns null when the session has no changes", () => {
     mockFileChanges = [];
     const { result } = renderHook(() =>
-      useOpenFileChange({ entryId: "e1", path: "src/a.ts" }, allExecutions, entries, root),
+      useOpenFileChange({ entryId: "e1", path: "src/a.ts" }, allRuns, entries, root),
     );
     expect(result.current).toBeNull();
   });

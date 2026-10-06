@@ -10,7 +10,7 @@
  *
  * Born on the recents list, where it renders the otherwise-invisible sort
  * key: the list sorts by LAST ACTIVITY (`statusAudit.updatedAt`) while
- * execution names embed their CREATION time, so an old run re-bumped by a
+ * run names embed their CREATION time, so an old run re-bumped by a
  * late status change sorts above newer-named items and reads as "wrong
  * order" unless the row says why it is there.
  */

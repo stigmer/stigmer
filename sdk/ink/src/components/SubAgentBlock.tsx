@@ -8,7 +8,7 @@ import { ToolCallGroup } from "./ToolCallGroup.js";
 
 /** Props for {@link SubAgentBlock}. */
 export interface SubAgentBlockProps {
-  /** The sub-agent execution data. */
+  /** The sub-agent run data. */
   readonly subAgent: SubAgentRun;
   /** Whether this block starts expanded. */
   readonly defaultExpanded?: boolean;
@@ -40,7 +40,7 @@ function formatDuration(startedAt: string, completedAt: string): string | null {
 }
 
 /**
- * Renders a sub-agent execution as a collapsible block in the terminal.
+ * Renders a sub-agent run as a collapsible block in the terminal.
  *
  * Shows a summary line with status glyph, name/subject, and duration.
  * When expanded, renders the sub-agent's internal message thread using

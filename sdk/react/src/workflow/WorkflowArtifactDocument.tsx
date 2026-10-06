@@ -6,9 +6,9 @@
 import { useCallback } from "react";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { cn } from "@stigmer/theme";
-import { ArtifactFileContent } from "../execution/ArtifactFileContent.js";
-import { formatArtifactSize } from "../execution/artifact-utils.js";
-import { useArtifactContentById } from "../execution/useArtifactContentById.js";
+import { ArtifactFileContent } from "../run/ArtifactFileContent.js";
+import { formatArtifactSize } from "../run/artifact-utils.js";
+import { useArtifactContentById } from "../run/useArtifactContentById.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { useWorkflowArtifactDownload } from "./useWorkflowArtifactDownload.js";
 
@@ -39,7 +39,7 @@ function isTextContentType(contentType: string): boolean {
 
 /**
  * The editor-pane rendering of a single workflow `Artifact` resource — the
- * `SurfaceVirtualDocument` body the workflow execution panel mounts when an
+ * `SurfaceVirtualDocument` body the workflow run panel mounts when an
  * artifact opens from its Artifacts facet (VS Code "each file is a tab").
  *
  * The `Artifact`-resource counterpart of the session's `ArtifactDocument`:

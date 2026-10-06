@@ -15,11 +15,11 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** The memory row's copy where each member's own switch must also be on. */
 const MEMBER_CONSENT_MEMORY_HELPER_TEXT =
-  "Allow agents to remember confirmed facts about members of this organization. Each member must also turn memory on in their own account preferences; once a member has many memories, each conversation recalls their most relevant ones, shown on the execution. Changes apply immediately.";
+  "Allow agents to remember confirmed facts about members of this organization. Each member must also turn memory on in their own account preferences; once a member has many memories, each conversation recalls their most relevant ones, shown on the run. Changes apply immediately.";
 
 /** The memory row's copy on a server where this switch alone decides memory. */
 const ORG_ALONE_MEMORY_HELPER_TEXT =
-  "Allow agents to remember confirmed facts. On this server this switch alone decides memory; once there are many memories, each conversation recalls the most relevant ones, shown on the execution. Changes apply immediately.";
+  "Allow agents to remember confirmed facts. On this server this switch alone decides memory; once there are many memories, each conversation recalls the most relevant ones, shown on the run. Changes apply immediately.";
 
 /** Props for {@link OrgPreferencesPanel}. */
 export interface OrgPreferencesPanelProps {
@@ -35,7 +35,7 @@ export interface OrgPreferencesPanelProps {
  * Self-contained editor for an {@link Organization}'s declared
  * preferences (`spec.preferences.standing_context`).
  *
- * The declared text is snapshotted into every eligible agent execution
+ * The declared text is snapshotted into every eligible agent run
  * run by the organization's members (first-party human operators only)
  * and delivered to the agent as background context. Editing requires
  * `can_edit` on the organization; viewers without it get a read-only
@@ -229,7 +229,7 @@ export function OrgPreferencesPanel({
         placeholder={
           "e.g. We deploy to us-east-1. Our stack is Go and TypeScript. Prefer concise answers."
         }
-        helperText="Shared with agents as background context — not instructions. Applies to executions started by signed-in members of this organization and is visible on their execution records."
+        helperText="Shared with agents as background context — not instructions. Applies to runs started by signed-in members of this organization and is visible on their run records."
       />
 
       <MemoryEnabledRow

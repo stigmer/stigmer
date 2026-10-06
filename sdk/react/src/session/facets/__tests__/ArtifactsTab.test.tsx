@@ -33,7 +33,7 @@ const execution = create(AgentRunSchema, {
 /** Modal content fetch — keep pending so nothing rejects during the test. */
 function createStigmerMock(): Stigmer {
   return {
-    agentExecution: {
+    agentRun: {
       getArtifactContent: vi.fn().mockReturnValue(new Promise(() => {})),
     },
   } as unknown as Stigmer;
@@ -42,7 +42,7 @@ function createStigmerMock(): Stigmer {
 function renderTab(props: Partial<ArtifactsTabProps> = {}) {
   return render(
     <StigmerContext.Provider value={createStigmerMock()}>
-      <ArtifactsTab executions={[execution]} org="acme" {...props} />
+      <ArtifactsTab runs={[execution]} org="acme" {...props} />
     </StigmerContext.Provider>,
   );
 }
@@ -74,7 +74,7 @@ describe("ArtifactsTab — dense row list", () => {
   it("renders the empty state with no artifacts", () => {
     render(
       <StigmerContext.Provider value={createStigmerMock()}>
-        <ArtifactsTab executions={[]} org="acme" />
+        <ArtifactsTab runs={[]} org="acme" />
       </StigmerContext.Provider>,
     );
     expect(screen.getByText(/No artifacts yet/)).toBeTruthy();

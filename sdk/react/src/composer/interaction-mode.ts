@@ -6,7 +6,7 @@ import type { InteractionModeOption } from "./InteractionModePicker.js";
  * {@link InteractionMode} enum.
  *
  * Mirrors {@link toProtoHarness} — keeps the option-string <-> proto mapping
- * in one place so component props can stay framework-agnostic while execution
+ * in one place so component props can stay framework-agnostic while run
  * creation speaks proto.
  */
 export function toProtoInteractionMode(

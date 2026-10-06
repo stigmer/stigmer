@@ -19,15 +19,15 @@ vi.mock("@stigmer/react", () => ({
     return null;
   },
   CostByWorkflowChart: () => null,
-  ExecutionTrendChart: () => null,
+  RunTrendChart: () => null,
   useWorkflowDashboardSummary: ({ org }: { org: string }) => {
     page.summaryOrg.push(org);
     return { summary: null, isLoading: false };
   },
 }));
 
-vi.mock("@/domain/workflow/execution-navigation", () => ({
-  useExecutionNavigation: () => ({ navigateToExecution: () => undefined }),
+vi.mock("@/domain/workflow/run-navigation", () => ({
+  useRunNavigation: () => ({ navigateToRun: () => undefined }),
 }));
 
 import { DashboardPage } from "../DashboardPage";

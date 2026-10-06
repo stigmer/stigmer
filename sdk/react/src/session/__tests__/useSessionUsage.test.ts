@@ -53,9 +53,9 @@ function authoritativeReport(billableMicros: bigint): GetSessionUsageReportOutpu
       primaryProvider: "cursor",
     },
     modelBreakdown: [],
-    executions: [
+    runs: [
       {
-        executionId: "exe_1",
+        runId: "exe_1",
         primaryModel: "claude-sonnet-4-6",
         billableCostMicros: billableMicros,
         isEstimated: false,
@@ -79,13 +79,13 @@ function emptyReport(): GetSessionUsageReportOutput {
       primaryProvider: "",
     },
     modelBreakdown: [],
-    executions: [],
+    runs: [],
     isEstimated: true,
   } as unknown as GetSessionUsageReportOutput;
 }
 
 function mockStigmer(getSessionUsageReport: ReturnType<typeof vi.fn>) {
-  const stigmer = { agentExecution: { getSessionUsageReport } };
+  const stigmer = { agentRun: { getSessionUsageReport } };
   (useStigmer as ReturnType<typeof vi.fn>).mockReturnValue(stigmer);
 }
 
@@ -132,10 +132,10 @@ describe("useSessionUsage", () => {
     expect(result.current.totalCostUsd).toBeCloseTo(0.06);
     expect(result.current.llmCallCount).toBe(2);
     // The #362 provenance rows ride the same report: billing-RESOLVED
-    // model per execution, never the runner's requested echo.
-    expect(result.current.executionBreakdown).toEqual([
+    // model per run, never the runner's requested echo.
+    expect(result.current.runBreakdown).toEqual([
       {
-        executionId: "exe_1",
+        runId: "exe_1",
         resolvedModel: "claude-sonnet-4-6",
         billableCostUsd: 0.06,
         isEstimated: false,
@@ -181,7 +181,7 @@ describe("useSessionUsage", () => {
     });
     expect(getReport).toHaveBeenCalledTimes(1);
 
-    // Execution settles — polling stops, and a single final refetch fires to
+    // Run settles — polling stops, and a single final refetch fires to
     // capture the last turn's authoritative record promptly.
     executions = [makeExecution(RunPhase.RUN_COMPLETED, streamingUsage(0.05))];
     rerender();

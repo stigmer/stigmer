@@ -1,6 +1,6 @@
 "use client";
 
-// Usage facet for the workflow execution panel's activity rail.
+// Usage facet for the workflow run panel's activity rail.
 // Domain: workflow (the budget/rollup analog of session/facets/UsageTab).
 
 import { useMemo } from "react";
@@ -9,7 +9,7 @@ import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import type {
   DerivedCostSummary,
   DerivedTaskState,
-} from "../../internal/store/workflow-execution-event-store.js";
+} from "../../internal/store/workflow-run-event-store.js";
 import { deriveWorkflowUsageItems } from "../deriveWorkflowUsageItems.js";
 import type { WorkflowUsageItem } from "../deriveWorkflowUsageItems.js";
 import { formatMicroUsd, formatTokenCount } from "../format-utils.js";
@@ -18,15 +18,15 @@ const BIGINT_ZERO = BigInt(0);
 
 /** Props for {@link WorkflowUsageTab}. */
 export interface WorkflowUsageTabProps {
-  /** Execution-level cost/budget rollup (from `useWorkflowExecutionEventStream`). */
+  /** Execution-level cost/budget rollup (from `useWorkflowRunEventStream`). */
   readonly costSummary: DerivedCostSummary;
   /** Per-task derived states — drives the per-task breakdown list. */
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
 }
 
 /**
- * Usage facet for the workflow execution panel (a
- * `useWorkflowExecutionRailViews` rail view): the execution-level cost/token
+ * Usage facet for the workflow run panel (a
+ * `useWorkflowRunRailViews` rail view): the execution-level cost/token
  * rollup with budget context on top, and a per-task breakdown (most expensive
  * first) below — "which task is burning my budget?" at a glance.
  *
@@ -110,7 +110,7 @@ function UsageSummary({
     <div
       className="stg:flex stg:flex-col stg:gap-1.5 stg:px-2"
       role="region"
-      aria-label="Execution cost summary"
+      aria-label="Run cost summary"
     >
       <div className="stg:flex stg:items-baseline stg:gap-1.5">
         <span className="stg:text-sm stg:font-medium stg:tabular-nums stg:text-foreground">

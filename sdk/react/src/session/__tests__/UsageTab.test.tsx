@@ -34,7 +34,7 @@ const EMPTY_USAGE: UseSessionUsageReturn = {
   cacheCreationTokens: 0,
   llmCallCount: 0,
   modelBreakdown: [],
-  executionBreakdown: [],
+  runBreakdown: [],
   primaryModel: "",
   primaryProvider: "",
   hasUsage: false,
@@ -75,62 +75,62 @@ afterEach(cleanup);
 describe("UsageTab (#362 model provenance)", () => {
   it("shows the empty state when no usage exists", () => {
     usageMock.mockReturnValue(EMPTY_USAGE);
-    render(<UsageTab executions={[]} />);
+    render(<UsageTab runs={[]} />);
     expect(screen.getByText(/No usage data yet/)).toBeTruthy();
   });
 
   it("renders the billing-resolved model per run with its cost — the Auto forensics view", () => {
     usageMock.mockReturnValue(usageWith({
-      executionBreakdown: [{
-        executionId: "exe_1",
+      runBreakdown: [{
+        runId: "exe_1",
         resolvedModel: "cursor-grok-4.5-high-fast",
         billableCostUsd: 0.0123,
         isEstimated: false,
       }],
     }));
 
-    render(<UsageTab executions={[executionWithTier("exe_1", ServiceTier.STANDARD)]} />);
+    render(<UsageTab runs={[executionWithTier("exe_1", ServiceTier.STANDARD)]} />);
 
     expect(screen.getByText(/cursor-grok-4\.5-high-fast/)).toBeTruthy();
-    expect(screen.getByRole("list", { name: "Per-execution model and tier" })).toBeTruthy();
+    expect(screen.getByRole("list", { name: "Per-run model and tier" })).toBeTruthy();
   });
 
   it("pairs the run with the tier the runner requested", () => {
     usageMock.mockReturnValue(usageWith({
-      executionBreakdown: [{
-        executionId: "exe_1",
+      runBreakdown: [{
+        runId: "exe_1",
         resolvedModel: "composer-2.5",
         billableCostUsd: 0.0123,
         isEstimated: false,
       }],
     }));
 
-    render(<UsageTab executions={[executionWithTier("exe_1", ServiceTier.FAST)]} />);
+    render(<UsageTab runs={[executionWithTier("exe_1", ServiceTier.FAST)]} />);
 
     expect(screen.getByText("fast requested")).toBeTruthy();
   });
 
   it("omits the tier chip for executions that predate the tier attribute", () => {
     usageMock.mockReturnValue(usageWith({
-      executionBreakdown: [{
-        executionId: "exe_0",
+      runBreakdown: [{
+        runId: "exe_0",
         resolvedModel: "claude-haiku-4.5",
         billableCostUsd: 0.0042,
         isEstimated: false,
       }],
     }));
 
-    render(<UsageTab executions={[executionWithTier("exe_0")]} />);
+    render(<UsageTab runs={[executionWithTier("exe_0")]} />);
 
     expect(screen.getByText(/claude-haiku-4\.5/)).toBeTruthy();
     expect(screen.queryByText(/requested/)).toBeNull();
   });
 
   it("renders no provenance list before any billing record lands", () => {
-    usageMock.mockReturnValue(usageWith({ executionBreakdown: [] }));
+    usageMock.mockReturnValue(usageWith({ runBreakdown: [] }));
 
-    render(<UsageTab executions={[executionWithTier("exe_1", ServiceTier.STANDARD)]} />);
+    render(<UsageTab runs={[executionWithTier("exe_1", ServiceTier.STANDARD)]} />);
 
-    expect(screen.queryByRole("list", { name: "Per-execution model and tier" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Per-run model and tier" })).toBeNull();
   });
 });

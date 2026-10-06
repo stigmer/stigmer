@@ -6,7 +6,7 @@ import { cn } from "@stigmer/theme";
 import { useStigmerPortalContainer } from "../portal-container.js";
 
 /**
- * Interaction mode options for agent executions.
+ * Interaction mode options for agent runs.
  *
  * Maps to `InteractionMode` proto enum values (excluding UNSPECIFIED):
  * - `"agent"` → `INTERACTION_MODE_AGENT` (full tool access)
@@ -43,7 +43,7 @@ export interface InteractionModePickerProps {
 }
 
 /**
- * Compact dropdown for choosing the execution interaction mode.
+ * Compact dropdown for choosing the run interaction mode.
  *
  * Renders a trigger button showing the current mode label with a
  * chevron, and a popover with the available options. Each option

@@ -40,8 +40,8 @@ export interface UseRunWorkflowFlowOptions {
   /** Workflow resource (must include metadata and spec). */
   readonly workflow: Workflow;
   /**
-   * Called after the execution is created successfully.
-   * Receives the execution ID for navigation.
+   * Called after the run is created successfully.
+   * Receives the run ID for navigation.
    */
   readonly onSuccess: (executionId: string) => void;
   /**
@@ -107,7 +107,7 @@ export interface UseRunWorkflowFlowReturn {
   /** Field-level validation errors (empty when valid). */
   readonly fieldErrors: RunWorkflowFieldErrors;
 
-  /** `true` while the create execution RPC is in flight. */
+  /** `true` while the create run RPC is in flight. */
   readonly isSubmitting: boolean;
   /** Error from the last failed submission, or `null`. */
   readonly error: string | null;
@@ -119,7 +119,7 @@ export interface UseRunWorkflowFlowReturn {
    * fail, since the server fills it from the personal environment.
    */
   readonly validate: () => boolean;
-  /** Validate, then create the workflow execution. */
+  /** Validate, then create the workflow run. */
   readonly submit: () => Promise<void>;
   /** Reset all form state to initial values. */
   readonly reset: () => void;
@@ -131,7 +131,7 @@ export interface UseRunWorkflowFlowReturn {
  * Manages form state (trigger message, runtime env overrides), validates
  * required fields, and calls
  * `WorkflowExecutionClient.create()` on submission. On success, the
- * consumer-provided `onSuccess` callback receives the execution ID for
+ * consumer-provided `onSuccess` callback receives the run ID for
  * navigation or further action.
  *
  * This hook is framework-agnostic — it works identically in Next.js,
@@ -143,7 +143,7 @@ export interface UseRunWorkflowFlowReturn {
  * const flow = useRunWorkflowFlow({
  *   org: "acme",
  *   workflow,
- *   onSuccess: (id) => router.push(`/workflows/executions/${id}`),
+ *   onSuccess: (id) => router.push(`/runs/${id}`),
  *   onError: (msg) => toast.error(msg),
  * });
  *
@@ -251,19 +251,19 @@ export function useRunWorkflowFlow(
       const executionId = execution.metadata?.id;
       if (!executionId) {
         throw new Error(
-          "Execution was created but no ID was returned. Please check the executions list.",
+          "Run was created but no ID was returned. Please check the runs list.",
         );
       }
 
       if (adapter && contextTarget === "local") {
-        await adapter.onWorkflowExecutionCreated(executionId);
+        await adapter.onWorkflowRunCreated(executionId);
       }
 
       onSuccessRef.current(executionId);
     } catch (err) {
       const message = getUserMessage(
         err,
-        "Failed to start workflow execution",
+        "Failed to start workflow run",
       );
       setError(message);
       onErrorRef.current?.(message);

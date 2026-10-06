@@ -17,7 +17,7 @@ export interface UseWorkflowDashboardSummaryOptions {
   /** Time window for aggregation. @default SUMMARY_TIME_WINDOW_LAST_7D */
   readonly timeWindow?: SummaryTimeWindow;
   /**
-   * When set, scopes the summary to executions of this workflow only.
+   * When set, scopes the summary to runs of this workflow only.
    * When omitted, aggregates across all workflows in the organization.
    */
   readonly workflowId?: string;
@@ -34,7 +34,7 @@ export interface UseWorkflowDashboardSummaryReturn {
 }
 
 /**
- * Data hook that fetches aggregated execution statistics for an organization,
+ * Data hook that fetches aggregated run statistics for an organization,
  * optionally scoped to a single workflow.
  *
  * Returns phase counts, cost totals, average duration, top failing workflows,

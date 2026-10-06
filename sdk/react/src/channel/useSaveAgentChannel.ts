@@ -24,7 +24,7 @@ import { toError } from "../internal/toError.js";
  * option — the provider oneof is immutable server-side, so a save
  * without it would be refused outright. The channel's bound tool
  * credentials (`environment_refs`), its channel-app binding
- * (`app_ref`), and its per-channel execution override (`run_config`)
+ * (`app_ref`), and its per-channel run override (`run_config`)
  * carry over too — apply semantics would otherwise silently unbind
  * them on every toggle (and an installed channel's app_ref is frozen
  * server-side, so dropping it would refuse the save outright).

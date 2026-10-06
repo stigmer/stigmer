@@ -31,7 +31,7 @@ export interface ComposerToolbarProps {
   /**
    * When provided, the primary button becomes a Stop control (enabled even
    * while the rest of the composer is disabled) and the Send button is hidden.
-   * Driven by the active execution being stoppable.
+   * Driven by the active run being stoppable.
    */
   readonly onStop?: () => void;
   /** `true` while a stop request is in flight — shows a spinner on the Stop button. */

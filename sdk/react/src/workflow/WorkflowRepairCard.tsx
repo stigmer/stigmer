@@ -2,16 +2,16 @@
 
 import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { useDiagnoseExecutionFlow, type DiagnosePhase } from "./useDiagnoseExecutionFlow.js";
-import { MessageThread } from "../execution/MessageThread.js";
+import { useDiagnoseRunFlow, type DiagnosePhase } from "./useDiagnoseRunFlow.js";
+import { MessageThread } from "../run/MessageThread.js";
 import { computeUnifiedDiff, type DiffLine } from "./workflow-yaml-diff.js";
 import { WorkflowDiffGraph } from "./WorkflowDiffGraph.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link WorkflowRepairCard}. */
 export interface WorkflowRepairCardProps {
-  /** ID of the failed workflow execution to diagnose. */
-  readonly executionId: string;
+  /** ID of the failed workflow run to diagnose. */
+  readonly runId: string;
   /** Organization id for authorization and resource context (a slug is also accepted). */
   readonly org: string;
   /** Current workflow YAML for diff computation (optional). */
@@ -35,7 +35,7 @@ const COMPOSER_ENABLED_PHASES: ReadonlySet<DiagnosePhase> = new Set([
 
 /**
  * Panel component that displays agent-powered diagnosis of a failed workflow
- * execution. Designed for the execution viewer's right panel.
+ * run. Designed for the run viewer's right panel.
  *
  * Layout:
  * 1. Header — "AI Diagnosis" title with sparkles icon + close button
@@ -49,7 +49,7 @@ const COMPOSER_ENABLED_PHASES: ReadonlySet<DiagnosePhase> = new Set([
  * Styled via `--stgm-*` design tokens. Zero console dependencies.
  */
 export function WorkflowRepairCard({
-  executionId,
+  runId: executionId,
   org,
   currentWorkflowYaml,
   onApplyFix,
@@ -59,8 +59,8 @@ export function WorkflowRepairCard({
   const [followUp, setFollowUp] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const flow = useDiagnoseExecutionFlow({
-    executionId,
+  const flow = useDiagnoseRunFlow({
+    runId: executionId,
     org,
     currentWorkflowYaml,
     autoStart: true,
@@ -71,7 +71,7 @@ export function WorkflowRepairCard({
 
   const composerEnabled = COMPOSER_ENABLED_PHASES.has(flow.phase);
   const hasConversation =
-    flow.completedExecutions.length > 0 || flow.activeExecution !== null;
+    flow.completedRuns.length > 0 || flow.activeRun !== null;
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -171,8 +171,8 @@ export function WorkflowRepairCard({
         {/* Agent conversation */}
         {hasConversation && (
           <MessageThread
-            executions={flow.completedExecutions}
-            activeStreamExecution={flow.activeExecution}
+            runs={flow.completedRuns}
+            activeStreamRun={flow.activeRun}
             className="stg:flex-1"
           />
         )}
@@ -213,7 +213,7 @@ export function WorkflowRepairCard({
       )}
 
       {/* Runtime error notice (no fix available) */}
-      {flow.phase === "ready" && !flow.extractedYaml && flow.completedExecutions.length > 0 && (
+      {flow.phase === "ready" && !flow.extractedYaml && flow.completedRuns.length > 0 && (
         <div className="stg:border-t stg:border-border stg:px-3 stg:py-2">
           <div className="stg:rounded-md stg:border stg:border-border stg:bg-muted/50 stg:px-2.5 stg:py-2 stg:text-[0.7rem] stg:text-muted-foreground">
             No workflow definition changes are needed. Check the analysis above for remediation steps.

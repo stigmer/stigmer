@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
+import type { DerivedTaskState } from "../../internal/store/workflow-run-event-store.js";
 import {
   projectThreadItems,
   type WorkflowThreadProjection,

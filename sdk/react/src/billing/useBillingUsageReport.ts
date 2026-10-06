@@ -23,7 +23,7 @@ export interface UseBillingUsageReportReturn {
 /**
  * Data hook that fetches an aggregated billing usage report for a date range.
  *
- * Returns total provider cost, total billable amount, execution and LLM
+ * Returns total provider cost, total billable amount, run and LLM
  * call counts, and a per-model breakdown with cost tier attribution.
  *
  * Pass `null` as `org` to skip fetching (stable no-op).

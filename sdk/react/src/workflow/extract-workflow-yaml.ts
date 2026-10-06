@@ -12,7 +12,7 @@ export interface ExtractedWorkflowYaml {
 const YAML_FENCE_REGEX = /```ya?ml\s*\n([\s\S]*?)```/g;
 
 /**
- * Extracts the last YAML fenced code block from an agent execution's
+ * Extracts the last YAML fenced code block from an agent run's
  * assistant messages.
  *
  * The Workflow Architect agent is instructed to return validated workflow

@@ -5,7 +5,7 @@ import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentru
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 
 /**
- * Compares two `AgentExecution` snapshots and returns a hybrid object
+ * Compares two `AgentRun` snapshots and returns a hybrid object
  * that reuses old references for unchanged subtrees.
  *
  * The backend appends new messages and mutates the streaming tail.
@@ -66,7 +66,7 @@ export function structuralShare(
   const sharedStatus = Object.create(Object.getPrototypeOf(nextStatus));
   Object.assign(sharedStatus, nextStatus);
   sharedStatus.messages = sharedMessages;
-  sharedStatus.subAgentExecutions = sharedSubAgents;
+  sharedStatus.subAgentRuns = sharedSubAgents;
   sharedStatus.pendingApprovals = sharedApprovals;
   sharedStatus.todos = sharedTodos;
 
@@ -185,7 +185,7 @@ function toolCallEqual(a: ToolCall, b: ToolCall): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Sub-agent executions — compare by `id`
+// Sub-agent runs — compare by `id`
 // ---------------------------------------------------------------------------
 
 function shareSubAgents(

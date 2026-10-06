@@ -29,7 +29,7 @@ function formatCost(usd: number): string {
  * Horizontal bar chart showing cost by workflow.
  *
  * Sorted by total cost (descending). Each bar shows the workflow name,
- * formatted dollar cost, and execution count as a secondary label.
+ * formatted dollar cost, and run count as a secondary label.
  * Uses pure CSS for rendering -- no recharts dependency needed.
  */
 export const CostByWorkflowChart = memo(function CostByWorkflowChart({

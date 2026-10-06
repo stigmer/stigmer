@@ -73,11 +73,11 @@ test.describe("Workflow overview page", () => {
       testMultiKindWorkflow.slug,
     );
 
-    // Scoped to the Overview tabpanel: the hidden Executions tabpanel
-    // carries its own "No executions yet".
+    // Scoped to the Overview tabpanel: the hidden Runs tabpanel
+    // carries its own "No runs yet".
     const overviewPanel = page.getByRole("tabpanel", { name: "Overview" });
-    await expect(overviewPanel.getByText("No executions yet")).toBeVisible({ timeout: 10_000 });
-    await expect(overviewPanel.getByText("Total Executions")).toHaveCount(0);
+    await expect(overviewPanel.getByText("No runs yet")).toBeVisible({ timeout: 10_000 });
+    await expect(overviewPanel.getByText("Total Runs")).toHaveCount(0);
   });
 
   test("clicking a task node opens a popover", async ({

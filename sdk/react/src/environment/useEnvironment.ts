@@ -35,7 +35,7 @@ export interface UseEnvironmentReturn {
  * — persistent credential storage via Environment resources. For the
  * managed "personal environment" convenience, see
  * {@link usePersonalEnvironment}. For ephemeral per-execution secrets,
- * see the Execution Flow via {@link useCreateAgentExecution} with
+ * see the Run Flow via {@link useCreateAgentRun} with
  * `runtimeEnv`.
  *
  * @example

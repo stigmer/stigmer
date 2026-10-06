@@ -2,11 +2,11 @@ import { describe, test, expect } from "vitest";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { WorkflowGraphNode, WorkflowGraphEdge } from "../workflow-graph-model";
 import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
+import type { DerivedTaskState } from "../../internal/store/workflow-run-event-store";
 import {
   deriveEdgeExecutionStates,
   deriveForkProgress,
-} from "../execution/derive-execution-overlays";
+} from "../run/derive-execution-overlays";
 import type { JsonObject } from "@bufbuild/protobuf";
 
 // ---------------------------------------------------------------------------
@@ -27,7 +27,7 @@ function makeDerivedState(
     tokensUsed: BigInt(0),
     attemptNumber: 1,
     error: "",
-    childExecutionId: "",
+    childRunId: "",
     agentSlug: "",
     currentToolName: "",
     messagesCount: 0,

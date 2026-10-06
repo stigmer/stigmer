@@ -225,7 +225,7 @@ describe("useWorkspaceReadRefs", () => {
     const first = result.current;
     expect(first[0].readRef).toBe("sha-1");
 
-    // A new executions array (fresh identity, e.g. a streaming frame) with the
+    // A new runs array (fresh identity, e.g. a streaming frame) with the
     // same SHA must return the identical decorated array.
     rerender({
       executions: [

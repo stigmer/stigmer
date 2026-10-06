@@ -463,7 +463,7 @@ describe("the runner lifecycle", () => {
       await result.current.addSession("s2");
     });
 
-    // The host defers s1's teardown (an execution is in flight) and drops s2.
+    // The host defers s1's teardown (a run is in flight) and drops s2.
     state.activeSessions = ["s1"];
     await act(async () => {
       await result.current.removeSession("s2");

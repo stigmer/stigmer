@@ -25,16 +25,16 @@ export interface ApplyResourceResult {
 }
 
 /**
- * Parameters for pushing a skill package from an execution artifact.
+ * Parameters for pushing a skill package from a run artifact.
  *
- * The server reads the directory artifact (ZIP) from execution storage
+ * The server reads the directory artifact (ZIP) from run storage
  * and pushes it as a skill — no ZIP download reaches the browser.
  */
 export interface PushSkillParams {
   /** Organization that will own the skill. */
   readonly org: string;
-  /** ID of the execution that produced the artifact (format: `aex_{ulid}`). */
-  readonly executionId: string;
+  /** ID of the run that produced the artifact (format: `aex_{ulid}`). */
+  readonly runId: string;
   /** Storage key of the directory artifact. Must start with `artifacts/{executionId}/`. */
   readonly storageKey: string;
   /** Optional version tag (e.g., `"stable"`, `"v1.0"`). */
@@ -62,10 +62,10 @@ export interface UseApplyResourceReturn {
   ) => Promise<ApplyResourceResult>;
 
   /**
-   * Push a skill package from an execution artifact to an organization.
+   * Push a skill package from a run artifact to an organization.
    *
    * Uses the server-side `pushFromExecutionArtifact` RPC — the server reads
-   * the ZIP from execution storage and pushes it as a skill. No ZIP download
+   * the ZIP from run storage and pushes it as a skill. No ZIP download
    * reaches the browser.
    *
    * @throws Re-throws the original error after setting `error` state.
@@ -179,7 +179,7 @@ export function useApplyResource(): UseApplyResourceReturn {
       try {
         const request = create(PushSkillFromRunArtifactRequestSchema, {
           org: params.org,
-          runId: params.executionId,
+          runId: params.runId,
           storageKey: params.storageKey,
           tag: params.tag ?? "",
         });

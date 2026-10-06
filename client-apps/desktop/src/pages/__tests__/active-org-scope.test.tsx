@@ -1,6 +1,6 @@
 /**
  * Pins that the desktop pages scoped to the active organization (the
- * dashboard, the session launcher, the workflow execution list) ask the
+ * dashboard, the session launcher, the workflow run list) ask the
  * server by the organization's minted id, never its slug: the slug can be
  * renamed, the id cannot, and the server keys every scoped query by id. The
  * views and data hooks are pinned in @stigmer/react.
@@ -33,9 +33,9 @@ vi.mock("@stigmer/react", () => ({
     return null;
   },
   CostByWorkflowChart: () => null,
-  ExecutionTrendChart: () => null,
-  useWorkflowExecutionList: ({ org }: { org: string }) => {
-    record("useWorkflowExecutionList", org);
+  RunTrendChart: () => null,
+  useWorkflowRunList: ({ org }: { org: string }) => {
+    record("useWorkflowRunList", org);
     return {
       executions: [],
       isLoading: false,
@@ -47,7 +47,7 @@ vi.mock("@stigmer/react", () => ({
     };
   },
   Button: () => null,
-  WorkflowExecutionPhaseBadge: () => null,
+  WorkflowRunPhaseBadge: () => null,
   NewSessionViewer: ({ org }: { org: string }) => {
     record("NewSessionViewer", org);
     return null;
@@ -64,7 +64,7 @@ vi.mock("../../hooks/useNativeWorkspaceContentSearcher", () => ({
 }));
 
 import DashboardPage from "../dashboard/DashboardPage";
-import WorkflowExecutionListPage from "../workflow/WorkflowExecutionListPage";
+import WorkflowRunListPage from "../workflow/WorkflowRunListPage";
 import { SessionLauncher } from "../SessionLauncher";
 
 function renderPage(Page: ComponentType): void {
@@ -90,9 +90,9 @@ describe("desktop pages scoped to the active organization", () => {
   });
 
   it("the workflow execution list asks by org id", () => {
-    renderPage(WorkflowExecutionListPage);
+    renderPage(WorkflowRunListPage);
 
-    expect(page.orgs.useWorkflowExecutionList?.at(-1)).toBe(ACME.id);
+    expect(page.orgs.useWorkflowRunList?.at(-1)).toBe(ACME.id);
   });
 
   it("the session launcher creates sessions in the org by id", () => {

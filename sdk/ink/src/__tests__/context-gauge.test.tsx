@@ -61,7 +61,7 @@ function addSummarizationEvent(
 
 describe("ContextGauge", () => {
   it("renders nothing when execution is null", () => {
-    const { lastFrame } = render(<ContextGauge execution={null} />);
+    const { lastFrame } = render(<ContextGauge run={null} />);
     expect(lastFrame()).toBe("");
   });
 
@@ -69,7 +69,7 @@ describe("ContextGauge", () => {
     const exec = create(AgentRunSchema);
     exec.status = create(AgentRunStatusSchema);
 
-    const { lastFrame } = render(<ContextGauge execution={exec} />);
+    const { lastFrame } = render(<ContextGauge run={exec} />);
     expect(lastFrame()).toBe("");
   });
 
@@ -80,7 +80,7 @@ describe("ContextGauge", () => {
       utilizationPercent: 40,
     });
 
-    const { lastFrame } = render(<ContextGauge execution={exec} />);
+    const { lastFrame } = render(<ContextGauge run={exec} />);
     const output = lastFrame() ?? "";
 
     expect(output).toContain("Context");
@@ -97,7 +97,7 @@ describe("ContextGauge", () => {
       utilizationPercent: 75,
     });
 
-    const { lastFrame } = render(<ContextGauge execution={exec} />);
+    const { lastFrame } = render(<ContextGauge run={exec} />);
     const output = lastFrame() ?? "";
 
     expect(output).toContain("75%");
@@ -112,7 +112,7 @@ describe("ContextGauge", () => {
       utilizationPercent: 92,
     });
 
-    const { lastFrame } = render(<ContextGauge execution={exec} />);
+    const { lastFrame } = render(<ContextGauge run={exec} />);
     const output = lastFrame() ?? "";
 
     expect(output).toContain("92%");
@@ -127,7 +127,7 @@ describe("ContextGauge", () => {
       utilizationPercent: 75,
     });
 
-    const { lastFrame } = render(<ContextGauge execution={exec} />);
+    const { lastFrame } = render(<ContextGauge run={exec} />);
     const output = lastFrame() ?? "";
 
     expect(output).toContain("1.5M / 2.0M tokens");
@@ -148,7 +148,7 @@ describe("ContextGauge", () => {
       costUsd: 0.02,
     });
 
-    const { lastFrame } = render(<ContextGauge execution={exec} />);
+    const { lastFrame } = render(<ContextGauge run={exec} />);
     const output = lastFrame() ?? "";
 
     expect(output).toContain("1 compaction");
@@ -168,7 +168,7 @@ describe("ContextGauge", () => {
     addSummarizationEvent(exec, { tokensBefore: 110_000, tokensAfter: 70_000 });
     addSummarizationEvent(exec, { tokensBefore: 100_000, tokensAfter: 60_000 });
 
-    const { lastFrame } = render(<ContextGauge execution={exec} />);
+    const { lastFrame } = render(<ContextGauge run={exec} />);
     const output = lastFrame() ?? "";
 
     expect(output).toContain("3 compactions");

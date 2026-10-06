@@ -38,7 +38,7 @@ const IDLE_STATE: StreamState = { stage: "idle" };
 type Listener = () => void;
 
 /**
- * Framework-agnostic store that holds the active execution snapshot
+ * Framework-agnostic store that holds the active run snapshot
  * with structural sharing. Implements the contract required by
  * React's `useSyncExternalStore`.
  *
@@ -58,7 +58,7 @@ export class ConversationStore {
   // -- Ingestion -----------------------------------------------------------
 
   /**
-   * Ingest a new execution snapshot. Applies structural sharing
+   * Ingest a new run snapshot. Applies structural sharing
    * against the previous snapshot and notifies listeners only if
    * the resulting reference changed.
    */
@@ -135,7 +135,7 @@ export class ConversationStore {
     };
   };
 
-  /** Stable snapshot selector for the current execution. */
+  /** Stable snapshot selector for the current run. */
   getExecution = (): AgentRun | null => {
     return this._execution;
   };

@@ -2,13 +2,13 @@
  * Tests for the Agent Call Live Experience feature.
  *
  * Covers:
- * - WorkflowExecutionEventStore: agentCallProgress handler
+ * - WorkflowRunEventStore: agentCallProgress handler
  * - ExecutionBadge: approval tool name + agent activity rendering
  * - ExecutionInspector: Approval tab visibility
  */
 
 import { describe, expect, it } from "vitest";
-import { WorkflowExecutionEventStore } from "../../internal/store/workflow-execution-event-store";
+import { WorkflowRunEventStore } from "../../internal/store/workflow-run-event-store";
 import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 
 function makeStoreEvent(
@@ -23,7 +23,7 @@ function makeStoreEvent(
     occurredAt: "2026-01-01T00:00:00Z",
     taskName,
     payload,
-    $typeName: "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent",
+    $typeName: "ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent",
     $unknown: undefined,
   } as unknown as WorkflowRunEvent;
 }
@@ -32,9 +32,9 @@ function makeStoreEvent(
 // Event store: agentCallProgress handler
 // ---------------------------------------------------------------------------
 
-describe("WorkflowExecutionEventStore agentCallProgress", () => {
-  it("propagates childExecutionId from agentCallProgress to DerivedTaskState", () => {
-    const store = new WorkflowExecutionEventStore();
+describe("WorkflowRunEventStore agentCallProgress", () => {
+  it("propagates childRunId from agentCallProgress to DerivedTaskState", () => {
+    const store = new WorkflowRunEventStore();
     store.appendEvents([
       makeStoreEvent("agent-task", 1, {
         case: "taskStarted",
@@ -42,12 +42,12 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
       }),
       makeStoreEvent("agent-task", 2, {
         case: "agentCallStarted",
-        value: { childExecutionId: "", agentSlug: "my-agent", messageSummary: "" },
+        value: { childRunId: "", agentSlug: "my-agent", messageSummary: "" },
       }),
       makeStoreEvent("agent-task", 3, {
         case: "agentCallProgress",
         value: {
-          childExecutionId: "aex_123",
+          childRunId: "aex_123",
           agentSlug: "my-agent",
           agentPhase: 1,
           currentToolName: "web-search",
@@ -60,7 +60,7 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
 
     const state = store.getTaskStates().get("agent-task");
     expect(state).toBeDefined();
-    expect(state!.childExecutionId).toBe("aex_123");
+    expect(state!.childRunId).toBe("aex_123");
     expect(state!.agentSlug).toBe("my-agent");
     expect(state!.currentToolName).toBe("web-search");
     expect(state!.messagesCount).toBe(3);
@@ -68,7 +68,7 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
   });
 
   it("preserves existing cost/tokens when agentCallProgress has zero values", () => {
-    const store = new WorkflowExecutionEventStore();
+    const store = new WorkflowRunEventStore();
     store.appendEvents([
       makeStoreEvent("agent-task", 1, {
         case: "taskStarted",
@@ -77,7 +77,7 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
       makeStoreEvent("agent-task", 2, {
         case: "agentCallProgress",
         value: {
-          childExecutionId: "aex_456",
+          childRunId: "aex_456",
           agentSlug: "agent-x",
           agentPhase: 0,
           currentToolName: "",
@@ -89,12 +89,12 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
     ]);
 
     const state = store.getTaskStates().get("agent-task");
-    expect(state!.childExecutionId).toBe("aex_456");
+    expect(state!.childRunId).toBe("aex_456");
     expect(state!.tokensUsed).toBe(BigInt(0));
   });
 
   it("clears currentToolName on agentCallCompleted", () => {
-    const store = new WorkflowExecutionEventStore();
+    const store = new WorkflowRunEventStore();
     store.appendEvents([
       makeStoreEvent("agent-task", 1, {
         case: "taskStarted",
@@ -103,7 +103,7 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
       makeStoreEvent("agent-task", 2, {
         case: "agentCallProgress",
         value: {
-          childExecutionId: "aex_789",
+          childRunId: "aex_789",
           agentSlug: "agent-y",
           agentPhase: 1,
           currentToolName: "grep",
@@ -131,7 +131,7 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
   });
 
   it("updates progress fields on successive agentCallProgress events", () => {
-    const store = new WorkflowExecutionEventStore();
+    const store = new WorkflowRunEventStore();
     store.appendEvents([
       makeStoreEvent("agent-task", 1, {
         case: "taskStarted",
@@ -140,7 +140,7 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
       makeStoreEvent("agent-task", 2, {
         case: "agentCallProgress",
         value: {
-          childExecutionId: "aex_111",
+          childRunId: "aex_111",
           agentSlug: "agent-z",
           agentPhase: 1,
           currentToolName: "read-file",
@@ -159,7 +159,7 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
       makeStoreEvent("agent-task", 3, {
         case: "agentCallProgress",
         value: {
-          childExecutionId: "aex_111",
+          childRunId: "aex_111",
           agentSlug: "agent-z",
           agentPhase: 2,
           currentToolName: "write-file",
@@ -178,12 +178,12 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
   });
 
   it("derives correct agentActivity fields from a realistic full-lifecycle event sequence", () => {
-    const store = new WorkflowExecutionEventStore();
+    const store = new WorkflowRunEventStore();
 
-    // Phase 1: execution and task start
+    // Phase 1: run and task start
     store.appendEvents([
       makeStoreEvent("", 1, {
-        case: "executionStarted",
+        case: "runStarted",
         value: { totalTasks: 1 },
       }),
       makeStoreEvent("analyze_player_data", 2, {
@@ -195,26 +195,26 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
     let state = store.getTaskStates().get("analyze_player_data");
     expect(state).toBeDefined();
     expect(state!.status).toBe("running");
-    expect(state!.childExecutionId).toBe("");
+    expect(state!.childRunId).toBe("");
 
-    // Phase 2: agent_call_started (childExecutionId empty — not known yet)
+    // Phase 2: agent_call_started (childRunId empty — not known yet)
     store.appendEvents([
       makeStoreEvent("analyze_player_data", 3, {
         case: "agentCallStarted",
-        value: { childExecutionId: "", agentSlug: "notification-analyst", messageSummary: "Generate the daily cohort analysis..." },
+        value: { childRunId: "", agentSlug: "notification-analyst", messageSummary: "Generate the daily cohort analysis..." },
       }),
     ]);
 
     state = store.getTaskStates().get("analyze_player_data");
     expect(state!.agentSlug).toBe("notification-analyst");
-    expect(state!.childExecutionId).toBe("");
+    expect(state!.childRunId).toBe("");
 
-    // Phase 3: first progress with childExecutionId (from child_execution_started signal)
+    // Phase 3: first progress with childRunId (from child_execution_started signal)
     store.appendEvents([
       makeStoreEvent("analyze_player_data", 4, {
         case: "agentCallProgress",
         value: {
-          childExecutionId: "aex_01abc",
+          childRunId: "aex_01abc",
           agentPhase: 1,
           currentToolName: "",
           tokensConsumed: BigInt(0),
@@ -225,7 +225,7 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
     ]);
 
     state = store.getTaskStates().get("analyze_player_data");
-    expect(state!.childExecutionId).toBe("aex_01abc");
+    expect(state!.childRunId).toBe("aex_01abc");
     expect(state!.agentSlug).toBe("notification-analyst");
 
     // Verify agentActivity gate: slug is set but no tool/messages yet → no badge
@@ -240,7 +240,7 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
       makeStoreEvent("analyze_player_data", 5, {
         case: "agentCallProgress",
         value: {
-          childExecutionId: "aex_01abc",
+          childRunId: "aex_01abc",
           agentPhase: 1,
           currentToolName: "execute-sql",
           tokensConsumed: BigInt(1200),
@@ -264,7 +264,7 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
   });
 
   it("does not create agentActivity when agentCallProgress arrives without agentCallStarted (no agentSlug)", () => {
-    const store = new WorkflowExecutionEventStore();
+    const store = new WorkflowRunEventStore();
 
     store.appendEvents([
       makeStoreEvent("orphan-task", 1, {
@@ -274,7 +274,7 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
       makeStoreEvent("orphan-task", 2, {
         case: "agentCallProgress",
         value: {
-          childExecutionId: "aex_orphan",
+          childRunId: "aex_orphan",
           agentPhase: 1,
           currentToolName: "web-search",
           tokensConsumed: BigInt(500),
@@ -287,7 +287,7 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
     const state = store.getTaskStates().get("orphan-task");
     expect(state).toBeDefined();
     // Progress fields should be populated...
-    expect(state!.childExecutionId).toBe("aex_orphan");
+    expect(state!.childRunId).toBe("aex_orphan");
     expect(state!.currentToolName).toBe("web-search");
     // ...but agentSlug is empty (only set by agentCallStarted)
     expect(state!.agentSlug).toBe("");
@@ -372,7 +372,7 @@ describe("ExecutionBadge agent activity", () => {
 // tab's embedded-thumbnail subscription gating. The thumbnail became a
 // launcher, and later the launcher's document tab became the
 // inline in-card transcript; the transcript's fetch/stream lifecycle is
-// covered by useLiveAgentExecution.test.tsx +
+// covered by useLiveAgentRun.test.tsx +
 // WorkflowAgentCallTranscript.test.tsx.
 
 // ---------------------------------------------------------------------------

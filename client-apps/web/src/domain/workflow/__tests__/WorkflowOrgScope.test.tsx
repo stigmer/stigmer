@@ -1,6 +1,6 @@
 /**
  * Pins how the web workflow pages name organizations: the list, the
- * executions list and the new-workflow editor use the active
+ * runs list and the new-workflow editor use the active
  * organization's id, the way the server names every org, and the detail
  * page shows and runs the workflow in the organization it lives in, its
  * Run action opens the run dialog, and a change saved on the page refreshes
@@ -90,7 +90,7 @@ vi.mock("@stigmer/react", () => {
     ApplyManifestDialog: () => null,
     ConfirmDialog: () => null,
     Button: Passthrough,
-    WorkflowExecutionPhaseBadge: () => null,
+    WorkflowRunPhaseBadge: () => null,
     // A stand-in that shows which org id the column handed it.
     OrgSlugText: ({ orgId }: { orgId: string }) => <span>slug of {orgId}</span>,
     WorkflowEditorView: capture("WorkflowEditorView"),
@@ -119,7 +119,7 @@ vi.mock("@stigmer/react", () => {
       page.architectOrg.push(org);
       return { availability: "unavailable" };
     },
-    useWorkflowExecutionList: ({ org }: { org: string | null }) => {
+    useWorkflowRunList: ({ org }: { org: string | null }) => {
       page.executionListOrg.push(org);
       return {
         executions: [],
@@ -172,14 +172,14 @@ vi.mock("@/domain/library/full-viewport-layout", () => ({
   useRequestFullViewport: () => undefined,
 }));
 
-vi.mock("@/domain/workflow/execution-navigation", () => ({
-  useExecutionNavigation: () => ({ navigateToExecution: () => undefined }),
+vi.mock("@/domain/workflow/run-navigation", () => ({
+  useRunNavigation: () => ({ navigateToRun: () => undefined }),
 }));
 
 import { WorkflowListPage } from "../WorkflowListPage";
 import { WorkflowNewPage } from "../WorkflowNewPage";
 import { WorkflowDetailPageInner } from "../WorkflowDetailPage";
-import { WorkflowExecutionListPage } from "../WorkflowExecutionListPage";
+import { WorkflowRunListPage } from "../WorkflowRunListPage";
 import { WORKFLOW_DELETE_DESCRIPTION } from "../workflow-delete-confirmation";
 
 let copied: string[] = [];
@@ -286,16 +286,16 @@ describe("web WorkflowDetailPageInner", () => {
 
     expect(page.confirms.at(-1)?.description).toBe(
       "This permanently removes the workflow. " +
-        "Past executions are preserved in the execution history. " +
+        "Past runs are preserved in the run history. " +
         "This action cannot be undone.",
     );
     expect(page.confirms.at(-1)?.description).toBe(WORKFLOW_DELETE_DESCRIPTION);
   });
 });
 
-describe("web WorkflowExecutionListPage", () => {
+describe("web WorkflowRunListPage", () => {
   it("lists the active org's executions by its id", () => {
-    render(<WorkflowExecutionListPage />);
+    render(<WorkflowRunListPage />);
 
     expect(page.executionListOrg.at(-1)).toBe("org_acme");
   });

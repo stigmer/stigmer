@@ -8,13 +8,13 @@ import {
   type SessionArtifactEntry,
 } from "../useSessionArtifacts.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
-import { ArtifactPreviewModal } from "../../execution/ArtifactPreviewModal.js";
-import { ArtifactRow } from "../../execution/ArtifactRow.js";
+import { ArtifactPreviewModal } from "../../run/ArtifactPreviewModal.js";
+import { ArtifactRow } from "../../run/ArtifactRow.js";
 import { isPlanArtifact } from "../../library/detect-plan-artifact.js";
 import type { ApplyResourceResult } from "../../library/useApplyResource.js";
 
 export interface ArtifactsTabProps {
-  readonly executions: readonly AgentRun[];
+  readonly runs: readonly AgentRun[];
   readonly org: string;
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
@@ -66,7 +66,7 @@ export interface ArtifactsTabProps {
  * Apply/Push action live in the opened document/modal instead.
  */
 export function ArtifactsTab({
-  executions,
+  runs: executions,
   org,
   onApplied,
   onImplementPlan,
@@ -82,7 +82,7 @@ export function ArtifactsTab({
       // A plan is a first-class document — it opens in the dedicated plan tab,
       // never as a generic artifact or a popup.
       if (onOpenPlan && isPlanArtifact(entry.artifact)) {
-        onOpenPlan(entry.executionId);
+        onOpenPlan(entry.runId);
         return;
       }
       // Editor-pane document when the host injected it; otherwise the modal.
@@ -100,7 +100,7 @@ export function ArtifactsTab({
       // A plan's tab is always pinned, so double-click matches single-click:
       // route to the plan tab, never pin a generic artifact.
       if (onOpenPlan && isPlanArtifact(entry.artifact)) {
-        onOpenPlan(entry.executionId);
+        onOpenPlan(entry.runId);
         return;
       }
       onActivateArtifact?.(entry);
@@ -129,7 +129,7 @@ export function ArtifactsTab({
           <ArtifactRow
             key={artifactKey(entry.artifact)}
             artifact={entry.artifact}
-            executionId={entry.executionId}
+            runId={entry.runId}
             hasNameCollision={entry.hasNameCollision}
             onOpen={() => handleOpen(entry)}
             onActivate={
@@ -142,7 +142,7 @@ export function ArtifactsTab({
       {previewEntry && (
         <ArtifactPreviewModal
           artifact={previewEntry.artifact}
-          executionId={previewEntry.executionId}
+          runId={previewEntry.runId}
           isTerminal={previewEntry.isTerminal}
           org={org}
           open

@@ -7,7 +7,7 @@ import type { RecentActivityEntry } from "./types.js";
  * Only NOTEWORTHY execution states earn a badge: a completed run is the
  * expected outcome (annotating every row would be noise), and sessions
  * carry no phase at all. Paired with the relative-time stamp, the badge
- * explains why an old-named execution sits high in a last-activity-sorted
+ * explains why an old-named run sits high in a last-activity-sorted
  * list ("failed · 2h" — it just failed, that's the activity).
  */
 export interface RecentActivityStatusBadge {
@@ -28,12 +28,12 @@ const BADGED_STATUSES: ReadonlyMap<string, RecentActivityStatusBadge["tone"]> =
 
 /**
  * Resolves the status badge for a recent-activity entry. Returns `null`
- * for sessions, completed executions, and unknown phases.
+ * for sessions, completed runs, and unknown phases.
  */
 export function recentActivityStatusBadge(
   entry: RecentActivityEntry,
 ): RecentActivityStatusBadge | null {
-  if (entry.type !== "workflow_execution" || !entry.status) return null;
+  if (entry.type !== "workflow_run" || !entry.status) return null;
   const tone = BADGED_STATUSES.get(entry.status);
   return tone ? { label: entry.status, tone } : null;
 }

@@ -7,7 +7,7 @@ import {
   RunArtifactKind,
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../execution/artifact-document";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../run/artifact-document";
 import { artifactKey, type SessionArtifactEntry } from "../useSessionArtifacts";
 
 // ---------------------------------------------------------------------------
@@ -25,7 +25,7 @@ import { artifactKey, type SessionArtifactEntry } from "../useSessionArtifacts";
 type CapturedProps = Record<string, unknown>;
 
 const threadProps: CapturedProps[] = [];
-vi.mock("../../execution/MessageThread", () => ({
+vi.mock("../../run/MessageThread", () => ({
   MessageThread: (props: CapturedProps) => {
     threadProps.push(props);
     return <div data-testid="thread-probe" />;
@@ -66,7 +66,7 @@ const artifactExecution = create(AgentRunSchema, {
 
 const entry: SessionArtifactEntry = {
   artifact,
-  executionId: "aex_1",
+  runId: "aex_1",
   isTerminal: true,
   hasNameCollision: false,
 };
@@ -87,8 +87,8 @@ const stubConv = {
   session: { spec: {} },
   isLoading: false,
   loadError: null,
-  completedExecutions: [artifactExecution],
-  activeStreamExecution: null,
+  completedRuns: [artifactExecution],
+  activeStreamRun: null,
   pendingUserMessage: null,
   workspaceEntries: [],
   fileChangeSets: [],
@@ -142,8 +142,8 @@ const stubSessionPageFlow = {
   setAutoApproveAll: vi.fn(),
   handleSubmit: vi.fn(),
   submitError: null as Error | null,
-  displayExecution: artifactExecution,
-  allExecutions: [artifactExecution],
+  displayRun: artifactExecution,
+  allRuns: [artifactExecution],
   sandboxWorkspaceRoot: "/home/daytona/workspace",
 };
 vi.mock("../useSessionPageFlow", () => ({
@@ -152,7 +152,7 @@ vi.mock("../useSessionPageFlow", () => ({
 
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
-    agentExecution: {
+    agentRun: {
       uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
     },

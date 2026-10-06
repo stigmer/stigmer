@@ -30,8 +30,8 @@ export type {
   UseSessionListReturn,
 } from "./useSessionList.js";
 
-export { useSessionExecutions } from "./useSessionExecutions.js";
-export type { UseSessionExecutionsReturn } from "./useSessionExecutions.js";
+export { useSessionRuns } from "./useSessionRuns.js";
+export type { UseSessionRunsReturn } from "./useSessionRuns.js";
 
 export { useSessionConversation } from "./useSessionConversation.js";
 export type {
@@ -67,7 +67,7 @@ export type { UseSessionFileChangesReturn } from "./useSessionFileChanges.js";
 
 export { useSessionUsage } from "./useSessionUsage.js";
 export type {
-  ExecutionUsageEntry,
+  RunUsageEntry,
   ModelCostEntry,
   UseSessionUsageReturn,
 } from "./useSessionUsage.js";
@@ -157,7 +157,7 @@ export {
 // Artifact document tab identity — promoted to execution/ (shared with the
 // workflow panel); re-exported here so `@stigmer/react`'s public export and
 // existing session-path importers are unchanged.
-export { ARTIFACT_DOCUMENT_ENTRY_ID } from "../execution/artifact-document.js";
+export { ARTIFACT_DOCUMENT_ENTRY_ID } from "../run/artifact-document.js";
 
 // Session facet components — the panel's rail views (Config et al.), also
 // independently importable.

@@ -174,7 +174,7 @@ export interface AgentOverrides {
   readonly instructions?: string;
 }
 
-export interface AgentExecutionOverrides {
+export interface AgentRunOverrides {
   readonly id?: string;
   readonly sessionId?: string;
   readonly agentId?: string;
@@ -319,10 +319,10 @@ export const samples = {
   },
 
   /**
-   * An agent execution with status, messages, and optional artifacts.
-   * Default: completed execution with a short human/AI exchange.
+   * An agent run with status, messages, and optional artifacts.
+   * Default: completed run with a short human/AI exchange.
    */
-  agentExecution(o?: AgentExecutionOverrides): AgentRun {
+  agentRun(o?: AgentRunOverrides): AgentRun {
     const msgs =
       o?.messages ?? [
         samples.humanMessage("Hello! Can you help me get started?"),
@@ -333,7 +333,7 @@ export const samples = {
 
     return create(AgentRunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentExecution",
+      kind: "AgentRun",
       metadata: create(ApiResourceMetadataSchema, {
         id: o?.id ?? "aex-00000000-0000-0000-0000-000000000001",
         name: "demo-execution",
@@ -516,7 +516,7 @@ export const samples = {
     });
   },
 
-  /** A file artifact produced by an execution, stamped at {@link SAMPLE_INSTANT}. */
+  /** A file artifact produced by a run, stamped at {@link SAMPLE_INSTANT}. */
   artifact(name: string, kind?: RunArtifactKind): RunArtifact {
     return create(RunArtifactSchema, {
       name,
@@ -537,9 +537,9 @@ export const samples = {
     });
   },
 
-  /** An agent execution list response. Defaults to one demo execution. */
-  agentExecutionList(entries?: AgentRun[]): AgentRunList {
-    const items = entries ?? [samples.agentExecution()];
+  /** An agent run list response. Defaults to one demo run. */
+  agentRunList(entries?: AgentRun[]): AgentRunList {
+    const items = entries ?? [samples.agentRun()];
     return create(AgentRunListSchema, {
       entries: items,
       totalPages: 1,

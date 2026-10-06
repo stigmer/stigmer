@@ -12,22 +12,22 @@ export type WorkflowPhase =
   | "Terminated"
   | "Paused";
 
-/** The two center-column views of the redesigned execution page. */
+/** The two center-column views of the redesigned run page. */
 export type CenterView = "thread" | "graph";
 
 /**
- * Navigates to an execution's detail page and waits for the page shell.
+ * Navigates to a run's detail page and waits for the page shell.
  *
  * The center-view switcher is the readiness anchor: it renders only once
- * the execution snapshot resolved, and it is unique to this page —
+ * the run snapshot resolved, and it is unique to this page —
  * `getByRole("status")` is NOT (the phase badge, the thread empty state,
  * and panel notices all carry that role).
  */
-export async function navigateToExecution(
+export async function navigateToRun(
   page: Page,
   executionId: string,
 ): Promise<void> {
-  await page.goto(`/executions/${executionId}`);
+  await page.goto(`/runs/${executionId}`);
   // 30s: a cold Next dev server compiles the route on first hit, and
   // parallel workers can queue behind that compile.
   await getCenterViewSwitcher(page).waitFor({
@@ -37,15 +37,15 @@ export async function navigateToExecution(
 }
 
 /**
- * Polls the server until a workflow execution has completed.
+ * Polls the server until a workflow run has completed.
  *
- * A seeded execution (`createTestWorkflowExecution`) returns as soon as the
+ * A seeded run (`createTestWorkflowRun`) returns as soon as the
  * create call does, before the runner has run it. A spec whose page needs a
  * finished run that it does not open itself (a second run in the comparison
  * picker, a completed row in the history table) waits here first, so the
  * precondition is established rather than assumed (#1552).
  */
-export async function awaitWorkflowExecutionCompleted(
+export async function awaitWorkflowRunCompleted(
   client: Stigmer,
   executionId: string,
 ): Promise<void> {
@@ -72,7 +72,7 @@ export async function waitForPhaseBadge(
 }
 
 /**
- * Wait for the execution phase badge to show a specific phase.
+ * Wait for the run phase badge to show a specific phase.
  * Uses Playwright's auto-retry mechanism via expect().toBeVisible().
  */
 export async function waitForPhaseTransition(
@@ -103,7 +103,7 @@ export async function clickCancel(page: Page): Promise<void> {
 
 /**
  * The Thread|Graph switcher — a radiogroup, not a tablist (the product
- * models the two views as mutually exclusive lenses on one execution).
+ * models the two views as mutually exclusive lenses on one run).
  */
 export function getCenterViewSwitcher(page: Page): Locator {
   return page.getByRole("radiogroup", { name: "Center view" });
@@ -135,13 +135,13 @@ export function getCenterViewWrapper(page: Page, view: CenterView): Locator {
   return page.locator(`[data-center-view="${view}"]`);
 }
 
-/** The execution graph's React Flow canvas (visible only in Graph view). */
-export function getExecutionGraph(page: Page): Locator {
+/** The run graph's React Flow canvas (visible only in Graph view). */
+export function getRunGraph(page: Page): Locator {
   return getCenterViewWrapper(page, "graph").locator(".react-flow");
 }
 
 /** The task thread container (visible only in Thread view — the default). */
-export function getExecutionThread(page: Page): Locator {
+export function getRunThread(page: Page): Locator {
   return getCenterViewWrapper(page, "thread");
 }
 
@@ -154,7 +154,7 @@ export function getExecutionThread(page: Page): Locator {
  * task — pending tasks render no card.
  */
 export function getThreadTaskCards(page: Page): Locator {
-  return getExecutionThread(page).locator(
+  return getRunThread(page).locator(
     '[data-cursor-target="workflow-task-row"]',
   );
 }
@@ -165,11 +165,11 @@ export function getThreadTaskCard(page: Page, taskName: string): Locator {
 }
 
 // ---------------------------------------------------------------------------
-// Execution workspace panel (Artifacts / Changes / Usage)
+// Run workspace panel (Artifacts / Changes / Usage)
 // ---------------------------------------------------------------------------
 
 /**
- * The header chip that toggles the execution workspace panel. Collapsed
+ * The header chip that toggles the run workspace panel. Collapsed
  * is the default, so `aria-expanded` starts false.
  */
 export function getPanelToggle(page: Page): Locator {
@@ -177,7 +177,7 @@ export function getPanelToggle(page: Page): Locator {
 }
 
 /** Opens the workspace panel if it is not already open. */
-export async function openExecutionPanel(page: Page): Promise<void> {
+export async function openRunPanel(page: Page): Promise<void> {
   const toggle = getPanelToggle(page);
   if ((await toggle.getAttribute("aria-expanded")) !== "true") {
     await toggle.click();
@@ -190,5 +190,5 @@ export async function openExecutionPanel(page: Page): Promise<void> {
  * while the panel is open (`aria-hidden` while collapsed).
  */
 export function getPanelResizeHandle(page: Page): Locator {
-  return page.getByRole("separator", { name: "Resize execution panel" });
+  return page.getByRole("separator", { name: "Resize run panel" });
 }

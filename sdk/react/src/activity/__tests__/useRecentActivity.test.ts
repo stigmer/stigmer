@@ -13,7 +13,7 @@ const EPOCH = new Date(0);
 
 function makeProtoEntry(
   id: string,
-  type: "session" | "workflow_execution",
+  type: "session" | "workflow_run",
   subject: string,
   updatedAt: Date,
   status?: string,
@@ -34,8 +34,8 @@ function normalizeEntry(entry: ProtoEntry): RecentActivityEntry {
 
   return {
     id: entry.id,
-    type: entry.type === "session" ? "session" : "workflow_execution",
-    subject: entry.subject || (entry.type === "session" ? "Untitled session" : "Untitled execution"),
+    type: entry.type === "session" ? "session" : "workflow_run",
+    subject: entry.subject || (entry.type === "session" ? "Untitled session" : "Untitled run"),
     updatedAt: updatedAt.getTime() > 0 ? updatedAt : EPOCH,
     status: entry.status || undefined,
   };
@@ -44,11 +44,11 @@ function normalizeEntry(entry: ProtoEntry): RecentActivityEntry {
 describe("normalizeEntry", () => {
   it("converts proto RecentActivityEntry to local type", () => {
     const ts = new Date("2026-05-27T12:00:00Z");
-    const proto = makeProtoEntry("wfx_123", "workflow_execution", "my-workflow", ts, "completed");
+    const proto = makeProtoEntry("wfx_123", "workflow_run", "my-workflow", ts, "completed");
     const result = normalizeEntry(proto);
 
     expect(result.id).toBe("wfx_123");
-    expect(result.type).toBe("workflow_execution");
+    expect(result.type).toBe("workflow_run");
     expect(result.subject).toBe("my-workflow");
     expect(result.updatedAt.getTime()).toBe(ts.getTime());
     expect(result.status).toBe("completed");
@@ -61,11 +61,11 @@ describe("normalizeEntry", () => {
     expect(result.subject).toBe("Untitled session");
   });
 
-  it("falls back to 'Untitled execution' for empty execution subject", () => {
+  it("falls back to 'Untitled run' for empty execution subject", () => {
     const ts = new Date("2026-05-27T12:00:00Z");
-    const proto = makeProtoEntry("wfx_1", "workflow_execution", "", ts);
+    const proto = makeProtoEntry("wfx_1", "workflow_run", "", ts);
     const result = normalizeEntry(proto);
-    expect(result.subject).toBe("Untitled execution");
+    expect(result.subject).toBe("Untitled run");
   });
 
   it("uses EPOCH when updatedAt is missing", () => {
@@ -89,9 +89,9 @@ describe("groupRecentActivityByTime (server-sorted input)", () => {
   it("groups entries into Today bucket when all are recent", () => {
     const now = new Date("2026-05-27T18:00:00Z");
     const entries: RecentActivityEntry[] = [
-      { id: "a", type: "workflow_execution", subject: "wf-a", updatedAt: new Date("2026-05-27T12:00:00Z") },
+      { id: "a", type: "workflow_run", subject: "wf-a", updatedAt: new Date("2026-05-27T12:00:00Z") },
       { id: "b", type: "session", subject: "sess-b", updatedAt: new Date("2026-05-27T10:00:00Z") },
-      { id: "c", type: "workflow_execution", subject: "wf-c", updatedAt: new Date("2026-05-27T08:00:00Z") },
+      { id: "c", type: "workflow_run", subject: "wf-c", updatedAt: new Date("2026-05-27T08:00:00Z") },
     ];
 
     const groups = groupRecentActivityByTime(entries, now);
@@ -106,9 +106,9 @@ describe("groupRecentActivityByTime (server-sorted input)", () => {
   it("preserves server sort order within each bucket", () => {
     const now = new Date("2026-05-27T18:00:00Z");
     const entries: RecentActivityEntry[] = [
-      { id: "newest", type: "workflow_execution", subject: "wf", updatedAt: new Date("2026-05-27T14:00:00Z") },
+      { id: "newest", type: "workflow_run", subject: "wf", updatedAt: new Date("2026-05-27T14:00:00Z") },
       { id: "middle", type: "session", subject: "sess", updatedAt: new Date("2026-05-27T10:00:00Z") },
-      { id: "oldest", type: "workflow_execution", subject: "wf2", updatedAt: new Date("2026-05-27T06:00:00Z") },
+      { id: "oldest", type: "workflow_run", subject: "wf2", updatedAt: new Date("2026-05-27T06:00:00Z") },
     ];
 
     const groups = groupRecentActivityByTime(entries, now);
@@ -119,7 +119,7 @@ describe("groupRecentActivityByTime (server-sorted input)", () => {
     const now = new Date("2026-05-27T18:00:00Z");
     const entries: RecentActivityEntry[] = [
       { id: "today", type: "session", subject: "t", updatedAt: new Date("2026-05-27T16:00:00Z") },
-      { id: "yesterday", type: "workflow_execution", subject: "y", updatedAt: new Date("2026-05-25T12:00:00Z") },
+      { id: "yesterday", type: "workflow_run", subject: "y", updatedAt: new Date("2026-05-25T12:00:00Z") },
     ];
 
     const groups = groupRecentActivityByTime(entries, now);

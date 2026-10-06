@@ -2,7 +2,7 @@
 
 import { cn } from "@stigmer/theme";
 import type { AgentUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import { formatCost } from "../execution/UsageWidget.js";
+import { formatCost } from "../run/UsageWidget.js";
 
 /** Props for {@link AgentBreakdownList}. */
 export interface AgentBreakdownListProps {
@@ -19,7 +19,7 @@ export interface AgentBreakdownListProps {
 /**
  * Renders a ranked list of agents by cost with proportional cost bars.
  *
- * Each row shows the agent name, execution count, token usage,
+ * Each row shows the agent name, run count, token usage,
  * billable cost, and a visual bar representing cost as a percentage
  * of the organization total.
  */

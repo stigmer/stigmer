@@ -46,7 +46,7 @@ let listBySession: (input: unknown) => Promise<unknown>;
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
     session: { get: () => Promise.resolve(fakeSession) },
-    agentExecution: {
+    agentRun: {
       listBySession: (input: unknown) => listBySession(input),
       getArtifactContent: vi.fn(),
     },

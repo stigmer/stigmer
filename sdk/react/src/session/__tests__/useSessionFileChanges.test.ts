@@ -32,7 +32,7 @@ import { useSessionFileChanges } from "../useSessionFileChanges";
 //
 // Under apply-then-review the hook sources exclusively from the file-review
 // ledger (the live `file_change_sets` projection, or the folded
-// `file_review_event_stream` for a terminal execution). The tool-call-coupled
+// `file_review_event_stream` for a terminal run). The tool-call-coupled
 // `ToolCall.file_changes` (message.proto field 22) was removed, so every
 // fixture here is a CapturedFileChange.
 // ---------------------------------------------------------------------------
@@ -69,7 +69,7 @@ function execWith(id: string): AgentRun {
   return exec;
 }
 
-/** An execution carrying a live server projection of one change set. */
+/** A run carrying a live server projection of one change set. */
 function execWithProjection(id: string, changes: CapturedFileChange[]): AgentRun {
   const exec = execWith(id);
   exec.status!.fileChangeSets = [
@@ -82,7 +82,7 @@ function execWithProjection(id: string, changes: CapturedFileChange[]): AgentRun
   return exec;
 }
 
-/** A terminal execution: empty projection, changes only in the durable ledger. */
+/** A terminal run: empty projection, changes only in the durable ledger. */
 function execWithLedger(id: string, changes: CapturedFileChange[]): AgentRun {
   const exec = execWith(id);
   exec.status!.phase = RunPhase.RUN_COMPLETED;

@@ -23,7 +23,7 @@ beforeAll(() => {
 /**
  * End-to-end composer wiring for the service tier (stigmer/stigmer#357):
  * the toolbar's ModelSelector toggle must reach composer state, and an
- * active fast selection must ride the submit context to execution create.
+ * active fast selection must ride the submit context to run create.
  * This seam (SessionComposer → ComposerToolbar props → submit context) is
  * exactly where the feature can silently die while every layer on either
  * side unit-tests green.
@@ -43,7 +43,7 @@ const FAST_CAPABLE: ModelInfo = {
 
 function createMinimalStigmerMock(): Stigmer {
   return {
-    agentExecution: { uploadAttachment: vi.fn() },
+    agentRun: { uploadAttachment: vi.fn() },
     environment: { getPersonal: vi.fn().mockResolvedValue(null) },
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),

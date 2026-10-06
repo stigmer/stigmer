@@ -36,7 +36,7 @@ vi.mock("../facets/SetupTab", () => ({
 }));
 
 const threadProps: CapturedProps[] = [];
-vi.mock("../../execution/MessageThread", () => ({
+vi.mock("../../run/MessageThread", () => ({
   MessageThread: (props: CapturedProps) => {
     threadProps.push(props);
     return <div data-testid="thread-probe" />;
@@ -98,8 +98,8 @@ const stubConv = {
   session: { spec: {} },
   isLoading: false,
   loadError: null,
-  completedExecutions: [],
-  activeStreamExecution: null,
+  completedRuns: [],
+  activeStreamRun: null,
   activePhase: null,
   isStreaming: false,
   isConnecting: false,
@@ -156,8 +156,8 @@ const stubSessionPageFlow = {
   submitApproval: vi.fn(),
   handleSubmit: vi.fn(),
   submitError: null as Error | null,
-  displayExecution: null,
-  allExecutions: [],
+  displayRun: null,
+  allRuns: [],
   sandboxWorkspaceRoot: undefined,
 };
 const mockUseSessionPageFlow = vi.fn((_options: unknown) => stubSessionPageFlow);
@@ -167,7 +167,7 @@ vi.mock("../useSessionPageFlow", () => ({
 
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
-    agentExecution: {
+    agentRun: {
       uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
     },
@@ -404,8 +404,8 @@ describe("SessionViewer — audience wiring", () => {
 
   it("guest: approval mechanics are withheld from the thread", () => {
     // The HITL gate protects the ORG's tools; an anonymous visitor is not
-    // its trustee. Guest executions run unattended server-side, so nothing
-    // is ever pending on a new execution — withholding the callback is the
+    // its trustee. Guest runs run unattended server-side, so nothing
+    // is ever pending on a new run — withholding the callback is the
     // belt-and-braces for pre-existing sessions and direct SDK embedders.
     render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" />);
 
@@ -596,7 +596,7 @@ describe("SessionViewer — the agent version notice and the personal-key disclo
     // Turns already ran on that agent: nothing new to disclose.
     mockUseSessionPageFlow.mockImplementation(() => ({
       ...stubSessionPageFlow,
-      conv: { ...stubConv, session: pinnedSession, completedExecutions: [{}] as never[] },
+      conv: { ...stubConv, session: pinnedSession, completedRuns: [{}] as never[] },
     }));
     render(<SessionViewer sessionId="ses_1" org="acme" />);
     expect(lastComposerProps().disclosePersonalKeys).toBe(false);
@@ -606,7 +606,7 @@ describe("SessionViewer — the agent version notice and the personal-key disclo
     mockUseSessionPageFlow.mockImplementation(() => ({
       ...stubSessionPageFlow,
       agentRef: { org: "acme", slug: "other-bot" },
-      conv: { ...stubConv, session: pinnedSession, completedExecutions: [{}] as never[] },
+      conv: { ...stubConv, session: pinnedSession, completedRuns: [{}] as never[] },
     }));
     render(<SessionViewer sessionId="ses_1" org="acme" />);
     expect(lastComposerProps().disclosePersonalKeys).toBe(true);

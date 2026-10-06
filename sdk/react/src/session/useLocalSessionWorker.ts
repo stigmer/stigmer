@@ -13,7 +13,7 @@ import { fromProtoExecutionTarget } from "./execution-target.js";
  *
  * A `Session` is a long-lived, multi-turn conversation with **no terminal
  * phase** — its runner worker must keep polling the session task queue for as
- * long as the session is open, because `sendFollowUp` creates new executions
+ * long as the session is open, because `sendFollowUp` creates new runs
  * without re-attaching a worker. The lifecycle is therefore
  * **attach-on-open / detach-on-close**: attach when the session is opened
  * (this hook mounts with a loaded, local session and an adapter present),
@@ -24,7 +24,7 @@ import { fromProtoExecutionTarget } from "./execution-target.js";
  * Wired once from {@link useSessionConversation} so every consumer — web,
  * desktop, Ink/terminal, and custom headless hosts — gets the behavior for
  * free. It is a no-op unless a `runnerAdapter` is configured **and** the
- * session resolves to local execution (cloud sessions are server-provisioned).
+ * session resolves to local run (cloud sessions are server-provisioned).
  *
  * **Only the session's own person serves it.** Anyone a session is shared
  * with can open it, and every desktop that attached would poll the same
@@ -46,7 +46,7 @@ import { fromProtoExecutionTarget } from "./execution-target.js";
  * `useSessionConversation` refetches the session frequently; keying the effect
  * on the object would tear down and restart the worker on every refetch
  * (reference stability). `executionTarget` is immutable after the
- * first execution, and a session's creator never changes, so both derived
+ * first run, and a session's creator never changes, so both derived
  * values stay stable across refetches.
  *
  * @param sessionId - The session being viewed, or `null` to skip.

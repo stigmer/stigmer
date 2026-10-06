@@ -13,30 +13,30 @@ import {
 import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import { displayFileChangeSets } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
-import { useLiveAgentExecution } from "../execution/useLiveAgentExecution.js";
-import { MessageThread } from "../execution/MessageThread.js";
-import { ThreadSkeleton } from "../execution/ThreadSkeleton.js";
-import { FileReviewDock } from "../execution/FileReviewDock.js";
-import type { FileDecisionOptions } from "../execution/useFileReview.js";
-import { isTerminalPhase } from "../execution/execution-phases.js";
+import { useLiveAgentRun } from "../run/useLiveAgentRun.js";
+import { MessageThread } from "../run/MessageThread.js";
+import { ThreadSkeleton } from "../run/ThreadSkeleton.js";
+import { FileReviewDock } from "../run/FileReviewDock.js";
+import type { FileDecisionOptions } from "../run/useFileReview.js";
+import { isTerminalPhase } from "../run/run-phases.js";
 import { useInViewport } from "../internal/useInViewport.js";
-import type { UseWorkflowExecutionActionsReturn } from "./useWorkflowExecutionActions.js";
+import type { UseWorkflowRunActionsReturn } from "./useWorkflowRunActions.js";
 
 /** Stable empty list so the thread's memoized rows keep identity. */
 const EMPTY_EXECUTIONS: readonly AgentRun[] = [];
 
 /**
  * The HITL wiring for an inline child transcript: the slice of
- * {@link UseWorkflowExecutionActionsReturn} needed to submit child-gate
+ * {@link UseWorkflowRunActionsReturn} needed to submit child-gate
  * decisions at the WORKFLOW level.
  *
  * A `Pick` (not a new shape) so the bundle can never drift from the actions
- * hook — the viewer builds it from its single `useWorkflowExecutionActions`
+ * hook — the viewer builds it from its single `useWorkflowRunActions`
  * instance, so a gate's in-flight spinner or failure is identical wherever
  * that gate is shown.
  */
-export type WorkflowAgentExecutionHitl = Pick<
-  UseWorkflowExecutionActionsReturn,
+export type WorkflowAgentRunHitl = Pick<
+  UseWorkflowRunActionsReturn,
   | "submitApproval"
   | "approvalSubmittingToolCallIds"
   | "approvalErrorsByToolCallId"
@@ -47,8 +47,8 @@ export type WorkflowAgentExecutionHitl = Pick<
 
 /** Props for {@link WorkflowAgentCallTranscript}. */
 export interface WorkflowAgentCallTranscriptProps {
-  /** ID of the child AgentExecution whose transcript to render. */
-  readonly childExecutionId: string;
+  /** ID of the child AgentRun whose transcript to render. */
+  readonly childRunId: string;
   /** Slug of the agent the task called, when known (labels the region). */
   readonly agentSlug?: string;
   /**
@@ -58,18 +58,18 @@ export interface WorkflowAgentCallTranscriptProps {
    * omitted, the transcript is read-only — gates show status only
    * (backward compatible).
    */
-  readonly hitl?: WorkflowAgentExecutionHitl;
+  readonly hitl?: WorkflowAgentRunHitl;
   /**
-   * Open the child execution as a standalone page — the deep-dive escape
+   * Open the child run as a standalone page — the deep-dive escape
    * hatch now that the card is the transcript's single home. Host-routed.
    */
-  readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
+  readonly onNavigateToAgentRun?: (agentExecutionId: string) => void;
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
 
 /**
- * A child AgentExecution's full transcript rendered inline in the
+ * A child AgentRun's full transcript rendered inline in the
  * AGENT_CALL task card — the session-grade `MessageThread` (tool calls,
  * sub-agents, plan cards, and — with {@link
  * WorkflowAgentCallTranscriptProps.hitl | hitl} — in-place HITL), streaming
@@ -100,12 +100,12 @@ export interface WorkflowAgentCallTranscriptProps {
  * pop-out. Body = purely the conversation.
  *
  * HITL ROUTING. Child gates are decided through the WORKFLOW-level RPCs
- * (`WorkflowExecution.submitApproval` / `submitFileDecision`), never the
- * child's own `agentExecution.*` submit path. The two paths are
+ * (`WorkflowRun.submitApproval` / `submitFileDecision`), never the
+ * child's own `agentRun.*` submit path. The two paths are
  * server-equivalent (the workflow RPC forwards to the child), but they
  * differ in authorization: the workflow RPC checks `can_edit` on the
- * workflow execution — the resource the operator owns — while the child
- * path checks the runner-spawned AgentExecution, which the operator may
+ * workflow run — the resource the operator owns — while the child
+ * path checks the runner-spawned AgentRun, which the operator may
  * not own.
  *
  * FILE-REVIEW DOCK. Pending (AWAITING_REVIEW) sets derive from the CHILD's
@@ -120,25 +120,25 @@ export interface WorkflowAgentCallTranscriptProps {
  */
 export const WorkflowAgentCallTranscript = memo(
   function WorkflowAgentCallTranscript({
-    childExecutionId,
+    childRunId,
     agentSlug,
     hitl,
-    onNavigateToAgentExecution,
+    onNavigateToAgentRun,
     className,
   }: WorkflowAgentCallTranscriptProps) {
     const { ref: viewportRef, isVisible } = useInViewport();
     const {
-      execution,
+      run: execution,
       phase,
       isLoading,
       isReconnecting,
       error,
       reconnect,
-    } = useLiveAgentExecution(childExecutionId, { live: isVisible });
+    } = useLiveAgentRun(childRunId, { live: isVisible });
 
     // Pending file reviews from the child's own (streamed) status — see the
     // component doc for why the parent's pending_file_reviews is not the
-    // source. Terminal executions never dock: their AWAITING_REVIEW sets
+    // source. Terminal runs never dock: their AWAITING_REVIEW sets
     // are settled history and render as in-thread records instead.
     const terminal = isTerminalPhase(phase);
     const pendingReviewSets = useMemo<readonly FileChangeSet[]>(() => {
@@ -156,12 +156,12 @@ export const WorkflowAgentCallTranscript = memo(
     const submitFileDecision = hitl?.submitFileDecision;
     const handleFileDecision = useCallback(
       (changeSetId: string, action: FileDecisionAction, options?: FileDecisionOptions) => {
-        submitFileDecision?.(childExecutionId, changeSetId, action, options);
+        submitFileDecision?.(childRunId, changeSetId, action, options);
       },
-      [submitFileDecision, childExecutionId],
+      [submitFileDecision, childRunId],
     );
 
-    const showBar = isReconnecting || !!onNavigateToAgentExecution;
+    const showBar = isReconnecting || !!onNavigateToAgentRun;
 
     return (
       <div
@@ -179,10 +179,10 @@ export const WorkflowAgentCallTranscript = memo(
             {isReconnecting && (
               <span className="stg:text-xs stg:text-muted-foreground">Reconnecting…</span>
             )}
-            {onNavigateToAgentExecution && (
+            {onNavigateToAgentRun && (
               <button
                 type="button"
-                onClick={() => onNavigateToAgentExecution(childExecutionId)}
+                onClick={() => onNavigateToAgentRun(childRunId)}
                 className="stg:ml-auto stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm"
               >
                 <PopOutIcon />
@@ -198,8 +198,8 @@ export const WorkflowAgentCallTranscript = memo(
         <div className="stg:min-h-0 stg:min-w-0 stg:flex-1">
           {execution ? (
             <MessageThread
-              executions={EMPTY_EXECUTIONS}
-              activeStreamExecution={execution}
+              runs={EMPTY_EXECUTIONS}
+              activeStreamRun={execution}
               onApprovalSubmit={hitl?.submitApproval}
               submittingApprovalIds={hitl?.approvalSubmittingToolCallIds}
               approvalErrors={hitl?.approvalErrorsByToolCallId}
@@ -225,7 +225,7 @@ export const WorkflowAgentCallTranscript = memo(
           ) : (
             <div role="status" className="stg:flex stg:flex-col stg:gap-1 stg:py-2">
               <p className="stg:text-xs stg:font-medium stg:text-foreground">
-                This agent execution is no longer available.
+                This agent run is no longer available.
               </p>
               <p className="stg:text-xs stg:text-muted-foreground">
                 It may have been removed, or the workflow run predates

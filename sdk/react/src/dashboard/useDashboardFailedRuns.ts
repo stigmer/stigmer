@@ -26,7 +26,7 @@ export interface UseDashboardFailedRunsReturn {
 }
 
 /**
- * Composition hook that fetches recent failed executions from both
+ * Composition hook that fetches recent failed runs from both
  * agent and workflow domains, normalizes them into {@link DashboardFailedRun}
  * entries, and interleaves them by timestamp (newest first).
  *
@@ -89,8 +89,8 @@ export function useDashboardFailedRuns(
       const ts = exec.status?.audit?.specAudit?.createdAt;
       return {
         id: exec.metadata?.id ?? "",
-        type: "agent_execution" as const,
-        name: exec.metadata?.name || "Untitled execution",
+        type: "agent_run" as const,
+        name: exec.metadata?.name || "Untitled run",
         error: exec.status?.error ?? "",
         failedAt: ts ? timestampDate(ts) : EPOCH,
         // The agent the turn ran, as the server recorded it.
@@ -102,8 +102,8 @@ export function useDashboardFailedRuns(
       const ts = exec.status?.audit?.specAudit?.createdAt;
       return {
         id: exec.metadata?.id ?? "",
-        type: "workflow_execution" as const,
-        name: exec.metadata?.name || "Untitled execution",
+        type: "workflow_run" as const,
+        name: exec.metadata?.name || "Untitled run",
         error: exec.status?.error ?? "",
         failedAt: ts ? timestampDate(ts) : EPOCH,
         resourceName: exec.metadata?.slug ?? "",

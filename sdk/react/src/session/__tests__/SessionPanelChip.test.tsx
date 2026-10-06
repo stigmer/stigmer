@@ -5,7 +5,7 @@ import { SessionPanelChip } from "../SessionPanelChip";
 // ---------------------------------------------------------------------------
 // The chip is the panel's always-mounted toggle. Collapsed, it carries the
 // pending-item count (arrivals never auto-open the panel); open, it is a bare
-// hide affordance. Execution status deliberately never appears here (or in
+// hide affordance. Run status deliberately never appears here (or in
 // any other viewer chrome) — the thread itself communicates run state.
 // ---------------------------------------------------------------------------
 

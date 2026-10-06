@@ -10,12 +10,12 @@ import {
   FileChangeCaptureLevel,
   FileChangeType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { UseFileChangeContentReturn } from "../../execution/useFileChangeContent";
+import type { UseFileChangeContentReturn } from "../../run/useFileChangeContent";
 
 // Drive FileChangeDiff's content deterministically (it is rendered by the diff
 // pane) — same seam FileChangesView's own tests mock.
 let mockFileChangeContent: UseFileChangeContentReturn;
-vi.mock("../../execution/useFileChangeContent", () => ({
+vi.mock("../../run/useFileChangeContent", () => ({
   useFileChangeContent: () => mockFileChangeContent,
 }));
 

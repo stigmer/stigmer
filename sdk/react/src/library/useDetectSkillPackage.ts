@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { useArtifactContent } from "../execution/useArtifactContent.js";
+import { useArtifactContent } from "../run/useArtifactContent.js";
 import {
   detectSkillPackage,
   isSkillPackage,
@@ -28,7 +28,7 @@ export interface UseDetectSkillPackageReturn {
 }
 
 /**
- * Detects whether an execution artifact is a skill package and extracts
+ * Detects whether a run artifact is a skill package and extracts
  * its metadata from SKILL.md.
  *
  * Combines the synchronous `isSkillPackage()` check (via `entries`) with
@@ -42,8 +42,8 @@ export interface UseDetectSkillPackageReturn {
  * skill package (`kind === DIRECTORY` with `SKILL.md` in `entries`).
  * For all other artifacts, returns `{ detected: false }` immediately.
  *
- * @param artifact - The execution artifact to inspect, or `null` to skip.
- * @param executionId - Execution that produced the artifact, or `null` to skip.
+ * @param artifact - The run artifact to inspect, or `null` to skip.
+ * @param executionId - Run that produced the artifact, or `null` to skip.
  *
  * @example
  * ```tsx

@@ -50,8 +50,8 @@ describe("artifactKey", () => {
 
     const { result } = renderHook(() => useSessionArtifacts([older, newer]));
     expect(result.current.artifacts).toHaveLength(1);
-    // The later execution's version wins for a shared key.
-    expect(result.current.artifacts[0].executionId).toBe("aex_2");
+    // The later run's version wins for a shared key.
+    expect(result.current.artifacts[0].runId).toBe("aex_2");
     expect(artifactKey(result.current.artifacts[0].artifact)).toBe("/w/a.md");
   });
 });

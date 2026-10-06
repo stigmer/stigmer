@@ -18,8 +18,8 @@ const mockConv = {
     status: { agentId: "agt_1", agentVersionHash: "h2" },
   },
   isLoading: false,
-  completedExecutions: [] as unknown[],
-  activeStreamExecution: null,
+  completedRuns: [] as unknown[],
+  activeStreamRun: null,
   workspaceEntries: [] as unknown[],
   submitApproval: vi.fn(),
   sendFollowUp: mockSendFollowUp,
@@ -53,7 +53,7 @@ const mockSessionVariables = {
   isEmpty: true,
   clear: vi.fn(),
 };
-vi.mock("../../execution/useSessionVariables", () => ({
+vi.mock("../../run/useSessionVariables", () => ({
   useSessionVariables: () => mockSessionVariables,
 }));
 
@@ -116,7 +116,7 @@ describe("useSessionPageFlow — guest audience", () => {
     });
 
     expect(mockSendFollowUp).toHaveBeenCalledTimes(1);
-    // No override: the execution continues on the session's pinned agent.
+    // No override: the run continues on the session's pinned agent.
     expect(mockSendFollowUp.mock.calls[0][1].agentRef).toBeUndefined();
   });
 
@@ -141,7 +141,7 @@ describe("useSessionPageFlow — guest audience", () => {
     // writes over whatever the visitor sent, so a guest never seeds a
     // follow-up from an earlier turn: even a turn that records a model
     // must not put one on the next message.
-    mockConv.completedExecutions = [
+    mockConv.completedRuns = [
       { spec: { runConfig: { modelName: "claude-sonnet-4.6", maxCostUsd: 0.5 } } },
     ];
     const { result } = renderHook(() =>
@@ -153,6 +153,6 @@ describe("useSessionPageFlow — guest audience", () => {
     });
 
     expect(mockSendFollowUp.mock.calls[0][1].modelName).toBeUndefined();
-    mockConv.completedExecutions = [];
+    mockConv.completedRuns = [];
   });
 });

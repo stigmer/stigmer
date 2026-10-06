@@ -15,10 +15,10 @@ export interface DashboardFailedRunsProps {
 }
 
 /**
- * Widget showing recent failed executions from both agent and workflow
+ * Widget showing recent failed runs from both agent and workflow
  * domains, interleaved by timestamp.
  *
- * Each row includes a type badge (Agent / Workflow), the execution name,
+ * Each row includes a type badge (Agent / Workflow), the run name,
  * a truncated error, and a relative timestamp.
  */
 export const DashboardFailedRuns = memo(function DashboardFailedRuns({
@@ -62,12 +62,12 @@ export const DashboardFailedRuns = memo(function DashboardFailedRuns({
               <span
                 className={cn(
                   "stg:mt-0.5 stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none",
-                  run.type === "agent_execution"
+                  run.type === "agent_run"
                     ? "stg:bg-primary/10 stg:text-primary"
                     : "stg:bg-muted stg:text-muted-foreground",
                 )}
               >
-                {run.type === "agent_execution" ? "Agent" : "Workflow"}
+                {run.type === "agent_run" ? "Agent" : "Workflow"}
               </span>
               <div className="stg:min-w-0 stg:flex-1">
                 <p className="stg:truncate stg:font-medium stg:text-foreground">

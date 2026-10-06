@@ -168,7 +168,7 @@ export function ApprovalPrompt({
 
   // Why-gated: the authorization provenance the server projected onto the
   // PendingApproval. Mirrors the React card's gate-reason line so the terminal
-  // surface explains the gate at parity. Empty for legacy executions.
+  // surface explains the gate at parity. Empty for legacy runs.
   const gateReason = describeApprovalPolicySource(
     pendingApproval.approvalPolicySource,
     pendingApproval.approvalPolicyHook,
