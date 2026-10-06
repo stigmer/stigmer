@@ -141,7 +141,7 @@ import {
   newSaveAgentVersionStep,
   newTagAgentVersionStep,
 } from "./versions.js";
-import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import { newValidateAgentRunConfigStep } from "./validate-run-config.js";
 
 export interface AgentControllerDeps {

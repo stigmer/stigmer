@@ -512,6 +512,12 @@ export const LANES = {
       // The server's copy of the runner's secret names, which the same test
       // compares with the runner's list.
       "backend/services/stigmer-server/src/sandbox/runner-secret-names.ts",
+      // The server's bundled model registry: the live tests' helper
+      // (src/__test-utils__/real-model-registry.ts) reads it by repository
+      // path, and its test fails the day the file moves or changes shape, so
+      // a server-only change to it (a `make sync-model-registry` commit)
+      // must run this lane too.
+      "backend/services/stigmer-server/src/modelcatalog/data/model-registry.json",
       "Makefile",
       // The Node version the lane sets up (ci.all-in-one says why).
       ".nvmrc",

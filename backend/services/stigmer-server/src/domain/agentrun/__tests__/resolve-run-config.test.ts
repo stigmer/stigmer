@@ -65,8 +65,8 @@ import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 
 import { createLogger } from "../../../boot/logger.js";
-import { bundledModelRegistryDocument } from "../../workflow/registry/bundled.js";
-import { ModelRegistryStore } from "../../workflow/registry/model-registry-store.js";
+import { bundledModelRegistryDocument } from "../../../modelcatalog/bundled.js";
+import { ModelRegistryStore } from "../../../modelcatalog/model-registry-store.js";
 import { newCreateSessionIfNeededStep } from "../create-steps.js";
 import { serviceTierRefusal } from "../validate-service-tier.js";
 import {

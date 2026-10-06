@@ -28,7 +28,7 @@ import type { ServerlessWorkflowValidation } from "@stigmer/protos/ai/stigmer/ag
 
 import type { Logger } from "../../../boot/logger.js";
 import { protoToYaml } from "../converter/converter.js";
-import type { ModelCatalogProvider } from "../registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../../../modelcatalog/model-catalog-provider.js";
 import { checkBudgetWarnings } from "./budget-warnings.js";
 import {
   validateCrossTaskReferences,

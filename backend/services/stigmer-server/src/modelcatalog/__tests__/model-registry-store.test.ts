@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { createLogger } from "../../../../boot/logger.js";
+import { createLogger } from "../../boot/logger.js";
 import {
   FAST_VARIANT_KEY,
   MODEL_REGISTRY_MAX_BYTES,

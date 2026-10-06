@@ -559,12 +559,12 @@ export type { R2StorageConfig } from "./artifactstorage/r2-storage.js";
 // read surface, and the per-lane runner-credential
 // seam with its OSS lane constant (an extension's verify callers name the
 // lane they accept).
-export type { ModelCatalogProvider } from "./domain/workflow/registry/model-catalog-provider.js";
+export type { ModelCatalogProvider } from "./modelcatalog/model-catalog-provider.js";
 // The document-driven provider constructor: a
 // composition whose catalog source is its own (the cloud's DB-resident
 // baseline) builds providers from documents with the SAME interpretation
 // ModelRegistryStore uses — the semantics live exactly once in OSS.
-export { newModelCatalogProviderFromDocument } from "./domain/workflow/registry/document-catalog.js";
+export { newModelCatalogProviderFromDocument } from "./modelcatalog/document-catalog.js";
 export type {
   RunnerCredentialProvider,
   // The runner-credential capability shapes: the optional methods'

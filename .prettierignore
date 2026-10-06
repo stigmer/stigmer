@@ -6,6 +6,10 @@ docs/sdk/
 # formatting must not touch them.
 backend/services/stigmer-server/src/domain/workflow/registry/data/
 
+# The bundled model registry is the public endpoint's document as
+# `make sync-model-registry` writes it, so formatting must not touch it.
+backend/services/stigmer-server/src/modelcatalog/data/
+
 # The compiled authorization model is the generator's canonical output
 # (gen-authorization-model-check compares it byte for byte), so formatting
 # must not touch it.

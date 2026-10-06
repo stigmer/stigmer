@@ -61,7 +61,7 @@ import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { PolicyGrantScope } from "./policy-grant-scope.js";
 import type { PrincipalDisplay } from "./principal-display.js";
-import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../modelcatalog/model-catalog-provider.js";
 import {
   kindEnumName,
   kindServedByEdition,

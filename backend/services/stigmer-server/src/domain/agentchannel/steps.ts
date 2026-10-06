@@ -37,9 +37,9 @@ import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
-import { unknownModelPinRefusal } from "../workflow/registry/pin-validation.js";
-import { savedChoiceWithoutModelRefusal } from "../workflow/registry/run-config-checks.js";
-import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
+import { unknownModelPinRefusal } from "../../modelcatalog/pin-validation.js";
+import { savedChoiceWithoutModelRefusal } from "../../modelcatalog/run-config-checks.js";
+import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import type { ChannelRuntime } from "./channel-runtime.js";
 import {
   AGENT_REF_SLUG_REQUIRED_MESSAGE,

@@ -32,8 +32,8 @@ import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum
 
 import { invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
-import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
-import { FAST_VARIANT_KEY } from "../workflow/registry/model-registry-store.js";
+import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
+import { FAST_VARIANT_KEY } from "../../modelcatalog/model-registry-store.js";
 
 import {
   runConfigLayerName,

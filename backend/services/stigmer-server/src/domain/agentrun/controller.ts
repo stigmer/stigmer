@@ -95,7 +95,7 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
-import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 
 import {
   getArtifactContent,

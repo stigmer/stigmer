@@ -91,8 +91,8 @@ import { readRunAgentSpec } from "../agent/run-defaults.js";
 import {
   HARNESS_NAME_CURSOR,
   harnessName,
-} from "../workflow/registry/pin-validation.js";
-import { savedChoiceWithoutModelRefusal } from "../workflow/registry/run-config-checks.js";
+} from "../../modelcatalog/pin-validation.js";
+import { savedChoiceWithoutModelRefusal } from "../../modelcatalog/run-config-checks.js";
 
 import { SCHEDULE_ID_LABEL_KEY } from "./run-person.js";
 import { storedSessionOf } from "./session-binding.js";
@@ -389,7 +389,7 @@ function stampRunConfig(execution: AgentRun, placement: RunConfigPlacement): voi
  * thinking with no model of their own, or "". Saved settings name the model
  * they are for (RunConfig's contract): a tier or thinking saved alone would
  * otherwise land on whatever model a less specific layer chose. The surfaces
- * refuse this at save (registry/run-config-checks.ts); this catches rows
+ * refuse this at save (modelcatalog/run-config-checks.ts); this catches rows
  * saved before that rule, and a workflow step's settings composed at run
  * time. Only a live message may set either alone.
  */

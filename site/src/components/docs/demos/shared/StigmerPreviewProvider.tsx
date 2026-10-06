@@ -15,7 +15,8 @@ import { PreviewProviders } from "../../../../../.scenar/providers";
  * Playwright smoke suite fails any demo with a page error (oss#271).
  *
  * The payloads are shape-faithful subsets of the server's embedded
- * registries (`backend/.../workflow/registry/data/*.json`), trimmed to
+ * registries (`backend/.../modelcatalog/data/model-registry.json` and
+ * `backend/.../workflow/registry/data/task-kind-registry.json`), trimmed to
  * the fields the SDK parsers consume. The real files total ~186KB and
  * would ship to every docs visitor for data no demo renders; a demo
  * that ever renders registry-driven UI should override these with its

@@ -89,7 +89,7 @@ import {
   newStartWorkflowStep,
 } from "../create-steps.js";
 import type { SessionCreatorProvider } from "../create-steps.js";
-import type { ModelCatalogProvider } from "../../workflow/registry/model-catalog-provider.js";
+import type { ModelCatalogProvider } from "../../../modelcatalog/model-catalog-provider.js";
 
 /**
  * CreateSessionIfNeeded's settings deps where the chain recorded no
