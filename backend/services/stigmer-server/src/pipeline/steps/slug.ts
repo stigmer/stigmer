@@ -102,11 +102,13 @@ export function checkDerivedSlug(
     return;
   }
   if (result.kind === "invalid") {
+    // The rule's own sentence ("must be at most 63 characters"), so the
+    // copy names the bound without restating it.
     const reasons = result.error.violations
       .map((violation) => violation.message)
-      .join("; ");
+      .join(", and ");
     throw invalidArgumentError(
-      `${source.from} derives the slug '${slug}' (${slug.length} characters), which is not a valid slug: ${reasons}; ${source.fix}`,
+      `${source.from} derives the slug '${slug}' (${slug.length} characters), which is not a valid slug: it ${reasons}; ${source.fix}`,
     );
   }
   // A rule that fails to compile is a server defect, not bad input

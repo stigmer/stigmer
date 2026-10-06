@@ -226,7 +226,7 @@ describe("push — identity and versioning", () => {
       "64-character name",
     );
     expect(error.rawMessage).toBe(
-      `the skill name '${name}' derives the slug '${name}' (64 characters), which is not a valid slug: value length must be at most 63 characters; rename the skill in its SKILL.md frontmatter`,
+      `the skill name '${name}' derives the slug '${name}' (64 characters), which is not a valid slug: it must be at most 63 characters; rename the skill in its SKILL.md frontmatter`,
     );
   });
 

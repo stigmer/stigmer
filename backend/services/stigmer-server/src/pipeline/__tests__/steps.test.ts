@@ -192,13 +192,13 @@ describe("ResolveSlug", () => {
     const name = `A${"b".repeat(63)}`;
     const slug = name.toLowerCase();
     expect((await resolveError(name)).rawMessage).toBe(
-      `the name '${name}' derives the slug '${slug}' (64 characters), which is not a valid slug: value length must be at most 63 characters; set metadata.slug`,
+      `the name '${name}' derives the slug '${slug}' (64 characters), which is not a valid slug: it must be at most 63 characters; set metadata.slug`,
     );
   });
 
   it("refuses a name that derives a slug the pattern refuses", async () => {
-    expect((await resolveError("1st Team")).rawMessage).toContain(
-      "the name '1st Team' derives the slug '1st-team' (8 characters), which is not a valid slug: value does not match regex pattern",
+    expect((await resolveError("1st Team")).rawMessage).toBe(
+      "the name '1st Team' derives the slug '1st-team' (8 characters), which is not a valid slug: it does not match regex pattern `^[a-z][a-z0-9-]*[a-z0-9]$`; set metadata.slug",
     );
   });
 
