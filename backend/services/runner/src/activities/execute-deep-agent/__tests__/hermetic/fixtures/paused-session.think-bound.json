@@ -1,0 +1,498 @@
+{
+  "recordedWith": {
+    "deepagents": "1.14.1",
+    "@langchain/langgraph": "1.4.18",
+    "@langchain/langgraph-checkpoint": "1.1.5",
+    "@langchain/core": "1.2.13"
+  },
+  "threadId": "thread-ses_hermetic_0001",
+  "checkpoints": [
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6001-ffff-469f61402fd2",
+      "parent_checkpoint_id": null,
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6001-ffff-469f61402fd2\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__start__\":{\"messages\":[{\"role\":\"user\",\"content\":\"Work out the step, then run the command for me.\"}],\"todos\":[]},\"__pregel_tasks\":[]},\"channel_versions\":{\"__start__\":1},\"versions_seen\":{\"__input__\":{}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"input\",\"step\":-1,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6002-8000-0a7a602922db",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6001-ffff-469f61402fd2",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6002-8000-0a7a602922db\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[],\"branch:to:FilesystemMiddleware.before_agent\":null},\"channel_versions\":{\"__start__\":2,\"messages\":2,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":2},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":0,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6003-8001-1e212a96a483",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6002-8000-0a7a602922db",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6003-8001-1e212a96a483\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[],\"branch:to:patchToolCallsMiddleware.before_agent\":null},\"channel_versions\":{\"__start__\":2,\"messages\":2,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":3,\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":1,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6004-8002-3ce8068c1d5c",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6003-8001-1e212a96a483",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6004-8002-3ce8068c1d5c\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[],\"branch:to:LoopDetectionMiddleware.before_agent\":null},\"channel_versions\":{\"__start__\":2,\"messages\":2,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":4,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":2,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6005-8003-5f12976df1e0",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6004-8002-3ce8068c1d5c",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6005-8003-5f12976df1e0\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[],\"branch:to:ExecutionBudgetMiddleware.before_agent\":null},\"channel_versions\":{\"__start__\":2,\"messages\":2,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":5,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":3,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6006-8004-cfb44211cfcf",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6005-8003-5f12976df1e0",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6006-8004-cfb44211cfcf\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[],\"branch:to:ToolTruncationMiddleware.before_agent\":null},\"channel_versions\":{\"__start__\":2,\"messages\":2,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":6,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":4,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6007-8005-15044facc215",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6006-8004-cfb44211cfcf",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6007-8005-15044facc215\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[],\"branch:to:model_request\":null},\"channel_versions\":{\"__start__\":2,\"messages\":2,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":7,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":7},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":5,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6680-8006-edcbf8f2516b",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6007-8005-15044facc215",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-15c5-6680-8006-edcbf8f2516b\",\"ts\":\"2026-01-01T00:00:01.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-774f-975d-0de3691ca343\",\"content\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[],\"branch:to:todoListMiddleware.after_model\":null},\"channel_versions\":{\"__start__\":2,\"messages\":8,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":7,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":8,\"branch:to:todoListMiddleware.after_model\":8},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"model_request\":{\"branch:to:model_request\":7}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":6,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6682-8007-7fc3396f8f8e",
+      "parent_checkpoint_id": "1f0e6a4d-15c5-6680-8006-edcbf8f2516b",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-15c5-6682-8007-7fc3396f8f8e\",\"ts\":\"2026-01-01T00:00:01.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-774f-975d-0de3691ca343\",\"content\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[{\"node\":\"tools\",\"args\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-774f-975d-0de3691ca343\",\"content\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"lg_tool_call\":{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}}}]},\"channel_versions\":{\"__start__\":2,\"messages\":8,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":9,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":8,\"branch:to:todoListMiddleware.after_model\":9,\"__pregel_tasks\":9},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"model_request\":{\"branch:to:model_request\":7},\"todoListMiddleware.after_model\":{\"branch:to:todoListMiddleware.after_model\":8}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":7,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6683-8008-1e5feb441f6f",
+      "parent_checkpoint_id": "1f0e6a4d-15c5-6682-8007-7fc3396f8f8e",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-15c5-6683-8008-1e5feb441f6f\",\"ts\":\"2026-01-01T00:00:01.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-774f-975d-0de3691ca343\",\"content\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"additional_kwargs\":{},\"name\":\"model\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"status\":\"success\",\"content\":\"ok\",\"artifact\":{\"lc\":2,\"type\":\"undefined\"},\"tool_call_id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"metadata\":{\"versions\":{\"@langchain/core\":\"1.2.13\"}},\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"1e1bde83-7094-4ac7-add4-16a4ffb81820\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[],\"branch:to:model_request\":null},\"channel_versions\":{\"__start__\":2,\"messages\":10,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":9,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":10,\"branch:to:todoListMiddleware.after_model\":9,\"__pregel_tasks\":10},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"model_request\":{\"branch:to:model_request\":7},\"todoListMiddleware.after_model\":{\"branch:to:todoListMiddleware.after_model\":8},\"tools\":{}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":8,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-1f4e-6d00-8009-ebe4fe24858a",
+      "parent_checkpoint_id": "1f0e6a4d-15c5-6683-8008-1e5feb441f6f",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-1f4e-6d00-8009-ebe4fe24858a\",\"ts\":\"2026-01-01T00:00:02.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-774f-975d-0de3691ca343\",\"content\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"additional_kwargs\":{},\"name\":\"model\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"status\":\"success\",\"content\":\"ok\",\"artifact\":{\"lc\":2,\"type\":\"undefined\"},\"tool_call_id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"metadata\":{\"versions\":{\"@langchain/core\":\"1.2.13\"}},\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"1e1bde83-7094-4ac7-add4-16a4ffb81820\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-abe8-7566-b29b-a10a91aa3003\",\"content\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"usage_metadata\":{\"input_tokens\":1400,\"output_tokens\":50,\"total_tokens\":1450},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[],\"branch:to:todoListMiddleware.after_model\":null},\"channel_versions\":{\"__start__\":2,\"messages\":11,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":9,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":11,\"branch:to:todoListMiddleware.after_model\":11,\"__pregel_tasks\":10},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"model_request\":{\"branch:to:model_request\":10},\"todoListMiddleware.after_model\":{\"branch:to:todoListMiddleware.after_model\":8},\"tools\":{}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":9,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-1f4e-6d02-800a-823d8231ba0c",
+      "parent_checkpoint_id": "1f0e6a4d-1f4e-6d00-8009-ebe4fe24858a",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-1f4e-6d02-800a-823d8231ba0c\",\"ts\":\"2026-01-01T00:00:02.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-774f-975d-0de3691ca343\",\"content\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"additional_kwargs\":{},\"name\":\"model\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"status\":\"success\",\"content\":\"ok\",\"artifact\":{\"lc\":2,\"type\":\"undefined\"},\"tool_call_id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"metadata\":{\"versions\":{\"@langchain/core\":\"1.2.13\"}},\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"1e1bde83-7094-4ac7-add4-16a4ffb81820\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-abe8-7566-b29b-a10a91aa3003\",\"content\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"usage_metadata\":{\"input_tokens\":1400,\"output_tokens\":50,\"total_tokens\":1450},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[{\"node\":\"tools\",\"args\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-774f-975d-0de3691ca343\",\"content\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"additional_kwargs\":{},\"name\":\"model\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"status\":\"success\",\"content\":\"ok\",\"artifact\":{\"lc\":2,\"type\":\"undefined\"},\"tool_call_id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"metadata\":{\"versions\":{\"@langchain/core\":\"1.2.13\"}},\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"1e1bde83-7094-4ac7-add4-16a4ffb81820\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-abe8-7566-b29b-a10a91aa3003\",\"content\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"usage_metadata\":{\"input_tokens\":1400,\"output_tokens\":50,\"total_tokens\":1450},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"lg_tool_call\":{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}}}]},\"channel_versions\":{\"__start__\":2,\"messages\":11,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":12,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":11,\"branch:to:todoListMiddleware.after_model\":12,\"__pregel_tasks\":12},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"model_request\":{\"branch:to:model_request\":10},\"todoListMiddleware.after_model\":{\"branch:to:todoListMiddleware.after_model\":11},\"tools\":{}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":10,\"parents\":{}}"
+      }
+    }
+  ],
+  "writes": [
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6001-ffff-469f61402fd2",
+      "task_id": "2fdfa7ff-6c76-5636-932e-50d98c85ad8e",
+      "idx": 0,
+      "channel": "messages",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "[{\"role\":\"user\",\"content\":\"Work out the step, then run the command for me.\"}]"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6001-ffff-469f61402fd2",
+      "task_id": "2fdfa7ff-6c76-5636-932e-50d98c85ad8e",
+      "idx": 1,
+      "channel": "todos",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "[]"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6001-ffff-469f61402fd2",
+      "task_id": "2fdfa7ff-6c76-5636-932e-50d98c85ad8e",
+      "idx": 2,
+      "channel": "branch:to:FilesystemMiddleware.before_agent",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6002-8000-0a7a602922db",
+      "task_id": "e3641f0f-4634-5edd-8c8a-ffa04c7d1f4b",
+      "idx": 0,
+      "channel": "branch:to:patchToolCallsMiddleware.before_agent",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6003-8001-1e212a96a483",
+      "task_id": "f47ca8d2-915f-5c49-8f30-8e1a023fb02c",
+      "idx": 0,
+      "channel": "branch:to:LoopDetectionMiddleware.before_agent",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6004-8002-3ce8068c1d5c",
+      "task_id": "b141faff-0ab1-502c-a014-25d65760fbd6",
+      "idx": 0,
+      "channel": "branch:to:ExecutionBudgetMiddleware.before_agent",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6005-8003-5f12976df1e0",
+      "task_id": "3205f101-03a3-57b6-bd48-be527c0b3ec4",
+      "idx": 0,
+      "channel": "branch:to:ToolTruncationMiddleware.before_agent",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6006-8004-cfb44211cfcf",
+      "task_id": "28e37708-fca5-5751-8e76-d8fd4f5ac74f",
+      "idx": 0,
+      "channel": "branch:to:model_request",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6007-8005-15044facc215",
+      "task_id": "a7b32139-69f7-5e12-87ce-2f7b6d6edd3d",
+      "idx": 0,
+      "channel": "messages",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-774f-975d-0de3691ca343\",\"content\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}]"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6007-8005-15044facc215",
+      "task_id": "a7b32139-69f7-5e12-87ce-2f7b6d6edd3d",
+      "idx": 1,
+      "channel": "branch:to:todoListMiddleware.after_model",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6680-8006-edcbf8f2516b",
+      "task_id": "8d28c98f-0848-5974-af6c-30f1ba94e29b",
+      "idx": 0,
+      "channel": "__pregel_tasks",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "{\"node\":\"tools\",\"args\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-774f-975d-0de3691ca343\",\"content\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"lg_tool_call\":{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6682-8007-7fc3396f8f8e",
+      "task_id": "fd167bf5-97c2-57c5-a2ba-d5900263c76f",
+      "idx": 0,
+      "channel": "messages",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"status\":\"success\",\"content\":\"ok\",\"artifact\":{\"lc\":2,\"type\":\"undefined\"},\"tool_call_id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"metadata\":{\"versions\":{\"@langchain/core\":\"1.2.13\"}},\"additional_kwargs\":{},\"response_metadata\":{}}}]"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6682-8007-7fc3396f8f8e",
+      "task_id": "fd167bf5-97c2-57c5-a2ba-d5900263c76f",
+      "idx": 1,
+      "channel": "branch:to:model_request",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6683-8008-1e5feb441f6f",
+      "task_id": "0a8746b7-8c2b-5a6d-a59d-e11e9a417033",
+      "idx": 0,
+      "channel": "messages",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-abe8-7566-b29b-a10a91aa3003\",\"content\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"usage_metadata\":{\"input_tokens\":1400,\"output_tokens\":50,\"total_tokens\":1450},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}]"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6683-8008-1e5feb441f6f",
+      "task_id": "0a8746b7-8c2b-5a6d-a59d-e11e9a417033",
+      "idx": 1,
+      "channel": "branch:to:todoListMiddleware.after_model",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-1f4e-6d00-8009-ebe4fe24858a",
+      "task_id": "40b15f7a-6c5a-5d83-8a62-87753b01b9ea",
+      "idx": 0,
+      "channel": "__pregel_tasks",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "{\"node\":\"tools\",\"args\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Work out the step, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"09c7de80-8b90-42e7-9f38-83f930a32ff7\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-774f-975d-0de3691ca343\",\"content\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Let me work out the step first.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"args\":{\"thought\":\"One command, then report it.\"}}],\"additional_kwargs\":{},\"name\":\"model\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"status\":\"success\",\"content\":\"ok\",\"artifact\":{\"lc\":2,\"type\":\"undefined\"},\"tool_call_id\":\"call-hermetic-think-0001\",\"name\":\"think\",\"metadata\":{\"versions\":{\"@langchain/core\":\"1.2.13\"}},\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"1e1bde83-7094-4ac7-add4-16a4ffb81820\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-abe8-7566-b29b-a10a91aa3003\",\"content\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"usage_metadata\":{\"input_tokens\":1400,\"output_tokens\":50,\"total_tokens\":1450},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"lg_tool_call\":{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-1f4e-6d02-800a-823d8231ba0c",
+      "task_id": "a14c7e6c-67c7-5975-9a0a-810d785d52ab",
+      "idx": -3,
+      "channel": "__interrupt__",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "{\"id\":\"c8909151c961702c16ce100bca7d2008\",\"value\":{\"tool_call_id\":\"call-hermetic-exec-0001\",\"tool_name\":\"execute\",\"mcp_server_slug\":\"\",\"message\":\"Run command: echo hermetic-a\",\"policy_source\":\"builtin_category\"}}"
+      }
+    }
+  ],
+  "status": {
+    "messages": [
+      {
+        "type": "MESSAGE_AI",
+        "content": "Let me work out the step first.",
+        "timestamp": "2026-01-01T00:00:01.000Z",
+        "toolCalls": [
+          {
+            "id": "call-hermetic-think-0001",
+            "name": "think",
+            "args": {
+              "thought": "One command, then report it."
+            },
+            "result": "ok",
+            "status": "TOOL_CALL_COMPLETED",
+            "startedAt": "2026-01-01T00:00:01.000Z",
+            "completedAt": "2026-01-01T00:00:01.000Z",
+            "argsPreview": "{\"thought\":\"One command, then report it.\"}",
+            "toolKind": "TOOL_KIND_THINK"
+          }
+        ]
+      },
+      {
+        "type": "MESSAGE_AI",
+        "content": "I will run the command.",
+        "timestamp": "2026-01-01T00:00:02.000Z",
+        "toolCalls": [
+          {
+            "id": "call-hermetic-exec-0001",
+            "name": "execute",
+            "args": {
+              "command": "echo hermetic-a"
+            },
+            "status": "TOOL_CALL_WAITING_APPROVAL",
+            "startedAt": "2026-01-01T00:00:02.000Z",
+            "requiresApproval": true,
+            "approvalMessage": "Run command: echo hermetic-a",
+            "approvalRequestedAt": "2026-01-01T00:00:02.000Z",
+            "argsPreview": "{\"command\":\"echo hermetic-a\"}",
+            "toolKind": "TOOL_KIND_SHELL",
+            "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+            "policyEngineVersion": "hooks-1"
+          }
+        ]
+      }
+    ],
+    "phase": "RUN_WAITING_FOR_APPROVAL",
+    "startedAt": "2026-01-01T00:00:00.000Z",
+    "streamingUsage": {
+      "inputTokens": "2600",
+      "outputTokens": "90",
+      "totalTokens": "2690",
+      "turnCount": 2,
+      "estimatedCostUsd": 0.0030499999999999998,
+      "model": "claude-haiku-4.5",
+      "observedAt": "2026-01-01T00:00:02.000Z",
+      "requestedServiceTier": "SERVICE_TIER_STANDARD",
+      "requestedThinkingMode": "THINKING_MODE_DISABLED"
+    },
+    "fileReviewEventStream": {
+      "runId": "aex_hermetic_0001",
+      "events": [
+        {
+          "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+          "changeSetId": "aex_hermetic_0001:0",
+          "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+          "timestamp": "2026-01-01T00:00:00.000Z",
+          "actor": "runner",
+          "baselineCaptured": {
+            "changeSetId": "aex_hermetic_0001:0",
+            "turnId": "aex_hermetic_0001:0",
+            "harnessId": "deep-agent",
+            "baselineSnapshot": {
+              "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+            }
+          }
+        }
+      ]
+    },
+    "fileChangeProgress": {
+      "changeSetId": "aex_hermetic_0001:0",
+      "capturedAt": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}
