@@ -252,7 +252,7 @@ to boot half-configured, in its own words:
 
 ```text
 sandbox provisioner 'docker' requires STIGMER_SANDBOX_BACKEND_ENDPOINT — a container cannot reach the server on this process's localhost
-SANDBOX_PROVISIONER_TYPE='docker' requires a per-queue routing mode — set STIGMER_ACTIVITY_ROUTING=session
+SANDBOX_PROVISIONER_TYPE='docker' requires per-session routing — set STIGMER_ACTIVITY_ROUTING=session (a provisioner no dispatch can reach must fail loudly, not sit dark)
 ```
 
 <Callout type="warn">
