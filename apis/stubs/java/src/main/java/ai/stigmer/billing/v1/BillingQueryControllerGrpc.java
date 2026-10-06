@@ -264,35 +264,35 @@ public final class BillingQueryControllerGrpc {
     return getPreviewAuthorizationMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetExecutionBillingSignalInput,
-      ai.stigmer.billing.v1.GetExecutionBillingSignalResponse> getGetExecutionBillingSignalMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetRunBillingSignalInput,
+      ai.stigmer.billing.v1.GetRunBillingSignalResponse> getGetRunBillingSignalMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getExecutionBillingSignal",
-      requestType = ai.stigmer.billing.v1.GetExecutionBillingSignalInput.class,
-      responseType = ai.stigmer.billing.v1.GetExecutionBillingSignalResponse.class,
+      fullMethodName = SERVICE_NAME + '/' + "getRunBillingSignal",
+      requestType = ai.stigmer.billing.v1.GetRunBillingSignalInput.class,
+      responseType = ai.stigmer.billing.v1.GetRunBillingSignalResponse.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetExecutionBillingSignalInput,
-      ai.stigmer.billing.v1.GetExecutionBillingSignalResponse> getGetExecutionBillingSignalMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetExecutionBillingSignalInput, ai.stigmer.billing.v1.GetExecutionBillingSignalResponse> getGetExecutionBillingSignalMethod;
-    if ((getGetExecutionBillingSignalMethod = BillingQueryControllerGrpc.getGetExecutionBillingSignalMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetRunBillingSignalInput,
+      ai.stigmer.billing.v1.GetRunBillingSignalResponse> getGetRunBillingSignalMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetRunBillingSignalInput, ai.stigmer.billing.v1.GetRunBillingSignalResponse> getGetRunBillingSignalMethod;
+    if ((getGetRunBillingSignalMethod = BillingQueryControllerGrpc.getGetRunBillingSignalMethod) == null) {
       synchronized (BillingQueryControllerGrpc.class) {
-        if ((getGetExecutionBillingSignalMethod = BillingQueryControllerGrpc.getGetExecutionBillingSignalMethod) == null) {
-          BillingQueryControllerGrpc.getGetExecutionBillingSignalMethod = getGetExecutionBillingSignalMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.GetExecutionBillingSignalInput, ai.stigmer.billing.v1.GetExecutionBillingSignalResponse>newBuilder()
+        if ((getGetRunBillingSignalMethod = BillingQueryControllerGrpc.getGetRunBillingSignalMethod) == null) {
+          BillingQueryControllerGrpc.getGetRunBillingSignalMethod = getGetRunBillingSignalMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.GetRunBillingSignalInput, ai.stigmer.billing.v1.GetRunBillingSignalResponse>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getExecutionBillingSignal"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getRunBillingSignal"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.GetExecutionBillingSignalInput.getDefaultInstance()))
+                  ai.stigmer.billing.v1.GetRunBillingSignalInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.GetExecutionBillingSignalResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingQueryControllerMethodDescriptorSupplier("getExecutionBillingSignal"))
+                  ai.stigmer.billing.v1.GetRunBillingSignalResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingQueryControllerMethodDescriptorSupplier("getRunBillingSignal"))
               .build();
         }
       }
     }
-    return getGetExecutionBillingSignalMethod;
+    return getGetRunBillingSignalMethod;
   }
 
   /**
@@ -444,7 +444,7 @@ public final class BillingQueryControllerGrpc {
      * <pre>
      * Preview whether an organization can fund an execution, without writing
      * a reservation. The read-only twin of BillingCommandController's
-     * authorizeExecution: both ride the same server-side affordability
+     * authorizeRun: both ride the same server-side affordability
      * predicate (start threshold, negative allowance, default cap), so a
      * synchronous preflight refusal and the authoritative reservation can
      * never drift.
@@ -462,9 +462,9 @@ public final class BillingQueryControllerGrpc {
      * reservation headroom and the billing account's status.
      * </pre>
      */
-    default void getExecutionBillingSignal(ai.stigmer.billing.v1.GetExecutionBillingSignalInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.GetExecutionBillingSignalResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetExecutionBillingSignalMethod(), responseObserver);
+    default void getRunBillingSignal(ai.stigmer.billing.v1.GetRunBillingSignalInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.GetRunBillingSignalResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetRunBillingSignalMethod(), responseObserver);
     }
   }
 
@@ -592,7 +592,7 @@ public final class BillingQueryControllerGrpc {
      * <pre>
      * Preview whether an organization can fund an execution, without writing
      * a reservation. The read-only twin of BillingCommandController's
-     * authorizeExecution: both ride the same server-side affordability
+     * authorizeRun: both ride the same server-side affordability
      * predicate (start threshold, negative allowance, default cap), so a
      * synchronous preflight refusal and the authoritative reservation can
      * never drift.
@@ -611,10 +611,10 @@ public final class BillingQueryControllerGrpc {
      * reservation headroom and the billing account's status.
      * </pre>
      */
-    public void getExecutionBillingSignal(ai.stigmer.billing.v1.GetExecutionBillingSignalInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.GetExecutionBillingSignalResponse> responseObserver) {
+    public void getRunBillingSignal(ai.stigmer.billing.v1.GetRunBillingSignalInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.GetRunBillingSignalResponse> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetExecutionBillingSignalMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getGetRunBillingSignalMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -720,7 +720,7 @@ public final class BillingQueryControllerGrpc {
      * <pre>
      * Preview whether an organization can fund an execution, without writing
      * a reservation. The read-only twin of BillingCommandController's
-     * authorizeExecution: both ride the same server-side affordability
+     * authorizeRun: both ride the same server-side affordability
      * predicate (start threshold, negative allowance, default cap), so a
      * synchronous preflight refusal and the authoritative reservation can
      * never drift.
@@ -738,9 +738,9 @@ public final class BillingQueryControllerGrpc {
      * reservation headroom and the billing account's status.
      * </pre>
      */
-    public ai.stigmer.billing.v1.GetExecutionBillingSignalResponse getExecutionBillingSignal(ai.stigmer.billing.v1.GetExecutionBillingSignalInput request) throws io.grpc.StatusException {
+    public ai.stigmer.billing.v1.GetRunBillingSignalResponse getRunBillingSignal(ai.stigmer.billing.v1.GetRunBillingSignalInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetExecutionBillingSignalMethod(), getCallOptions(), request);
+          getChannel(), getGetRunBillingSignalMethod(), getCallOptions(), request);
     }
   }
 
@@ -846,7 +846,7 @@ public final class BillingQueryControllerGrpc {
      * <pre>
      * Preview whether an organization can fund an execution, without writing
      * a reservation. The read-only twin of BillingCommandController's
-     * authorizeExecution: both ride the same server-side affordability
+     * authorizeRun: both ride the same server-side affordability
      * predicate (start threshold, negative allowance, default cap), so a
      * synchronous preflight refusal and the authoritative reservation can
      * never drift.
@@ -864,9 +864,9 @@ public final class BillingQueryControllerGrpc {
      * reservation headroom and the billing account's status.
      * </pre>
      */
-    public ai.stigmer.billing.v1.GetExecutionBillingSignalResponse getExecutionBillingSignal(ai.stigmer.billing.v1.GetExecutionBillingSignalInput request) {
+    public ai.stigmer.billing.v1.GetRunBillingSignalResponse getRunBillingSignal(ai.stigmer.billing.v1.GetRunBillingSignalInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetExecutionBillingSignalMethod(), getCallOptions(), request);
+          getChannel(), getGetRunBillingSignalMethod(), getCallOptions(), request);
     }
   }
 
@@ -979,7 +979,7 @@ public final class BillingQueryControllerGrpc {
      * <pre>
      * Preview whether an organization can fund an execution, without writing
      * a reservation. The read-only twin of BillingCommandController's
-     * authorizeExecution: both ride the same server-side affordability
+     * authorizeRun: both ride the same server-side affordability
      * predicate (start threshold, negative allowance, default cap), so a
      * synchronous preflight refusal and the authoritative reservation can
      * never drift.
@@ -998,10 +998,10 @@ public final class BillingQueryControllerGrpc {
      * reservation headroom and the billing account's status.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.GetExecutionBillingSignalResponse> getExecutionBillingSignal(
-        ai.stigmer.billing.v1.GetExecutionBillingSignalInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.GetRunBillingSignalResponse> getRunBillingSignal(
+        ai.stigmer.billing.v1.GetRunBillingSignalInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetExecutionBillingSignalMethod(), getCallOptions()), request);
+          getChannel().newCall(getGetRunBillingSignalMethod(), getCallOptions()), request);
     }
   }
 
@@ -1013,7 +1013,7 @@ public final class BillingQueryControllerGrpc {
   private static final int METHODID_GET_MODEL_PRICING_GOVERNANCE = 5;
   private static final int METHODID_LIST_MODEL_PRICING_BASELINES = 6;
   private static final int METHODID_PREVIEW_AUTHORIZATION = 7;
-  private static final int METHODID_GET_EXECUTION_BILLING_SIGNAL = 8;
+  private static final int METHODID_GET_RUN_BILLING_SIGNAL = 8;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1064,9 +1064,9 @@ public final class BillingQueryControllerGrpc {
           serviceImpl.previewAuthorization((ai.stigmer.billing.v1.PreviewAuthorizationInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.PreviewAuthorizationResponse>) responseObserver);
           break;
-        case METHODID_GET_EXECUTION_BILLING_SIGNAL:
-          serviceImpl.getExecutionBillingSignal((ai.stigmer.billing.v1.GetExecutionBillingSignalInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.GetExecutionBillingSignalResponse>) responseObserver);
+        case METHODID_GET_RUN_BILLING_SIGNAL:
+          serviceImpl.getRunBillingSignal((ai.stigmer.billing.v1.GetRunBillingSignalInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.GetRunBillingSignalResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1143,12 +1143,12 @@ public final class BillingQueryControllerGrpc {
               ai.stigmer.billing.v1.PreviewAuthorizationResponse>(
                 service, METHODID_PREVIEW_AUTHORIZATION)))
         .addMethod(
-          getGetExecutionBillingSignalMethod(),
+          getGetRunBillingSignalMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.billing.v1.GetExecutionBillingSignalInput,
-              ai.stigmer.billing.v1.GetExecutionBillingSignalResponse>(
-                service, METHODID_GET_EXECUTION_BILLING_SIGNAL)))
+              ai.stigmer.billing.v1.GetRunBillingSignalInput,
+              ai.stigmer.billing.v1.GetRunBillingSignalResponse>(
+                service, METHODID_GET_RUN_BILLING_SIGNAL)))
         .build();
   }
 
@@ -1205,7 +1205,7 @@ public final class BillingQueryControllerGrpc {
               .addMethod(getGetModelPricingGovernanceMethod())
               .addMethod(getListModelPricingBaselinesMethod())
               .addMethod(getPreviewAuthorizationMethod())
-              .addMethod(getGetExecutionBillingSignalMethod())
+              .addMethod(getGetRunBillingSignalMethod())
               .build();
         }
       }

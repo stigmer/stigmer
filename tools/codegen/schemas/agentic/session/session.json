@@ -34,7 +34,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first execution completes; empty until then.\n Each harness uses this field differently:\n\n - NATIVE: LangGraph thread ID, derived deterministically as\n   \"thread-{session_id}\" by the EnsureThread activity. Stored here\n   so the immutability sentinel works uniformly across harnesses.\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent executions.",
+      "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first execution completes; empty until then.\n Each harness uses this field differently:\n\n - NATIVE: LangGraph thread ID, derived deterministically as\n   \"thread-{session_id}\" by the EnsureThread activity. Stored here\n   so the immutability sentinel works uniformly across harnesses.\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent runs.",
       "required": false
     },
     {
@@ -121,7 +121,7 @@
           "HARNESS_CURSOR"
         ]
       },
-      "description": "Execution harness for this session.\n\n Determines which Temporal activity type is dispatched when an\n AgentExecution is created in this session:\n - NATIVE (default): ExecuteDeepAgent activity -\u003e Stigmer unified runner\n - CURSOR: ExecuteCursor activity -\u003e TypeScript/Cursor SDK worker\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and an execution\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_NATIVE.",
+      "description": "Execution harness for this session.\n\n Determines which Temporal activity type is dispatched when an\n AgentRun is created in this session:\n - NATIVE (default): ExecuteDeepAgent activity -\u003e Stigmer unified runner\n - CURSOR: ExecuteCursor activity -\u003e TypeScript/Cursor SDK worker\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and an execution\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_NATIVE.",
       "required": false
     },
     {

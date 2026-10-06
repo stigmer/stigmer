@@ -8,7 +8,7 @@ import io.grpc.Channel;
 public class GeneratedClient {
     public final AgentClient agent;
     public final AgentChannelClient agentChannel;
-    public final AgentExecutionClient agentExecution;
+    public final AgentRunClient agentRun;
     public final AgentShareClient agentShare;
     public final ApiKeyClient apiKey;
     public final ArtifactClient artifact;
@@ -34,12 +34,12 @@ public class GeneratedClient {
     public final SubscriptionClient subscription;
     public final TeamClient team;
     public final WorkflowClient workflow;
-    public final WorkflowExecutionClient workflowExecution;
+    public final WorkflowRunClient workflowRun;
 
     public GeneratedClient(Channel channel) {
         this.agent = new AgentClient(channel);
         this.agentChannel = new AgentChannelClient(channel);
-        this.agentExecution = new AgentExecutionClient(channel);
+        this.agentRun = new AgentRunClient(channel);
         this.agentShare = new AgentShareClient(channel);
         this.apiKey = new ApiKeyClient(channel);
         this.artifact = new ArtifactClient(channel);
@@ -65,7 +65,7 @@ public class GeneratedClient {
         this.subscription = new SubscriptionClient(channel);
         this.team = new TeamClient(channel);
         this.workflow = new WorkflowClient(channel);
-        this.workflowExecution = new WorkflowExecutionClient(channel);
+        this.workflowRun = new WorkflowRunClient(channel);
     }
 
     /**

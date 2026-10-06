@@ -12,7 +12,7 @@ public interface WorkflowBudgetOrBuilder extends
 
   /**
    * <pre>
-   * Maximum total cost for this workflow execution in micro-USD.
+   * Maximum total cost for this workflow run in micro-USD.
    * 1 USD = 1,000,000 micros. Example: 2000000 = $2.00.
    * When exceeded, the on_exceeded policy is applied.
    * Optional — when 0, no cost limit is enforced.
@@ -36,9 +36,9 @@ public interface WorkflowBudgetOrBuilder extends
 
   /**
    * <pre>
-   * Maximum wall-clock duration for the entire workflow execution in seconds.
+   * Maximum wall-clock duration for the entire workflow run in seconds.
    * Optional — when 0, no duration limit is enforced (Temporal's own
-   * workflow execution timeout still applies).
+   * workflow run timeout still applies).
    * </pre>
    *
    * <code>int32 max_duration_seconds = 3 [json_name = "maxDurationSeconds"];</code>

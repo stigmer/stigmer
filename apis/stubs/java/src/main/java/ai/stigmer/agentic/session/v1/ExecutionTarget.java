@@ -41,7 +41,7 @@ public enum ExecutionTarget
   EXECUTION_TARGET_LOCAL(1),
   /**
    * <pre>
-   * Server provisions a cloud sandbox for execution.
+   * Server provisions a cloud sandbox for run.
    *
    * The control plane triggers EnsureSessionSandbox to create an isolated
    * environment with a runner polling the session's task queue.
@@ -83,7 +83,7 @@ public enum ExecutionTarget
   public static final int EXECUTION_TARGET_LOCAL_VALUE = 1;
   /**
    * <pre>
-   * Server provisions a cloud sandbox for execution.
+   * Server provisions a cloud sandbox for run.
    *
    * The control plane triggers EnsureSessionSandbox to create an isolated
    * environment with a runner polling the session's task queue.

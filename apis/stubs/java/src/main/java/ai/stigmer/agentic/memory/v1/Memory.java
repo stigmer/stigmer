@@ -11,7 +11,7 @@ package ai.stigmer.agentic.memory.v1;
  *
  * A memory is proposed by an agent during a session, and becomes active
  * only after the person it is about confirms it. Confirmed memories are
- * recalled into that person's future agent executions as background
+ * recalled into that person's future agent runs as background
  * context. Every memory is individually listable, editable, and
  * deletable — the record is the trust surface over the recall seam.
  * </pre>
@@ -489,7 +489,7 @@ private static final long serialVersionUID = 0L;
    *
    * A memory is proposed by an agent during a session, and becomes active
    * only after the person it is about confirms it. Confirmed memories are
-   * recalled into that person's future agent executions as background
+   * recalled into that person's future agent runs as background
    * context. Every memory is individually listable, editable, and
    * deletable — the record is the trust surface over the recall seam.
    * </pre>

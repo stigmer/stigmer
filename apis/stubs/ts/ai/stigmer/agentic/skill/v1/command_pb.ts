@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SkillSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_skill_v1_api } from "./api_pb.js";
-import type { CreateSkillArtifactUploadUrlRequestSchema, PushSkillFromExecutionArtifactRequestSchema, PushSkillRequestSchema, SkillArtifactUploadUrlSchema, SkillIdSchema } from "./io_pb.js";
+import type { CreateSkillArtifactUploadUrlRequestSchema, PushSkillFromRunArtifactRequestSchema, PushSkillRequestSchema, SkillArtifactUploadUrlSchema, SkillIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_skill_v1_io } from "./io_pb.js";
 import type { UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/skill/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxMocHChZTa2lsbENvbW1hbmRDb250cm9sbGVyEpkBCgRwdXNoEi0uYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoICRAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBwdXNoIHNraWxsIGluIHRoaXMgb3JnYW5pemF0aW9uEtABChdjcmVhdGVBcnRpZmFjdFVwbG9hZFVybBJALmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5DcmVhdGVTa2lsbEFydGlmYWN0VXBsb2FkVXJsUmVxdWVzdBozLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbEFydGlmYWN0VXBsb2FkVXJsIj7CuBg6CAkQHiIDb3JnKi91bmF1dGhvcml6ZWQgdG8gcHVzaCBza2lsbCBpbiB0aGlzIG9yZ2FuaXphdGlvbhLDAQoZcHVzaEZyb21FeGVjdXRpb25BcnRpZmFjdBJCLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5QdXNoU2tpbGxGcm9tRXhlY3V0aW9uQXJ0aWZhY3RSZXF1ZXN0GiIuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsIj7CuBg6CAkQHiIDb3JnKi91bmF1dGhvcml6ZWQgdG8gcHVzaCBza2lsbCBpbiB0aGlzIG9yZ2FuaXphdGlvbhKtAQoQdXBkYXRlVmlzaWJpbGl0eRI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5VcGRhdGVWaXNpYmlsaXR5SW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoIMBArIgtyZXNvdXJjZV9pZCondW5hdXRob3JpemVkIHRvIHVwZGF0ZSBza2lsbCB2aXNpYmlsaXR5EoEBCgZkZWxldGUSJC5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGxJZBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCItwrgYKQgDECsiBXZhbHVlKhx1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHNraWxsGgSg/ysrYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxMvsGChZTa2lsbENvbW1hbmRDb250cm9sbGVyEpkBCgRwdXNoEi0uYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoICRAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBwdXNoIHNraWxsIGluIHRoaXMgb3JnYW5pemF0aW9uEtABChdjcmVhdGVBcnRpZmFjdFVwbG9hZFVybBJALmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5DcmVhdGVTa2lsbEFydGlmYWN0VXBsb2FkVXJsUmVxdWVzdBozLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbEFydGlmYWN0VXBsb2FkVXJsIj7CuBg6CAkQHiIDb3JnKi91bmF1dGhvcml6ZWQgdG8gcHVzaCBza2lsbCBpbiB0aGlzIG9yZ2FuaXphdGlvbhK3AQoTcHVzaEZyb21SdW5BcnRpZmFjdBI8LmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5QdXNoU2tpbGxGcm9tUnVuQXJ0aWZhY3RSZXF1ZXN0GiIuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsIj7CuBg6CAkQHiIDb3JnKi91bmF1dGhvcml6ZWQgdG8gcHVzaCBza2lsbCBpbiB0aGlzIG9yZ2FuaXphdGlvbhKtAQoQdXBkYXRlVmlzaWJpbGl0eRI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5VcGRhdGVWaXNpYmlsaXR5SW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoIMBArIgtyZXNvdXJjZV9pZCondW5hdXRob3JpemVkIHRvIHVwZGF0ZSBza2lsbCB2aXNpYmlsaXR5EoEBCgZkZWxldGUSJC5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGxJZBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCItwrgYKQgDECsiBXZhbHVlKhx1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHNraWxsGgSg/ysrYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SkillCommandController handles write operations for skills.
@@ -57,14 +57,14 @@ export const SkillCommandController: GenService<{
   },
   /**
    * Push a skill from an execution artifact already in storage.
-   * Use this when an agent execution has already produced a skill artifact
+   * Use this when an agent run has already produced a skill artifact
    * and you want to publish it without downloading and re-uploading the ZIP.
    *
-   * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromExecutionArtifact
+   * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromRunArtifact
    */
-  pushFromExecutionArtifact: {
+  pushFromRunArtifact: {
     methodKind: "unary";
-    input: typeof PushSkillFromExecutionArtifactRequestSchema;
+    input: typeof PushSkillFromRunArtifactRequestSchema;
     output: typeof SkillSchema;
   },
   /**

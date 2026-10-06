@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * WaitTaskConfig defines the configuration for wait tasks that pause workflow execution.
+ * WaitTaskConfig defines the configuration for wait tasks that pause workflow run.
  *
  * Supports both relative durations and absolute timestamps.
  * </pre>
@@ -399,7 +399,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WaitTaskConfig defines the configuration for wait tasks that pause workflow execution.
+   * WaitTaskConfig defines the configuration for wait tasks that pause workflow run.
    *
    * Supports both relative durations and absolute timestamps.
    * </pre>

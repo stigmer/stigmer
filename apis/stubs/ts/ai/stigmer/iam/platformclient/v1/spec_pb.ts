@@ -132,7 +132,7 @@ export type PlatformClientSpec = Message<"ai.stigmer.iam.platformclient.v1.Platf
   allowedOrigins: string[];
 
   /**
-   * Environments whose values are delivered to every agent execution a
+   * Environments whose values are delivered to every agent run a
    * user signed in through this PlatformClient creates. This is how an
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared

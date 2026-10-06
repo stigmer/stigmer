@@ -22,7 +22,7 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * {
  * "structured": { &lt;validated JSON matching the schema&gt; },
  * "final_text": "&lt;the agent's human-readable response&gt;",
- * "agent_execution_id": "&lt;execution ID for drill-down&gt;",
+ * "agent_run_id": "&lt;execution ID for drill-down&gt;",
  * "usage_summary": {
  * "total_tokens": 4523,
  * "estimated_cost_usd": 0.045,
@@ -484,7 +484,7 @@ private static final long serialVersionUID = 0L;
    * {
    * "structured": { &lt;validated JSON matching the schema&gt; },
    * "final_text": "&lt;the agent's human-readable response&gt;",
-   * "agent_execution_id": "&lt;execution ID for drill-down&gt;",
+   * "agent_run_id": "&lt;execution ID for drill-down&gt;",
    * "usage_summary": {
    * "total_tokens": 4523,
    * "estimated_cost_usd": 0.045,

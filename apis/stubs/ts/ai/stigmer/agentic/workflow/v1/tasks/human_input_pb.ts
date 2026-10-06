@@ -60,7 +60,7 @@ export const HumanInputOutcomeSchema: GenMessage<HumanInputOutcome> = /*@__PURE_
 
 /**
  * HumanInputTaskConfig defines the configuration for human_input tasks that
- * pause workflow execution to collect typed input or approval from a human
+ * pause workflow run to collect typed input or approval from a human
  * reviewer, then resume based on the reviewer's response.
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
@@ -102,7 +102,7 @@ export type HumanInputTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks
    *
    * When empty, the task defaults to binary behavior:
    *   - "approve": task completes, workflow continues to next task
-   *   - "deny": task fails (enters try_catch or EXECUTION_FAILED)
+   *   - "deny": task fails (enters try_catch or RUN_FAILED)
    *
    * When custom outcomes are defined, the first outcome is used as the
    * default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used
@@ -223,7 +223,7 @@ export enum HumanInputTimeoutPolicy {
 
   /**
    * Task fails with a timeout error.
-   * The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+   * The workflow transitions to error handling (try_catch or RUN_FAILED).
    *
    * @generated from enum value: HUMAN_INPUT_TIMEOUT_FAIL = 1;
    */

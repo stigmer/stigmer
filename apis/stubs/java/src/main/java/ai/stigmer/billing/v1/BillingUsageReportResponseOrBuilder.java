@@ -35,10 +35,10 @@ public interface BillingUsageReportResponseOrBuilder extends
    * Number of executions in the period.
    * </pre>
    *
-   * <code>int32 execution_count = 3 [json_name = "executionCount"];</code>
-   * @return The executionCount.
+   * <code>int32 run_count = 3 [json_name = "runCount"];</code>
+   * @return The runCount.
    */
-  int getExecutionCount();
+  int getRunCount();
 
   /**
    * <pre>

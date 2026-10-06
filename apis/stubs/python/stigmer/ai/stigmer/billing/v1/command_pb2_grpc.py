@@ -40,25 +40,25 @@ class BillingCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GrantCreditsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.FromString,
                 _registered_method=True)
-        self.authorizeExecution = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingCommandController/authorizeExecution',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionResponse.FromString,
+        self.authorizeRun = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingCommandController/authorizeRun',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunResponse.FromString,
                 _registered_method=True)
         self.recordLlmCallUsage = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage',
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageResponse.FromString,
                 _registered_method=True)
-        self.finalizeExecution = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionResponse.FromString,
+        self.finalizeRun = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingCommandController/finalizeRun',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeRunInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeRunResponse.FromString,
                 _registered_method=True)
         self.rearmForRecovery = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingCommandController/rearmForRecovery',
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RearmForRecoveryInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionResponse.FromString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunResponse.FromString,
                 _registered_method=True)
         self.createCreditCheckoutSession = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession',
@@ -139,8 +139,8 @@ class BillingCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def authorizeExecution(self, request, context):
-        """Reserve credits before starting an agent execution.
+    def authorizeRun(self, request, context):
+        """Reserve credits before starting an agent run.
         Returns authorization status and reservation details.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -156,8 +156,8 @@ class BillingCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def finalizeExecution(self, request, context):
-        """Settle billing for a completed execution.
+    def finalizeRun(self, request, context):
+        """Settle billing for a completed run.
         Releases unused reservation credits and produces the final billing record.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -169,7 +169,7 @@ class BillingCommandControllerServicer(object):
         The one sanctioned path past the settled-reservation latch: re-runs
         the affordability check, transfers a fresh hold, and rotates the
         reservation id as the fence against settles still in flight from the
-        terminated run. Returns the same shape as authorizeExecution, with
+        terminated run. Returns the same shape as authorizeRun, with
         the rotated reservation id.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -273,25 +273,25 @@ def add_BillingCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GrantCreditsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.SerializeToString,
             ),
-            'authorizeExecution': grpc.unary_unary_rpc_method_handler(
-                    servicer.authorizeExecution,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionResponse.SerializeToString,
+            'authorizeRun': grpc.unary_unary_rpc_method_handler(
+                    servicer.authorizeRun,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunResponse.SerializeToString,
             ),
             'recordLlmCallUsage': grpc.unary_unary_rpc_method_handler(
                     servicer.recordLlmCallUsage,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageResponse.SerializeToString,
             ),
-            'finalizeExecution': grpc.unary_unary_rpc_method_handler(
-                    servicer.finalizeExecution,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionResponse.SerializeToString,
+            'finalizeRun': grpc.unary_unary_rpc_method_handler(
+                    servicer.finalizeRun,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeRunInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeRunResponse.SerializeToString,
             ),
             'rearmForRecovery': grpc.unary_unary_rpc_method_handler(
                     servicer.rearmForRecovery,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RearmForRecoveryInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionResponse.SerializeToString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunResponse.SerializeToString,
             ),
             'createCreditCheckoutSession': grpc.unary_unary_rpc_method_handler(
                     servicer.createCreditCheckoutSession,
@@ -428,7 +428,7 @@ class BillingCommandController(object):
             _registered_method=True)
 
     @staticmethod
-    def authorizeExecution(request,
+    def authorizeRun(request,
             target,
             options=(),
             channel_credentials=None,
@@ -441,9 +441,9 @@ class BillingCommandController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.billing.v1.BillingCommandController/authorizeExecution',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionResponse.FromString,
+            '/ai.stigmer.billing.v1.BillingCommandController/authorizeRun',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -482,7 +482,7 @@ class BillingCommandController(object):
             _registered_method=True)
 
     @staticmethod
-    def finalizeExecution(request,
+    def finalizeRun(request,
             target,
             options=(),
             channel_credentials=None,
@@ -495,9 +495,9 @@ class BillingCommandController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionResponse.FromString,
+            '/ai.stigmer.billing.v1.BillingCommandController/finalizeRun',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeRunInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeRunResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -524,7 +524,7 @@ class BillingCommandController(object):
             target,
             '/ai.stigmer.billing.v1.BillingCommandController/rearmForRecovery',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RearmForRecoveryInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionResponse.FromString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunResponse.FromString,
             options,
             channel_credentials,
             insecure,

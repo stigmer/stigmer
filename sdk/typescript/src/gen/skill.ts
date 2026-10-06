@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SkillSchema, type Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
-import { SkillIdSchema, PushSkillRequestSchema, CreateSkillArtifactUploadUrlRequestSchema, SkillArtifactUploadUrlSchema, PushSkillFromExecutionArtifactRequestSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, SkillArtifactDownloadUrlSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, type PushSkillRequest, type CreateSkillArtifactUploadUrlRequest, type SkillArtifactUploadUrl, type PushSkillFromExecutionArtifactRequest, type GetArtifactRequest, type GetArtifactResponse, type SkillArtifactDownloadUrl, type ListSkillVersionsInput, type ListSkillVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+import { SkillIdSchema, PushSkillRequestSchema, CreateSkillArtifactUploadUrlRequestSchema, SkillArtifactUploadUrlSchema, PushSkillFromRunArtifactRequestSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, SkillArtifactDownloadUrlSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, type PushSkillRequest, type CreateSkillArtifactUploadUrlRequest, type SkillArtifactUploadUrl, type PushSkillFromRunArtifactRequest, type GetArtifactRequest, type GetArtifactResponse, type SkillArtifactDownloadUrl, type ListSkillVersionsInput, type ListSkillVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { SkillSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -42,9 +42,9 @@ export class SkillClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async pushFromExecutionArtifact(input: PushSkillFromExecutionArtifactRequest): Promise<Skill> {
+  async pushFromRunArtifact(input: PushSkillFromRunArtifactRequest): Promise<Skill> {
     try {
-      return await this.command.pushFromExecutionArtifact(input);
+      return await this.command.pushFromRunArtifact(input);
     } catch (e) { throw wrapError(e); }
   }
 

@@ -20,11 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SkillCommandController_Push_FullMethodName                      = "/ai.stigmer.agentic.skill.v1.SkillCommandController/push"
-	SkillCommandController_CreateArtifactUploadUrl_FullMethodName   = "/ai.stigmer.agentic.skill.v1.SkillCommandController/createArtifactUploadUrl"
-	SkillCommandController_PushFromExecutionArtifact_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromExecutionArtifact"
-	SkillCommandController_UpdateVisibility_FullMethodName          = "/ai.stigmer.agentic.skill.v1.SkillCommandController/updateVisibility"
-	SkillCommandController_Delete_FullMethodName                    = "/ai.stigmer.agentic.skill.v1.SkillCommandController/delete"
+	SkillCommandController_Push_FullMethodName                    = "/ai.stigmer.agentic.skill.v1.SkillCommandController/push"
+	SkillCommandController_CreateArtifactUploadUrl_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillCommandController/createArtifactUploadUrl"
+	SkillCommandController_PushFromRunArtifact_FullMethodName     = "/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromRunArtifact"
+	SkillCommandController_UpdateVisibility_FullMethodName        = "/ai.stigmer.agentic.skill.v1.SkillCommandController/updateVisibility"
+	SkillCommandController_Delete_FullMethodName                  = "/ai.stigmer.agentic.skill.v1.SkillCommandController/delete"
 )
 
 // SkillCommandControllerClient is the client API for SkillCommandController service.
@@ -48,9 +48,9 @@ type SkillCommandControllerClient interface {
 	// The server refuses over-limit size_bytes here, before any bytes move.
 	CreateArtifactUploadUrl(ctx context.Context, in *CreateSkillArtifactUploadUrlRequest, opts ...grpc.CallOption) (*SkillArtifactUploadUrl, error)
 	// Push a skill from an execution artifact already in storage.
-	// Use this when an agent execution has already produced a skill artifact
+	// Use this when an agent run has already produced a skill artifact
 	// and you want to publish it without downloading and re-uploading the ZIP.
-	PushFromExecutionArtifact(ctx context.Context, in *PushSkillFromExecutionArtifactRequest, opts ...grpc.CallOption) (*Skill, error)
+	PushFromRunArtifact(ctx context.Context, in *PushSkillFromRunArtifactRequest, opts ...grpc.CallOption) (*Skill, error)
 	// Update the visibility of an existing skill.
 	// Only modifies metadata.visibility, leaving spec, status, and other
 	// metadata fields untouched. Use this to widen or narrow who can read
@@ -88,10 +88,10 @@ func (c *skillCommandControllerClient) CreateArtifactUploadUrl(ctx context.Conte
 	return out, nil
 }
 
-func (c *skillCommandControllerClient) PushFromExecutionArtifact(ctx context.Context, in *PushSkillFromExecutionArtifactRequest, opts ...grpc.CallOption) (*Skill, error) {
+func (c *skillCommandControllerClient) PushFromRunArtifact(ctx context.Context, in *PushSkillFromRunArtifactRequest, opts ...grpc.CallOption) (*Skill, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Skill)
-	err := c.cc.Invoke(ctx, SkillCommandController_PushFromExecutionArtifact_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, SkillCommandController_PushFromRunArtifact_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -139,9 +139,9 @@ type SkillCommandControllerServer interface {
 	// The server refuses over-limit size_bytes here, before any bytes move.
 	CreateArtifactUploadUrl(context.Context, *CreateSkillArtifactUploadUrlRequest) (*SkillArtifactUploadUrl, error)
 	// Push a skill from an execution artifact already in storage.
-	// Use this when an agent execution has already produced a skill artifact
+	// Use this when an agent run has already produced a skill artifact
 	// and you want to publish it without downloading and re-uploading the ZIP.
-	PushFromExecutionArtifact(context.Context, *PushSkillFromExecutionArtifactRequest) (*Skill, error)
+	PushFromRunArtifact(context.Context, *PushSkillFromRunArtifactRequest) (*Skill, error)
 	// Update the visibility of an existing skill.
 	// Only modifies metadata.visibility, leaving spec, status, and other
 	// metadata fields untouched. Use this to widen or narrow who can read
@@ -164,8 +164,8 @@ func (UnimplementedSkillCommandControllerServer) Push(context.Context, *PushSkil
 func (UnimplementedSkillCommandControllerServer) CreateArtifactUploadUrl(context.Context, *CreateSkillArtifactUploadUrlRequest) (*SkillArtifactUploadUrl, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateArtifactUploadUrl not implemented")
 }
-func (UnimplementedSkillCommandControllerServer) PushFromExecutionArtifact(context.Context, *PushSkillFromExecutionArtifactRequest) (*Skill, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PushFromExecutionArtifact not implemented")
+func (UnimplementedSkillCommandControllerServer) PushFromRunArtifact(context.Context, *PushSkillFromRunArtifactRequest) (*Skill, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PushFromRunArtifact not implemented")
 }
 func (UnimplementedSkillCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Skill, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
@@ -229,20 +229,20 @@ func _SkillCommandController_CreateArtifactUploadUrl_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SkillCommandController_PushFromExecutionArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PushSkillFromExecutionArtifactRequest)
+func _SkillCommandController_PushFromRunArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PushSkillFromRunArtifactRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SkillCommandControllerServer).PushFromExecutionArtifact(ctx, in)
+		return srv.(SkillCommandControllerServer).PushFromRunArtifact(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SkillCommandController_PushFromExecutionArtifact_FullMethodName,
+		FullMethod: SkillCommandController_PushFromRunArtifact_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SkillCommandControllerServer).PushFromExecutionArtifact(ctx, req.(*PushSkillFromExecutionArtifactRequest))
+		return srv.(SkillCommandControllerServer).PushFromRunArtifact(ctx, req.(*PushSkillFromRunArtifactRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -299,8 +299,8 @@ var SkillCommandController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SkillCommandController_CreateArtifactUploadUrl_Handler,
 		},
 		{
-			MethodName: "pushFromExecutionArtifact",
-			Handler:    _SkillCommandController_PushFromExecutionArtifact_Handler,
+			MethodName: "pushFromRunArtifact",
+			Handler:    _SkillCommandController_PushFromRunArtifact_Handler,
 		},
 		{
 			MethodName: "updateVisibility",

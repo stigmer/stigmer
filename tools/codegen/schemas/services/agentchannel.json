@@ -1125,7 +1125,7 @@
               "organization",
               "platform",
               "agent",
-              "agent_execution",
+              "agent_run",
               "session",
               "skill",
               "mcp_server",
@@ -1133,7 +1133,7 @@
               "agent_channel",
               "channel_app",
               "workflow",
-              "workflow_execution",
+              "workflow_run",
               "environment",
               "artifact",
               "execution_context",
@@ -1420,7 +1420,7 @@
           "description": "AI assistant with instructions, tools, skills, and a delegation model."
         },
         {
-          "name": "agent_execution",
+          "name": "agent_run",
           "number": 41,
           "description": "Single run of an agent within a session, tracking tool calls and responses."
         },
@@ -1460,19 +1460,19 @@
           "description": "Multi-step orchestration defining how agents collaborate on a task."
         },
         {
-          "name": "workflow_execution",
+          "name": "workflow_run",
           "number": 52,
           "description": "Single run of a workflow, tracking step progress and outcomes."
         },
         {
           "name": "environment",
           "number": 53,
-          "description": "Named set of variables and secrets for agent and workflow execution."
+          "description": "Named set of variables and secrets for agent and workflow run."
         },
         {
           "name": "artifact",
           "number": 55,
-          "description": "Persisted blob produced during workflow or agent execution."
+          "description": "Persisted blob produced during workflow or agent run."
         },
         {
           "name": "execution_context",
@@ -1551,7 +1551,7 @@
         {
           "name": "visibility_org",
           "number": 3,
-          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
         },
         {
           "name": "visibility_child_orgs",
@@ -1563,7 +1563,7 @@
     {
       "name": "ServiceTier",
       "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.ServiceTier",
+      "protoType": "ai.stigmer.agentic.agentrun.v1.ServiceTier",
       "values": [
         {
           "name": "SERVICE_TIER_STANDARD",
@@ -1580,7 +1580,7 @@
     {
       "name": "ThinkingMode",
       "description": "ThinkingMode selects the model's extended-reasoning (\"thinking\") variant\n for an execution's model calls — the second variant dimension alongside\n ServiceTier (stigmer/stigmer#772).\n\n Unlike the fast tier, thinking is NOT a separately priced dimension:\n Cursor bills thinking variants at the model's base per-token rates\n (verified against the live pricing page and 277 team-ledger events on\n 2026-08-15 — thinking wire ids bill exactly base; thinking+fast bills\n exactly the fast variant rate). Thinking costs more only by generating\n additional reasoning tokens, billed as ordinary output. Selectability is\n therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for\n models whose registry entry on the execution's harness declares a\n thinking capability (capabilities.thinking or capabilities.adaptive_thinking),\n refused at create time otherwise. ENABLED means \"the model reasons before\n it answers\", in the form its entry declares: a fixed budget or adaptive\n depth.\n\n The load-bearing rule mirrors ServiceTier: UNSPECIFIED resolves to\n THINKING_MODE_DISABLED — never the provider account default. Several\n catalog default variants are thinking=true (claude-haiku-4-5), so an\n unpinned selection would silently follow an out-of-band account setting;\n the runner always sends an explicit thinking pin where the model declares\n the parameter. The one exception is a model whose entry declares\n capabilities.thinking_required: it always thinks, so an explicit DISABLED\n is refused at create and UNSPECIFIED runs with thinking on.",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.ThinkingMode",
+      "protoType": "ai.stigmer.agentic.agentrun.v1.ThinkingMode",
       "values": [
         {
           "name": "THINKING_MODE_DISABLED",

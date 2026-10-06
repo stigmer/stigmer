@@ -83,19 +83,19 @@ private static final long serialVersionUID = 0L;
     return totalBillableAmountMicros_;
   }
 
-  public static final int EXECUTION_COUNT_FIELD_NUMBER = 3;
-  private int executionCount_ = 0;
+  public static final int RUN_COUNT_FIELD_NUMBER = 3;
+  private int runCount_ = 0;
   /**
    * <pre>
    * Number of executions in the period.
    * </pre>
    *
-   * <code>int32 execution_count = 3 [json_name = "executionCount"];</code>
-   * @return The executionCount.
+   * <code>int32 run_count = 3 [json_name = "runCount"];</code>
+   * @return The runCount.
    */
   @java.lang.Override
-  public int getExecutionCount() {
-    return executionCount_;
+  public int getRunCount() {
+    return runCount_;
   }
 
   public static final int LLM_CALL_COUNT_FIELD_NUMBER = 4;
@@ -194,8 +194,8 @@ private static final long serialVersionUID = 0L;
     if (totalBillableAmountMicros_ != 0L) {
       output.writeInt64(2, totalBillableAmountMicros_);
     }
-    if (executionCount_ != 0) {
-      output.writeInt32(3, executionCount_);
+    if (runCount_ != 0) {
+      output.writeInt32(3, runCount_);
     }
     if (llmCallCount_ != 0) {
       output.writeInt32(4, llmCallCount_);
@@ -220,9 +220,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(2, totalBillableAmountMicros_);
     }
-    if (executionCount_ != 0) {
+    if (runCount_ != 0) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(3, executionCount_);
+        .computeInt32Size(3, runCount_);
     }
     if (llmCallCount_ != 0) {
       size += com.google.protobuf.CodedOutputStream
@@ -256,8 +256,8 @@ private static final long serialVersionUID = 0L;
         != other.getTotalProviderCostMicros()) return false;
     if (getTotalBillableAmountMicros()
         != other.getTotalBillableAmountMicros()) return false;
-    if (getExecutionCount()
-        != other.getExecutionCount()) return false;
+    if (getRunCount()
+        != other.getRunCount()) return false;
     if (getLlmCallCount()
         != other.getLlmCallCount()) return false;
     if (!getModelBreakdownList()
@@ -279,8 +279,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + TOTAL_BILLABLE_AMOUNT_MICROS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getTotalBillableAmountMicros());
-    hash = (37 * hash) + EXECUTION_COUNT_FIELD_NUMBER;
-    hash = (53 * hash) + getExecutionCount();
+    hash = (37 * hash) + RUN_COUNT_FIELD_NUMBER;
+    hash = (53 * hash) + getRunCount();
     hash = (37 * hash) + LLM_CALL_COUNT_FIELD_NUMBER;
     hash = (53 * hash) + getLlmCallCount();
     if (getModelBreakdownCount() > 0) {
@@ -424,7 +424,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       totalProviderCostMicros_ = 0L;
       totalBillableAmountMicros_ = 0L;
-      executionCount_ = 0;
+      runCount_ = 0;
       llmCallCount_ = 0;
       if (modelBreakdownBuilder_ == null) {
         modelBreakdown_ = java.util.Collections.emptyList();
@@ -486,7 +486,7 @@ private static final long serialVersionUID = 0L;
         result.totalBillableAmountMicros_ = totalBillableAmountMicros_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.executionCount_ = executionCount_;
+        result.runCount_ = runCount_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.llmCallCount_ = llmCallCount_;
@@ -511,8 +511,8 @@ private static final long serialVersionUID = 0L;
       if (other.getTotalBillableAmountMicros() != 0L) {
         setTotalBillableAmountMicros(other.getTotalBillableAmountMicros());
       }
-      if (other.getExecutionCount() != 0) {
-        setExecutionCount(other.getExecutionCount());
+      if (other.getRunCount() != 0) {
+        setRunCount(other.getRunCount());
       }
       if (other.getLlmCallCount() != 0) {
         setLlmCallCount(other.getLlmCallCount());
@@ -580,7 +580,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 16
             case 24: {
-              executionCount_ = input.readInt32();
+              runCount_ = input.readInt32();
               bitField0_ |= 0x00000004;
               break;
             } // case 24
@@ -707,31 +707,31 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int executionCount_ ;
+    private int runCount_ ;
     /**
      * <pre>
      * Number of executions in the period.
      * </pre>
      *
-     * <code>int32 execution_count = 3 [json_name = "executionCount"];</code>
-     * @return The executionCount.
+     * <code>int32 run_count = 3 [json_name = "runCount"];</code>
+     * @return The runCount.
      */
     @java.lang.Override
-    public int getExecutionCount() {
-      return executionCount_;
+    public int getRunCount() {
+      return runCount_;
     }
     /**
      * <pre>
      * Number of executions in the period.
      * </pre>
      *
-     * <code>int32 execution_count = 3 [json_name = "executionCount"];</code>
-     * @param value The executionCount to set.
+     * <code>int32 run_count = 3 [json_name = "runCount"];</code>
+     * @param value The runCount to set.
      * @return This builder for chaining.
      */
-    public Builder setExecutionCount(int value) {
+    public Builder setRunCount(int value) {
 
-      executionCount_ = value;
+      runCount_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
@@ -741,12 +741,12 @@ private static final long serialVersionUID = 0L;
      * Number of executions in the period.
      * </pre>
      *
-     * <code>int32 execution_count = 3 [json_name = "executionCount"];</code>
+     * <code>int32 run_count = 3 [json_name = "runCount"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearExecutionCount() {
+    public Builder clearRunCount() {
       bitField0_ = (bitField0_ & ~0x00000004);
-      executionCount_ = 0;
+      runCount_ = 0;
       onChanged();
       return this;
     }

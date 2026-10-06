@@ -6,7 +6,7 @@
 import { Workflow } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
-import { UpdateWorkflowExecutionVisibilityInput, WorkflowId } from "./io_pbjs";
+import { UpdateWorkflowRunVisibilityInput, WorkflowId } from "./io_pbjs";
 import { ServerlessWorkflowValidation } from "./serverless/validation_pbjs";
 import { TagWorkflowVersionInput } from "./version_pbjs";
 
@@ -83,11 +83,11 @@ export const WorkflowCommandController = {
      * Supported levels: PRIVATE (only the person who started each run) and
      * ORGANIZATION (all org members). Platform is unsupported.
      *
-     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateExecutionVisibility
+     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateRunVisibility
      */
-    updateExecutionVisibility: {
-      name: "updateExecutionVisibility",
-      I: UpdateWorkflowExecutionVisibilityInput,
+    updateRunVisibility: {
+      name: "updateRunVisibility",
+      I: UpdateWorkflowRunVisibilityInput,
       O: Workflow,
       kind: MethodKind.Unary,
     },

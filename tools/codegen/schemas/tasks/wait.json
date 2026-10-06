@@ -1,7 +1,7 @@
 {
   "name": "WaitTaskConfig",
   "kind": "WAIT",
-  "description": "WaitTaskConfig defines the configuration for wait tasks that pause workflow execution.\n\n Supports both relative durations and absolute timestamps.",
+  "description": "WaitTaskConfig defines the configuration for wait tasks that pause workflow run.\n\n Supports both relative durations and absolute timestamps.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/wait.proto",
   "discriminatorValue": "wait",

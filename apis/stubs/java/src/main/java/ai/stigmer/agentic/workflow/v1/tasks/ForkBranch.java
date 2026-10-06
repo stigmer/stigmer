@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * ForkBranch defines a single branch in parallel execution.
+ * ForkBranch defines a single branch in parallel run.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.ForkBranch}
@@ -338,7 +338,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ForkBranch defines a single branch in parallel execution.
+   * ForkBranch defines a single branch in parallel run.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.ForkBranch}

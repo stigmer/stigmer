@@ -6,12 +6,12 @@
 
 // Package ai.stigmer.agentic.artifact.v1 contains the API definition for Artifact.
 //
-// An Artifact is a persisted blob produced during workflow or agent execution.
+// An Artifact is a persisted blob produced during workflow or agent run.
 // It externalizes large task outputs that would otherwise bloat the execution
 // status snapshot and Temporal workflow history.
 //
 // Artifacts are a shared, first-class resource reusable by both workflow
-// executions and agent executions. They have their own identity, lifecycle,
+// executions and agent runs. They have their own identity, lifecycle,
 // and access control — independent of the execution that produced them.
 //
 // This package belongs to the "agentic" bounded context, which encompasses
@@ -43,7 +43,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Artifact represents a persisted blob produced during execution.
+// Artifact represents a persisted blob produced during run.
 type Artifact struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

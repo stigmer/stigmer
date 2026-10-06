@@ -27,14 +27,14 @@ var File_ai_stigmer_agentic_workflow_v1_command_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_agentic_workflow_v1_command_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/agentic/workflow/v1/command.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a'ai/stigmer/agentic/workflow/v1/io.proto\x1a:ai/stigmer/agentic/workflow/v1/serverless/validation.proto\x1a,ai/stigmer/agentic/workflow/v1/version.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xee\n" +
+	",ai/stigmer/agentic/workflow/v1/command.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a'ai/stigmer/agentic/workflow/v1/io.proto\x1a:ai/stigmer/agentic/workflow/v1/serverless/validation.proto\x1a,ai/stigmer/agentic/workflow/v1/version.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xdc\n" +
 	"\n" +
 	"\x19WorkflowCommandController\x12[\n" +
 	"\x05apply\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\x12\xaa\x01\n" +
 	"\x06create\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"L¸\x18H\b\a\x10\x1e\"\fmetadata.org*4unauthorized to create workflow in this organization\x12\x94\x01\n" +
 	"\x06update\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"6¸\x182\b\x02\x102\"\vmetadata.id*\x1funauthorized to update workflow\x12\xb6\x01\n" +
-	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"A¸\x18=\b0\x102\"\vresource_id**unauthorized to update workflow visibility\x12\xda\x01\n" +
-	"\x19updateExecutionVisibility\x12F.ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"K¸\x18G\b0\x102\"\vresource_id*4unauthorized to update workflow execution visibility\x12\x90\x01\n" +
+	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"A¸\x18=\b0\x102\"\vresource_id**unauthorized to update workflow visibility\x12\xc8\x01\n" +
+	"\x13updateRunVisibility\x12@.ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"E¸\x18A\b0\x102\"\vresource_id*.unauthorized to update workflow run visibility\x12\x90\x01\n" +
 	"\x06delete\x12*.ai.stigmer.agentic.workflow.v1.WorkflowId\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"0¸\x18,\b\x03\x102\"\x05value*\x1funauthorized to delete workflow\x12\xd1\x01\n" +
 	"\fvalidateSpec\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1aG.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation\"N¸\x18J\b\a\x10\x1e\"\fmetadata.org*6unauthorized to validate workflow in this organization\x12\xac\x01\n" +
 	"\n" +
@@ -44,7 +44,7 @@ const file_ai_stigmer_agentic_workflow_v1_command_proto_rawDesc = "" +
 var file_ai_stigmer_agentic_workflow_v1_command_proto_goTypes = []any{
 	(*Workflow)(nil), // 0: ai.stigmer.agentic.workflow.v1.Workflow
 	(*apiresource.UpdateVisibilityInput)(nil),       // 1: ai.stigmer.commons.apiresource.UpdateVisibilityInput
-	(*UpdateWorkflowExecutionVisibilityInput)(nil),  // 2: ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput
+	(*UpdateWorkflowRunVisibilityInput)(nil),        // 2: ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput
 	(*WorkflowId)(nil),                              // 3: ai.stigmer.agentic.workflow.v1.WorkflowId
 	(*TagWorkflowVersionInput)(nil),                 // 4: ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput
 	(*serverless.ServerlessWorkflowValidation)(nil), // 5: ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation
@@ -54,7 +54,7 @@ var file_ai_stigmer_agentic_workflow_v1_command_proto_depIdxs = []int32{
 	0, // 1: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.create:input_type -> ai.stigmer.agentic.workflow.v1.Workflow
 	0, // 2: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.update:input_type -> ai.stigmer.agentic.workflow.v1.Workflow
 	1, // 3: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateVisibility:input_type -> ai.stigmer.commons.apiresource.UpdateVisibilityInput
-	2, // 4: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateExecutionVisibility:input_type -> ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput
+	2, // 4: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateRunVisibility:input_type -> ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput
 	3, // 5: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.delete:input_type -> ai.stigmer.agentic.workflow.v1.WorkflowId
 	0, // 6: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.validateSpec:input_type -> ai.stigmer.agentic.workflow.v1.Workflow
 	4, // 7: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.tagVersion:input_type -> ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput
@@ -62,7 +62,7 @@ var file_ai_stigmer_agentic_workflow_v1_command_proto_depIdxs = []int32{
 	0, // 9: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.create:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
 	0, // 10: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.update:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
 	0, // 11: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateVisibility:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
-	0, // 12: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateExecutionVisibility:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
+	0, // 12: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateRunVisibility:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
 	0, // 13: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.delete:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
 	5, // 14: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.validateSpec:output_type -> ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation
 	0, // 15: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.tagVersion:output_type -> ai.stigmer.agentic.workflow.v1.Workflow

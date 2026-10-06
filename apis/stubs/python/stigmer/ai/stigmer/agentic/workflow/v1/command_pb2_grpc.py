@@ -39,9 +39,9 @@ class WorkflowCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
                 _registered_method=True)
-        self.updateExecutionVisibility = channel.unary_unary(
-                '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateExecutionVisibility',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.UpdateWorkflowExecutionVisibilityInput.SerializeToString,
+        self.updateRunVisibility = channel.unary_unary(
+                '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateRunVisibility',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.UpdateWorkflowRunVisibilityInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
@@ -102,7 +102,7 @@ class WorkflowCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def updateExecutionVisibility(self, request, context):
+    def updateRunVisibility(self, request, context):
         """Update who can observe the runs (executions) of this workflow.
 
         This is a SEPARATE axis from updateVisibility: it controls run
@@ -183,9 +183,9 @@ def add_WorkflowCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
             ),
-            'updateExecutionVisibility': grpc.unary_unary_rpc_method_handler(
-                    servicer.updateExecutionVisibility,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.UpdateWorkflowExecutionVisibilityInput.FromString,
+            'updateRunVisibility': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateRunVisibility,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.UpdateWorkflowRunVisibilityInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -324,7 +324,7 @@ class WorkflowCommandController(object):
             _registered_method=True)
 
     @staticmethod
-    def updateExecutionVisibility(request,
+    def updateRunVisibility(request,
             target,
             options=(),
             channel_credentials=None,
@@ -337,8 +337,8 @@ class WorkflowCommandController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateExecutionVisibility',
-            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.UpdateWorkflowExecutionVisibilityInput.SerializeToString,
+            '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateRunVisibility',
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.UpdateWorkflowRunVisibilityInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
             options,
             channel_credentials,

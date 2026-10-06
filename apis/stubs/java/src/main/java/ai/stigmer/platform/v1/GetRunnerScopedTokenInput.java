@@ -58,8 +58,8 @@ private static final long serialVersionUID = 0L;
   public enum ScopeCase
       implements com.google.protobuf.Internal.EnumLite,
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
-    AGENT_EXECUTION_ID(1),
-    WORKFLOW_EXECUTION_ID(2),
+    AGENT_RUN_ID(1),
+    WORKFLOW_RUN_ID(2),
     POOL_CLAIM(3),
     RENEWAL(4),
     SCOPE_NOT_SET(0);
@@ -79,8 +79,8 @@ private static final long serialVersionUID = 0L;
 
     public static ScopeCase forNumber(int value) {
       switch (value) {
-        case 1: return AGENT_EXECUTION_ID;
-        case 2: return WORKFLOW_EXECUTION_ID;
+        case 1: return AGENT_RUN_ID;
+        case 2: return WORKFLOW_RUN_ID;
         case 3: return POOL_CLAIM;
         case 4: return RENEWAL;
         case 0: return SCOPE_NOT_SET;
@@ -98,29 +98,29 @@ private static final long serialVersionUID = 0L;
         scopeCase_);
   }
 
-  public static final int AGENT_EXECUTION_ID_FIELD_NUMBER = 1;
+  public static final int AGENT_RUN_ID_FIELD_NUMBER = 1;
   /**
    * <pre>
-   * AgentExecution id — yields a token scoped to the execution's parent
+   * AgentRun id — yields a token scoped to the execution's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
-   * <code>string agent_execution_id = 1 [json_name = "agentExecutionId"];</code>
-   * @return Whether the agentExecutionId field is set.
+   * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
+   * @return Whether the agentRunId field is set.
    */
-  public boolean hasAgentExecutionId() {
+  public boolean hasAgentRunId() {
     return scopeCase_ == 1;
   }
   /**
    * <pre>
-   * AgentExecution id — yields a token scoped to the execution's parent
+   * AgentRun id — yields a token scoped to the execution's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
-   * <code>string agent_execution_id = 1 [json_name = "agentExecutionId"];</code>
-   * @return The agentExecutionId.
+   * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
+   * @return The agentRunId.
    */
-  public java.lang.String getAgentExecutionId() {
+  public java.lang.String getAgentRunId() {
     if (scopeCase_ != 1) {
       return "";
     }
@@ -137,15 +137,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AgentExecution id — yields a token scoped to the execution's parent
+   * AgentRun id — yields a token scoped to the execution's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
-   * <code>string agent_execution_id = 1 [json_name = "agentExecutionId"];</code>
-   * @return The bytes for agentExecutionId.
+   * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
+   * @return The bytes for agentRunId.
    */
   public com.google.protobuf.ByteString
-      getAgentExecutionIdBytes() {
+      getAgentRunIdBytes() {
     if (scopeCase_ != 1) {
       return com.google.protobuf.ByteString.copyFromUtf8("");
     }
@@ -161,29 +161,29 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int WORKFLOW_EXECUTION_ID_FIELD_NUMBER = 2;
+  public static final int WORKFLOW_RUN_ID_FIELD_NUMBER = 2;
   /**
    * <pre>
-   * WorkflowExecution id — yields a token scoped to exactly that workflow
+   * WorkflowRun id — yields a token scoped to exactly that workflow
    * execution's ExecutionContext.
    * </pre>
    *
-   * <code>string workflow_execution_id = 2 [json_name = "workflowExecutionId"];</code>
-   * @return Whether the workflowExecutionId field is set.
+   * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
+   * @return Whether the workflowRunId field is set.
    */
-  public boolean hasWorkflowExecutionId() {
+  public boolean hasWorkflowRunId() {
     return scopeCase_ == 2;
   }
   /**
    * <pre>
-   * WorkflowExecution id — yields a token scoped to exactly that workflow
+   * WorkflowRun id — yields a token scoped to exactly that workflow
    * execution's ExecutionContext.
    * </pre>
    *
-   * <code>string workflow_execution_id = 2 [json_name = "workflowExecutionId"];</code>
-   * @return The workflowExecutionId.
+   * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
+   * @return The workflowRunId.
    */
-  public java.lang.String getWorkflowExecutionId() {
+  public java.lang.String getWorkflowRunId() {
     if (scopeCase_ != 2) {
       return "";
     }
@@ -200,15 +200,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkflowExecution id — yields a token scoped to exactly that workflow
+   * WorkflowRun id — yields a token scoped to exactly that workflow
    * execution's ExecutionContext.
    * </pre>
    *
-   * <code>string workflow_execution_id = 2 [json_name = "workflowExecutionId"];</code>
-   * @return The bytes for workflowExecutionId.
+   * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
+   * @return The bytes for workflowRunId.
    */
   public com.google.protobuf.ByteString
-      getWorkflowExecutionIdBytes() {
+      getWorkflowRunIdBytes() {
     if (scopeCase_ != 2) {
       return com.google.protobuf.ByteString.copyFromUtf8("");
     }
@@ -389,12 +389,12 @@ private static final long serialVersionUID = 0L;
     if (!getScopeCase().equals(other.getScopeCase())) return false;
     switch (scopeCase_) {
       case 1:
-        if (!getAgentExecutionId()
-            .equals(other.getAgentExecutionId())) return false;
+        if (!getAgentRunId()
+            .equals(other.getAgentRunId())) return false;
         break;
       case 2:
-        if (!getWorkflowExecutionId()
-            .equals(other.getWorkflowExecutionId())) return false;
+        if (!getWorkflowRunId()
+            .equals(other.getWorkflowRunId())) return false;
         break;
       case 3:
         if (!getPoolClaim()
@@ -420,12 +420,12 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     switch (scopeCase_) {
       case 1:
-        hash = (37 * hash) + AGENT_EXECUTION_ID_FIELD_NUMBER;
-        hash = (53 * hash) + getAgentExecutionId().hashCode();
+        hash = (37 * hash) + AGENT_RUN_ID_FIELD_NUMBER;
+        hash = (53 * hash) + getAgentRunId().hashCode();
         break;
       case 2:
-        hash = (37 * hash) + WORKFLOW_EXECUTION_ID_FIELD_NUMBER;
-        hash = (53 * hash) + getWorkflowExecutionId().hashCode();
+        hash = (37 * hash) + WORKFLOW_RUN_ID_FIELD_NUMBER;
+        hash = (53 * hash) + getWorkflowRunId().hashCode();
         break;
       case 3:
         hash = (37 * hash) + POOL_CLAIM_FIELD_NUMBER;
@@ -643,13 +643,13 @@ private static final long serialVersionUID = 0L;
     public Builder mergeFrom(ai.stigmer.platform.v1.GetRunnerScopedTokenInput other) {
       if (other == ai.stigmer.platform.v1.GetRunnerScopedTokenInput.getDefaultInstance()) return this;
       switch (other.getScopeCase()) {
-        case AGENT_EXECUTION_ID: {
+        case AGENT_RUN_ID: {
           scopeCase_ = 1;
           scope_ = other.scope_;
           onChanged();
           break;
         }
-        case WORKFLOW_EXECUTION_ID: {
+        case WORKFLOW_RUN_ID: {
           scopeCase_ = 2;
           scope_ = other.scope_;
           onChanged();
@@ -751,28 +751,28 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * AgentExecution id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the execution's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
-     * <code>string agent_execution_id = 1 [json_name = "agentExecutionId"];</code>
-     * @return Whether the agentExecutionId field is set.
+     * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
+     * @return Whether the agentRunId field is set.
      */
     @java.lang.Override
-    public boolean hasAgentExecutionId() {
+    public boolean hasAgentRunId() {
       return scopeCase_ == 1;
     }
     /**
      * <pre>
-     * AgentExecution id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the execution's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
-     * <code>string agent_execution_id = 1 [json_name = "agentExecutionId"];</code>
-     * @return The agentExecutionId.
+     * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
+     * @return The agentRunId.
      */
     @java.lang.Override
-    public java.lang.String getAgentExecutionId() {
+    public java.lang.String getAgentRunId() {
       if (scopeCase_ != 1) {
         return "";
       }
@@ -789,16 +789,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentExecution id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the execution's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
-     * <code>string agent_execution_id = 1 [json_name = "agentExecutionId"];</code>
-     * @return The bytes for agentExecutionId.
+     * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
+     * @return The bytes for agentRunId.
      */
     @java.lang.Override
     public com.google.protobuf.ByteString
-        getAgentExecutionIdBytes() {
+        getAgentRunIdBytes() {
       if (scopeCase_ != 1) {
         return com.google.protobuf.ByteString.copyFromUtf8(        "");
       }
@@ -815,15 +815,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentExecution id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the execution's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
-     * <code>string agent_execution_id = 1 [json_name = "agentExecutionId"];</code>
-     * @param value The agentExecutionId to set.
+     * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
+     * @param value The agentRunId to set.
      * @return This builder for chaining.
      */
-    public Builder setAgentExecutionId(
+    public Builder setAgentRunId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       scopeCase_ = 1;
@@ -833,14 +833,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentExecution id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the execution's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
-     * <code>string agent_execution_id = 1 [json_name = "agentExecutionId"];</code>
+     * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearAgentExecutionId() {
+    public Builder clearAgentRunId() {
       if (scopeCase_ == 1) {
         scopeCase_ = 0;
         scope_ = null;
@@ -850,15 +850,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentExecution id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the execution's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
-     * <code>string agent_execution_id = 1 [json_name = "agentExecutionId"];</code>
-     * @param value The bytes for agentExecutionId to set.
+     * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
+     * @param value The bytes for agentRunId to set.
      * @return This builder for chaining.
      */
-    public Builder setAgentExecutionIdBytes(
+    public Builder setAgentRunIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
@@ -870,28 +870,28 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * WorkflowExecution id — yields a token scoped to exactly that workflow
+     * WorkflowRun id — yields a token scoped to exactly that workflow
      * execution's ExecutionContext.
      * </pre>
      *
-     * <code>string workflow_execution_id = 2 [json_name = "workflowExecutionId"];</code>
-     * @return Whether the workflowExecutionId field is set.
+     * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
+     * @return Whether the workflowRunId field is set.
      */
     @java.lang.Override
-    public boolean hasWorkflowExecutionId() {
+    public boolean hasWorkflowRunId() {
       return scopeCase_ == 2;
     }
     /**
      * <pre>
-     * WorkflowExecution id — yields a token scoped to exactly that workflow
+     * WorkflowRun id — yields a token scoped to exactly that workflow
      * execution's ExecutionContext.
      * </pre>
      *
-     * <code>string workflow_execution_id = 2 [json_name = "workflowExecutionId"];</code>
-     * @return The workflowExecutionId.
+     * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
+     * @return The workflowRunId.
      */
     @java.lang.Override
-    public java.lang.String getWorkflowExecutionId() {
+    public java.lang.String getWorkflowRunId() {
       if (scopeCase_ != 2) {
         return "";
       }
@@ -908,16 +908,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * WorkflowExecution id — yields a token scoped to exactly that workflow
+     * WorkflowRun id — yields a token scoped to exactly that workflow
      * execution's ExecutionContext.
      * </pre>
      *
-     * <code>string workflow_execution_id = 2 [json_name = "workflowExecutionId"];</code>
-     * @return The bytes for workflowExecutionId.
+     * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
+     * @return The bytes for workflowRunId.
      */
     @java.lang.Override
     public com.google.protobuf.ByteString
-        getWorkflowExecutionIdBytes() {
+        getWorkflowRunIdBytes() {
       if (scopeCase_ != 2) {
         return com.google.protobuf.ByteString.copyFromUtf8(        "");
       }
@@ -934,15 +934,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * WorkflowExecution id — yields a token scoped to exactly that workflow
+     * WorkflowRun id — yields a token scoped to exactly that workflow
      * execution's ExecutionContext.
      * </pre>
      *
-     * <code>string workflow_execution_id = 2 [json_name = "workflowExecutionId"];</code>
-     * @param value The workflowExecutionId to set.
+     * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
+     * @param value The workflowRunId to set.
      * @return This builder for chaining.
      */
-    public Builder setWorkflowExecutionId(
+    public Builder setWorkflowRunId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       scopeCase_ = 2;
@@ -952,14 +952,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * WorkflowExecution id — yields a token scoped to exactly that workflow
+     * WorkflowRun id — yields a token scoped to exactly that workflow
      * execution's ExecutionContext.
      * </pre>
      *
-     * <code>string workflow_execution_id = 2 [json_name = "workflowExecutionId"];</code>
+     * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearWorkflowExecutionId() {
+    public Builder clearWorkflowRunId() {
       if (scopeCase_ == 2) {
         scopeCase_ = 0;
         scope_ = null;
@@ -969,15 +969,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * WorkflowExecution id — yields a token scoped to exactly that workflow
+     * WorkflowRun id — yields a token scoped to exactly that workflow
      * execution's ExecutionContext.
      * </pre>
      *
-     * <code>string workflow_execution_id = 2 [json_name = "workflowExecutionId"];</code>
-     * @param value The bytes for workflowExecutionId to set.
+     * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
+     * @param value The bytes for workflowRunId to set.
      * @return This builder for chaining.
      */
-    public Builder setWorkflowExecutionIdBytes(
+    public Builder setWorkflowRunIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);

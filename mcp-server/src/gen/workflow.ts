@@ -6,13 +6,13 @@
 import { generateSlug, enumFromString, toTimestamp } from "./apply-runtime.js";
 import { create, fromJson, toJson, type JsonObject, type JsonValue } from "@bufbuild/protobuf";
 import { ValueSchema } from "@bufbuild/protobuf/wkt";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { GitWriteBackMode, Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { WorkflowSchema, type Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionVisibility, WorkflowTaskKind, BudgetExceededPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility, WorkflowTaskKind, BudgetExceededPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema, WorkflowBudgetSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import { AgentCallOutputContractSchema, AgentCallTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/agent_call_pb";
 import { CallActivityTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/call_activity_pb";
@@ -53,8 +53,8 @@ export const WorkflowInputShape = {
   document: z.lazy(() => WorkflowDocumentInputSchema).describe("Workflow document metadata including DSL version, namespace, name, and version."),
   tasks: z.array(z.lazy(() => WorkflowTaskInputSchema)).optional().describe("Ordered list of tasks that make up this workflow. Tasks execute sequentially unless fork/parallel is used."),
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this workflow. Keys are variable names; values describe their metadata and optionality."),
-  budget: z.lazy(() => WorkflowBudgetInputSchema).optional().describe("Budget limits for this workflow execution. When set, the runtime enforces cost, token, and duration limits across all tasks. The existing org-level billing reservation system (AuthorizeExecution / ExecutionBillingSignal) remains the safety net for overall credit exhaustion; workflow budgets prevent individual workflows from consuming more than intended. Optional — when not set, no workflow-level budget is enforced."),
-  execution_visibility: z.string().optional().describe("Who can observe the runs (executions) of this workflow. Independent of the workflow's own visibility: making a workflow org-visible lets teammates see and run it, but does NOT expose each other's run inputs and outputs unless this is set to ORGANIZATION. Defaults to PRIVATE (unspecified is treated as private): each run is visible only to the person who started it. Set at create; afterwards it changes only through WorkflowCommandController.updateExecutionVisibility, and update and apply keep the stored level. Allowed values: workflow_execution_visibility_private, workflow_execution_visibility_organization."),
+  budget: z.lazy(() => WorkflowBudgetInputSchema).optional().describe("Budget limits for this workflow run. When set, the runtime enforces cost, token, and duration limits across all tasks. The existing org-level billing reservation system (AuthorizeRun / RunBillingSignal) remains the safety net for overall credit exhaustion; workflow budgets prevent individual workflows from consuming more than intended. Optional — when not set, no workflow-level budget is enforced."),
+  run_visibility: z.string().optional().describe("Who can observe the runs (executions) of this workflow. Independent of the workflow's own visibility: making a workflow org-visible lets teammates see and run it, but does NOT expose each other's run inputs and outputs unless this is set to ORGANIZATION. Defaults to PRIVATE (unspecified is treated as private): each run is visible only to the person who started it. Set at create; afterwards it changes only through WorkflowCommandController.updateRunVisibility, and update and apply keep the stored level. Allowed values: workflow_run_visibility_private, workflow_run_visibility_organization."),
 } as const;
 
 export const WorkflowInputSchema = z.object(WorkflowInputShape);
@@ -71,7 +71,7 @@ type WorkflowDocumentInput = z.infer<typeof WorkflowDocumentInputSchema>;
 
 const RunConfigInputSchema = z.object({
   model_name: z.string().optional().describe("The model each run uses. Example: 'claude-sonnet-4-6'."),
-  max_cost_usd: z.number().optional().describe("Maximum estimated cost in USD per run. When the run's estimated spend reaches this limit, the run stops with a 'send another message to continue' prompt and ends TERMINATED; the work done so far is kept. The limit is checked each time the engine reports its spend, so a run can end somewhat above it. The native harness reports after every model call, counts a sub-agent's spend toward the limit, and advises the agent to wrap up at about 80% of the budget; the Cursor harness gives no warning. 0 = not set at this layer. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. The spend is the runner's estimate, reported on AgentExecutionStatus.streaming_usage.estimated_cost_usd, not the billed amount."),
+  max_cost_usd: z.number().optional().describe("Maximum estimated cost in USD per run. When the run's estimated spend reaches this limit, the run stops with a 'send another message to continue' prompt and ends TERMINATED; the work done so far is kept. The limit is checked each time the engine reports its spend, so a run can end somewhat above it. The native harness reports after every model call, counts a sub-agent's spend toward the limit, and advises the agent to wrap up at about 80% of the budget; the Cursor harness gives no warning. 0 = not set at this layer. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. The spend is the runner's estimate, reported on AgentRunStatus.streaming_usage.estimated_cost_usd, not the billed amount."),
   max_tool_rounds: z.number().optional().describe("Maximum model-to-tools reasoning cycles per message. A round is one model response that proposes one or more tool calls, followed by their execution; parallel tool calls in one response are one round. When the limit is reached the run stops with a 'send another message to continue' prompt, and the work done so far is kept. The agent is advised to wrap up at about 80% of the budget. 0 = not set at this layer; with no layer setting it the agent runs until the task completes or loop detection stops a repetitive pattern. When set, the valid range is 10–1000; values outside it are clamped to the nearest bound. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. Sub-agent rounds are not counted, and the Cursor harness does not enforce this field."),
   service_tier: z.string().optional().describe("Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one. In workflow YAML the shorthand spellings 'standard'/'fast' are accepted alongside the canonical enum names. UNSPECIFIED is not set at this layer; with no layer setting it the run uses STANDARD, never the provider account default. FAST is valid only for a model whose registry entry declares a fast pricing variant on the engine that runs it; validated fail-closed on the resolved settings at create. Allowed values: SERVICE_TIER_STANDARD, SERVICE_TIER_FAST."),
   thinking_mode: z.string().optional().describe("Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output). In workflow YAML the shorthand spellings 'disabled'/'enabled' are accepted alongside the canonical enum names. UNSPECIFIED is not set at this layer; with no layer setting it the run uses DISABLED, never the provider account default. ENABLED is valid only for a model whose registry entry declares the thinking capability on the engine that runs it; validated fail-closed on the resolved settings at create. Combines freely with service_tier. Allowed values: THINKING_MODE_DISABLED, THINKING_MODE_ENABLED."),
@@ -125,7 +125,7 @@ const AgentCallTaskConfigInputSchema = z.object({
   env: z.record(z.string()).optional().describe("Runtime environment variables to pass to the agent. Values can be literal strings or JQ expressions that reference workflow context or secrets. Example: {'GITHUB_TOKEN': '${ .secrets.GH_TOKEN }'} Optional."),
   run_config: z.lazy(() => RunConfigInputSchema).optional().describe("Per-call model choice and run bounds. Unset fields fall to the agent's defaults (RunConfig has the rule)."),
   output: z.lazy(() => AgentCallOutputContractInputSchema).optional().describe("Structured output contract for this agent call. When set, the workflow runner extracts structured JSON from the agent's final response and validates it against the declared schema. The validated JSON is placed in the task output under the 'structured' key, enabling reliable downstream routing via switch_case expressions. When not set, the task output contains the agent's raw text response."),
-  harness: z.string().optional().describe("Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The runner creates a Session with this harness before creating the AgentExecution. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified: native when run_config names a model (the engine the model was checked against at save), else the agent's own engine (AgentSpec.harness), else native. YAML Example: - code_review: call: agent with: agent: 'code-reviewer' harness: cursor message: 'Review this PR' Allowed values: HARNESS_NATIVE, HARNESS_CURSOR."),
+  harness: z.string().optional().describe("Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The runner creates a Session with this harness before creating the AgentRun. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified: native when run_config names a model (the engine the model was checked against at save), else the agent's own engine (AgentSpec.harness), else native. YAML Example: - code_review: call: agent with: agent: 'code-reviewer' harness: cursor message: 'Review this PR' Allowed values: HARNESS_NATIVE, HARNESS_CURSOR."),
   workspace_entries: z.array(z.lazy(() => WorkspaceEntryInputSchema)).optional().describe("Workspace the child run's session operates on. Empty means no workspace."),
   environment_refs: z.array(z.lazy(() => EnvironmentRefInputSchema)).optional().describe("References to Environment resources whose values are provided to the child runs this task creates. This is how a tool-using agent becomes runnable from a workflow: bind an org-shared environment holding the needed credentials, and the child runs receive its values at runtime. The agent itself stays untouched."),
 });
@@ -139,7 +139,7 @@ type CallActivityTaskConfigInput = z.infer<typeof CallActivityTaskConfigInputSch
 
 const EmitEventInputSchema = z.object({
   type: z.string().describe("CloudEvents type identifier. A reverse-DNS string that categorizes the event for routing and filtering. Examples: 'stigmer.workflow.ticket.classified', 'acme.order.completed'"),
-  source: z.string().optional().describe("CloudEvents source identifier. URI or URI-reference that identifies the context in which the event happened. Supports ${ } expression interpolation. When empty, the runtime defaults to the workflow execution URI (e.g., '/workflows/{workflow_id}/executions/{execution_id}')."),
+  source: z.string().optional().describe("CloudEvents source identifier. URI or URI-reference that identifies the context in which the event happened. Supports ${ } expression interpolation. When empty, the runtime defaults to the workflow run URI (e.g., '/workflows/{workflow_id}/executions/{run_id}')."),
   data: z.record(z.unknown()).optional().describe("Event payload data. Arbitrary JSON object carried as the CloudEvents data attribute. Values within the Struct can contain ${ } expressions that the runtime evaluates before emission. Unlike other Struct fields in the workflow domain (response_schema, form_schema, schema) which carry JSON Schema definitions, this field carries the actual event payload — not a schema."),
   subject: z.string().optional().describe("CloudEvents subject identifier. Describes the subject of the event in the context of the event producer. Supports ${ } expression interpolation. Examples: '${ $context.ticket.id }', '${ $context.order.number }'"),
 });
@@ -152,14 +152,14 @@ const WebhookDeliveryInputSchema = z.object({
 type WebhookDeliveryInput = z.infer<typeof WebhookDeliveryInputSchema>;
 
 const SignalDeliveryInputSchema = z.object({
-  execution_id: z.string().describe("Target workflow execution id ('wfx_...'), as returned by run/create. Usually flows from a prior task's output: '${ .start_processor.execution_id }'"),
+  run_id: z.string().describe("Target workflow run id ('wfx_...'), as returned by run/create. Usually flows from a prior task's output: '${ .start_processor.run_id }'"),
   signal_name: z.string().describe("Signal name, matching the target's listen task event id (verbatim)."),
 });
 type SignalDeliveryInput = z.infer<typeof SignalDeliveryInputSchema>;
 
 const EmitDeliveryTargetInputSchema = z.object({
   webhook: z.lazy(() => WebhookDeliveryInputSchema).optional().describe("POST the CloudEvents envelope to an HTTP endpoint."),
-  signal: z.lazy(() => SignalDeliveryInputSchema).optional().describe("Signal another workflow execution's listen task."),
+  signal: z.lazy(() => SignalDeliveryInputSchema).optional().describe("Signal another workflow run's listen task."),
 });
 type EmitDeliveryTargetInput = z.infer<typeof EmitDeliveryTargetInputSchema>;
 
@@ -256,7 +256,7 @@ type HumanInputOutcomeInput = z.infer<typeof HumanInputOutcomeInputSchema>;
 const HumanInputTaskConfigInputSchema = z.object({
   prompt: z.string().describe("Message shown to the reviewer explaining what needs approval or input. Supports ${ } expression interpolation for injecting workflow context. Example: 'Approve escalation for ticket ${ $context.ticket.id }?'"),
   form_schema: z.record(z.unknown()).optional().describe("JSON Schema defining the input form rendered to the reviewer. When set, the approval UI renders a typed form based on this schema. The reviewer's form response is validated against the schema before the task completes, and the validated data appears in the task output under the 'form_data' key. When not set, the reviewer sees only the outcome buttons (approve/deny or custom outcomes) without a data entry form. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema and LlmCallTaskConfig.response_schema."),
-  outcomes: z.array(z.lazy(() => HumanInputOutcomeInputSchema)).optional().describe("Named outcomes that the reviewer can select. Each outcome represents a decision the reviewer can make, with optional routing to a different downstream task. This enables rich branching beyond binary approve/deny. When empty, the task defaults to binary behavior: - 'approve': task completes, workflow continues to next task - 'deny': task fails (enters try_catch or EXECUTION_FAILED) When custom outcomes are defined, the first outcome is used as the default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used as the default for HUMAN_INPUT_TIMEOUT_DENY."),
+  outcomes: z.array(z.lazy(() => HumanInputOutcomeInputSchema)).optional().describe("Named outcomes that the reviewer can select. Each outcome represents a decision the reviewer can make, with optional routing to a different downstream task. This enables rich branching beyond binary approve/deny. When empty, the task defaults to binary behavior: - 'approve': task completes, workflow continues to next task - 'deny': task fails (enters try_catch or RUN_FAILED) When custom outcomes are defined, the first outcome is used as the default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used as the default for HUMAN_INPUT_TIMEOUT_DENY."),
   approvers: z.array(z.string()).optional().describe("Approver identifiers — who is allowed to respond to this task. Supports user IDs, team slugs, and role names. Format examples: - 'user:jane@acme.com' — specific user - 'team:engineering-leads' — any member of the team - 'role:content-admin' — any user with the role When empty, any authenticated user can respond. Resolution of these identifiers is a runtime concern."),
   timeout: z.number().optional().describe("Timeout in seconds before the on_timeout policy applies. Default: 0 (no timeout — the task waits indefinitely). Max: 2592000 (30 days). A timeout of 0 means the workflow will wait until a human responds. For production workflows, setting a timeout with an appropriate on_timeout policy is strongly recommended."),
   on_timeout: z.string().optional().describe("Policy applied when the timeout expires without a response. Only meaningful when timeout > 0; ignored when timeout is 0. Default: HUMAN_INPUT_TIMEOUT_FAIL (task fails with timeout error). Allowed values: HUMAN_INPUT_TIMEOUT_FAIL, HUMAN_INPUT_TIMEOUT_APPROVE, HUMAN_INPUT_TIMEOUT_DENY, HUMAN_INPUT_TIMEOUT_ESCALATE."),
@@ -444,7 +444,7 @@ const WorkflowTaskInputSchema: z.ZodType<WorkflowTaskInput> = z.lazy(() => z.obj
   fork: z.lazy(() => ForkTaskConfigInputSchema).optional().describe("Required when kind='fork'. ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel."),
   grpc_call: z.lazy(() => GrpcCallTaskConfigInputSchema).optional().describe("Required when kind='grpc_call'. GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests."),
   http_call: z.lazy(() => HttpCallTaskConfigInputSchema).optional().describe("Required when kind='http_call'. HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests."),
-  human_input: z.lazy(() => HumanInputTaskConfigInputSchema).optional().describe("Required when kind='human_input'. HumanInputTaskConfig defines the configuration for human_input tasks that pause workflow execution to collect typed input or approval from a human reviewer, then resume based on the reviewer's response."),
+  human_input: z.lazy(() => HumanInputTaskConfigInputSchema).optional().describe("Required when kind='human_input'. HumanInputTaskConfig defines the configuration for human_input tasks that pause workflow run to collect typed input or approval from a human reviewer, then resume based on the reviewer's response."),
   listen: z.lazy(() => ListenTaskConfigInputSchema).optional().describe("Required when kind='listen'. ListenTaskConfig defines the configuration for listen tasks that wait for external signals."),
   llm_call: z.lazy(() => LlmCallTaskConfigInputSchema).optional().describe("Required when kind='llm_call'. LlmCallTaskConfig defines the configuration for llm_call tasks that make direct LLM API calls without the overhead of a full agent invocation."),
   notification: z.lazy(() => NotificationTaskConfigInputSchema).optional().describe("Required when kind='notification'. NotificationTaskConfig defines the configuration for notification tasks that send messages to humans through channels like Slack, email, Discord, Microsoft Teams, or webhooks."),
@@ -455,7 +455,7 @@ const WorkflowTaskInputSchema: z.ZodType<WorkflowTaskInput> = z.lazy(() => z.obj
   transform: z.lazy(() => TransformTaskConfigInputSchema).optional().describe("Required when kind='transform'. TransformTaskConfig defines the configuration for transform tasks that perform deterministic data transformation without LLM calls."),
   try_catch: z.lazy(() => TryTaskConfigInputSchema).optional().describe("Required when kind='try_catch'. TryTaskConfig defines the configuration for try_catch tasks that handle errors."),
   validate: z.lazy(() => ValidateTaskConfigInputSchema).optional().describe("Required when kind='validate'. ValidateTaskConfig defines the configuration for validate tasks that perform explicit schema and business-rule validation on workflow data."),
-  wait: z.lazy(() => WaitTaskConfigInputSchema).optional().describe("Required when kind='wait'. WaitTaskConfig defines the configuration for wait tasks that pause workflow execution. Supports both relative durations and absolute timestamps."),
+  wait: z.lazy(() => WaitTaskConfigInputSchema).optional().describe("Required when kind='wait'. WaitTaskConfig defines the configuration for wait tasks that pause workflow run. Supports both relative durations and absolute timestamps."),
   export: z.lazy(() => ExportInputSchema).optional().describe("Export configuration (how to save task output to context). Optional - if not set, output is not saved."),
   flow: z.lazy(() => FlowControlInputSchema).optional().describe("Flow control (which task executes next). Optional - if not set, continues to next task in sequence."),
   compensate: z.array(z.lazy(() => WorkflowTaskInputSchema)).optional().describe("Compensation tasks to execute if this task needs to be 'undone.'"),
@@ -469,9 +469,9 @@ const EnvVarDeclarationInputSchema = z.object({
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 
 const WorkflowBudgetInputSchema = z.object({
-  max_cost_micros: z.union([z.number(), z.string()]).optional().describe("Maximum total cost for this workflow execution in micro-USD. 1 USD = 1,000,000 micros. Example: 2000000 = $2.00. When exceeded, the on_exceeded policy is applied. Optional — when 0, no cost limit is enforced."),
+  max_cost_micros: z.union([z.number(), z.string()]).optional().describe("Maximum total cost for this workflow run in micro-USD. 1 USD = 1,000,000 micros. Example: 2000000 = $2.00. When exceeded, the on_exceeded policy is applied. Optional — when 0, no cost limit is enforced."),
   max_total_tokens: z.union([z.number(), z.string()]).optional().describe("Maximum total tokens (input + output) across all LLM/agent tasks. Optional — when 0, no token limit is enforced."),
-  max_duration_seconds: z.number().optional().describe("Maximum wall-clock duration for the entire workflow execution in seconds. Optional — when 0, no duration limit is enforced (Temporal's own workflow execution timeout still applies)."),
+  max_duration_seconds: z.number().optional().describe("Maximum wall-clock duration for the entire workflow run in seconds. Optional — when 0, no duration limit is enforced (Temporal's own workflow run timeout still applies)."),
   on_exceeded: z.string().optional().describe("Policy when any budget limit is exceeded. Allowed values: budget_exceeded_terminate, budget_exceeded_human_review, budget_exceeded_warn."),
 });
 type WorkflowBudgetInput = z.infer<typeof WorkflowBudgetInputSchema>;
@@ -488,7 +488,7 @@ export function workflowInputToProto(input: WorkflowInput): Workflow {
     for (const [k, v] of Object.entries(input.env)) spec.env[k] = envVarDeclarationInputToProto(v);
   }
   if (input.budget !== undefined) spec.budget = workflowBudgetInputToProto(input.budget);
-  spec.executionVisibility = enumFromString(WorkflowExecutionVisibility, input.execution_visibility) as WorkflowExecutionVisibility;
+  spec.runVisibility = enumFromString(WorkflowRunVisibility, input.run_visibility) as WorkflowRunVisibility;
   return Object.assign(create(WorkflowSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Workflow",
@@ -610,7 +610,7 @@ function webhookDeliveryInputToProto(input: WebhookDeliveryInput) {
 
 function signalDeliveryInputToProto(input: SignalDeliveryInput) {
   const result = create(SignalDeliverySchema);
-  if (input.execution_id !== undefined) result.executionId = input.execution_id;
+  if (input.run_id !== undefined) result.runId = input.run_id;
   if (input.signal_name !== undefined) result.signalName = input.signal_name;
   return result;
 }

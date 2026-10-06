@@ -169,8 +169,8 @@ type ChannelDelivery struct {
 	// Organization that owns the connection (billing org).
 	// Denormalized from the channel so sweep/worker paths never join.
 	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
-	// AgentExecution whose terminal result this delivery carries.
-	ExecutionId string `protobuf:"bytes,4,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// AgentRun whose terminal result this delivery carries.
+	RunId string `protobuf:"bytes,4,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Session the execution belongs to (conversation continuity + audit).
 	SessionId string `protobuf:"bytes,5,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// Provider-neutral conversation key (the DM thread
@@ -266,9 +266,9 @@ func (x *ChannelDelivery) GetOrg() string {
 	return ""
 }
 
-func (x *ChannelDelivery) GetExecutionId() string {
+func (x *ChannelDelivery) GetRunId() string {
 	if x != nil {
-		return x.ExecutionId
+		return x.RunId
 	}
 	return ""
 }
@@ -532,13 +532,13 @@ var File_ai_stigmer_agentic_agentchannel_v1_delivery_proto protoreflect.FileDesc
 
 const file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe1\a\n" +
+	"1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd5\a\n" +
 	"\x0fChannelDelivery\x12\x1f\n" +
 	"\vdelivery_id\x18\x01 \x01(\tR\n" +
 	"deliveryId\x12(\n" +
 	"\x10agent_channel_id\x18\x02 \x01(\tR\x0eagentChannelId\x12\x10\n" +
-	"\x03org\x18\x03 \x01(\tR\x03org\x12!\n" +
-	"\fexecution_id\x18\x04 \x01(\tR\vexecutionId\x12\x1d\n" +
+	"\x03org\x18\x03 \x01(\tR\x03org\x12\x15\n" +
+	"\x06run_id\x18\x04 \x01(\tR\x05runId\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x05 \x01(\tR\tsessionId\x12)\n" +
 	"\x10conversation_key\x18\x06 \x01(\tR\x0fconversationKey\x12*\n" +

@@ -340,7 +340,7 @@ public final class ScheduleCommandControllerGrpc {
      * The manual fire runs synchronously through the standard execution
      * create pipeline — every launch gate runs — and the result names what
      * happened: the created execution's id, or the refusing gate's own
-     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * copy verbatim. status.last_fire_at and status.last_run_id
      * record a started run. Manual fires do NOT feed the failure streak —
      * the streak is the unattended (cron) health signal, and a test fire
      * of a broken schedule must not race its owner to the pause threshold.
@@ -467,7 +467,7 @@ public final class ScheduleCommandControllerGrpc {
      * The manual fire runs synchronously through the standard execution
      * create pipeline — every launch gate runs — and the result names what
      * happened: the created execution's id, or the refusing gate's own
-     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * copy verbatim. status.last_fire_at and status.last_run_id
      * record a started run. Manual fires do NOT feed the failure streak —
      * the streak is the unattended (cron) health signal, and a test fire
      * of a broken schedule must not race its owner to the pause threshold.
@@ -576,7 +576,7 @@ public final class ScheduleCommandControllerGrpc {
      * The manual fire runs synchronously through the standard execution
      * create pipeline — every launch gate runs — and the result names what
      * happened: the created execution's id, or the refusing gate's own
-     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * copy verbatim. status.last_fire_at and status.last_run_id
      * record a started run. Manual fires do NOT feed the failure streak —
      * the streak is the unattended (cron) health signal, and a test fire
      * of a broken schedule must not race its owner to the pause threshold.
@@ -684,7 +684,7 @@ public final class ScheduleCommandControllerGrpc {
      * The manual fire runs synchronously through the standard execution
      * create pipeline — every launch gate runs — and the result names what
      * happened: the created execution's id, or the refusing gate's own
-     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * copy verbatim. status.last_fire_at and status.last_run_id
      * record a started run. Manual fires do NOT feed the failure streak —
      * the streak is the unattended (cron) health signal, and a test fire
      * of a broken schedule must not race its owner to the pause threshold.
@@ -797,7 +797,7 @@ public final class ScheduleCommandControllerGrpc {
      * The manual fire runs synchronously through the standard execution
      * create pipeline — every launch gate runs — and the result names what
      * happened: the created execution's id, or the refusing gate's own
-     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * copy verbatim. status.last_fire_at and status.last_run_id
      * record a started run. Manual fires do NOT feed the failure streak —
      * the streak is the unattended (cron) health signal, and a test fire
      * of a broken schedule must not race its owner to the pause threshold.

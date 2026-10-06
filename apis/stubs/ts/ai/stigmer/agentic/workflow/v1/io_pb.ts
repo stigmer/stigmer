@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { WorkflowExecutionVisibility } from "./enum_pb.js";
+import type { WorkflowRunVisibility } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_enum } from "./enum_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MSIjCgpXb3JrZmxvd0lkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEirAEKJlVwZGF0ZVdvcmtmbG93RXhlY3V0aW9uVmlzaWJpbGl0eUlucHV0EhsKC3Jlc291cmNlX2lkGAEgASgJQga6SAPIAQESZQoUZXhlY3V0aW9uX3Zpc2liaWxpdHkYAiABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dFeGVjdXRpb25WaXNpYmlsaXR5Qgq6SAeCAQQQASAAYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_enum, file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MSIjCgpXb3JrZmxvd0lkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEimgEKIFVwZGF0ZVdvcmtmbG93UnVuVmlzaWJpbGl0eUlucHV0EhsKC3Jlc291cmNlX2lkGAEgASgJQga6SAPIAQESWQoOcnVuX3Zpc2liaWxpdHkYAiABKA4yNS5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dSdW5WaXNpYmlsaXR5Qgq6SAeCAQQQASAAYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_enum, file_buf_validate_validate]);
 
 /**
  * WorkflowId wraps a workflow identifier.
@@ -35,16 +35,16 @@ export const WorkflowIdSchema: GenMessage<WorkflowId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_io, 0);
 
 /**
- * UpdateWorkflowExecutionVisibilityInput targets the run-observability setting
+ * UpdateWorkflowRunVisibilityInput targets the run-observability setting
  * of a single workflow.
  *
  * Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE
- * execution-visibility axis (see WorkflowExecutionVisibility). A dedicated
+ * execution-visibility axis (see WorkflowRunVisibility). A dedicated
  * message keeps the two visibility concepts from being conflated.
  *
- * @generated from message ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput
+ * @generated from message ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput
  */
-export type UpdateWorkflowExecutionVisibilityInput = Message<"ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput"> & {
+export type UpdateWorkflowRunVisibilityInput = Message<"ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput"> & {
   /**
    * ID of the workflow whose execution visibility is being updated.
    *
@@ -55,15 +55,15 @@ export type UpdateWorkflowExecutionVisibilityInput = Message<"ai.stigmer.agentic
   /**
    * The new execution-visibility setting. Must not be unspecified (0).
    *
-   * @generated from field: ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 2;
+   * @generated from field: ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 2;
    */
-  executionVisibility: WorkflowExecutionVisibility;
+  runVisibility: WorkflowRunVisibility;
 };
 
 /**
- * Describes the message ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput.
- * Use `create(UpdateWorkflowExecutionVisibilityInputSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput.
+ * Use `create(UpdateWorkflowRunVisibilityInputSchema)` to create a new message.
  */
-export const UpdateWorkflowExecutionVisibilityInputSchema: GenMessage<UpdateWorkflowExecutionVisibilityInput> = /*@__PURE__*/
+export const UpdateWorkflowRunVisibilityInputSchema: GenMessage<UpdateWorkflowRunVisibilityInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_io, 1);
 

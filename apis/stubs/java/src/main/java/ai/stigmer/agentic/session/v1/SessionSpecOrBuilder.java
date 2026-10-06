@@ -130,7 +130,7 @@ public interface SessionSpecOrBuilder extends
    *
    * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
    * returned by Agent.create(). Used for Agent.resume() on
-   * subsequent executions.
+   * subsequent runs.
    * </pre>
    *
    * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
@@ -150,7 +150,7 @@ public interface SessionSpecOrBuilder extends
    *
    * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
    * returned by Agent.create(). Used for Agent.resume() on
-   * subsequent executions.
+   * subsequent runs.
    * </pre>
    *
    * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
@@ -482,7 +482,7 @@ java.lang.String defaultValue);
    * Execution harness for this session.
    *
    * Determines which Temporal activity type is dispatched when an
-   * AgentExecution is created in this session:
+   * AgentRun is created in this session:
    * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
@@ -503,7 +503,7 @@ java.lang.String defaultValue);
    * Execution harness for this session.
    *
    * Determines which Temporal activity type is dispatched when an
-   * AgentExecution is created in this session:
+   * AgentRun is created in this session:
    * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *

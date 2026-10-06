@@ -46,35 +46,35 @@ public final class ArtifactQueryControllerGrpc {
     return getGetMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest,
-      ai.stigmer.agentic.artifact.v1.ArtifactList> getListByExecutionMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest,
+      ai.stigmer.agentic.artifact.v1.ArtifactList> getListByRunMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "listByExecution",
-      requestType = ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.class,
+      fullMethodName = SERVICE_NAME + '/' + "listByRun",
+      requestType = ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest.class,
       responseType = ai.stigmer.agentic.artifact.v1.ArtifactList.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest,
-      ai.stigmer.agentic.artifact.v1.ArtifactList> getListByExecutionMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest, ai.stigmer.agentic.artifact.v1.ArtifactList> getListByExecutionMethod;
-    if ((getListByExecutionMethod = ArtifactQueryControllerGrpc.getListByExecutionMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest,
+      ai.stigmer.agentic.artifact.v1.ArtifactList> getListByRunMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest, ai.stigmer.agentic.artifact.v1.ArtifactList> getListByRunMethod;
+    if ((getListByRunMethod = ArtifactQueryControllerGrpc.getListByRunMethod) == null) {
       synchronized (ArtifactQueryControllerGrpc.class) {
-        if ((getListByExecutionMethod = ArtifactQueryControllerGrpc.getListByExecutionMethod) == null) {
-          ArtifactQueryControllerGrpc.getListByExecutionMethod = getListByExecutionMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest, ai.stigmer.agentic.artifact.v1.ArtifactList>newBuilder()
+        if ((getListByRunMethod = ArtifactQueryControllerGrpc.getListByRunMethod) == null) {
+          ArtifactQueryControllerGrpc.getListByRunMethod = getListByRunMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest, ai.stigmer.agentic.artifact.v1.ArtifactList>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByExecution"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByRun"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.getDefaultInstance()))
+                  ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.artifact.v1.ArtifactList.getDefaultInstance()))
-              .setSchemaDescriptor(new ArtifactQueryControllerMethodDescriptorSupplier("listByExecution"))
+              .setSchemaDescriptor(new ArtifactQueryControllerMethodDescriptorSupplier("listByRun"))
               .build();
         }
       }
     }
-    return getListByExecutionMethod;
+    return getListByRunMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.artifact.v1.ArtifactId,
@@ -233,25 +233,25 @@ public final class ArtifactQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all artifacts produced by a specific execution.
+     * List all artifacts produced by a specific run.
      * Returns a paginated list of artifacts filtered by either
-     * workflow_execution_id or agent_execution_id.
+     * workflow_run_id or agent_run_id.
      * Use Cases:
      * 1. Execution Viewer Artifact Panel:
-     *    - User views a workflow execution in the execution viewer
-     *    - UI calls listByExecution() to populate the artifact sidebar
+     *    - User views a workflow run in the execution viewer
+     *    - UI calls listByRun() to populate the artifact sidebar
      *    - Each artifact shows display name, content type, size, source task
      * 2. CLI Artifact Listing:
      *    - `stigmer workflow artifacts wex_abc123`
-     *    - CLI calls listByExecution() and formats as a table
+     *    - CLI calls listByRun() and formats as a table
      * Error Cases:
-     * - INVALID_ARGUMENT: Neither workflow_execution_id nor agent_execution_id provided
+     * - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
      * - PERMISSION_DENIED: User doesn't have view access to the parent execution
      * </pre>
      */
-    default void listByExecution(ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest request,
+    default void listByRun(ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.artifact.v1.ArtifactList> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByExecutionMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByRunMethod(), responseObserver);
     }
 
     /**
@@ -364,26 +364,26 @@ public final class ArtifactQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all artifacts produced by a specific execution.
+     * List all artifacts produced by a specific run.
      * Returns a paginated list of artifacts filtered by either
-     * workflow_execution_id or agent_execution_id.
+     * workflow_run_id or agent_run_id.
      * Use Cases:
      * 1. Execution Viewer Artifact Panel:
-     *    - User views a workflow execution in the execution viewer
-     *    - UI calls listByExecution() to populate the artifact sidebar
+     *    - User views a workflow run in the execution viewer
+     *    - UI calls listByRun() to populate the artifact sidebar
      *    - Each artifact shows display name, content type, size, source task
      * 2. CLI Artifact Listing:
      *    - `stigmer workflow artifacts wex_abc123`
-     *    - CLI calls listByExecution() and formats as a table
+     *    - CLI calls listByRun() and formats as a table
      * Error Cases:
-     * - INVALID_ARGUMENT: Neither workflow_execution_id nor agent_execution_id provided
+     * - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
      * - PERMISSION_DENIED: User doesn't have view access to the parent execution
      * </pre>
      */
-    public void listByExecution(ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest request,
+    public void listByRun(ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.artifact.v1.ArtifactList> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListByExecutionMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListByRunMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -483,25 +483,25 @@ public final class ArtifactQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all artifacts produced by a specific execution.
+     * List all artifacts produced by a specific run.
      * Returns a paginated list of artifacts filtered by either
-     * workflow_execution_id or agent_execution_id.
+     * workflow_run_id or agent_run_id.
      * Use Cases:
      * 1. Execution Viewer Artifact Panel:
-     *    - User views a workflow execution in the execution viewer
-     *    - UI calls listByExecution() to populate the artifact sidebar
+     *    - User views a workflow run in the execution viewer
+     *    - UI calls listByRun() to populate the artifact sidebar
      *    - Each artifact shows display name, content type, size, source task
      * 2. CLI Artifact Listing:
      *    - `stigmer workflow artifacts wex_abc123`
-     *    - CLI calls listByExecution() and formats as a table
+     *    - CLI calls listByRun() and formats as a table
      * Error Cases:
-     * - INVALID_ARGUMENT: Neither workflow_execution_id nor agent_execution_id provided
+     * - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
      * - PERMISSION_DENIED: User doesn't have view access to the parent execution
      * </pre>
      */
-    public ai.stigmer.agentic.artifact.v1.ArtifactList listByExecution(ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.artifact.v1.ArtifactList listByRun(ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getListByExecutionMethod(), getCallOptions(), request);
+          getChannel(), getListByRunMethod(), getCallOptions(), request);
     }
 
     /**
@@ -599,25 +599,25 @@ public final class ArtifactQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all artifacts produced by a specific execution.
+     * List all artifacts produced by a specific run.
      * Returns a paginated list of artifacts filtered by either
-     * workflow_execution_id or agent_execution_id.
+     * workflow_run_id or agent_run_id.
      * Use Cases:
      * 1. Execution Viewer Artifact Panel:
-     *    - User views a workflow execution in the execution viewer
-     *    - UI calls listByExecution() to populate the artifact sidebar
+     *    - User views a workflow run in the execution viewer
+     *    - UI calls listByRun() to populate the artifact sidebar
      *    - Each artifact shows display name, content type, size, source task
      * 2. CLI Artifact Listing:
      *    - `stigmer workflow artifacts wex_abc123`
-     *    - CLI calls listByExecution() and formats as a table
+     *    - CLI calls listByRun() and formats as a table
      * Error Cases:
-     * - INVALID_ARGUMENT: Neither workflow_execution_id nor agent_execution_id provided
+     * - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
      * - PERMISSION_DENIED: User doesn't have view access to the parent execution
      * </pre>
      */
-    public ai.stigmer.agentic.artifact.v1.ArtifactList listByExecution(ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest request) {
+    public ai.stigmer.agentic.artifact.v1.ArtifactList listByRun(ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListByExecutionMethod(), getCallOptions(), request);
+          getChannel(), getListByRunMethod(), getCallOptions(), request);
     }
 
     /**
@@ -716,26 +716,26 @@ public final class ArtifactQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all artifacts produced by a specific execution.
+     * List all artifacts produced by a specific run.
      * Returns a paginated list of artifacts filtered by either
-     * workflow_execution_id or agent_execution_id.
+     * workflow_run_id or agent_run_id.
      * Use Cases:
      * 1. Execution Viewer Artifact Panel:
-     *    - User views a workflow execution in the execution viewer
-     *    - UI calls listByExecution() to populate the artifact sidebar
+     *    - User views a workflow run in the execution viewer
+     *    - UI calls listByRun() to populate the artifact sidebar
      *    - Each artifact shows display name, content type, size, source task
      * 2. CLI Artifact Listing:
      *    - `stigmer workflow artifacts wex_abc123`
-     *    - CLI calls listByExecution() and formats as a table
+     *    - CLI calls listByRun() and formats as a table
      * Error Cases:
-     * - INVALID_ARGUMENT: Neither workflow_execution_id nor agent_execution_id provided
+     * - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
      * - PERMISSION_DENIED: User doesn't have view access to the parent execution
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.artifact.v1.ArtifactList> listByExecution(
-        ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.artifact.v1.ArtifactList> listByRun(
+        ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListByExecutionMethod(), getCallOptions()), request);
+          getChannel().newCall(getListByRunMethod(), getCallOptions()), request);
     }
 
     /**
@@ -789,7 +789,7 @@ public final class ArtifactQueryControllerGrpc {
   }
 
   private static final int METHODID_GET = 0;
-  private static final int METHODID_LIST_BY_EXECUTION = 1;
+  private static final int METHODID_LIST_BY_RUN = 1;
   private static final int METHODID_GET_DOWNLOAD_URL = 2;
   private static final int METHODID_GET_CONTENT = 3;
 
@@ -814,8 +814,8 @@ public final class ArtifactQueryControllerGrpc {
           serviceImpl.get((ai.stigmer.agentic.artifact.v1.ArtifactId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.artifact.v1.Artifact>) responseObserver);
           break;
-        case METHODID_LIST_BY_EXECUTION:
-          serviceImpl.listByExecution((ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest) request,
+        case METHODID_LIST_BY_RUN:
+          serviceImpl.listByRun((ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.artifact.v1.ArtifactList>) responseObserver);
           break;
         case METHODID_GET_DOWNLOAD_URL:
@@ -852,12 +852,12 @@ public final class ArtifactQueryControllerGrpc {
               ai.stigmer.agentic.artifact.v1.Artifact>(
                 service, METHODID_GET)))
         .addMethod(
-          getListByExecutionMethod(),
+          getListByRunMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest,
+              ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest,
               ai.stigmer.agentic.artifact.v1.ArtifactList>(
-                service, METHODID_LIST_BY_EXECUTION)))
+                service, METHODID_LIST_BY_RUN)))
         .addMethod(
           getGetDownloadUrlMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -921,7 +921,7 @@ public final class ArtifactQueryControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new ArtifactQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
-              .addMethod(getListByExecutionMethod())
+              .addMethod(getListByRunMethod())
               .addMethod(getGetDownloadUrlMethod())
               .addMethod(getGetContentMethod())
               .build();

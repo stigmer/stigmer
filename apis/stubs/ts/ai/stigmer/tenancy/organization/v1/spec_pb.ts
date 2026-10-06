@@ -66,13 +66,13 @@ export const OrganizationSpecSchema: GenMessage<OrganizationSpec> = /*@__PURE__*
 
 /**
  * OrganizationPreferences holds organization-declared defaults that apply to
- * every eligible agent execution in the organization.
+ * every eligible agent run in the organization.
  *
  * @generated from message ai.stigmer.tenancy.organization.v1.OrganizationPreferences
  */
 export type OrganizationPreferences = Message<"ai.stigmer.tenancy.organization.v1.OrganizationPreferences"> & {
   /**
-   * Free-text standing context injected into eligible agent executions in
+   * Free-text standing context injected into eligible agent runs in
    * this organization. Example: "We deploy to us-east-1."
    *
    * @generated from field: string standing_context = 1;

@@ -82,7 +82,7 @@ public interface AuthorizationConfigOrBuilder extends
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_execution needs org link AND workflow link.
+   * Example: workflow_run needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -93,7 +93,7 @@ public interface AuthorizationConfigOrBuilder extends
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_execution needs org link AND workflow link.
+   * Example: workflow_run needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -103,7 +103,7 @@ public interface AuthorizationConfigOrBuilder extends
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_execution needs org link AND workflow link.
+   * Example: workflow_run needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -113,7 +113,7 @@ public interface AuthorizationConfigOrBuilder extends
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_execution needs org link AND workflow link.
+   * Example: workflow_run needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -124,7 +124,7 @@ public interface AuthorizationConfigOrBuilder extends
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_execution needs org link AND workflow link.
+   * Example: workflow_run needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -192,7 +192,7 @@ public interface AuthorizationConfigOrBuilder extends
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_execution), is self-owned (identity_account), or has no
+   * (agent_run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -211,7 +211,7 @@ public interface AuthorizationConfigOrBuilder extends
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_execution), is self-owned (identity_account), or has no
+   * (agent_run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -230,7 +230,7 @@ public interface AuthorizationConfigOrBuilder extends
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_execution), is self-owned (identity_account), or has no
+   * (agent_run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -250,7 +250,7 @@ public interface AuthorizationConfigOrBuilder extends
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_execution), is self-owned (identity_account), or has no
+   * (agent_run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -270,7 +270,7 @@ public interface AuthorizationConfigOrBuilder extends
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_execution), is self-owned (identity_account), or has no
+   * (agent_run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *

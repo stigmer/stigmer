@@ -98,15 +98,15 @@ func (x *ArtifactSpec) GetRetention() *RetentionPolicy {
 // ArtifactSource identifies the execution context that produced an artifact.
 type ArtifactSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// WorkflowExecution that produced this artifact.
+	// WorkflowRun that produced this artifact.
 	// Format: "wex_{unique-suffix}"
-	// Set when the artifact is produced during workflow execution.
-	WorkflowExecutionId string `protobuf:"bytes,1,opt,name=workflow_execution_id,json=workflowExecutionId,proto3" json:"workflow_execution_id,omitempty"`
-	// AgentExecution that produced this artifact.
+	// Set when the artifact is produced during workflow run.
+	WorkflowRunId string `protobuf:"bytes,1,opt,name=workflow_run_id,json=workflowRunId,proto3" json:"workflow_run_id,omitempty"`
+	// AgentRun that produced this artifact.
 	// Format: "aex_{unique-suffix}"
-	// Set when the artifact is produced during agent execution
+	// Set when the artifact is produced during agent run
 	// (either standalone or as a child of a workflow).
-	AgentExecutionId string `protobuf:"bytes,2,opt,name=agent_execution_id,json=agentExecutionId,proto3" json:"agent_execution_id,omitempty"`
+	AgentRunId string `protobuf:"bytes,2,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
 	// Name of the task that produced this artifact.
 	// Matches WorkflowTask.task_name in the execution status.
 	// Empty for execution-level artifacts (e.g., final workflow output).
@@ -145,16 +145,16 @@ func (*ArtifactSource) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_artifact_v1_spec_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ArtifactSource) GetWorkflowExecutionId() string {
+func (x *ArtifactSource) GetWorkflowRunId() string {
 	if x != nil {
-		return x.WorkflowExecutionId
+		return x.WorkflowRunId
 	}
 	return ""
 }
 
-func (x *ArtifactSource) GetAgentExecutionId() string {
+func (x *ArtifactSource) GetAgentRunId() string {
 	if x != nil {
-		return x.AgentExecutionId
+		return x.AgentRunId
 	}
 	return ""
 }
@@ -230,10 +230,11 @@ const file_ai_stigmer_agentic_artifact_v1_spec_proto_rawDesc = "" +
 	"\fdisplay_name\x18\x02 \x01(\tB\r\xbaH\n" +
 	"\xc8\x01\x01r\x05\x10\x01\x18\xff\x01R\vdisplayName\x12N\n" +
 	"\x06source\x18\x03 \x01(\v2..ai.stigmer.agentic.artifact.v1.ArtifactSourceB\x06\xbaH\x03\xc8\x01\x01R\x06source\x12M\n" +
-	"\tretention\x18\x04 \x01(\v2/.ai.stigmer.agentic.artifact.v1.RetentionPolicyR\tretention\"\x8f\x01\n" +
-	"\x0eArtifactSource\x122\n" +
-	"\x15workflow_execution_id\x18\x01 \x01(\tR\x13workflowExecutionId\x12,\n" +
-	"\x12agent_execution_id\x18\x02 \x01(\tR\x10agentExecutionId\x12\x1b\n" +
+	"\tretention\x18\x04 \x01(\v2/.ai.stigmer.agentic.artifact.v1.RetentionPolicyR\tretention\"w\n" +
+	"\x0eArtifactSource\x12&\n" +
+	"\x0fworkflow_run_id\x18\x01 \x01(\tR\rworkflowRunId\x12 \n" +
+	"\fagent_run_id\x18\x02 \x01(\tR\n" +
+	"agentRunId\x12\x1b\n" +
 	"\ttask_name\x18\x03 \x01(\tR\btaskName\",\n" +
 	"\x0fRetentionPolicy\x12\x19\n" +
 	"\bttl_days\x18\x01 \x01(\x05R\attlDaysB\xa0\x02\n" +

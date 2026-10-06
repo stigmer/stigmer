@@ -38,8 +38,8 @@ func (s *SkillClient) CreateArtifactUploadUrl(ctx context.Context, input *skillv
 	return resp, wrapErr(err)
 }
 
-func (s *SkillClient) PushFromExecutionArtifact(ctx context.Context, input *skillv1.PushSkillFromExecutionArtifactRequest) (*skillv1.Skill, error) {
-	resp, err := s.command.PushFromExecutionArtifact(ctx, input)
+func (s *SkillClient) PushFromRunArtifact(ctx context.Context, input *skillv1.PushSkillFromRunArtifactRequest) (*skillv1.Skill, error) {
+	resp, err := s.command.PushFromRunArtifact(ctx, input)
 	return resp, wrapErr(err)
 }
 

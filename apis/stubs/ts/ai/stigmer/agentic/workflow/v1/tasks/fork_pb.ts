@@ -46,7 +46,7 @@ export const ForkTaskConfigSchema: GenMessage<ForkTaskConfig> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_fork, 0);
 
 /**
- * ForkBranch defines a single branch in parallel execution.
+ * ForkBranch defines a single branch in parallel run.
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.ForkBranch
  */

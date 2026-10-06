@@ -98,7 +98,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Expected maximum cost. 0 means use the server-configured default cap,
-   * exactly as authorizeExecution treats it.
+   * exactly as authorizeRun treats it.
    * </pre>
    *
    * <code>int64 expected_cost_cap_micros = 2 [json_name = "expectedCostCapMicros"];</code>
@@ -508,7 +508,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Expected maximum cost. 0 means use the server-configured default cap,
-     * exactly as authorizeExecution treats it.
+     * exactly as authorizeRun treats it.
      * </pre>
      *
      * <code>int64 expected_cost_cap_micros = 2 [json_name = "expectedCostCapMicros"];</code>
@@ -521,7 +521,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Expected maximum cost. 0 means use the server-configured default cap,
-     * exactly as authorizeExecution treats it.
+     * exactly as authorizeRun treats it.
      * </pre>
      *
      * <code>int64 expected_cost_cap_micros = 2 [json_name = "expectedCostCapMicros"];</code>
@@ -538,7 +538,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Expected maximum cost. 0 means use the server-configured default cap,
-     * exactly as authorizeExecution treats it.
+     * exactly as authorizeRun treats it.
      * </pre>
      *
      * <code>int64 expected_cost_cap_micros = 2 [json_name = "expectedCostCapMicros"];</code>

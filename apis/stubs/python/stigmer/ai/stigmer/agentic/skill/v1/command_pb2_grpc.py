@@ -27,9 +27,9 @@ class SkillCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.CreateSkillArtifactUploadUrlRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactUploadUrl.FromString,
                 _registered_method=True)
-        self.pushFromExecutionArtifact = channel.unary_unary(
-                '/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromExecutionArtifact',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromExecutionArtifactRequest.SerializeToString,
+        self.pushFromRunArtifact = channel.unary_unary(
+                '/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromRunArtifact',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromRunArtifactRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
                 _registered_method=True)
         self.updateVisibility = channel.unary_unary(
@@ -72,9 +72,9 @@ class SkillCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def pushFromExecutionArtifact(self, request, context):
+    def pushFromRunArtifact(self, request, context):
         """Push a skill from an execution artifact already in storage.
-        Use this when an agent execution has already produced a skill artifact
+        Use this when an agent run has already produced a skill artifact
         and you want to publish it without downloading and re-uploading the ZIP.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -111,9 +111,9 @@ def add_SkillCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.CreateSkillArtifactUploadUrlRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactUploadUrl.SerializeToString,
             ),
-            'pushFromExecutionArtifact': grpc.unary_unary_rpc_method_handler(
-                    servicer.pushFromExecutionArtifact,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromExecutionArtifactRequest.FromString,
+            'pushFromRunArtifact': grpc.unary_unary_rpc_method_handler(
+                    servicer.pushFromRunArtifact,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromRunArtifactRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
             ),
             'updateVisibility': grpc.unary_unary_rpc_method_handler(
@@ -193,7 +193,7 @@ class SkillCommandController(object):
             _registered_method=True)
 
     @staticmethod
-    def pushFromExecutionArtifact(request,
+    def pushFromRunArtifact(request,
             target,
             options=(),
             channel_credentials=None,
@@ -206,8 +206,8 @@ class SkillCommandController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromExecutionArtifact',
-            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromExecutionArtifactRequest.SerializeToString,
+            '/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromRunArtifact',
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromRunArtifactRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
             options,
             channel_credentials,

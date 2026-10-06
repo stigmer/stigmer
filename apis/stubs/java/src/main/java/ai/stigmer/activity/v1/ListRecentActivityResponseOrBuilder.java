@@ -13,7 +13,7 @@ public interface ListRecentActivityResponseOrBuilder extends
   /**
    * <pre>
    * Entries sorted by updated_at descending, interleaving sessions
-   * and workflow executions.
+   * and workflow runs.
    * </pre>
    *
    * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -23,7 +23,7 @@ public interface ListRecentActivityResponseOrBuilder extends
   /**
    * <pre>
    * Entries sorted by updated_at descending, interleaving sessions
-   * and workflow executions.
+   * and workflow runs.
    * </pre>
    *
    * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -32,7 +32,7 @@ public interface ListRecentActivityResponseOrBuilder extends
   /**
    * <pre>
    * Entries sorted by updated_at descending, interleaving sessions
-   * and workflow executions.
+   * and workflow runs.
    * </pre>
    *
    * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -41,7 +41,7 @@ public interface ListRecentActivityResponseOrBuilder extends
   /**
    * <pre>
    * Entries sorted by updated_at descending, interleaving sessions
-   * and workflow executions.
+   * and workflow runs.
    * </pre>
    *
    * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -51,7 +51,7 @@ public interface ListRecentActivityResponseOrBuilder extends
   /**
    * <pre>
    * Entries sorted by updated_at descending, interleaving sessions
-   * and workflow executions.
+   * and workflow runs.
    * </pre>
    *
    * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>

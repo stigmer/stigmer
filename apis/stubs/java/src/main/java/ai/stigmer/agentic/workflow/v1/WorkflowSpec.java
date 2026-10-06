@@ -34,7 +34,7 @@ private static final long serialVersionUID = 0L;
   private WorkflowSpec() {
     description_ = "";
     tasks_ = java.util.Collections.emptyList();
-    executionVisibility_ = 0;
+    runVisibility_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -322,10 +322,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   private ai.stigmer.agentic.workflow.v1.WorkflowBudget budget_;
   /**
    * <pre>
-   * Budget limits for this workflow execution.
+   * Budget limits for this workflow run.
    * When set, the runtime enforces cost, token, and duration limits
    * across all tasks. The existing org-level billing reservation system
-   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * (AuthorizeRun / RunBillingSignal) remains the safety net
    * for overall credit exhaustion; workflow budgets prevent individual
    * workflows from consuming more than intended.
    * Optional — when not set, no workflow-level budget is enforced.
@@ -340,10 +340,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   }
   /**
    * <pre>
-   * Budget limits for this workflow execution.
+   * Budget limits for this workflow run.
    * When set, the runtime enforces cost, token, and duration limits
    * across all tasks. The existing org-level billing reservation system
-   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * (AuthorizeRun / RunBillingSignal) remains the safety net
    * for overall credit exhaustion; workflow budgets prevent individual
    * workflows from consuming more than intended.
    * Optional — when not set, no workflow-level budget is enforced.
@@ -358,10 +358,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   }
   /**
    * <pre>
-   * Budget limits for this workflow execution.
+   * Budget limits for this workflow run.
    * When set, the runtime enforces cost, token, and duration limits
    * across all tasks. The existing org-level billing reservation system
-   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * (AuthorizeRun / RunBillingSignal) remains the safety net
    * for overall credit exhaustion; workflow budgets prevent individual
    * workflows from consuming more than intended.
    * Optional — when not set, no workflow-level budget is enforced.
@@ -374,8 +374,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     return budget_ == null ? ai.stigmer.agentic.workflow.v1.WorkflowBudget.getDefaultInstance() : budget_;
   }
 
-  public static final int EXECUTION_VISIBILITY_FIELD_NUMBER = 6;
-  private int executionVisibility_ = 0;
+  public static final int RUN_VISIBILITY_FIELD_NUMBER = 6;
+  private int runVisibility_ = 0;
   /**
    * <pre>
    * Who can observe the runs (executions) of this workflow.
@@ -386,15 +386,15 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    *
    * Defaults to PRIVATE (unspecified is treated as private): each run is
    * visible only to the person who started it. Set at create; afterwards it
-   * changes only through WorkflowCommandController.updateExecutionVisibility,
+   * changes only through WorkflowCommandController.updateRunVisibility,
    * and update and apply keep the stored level.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 6 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
-   * @return The enum numeric value on the wire for executionVisibility.
+   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 6 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for runVisibility.
    */
-  @java.lang.Override public int getExecutionVisibilityValue() {
-    return executionVisibility_;
+  @java.lang.Override public int getRunVisibilityValue() {
+    return runVisibility_;
   }
   /**
    * <pre>
@@ -406,16 +406,16 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    *
    * Defaults to PRIVATE (unspecified is treated as private): each run is
    * visible only to the person who started it. Set at create; afterwards it
-   * changes only through WorkflowCommandController.updateExecutionVisibility,
+   * changes only through WorkflowCommandController.updateRunVisibility,
    * and update and apply keep the stored level.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 6 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
-   * @return The executionVisibility.
+   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 6 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
+   * @return The runVisibility.
    */
-  @java.lang.Override public ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility getExecutionVisibility() {
-    ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility result = ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility.forNumber(executionVisibility_);
-    return result == null ? ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility.UNRECOGNIZED : result;
+  @java.lang.Override public ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility getRunVisibility() {
+    ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility result = ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility.forNumber(runVisibility_);
+    return result == null ? ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility.UNRECOGNIZED : result;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -450,8 +450,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(5, getBudget());
     }
-    if (executionVisibility_ != ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility.workflow_execution_visibility_unspecified.getNumber()) {
-      output.writeEnum(6, executionVisibility_);
+    if (runVisibility_ != ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility.workflow_run_visibility_unspecified.getNumber()) {
+      output.writeEnum(6, runVisibility_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -492,9 +492,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getBudget());
     }
-    if (executionVisibility_ != ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility.workflow_execution_visibility_unspecified.getNumber()) {
+    if (runVisibility_ != ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility.workflow_run_visibility_unspecified.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
-        .computeEnumSize(6, executionVisibility_);
+        .computeEnumSize(6, runVisibility_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -527,7 +527,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       if (!getBudget()
           .equals(other.getBudget())) return false;
     }
-    if (executionVisibility_ != other.executionVisibility_) return false;
+    if (runVisibility_ != other.runVisibility_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -557,8 +557,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       hash = (37 * hash) + BUDGET_FIELD_NUMBER;
       hash = (53 * hash) + getBudget().hashCode();
     }
-    hash = (37 * hash) + EXECUTION_VISIBILITY_FIELD_NUMBER;
-    hash = (53 * hash) + executionVisibility_;
+    hash = (37 * hash) + RUN_VISIBILITY_FIELD_NUMBER;
+    hash = (53 * hash) + runVisibility_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -743,7 +743,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         budgetBuilder_.dispose();
         budgetBuilder_ = null;
       }
-      executionVisibility_ = 0;
+      runVisibility_ = 0;
       return this;
     }
 
@@ -810,7 +810,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         to_bitField0_ |= 0x00000002;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.executionVisibility_ = executionVisibility_;
+        result.runVisibility_ = runVisibility_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -867,8 +867,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       if (other.hasBudget()) {
         mergeBudget(other.getBudget());
       }
-      if (other.executionVisibility_ != 0) {
-        setExecutionVisibilityValue(other.getExecutionVisibilityValue());
+      if (other.runVisibility_ != 0) {
+        setRunVisibilityValue(other.getRunVisibilityValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -938,7 +938,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
               break;
             } // case 42
             case 48: {
-              executionVisibility_ = input.readEnum();
+              runVisibility_ = input.readEnum();
               bitField0_ |= 0x00000020;
               break;
             } // case 48
@@ -1738,10 +1738,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         ai.stigmer.agentic.workflow.v1.WorkflowBudget, ai.stigmer.agentic.workflow.v1.WorkflowBudget.Builder, ai.stigmer.agentic.workflow.v1.WorkflowBudgetOrBuilder> budgetBuilder_;
     /**
      * <pre>
-     * Budget limits for this workflow execution.
+     * Budget limits for this workflow run.
      * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
-     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * (AuthorizeRun / RunBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
      * workflows from consuming more than intended.
      * Optional — when not set, no workflow-level budget is enforced.
@@ -1755,10 +1755,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Budget limits for this workflow execution.
+     * Budget limits for this workflow run.
      * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
-     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * (AuthorizeRun / RunBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
      * workflows from consuming more than intended.
      * Optional — when not set, no workflow-level budget is enforced.
@@ -1776,10 +1776,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Budget limits for this workflow execution.
+     * Budget limits for this workflow run.
      * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
-     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * (AuthorizeRun / RunBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
      * workflows from consuming more than intended.
      * Optional — when not set, no workflow-level budget is enforced.
@@ -1802,10 +1802,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Budget limits for this workflow execution.
+     * Budget limits for this workflow run.
      * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
-     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * (AuthorizeRun / RunBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
      * workflows from consuming more than intended.
      * Optional — when not set, no workflow-level budget is enforced.
@@ -1826,10 +1826,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Budget limits for this workflow execution.
+     * Budget limits for this workflow run.
      * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
-     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * (AuthorizeRun / RunBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
      * workflows from consuming more than intended.
      * Optional — when not set, no workflow-level budget is enforced.
@@ -1857,10 +1857,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Budget limits for this workflow execution.
+     * Budget limits for this workflow run.
      * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
-     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * (AuthorizeRun / RunBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
      * workflows from consuming more than intended.
      * Optional — when not set, no workflow-level budget is enforced.
@@ -1880,10 +1880,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Budget limits for this workflow execution.
+     * Budget limits for this workflow run.
      * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
-     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * (AuthorizeRun / RunBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
      * workflows from consuming more than intended.
      * Optional — when not set, no workflow-level budget is enforced.
@@ -1898,10 +1898,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Budget limits for this workflow execution.
+     * Budget limits for this workflow run.
      * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
-     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * (AuthorizeRun / RunBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
      * workflows from consuming more than intended.
      * Optional — when not set, no workflow-level budget is enforced.
@@ -1919,10 +1919,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Budget limits for this workflow execution.
+     * Budget limits for this workflow run.
      * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
-     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * (AuthorizeRun / RunBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
      * workflows from consuming more than intended.
      * Optional — when not set, no workflow-level budget is enforced.
@@ -1944,7 +1944,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       return budgetBuilder_;
     }
 
-    private int executionVisibility_ = 0;
+    private int runVisibility_ = 0;
     /**
      * <pre>
      * Who can observe the runs (executions) of this workflow.
@@ -1955,15 +1955,15 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      *
      * Defaults to PRIVATE (unspecified is treated as private): each run is
      * visible only to the person who started it. Set at create; afterwards it
-     * changes only through WorkflowCommandController.updateExecutionVisibility,
+     * changes only through WorkflowCommandController.updateRunVisibility,
      * and update and apply keep the stored level.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 6 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
-     * @return The enum numeric value on the wire for executionVisibility.
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 6 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
+     * @return The enum numeric value on the wire for runVisibility.
      */
-    @java.lang.Override public int getExecutionVisibilityValue() {
-      return executionVisibility_;
+    @java.lang.Override public int getRunVisibilityValue() {
+      return runVisibility_;
     }
     /**
      * <pre>
@@ -1975,17 +1975,17 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      *
      * Defaults to PRIVATE (unspecified is treated as private): each run is
      * visible only to the person who started it. Set at create; afterwards it
-     * changes only through WorkflowCommandController.updateExecutionVisibility,
+     * changes only through WorkflowCommandController.updateRunVisibility,
      * and update and apply keep the stored level.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 6 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
-     * @param value The enum numeric value on the wire for executionVisibility to set.
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 6 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
+     * @param value The enum numeric value on the wire for runVisibility to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
      */
-    public Builder setExecutionVisibilityValue(int value) {
-      executionVisibility_ = value;
+    public Builder setRunVisibilityValue(int value) {
+      runVisibility_ = value;
       bitField0_ |= 0x00000020;
       onChanged();
       return this;
@@ -2000,17 +2000,17 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      *
      * Defaults to PRIVATE (unspecified is treated as private): each run is
      * visible only to the person who started it. Set at create; afterwards it
-     * changes only through WorkflowCommandController.updateExecutionVisibility,
+     * changes only through WorkflowCommandController.updateRunVisibility,
      * and update and apply keep the stored level.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 6 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
-     * @return The executionVisibility.
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 6 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
+     * @return The runVisibility.
      */
     @java.lang.Override
-    public ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility getExecutionVisibility() {
-      ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility result = ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility.forNumber(executionVisibility_);
-      return result == null ? ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility.UNRECOGNIZED : result;
+    public ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility getRunVisibility() {
+      ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility result = ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility.forNumber(runVisibility_);
+      return result == null ? ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility.UNRECOGNIZED : result;
     }
     /**
      * <pre>
@@ -2022,18 +2022,18 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      *
      * Defaults to PRIVATE (unspecified is treated as private): each run is
      * visible only to the person who started it. Set at create; afterwards it
-     * changes only through WorkflowCommandController.updateExecutionVisibility,
+     * changes only through WorkflowCommandController.updateRunVisibility,
      * and update and apply keep the stored level.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 6 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
-     * @param value The executionVisibility to set.
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 6 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
+     * @param value The runVisibility to set.
      * @return This builder for chaining.
      */
-    public Builder setExecutionVisibility(ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility value) {
+    public Builder setRunVisibility(ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility value) {
       if (value == null) { throw new NullPointerException(); }
       bitField0_ |= 0x00000020;
-      executionVisibility_ = value.getNumber();
+      runVisibility_ = value.getNumber();
       onChanged();
       return this;
     }
@@ -2047,16 +2047,16 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      *
      * Defaults to PRIVATE (unspecified is treated as private): each run is
      * visible only to the person who started it. Set at create; afterwards it
-     * changes only through WorkflowCommandController.updateExecutionVisibility,
+     * changes only through WorkflowCommandController.updateRunVisibility,
      * and update and apply keep the stored level.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 6 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 6 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearExecutionVisibility() {
+    public Builder clearRunVisibility() {
       bitField0_ = (bitField0_ & ~0x00000020);
-      executionVisibility_ = 0;
+      runVisibility_ = 0;
       onChanged();
       return this;
     }

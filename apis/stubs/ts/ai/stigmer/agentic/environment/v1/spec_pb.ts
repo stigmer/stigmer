@@ -83,7 +83,7 @@ export const EnvironmentValueSchema: GenMessage<EnvironmentValue> = /*@__PURE__*
  * Unlike EnvironmentValue (which stores actual values), this message describes
  * what a blueprint *needs* — its schema, not its data. This separation keeps
  * the blueprint layer free of runtime values and enables the platform to
- * validate completeness before execution.
+ * validate completeness before run.
  *
  * @generated from message ai.stigmer.agentic.environment.v1.EnvVarDeclaration
  */

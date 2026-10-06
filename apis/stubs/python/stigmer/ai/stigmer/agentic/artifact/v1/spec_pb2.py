@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/artifact/v1/spec.proto\x12\x1e\x61i.stigmer.agentic.artifact.v1\x1a\x1b\x62uf/validate/validate.proto\"\x91\x02\n\x0c\x41rtifactSpec\x12\x30\n\x0c\x63ontent_type\x18\x01 \x01(\tB\r\xbaH\nr\x05\x10\x01\x18\xff\x01\xc8\x01\x01R\x0b\x63ontentType\x12\x30\n\x0c\x64isplay_name\x18\x02 \x01(\tB\r\xbaH\nr\x05\x10\x01\x18\xff\x01\xc8\x01\x01R\x0b\x64isplayName\x12N\n\x06source\x18\x03 \x01(\x0b\x32..ai.stigmer.agentic.artifact.v1.ArtifactSourceB\x06\xbaH\x03\xc8\x01\x01R\x06source\x12M\n\tretention\x18\x04 \x01(\x0b\x32/.ai.stigmer.agentic.artifact.v1.RetentionPolicyR\tretention\"\x8f\x01\n\x0e\x41rtifactSource\x12\x32\n\x15workflow_execution_id\x18\x01 \x01(\tR\x13workflowExecutionId\x12,\n\x12\x61gent_execution_id\x18\x02 \x01(\tR\x10\x61gentExecutionId\x12\x1b\n\ttask_name\x18\x03 \x01(\tR\x08taskName\",\n\x0fRetentionPolicy\x12\x19\n\x08ttl_days\x18\x01 \x01(\x05R\x07ttlDaysB\xcc\x01\n\"com.ai.stigmer.agentic.artifact.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1e\x41i.Stigmer.Agentic.Artifact.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/artifact/v1/spec.proto\x12\x1e\x61i.stigmer.agentic.artifact.v1\x1a\x1b\x62uf/validate/validate.proto\"\x91\x02\n\x0c\x41rtifactSpec\x12\x30\n\x0c\x63ontent_type\x18\x01 \x01(\tB\r\xbaH\nr\x05\x10\x01\x18\xff\x01\xc8\x01\x01R\x0b\x63ontentType\x12\x30\n\x0c\x64isplay_name\x18\x02 \x01(\tB\r\xbaH\nr\x05\x10\x01\x18\xff\x01\xc8\x01\x01R\x0b\x64isplayName\x12N\n\x06source\x18\x03 \x01(\x0b\x32..ai.stigmer.agentic.artifact.v1.ArtifactSourceB\x06\xbaH\x03\xc8\x01\x01R\x06source\x12M\n\tretention\x18\x04 \x01(\x0b\x32/.ai.stigmer.agentic.artifact.v1.RetentionPolicyR\tretention\"w\n\x0e\x41rtifactSource\x12&\n\x0fworkflow_run_id\x18\x01 \x01(\tR\rworkflowRunId\x12 \n\x0c\x61gent_run_id\x18\x02 \x01(\tR\nagentRunId\x12\x1b\n\ttask_name\x18\x03 \x01(\tR\x08taskName\",\n\x0fRetentionPolicy\x12\x19\n\x08ttl_days\x18\x01 \x01(\x05R\x07ttlDaysB\xcc\x01\n\"com.ai.stigmer.agentic.artifact.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1e\x41i.Stigmer.Agentic.Artifact.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,8 +41,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ARTIFACTSPEC'].fields_by_name['source']._serialized_options = b'\272H\003\310\001\001'
   _globals['_ARTIFACTSPEC']._serialized_start=107
   _globals['_ARTIFACTSPEC']._serialized_end=380
-  _globals['_ARTIFACTSOURCE']._serialized_start=383
-  _globals['_ARTIFACTSOURCE']._serialized_end=526
-  _globals['_RETENTIONPOLICY']._serialized_start=528
-  _globals['_RETENTIONPOLICY']._serialized_end=572
+  _globals['_ARTIFACTSOURCE']._serialized_start=382
+  _globals['_ARTIFACTSOURCE']._serialized_end=501
+  _globals['_RETENTIONPOLICY']._serialized_start=503
+  _globals['_RETENTIONPOLICY']._serialized_end=547
 # @@protoc_insertion_point(module_scope)

@@ -31,7 +31,7 @@ public enum BudgetExceededPolicy
   budget_exceeded_policy_unspecified(0),
   /**
    * <pre>
-   * Terminate the workflow immediately with EXECUTION_FAILED status.
+   * Terminate the workflow immediately with RUN_FAILED status.
    * The execution record includes the budget breach details for diagnostics.
    * </pre>
    *
@@ -82,7 +82,7 @@ public enum BudgetExceededPolicy
   public static final int budget_exceeded_policy_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Terminate the workflow immediately with EXECUTION_FAILED status.
+   * Terminate the workflow immediately with RUN_FAILED status.
    * The execution record includes the budget breach details for diagnostics.
    * </pre>
    *

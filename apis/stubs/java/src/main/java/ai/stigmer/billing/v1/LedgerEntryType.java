@@ -40,7 +40,7 @@ public enum LedgerEntryType
   promotional_credit(2),
   /**
    * <pre>
-   * Debit for a single LLM call during agent execution.
+   * Debit for a single LLM call during agent run.
    * </pre>
    *
    * <code>usage_debit = 3;</code>
@@ -152,7 +152,7 @@ public enum LedgerEntryType
   public static final int promotional_credit_VALUE = 2;
   /**
    * <pre>
-   * Debit for a single LLM call during agent execution.
+   * Debit for a single LLM call during agent run.
    * </pre>
    *
    * <code>usage_debit = 3;</code>

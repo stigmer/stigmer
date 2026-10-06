@@ -33,7 +33,7 @@ const (
 	LedgerEntryType_purchase_credit LedgerEntryType = 1
 	// Promotional credits granted (e.g., free trial, referral bonus).
 	LedgerEntryType_promotional_credit LedgerEntryType = 2
-	// Debit for a single LLM call during agent execution.
+	// Debit for a single LLM call during agent run.
 	LedgerEntryType_usage_debit LedgerEntryType = 3
 	// Hold placed at execution start to reserve credits.
 	LedgerEntryType_reservation_hold LedgerEntryType = 4
@@ -351,60 +351,60 @@ func (ReservationStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{4}
 }
 
-// ExecutionBillingSignal is returned after each usage debit to direct
+// RunBillingSignal is returned after each usage debit to direct
 // the agent runner's behavior.
-type ExecutionBillingSignal int32
+type RunBillingSignal int32
 
 const (
-	ExecutionBillingSignal_execution_billing_signal_unspecified ExecutionBillingSignal = 0
+	RunBillingSignal_run_billing_signal_unspecified RunBillingSignal = 0
 	// Balance is healthy; execution may continue.
-	ExecutionBillingSignal_continue_execution ExecutionBillingSignal = 1
+	RunBillingSignal_continue_run RunBillingSignal = 1
 	// Balance is low; execution may continue but a warning should be shown.
-	ExecutionBillingSignal_low_balance_warning ExecutionBillingSignal = 2
+	RunBillingSignal_low_balance_warning RunBillingSignal = 2
 	// Balance is exhausted; execution must stop gracefully.
-	ExecutionBillingSignal_stop_execution ExecutionBillingSignal = 3
+	RunBillingSignal_stop_run RunBillingSignal = 3
 )
 
-// Enum value maps for ExecutionBillingSignal.
+// Enum value maps for RunBillingSignal.
 var (
-	ExecutionBillingSignal_name = map[int32]string{
-		0: "execution_billing_signal_unspecified",
-		1: "continue_execution",
+	RunBillingSignal_name = map[int32]string{
+		0: "run_billing_signal_unspecified",
+		1: "continue_run",
 		2: "low_balance_warning",
-		3: "stop_execution",
+		3: "stop_run",
 	}
-	ExecutionBillingSignal_value = map[string]int32{
-		"execution_billing_signal_unspecified": 0,
-		"continue_execution":                   1,
-		"low_balance_warning":                  2,
-		"stop_execution":                       3,
+	RunBillingSignal_value = map[string]int32{
+		"run_billing_signal_unspecified": 0,
+		"continue_run":                   1,
+		"low_balance_warning":            2,
+		"stop_run":                       3,
 	}
 )
 
-func (x ExecutionBillingSignal) Enum() *ExecutionBillingSignal {
-	p := new(ExecutionBillingSignal)
+func (x RunBillingSignal) Enum() *RunBillingSignal {
+	p := new(RunBillingSignal)
 	*p = x
 	return p
 }
 
-func (x ExecutionBillingSignal) String() string {
+func (x RunBillingSignal) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (ExecutionBillingSignal) Descriptor() protoreflect.EnumDescriptor {
+func (RunBillingSignal) Descriptor() protoreflect.EnumDescriptor {
 	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[5].Descriptor()
 }
 
-func (ExecutionBillingSignal) Type() protoreflect.EnumType {
+func (RunBillingSignal) Type() protoreflect.EnumType {
 	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[5]
 }
 
-func (x ExecutionBillingSignal) Number() protoreflect.EnumNumber {
+func (x RunBillingSignal) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use ExecutionBillingSignal.Descriptor instead.
-func (ExecutionBillingSignal) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use RunBillingSignal.Descriptor instead.
+func (RunBillingSignal) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{5}
 }
 
@@ -574,12 +574,12 @@ const file_ai_stigmer_billing_v1_enum_proto_rawDesc = "" +
 	"\x12reservation_active\x10\x01\x12\x19\n" +
 	"\x15reservation_finalized\x10\x02\x12\x17\n" +
 	"\x13reservation_expired\x10\x03\x12\x19\n" +
-	"\x15reservation_cancelled\x10\x04*\x87\x01\n" +
-	"\x16ExecutionBillingSignal\x12(\n" +
-	"$execution_billing_signal_unspecified\x10\x00\x12\x16\n" +
-	"\x12continue_execution\x10\x01\x12\x17\n" +
-	"\x13low_balance_warning\x10\x02\x12\x12\n" +
-	"\x0estop_execution\x10\x03*\xb3\x01\n" +
+	"\x15reservation_cancelled\x10\x04*o\n" +
+	"\x10RunBillingSignal\x12\"\n" +
+	"\x1erun_billing_signal_unspecified\x10\x00\x12\x10\n" +
+	"\fcontinue_run\x10\x01\x12\x17\n" +
+	"\x13low_balance_warning\x10\x02\x12\f\n" +
+	"\bstop_run\x10\x03*\xb3\x01\n" +
 	"\x14CreditPurchaseStatus\x12&\n" +
 	"\"credit_purchase_status_unspecified\x10\x00\x12\x1b\n" +
 	"\x17credit_purchase_pending\x10\x01\x12\x1d\n" +
@@ -612,7 +612,7 @@ var file_ai_stigmer_billing_v1_enum_proto_goTypes = []any{
 	(CreditGrantKind)(0),         // 2: ai.stigmer.billing.v1.CreditGrantKind
 	(BillingAccountStatus)(0),    // 3: ai.stigmer.billing.v1.BillingAccountStatus
 	(ReservationStatus)(0),       // 4: ai.stigmer.billing.v1.ReservationStatus
-	(ExecutionBillingSignal)(0),  // 5: ai.stigmer.billing.v1.ExecutionBillingSignal
+	(RunBillingSignal)(0),        // 5: ai.stigmer.billing.v1.RunBillingSignal
 	(CreditPurchaseStatus)(0),    // 6: ai.stigmer.billing.v1.CreditPurchaseStatus
 	(AutoRechargeEventStatus)(0), // 7: ai.stigmer.billing.v1.AutoRechargeEventStatus
 }

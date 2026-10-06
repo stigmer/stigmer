@@ -8,7 +8,7 @@ package ai.stigmer.activity.v1;
 /**
  * <pre>
  * RecentActivityEntry is a lightweight summary of either an agent session
- * or a workflow execution, used for the sidebar "recents" list.
+ * or a workflow run, used for the sidebar "recents" list.
  *
  * This is a projection — not the full resource. Clients that need the
  * complete resource should call the specific get() RPC for the resource kind.
@@ -66,7 +66,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object id_ = "";
   /**
    * <pre>
-   * Resource ID (session ID or workflow execution ID).
+   * Resource ID (session ID or workflow run ID).
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -87,7 +87,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Resource ID (session ID or workflow execution ID).
+   * Resource ID (session ID or workflow run ID).
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -113,7 +113,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object type_ = "";
   /**
    * <pre>
-   * Discriminator: "session" or "workflow_execution".
+   * Discriminator: "session" or "workflow_run".
    * </pre>
    *
    * <code>string type = 2 [json_name = "type"];</code>
@@ -134,7 +134,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Discriminator: "session" or "workflow_execution".
+   * Discriminator: "session" or "workflow_run".
    * </pre>
    *
    * <code>string type = 2 [json_name = "type"];</code>
@@ -162,7 +162,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Human-readable label for display.
    * For sessions: the conversation subject.
-   * For workflow executions: the execution name.
+   * For workflow runs: the execution name.
    * </pre>
    *
    * <code>string subject = 3 [json_name = "subject"];</code>
@@ -185,7 +185,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Human-readable label for display.
    * For sessions: the conversation subject.
-   * For workflow executions: the execution name.
+   * For workflow runs: the execution name.
    * </pre>
    *
    * <code>string subject = 3 [json_name = "subject"];</code>
@@ -252,7 +252,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object status_ = "";
   /**
    * <pre>
-   * Execution phase label for workflow executions (e.g., "completed", "failed").
+   * Execution phase label for workflow runs (e.g., "completed", "failed").
    * Empty for sessions.
    * </pre>
    *
@@ -274,7 +274,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution phase label for workflow executions (e.g., "completed", "failed").
+   * Execution phase label for workflow runs (e.g., "completed", "failed").
    * Empty for sessions.
    * </pre>
    *
@@ -501,7 +501,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * RecentActivityEntry is a lightweight summary of either an agent session
-   * or a workflow execution, used for the sidebar "recents" list.
+   * or a workflow run, used for the sidebar "recents" list.
    *
    * This is a projection — not the full resource. Clients that need the
    * complete resource should call the specific get() RPC for the resource kind.
@@ -718,7 +718,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object id_ = "";
     /**
      * <pre>
-     * Resource ID (session ID or workflow execution ID).
+     * Resource ID (session ID or workflow run ID).
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -738,7 +738,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource ID (session ID or workflow execution ID).
+     * Resource ID (session ID or workflow run ID).
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -759,7 +759,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource ID (session ID or workflow execution ID).
+     * Resource ID (session ID or workflow run ID).
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -776,7 +776,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource ID (session ID or workflow execution ID).
+     * Resource ID (session ID or workflow run ID).
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -790,7 +790,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource ID (session ID or workflow execution ID).
+     * Resource ID (session ID or workflow run ID).
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -810,7 +810,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object type_ = "";
     /**
      * <pre>
-     * Discriminator: "session" or "workflow_execution".
+     * Discriminator: "session" or "workflow_run".
      * </pre>
      *
      * <code>string type = 2 [json_name = "type"];</code>
@@ -830,7 +830,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Discriminator: "session" or "workflow_execution".
+     * Discriminator: "session" or "workflow_run".
      * </pre>
      *
      * <code>string type = 2 [json_name = "type"];</code>
@@ -851,7 +851,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Discriminator: "session" or "workflow_execution".
+     * Discriminator: "session" or "workflow_run".
      * </pre>
      *
      * <code>string type = 2 [json_name = "type"];</code>
@@ -868,7 +868,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Discriminator: "session" or "workflow_execution".
+     * Discriminator: "session" or "workflow_run".
      * </pre>
      *
      * <code>string type = 2 [json_name = "type"];</code>
@@ -882,7 +882,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Discriminator: "session" or "workflow_execution".
+     * Discriminator: "session" or "workflow_run".
      * </pre>
      *
      * <code>string type = 2 [json_name = "type"];</code>
@@ -904,7 +904,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable label for display.
      * For sessions: the conversation subject.
-     * For workflow executions: the execution name.
+     * For workflow runs: the execution name.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -926,7 +926,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable label for display.
      * For sessions: the conversation subject.
-     * For workflow executions: the execution name.
+     * For workflow runs: the execution name.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -949,7 +949,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable label for display.
      * For sessions: the conversation subject.
-     * For workflow executions: the execution name.
+     * For workflow runs: the execution name.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -968,7 +968,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable label for display.
      * For sessions: the conversation subject.
-     * For workflow executions: the execution name.
+     * For workflow runs: the execution name.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -984,7 +984,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable label for display.
      * For sessions: the conversation subject.
-     * For workflow executions: the execution name.
+     * For workflow runs: the execution name.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -1170,7 +1170,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object status_ = "";
     /**
      * <pre>
-     * Execution phase label for workflow executions (e.g., "completed", "failed").
+     * Execution phase label for workflow runs (e.g., "completed", "failed").
      * Empty for sessions.
      * </pre>
      *
@@ -1191,7 +1191,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution phase label for workflow executions (e.g., "completed", "failed").
+     * Execution phase label for workflow runs (e.g., "completed", "failed").
      * Empty for sessions.
      * </pre>
      *
@@ -1213,7 +1213,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution phase label for workflow executions (e.g., "completed", "failed").
+     * Execution phase label for workflow runs (e.g., "completed", "failed").
      * Empty for sessions.
      * </pre>
      *
@@ -1231,7 +1231,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution phase label for workflow executions (e.g., "completed", "failed").
+     * Execution phase label for workflow runs (e.g., "completed", "failed").
      * Empty for sessions.
      * </pre>
      *
@@ -1246,7 +1246,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution phase label for workflow executions (e.g., "completed", "failed").
+     * Execution phase label for workflow runs (e.g., "completed", "failed").
      * Empty for sessions.
      * </pre>
      *

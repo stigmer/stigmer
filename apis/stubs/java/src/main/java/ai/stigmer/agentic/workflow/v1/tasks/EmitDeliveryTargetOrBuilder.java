@@ -39,7 +39,7 @@ public interface EmitDeliveryTargetOrBuilder extends
 
   /**
    * <pre>
-   * Signal another workflow execution's listen task.
+   * Signal another workflow run's listen task.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -48,7 +48,7 @@ public interface EmitDeliveryTargetOrBuilder extends
   boolean hasSignal();
   /**
    * <pre>
-   * Signal another workflow execution's listen task.
+   * Signal another workflow run's listen task.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -57,7 +57,7 @@ public interface EmitDeliveryTargetOrBuilder extends
   ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery getSignal();
   /**
    * <pre>
-   * Signal another workflow execution's listen task.
+   * Signal another workflow run's listen task.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>

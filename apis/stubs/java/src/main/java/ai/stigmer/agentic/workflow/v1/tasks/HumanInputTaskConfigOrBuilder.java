@@ -104,7 +104,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    *
    * When empty, the task defaults to binary behavior:
    * - "approve": task completes, workflow continues to next task
-   * - "deny": task fails (enters try_catch or EXECUTION_FAILED)
+   * - "deny": task fails (enters try_catch or RUN_FAILED)
    *
    * When custom outcomes are defined, the first outcome is used as the
    * default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used
@@ -125,7 +125,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    *
    * When empty, the task defaults to binary behavior:
    * - "approve": task completes, workflow continues to next task
-   * - "deny": task fails (enters try_catch or EXECUTION_FAILED)
+   * - "deny": task fails (enters try_catch or RUN_FAILED)
    *
    * When custom outcomes are defined, the first outcome is used as the
    * default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used
@@ -145,7 +145,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    *
    * When empty, the task defaults to binary behavior:
    * - "approve": task completes, workflow continues to next task
-   * - "deny": task fails (enters try_catch or EXECUTION_FAILED)
+   * - "deny": task fails (enters try_catch or RUN_FAILED)
    *
    * When custom outcomes are defined, the first outcome is used as the
    * default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used
@@ -165,7 +165,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    *
    * When empty, the task defaults to binary behavior:
    * - "approve": task completes, workflow continues to next task
-   * - "deny": task fails (enters try_catch or EXECUTION_FAILED)
+   * - "deny": task fails (enters try_catch or RUN_FAILED)
    *
    * When custom outcomes are defined, the first outcome is used as the
    * default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used
@@ -186,7 +186,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    *
    * When empty, the task defaults to binary behavior:
    * - "approve": task completes, workflow continues to next task
-   * - "deny": task fails (enters try_catch or EXECUTION_FAILED)
+   * - "deny": task fails (enters try_catch or RUN_FAILED)
    *
    * When custom outcomes are defined, the first outcome is used as the
    * default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used

@@ -117,7 +117,7 @@ export enum ExecutionTarget {
   LOCAL = 1,
 
   /**
-   * Server provisions a cloud sandbox for execution.
+   * Server provisions a cloud sandbox for run.
    *
    * The control plane triggers EnsureSessionSandbox to create an isolated
    * environment with a runner polling the session's task queue.

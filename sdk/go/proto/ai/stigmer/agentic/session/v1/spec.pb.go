@@ -62,7 +62,7 @@ type SessionSpec struct {
 	//
 	//   - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
 	//     returned by Agent.create(). Used for Agent.resume() on
-	//     subsequent executions.
+	//     subsequent runs.
 	HarnessStateId string `protobuf:"bytes,3,opt,name=harness_state_id,json=harnessStateId,proto3" json:"harness_state_id,omitempty"`
 	// Prior harness state identifiers this session has owned, oldest first.
 	//
@@ -96,7 +96,7 @@ type SessionSpec struct {
 	// Execution harness for this session.
 	//
 	// Determines which Temporal activity type is dispatched when an
-	// AgentExecution is created in this session:
+	// AgentRun is created in this session:
 	// - NATIVE (default): ExecuteDeepAgent activity -> Stigmer unified runner
 	// - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
 	//

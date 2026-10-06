@@ -12,53 +12,53 @@ public interface ArtifactSourceOrBuilder extends
 
   /**
    * <pre>
-   * WorkflowExecution that produced this artifact.
+   * WorkflowRun that produced this artifact.
    * Format: "wex_{unique-suffix}"
-   * Set when the artifact is produced during workflow execution.
+   * Set when the artifact is produced during workflow run.
    * </pre>
    *
-   * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId"];</code>
-   * @return The workflowExecutionId.
+   * <code>string workflow_run_id = 1 [json_name = "workflowRunId"];</code>
+   * @return The workflowRunId.
    */
-  java.lang.String getWorkflowExecutionId();
+  java.lang.String getWorkflowRunId();
   /**
    * <pre>
-   * WorkflowExecution that produced this artifact.
+   * WorkflowRun that produced this artifact.
    * Format: "wex_{unique-suffix}"
-   * Set when the artifact is produced during workflow execution.
+   * Set when the artifact is produced during workflow run.
    * </pre>
    *
-   * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId"];</code>
-   * @return The bytes for workflowExecutionId.
+   * <code>string workflow_run_id = 1 [json_name = "workflowRunId"];</code>
+   * @return The bytes for workflowRunId.
    */
   com.google.protobuf.ByteString
-      getWorkflowExecutionIdBytes();
+      getWorkflowRunIdBytes();
 
   /**
    * <pre>
-   * AgentExecution that produced this artifact.
+   * AgentRun that produced this artifact.
    * Format: "aex_{unique-suffix}"
-   * Set when the artifact is produced during agent execution
+   * Set when the artifact is produced during agent run
    * (either standalone or as a child of a workflow).
    * </pre>
    *
-   * <code>string agent_execution_id = 2 [json_name = "agentExecutionId"];</code>
-   * @return The agentExecutionId.
+   * <code>string agent_run_id = 2 [json_name = "agentRunId"];</code>
+   * @return The agentRunId.
    */
-  java.lang.String getAgentExecutionId();
+  java.lang.String getAgentRunId();
   /**
    * <pre>
-   * AgentExecution that produced this artifact.
+   * AgentRun that produced this artifact.
    * Format: "aex_{unique-suffix}"
-   * Set when the artifact is produced during agent execution
+   * Set when the artifact is produced during agent run
    * (either standalone or as a child of a workflow).
    * </pre>
    *
-   * <code>string agent_execution_id = 2 [json_name = "agentExecutionId"];</code>
-   * @return The bytes for agentExecutionId.
+   * <code>string agent_run_id = 2 [json_name = "agentRunId"];</code>
+   * @return The bytes for agentRunId.
    */
   com.google.protobuf.ByteString
-      getAgentExecutionIdBytes();
+      getAgentRunIdBytes();
 
   /**
    * <pre>

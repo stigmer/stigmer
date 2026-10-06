@@ -80,7 +80,7 @@ func (x *ForkTaskConfig) GetCompete() bool {
 	return false
 }
 
-// ForkBranch defines a single branch in parallel execution.
+// ForkBranch defines a single branch in parallel run.
 type ForkBranch struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Branch name/identifier.

@@ -47,12 +47,12 @@ class ReservationStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     reservation_expired: _ClassVar[ReservationStatus]
     reservation_cancelled: _ClassVar[ReservationStatus]
 
-class ExecutionBillingSignal(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+class RunBillingSignal(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
-    execution_billing_signal_unspecified: _ClassVar[ExecutionBillingSignal]
-    continue_execution: _ClassVar[ExecutionBillingSignal]
-    low_balance_warning: _ClassVar[ExecutionBillingSignal]
-    stop_execution: _ClassVar[ExecutionBillingSignal]
+    run_billing_signal_unspecified: _ClassVar[RunBillingSignal]
+    continue_run: _ClassVar[RunBillingSignal]
+    low_balance_warning: _ClassVar[RunBillingSignal]
+    stop_run: _ClassVar[RunBillingSignal]
 
 class CreditPurchaseStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -96,10 +96,10 @@ reservation_active: ReservationStatus
 reservation_finalized: ReservationStatus
 reservation_expired: ReservationStatus
 reservation_cancelled: ReservationStatus
-execution_billing_signal_unspecified: ExecutionBillingSignal
-continue_execution: ExecutionBillingSignal
-low_balance_warning: ExecutionBillingSignal
-stop_execution: ExecutionBillingSignal
+run_billing_signal_unspecified: RunBillingSignal
+continue_run: RunBillingSignal
+low_balance_warning: RunBillingSignal
+stop_run: RunBillingSignal
 credit_purchase_status_unspecified: CreditPurchaseStatus
 credit_purchase_pending: CreditPurchaseStatus
 credit_purchase_completed: CreditPurchaseStatus

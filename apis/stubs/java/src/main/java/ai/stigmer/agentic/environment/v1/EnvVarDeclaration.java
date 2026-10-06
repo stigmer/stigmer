@@ -13,7 +13,7 @@ package ai.stigmer.agentic.environment.v1;
  * Unlike EnvironmentValue (which stores actual values), this message describes
  * what a blueprint *needs* — its schema, not its data. This separation keeps
  * the blueprint layer free of runtime values and enables the platform to
- * validate completeness before execution.
+ * validate completeness before run.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.environment.v1.EnvVarDeclaration}
@@ -326,7 +326,7 @@ private static final long serialVersionUID = 0L;
    * Unlike EnvironmentValue (which stores actual values), this message describes
    * what a blueprint *needs* — its schema, not its data. This separation keeps
    * the blueprint layer free of runtime values and enables the platform to
-   * validate completeness before execution.
+   * validate completeness before run.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.environment.v1.EnvVarDeclaration}

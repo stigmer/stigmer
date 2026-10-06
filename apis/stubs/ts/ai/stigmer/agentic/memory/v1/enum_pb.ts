@@ -32,7 +32,7 @@ export enum MemoryLifecycleState {
 
   /**
    * Confirmed by the subject. Recalled into the subject's future
-   * eligible executions.
+   * eligible runs.
    *
    * @generated from enum value: lifecycle_state_confirmed = 2;
    */

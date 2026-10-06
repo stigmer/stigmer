@@ -13,7 +13,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_emit_event: GenFile = /*@__PURE__*/
-  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvZW1pdF9ldmVudC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIoABCg1FbWl0RXZlbnRTcGVjEhsKBHR5cGUYASABKAlCDbpICsgBAXIFEAEY/wESFAoGc291cmNlGAIgASgJQgTYhSwBEiUKBGRhdGEYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhUKB3N1YmplY3QYBCABKAlCBNiFLAEivQEKE0VtaXRFdmVudFRhc2tDb25maWcSSgoFZXZlbnQYASABKAsyMy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuRW1pdEV2ZW50U3BlY0IGukgDyAEBEkoKCGRlbGl2ZXJ5GAIgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLkVtaXREZWxpdmVyeVRhcmdldDoO6ossCmVtaXRfZXZlbnQitwEKEkVtaXREZWxpdmVyeVRhcmdldBJICgd3ZWJob29rGAEgASgLMjUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLldlYmhvb2tEZWxpdmVyeUgAEkYKBnNpZ25hbBgCIAEoCzI0LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5TaWduYWxEZWxpdmVyeUgAQg8KBnRhcmdldBIFukgCCAEiswEKD1dlYmhvb2tEZWxpdmVyeRIbCgN1cmwYASABKAlCDrpIB8gBAXICEAHYhSwBElMKB2hlYWRlcnMYAiADKAsyQi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuV2ViaG9va0RlbGl2ZXJ5LkhlYWRlcnNFbnRyeRouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJbCg5TaWduYWxEZWxpdmVyeRIkCgxleGVjdXRpb25faWQYASABKAlCDrpIB8gBAXICEAHYhSwBEiMKC3NpZ25hbF9uYW1lGAIgASgJQg66SAfIAQFyAhAB2IUsAWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvZW1pdF9ldmVudC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIoABCg1FbWl0RXZlbnRTcGVjEhsKBHR5cGUYASABKAlCDbpICsgBAXIFEAEY/wESFAoGc291cmNlGAIgASgJQgTYhSwBEiUKBGRhdGEYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhUKB3N1YmplY3QYBCABKAlCBNiFLAEivQEKE0VtaXRFdmVudFRhc2tDb25maWcSSgoFZXZlbnQYASABKAsyMy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuRW1pdEV2ZW50U3BlY0IGukgDyAEBEkoKCGRlbGl2ZXJ5GAIgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLkVtaXREZWxpdmVyeVRhcmdldDoO6ossCmVtaXRfZXZlbnQitwEKEkVtaXREZWxpdmVyeVRhcmdldBJICgd3ZWJob29rGAEgASgLMjUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLldlYmhvb2tEZWxpdmVyeUgAEkYKBnNpZ25hbBgCIAEoCzI0LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5TaWduYWxEZWxpdmVyeUgAQg8KBnRhcmdldBIFukgCCAEiswEKD1dlYmhvb2tEZWxpdmVyeRIbCgN1cmwYASABKAlCDrpIB8gBAXICEAHYhSwBElMKB2hlYWRlcnMYAiADKAsyQi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuV2ViaG9va0RlbGl2ZXJ5LkhlYWRlcnNFbnRyeRouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJVCg5TaWduYWxEZWxpdmVyeRIeCgZydW5faWQYASABKAlCDrpIB8gBAXICEAHYhSwBEiMKC3NpZ25hbF9uYW1lGAIgASgJQg66SAfIAQFyAhAB2IUsAWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * EmitEventSpec defines the CloudEvents envelope for an event to be emitted.
@@ -34,8 +34,8 @@ export type EmitEventSpec = Message<"ai.stigmer.agentic.workflow.v1.tasks.EmitEv
    * CloudEvents source identifier.
    * URI or URI-reference that identifies the context in which the event
    * happened. Supports ${ } expression interpolation.
-   * When empty, the runtime defaults to the workflow execution URI
-   * (e.g., "/workflows/{workflow_id}/executions/{execution_id}").
+   * When empty, the runtime defaults to the workflow run URI
+   * (e.g., "/workflows/{workflow_id}/executions/{run_id}").
    *
    * @generated from field: string source = 2;
    */
@@ -136,7 +136,7 @@ export type EmitDeliveryTarget = Message<"ai.stigmer.agentic.workflow.v1.tasks.E
     case: "webhook";
   } | {
     /**
-     * Signal another workflow execution's listen task.
+     * Signal another workflow run's listen task.
      *
      * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2;
      */
@@ -196,13 +196,13 @@ export const WebhookDeliverySchema: GenMessage<WebhookDelivery> = /*@__PURE__*/
  */
 export type SignalDelivery = Message<"ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery"> & {
   /**
-   * Target workflow execution id ("wfx_..."), as returned by run/create.
+   * Target workflow run id ("wfx_..."), as returned by run/create.
    * Usually flows from a prior task's output:
-   * "${ .start_processor.execution_id }"
+   * "${ .start_processor.run_id }"
    *
-   * @generated from field: string execution_id = 1;
+   * @generated from field: string run_id = 1;
    */
-  executionId: string;
+  runId: string;
 
   /**
    * Signal name, matching the target's listen task event id (verbatim).

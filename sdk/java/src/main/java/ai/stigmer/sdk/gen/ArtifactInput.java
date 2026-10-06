@@ -111,23 +111,23 @@ public final class ArtifactInput {
 
     /** SDK input type for ArtifactSource. */
     public static final class ArtifactSourceInput {
-        private final String workflowExecutionId;
-        private final String agentExecutionId;
+        private final String workflowRunId;
+        private final String agentRunId;
         private final String taskName;
 
         private ArtifactSourceInput(Builder builder) {
-            this.workflowExecutionId = builder.workflowExecutionId;
-            this.agentExecutionId = builder.agentExecutionId;
+            this.workflowRunId = builder.workflowRunId;
+            this.agentRunId = builder.agentRunId;
             this.taskName = builder.taskName;
         }
 
         ArtifactSource toProto() {
             ArtifactSource.Builder builder = ArtifactSource.newBuilder();
-            if (this.workflowExecutionId != null) {
-                builder.setWorkflowExecutionId(this.workflowExecutionId);
+            if (this.workflowRunId != null) {
+                builder.setWorkflowRunId(this.workflowRunId);
             }
-            if (this.agentExecutionId != null) {
-                builder.setAgentExecutionId(this.agentExecutionId);
+            if (this.agentRunId != null) {
+                builder.setAgentRunId(this.agentRunId);
             }
             if (this.taskName != null) {
                 builder.setTaskName(this.taskName);
@@ -138,14 +138,14 @@ public final class ArtifactInput {
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
-            private String workflowExecutionId;
-            private String agentExecutionId;
+            private String workflowRunId;
+            private String agentRunId;
             private String taskName;
 
             private Builder() {}
 
-            public Builder workflowExecutionId(String workflowExecutionId) { this.workflowExecutionId = workflowExecutionId; return this; }
-            public Builder agentExecutionId(String agentExecutionId) { this.agentExecutionId = agentExecutionId; return this; }
+            public Builder workflowRunId(String workflowRunId) { this.workflowRunId = workflowRunId; return this; }
+            public Builder agentRunId(String agentRunId) { this.agentRunId = agentRunId; return this; }
             public Builder taskName(String taskName) { this.taskName = taskName; return this; }
 
             public ArtifactSourceInput build() { return new ArtifactSourceInput(this); }

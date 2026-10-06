@@ -12,67 +12,67 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
 
   /**
    * <pre>
-   * AgentExecution id — yields a token scoped to the execution's parent
+   * AgentRun id — yields a token scoped to the execution's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
-   * <code>string agent_execution_id = 1 [json_name = "agentExecutionId"];</code>
-   * @return Whether the agentExecutionId field is set.
+   * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
+   * @return Whether the agentRunId field is set.
    */
-  boolean hasAgentExecutionId();
+  boolean hasAgentRunId();
   /**
    * <pre>
-   * AgentExecution id — yields a token scoped to the execution's parent
+   * AgentRun id — yields a token scoped to the execution's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
-   * <code>string agent_execution_id = 1 [json_name = "agentExecutionId"];</code>
-   * @return The agentExecutionId.
+   * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
+   * @return The agentRunId.
    */
-  java.lang.String getAgentExecutionId();
+  java.lang.String getAgentRunId();
   /**
    * <pre>
-   * AgentExecution id — yields a token scoped to the execution's parent
+   * AgentRun id — yields a token scoped to the execution's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
-   * <code>string agent_execution_id = 1 [json_name = "agentExecutionId"];</code>
-   * @return The bytes for agentExecutionId.
+   * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
+   * @return The bytes for agentRunId.
    */
   com.google.protobuf.ByteString
-      getAgentExecutionIdBytes();
+      getAgentRunIdBytes();
 
   /**
    * <pre>
-   * WorkflowExecution id — yields a token scoped to exactly that workflow
+   * WorkflowRun id — yields a token scoped to exactly that workflow
    * execution's ExecutionContext.
    * </pre>
    *
-   * <code>string workflow_execution_id = 2 [json_name = "workflowExecutionId"];</code>
-   * @return Whether the workflowExecutionId field is set.
+   * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
+   * @return Whether the workflowRunId field is set.
    */
-  boolean hasWorkflowExecutionId();
+  boolean hasWorkflowRunId();
   /**
    * <pre>
-   * WorkflowExecution id — yields a token scoped to exactly that workflow
+   * WorkflowRun id — yields a token scoped to exactly that workflow
    * execution's ExecutionContext.
    * </pre>
    *
-   * <code>string workflow_execution_id = 2 [json_name = "workflowExecutionId"];</code>
-   * @return The workflowExecutionId.
+   * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
+   * @return The workflowRunId.
    */
-  java.lang.String getWorkflowExecutionId();
+  java.lang.String getWorkflowRunId();
   /**
    * <pre>
-   * WorkflowExecution id — yields a token scoped to exactly that workflow
+   * WorkflowRun id — yields a token scoped to exactly that workflow
    * execution's ExecutionContext.
    * </pre>
    *
-   * <code>string workflow_execution_id = 2 [json_name = "workflowExecutionId"];</code>
-   * @return The bytes for workflowExecutionId.
+   * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
+   * @return The bytes for workflowRunId.
    */
   com.google.protobuf.ByteString
-      getWorkflowExecutionIdBytes();
+      getWorkflowRunIdBytes();
 
   /**
    * <pre>

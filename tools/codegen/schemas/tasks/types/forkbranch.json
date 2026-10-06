@@ -1,6 +1,6 @@
 {
   "name": "ForkBranch",
-  "description": "ForkBranch defines a single branch in parallel execution.",
+  "description": "ForkBranch defines a single branch in parallel run.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ForkBranch",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/fork.proto",
   "fields": [

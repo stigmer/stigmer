@@ -6,7 +6,7 @@ import grpc
 
 from ._agent import AgentClient
 from ._agentchannel import AgentChannelClient
-from ._agentexecution import AgentExecutionClient
+from ._agentrun import AgentRunClient
 from ._agentshare import AgentShareClient
 from ._apikey import ApiKeyClient
 from ._artifact import ArtifactClient
@@ -32,7 +32,7 @@ from ._skill import SkillClient
 from ._subscription import SubscriptionClient
 from ._team import TeamClient
 from ._workflow import WorkflowClient
-from ._workflowexecution import WorkflowExecutionClient
+from ._workflowrun import WorkflowRunClient
 
 
 class GeneratedClient:
@@ -41,7 +41,7 @@ class GeneratedClient:
     def __init__(self, channel: grpc.Channel) -> None:
         self.agents = AgentClient(channel)
         self.agent_channels = AgentChannelClient(channel)
-        self.agent_executions = AgentExecutionClient(channel)
+        self.agent_runs = AgentRunClient(channel)
         self.agent_shares = AgentShareClient(channel)
         self.api_keys = ApiKeyClient(channel)
         self.artifacts = ArtifactClient(channel)
@@ -67,5 +67,5 @@ class GeneratedClient:
         self.subscriptions = SubscriptionClient(channel)
         self.teams = TeamClient(channel)
         self.workflows = WorkflowClient(channel)
-        self.workflow_executions = WorkflowExecutionClient(channel)
+        self.workflow_runs = WorkflowRunClient(channel)
 

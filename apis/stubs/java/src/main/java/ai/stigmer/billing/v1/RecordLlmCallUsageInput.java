@@ -40,7 +40,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private RecordLlmCallUsageInput() {
-    executionId_ = "";
+    runId_ = "";
     callId_ = "";
     provider_ = "";
     resolvedModel_ = "";
@@ -76,39 +76,39 @@ private static final long serialVersionUID = 0L;
   }
 
   private int bitField0_;
-  public static final int EXECUTION_ID_FIELD_NUMBER = 1;
+  public static final int RUN_ID_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object executionId_ = "";
+  private volatile java.lang.Object runId_ = "";
   /**
-   * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-   * @return The executionId.
+   * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+   * @return The runId.
    */
   @java.lang.Override
-  public java.lang.String getExecutionId() {
-    java.lang.Object ref = executionId_;
+  public java.lang.String getRunId() {
+    java.lang.Object ref = runId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      executionId_ = s;
+      runId_ = s;
       return s;
     }
   }
   /**
-   * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for executionId.
+   * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for runId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getExecutionIdBytes() {
-    java.lang.Object ref = executionId_;
+      getRunIdBytes() {
+    java.lang.Object ref = runId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      executionId_ = b;
+      runId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -330,13 +330,13 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int TOKENS_FIELD_NUMBER = 6;
-  private ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens_;
+  private ai.stigmer.agentic.agentrun.v1.TokenUsage tokens_;
   /**
    * <pre>
    * Token usage extracted from the provider's SSE stream.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
    * @return Whether the tokens field is set.
    */
   @java.lang.Override
@@ -348,23 +348,23 @@ private static final long serialVersionUID = 0L;
    * Token usage extracted from the provider's SSE stream.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
    * @return The tokens.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.TokenUsage getTokens() {
-    return tokens_ == null ? ai.stigmer.agentic.agentexecution.v1.TokenUsage.getDefaultInstance() : tokens_;
+  public ai.stigmer.agentic.agentrun.v1.TokenUsage getTokens() {
+    return tokens_ == null ? ai.stigmer.agentic.agentrun.v1.TokenUsage.getDefaultInstance() : tokens_;
   }
   /**
    * <pre>
    * Token usage extracted from the provider's SSE stream.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.TokenUsageOrBuilder getTokensOrBuilder() {
-    return tokens_ == null ? ai.stigmer.agentic.agentexecution.v1.TokenUsage.getDefaultInstance() : tokens_;
+  public ai.stigmer.agentic.agentrun.v1.TokenUsageOrBuilder getTokensOrBuilder() {
+    return tokens_ == null ? ai.stigmer.agentic.agentrun.v1.TokenUsage.getDefaultInstance() : tokens_;
   }
 
   public static final int USAGE_STATUS_FIELD_NUMBER = 7;
@@ -374,7 +374,7 @@ private static final long serialVersionUID = 0L;
    * Status of usage extraction.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
    * @return The enum numeric value on the wire for usageStatus.
    */
   @java.lang.Override public int getUsageStatusValue() {
@@ -385,12 +385,12 @@ private static final long serialVersionUID = 0L;
    * Status of usage extraction.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
    * @return The usageStatus.
    */
-  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus getUsageStatus() {
-    ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus result = ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus.forNumber(usageStatus_);
-    return result == null ? ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus.UNRECOGNIZED : result;
+  @java.lang.Override public ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus getUsageStatus() {
+    ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus result = ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus.forNumber(usageStatus_);
+    return result == null ? ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus.UNRECOGNIZED : result;
   }
 
   public static final int PROVIDER_REQUEST_ID_FIELD_NUMBER = 8;
@@ -518,13 +518,13 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int PROXY_TIMING_FIELD_NUMBER = 12;
-  private ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxyTiming_;
+  private ai.stigmer.agentic.agentrun.v1.ProxyTiming proxyTiming_;
   /**
    * <pre>
    * Proxy-observed timing for this call.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
    * @return Whether the proxyTiming field is set.
    */
   @java.lang.Override
@@ -536,23 +536,23 @@ private static final long serialVersionUID = 0L;
    * Proxy-observed timing for this call.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
    * @return The proxyTiming.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.ProxyTiming getProxyTiming() {
-    return proxyTiming_ == null ? ai.stigmer.agentic.agentexecution.v1.ProxyTiming.getDefaultInstance() : proxyTiming_;
+  public ai.stigmer.agentic.agentrun.v1.ProxyTiming getProxyTiming() {
+    return proxyTiming_ == null ? ai.stigmer.agentic.agentrun.v1.ProxyTiming.getDefaultInstance() : proxyTiming_;
   }
   /**
    * <pre>
    * Proxy-observed timing for this call.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.ProxyTimingOrBuilder getProxyTimingOrBuilder() {
-    return proxyTiming_ == null ? ai.stigmer.agentic.agentexecution.v1.ProxyTiming.getDefaultInstance() : proxyTiming_;
+  public ai.stigmer.agentic.agentrun.v1.ProxyTimingOrBuilder getProxyTimingOrBuilder() {
+    return proxyTiming_ == null ? ai.stigmer.agentic.agentrun.v1.ProxyTiming.getDefaultInstance() : proxyTiming_;
   }
 
   public static final int PROVIDER_USAGE_JSON_FIELD_NUMBER = 13;
@@ -759,7 +759,7 @@ private static final long serialVersionUID = 0L;
    * caller.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
    * @return The enum numeric value on the wire for cursorKeySource.
    */
   @java.lang.Override public int getCursorKeySourceValue() {
@@ -773,12 +773,12 @@ private static final long serialVersionUID = 0L;
    * caller.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
    * @return The cursorKeySource.
    */
-  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.CursorKeySource getCursorKeySource() {
-    ai.stigmer.agentic.agentexecution.v1.CursorKeySource result = ai.stigmer.agentic.agentexecution.v1.CursorKeySource.forNumber(cursorKeySource_);
-    return result == null ? ai.stigmer.agentic.agentexecution.v1.CursorKeySource.UNRECOGNIZED : result;
+  @java.lang.Override public ai.stigmer.agentic.agentrun.v1.CursorKeySource getCursorKeySource() {
+    ai.stigmer.agentic.agentrun.v1.CursorKeySource result = ai.stigmer.agentic.agentrun.v1.CursorKeySource.forNumber(cursorKeySource_);
+    return result == null ? ai.stigmer.agentic.agentrun.v1.CursorKeySource.UNRECOGNIZED : result;
   }
 
   public static final int SERVED_SERVICE_TIER_FIELD_NUMBER = 18;
@@ -844,11 +844,11 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int METERED_EXECUTION_FIELD_NUMBER = 19;
-  private ai.stigmer.billing.v1.MeteredExecution meteredExecution_;
+  public static final int METERED_RUN_FIELD_NUMBER = 19;
+  private ai.stigmer.billing.v1.MeteredRun meteredRun_;
   /**
    * <pre>
-   * The agent execution this call is metered under, as the proxy resolved
+   * The agent run this call is metered under, as the proxy resolved
    * it from the execution's system of record — on the caller's own
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
@@ -861,16 +861,16 @@ private static final long serialVersionUID = 0L;
    * is skipped.
    * </pre>
    *
-   * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
-   * @return Whether the meteredExecution field is set.
+   * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
+   * @return Whether the meteredRun field is set.
    */
   @java.lang.Override
-  public boolean hasMeteredExecution() {
+  public boolean hasMeteredRun() {
     return ((bitField0_ & 0x00000004) != 0);
   }
   /**
    * <pre>
-   * The agent execution this call is metered under, as the proxy resolved
+   * The agent run this call is metered under, as the proxy resolved
    * it from the execution's system of record — on the caller's own
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
@@ -883,16 +883,16 @@ private static final long serialVersionUID = 0L;
    * is skipped.
    * </pre>
    *
-   * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
-   * @return The meteredExecution.
+   * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
+   * @return The meteredRun.
    */
   @java.lang.Override
-  public ai.stigmer.billing.v1.MeteredExecution getMeteredExecution() {
-    return meteredExecution_ == null ? ai.stigmer.billing.v1.MeteredExecution.getDefaultInstance() : meteredExecution_;
+  public ai.stigmer.billing.v1.MeteredRun getMeteredRun() {
+    return meteredRun_ == null ? ai.stigmer.billing.v1.MeteredRun.getDefaultInstance() : meteredRun_;
   }
   /**
    * <pre>
-   * The agent execution this call is metered under, as the proxy resolved
+   * The agent run this call is metered under, as the proxy resolved
    * it from the execution's system of record — on the caller's own
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
@@ -905,11 +905,11 @@ private static final long serialVersionUID = 0L;
    * is skipped.
    * </pre>
    *
-   * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+   * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.billing.v1.MeteredExecutionOrBuilder getMeteredExecutionOrBuilder() {
-    return meteredExecution_ == null ? ai.stigmer.billing.v1.MeteredExecution.getDefaultInstance() : meteredExecution_;
+  public ai.stigmer.billing.v1.MeteredRunOrBuilder getMeteredRunOrBuilder() {
+    return meteredRun_ == null ? ai.stigmer.billing.v1.MeteredRun.getDefaultInstance() : meteredRun_;
   }
 
   public static final int PROVIDER_KEY_SOURCE_FIELD_NUMBER = 21;
@@ -924,7 +924,7 @@ private static final long serialVersionUID = 0L;
    * that predates the field, read as the platform's key.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
    * @return The enum numeric value on the wire for providerKeySource.
    */
   @java.lang.Override public int getProviderKeySourceValue() {
@@ -940,12 +940,12 @@ private static final long serialVersionUID = 0L;
    * that predates the field, read as the platform's key.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
    * @return The providerKeySource.
    */
-  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ProviderKeySource getProviderKeySource() {
-    ai.stigmer.agentic.agentexecution.v1.ProviderKeySource result = ai.stigmer.agentic.agentexecution.v1.ProviderKeySource.forNumber(providerKeySource_);
-    return result == null ? ai.stigmer.agentic.agentexecution.v1.ProviderKeySource.UNRECOGNIZED : result;
+  @java.lang.Override public ai.stigmer.agentic.agentrun.v1.ProviderKeySource getProviderKeySource() {
+    ai.stigmer.agentic.agentrun.v1.ProviderKeySource result = ai.stigmer.agentic.agentrun.v1.ProviderKeySource.forNumber(providerKeySource_);
+    return result == null ? ai.stigmer.agentic.agentrun.v1.ProviderKeySource.UNRECOGNIZED : result;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -962,8 +962,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(executionId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, executionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 1, runId_);
     }
     if (sequence_ != 0) {
       output.writeInt32(2, sequence_);
@@ -980,7 +980,7 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(6, getTokens());
     }
-    if (usageStatus_ != ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus.USAGE_COMPLETION_STATUS_UNSPECIFIED.getNumber()) {
+    if (usageStatus_ != ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus.USAGE_COMPLETION_STATUS_UNSPECIFIED.getNumber()) {
       output.writeEnum(7, usageStatus_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(providerRequestId_)) {
@@ -1010,19 +1010,19 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorKeyId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 16, cursorKeyId_);
     }
-    if (cursorKeySource_ != ai.stigmer.agentic.agentexecution.v1.CursorKeySource.CURSOR_KEY_SOURCE_UNSPECIFIED.getNumber()) {
+    if (cursorKeySource_ != ai.stigmer.agentic.agentrun.v1.CursorKeySource.CURSOR_KEY_SOURCE_UNSPECIFIED.getNumber()) {
       output.writeEnum(17, cursorKeySource_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(servedServiceTier_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 18, servedServiceTier_);
     }
     if (((bitField0_ & 0x00000004) != 0)) {
-      output.writeMessage(19, getMeteredExecution());
+      output.writeMessage(19, getMeteredRun());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(callId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 20, callId_);
     }
-    if (providerKeySource_ != ai.stigmer.agentic.agentexecution.v1.ProviderKeySource.PROVIDER_KEY_SOURCE_UNSPECIFIED.getNumber()) {
+    if (providerKeySource_ != ai.stigmer.agentic.agentrun.v1.ProviderKeySource.PROVIDER_KEY_SOURCE_UNSPECIFIED.getNumber()) {
       output.writeEnum(21, providerKeySource_);
     }
     getUnknownFields().writeTo(output);
@@ -1034,8 +1034,8 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(executionId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, executionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, runId_);
     }
     if (sequence_ != 0) {
       size += com.google.protobuf.CodedOutputStream
@@ -1054,7 +1054,7 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(6, getTokens());
     }
-    if (usageStatus_ != ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus.USAGE_COMPLETION_STATUS_UNSPECIFIED.getNumber()) {
+    if (usageStatus_ != ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus.USAGE_COMPLETION_STATUS_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(7, usageStatus_);
     }
@@ -1088,7 +1088,7 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorKeyId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(16, cursorKeyId_);
     }
-    if (cursorKeySource_ != ai.stigmer.agentic.agentexecution.v1.CursorKeySource.CURSOR_KEY_SOURCE_UNSPECIFIED.getNumber()) {
+    if (cursorKeySource_ != ai.stigmer.agentic.agentrun.v1.CursorKeySource.CURSOR_KEY_SOURCE_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(17, cursorKeySource_);
     }
@@ -1097,12 +1097,12 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(19, getMeteredExecution());
+        .computeMessageSize(19, getMeteredRun());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(callId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(20, callId_);
     }
-    if (providerKeySource_ != ai.stigmer.agentic.agentexecution.v1.ProviderKeySource.PROVIDER_KEY_SOURCE_UNSPECIFIED.getNumber()) {
+    if (providerKeySource_ != ai.stigmer.agentic.agentrun.v1.ProviderKeySource.PROVIDER_KEY_SOURCE_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(21, providerKeySource_);
     }
@@ -1121,8 +1121,8 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.billing.v1.RecordLlmCallUsageInput other = (ai.stigmer.billing.v1.RecordLlmCallUsageInput) obj;
 
-    if (!getExecutionId()
-        .equals(other.getExecutionId())) return false;
+    if (!getRunId()
+        .equals(other.getRunId())) return false;
     if (getSequence()
         != other.getSequence()) return false;
     if (!getCallId()
@@ -1163,10 +1163,10 @@ private static final long serialVersionUID = 0L;
     if (cursorKeySource_ != other.cursorKeySource_) return false;
     if (!getServedServiceTier()
         .equals(other.getServedServiceTier())) return false;
-    if (hasMeteredExecution() != other.hasMeteredExecution()) return false;
-    if (hasMeteredExecution()) {
-      if (!getMeteredExecution()
-          .equals(other.getMeteredExecution())) return false;
+    if (hasMeteredRun() != other.hasMeteredRun()) return false;
+    if (hasMeteredRun()) {
+      if (!getMeteredRun()
+          .equals(other.getMeteredRun())) return false;
     }
     if (providerKeySource_ != other.providerKeySource_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -1180,8 +1180,8 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + EXECUTION_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getExecutionId().hashCode();
+    hash = (37 * hash) + RUN_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getRunId().hashCode();
     hash = (37 * hash) + SEQUENCE_FIELD_NUMBER;
     hash = (53 * hash) + getSequence();
     hash = (37 * hash) + CALL_ID_FIELD_NUMBER;
@@ -1223,9 +1223,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + cursorKeySource_;
     hash = (37 * hash) + SERVED_SERVICE_TIER_FIELD_NUMBER;
     hash = (53 * hash) + getServedServiceTier().hashCode();
-    if (hasMeteredExecution()) {
-      hash = (37 * hash) + METERED_EXECUTION_FIELD_NUMBER;
-      hash = (53 * hash) + getMeteredExecution().hashCode();
+    if (hasMeteredRun()) {
+      hash = (37 * hash) + METERED_RUN_FIELD_NUMBER;
+      hash = (53 * hash) + getMeteredRun().hashCode();
     }
     hash = (37 * hash) + PROVIDER_KEY_SOURCE_FIELD_NUMBER;
     hash = (53 * hash) + providerKeySource_;
@@ -1373,14 +1373,14 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetTokensFieldBuilder();
         internalGetProxyTimingFieldBuilder();
-        internalGetMeteredExecutionFieldBuilder();
+        internalGetMeteredRunFieldBuilder();
       }
     }
     @java.lang.Override
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      executionId_ = "";
+      runId_ = "";
       sequence_ = 0;
       callId_ = "";
       provider_ = "";
@@ -1407,10 +1407,10 @@ private static final long serialVersionUID = 0L;
       cursorKeyId_ = "";
       cursorKeySource_ = 0;
       servedServiceTier_ = "";
-      meteredExecution_ = null;
-      if (meteredExecutionBuilder_ != null) {
-        meteredExecutionBuilder_.dispose();
-        meteredExecutionBuilder_ = null;
+      meteredRun_ = null;
+      if (meteredRunBuilder_ != null) {
+        meteredRunBuilder_.dispose();
+        meteredRunBuilder_ = null;
       }
       providerKeySource_ = 0;
       return this;
@@ -1447,7 +1447,7 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.billing.v1.RecordLlmCallUsageInput result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.executionId_ = executionId_;
+        result.runId_ = runId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.sequence_ = sequence_;
@@ -1511,9 +1511,9 @@ private static final long serialVersionUID = 0L;
         result.servedServiceTier_ = servedServiceTier_;
       }
       if (((from_bitField0_ & 0x00080000) != 0)) {
-        result.meteredExecution_ = meteredExecutionBuilder_ == null
-            ? meteredExecution_
-            : meteredExecutionBuilder_.build();
+        result.meteredRun_ = meteredRunBuilder_ == null
+            ? meteredRun_
+            : meteredRunBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
       if (((from_bitField0_ & 0x00100000) != 0)) {
@@ -1534,8 +1534,8 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.billing.v1.RecordLlmCallUsageInput other) {
       if (other == ai.stigmer.billing.v1.RecordLlmCallUsageInput.getDefaultInstance()) return this;
-      if (!other.getExecutionId().isEmpty()) {
-        executionId_ = other.executionId_;
+      if (!other.getRunId().isEmpty()) {
+        runId_ = other.runId_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
@@ -1615,8 +1615,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00040000;
         onChanged();
       }
-      if (other.hasMeteredExecution()) {
-        mergeMeteredExecution(other.getMeteredExecution());
+      if (other.hasMeteredRun()) {
+        mergeMeteredRun(other.getMeteredRun());
       }
       if (other.providerKeySource_ != 0) {
         setProviderKeySourceValue(other.getProviderKeySourceValue());
@@ -1648,7 +1648,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              executionId_ = input.readStringRequireUtf8();
+              runId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
@@ -1743,7 +1743,7 @@ private static final long serialVersionUID = 0L;
             } // case 146
             case 154: {
               input.readMessage(
-                  internalGetMeteredExecutionFieldBuilder().getBuilder(),
+                  internalGetMeteredRunFieldBuilder().getBuilder(),
                   extensionRegistry);
               bitField0_ |= 0x00080000;
               break;
@@ -1775,73 +1775,73 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object executionId_ = "";
+    private java.lang.Object runId_ = "";
     /**
-     * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-     * @return The executionId.
+     * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+     * @return The runId.
      */
-    public java.lang.String getExecutionId() {
-      java.lang.Object ref = executionId_;
+    public java.lang.String getRunId() {
+      java.lang.Object ref = runId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        executionId_ = s;
+        runId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
       }
     }
     /**
-     * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for executionId.
+     * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for runId.
      */
     public com.google.protobuf.ByteString
-        getExecutionIdBytes() {
-      java.lang.Object ref = executionId_;
+        getRunIdBytes() {
+      java.lang.Object ref = runId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        executionId_ = b;
+        runId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
       }
     }
     /**
-     * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-     * @param value The executionId to set.
+     * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+     * @param value The runId to set.
      * @return This builder for chaining.
      */
-    public Builder setExecutionId(
+    public Builder setRunId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      executionId_ = value;
+      runId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
-     * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
+     * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearExecutionId() {
-      executionId_ = getDefaultInstance().getExecutionId();
+    public Builder clearRunId() {
+      runId_ = getDefaultInstance().getRunId();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
     }
     /**
-     * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for executionId to set.
+     * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for runId to set.
      * @return This builder for chaining.
      */
-    public Builder setExecutionIdBytes(
+    public Builder setRunIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      executionId_ = value;
+      runId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
@@ -2288,15 +2288,15 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens_;
+    private ai.stigmer.agentic.agentrun.v1.TokenUsage tokens_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.TokenUsage, ai.stigmer.agentic.agentexecution.v1.TokenUsage.Builder, ai.stigmer.agentic.agentexecution.v1.TokenUsageOrBuilder> tokensBuilder_;
+        ai.stigmer.agentic.agentrun.v1.TokenUsage, ai.stigmer.agentic.agentrun.v1.TokenUsage.Builder, ai.stigmer.agentic.agentrun.v1.TokenUsageOrBuilder> tokensBuilder_;
     /**
      * <pre>
      * Token usage extracted from the provider's SSE stream.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
      * @return Whether the tokens field is set.
      */
     public boolean hasTokens() {
@@ -2307,12 +2307,12 @@ private static final long serialVersionUID = 0L;
      * Token usage extracted from the provider's SSE stream.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
      * @return The tokens.
      */
-    public ai.stigmer.agentic.agentexecution.v1.TokenUsage getTokens() {
+    public ai.stigmer.agentic.agentrun.v1.TokenUsage getTokens() {
       if (tokensBuilder_ == null) {
-        return tokens_ == null ? ai.stigmer.agentic.agentexecution.v1.TokenUsage.getDefaultInstance() : tokens_;
+        return tokens_ == null ? ai.stigmer.agentic.agentrun.v1.TokenUsage.getDefaultInstance() : tokens_;
       } else {
         return tokensBuilder_.getMessage();
       }
@@ -2322,9 +2322,9 @@ private static final long serialVersionUID = 0L;
      * Token usage extracted from the provider's SSE stream.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
      */
-    public Builder setTokens(ai.stigmer.agentic.agentexecution.v1.TokenUsage value) {
+    public Builder setTokens(ai.stigmer.agentic.agentrun.v1.TokenUsage value) {
       if (tokensBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -2342,10 +2342,10 @@ private static final long serialVersionUID = 0L;
      * Token usage extracted from the provider's SSE stream.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
      */
     public Builder setTokens(
-        ai.stigmer.agentic.agentexecution.v1.TokenUsage.Builder builderForValue) {
+        ai.stigmer.agentic.agentrun.v1.TokenUsage.Builder builderForValue) {
       if (tokensBuilder_ == null) {
         tokens_ = builderForValue.build();
       } else {
@@ -2360,13 +2360,13 @@ private static final long serialVersionUID = 0L;
      * Token usage extracted from the provider's SSE stream.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
      */
-    public Builder mergeTokens(ai.stigmer.agentic.agentexecution.v1.TokenUsage value) {
+    public Builder mergeTokens(ai.stigmer.agentic.agentrun.v1.TokenUsage value) {
       if (tokensBuilder_ == null) {
         if (((bitField0_ & 0x00000040) != 0) &&
           tokens_ != null &&
-          tokens_ != ai.stigmer.agentic.agentexecution.v1.TokenUsage.getDefaultInstance()) {
+          tokens_ != ai.stigmer.agentic.agentrun.v1.TokenUsage.getDefaultInstance()) {
           getTokensBuilder().mergeFrom(value);
         } else {
           tokens_ = value;
@@ -2385,7 +2385,7 @@ private static final long serialVersionUID = 0L;
      * Token usage extracted from the provider's SSE stream.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
      */
     public Builder clearTokens() {
       bitField0_ = (bitField0_ & ~0x00000040);
@@ -2402,9 +2402,9 @@ private static final long serialVersionUID = 0L;
      * Token usage extracted from the provider's SSE stream.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.TokenUsage.Builder getTokensBuilder() {
+    public ai.stigmer.agentic.agentrun.v1.TokenUsage.Builder getTokensBuilder() {
       bitField0_ |= 0x00000040;
       onChanged();
       return internalGetTokensFieldBuilder().getBuilder();
@@ -2414,14 +2414,14 @@ private static final long serialVersionUID = 0L;
      * Token usage extracted from the provider's SSE stream.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.TokenUsageOrBuilder getTokensOrBuilder() {
+    public ai.stigmer.agentic.agentrun.v1.TokenUsageOrBuilder getTokensOrBuilder() {
       if (tokensBuilder_ != null) {
         return tokensBuilder_.getMessageOrBuilder();
       } else {
         return tokens_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.TokenUsage.getDefaultInstance() : tokens_;
+            ai.stigmer.agentic.agentrun.v1.TokenUsage.getDefaultInstance() : tokens_;
       }
     }
     /**
@@ -2429,14 +2429,14 @@ private static final long serialVersionUID = 0L;
      * Token usage extracted from the provider's SSE stream.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.TokenUsage, ai.stigmer.agentic.agentexecution.v1.TokenUsage.Builder, ai.stigmer.agentic.agentexecution.v1.TokenUsageOrBuilder> 
+        ai.stigmer.agentic.agentrun.v1.TokenUsage, ai.stigmer.agentic.agentrun.v1.TokenUsage.Builder, ai.stigmer.agentic.agentrun.v1.TokenUsageOrBuilder> 
         internalGetTokensFieldBuilder() {
       if (tokensBuilder_ == null) {
         tokensBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.TokenUsage, ai.stigmer.agentic.agentexecution.v1.TokenUsage.Builder, ai.stigmer.agentic.agentexecution.v1.TokenUsageOrBuilder>(
+            ai.stigmer.agentic.agentrun.v1.TokenUsage, ai.stigmer.agentic.agentrun.v1.TokenUsage.Builder, ai.stigmer.agentic.agentrun.v1.TokenUsageOrBuilder>(
                 getTokens(),
                 getParentForChildren(),
                 isClean());
@@ -2451,7 +2451,7 @@ private static final long serialVersionUID = 0L;
      * Status of usage extraction.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
      * @return The enum numeric value on the wire for usageStatus.
      */
     @java.lang.Override public int getUsageStatusValue() {
@@ -2462,7 +2462,7 @@ private static final long serialVersionUID = 0L;
      * Status of usage extraction.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
      * @param value The enum numeric value on the wire for usageStatus to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
@@ -2478,24 +2478,24 @@ private static final long serialVersionUID = 0L;
      * Status of usage extraction.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
      * @return The usageStatus.
      */
     @java.lang.Override
-    public ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus getUsageStatus() {
-      ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus result = ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus.forNumber(usageStatus_);
-      return result == null ? ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus.UNRECOGNIZED : result;
+    public ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus getUsageStatus() {
+      ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus result = ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus.forNumber(usageStatus_);
+      return result == null ? ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus.UNRECOGNIZED : result;
     }
     /**
      * <pre>
      * Status of usage extraction.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
      * @param value The usageStatus to set.
      * @return This builder for chaining.
      */
-    public Builder setUsageStatus(ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus value) {
+    public Builder setUsageStatus(ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus value) {
       if (value == null) { throw new NullPointerException(); }
       bitField0_ |= 0x00000080;
       usageStatus_ = value.getNumber();
@@ -2507,7 +2507,7 @@ private static final long serialVersionUID = 0L;
      * Status of usage extraction.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus usage_status = 7 [json_name = "usageStatus"];</code>
      * @return This builder for chaining.
      */
     public Builder clearUsageStatus() {
@@ -2789,15 +2789,15 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxyTiming_;
+    private ai.stigmer.agentic.agentrun.v1.ProxyTiming proxyTiming_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.ProxyTiming, ai.stigmer.agentic.agentexecution.v1.ProxyTiming.Builder, ai.stigmer.agentic.agentexecution.v1.ProxyTimingOrBuilder> proxyTimingBuilder_;
+        ai.stigmer.agentic.agentrun.v1.ProxyTiming, ai.stigmer.agentic.agentrun.v1.ProxyTiming.Builder, ai.stigmer.agentic.agentrun.v1.ProxyTimingOrBuilder> proxyTimingBuilder_;
     /**
      * <pre>
      * Proxy-observed timing for this call.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
      * @return Whether the proxyTiming field is set.
      */
     public boolean hasProxyTiming() {
@@ -2808,12 +2808,12 @@ private static final long serialVersionUID = 0L;
      * Proxy-observed timing for this call.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
      * @return The proxyTiming.
      */
-    public ai.stigmer.agentic.agentexecution.v1.ProxyTiming getProxyTiming() {
+    public ai.stigmer.agentic.agentrun.v1.ProxyTiming getProxyTiming() {
       if (proxyTimingBuilder_ == null) {
-        return proxyTiming_ == null ? ai.stigmer.agentic.agentexecution.v1.ProxyTiming.getDefaultInstance() : proxyTiming_;
+        return proxyTiming_ == null ? ai.stigmer.agentic.agentrun.v1.ProxyTiming.getDefaultInstance() : proxyTiming_;
       } else {
         return proxyTimingBuilder_.getMessage();
       }
@@ -2823,9 +2823,9 @@ private static final long serialVersionUID = 0L;
      * Proxy-observed timing for this call.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
      */
-    public Builder setProxyTiming(ai.stigmer.agentic.agentexecution.v1.ProxyTiming value) {
+    public Builder setProxyTiming(ai.stigmer.agentic.agentrun.v1.ProxyTiming value) {
       if (proxyTimingBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -2843,10 +2843,10 @@ private static final long serialVersionUID = 0L;
      * Proxy-observed timing for this call.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
      */
     public Builder setProxyTiming(
-        ai.stigmer.agentic.agentexecution.v1.ProxyTiming.Builder builderForValue) {
+        ai.stigmer.agentic.agentrun.v1.ProxyTiming.Builder builderForValue) {
       if (proxyTimingBuilder_ == null) {
         proxyTiming_ = builderForValue.build();
       } else {
@@ -2861,13 +2861,13 @@ private static final long serialVersionUID = 0L;
      * Proxy-observed timing for this call.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
      */
-    public Builder mergeProxyTiming(ai.stigmer.agentic.agentexecution.v1.ProxyTiming value) {
+    public Builder mergeProxyTiming(ai.stigmer.agentic.agentrun.v1.ProxyTiming value) {
       if (proxyTimingBuilder_ == null) {
         if (((bitField0_ & 0x00001000) != 0) &&
           proxyTiming_ != null &&
-          proxyTiming_ != ai.stigmer.agentic.agentexecution.v1.ProxyTiming.getDefaultInstance()) {
+          proxyTiming_ != ai.stigmer.agentic.agentrun.v1.ProxyTiming.getDefaultInstance()) {
           getProxyTimingBuilder().mergeFrom(value);
         } else {
           proxyTiming_ = value;
@@ -2886,7 +2886,7 @@ private static final long serialVersionUID = 0L;
      * Proxy-observed timing for this call.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
      */
     public Builder clearProxyTiming() {
       bitField0_ = (bitField0_ & ~0x00001000);
@@ -2903,9 +2903,9 @@ private static final long serialVersionUID = 0L;
      * Proxy-observed timing for this call.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.ProxyTiming.Builder getProxyTimingBuilder() {
+    public ai.stigmer.agentic.agentrun.v1.ProxyTiming.Builder getProxyTimingBuilder() {
       bitField0_ |= 0x00001000;
       onChanged();
       return internalGetProxyTimingFieldBuilder().getBuilder();
@@ -2915,14 +2915,14 @@ private static final long serialVersionUID = 0L;
      * Proxy-observed timing for this call.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.ProxyTimingOrBuilder getProxyTimingOrBuilder() {
+    public ai.stigmer.agentic.agentrun.v1.ProxyTimingOrBuilder getProxyTimingOrBuilder() {
       if (proxyTimingBuilder_ != null) {
         return proxyTimingBuilder_.getMessageOrBuilder();
       } else {
         return proxyTiming_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.ProxyTiming.getDefaultInstance() : proxyTiming_;
+            ai.stigmer.agentic.agentrun.v1.ProxyTiming.getDefaultInstance() : proxyTiming_;
       }
     }
     /**
@@ -2930,14 +2930,14 @@ private static final long serialVersionUID = 0L;
      * Proxy-observed timing for this call.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.ProxyTiming, ai.stigmer.agentic.agentexecution.v1.ProxyTiming.Builder, ai.stigmer.agentic.agentexecution.v1.ProxyTimingOrBuilder> 
+        ai.stigmer.agentic.agentrun.v1.ProxyTiming, ai.stigmer.agentic.agentrun.v1.ProxyTiming.Builder, ai.stigmer.agentic.agentrun.v1.ProxyTimingOrBuilder> 
         internalGetProxyTimingFieldBuilder() {
       if (proxyTimingBuilder_ == null) {
         proxyTimingBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.ProxyTiming, ai.stigmer.agentic.agentexecution.v1.ProxyTiming.Builder, ai.stigmer.agentic.agentexecution.v1.ProxyTimingOrBuilder>(
+            ai.stigmer.agentic.agentrun.v1.ProxyTiming, ai.stigmer.agentic.agentrun.v1.ProxyTiming.Builder, ai.stigmer.agentic.agentrun.v1.ProxyTimingOrBuilder>(
                 getProxyTiming(),
                 getParentForChildren(),
                 isClean());
@@ -3338,7 +3338,7 @@ private static final long serialVersionUID = 0L;
      * caller.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
      * @return The enum numeric value on the wire for cursorKeySource.
      */
     @java.lang.Override public int getCursorKeySourceValue() {
@@ -3352,7 +3352,7 @@ private static final long serialVersionUID = 0L;
      * caller.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
      * @param value The enum numeric value on the wire for cursorKeySource to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
@@ -3371,13 +3371,13 @@ private static final long serialVersionUID = 0L;
      * caller.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
      * @return The cursorKeySource.
      */
     @java.lang.Override
-    public ai.stigmer.agentic.agentexecution.v1.CursorKeySource getCursorKeySource() {
-      ai.stigmer.agentic.agentexecution.v1.CursorKeySource result = ai.stigmer.agentic.agentexecution.v1.CursorKeySource.forNumber(cursorKeySource_);
-      return result == null ? ai.stigmer.agentic.agentexecution.v1.CursorKeySource.UNRECOGNIZED : result;
+    public ai.stigmer.agentic.agentrun.v1.CursorKeySource getCursorKeySource() {
+      ai.stigmer.agentic.agentrun.v1.CursorKeySource result = ai.stigmer.agentic.agentrun.v1.CursorKeySource.forNumber(cursorKeySource_);
+      return result == null ? ai.stigmer.agentic.agentrun.v1.CursorKeySource.UNRECOGNIZED : result;
     }
     /**
      * <pre>
@@ -3387,11 +3387,11 @@ private static final long serialVersionUID = 0L;
      * caller.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
      * @param value The cursorKeySource to set.
      * @return This builder for chaining.
      */
-    public Builder setCursorKeySource(ai.stigmer.agentic.agentexecution.v1.CursorKeySource value) {
+    public Builder setCursorKeySource(ai.stigmer.agentic.agentrun.v1.CursorKeySource value) {
       if (value == null) { throw new NullPointerException(); }
       bitField0_ |= 0x00020000;
       cursorKeySource_ = value.getNumber();
@@ -3406,7 +3406,7 @@ private static final long serialVersionUID = 0L;
      * caller.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
      * @return This builder for chaining.
      */
     public Builder clearCursorKeySource() {
@@ -3548,12 +3548,12 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private ai.stigmer.billing.v1.MeteredExecution meteredExecution_;
+    private ai.stigmer.billing.v1.MeteredRun meteredRun_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.billing.v1.MeteredExecution, ai.stigmer.billing.v1.MeteredExecution.Builder, ai.stigmer.billing.v1.MeteredExecutionOrBuilder> meteredExecutionBuilder_;
+        ai.stigmer.billing.v1.MeteredRun, ai.stigmer.billing.v1.MeteredRun.Builder, ai.stigmer.billing.v1.MeteredRunOrBuilder> meteredRunBuilder_;
     /**
      * <pre>
-     * The agent execution this call is metered under, as the proxy resolved
+     * The agent run this call is metered under, as the proxy resolved
      * it from the execution's system of record — on the caller's own
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
@@ -3566,15 +3566,15 @@ private static final long serialVersionUID = 0L;
      * is skipped.
      * </pre>
      *
-     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
-     * @return Whether the meteredExecution field is set.
+     * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
+     * @return Whether the meteredRun field is set.
      */
-    public boolean hasMeteredExecution() {
+    public boolean hasMeteredRun() {
       return ((bitField0_ & 0x00080000) != 0);
     }
     /**
      * <pre>
-     * The agent execution this call is metered under, as the proxy resolved
+     * The agent run this call is metered under, as the proxy resolved
      * it from the execution's system of record — on the caller's own
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
@@ -3587,19 +3587,19 @@ private static final long serialVersionUID = 0L;
      * is skipped.
      * </pre>
      *
-     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
-     * @return The meteredExecution.
+     * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
+     * @return The meteredRun.
      */
-    public ai.stigmer.billing.v1.MeteredExecution getMeteredExecution() {
-      if (meteredExecutionBuilder_ == null) {
-        return meteredExecution_ == null ? ai.stigmer.billing.v1.MeteredExecution.getDefaultInstance() : meteredExecution_;
+    public ai.stigmer.billing.v1.MeteredRun getMeteredRun() {
+      if (meteredRunBuilder_ == null) {
+        return meteredRun_ == null ? ai.stigmer.billing.v1.MeteredRun.getDefaultInstance() : meteredRun_;
       } else {
-        return meteredExecutionBuilder_.getMessage();
+        return meteredRunBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * The agent execution this call is metered under, as the proxy resolved
+     * The agent run this call is metered under, as the proxy resolved
      * it from the execution's system of record — on the caller's own
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
@@ -3612,16 +3612,16 @@ private static final long serialVersionUID = 0L;
      * is skipped.
      * </pre>
      *
-     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
      */
-    public Builder setMeteredExecution(ai.stigmer.billing.v1.MeteredExecution value) {
-      if (meteredExecutionBuilder_ == null) {
+    public Builder setMeteredRun(ai.stigmer.billing.v1.MeteredRun value) {
+      if (meteredRunBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        meteredExecution_ = value;
+        meteredRun_ = value;
       } else {
-        meteredExecutionBuilder_.setMessage(value);
+        meteredRunBuilder_.setMessage(value);
       }
       bitField0_ |= 0x00080000;
       onChanged();
@@ -3629,7 +3629,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The agent execution this call is metered under, as the proxy resolved
+     * The agent run this call is metered under, as the proxy resolved
      * it from the execution's system of record — on the caller's own
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
@@ -3642,14 +3642,14 @@ private static final long serialVersionUID = 0L;
      * is skipped.
      * </pre>
      *
-     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
      */
-    public Builder setMeteredExecution(
-        ai.stigmer.billing.v1.MeteredExecution.Builder builderForValue) {
-      if (meteredExecutionBuilder_ == null) {
-        meteredExecution_ = builderForValue.build();
+    public Builder setMeteredRun(
+        ai.stigmer.billing.v1.MeteredRun.Builder builderForValue) {
+      if (meteredRunBuilder_ == null) {
+        meteredRun_ = builderForValue.build();
       } else {
-        meteredExecutionBuilder_.setMessage(builderForValue.build());
+        meteredRunBuilder_.setMessage(builderForValue.build());
       }
       bitField0_ |= 0x00080000;
       onChanged();
@@ -3657,7 +3657,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The agent execution this call is metered under, as the proxy resolved
+     * The agent run this call is metered under, as the proxy resolved
      * it from the execution's system of record — on the caller's own
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
@@ -3670,21 +3670,21 @@ private static final long serialVersionUID = 0L;
      * is skipped.
      * </pre>
      *
-     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
      */
-    public Builder mergeMeteredExecution(ai.stigmer.billing.v1.MeteredExecution value) {
-      if (meteredExecutionBuilder_ == null) {
+    public Builder mergeMeteredRun(ai.stigmer.billing.v1.MeteredRun value) {
+      if (meteredRunBuilder_ == null) {
         if (((bitField0_ & 0x00080000) != 0) &&
-          meteredExecution_ != null &&
-          meteredExecution_ != ai.stigmer.billing.v1.MeteredExecution.getDefaultInstance()) {
-          getMeteredExecutionBuilder().mergeFrom(value);
+          meteredRun_ != null &&
+          meteredRun_ != ai.stigmer.billing.v1.MeteredRun.getDefaultInstance()) {
+          getMeteredRunBuilder().mergeFrom(value);
         } else {
-          meteredExecution_ = value;
+          meteredRun_ = value;
         }
       } else {
-        meteredExecutionBuilder_.mergeFrom(value);
+        meteredRunBuilder_.mergeFrom(value);
       }
-      if (meteredExecution_ != null) {
+      if (meteredRun_ != null) {
         bitField0_ |= 0x00080000;
         onChanged();
       }
@@ -3692,7 +3692,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The agent execution this call is metered under, as the proxy resolved
+     * The agent run this call is metered under, as the proxy resolved
      * it from the execution's system of record — on the caller's own
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
@@ -3705,21 +3705,21 @@ private static final long serialVersionUID = 0L;
      * is skipped.
      * </pre>
      *
-     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
      */
-    public Builder clearMeteredExecution() {
+    public Builder clearMeteredRun() {
       bitField0_ = (bitField0_ & ~0x00080000);
-      meteredExecution_ = null;
-      if (meteredExecutionBuilder_ != null) {
-        meteredExecutionBuilder_.dispose();
-        meteredExecutionBuilder_ = null;
+      meteredRun_ = null;
+      if (meteredRunBuilder_ != null) {
+        meteredRunBuilder_.dispose();
+        meteredRunBuilder_ = null;
       }
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The agent execution this call is metered under, as the proxy resolved
+     * The agent run this call is metered under, as the proxy resolved
      * it from the execution's system of record — on the caller's own
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
@@ -3732,16 +3732,16 @@ private static final long serialVersionUID = 0L;
      * is skipped.
      * </pre>
      *
-     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
      */
-    public ai.stigmer.billing.v1.MeteredExecution.Builder getMeteredExecutionBuilder() {
+    public ai.stigmer.billing.v1.MeteredRun.Builder getMeteredRunBuilder() {
       bitField0_ |= 0x00080000;
       onChanged();
-      return internalGetMeteredExecutionFieldBuilder().getBuilder();
+      return internalGetMeteredRunFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * The agent execution this call is metered under, as the proxy resolved
+     * The agent run this call is metered under, as the proxy resolved
      * it from the execution's system of record — on the caller's own
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
@@ -3754,19 +3754,19 @@ private static final long serialVersionUID = 0L;
      * is skipped.
      * </pre>
      *
-     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
      */
-    public ai.stigmer.billing.v1.MeteredExecutionOrBuilder getMeteredExecutionOrBuilder() {
-      if (meteredExecutionBuilder_ != null) {
-        return meteredExecutionBuilder_.getMessageOrBuilder();
+    public ai.stigmer.billing.v1.MeteredRunOrBuilder getMeteredRunOrBuilder() {
+      if (meteredRunBuilder_ != null) {
+        return meteredRunBuilder_.getMessageOrBuilder();
       } else {
-        return meteredExecution_ == null ?
-            ai.stigmer.billing.v1.MeteredExecution.getDefaultInstance() : meteredExecution_;
+        return meteredRun_ == null ?
+            ai.stigmer.billing.v1.MeteredRun.getDefaultInstance() : meteredRun_;
       }
     }
     /**
      * <pre>
-     * The agent execution this call is metered under, as the proxy resolved
+     * The agent run this call is metered under, as the proxy resolved
      * it from the execution's system of record — on the caller's own
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
@@ -3779,20 +3779,20 @@ private static final long serialVersionUID = 0L;
      * is skipped.
      * </pre>
      *
-     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.billing.v1.MeteredExecution, ai.stigmer.billing.v1.MeteredExecution.Builder, ai.stigmer.billing.v1.MeteredExecutionOrBuilder> 
-        internalGetMeteredExecutionFieldBuilder() {
-      if (meteredExecutionBuilder_ == null) {
-        meteredExecutionBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.billing.v1.MeteredExecution, ai.stigmer.billing.v1.MeteredExecution.Builder, ai.stigmer.billing.v1.MeteredExecutionOrBuilder>(
-                getMeteredExecution(),
+        ai.stigmer.billing.v1.MeteredRun, ai.stigmer.billing.v1.MeteredRun.Builder, ai.stigmer.billing.v1.MeteredRunOrBuilder> 
+        internalGetMeteredRunFieldBuilder() {
+      if (meteredRunBuilder_ == null) {
+        meteredRunBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.billing.v1.MeteredRun, ai.stigmer.billing.v1.MeteredRun.Builder, ai.stigmer.billing.v1.MeteredRunOrBuilder>(
+                getMeteredRun(),
                 getParentForChildren(),
                 isClean());
-        meteredExecution_ = null;
+        meteredRun_ = null;
       }
-      return meteredExecutionBuilder_;
+      return meteredRunBuilder_;
     }
 
     private int providerKeySource_ = 0;
@@ -3806,7 +3806,7 @@ private static final long serialVersionUID = 0L;
      * that predates the field, read as the platform's key.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
      * @return The enum numeric value on the wire for providerKeySource.
      */
     @java.lang.Override public int getProviderKeySourceValue() {
@@ -3822,7 +3822,7 @@ private static final long serialVersionUID = 0L;
      * that predates the field, read as the platform's key.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
      * @param value The enum numeric value on the wire for providerKeySource to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
@@ -3843,13 +3843,13 @@ private static final long serialVersionUID = 0L;
      * that predates the field, read as the platform's key.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
      * @return The providerKeySource.
      */
     @java.lang.Override
-    public ai.stigmer.agentic.agentexecution.v1.ProviderKeySource getProviderKeySource() {
-      ai.stigmer.agentic.agentexecution.v1.ProviderKeySource result = ai.stigmer.agentic.agentexecution.v1.ProviderKeySource.forNumber(providerKeySource_);
-      return result == null ? ai.stigmer.agentic.agentexecution.v1.ProviderKeySource.UNRECOGNIZED : result;
+    public ai.stigmer.agentic.agentrun.v1.ProviderKeySource getProviderKeySource() {
+      ai.stigmer.agentic.agentrun.v1.ProviderKeySource result = ai.stigmer.agentic.agentrun.v1.ProviderKeySource.forNumber(providerKeySource_);
+      return result == null ? ai.stigmer.agentic.agentrun.v1.ProviderKeySource.UNRECOGNIZED : result;
     }
     /**
      * <pre>
@@ -3861,11 +3861,11 @@ private static final long serialVersionUID = 0L;
      * that predates the field, read as the platform's key.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
      * @param value The providerKeySource to set.
      * @return This builder for chaining.
      */
-    public Builder setProviderKeySource(ai.stigmer.agentic.agentexecution.v1.ProviderKeySource value) {
+    public Builder setProviderKeySource(ai.stigmer.agentic.agentrun.v1.ProviderKeySource value) {
       if (value == null) { throw new NullPointerException(); }
       bitField0_ |= 0x00100000;
       providerKeySource_ = value.getNumber();
@@ -3882,7 +3882,7 @@ private static final long serialVersionUID = 0L;
      * that predates the field, read as the platform's key.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
      * @return This builder for chaining.
      */
     public Builder clearProviderKeySource() {

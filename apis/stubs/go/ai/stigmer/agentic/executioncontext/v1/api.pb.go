@@ -23,7 +23,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Ephemeral runtime configuration and secrets scoped to a single execution.
+// Ephemeral runtime configuration and secrets scoped to a single run.
 type ExecutionContext struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

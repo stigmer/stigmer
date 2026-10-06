@@ -8,7 +8,7 @@ package agentv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v12 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
+	v12 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
 	v11 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
 	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	v14 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
@@ -417,7 +417,7 @@ var File_ai_stigmer_agentic_agent_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a5ai/stigmer/agentic/agentexecution/v1/invocation.proto\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a+ai/stigmer/agentic/mcpserver/v1/usage.proto\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb7\n" +
+	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a/ai/stigmer/agentic/agentrun/v1/invocation.proto\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a+ai/stigmer/agentic/mcpserver/v1/usage.proto\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb1\n" +
 	"\n" +
 	"\tAgentSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
@@ -435,9 +435,9 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\x05tools\x18\n" +
 	" \x03(\tBt\xbaHq\x92\x01n\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x05tools\x12\x9f\x01\n" +
 	"\x10disallowed_tools\x18\v \x03(\tBt\xbaHq\x92\x01n\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x0fdisallowedTools\x12=\n" +
-	"\x05hooks\x18\f \x03(\v2'.ai.stigmer.agentic.agent.v1.HookSourceR\x05hooks\x12N\n" +
+	"\x05hooks\x18\f \x03(\v2'.ai.stigmer.agentic.agent.v1.HookSourceR\x05hooks\x12H\n" +
 	"\n" +
-	"run_config\x18\r \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\x12@\n" +
+	"run_config\x18\r \x01(\v2).ai.stigmer.agentic.agentrun.v1.RunConfigR\trunConfig\x12@\n" +
 	"\aharness\x18\x0e \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x1al\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
@@ -483,7 +483,7 @@ var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
 	nil,                                      // 3: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
 	(*v1.McpServerUsage)(nil),                // 4: ai.stigmer.agentic.mcpserver.v1.McpServerUsage
 	(*apiresource.ApiResourceReference)(nil), // 5: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v12.RunConfig)(nil),                    // 6: ai.stigmer.agentic.agentexecution.v1.RunConfig
+	(*v12.RunConfig)(nil),                    // 6: ai.stigmer.agentic.agentrun.v1.RunConfig
 	(v13.Harness)(0),                         // 7: ai.stigmer.agentic.session.v1.Harness
 	(*v14.HookConfig)(nil),                   // 8: ai.stigmer.agentic.plugin.v1.HookConfig
 	(*v11.EnvVarDeclaration)(nil),            // 9: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
@@ -494,7 +494,7 @@ var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
 	2,  // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
 	3,  // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
 	1,  // 4: ai.stigmer.agentic.agent.v1.AgentSpec.hooks:type_name -> ai.stigmer.agentic.agent.v1.HookSource
-	6,  // 5: ai.stigmer.agentic.agent.v1.AgentSpec.run_config:type_name -> ai.stigmer.agentic.agentexecution.v1.RunConfig
+	6,  // 5: ai.stigmer.agentic.agent.v1.AgentSpec.run_config:type_name -> ai.stigmer.agentic.agentrun.v1.RunConfig
 	7,  // 6: ai.stigmer.agentic.agent.v1.AgentSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
 	5,  // 7: ai.stigmer.agentic.agent.v1.HookSource.plugin:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	8,  // 8: ai.stigmer.agentic.agent.v1.HookSource.inline:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig

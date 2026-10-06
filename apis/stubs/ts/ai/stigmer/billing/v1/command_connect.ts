@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, CreatePaymentMethodSetupSessionInput, CreatePaymentMethodSetupSessionResponse, DecideModelPricingOverrideInput, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, GrantCreditsInput, RearmForRecoveryInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeRunInput, AuthorizeRunResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, CreatePaymentMethodSetupSessionInput, CreatePaymentMethodSetupSessionResponse, DecideModelPricingOverrideInput, FinalizeRunInput, FinalizeRunResponse, GetOrCreateBillingAccountInput, GrantCreditsInput, RearmForRecoveryInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
@@ -69,15 +69,15 @@ export const BillingCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Reserve credits before starting an agent execution.
+     * Reserve credits before starting an agent run.
      * Returns authorization status and reservation details.
      *
-     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.authorizeExecution
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.authorizeRun
      */
-    authorizeExecution: {
-      name: "authorizeExecution",
-      I: AuthorizeExecutionInput,
-      O: AuthorizeExecutionResponse,
+    authorizeRun: {
+      name: "authorizeRun",
+      I: AuthorizeRunInput,
+      O: AuthorizeRunResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -94,15 +94,15 @@ export const BillingCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Settle billing for a completed execution.
+     * Settle billing for a completed run.
      * Releases unused reservation credits and produces the final billing record.
      *
-     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.finalizeExecution
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.finalizeRun
      */
-    finalizeExecution: {
-      name: "finalizeExecution",
-      I: FinalizeExecutionInput,
-      O: FinalizeExecutionResponse,
+    finalizeRun: {
+      name: "finalizeRun",
+      I: FinalizeRunInput,
+      O: FinalizeRunResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -110,7 +110,7 @@ export const BillingCommandController = {
      * The one sanctioned path past the settled-reservation latch: re-runs
      * the affordability check, transfers a fresh hold, and rotates the
      * reservation id as the fence against settles still in flight from the
-     * terminated run. Returns the same shape as authorizeExecution, with
+     * terminated run. Returns the same shape as authorizeRun, with
      * the rotated reservation id.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.rearmForRecovery
@@ -118,7 +118,7 @@ export const BillingCommandController = {
     rearmForRecovery: {
       name: "rearmForRecovery",
       I: RearmForRecoveryInput,
-      O: AuthorizeExecutionResponse,
+      O: AuthorizeRunResponse,
       kind: MethodKind.Unary,
     },
     /**

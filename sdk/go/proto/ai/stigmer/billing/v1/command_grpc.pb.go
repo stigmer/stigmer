@@ -22,9 +22,9 @@ const (
 	BillingCommandController_GetOrCreateBillingAccount_FullMethodName       = "/ai.stigmer.billing.v1.BillingCommandController/getOrCreateBillingAccount"
 	BillingCommandController_AdjustCredits_FullMethodName                   = "/ai.stigmer.billing.v1.BillingCommandController/adjustCredits"
 	BillingCommandController_GrantCredits_FullMethodName                    = "/ai.stigmer.billing.v1.BillingCommandController/grantCredits"
-	BillingCommandController_AuthorizeExecution_FullMethodName              = "/ai.stigmer.billing.v1.BillingCommandController/authorizeExecution"
+	BillingCommandController_AuthorizeRun_FullMethodName                    = "/ai.stigmer.billing.v1.BillingCommandController/authorizeRun"
 	BillingCommandController_RecordLlmCallUsage_FullMethodName              = "/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage"
-	BillingCommandController_FinalizeExecution_FullMethodName               = "/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution"
+	BillingCommandController_FinalizeRun_FullMethodName                     = "/ai.stigmer.billing.v1.BillingCommandController/finalizeRun"
 	BillingCommandController_RearmForRecovery_FullMethodName                = "/ai.stigmer.billing.v1.BillingCommandController/rearmForRecovery"
 	BillingCommandController_CreateCreditCheckoutSession_FullMethodName     = "/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession"
 	BillingCommandController_CreateBillingPortalSession_FullMethodName      = "/ai.stigmer.billing.v1.BillingCommandController/createBillingPortalSession"
@@ -63,23 +63,23 @@ type BillingCommandControllerClient interface {
 	// entry, even after the expiry has passed. Requires can_manage_credits on
 	// the platform, as adjustCredits does.
 	GrantCredits(ctx context.Context, in *GrantCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error)
-	// Reserve credits before starting an agent execution.
+	// Reserve credits before starting an agent run.
 	// Returns authorization status and reservation details.
-	AuthorizeExecution(ctx context.Context, in *AuthorizeExecutionInput, opts ...grpc.CallOption) (*AuthorizeExecutionResponse, error)
+	AuthorizeRun(ctx context.Context, in *AuthorizeRunInput, opts ...grpc.CallOption) (*AuthorizeRunResponse, error)
 	// Record a single LLM call's usage for billing.
 	// Computes cost server-side from the model registry, inserts an immutable
 	// LlmCallUsageRecord, and debits credits from the execution's reservation.
 	RecordLlmCallUsage(ctx context.Context, in *RecordLlmCallUsageInput, opts ...grpc.CallOption) (*RecordLlmCallUsageResponse, error)
-	// Settle billing for a completed execution.
+	// Settle billing for a completed run.
 	// Releases unused reservation credits and produces the final billing record.
-	FinalizeExecution(ctx context.Context, in *FinalizeExecutionInput, opts ...grpc.CallOption) (*FinalizeExecutionResponse, error)
+	FinalizeRun(ctx context.Context, in *FinalizeRunInput, opts ...grpc.CallOption) (*FinalizeRunResponse, error)
 	// Re-arm a settled reservation so a failed execution can be recovered.
 	// The one sanctioned path past the settled-reservation latch: re-runs
 	// the affordability check, transfers a fresh hold, and rotates the
 	// reservation id as the fence against settles still in flight from the
-	// terminated run. Returns the same shape as authorizeExecution, with
+	// terminated run. Returns the same shape as authorizeRun, with
 	// the rotated reservation id.
-	RearmForRecovery(ctx context.Context, in *RearmForRecoveryInput, opts ...grpc.CallOption) (*AuthorizeExecutionResponse, error)
+	RearmForRecovery(ctx context.Context, in *RearmForRecoveryInput, opts ...grpc.CallOption) (*AuthorizeRunResponse, error)
 	// Create a Stripe Checkout Session to purchase a credit pack.
 	// Returns a checkout URL for the client to redirect the user.
 	//
@@ -164,10 +164,10 @@ func (c *billingCommandControllerClient) GrantCredits(ctx context.Context, in *G
 	return out, nil
 }
 
-func (c *billingCommandControllerClient) AuthorizeExecution(ctx context.Context, in *AuthorizeExecutionInput, opts ...grpc.CallOption) (*AuthorizeExecutionResponse, error) {
+func (c *billingCommandControllerClient) AuthorizeRun(ctx context.Context, in *AuthorizeRunInput, opts ...grpc.CallOption) (*AuthorizeRunResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AuthorizeExecutionResponse)
-	err := c.cc.Invoke(ctx, BillingCommandController_AuthorizeExecution_FullMethodName, in, out, cOpts...)
+	out := new(AuthorizeRunResponse)
+	err := c.cc.Invoke(ctx, BillingCommandController_AuthorizeRun_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -184,19 +184,19 @@ func (c *billingCommandControllerClient) RecordLlmCallUsage(ctx context.Context,
 	return out, nil
 }
 
-func (c *billingCommandControllerClient) FinalizeExecution(ctx context.Context, in *FinalizeExecutionInput, opts ...grpc.CallOption) (*FinalizeExecutionResponse, error) {
+func (c *billingCommandControllerClient) FinalizeRun(ctx context.Context, in *FinalizeRunInput, opts ...grpc.CallOption) (*FinalizeRunResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(FinalizeExecutionResponse)
-	err := c.cc.Invoke(ctx, BillingCommandController_FinalizeExecution_FullMethodName, in, out, cOpts...)
+	out := new(FinalizeRunResponse)
+	err := c.cc.Invoke(ctx, BillingCommandController_FinalizeRun_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *billingCommandControllerClient) RearmForRecovery(ctx context.Context, in *RearmForRecoveryInput, opts ...grpc.CallOption) (*AuthorizeExecutionResponse, error) {
+func (c *billingCommandControllerClient) RearmForRecovery(ctx context.Context, in *RearmForRecoveryInput, opts ...grpc.CallOption) (*AuthorizeRunResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AuthorizeExecutionResponse)
+	out := new(AuthorizeRunResponse)
 	err := c.cc.Invoke(ctx, BillingCommandController_RearmForRecovery_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -302,23 +302,23 @@ type BillingCommandControllerServer interface {
 	// entry, even after the expiry has passed. Requires can_manage_credits on
 	// the platform, as adjustCredits does.
 	GrantCredits(context.Context, *GrantCreditsInput) (*CreditLedgerEntry, error)
-	// Reserve credits before starting an agent execution.
+	// Reserve credits before starting an agent run.
 	// Returns authorization status and reservation details.
-	AuthorizeExecution(context.Context, *AuthorizeExecutionInput) (*AuthorizeExecutionResponse, error)
+	AuthorizeRun(context.Context, *AuthorizeRunInput) (*AuthorizeRunResponse, error)
 	// Record a single LLM call's usage for billing.
 	// Computes cost server-side from the model registry, inserts an immutable
 	// LlmCallUsageRecord, and debits credits from the execution's reservation.
 	RecordLlmCallUsage(context.Context, *RecordLlmCallUsageInput) (*RecordLlmCallUsageResponse, error)
-	// Settle billing for a completed execution.
+	// Settle billing for a completed run.
 	// Releases unused reservation credits and produces the final billing record.
-	FinalizeExecution(context.Context, *FinalizeExecutionInput) (*FinalizeExecutionResponse, error)
+	FinalizeRun(context.Context, *FinalizeRunInput) (*FinalizeRunResponse, error)
 	// Re-arm a settled reservation so a failed execution can be recovered.
 	// The one sanctioned path past the settled-reservation latch: re-runs
 	// the affordability check, transfers a fresh hold, and rotates the
 	// reservation id as the fence against settles still in flight from the
-	// terminated run. Returns the same shape as authorizeExecution, with
+	// terminated run. Returns the same shape as authorizeRun, with
 	// the rotated reservation id.
-	RearmForRecovery(context.Context, *RearmForRecoveryInput) (*AuthorizeExecutionResponse, error)
+	RearmForRecovery(context.Context, *RearmForRecoveryInput) (*AuthorizeRunResponse, error)
 	// Create a Stripe Checkout Session to purchase a credit pack.
 	// Returns a checkout URL for the client to redirect the user.
 	//
@@ -381,16 +381,16 @@ func (UnimplementedBillingCommandControllerServer) AdjustCredits(context.Context
 func (UnimplementedBillingCommandControllerServer) GrantCredits(context.Context, *GrantCreditsInput) (*CreditLedgerEntry, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GrantCredits not implemented")
 }
-func (UnimplementedBillingCommandControllerServer) AuthorizeExecution(context.Context, *AuthorizeExecutionInput) (*AuthorizeExecutionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthorizeExecution not implemented")
+func (UnimplementedBillingCommandControllerServer) AuthorizeRun(context.Context, *AuthorizeRunInput) (*AuthorizeRunResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthorizeRun not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) RecordLlmCallUsage(context.Context, *RecordLlmCallUsageInput) (*RecordLlmCallUsageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RecordLlmCallUsage not implemented")
 }
-func (UnimplementedBillingCommandControllerServer) FinalizeExecution(context.Context, *FinalizeExecutionInput) (*FinalizeExecutionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FinalizeExecution not implemented")
+func (UnimplementedBillingCommandControllerServer) FinalizeRun(context.Context, *FinalizeRunInput) (*FinalizeRunResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FinalizeRun not implemented")
 }
-func (UnimplementedBillingCommandControllerServer) RearmForRecovery(context.Context, *RearmForRecoveryInput) (*AuthorizeExecutionResponse, error) {
+func (UnimplementedBillingCommandControllerServer) RearmForRecovery(context.Context, *RearmForRecoveryInput) (*AuthorizeRunResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RearmForRecovery not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) CreateCreditCheckoutSession(context.Context, *CreateCreditCheckoutSessionInput) (*CreateCreditCheckoutSessionResponse, error) {
@@ -488,20 +488,20 @@ func _BillingCommandController_GrantCredits_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BillingCommandController_AuthorizeExecution_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthorizeExecutionInput)
+func _BillingCommandController_AuthorizeRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthorizeRunInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BillingCommandControllerServer).AuthorizeExecution(ctx, in)
+		return srv.(BillingCommandControllerServer).AuthorizeRun(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: BillingCommandController_AuthorizeExecution_FullMethodName,
+		FullMethod: BillingCommandController_AuthorizeRun_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingCommandControllerServer).AuthorizeExecution(ctx, req.(*AuthorizeExecutionInput))
+		return srv.(BillingCommandControllerServer).AuthorizeRun(ctx, req.(*AuthorizeRunInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -524,20 +524,20 @@ func _BillingCommandController_RecordLlmCallUsage_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BillingCommandController_FinalizeExecution_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FinalizeExecutionInput)
+func _BillingCommandController_FinalizeRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FinalizeRunInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BillingCommandControllerServer).FinalizeExecution(ctx, in)
+		return srv.(BillingCommandControllerServer).FinalizeRun(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: BillingCommandController_FinalizeExecution_FullMethodName,
+		FullMethod: BillingCommandController_FinalizeRun_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingCommandControllerServer).FinalizeExecution(ctx, req.(*FinalizeExecutionInput))
+		return srv.(BillingCommandControllerServer).FinalizeRun(ctx, req.(*FinalizeRunInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -706,16 +706,16 @@ var BillingCommandController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BillingCommandController_GrantCredits_Handler,
 		},
 		{
-			MethodName: "authorizeExecution",
-			Handler:    _BillingCommandController_AuthorizeExecution_Handler,
+			MethodName: "authorizeRun",
+			Handler:    _BillingCommandController_AuthorizeRun_Handler,
 		},
 		{
 			MethodName: "recordLlmCallUsage",
 			Handler:    _BillingCommandController_RecordLlmCallUsage_Handler,
 		},
 		{
-			MethodName: "finalizeExecution",
-			Handler:    _BillingCommandController_FinalizeExecution_Handler,
+			MethodName: "finalizeRun",
+			Handler:    _BillingCommandController_FinalizeRun_Handler,
 		},
 		{
 			MethodName: "rearmForRecovery",

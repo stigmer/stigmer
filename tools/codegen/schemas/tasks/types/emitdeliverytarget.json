@@ -24,7 +24,7 @@
         "kind": "message",
         "messageType": "SignalDelivery"
       },
-      "description": "Signal another workflow execution's listen task.",
+      "description": "Signal another workflow run's listen task.",
       "required": false,
       "oneofGroup": "target"
     }

@@ -1,8 +1,8 @@
 {
   "name": "AgentInvocation",
   "description": "AgentInvocation is what a caller may ask an agent to do.\n\n It is the owner-settable subset of an agent run — the interactive\n composer's vocabulary (agent, message, harness, workspace,\n environments, run bounds) minus what an unattended surface makes\n structurally impossible. Surfaces that trigger agents on someone's\n behalf embed this message instead of re-deriving the shape:\n schedules embed it whole; the workflow agent_call task adopts it at\n the TYPE level (embedding RunConfig and documenting a field-by-field\n correspondence) because its task config is a kind+Struct authoring\n DSL whose field names are the YAML keys — see\n workflow/v1/tasks/agent_call.proto; channels embed RunConfig.",
-  "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentInvocation",
-  "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/invocation.proto",
+  "protoType": "ai.stigmer.agentic.agentrun.v1.AgentInvocation",
+  "protoFile": "apis/ai/stigmer/agentic/agentrun/v1/invocation.proto",
   "fields": [
     {
       "name": "AgentRef",

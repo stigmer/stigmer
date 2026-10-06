@@ -42,9 +42,9 @@ class SkillClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def push_from_execution_artifact(self, input: io_pb2.PushSkillFromExecutionArtifactRequest) -> api_pb2.Skill:
+    def push_from_run_artifact(self, input: io_pb2.PushSkillFromRunArtifactRequest) -> api_pb2.Skill:
         try:
-            return self._command.pushFromExecutionArtifact(input)
+            return self._command.pushFromRunArtifact(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

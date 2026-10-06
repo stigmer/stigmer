@@ -1,0 +1,177 @@
+{
+  "name": "AgentRunSpec",
+  "kind": "AGENT_RUN_SPEC",
+  "description": "AgentRunSpec contains only user-provided inputs for triggering an run.\n All execution results and state live in AgentRunStatus (in api.proto).",
+  "protoType": "ai.stigmer.agentic.agentrun.v1.AgentRunSpec",
+  "protoFile": "apis/ai/stigmer/agentic/agentrun/v1/spec.proto",
+  "fields": [
+    {
+      "name": "SessionId",
+      "jsonName": "sessionId",
+      "protoField": "session_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the existing session this turn continues.\n\n An execution in an existing session belongs to that session's\n organization: metadata.org, when set, must be the session's\n (FAILED_PRECONDITION otherwise), and when left empty it is taken from\n the session. An execution stays in the session it was created in:\n update refuses a different session_id (FAILED_PRECONDITION), and an\n empty one keeps the stored session.",
+      "required": false,
+      "oneofGroup": "target"
+    },
+    {
+      "name": "SessionSpec",
+      "jsonName": "sessionSpec",
+      "protoField": "session_spec",
+      "type": {
+        "kind": "message",
+        "messageType": "SessionSpec"
+      },
+      "description": "Spec for a new session this turn starts.\n\n This is the one-call session bootstrap: a single create carries the\n full session shape (the agent, workspace_entries, harness,\n execution_target, MCP servers, skills) together with the first\n message, so embedders do not need to orchestrate session.create\n followed by agentRun.create. The created session's ID is\n returned on the persisted execution's session_id.\n\n session_spec.agent_ref names the agent the conversation runs (empty:\n the built-in assistant). Fields that must be set at session-creation\n time and are immutable once an execution has run — harness and\n execution_target — can only reach an auto-created session through\n this field. session_spec.harness_state_id must be empty — it is\n server-owned harness continuity state, created by the runner after\n the first run.",
+      "required": false,
+      "oneofGroup": "target"
+    },
+    {
+      "name": "Message",
+      "jsonName": "message",
+      "protoField": "message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "User input message that triggers this run.\n Each execution represents one user message and the agent's response.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "RunConfig",
+      "jsonName": "runConfig",
+      "protoField": "run_config",
+      "type": {
+        "kind": "message",
+        "messageType": "RunConfig"
+      },
+      "description": "The settings this message asks for (optional): a model, a speed tier,\n thinking, and run bounds. Zero or empty fields are not set here.\n\n The server resolves the settings the turn runs with once, at create,\n and records them on AgentRunStatus.run_config. A choice (model,\n tier, thinking) comes from the most specific layer that makes one: this\n field, then the defaults of the agent the turn runs, then the lane's\n operator profile. A bound (cost, tool rounds, result size) is the\n tightest one any layer sets, so a message can lower an agent's cap but\n never raise it. RunConfig's own comment has the full rule.\n\n Unlike a saved surface's settings, a message may set service_tier or\n thinking_mode without a model: it then adjusts the model a less\n specific layer chose (for example, thinking off for one message on an\n agent whose default turns it on).\n\n A lane that composes the turn for a surface (a schedule, a workflow\n step) writes that surface's saved settings here. On a lane where the\n caller is a visitor (the hosted edition's shared-agent guests and\n channel senders), the surface's saved settings replace this field; the\n per-message intents below are the edition's to allow or clear for a\n visitor, not replaced with this field.",
+      "required": false
+    },
+    {
+      "name": "InteractionMode",
+      "jsonName": "interactionMode",
+      "protoField": "interaction_mode",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.agentrun.v1.InteractionMode",
+        "enumValues": [
+          "INTERACTION_MODE_AGENT",
+          "INTERACTION_MODE_PLAN"
+        ]
+      },
+      "description": "Interaction mode for this message.\n\n AGENT (default): full tool access — read, write, create, delete, shell.\n PLAN: read-only analysis — read, search, list only. No file mutations.\n\n When UNSPECIFIED, defaults to AGENT.\n\n The mode is set per message and does not carry over between messages\n in the same session. Users toggle mode in the session composer before\n sending each message.",
+      "required": false
+    },
+    {
+      "name": "BuildFromPlan",
+      "jsonName": "buildFromPlan",
+      "protoField": "build_from_plan",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Marks this message as a \"Build from plan\" turn: the user approved a plan\n produced by a prior Plan-mode execution and asked the agent to implement it.\n\n When set, the runner injects the implement-plan directive into the agent's\n prompt (see runner shared/implement-plan-prompt.ts). If the approved plan\n document travels as an attachment (the normal case), the directive points\n the agent at the attached plan file and treats it as authoritative; when no\n plan attachment is present (e.g. the client's upload failed), the directive\n tells the agent to follow the plan from the conversation instead.\n\n Clients set this flag INSTEAD of embedding implement instructions in\n `message`, so `message` stays a short human-readable label (e.g.\n \"Build from plan\") that UIs can render as a compact chip.\n\n Like interaction_mode, this is per message and never carries over\n between messages in the same session.",
+      "required": false
+    },
+    {
+      "name": "StructuredOutputSchema",
+      "jsonName": "structuredOutputSchema",
+      "protoField": "structured_output_schema",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "JSON Schema that the agent's output must conform to (optional).\n\n When set, the runner enforces structured output:\n - Native harness: uses deepagents responseFormat/ToolStrategy\n - Cursor harness: prompt instruction + extraction fallback\n\n The validated structured data is returned in the activity result\n and passed back to the parent workflow as `structured`.",
+      "required": false
+    },
+    {
+      "name": "RuntimeEnv",
+      "jsonName": "runtimeEnv",
+      "protoField": "runtime_env",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "ExecutionValue"
+        }
+      },
+      "description": "Runtime environment variables and secrets (execution-scoped).\n These values are only available for this specific execution and take the\n highest merge priority, overriding values from Environments bound via\n environment_refs. A key must be declared in Agent.spec.env to survive the\n merge: the agent env map is a declaration whitelist (name + is_secret +\n optional), never a value source — undeclared keys are dropped.\n Use case: B2B integrations where secrets are injected at runtime per call.\n These values are consumed into the ExecutionContext (deleted when the\n execution completes) and cleared from the persisted run.",
+      "required": false
+    },
+    {
+      "name": "AutoApproveAll",
+      "jsonName": "autoApproveAll",
+      "protoField": "auto_approve_all",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Auto-approve all tool executions for this run.\n\n When true, tools that would normally require approval are automatically\n approved without user intervention. It clears approvals only: a tool the\n agent's tool lists exclude stays excluded.\n\n Use cases:\n - Automated CI/CD pipelines where human approval isn't practical\n - Trusted batch operations with pre-validated inputs\n - Development/testing environments\n - Scheduled jobs where approval would block automation\n\n Security consideration: This flag bypasses all approval checks.\n Ensure appropriate access controls on who can set this flag.\n Consider auditing executions where this flag is used.\n\n Default: false (approvals required as configured in policies)",
+      "required": false
+    },
+    {
+      "name": "Attachments",
+      "jsonName": "attachments",
+      "protoField": "attachments",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "Attachment"
+        }
+      },
+      "description": "Files attached to this run.\n\n Attachments are injected into the sandbox before execution begins.\n The agent can read these files from the specified mount paths.\n\n Use cases:\n - Provide input data files to process\n - Pass configuration files\n - Supply reference documents for analysis\n\n Example CLI usage:\n   stigmer run agent my-agent --attach ./config.yaml -m \"Process this config\"",
+      "required": false
+    },
+    {
+      "name": "WorkspaceFileRefs",
+      "jsonName": "workspaceFileRefs",
+      "protoField": "workspace_file_refs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Workspace-relative file paths the user wants the agent to focus on.\n\n When users reference files that exist inside the session's workspace,\n the client records the workspace-relative path here instead of uploading.\n The agent accesses these files directly via the workspace filesystem --\n no upload, no copy, no injection.\n\n This separates the \"attention\" signal (\"look at this file\") from the\n \"transport\" mechanism (upload + inject) that regular attachments use.\n\n Works for any workspace type with a resolvable filesystem post-provisioning\n (local-path workspaces, git-cloned workspaces, or any future source type).\n The runner resolves paths after workspace provisioning regardless of source.\n\n Populated by:\n   - CLI: detects --attach paths inside workspace roots automatically\n   - Web/Desktop: drag-to-reference from workspace file tree to composer\n\n Example CLI usage:\n   stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m \"Review\"\n   # CLI detects src/config.yaml is inside workspace -\u003e workspace_file_ref\n   # No upload, no injection; agent reads directly from src/config.yaml",
+      "required": false
+    },
+    {
+      "name": "SupersedesRunId",
+      "jsonName": "supersedesRunId",
+      "protoField": "supersedes_run_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the execution this one supersedes via edit-and-resubmit (optional).\n\n When a user stops an in-flight turn, edits the message, and resubmits,\n the client sets this field on the NEW execution to point at the stopped\n one. Chat-thread consumers hide the superseded execution so the edited\n message replaces the original in place; history surfaces (CLI, execution\n lists) keep showing the full record.\n\n Empty means this execution is not an edit of another turn.",
+      "required": false
+    },
+    {
+      "name": "ConversationCatchup",
+      "jsonName": "conversationCatchup",
+      "protoField": "conversation_catchup",
+      "type": {
+        "kind": "message",
+        "messageType": "ConversationCatchup"
+      },
+      "description": "Conversation events the agent has not yet seen, composed by the platform\n for this turn (optional).\n\n Set on live channel-conversation turns (WhatsApp, Slack): when a human\n teammate handled the conversation or messages otherwise landed while the\n agent was not watching, the digest carries what happened so the agent\n re-enters informed. Absent on every other execution surface.",
+      "required": false
+    },
+    {
+      "name": "Parent",
+      "jsonName": "parent",
+      "protoField": "parent",
+      "type": {
+        "kind": "message",
+        "messageType": "WorkflowParent"
+      },
+      "description": "The workflow run this turn was started by (optional): set only by a\n workflow's agent_call step, which waits for the turn to finish.\n\n The server honours it only from the workflow run it names: a request\n the server composes itself, a runner whose credential is bound to that\n workflow run, or a caller holding the platform's\n can_write_reserved_labels. Any other caller that sets it is refused with\n INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn\n runs where the workflow run's own activities run (its sandbox, when the\n deployment gives each run one), the parent is told about approval\n requests, and the waiting step is completed when the turn finishes.",
+      "required": false
+    }
+  ]
+}

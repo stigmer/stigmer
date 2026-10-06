@@ -177,11 +177,11 @@ func (x *IdentityAccountSpec) GetPreferences() *IdentityAccountPreferences {
 }
 
 // IdentityAccountPreferences holds user-declared defaults that apply to the
-// user's own agent executions.
+// user's own agent runs.
 type IdentityAccountPreferences struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Free-text standing context injected into this user's eligible agent
-	// executions. Example: "Keep answers terse."
+	// runs. Example: "Keep answers terse."
 	StandingContext string `protobuf:"bytes,1,opt,name=standing_context,json=standingContext,proto3" json:"standing_context,omitempty"`
 	// Default harness for new sessions: "native" or "cursor".
 	// Empty means no preference — the platform default applies.

@@ -41,7 +41,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     organization: _ClassVar[ApiResourceKind]
     platform: _ClassVar[ApiResourceKind]
     agent: _ClassVar[ApiResourceKind]
-    agent_execution: _ClassVar[ApiResourceKind]
+    agent_run: _ClassVar[ApiResourceKind]
     session: _ClassVar[ApiResourceKind]
     skill: _ClassVar[ApiResourceKind]
     mcp_server: _ClassVar[ApiResourceKind]
@@ -49,7 +49,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     agent_channel: _ClassVar[ApiResourceKind]
     channel_app: _ClassVar[ApiResourceKind]
     workflow: _ClassVar[ApiResourceKind]
-    workflow_execution: _ClassVar[ApiResourceKind]
+    workflow_run: _ClassVar[ApiResourceKind]
     environment: _ClassVar[ApiResourceKind]
     artifact: _ClassVar[ApiResourceKind]
     execution_context: _ClassVar[ApiResourceKind]
@@ -80,7 +80,7 @@ team: ApiResourceKind
 organization: ApiResourceKind
 platform: ApiResourceKind
 agent: ApiResourceKind
-agent_execution: ApiResourceKind
+agent_run: ApiResourceKind
 session: ApiResourceKind
 skill: ApiResourceKind
 mcp_server: ApiResourceKind
@@ -88,7 +88,7 @@ agent_share: ApiResourceKind
 agent_channel: ApiResourceKind
 channel_app: ApiResourceKind
 workflow: ApiResourceKind
-workflow_execution: ApiResourceKind
+workflow_run: ApiResourceKind
 environment: ApiResourceKind
 artifact: ApiResourceKind
 execution_context: ApiResourceKind

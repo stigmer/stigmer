@@ -398,16 +398,16 @@ func (x *SkillArtifactDownloadUrl) GetSizeBytes() int64 {
 	return 0
 }
 
-// PushSkillFromExecutionArtifactRequest publishes a skill from an execution
+// PushSkillFromRunArtifactRequest publishes a skill from an execution
 // artifact already in storage, without downloading and re-uploading the ZIP.
-type PushSkillFromExecutionArtifactRequest struct {
+type PushSkillFromRunArtifactRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization that will own the skill.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
-	ExecutionId string `protobuf:"bytes,2,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
+	RunId string `protobuf:"bytes,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Storage key of the directory artifact (ZIP) to push as a skill.
-	// Obtain this from ExecutionArtifact.storage_key in the execution status.
+	// Obtain this from RunArtifact.storage_key in the execution status.
 	StorageKey string `protobuf:"bytes,3,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
 	// Optional version tag (same semantics as PushSkillRequest.tag).
 	// Examples: "stable", "v1.0", "latest"
@@ -416,20 +416,20 @@ type PushSkillFromExecutionArtifactRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PushSkillFromExecutionArtifactRequest) Reset() {
-	*x = PushSkillFromExecutionArtifactRequest{}
+func (x *PushSkillFromRunArtifactRequest) Reset() {
+	*x = PushSkillFromRunArtifactRequest{}
 	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PushSkillFromExecutionArtifactRequest) String() string {
+func (x *PushSkillFromRunArtifactRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PushSkillFromExecutionArtifactRequest) ProtoMessage() {}
+func (*PushSkillFromRunArtifactRequest) ProtoMessage() {}
 
-func (x *PushSkillFromExecutionArtifactRequest) ProtoReflect() protoreflect.Message {
+func (x *PushSkillFromRunArtifactRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -441,33 +441,33 @@ func (x *PushSkillFromExecutionArtifactRequest) ProtoReflect() protoreflect.Mess
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PushSkillFromExecutionArtifactRequest.ProtoReflect.Descriptor instead.
-func (*PushSkillFromExecutionArtifactRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use PushSkillFromRunArtifactRequest.ProtoReflect.Descriptor instead.
+func (*PushSkillFromRunArtifactRequest) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *PushSkillFromExecutionArtifactRequest) GetOrg() string {
+func (x *PushSkillFromRunArtifactRequest) GetOrg() string {
 	if x != nil {
 		return x.Org
 	}
 	return ""
 }
 
-func (x *PushSkillFromExecutionArtifactRequest) GetExecutionId() string {
+func (x *PushSkillFromRunArtifactRequest) GetRunId() string {
 	if x != nil {
-		return x.ExecutionId
+		return x.RunId
 	}
 	return ""
 }
 
-func (x *PushSkillFromExecutionArtifactRequest) GetStorageKey() string {
+func (x *PushSkillFromRunArtifactRequest) GetStorageKey() string {
 	if x != nil {
 		return x.StorageKey
 	}
 	return ""
 }
 
-func (x *PushSkillFromExecutionArtifactRequest) GetTag() string {
+func (x *PushSkillFromRunArtifactRequest) GetTag() string {
 	if x != nil {
 		return x.Tag
 	}
@@ -858,10 +858,10 @@ const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\vttl_seconds\x18\x02 \x01(\x05R\n" +
 	"ttlSeconds\x12\x1d\n" +
 	"\n" +
-	"size_bytes\x18\x03 \x01(\x03R\tsizeBytes\"\xc6\x01\n" +
-	"%PushSkillFromExecutionArtifactRequest\x12\x18\n" +
-	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12*\n" +
-	"\fexecution_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12(\n" +
+	"size_bytes\x18\x03 \x01(\x03R\tsizeBytes\"\xb4\x01\n" +
+	"\x1fPushSkillFromRunArtifactRequest\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1e\n" +
+	"\x06run_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\x12(\n" +
 	"\vstorage_key\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"storageKey\x12-\n" +
 	"\x03tag\x18\x04 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\"N\n" +
@@ -906,21 +906,21 @@ func file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ai_stigmer_agentic_skill_v1_io_proto_goTypes = []any{
-	(*SkillId)(nil),                               // 0: ai.stigmer.agentic.skill.v1.SkillId
-	(*PushSkillRequest)(nil),                      // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest
-	(*CreateSkillArtifactUploadUrlRequest)(nil),   // 2: ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest
-	(*SkillArtifactUploadUrl)(nil),                // 3: ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl
-	(*SkillArtifactDownloadUrl)(nil),              // 4: ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl
-	(*PushSkillFromExecutionArtifactRequest)(nil), // 5: ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest
-	(*GetArtifactRequest)(nil),                    // 6: ai.stigmer.agentic.skill.v1.GetArtifactRequest
-	(*GetArtifactResponse)(nil),                   // 7: ai.stigmer.agentic.skill.v1.GetArtifactResponse
-	(*ListSkillVersionsInput)(nil),                // 8: ai.stigmer.agentic.skill.v1.ListSkillVersionsInput
-	(*SkillVersionEntry)(nil),                     // 9: ai.stigmer.agentic.skill.v1.SkillVersionEntry
-	(*ListSkillVersionsResponse)(nil),             // 10: ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse
-	nil,                                           // 11: ai.stigmer.agentic.skill.v1.PushSkillRequest.LabelsEntry
-	(*GitProvenance)(nil),                         // 12: ai.stigmer.agentic.skill.v1.GitProvenance
-	(*timestamppb.Timestamp)(nil),                 // 13: google.protobuf.Timestamp
-	(*apiresource.ApiResourceAuditActor)(nil),     // 14: ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	(*SkillId)(nil),                             // 0: ai.stigmer.agentic.skill.v1.SkillId
+	(*PushSkillRequest)(nil),                    // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest
+	(*CreateSkillArtifactUploadUrlRequest)(nil), // 2: ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest
+	(*SkillArtifactUploadUrl)(nil),              // 3: ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl
+	(*SkillArtifactDownloadUrl)(nil),            // 4: ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl
+	(*PushSkillFromRunArtifactRequest)(nil),     // 5: ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest
+	(*GetArtifactRequest)(nil),                  // 6: ai.stigmer.agentic.skill.v1.GetArtifactRequest
+	(*GetArtifactResponse)(nil),                 // 7: ai.stigmer.agentic.skill.v1.GetArtifactResponse
+	(*ListSkillVersionsInput)(nil),              // 8: ai.stigmer.agentic.skill.v1.ListSkillVersionsInput
+	(*SkillVersionEntry)(nil),                   // 9: ai.stigmer.agentic.skill.v1.SkillVersionEntry
+	(*ListSkillVersionsResponse)(nil),           // 10: ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse
+	nil,                                         // 11: ai.stigmer.agentic.skill.v1.PushSkillRequest.LabelsEntry
+	(*GitProvenance)(nil),                       // 12: ai.stigmer.agentic.skill.v1.GitProvenance
+	(*timestamppb.Timestamp)(nil),               // 13: google.protobuf.Timestamp
+	(*apiresource.ApiResourceAuditActor)(nil),   // 14: ai.stigmer.commons.apiresource.ApiResourceAuditActor
 }
 var file_ai_stigmer_agentic_skill_v1_io_proto_depIdxs = []int32{
 	12, // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance

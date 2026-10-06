@@ -74,7 +74,7 @@ export const DurationSchema: GenMessage<Duration> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_wait, 0);
 
 /**
- * WaitTaskConfig defines the configuration for wait tasks that pause workflow execution.
+ * WaitTaskConfig defines the configuration for wait tasks that pause workflow run.
  *
  * Supports both relative durations and absolute timestamps.
  *

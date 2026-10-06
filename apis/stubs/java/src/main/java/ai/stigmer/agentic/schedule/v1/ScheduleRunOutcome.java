@@ -55,7 +55,7 @@ public enum ScheduleRunOutcome
   SCHEDULE_RUN_OUTCOME_SKIPPED(4),
   /**
    * <pre>
-   * The tracked run reached EXECUTION_COMPLETED.
+   * The tracked run reached RUN_COMPLETED.
    * </pre>
    *
    * <code>SCHEDULE_RUN_OUTCOME_COMPLETED = 5;</code>
@@ -130,7 +130,7 @@ public enum ScheduleRunOutcome
   public static final int SCHEDULE_RUN_OUTCOME_SKIPPED_VALUE = 4;
   /**
    * <pre>
-   * The tracked run reached EXECUTION_COMPLETED.
+   * The tracked run reached RUN_COMPLETED.
    * </pre>
    *
    * <code>SCHEDULE_RUN_OUTCOME_COMPLETED = 5;</code>

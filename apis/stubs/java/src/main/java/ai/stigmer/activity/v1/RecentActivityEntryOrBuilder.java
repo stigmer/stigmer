@@ -12,7 +12,7 @@ public interface RecentActivityEntryOrBuilder extends
 
   /**
    * <pre>
-   * Resource ID (session ID or workflow execution ID).
+   * Resource ID (session ID or workflow run ID).
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -21,7 +21,7 @@ public interface RecentActivityEntryOrBuilder extends
   java.lang.String getId();
   /**
    * <pre>
-   * Resource ID (session ID or workflow execution ID).
+   * Resource ID (session ID or workflow run ID).
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -32,7 +32,7 @@ public interface RecentActivityEntryOrBuilder extends
 
   /**
    * <pre>
-   * Discriminator: "session" or "workflow_execution".
+   * Discriminator: "session" or "workflow_run".
    * </pre>
    *
    * <code>string type = 2 [json_name = "type"];</code>
@@ -41,7 +41,7 @@ public interface RecentActivityEntryOrBuilder extends
   java.lang.String getType();
   /**
    * <pre>
-   * Discriminator: "session" or "workflow_execution".
+   * Discriminator: "session" or "workflow_run".
    * </pre>
    *
    * <code>string type = 2 [json_name = "type"];</code>
@@ -54,7 +54,7 @@ public interface RecentActivityEntryOrBuilder extends
    * <pre>
    * Human-readable label for display.
    * For sessions: the conversation subject.
-   * For workflow executions: the execution name.
+   * For workflow runs: the execution name.
    * </pre>
    *
    * <code>string subject = 3 [json_name = "subject"];</code>
@@ -65,7 +65,7 @@ public interface RecentActivityEntryOrBuilder extends
    * <pre>
    * Human-readable label for display.
    * For sessions: the conversation subject.
-   * For workflow executions: the execution name.
+   * For workflow runs: the execution name.
    * </pre>
    *
    * <code>string subject = 3 [json_name = "subject"];</code>
@@ -106,7 +106,7 @@ public interface RecentActivityEntryOrBuilder extends
 
   /**
    * <pre>
-   * Execution phase label for workflow executions (e.g., "completed", "failed").
+   * Execution phase label for workflow runs (e.g., "completed", "failed").
    * Empty for sessions.
    * </pre>
    *
@@ -116,7 +116,7 @@ public interface RecentActivityEntryOrBuilder extends
   java.lang.String getStatus();
   /**
    * <pre>
-   * Execution phase label for workflow executions (e.g., "completed", "failed").
+   * Execution phase label for workflow runs (e.g., "completed", "failed").
    * Empty for sessions.
    * </pre>
    *

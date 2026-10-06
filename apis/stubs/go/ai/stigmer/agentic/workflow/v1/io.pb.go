@@ -67,36 +67,36 @@ func (x *WorkflowId) GetValue() string {
 	return ""
 }
 
-// UpdateWorkflowExecutionVisibilityInput targets the run-observability setting
+// UpdateWorkflowRunVisibilityInput targets the run-observability setting
 // of a single workflow.
 //
 // Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE
-// execution-visibility axis (see WorkflowExecutionVisibility). A dedicated
+// execution-visibility axis (see WorkflowRunVisibility). A dedicated
 // message keeps the two visibility concepts from being conflated.
-type UpdateWorkflowExecutionVisibilityInput struct {
+type UpdateWorkflowRunVisibilityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the workflow whose execution visibility is being updated.
 	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	// The new execution-visibility setting. Must not be unspecified (0).
-	ExecutionVisibility WorkflowExecutionVisibility `protobuf:"varint,2,opt,name=execution_visibility,json=executionVisibility,proto3,enum=ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility" json:"execution_visibility,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	RunVisibility WorkflowRunVisibility `protobuf:"varint,2,opt,name=run_visibility,json=runVisibility,proto3,enum=ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility" json:"run_visibility,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpdateWorkflowExecutionVisibilityInput) Reset() {
-	*x = UpdateWorkflowExecutionVisibilityInput{}
+func (x *UpdateWorkflowRunVisibilityInput) Reset() {
+	*x = UpdateWorkflowRunVisibilityInput{}
 	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateWorkflowExecutionVisibilityInput) String() string {
+func (x *UpdateWorkflowRunVisibilityInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateWorkflowExecutionVisibilityInput) ProtoMessage() {}
+func (*UpdateWorkflowRunVisibilityInput) ProtoMessage() {}
 
-func (x *UpdateWorkflowExecutionVisibilityInput) ProtoReflect() protoreflect.Message {
+func (x *UpdateWorkflowRunVisibilityInput) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -108,23 +108,23 @@ func (x *UpdateWorkflowExecutionVisibilityInput) ProtoReflect() protoreflect.Mes
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateWorkflowExecutionVisibilityInput.ProtoReflect.Descriptor instead.
-func (*UpdateWorkflowExecutionVisibilityInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateWorkflowRunVisibilityInput.ProtoReflect.Descriptor instead.
+func (*UpdateWorkflowRunVisibilityInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *UpdateWorkflowExecutionVisibilityInput) GetResourceId() string {
+func (x *UpdateWorkflowRunVisibilityInput) GetResourceId() string {
 	if x != nil {
 		return x.ResourceId
 	}
 	return ""
 }
 
-func (x *UpdateWorkflowExecutionVisibilityInput) GetExecutionVisibility() WorkflowExecutionVisibility {
+func (x *UpdateWorkflowRunVisibilityInput) GetRunVisibility() WorkflowRunVisibility {
 	if x != nil {
-		return x.ExecutionVisibility
+		return x.RunVisibility
 	}
-	return WorkflowExecutionVisibility_workflow_execution_visibility_unspecified
+	return WorkflowRunVisibility_workflow_run_visibility_unspecified
 }
 
 var File_ai_stigmer_agentic_workflow_v1_io_proto protoreflect.FileDescriptor
@@ -134,12 +134,12 @@ const file_ai_stigmer_agentic_workflow_v1_io_proto_rawDesc = "" +
 	"'ai/stigmer/agentic/workflow/v1/io.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"*\n" +
 	"\n" +
 	"WorkflowId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xcd\x01\n" +
-	"&UpdateWorkflowExecutionVisibilityInput\x12'\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xb5\x01\n" +
+	" UpdateWorkflowRunVisibilityInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"resourceId\x12z\n" +
-	"\x14execution_visibility\x18\x02 \x01(\x0e2;.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibilityB\n" +
-	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\x13executionVisibilityB\x9e\x02\n" +
+	"resourceId\x12h\n" +
+	"\x0erun_visibility\x18\x02 \x01(\x0e25.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibilityB\n" +
+	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\rrunVisibilityB\x9e\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\aIoProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (
@@ -156,12 +156,12 @@ func file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_workflow_v1_io_proto_goTypes = []any{
-	(*WorkflowId)(nil), // 0: ai.stigmer.agentic.workflow.v1.WorkflowId
-	(*UpdateWorkflowExecutionVisibilityInput)(nil), // 1: ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput
-	(WorkflowExecutionVisibility)(0),               // 2: ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility
+	(*WorkflowId)(nil),                       // 0: ai.stigmer.agentic.workflow.v1.WorkflowId
+	(*UpdateWorkflowRunVisibilityInput)(nil), // 1: ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput
+	(WorkflowRunVisibility)(0),               // 2: ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility
 }
 var file_ai_stigmer_agentic_workflow_v1_io_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput.execution_visibility:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility
+	2, // 0: ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput.run_visibility:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name

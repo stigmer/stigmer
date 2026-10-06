@@ -7,7 +7,7 @@ package ai.stigmer.agentic.artifact.v1;
 
 /**
  * <pre>
- * Artifact represents a persisted blob produced during execution.
+ * Artifact represents a persisted blob produced during run.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.Artifact}
@@ -479,7 +479,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Artifact represents a persisted blob produced during execution.
+   * Artifact represents a persisted blob produced during run.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.Artifact}

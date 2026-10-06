@@ -21,9 +21,9 @@ class ArtifactQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ArtifactId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_api__pb2.Artifact.FromString,
                 _registered_method=True)
-        self.listByExecution = channel.unary_unary(
-                '/ai.stigmer.agentic.artifact.v1.ArtifactQueryController/listByExecution',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ListArtifactsByExecutionRequest.SerializeToString,
+        self.listByRun = channel.unary_unary(
+                '/ai.stigmer.agentic.artifact.v1.ArtifactQueryController/listByRun',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ListArtifactsByRunRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ArtifactList.FromString,
                 _registered_method=True)
         self.getDownloadUrl = channel.unary_unary(
@@ -72,26 +72,26 @@ class ArtifactQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def listByExecution(self, request, context):
-        """List all artifacts produced by a specific execution.
+    def listByRun(self, request, context):
+        """List all artifacts produced by a specific run.
 
         Returns a paginated list of artifacts filtered by either
-        workflow_execution_id or agent_execution_id.
+        workflow_run_id or agent_run_id.
 
         Use Cases:
 
         1. Execution Viewer Artifact Panel:
-        - User views a workflow execution in the execution viewer
-        - UI calls listByExecution() to populate the artifact sidebar
+        - User views a workflow run in the execution viewer
+        - UI calls listByRun() to populate the artifact sidebar
         - Each artifact shows display name, content type, size, source task
 
         2. CLI Artifact Listing:
         - `stigmer workflow artifacts wex_abc123`
-        - CLI calls listByExecution() and formats as a table
+        - CLI calls listByRun() and formats as a table
 
         Error Cases:
 
-        - INVALID_ARGUMENT: Neither workflow_execution_id nor agent_execution_id provided
+        - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
         - PERMISSION_DENIED: User doesn't have view access to the parent execution
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -157,9 +157,9 @@ def add_ArtifactQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ArtifactId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_api__pb2.Artifact.SerializeToString,
             ),
-            'listByExecution': grpc.unary_unary_rpc_method_handler(
-                    servicer.listByExecution,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ListArtifactsByExecutionRequest.FromString,
+            'listByRun': grpc.unary_unary_rpc_method_handler(
+                    servicer.listByRun,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ListArtifactsByRunRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ArtifactList.SerializeToString,
             ),
             'getDownloadUrl': grpc.unary_unary_rpc_method_handler(
@@ -212,7 +212,7 @@ class ArtifactQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def listByExecution(request,
+    def listByRun(request,
             target,
             options=(),
             channel_credentials=None,
@@ -225,8 +225,8 @@ class ArtifactQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.artifact.v1.ArtifactQueryController/listByExecution',
-            ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ListArtifactsByExecutionRequest.SerializeToString,
+            '/ai.stigmer.agentic.artifact.v1.ArtifactQueryController/listByRun',
+            ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ListArtifactsByRunRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ArtifactList.FromString,
             options,
             channel_credentials,

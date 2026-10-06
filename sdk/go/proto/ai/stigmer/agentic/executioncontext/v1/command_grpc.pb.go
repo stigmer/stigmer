@@ -33,7 +33,7 @@ const (
 type ExecutionContextCommandControllerClient interface {
 	// Create or update an ExecutionContext.
 	Apply(ctx context.Context, in *ExecutionContext, opts ...grpc.CallOption) (*ExecutionContext, error)
-	// Create a new ExecutionContext for an execution.
+	// Create a new ExecutionContext for an run.
 	Create(ctx context.Context, in *ExecutionContext, opts ...grpc.CallOption) (*ExecutionContext, error)
 	// Delete an ExecutionContext.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*ExecutionContext, error)
@@ -85,7 +85,7 @@ func (c *executionContextCommandControllerClient) Delete(ctx context.Context, in
 type ExecutionContextCommandControllerServer interface {
 	// Create or update an ExecutionContext.
 	Apply(context.Context, *ExecutionContext) (*ExecutionContext, error)
-	// Create a new ExecutionContext for an execution.
+	// Create a new ExecutionContext for an run.
 	Create(context.Context, *ExecutionContext) (*ExecutionContext, error)
 	// Delete an ExecutionContext.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*ExecutionContext, error)

@@ -12,27 +12,27 @@ public interface CreditLedgerSourceOrBuilder extends
 
   /**
    * <pre>
-   * Agent execution that generated this debit.
+   * Agent run that generated this debit.
    * </pre>
    *
-   * <code>string execution_id = 1 [json_name = "executionId"];</code>
-   * @return The executionId.
+   * <code>string run_id = 1 [json_name = "runId"];</code>
+   * @return The runId.
    */
-  java.lang.String getExecutionId();
+  java.lang.String getRunId();
   /**
    * <pre>
-   * Agent execution that generated this debit.
+   * Agent run that generated this debit.
    * </pre>
    *
-   * <code>string execution_id = 1 [json_name = "executionId"];</code>
-   * @return The bytes for executionId.
+   * <code>string run_id = 1 [json_name = "runId"];</code>
+   * @return The bytes for runId.
    */
   com.google.protobuf.ByteString
-      getExecutionIdBytes();
+      getRunIdBytes();
 
   /**
    * <pre>
-   * Session containing the execution.
+   * Session containing the run.
    * </pre>
    *
    * <code>string session_id = 2 [json_name = "sessionId"];</code>
@@ -41,7 +41,7 @@ public interface CreditLedgerSourceOrBuilder extends
   java.lang.String getSessionId();
   /**
    * <pre>
-   * Session containing the execution.
+   * Session containing the run.
    * </pre>
    *
    * <code>string session_id = 2 [json_name = "sessionId"];</code>
@@ -88,7 +88,7 @@ public interface CreditLedgerSourceOrBuilder extends
    * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
    * drill-down from this debit to the exact record it paid for. Empty for
    * debits of records whose reporter sent no call id (they are located by
-   * execution_id + llm_call_sequence, as before).
+   * run_id + llm_call_sequence, as before).
    * </pre>
    *
    * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
@@ -100,7 +100,7 @@ public interface CreditLedgerSourceOrBuilder extends
    * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
    * drill-down from this debit to the exact record it paid for. Empty for
    * debits of records whose reporter sent no call id (they are located by
-   * execution_id + llm_call_sequence, as before).
+   * run_id + llm_call_sequence, as before).
    * </pre>
    *
    * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>

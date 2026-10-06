@@ -1,7 +1,7 @@
 {
   "name": "ExecutionContextSpec",
   "kind": "EXECUTION_CONTEXT_SPEC",
-  "description": "Runtime configuration and secrets for a single execution.",
+  "description": "Runtime configuration and secrets for a single run.",
   "protoType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec",
   "protoFile": "apis/ai/stigmer/agentic/executioncontext/v1/spec.proto",
   "fields": [
@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "ID of the parent AgentExecution or WorkflowExecution.",
+      "description": "ID of the parent AgentRun or WorkflowRun.",
       "required": false,
       "validation": {
         "minLength": 1

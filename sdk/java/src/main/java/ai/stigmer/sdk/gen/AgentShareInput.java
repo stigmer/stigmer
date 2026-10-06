@@ -2,9 +2,9 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.agentexecution.v1.RunConfig;
-import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
-import ai.stigmer.agentic.agentexecution.v1.ThinkingMode;
+import ai.stigmer.agentic.agentrun.v1.RunConfig;
+import ai.stigmer.agentic.agentrun.v1.ServiceTier;
+import ai.stigmer.agentic.agentrun.v1.ThinkingMode;
 import ai.stigmer.agentic.agentshare.v1.AgentShare;
 import ai.stigmer.agentic.agentshare.v1.AgentShareAudience;
 import ai.stigmer.agentic.agentshare.v1.AgentShareMessages;

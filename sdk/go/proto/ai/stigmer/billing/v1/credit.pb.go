@@ -149,15 +149,15 @@ func (x *CreditLedgerEntry) GetCreatedAt() *timestamppb.Timestamp {
 // and drill-down purposes.
 //
 // Fields are populated based on the entry type:
-// - usage_debit: execution_id, session_id, agent_id, llm_call_sequence, llm_call_id
+// - usage_debit: run_id, session_id, agent_id, llm_call_sequence, llm_call_id
 // - purchase_credit / auto_recharge_credit: purchase_id
 // - adjustment_credit / adjustment_debit: adjusted_by, description
-// - reservation_hold / reservation_release: execution_id, reservation_id
+// - reservation_hold / reservation_release: run_id, reservation_id
 type CreditLedgerSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Agent execution that generated this debit.
-	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
-	// Session containing the execution.
+	// Agent run that generated this debit.
+	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	// Session containing the run.
 	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// Agent that was executing.
 	AgentId string `protobuf:"bytes,3,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
@@ -169,7 +169,7 @@ type CreditLedgerSource struct {
 	// The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
 	// drill-down from this debit to the exact record it paid for. Empty for
 	// debits of records whose reporter sent no call id (they are located by
-	// execution_id + llm_call_sequence, as before).
+	// run_id + llm_call_sequence, as before).
 	LlmCallId string `protobuf:"bytes,10,opt,name=llm_call_id,json=llmCallId,proto3" json:"llm_call_id,omitempty"`
 	// Credit purchase that funded this credit.
 	PurchaseId string `protobuf:"bytes,5,opt,name=purchase_id,json=purchaseId,proto3" json:"purchase_id,omitempty"`
@@ -215,9 +215,9 @@ func (*CreditLedgerSource) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_credit_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *CreditLedgerSource) GetExecutionId() string {
+func (x *CreditLedgerSource) GetRunId() string {
 	if x != nil {
-		return x.ExecutionId
+		return x.RunId
 	}
 	return ""
 }
@@ -485,19 +485,19 @@ func (x *CreditPack) GetActive() bool {
 	return false
 }
 
-// ExecutionReservation tracks credits held for an active agent execution.
+// RunReservation tracks credits held for an active agent run.
 //
-// Created at execution start (AuthorizeExecution), consumed incrementally
+// Created at execution start (AuthorizeRun), consumed incrementally
 // by per-LLM-call debits (via proxy-observed usage metering), and settled
-// at execution end (FinalizeExecution) to release any unused hold.
-type ExecutionReservation struct {
+// at execution end (FinalizeRun) to release any unused hold.
+type RunReservation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique identifier for this reservation.
 	ReservationId string `protobuf:"bytes,1,opt,name=reservation_id,json=reservationId,proto3" json:"reservation_id,omitempty"`
 	// Organization that owns this reservation.
 	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
-	// Agent execution this reservation is for.
-	ExecutionId string `protobuf:"bytes,3,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// Agent run this reservation is for.
+	RunId string `protobuf:"bytes,3,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Total micro-USD reserved at execution start.
 	ReservedMicros int64 `protobuf:"varint,4,opt,name=reserved_micros,json=reservedMicros,proto3" json:"reserved_micros,omitempty"`
 	// Micro-USD consumed so far by usage debits against this reservation.
@@ -511,20 +511,20 @@ type ExecutionReservation struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ExecutionReservation) Reset() {
-	*x = ExecutionReservation{}
+func (x *RunReservation) Reset() {
+	*x = RunReservation{}
 	mi := &file_ai_stigmer_billing_v1_credit_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ExecutionReservation) String() string {
+func (x *RunReservation) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ExecutionReservation) ProtoMessage() {}
+func (*RunReservation) ProtoMessage() {}
 
-func (x *ExecutionReservation) ProtoReflect() protoreflect.Message {
+func (x *RunReservation) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_billing_v1_credit_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -536,61 +536,61 @@ func (x *ExecutionReservation) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ExecutionReservation.ProtoReflect.Descriptor instead.
-func (*ExecutionReservation) Descriptor() ([]byte, []int) {
+// Deprecated: Use RunReservation.ProtoReflect.Descriptor instead.
+func (*RunReservation) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_credit_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ExecutionReservation) GetReservationId() string {
+func (x *RunReservation) GetReservationId() string {
 	if x != nil {
 		return x.ReservationId
 	}
 	return ""
 }
 
-func (x *ExecutionReservation) GetOrg() string {
+func (x *RunReservation) GetOrg() string {
 	if x != nil {
 		return x.Org
 	}
 	return ""
 }
 
-func (x *ExecutionReservation) GetExecutionId() string {
+func (x *RunReservation) GetRunId() string {
 	if x != nil {
-		return x.ExecutionId
+		return x.RunId
 	}
 	return ""
 }
 
-func (x *ExecutionReservation) GetReservedMicros() int64 {
+func (x *RunReservation) GetReservedMicros() int64 {
 	if x != nil {
 		return x.ReservedMicros
 	}
 	return 0
 }
 
-func (x *ExecutionReservation) GetConsumedMicros() int64 {
+func (x *RunReservation) GetConsumedMicros() int64 {
 	if x != nil {
 		return x.ConsumedMicros
 	}
 	return 0
 }
 
-func (x *ExecutionReservation) GetStatus() ReservationStatus {
+func (x *RunReservation) GetStatus() ReservationStatus {
 	if x != nil {
 		return x.Status
 	}
 	return ReservationStatus_reservation_status_unspecified
 }
 
-func (x *ExecutionReservation) GetCreatedAt() *timestamppb.Timestamp {
+func (x *RunReservation) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return nil
 }
 
-func (x *ExecutionReservation) GetExpiresAt() *timestamppb.Timestamp {
+func (x *RunReservation) GetExpiresAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.ExpiresAt
 	}
@@ -900,9 +900,9 @@ const file_ai_stigmer_billing_v1_credit_proto_rawDesc = "" +
 	"\x06rating\x18\a \x01(\v2).ai.stigmer.billing.v1.BillingUsageRatingR\x06rating\x12A\n" +
 	"\x06source\x18\b \x01(\v2).ai.stigmer.billing.v1.CreditLedgerSourceR\x06source\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xe3\x02\n" +
-	"\x12CreditLedgerSource\x12!\n" +
-	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x1d\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xd7\x02\n" +
+	"\x12CreditLedgerSource\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x19\n" +
 	"\bagent_id\x18\x03 \x01(\tR\aagentId\x12*\n" +
@@ -933,11 +933,11 @@ const file_ai_stigmer_billing_v1_credit_proto_rawDesc = "" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12!\n" +
 	"\fprice_micros\x18\x03 \x01(\x03R\vpriceMicros\x12%\n" +
 	"\x0ecredits_micros\x18\x04 \x01(\x03R\rcreditsMicros\x12\x16\n" +
-	"\x06active\x18\x05 \x01(\bR\x06active\"\xfc\x02\n" +
-	"\x14ExecutionReservation\x12%\n" +
+	"\x06active\x18\x05 \x01(\bR\x06active\"\xea\x02\n" +
+	"\x0eRunReservation\x12%\n" +
 	"\x0ereservation_id\x18\x01 \x01(\tR\rreservationId\x12\x10\n" +
-	"\x03org\x18\x02 \x01(\tR\x03org\x12!\n" +
-	"\fexecution_id\x18\x03 \x01(\tR\vexecutionId\x12'\n" +
+	"\x03org\x18\x02 \x01(\tR\x03org\x12\x15\n" +
+	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12'\n" +
 	"\x0freserved_micros\x18\x04 \x01(\x03R\x0ereservedMicros\x12'\n" +
 	"\x0fconsumed_micros\x18\x05 \x01(\x03R\x0econsumedMicros\x12@\n" +
 	"\x06status\x18\x06 \x01(\x0e2(.ai.stigmer.billing.v1.ReservationStatusR\x06status\x129\n" +
@@ -995,7 +995,7 @@ var file_ai_stigmer_billing_v1_credit_proto_goTypes = []any{
 	(*CreditLedgerSource)(nil),    // 1: ai.stigmer.billing.v1.CreditLedgerSource
 	(*CreditGrant)(nil),           // 2: ai.stigmer.billing.v1.CreditGrant
 	(*CreditPack)(nil),            // 3: ai.stigmer.billing.v1.CreditPack
-	(*ExecutionReservation)(nil),  // 4: ai.stigmer.billing.v1.ExecutionReservation
+	(*RunReservation)(nil),        // 4: ai.stigmer.billing.v1.RunReservation
 	(*CreditPurchase)(nil),        // 5: ai.stigmer.billing.v1.CreditPurchase
 	(*AutoRechargeEvent)(nil),     // 6: ai.stigmer.billing.v1.AutoRechargeEvent
 	(LedgerEntryType)(0),          // 7: ai.stigmer.billing.v1.LedgerEntryType
@@ -1014,9 +1014,9 @@ var file_ai_stigmer_billing_v1_credit_proto_depIdxs = []int32{
 	10, // 4: ai.stigmer.billing.v1.CreditGrant.kind:type_name -> ai.stigmer.billing.v1.CreditGrantKind
 	9,  // 5: ai.stigmer.billing.v1.CreditGrant.expires_at:type_name -> google.protobuf.Timestamp
 	9,  // 6: ai.stigmer.billing.v1.CreditGrant.created_at:type_name -> google.protobuf.Timestamp
-	11, // 7: ai.stigmer.billing.v1.ExecutionReservation.status:type_name -> ai.stigmer.billing.v1.ReservationStatus
-	9,  // 8: ai.stigmer.billing.v1.ExecutionReservation.created_at:type_name -> google.protobuf.Timestamp
-	9,  // 9: ai.stigmer.billing.v1.ExecutionReservation.expires_at:type_name -> google.protobuf.Timestamp
+	11, // 7: ai.stigmer.billing.v1.RunReservation.status:type_name -> ai.stigmer.billing.v1.ReservationStatus
+	9,  // 8: ai.stigmer.billing.v1.RunReservation.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 9: ai.stigmer.billing.v1.RunReservation.expires_at:type_name -> google.protobuf.Timestamp
 	12, // 10: ai.stigmer.billing.v1.CreditPurchase.status:type_name -> ai.stigmer.billing.v1.CreditPurchaseStatus
 	9,  // 11: ai.stigmer.billing.v1.CreditPurchase.created_at:type_name -> google.protobuf.Timestamp
 	9,  // 12: ai.stigmer.billing.v1.CreditPurchase.updated_at:type_name -> google.protobuf.Timestamp

@@ -53,9 +53,9 @@ class WebhookDelivery(_message.Message):
     def __init__(self, url: _Optional[str] = ..., headers: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class SignalDelivery(_message.Message):
-    __slots__ = ("execution_id", "signal_name")
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("run_id", "signal_name")
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
     SIGNAL_NAME_FIELD_NUMBER: _ClassVar[int]
-    execution_id: str
+    run_id: str
     signal_name: str
-    def __init__(self, execution_id: _Optional[str] = ..., signal_name: _Optional[str] = ...) -> None: ...
+    def __init__(self, run_id: _Optional[str] = ..., signal_name: _Optional[str] = ...) -> None: ...

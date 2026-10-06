@@ -5,23 +5,23 @@
   "protoFile": "apis/ai/stigmer/agentic/artifact/v1/spec.proto",
   "fields": [
     {
-      "name": "WorkflowExecutionId",
-      "jsonName": "workflowExecutionId",
-      "protoField": "workflow_execution_id",
+      "name": "WorkflowRunId",
+      "jsonName": "workflowRunId",
+      "protoField": "workflow_run_id",
       "type": {
         "kind": "string"
       },
-      "description": "WorkflowExecution that produced this artifact.\n Format: \"wex_{unique-suffix}\"\n Set when the artifact is produced during workflow execution.",
+      "description": "WorkflowRun that produced this artifact.\n Format: \"wex_{unique-suffix}\"\n Set when the artifact is produced during workflow run.",
       "required": false
     },
     {
-      "name": "AgentExecutionId",
-      "jsonName": "agentExecutionId",
-      "protoField": "agent_execution_id",
+      "name": "AgentRunId",
+      "jsonName": "agentRunId",
+      "protoField": "agent_run_id",
       "type": {
         "kind": "string"
       },
-      "description": "AgentExecution that produced this artifact.\n Format: \"aex_{unique-suffix}\"\n Set when the artifact is produced during agent execution\n (either standalone or as a child of a workflow).",
+      "description": "AgentRun that produced this artifact.\n Format: \"aex_{unique-suffix}\"\n Set when the artifact is produced during agent run\n (either standalone or as a child of a workflow).",
       "required": false
     },
     {

@@ -20,7 +20,7 @@ export const file_ai_stigmer_agentic_workflow_v1_api: GenFile = /*@__PURE__*/
   fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvYXBpLnByb3RvEh5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEipwIKCFdvcmtmbG93EjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEh0KBGtpbmQYAiABKAlCD7pIDHIKCghXb3JrZmxvdxJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESOgoEc3BlYxgEIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd1NwZWMSPgoGc3RhdHVzGAUgASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93U3RhdHVzYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_spec, file_ai_stigmer_agentic_workflow_v1_status, file_ai_stigmer_commons_apiresource_metadata, file_buf_validate_validate]);
 
 /**
- * Workflow defines a multi-step task orchestration with sequential, parallel, and conditional execution.
+ * Workflow defines a multi-step task orchestration with sequential, parallel, and conditional run.
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.Workflow
  */

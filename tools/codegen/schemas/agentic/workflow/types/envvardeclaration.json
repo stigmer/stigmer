@@ -1,6 +1,6 @@
 {
   "name": "EnvVarDeclaration",
-  "description": "EnvVarDeclaration declares an environment variable required (or optionally\n accepted) by a blueprint resource (McpServer, Agent, Workflow).\n\n Unlike EnvironmentValue (which stores actual values), this message describes\n what a blueprint *needs* — its schema, not its data. This separation keeps\n the blueprint layer free of runtime values and enables the platform to\n validate completeness before execution.",
+  "description": "EnvVarDeclaration declares an environment variable required (or optionally\n accepted) by a blueprint resource (McpServer, Agent, Workflow).\n\n Unlike EnvironmentValue (which stores actual values), this message describes\n what a blueprint *needs* — its schema, not its data. This separation keeps\n the blueprint layer free of runtime values and enables the platform to\n validate completeness before run.",
   "protoType": "ai.stigmer.agentic.environment.v1.EnvVarDeclaration",
   "protoFile": "apis/ai/stigmer/agentic/environment/v1/spec.proto",
   "fields": [

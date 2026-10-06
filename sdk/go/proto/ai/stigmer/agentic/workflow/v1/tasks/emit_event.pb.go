@@ -34,8 +34,8 @@ type EmitEventSpec struct {
 	// CloudEvents source identifier.
 	// URI or URI-reference that identifies the context in which the event
 	// happened. Supports ${ } expression interpolation.
-	// When empty, the runtime defaults to the workflow execution URI
-	// (e.g., "/workflows/{workflow_id}/executions/{execution_id}").
+	// When empty, the runtime defaults to the workflow run URI
+	// (e.g., "/workflows/{workflow_id}/executions/{run_id}").
 	Source string `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
 	// Event payload data.
 	// Arbitrary JSON object carried as the CloudEvents data attribute.
@@ -261,7 +261,7 @@ type EmitDeliveryTarget_Webhook struct {
 }
 
 type EmitDeliveryTarget_Signal struct {
-	// Signal another workflow execution's listen task.
+	// Signal another workflow run's listen task.
 	Signal *SignalDelivery `protobuf:"bytes,2,opt,name=signal,proto3,oneof"`
 }
 
@@ -336,10 +336,10 @@ func (x *WebhookDelivery) GetHeaders() map[string]string {
 // matches signal_name.
 type SignalDelivery struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Target workflow execution id ("wfx_..."), as returned by run/create.
+	// Target workflow run id ("wfx_..."), as returned by run/create.
 	// Usually flows from a prior task's output:
-	// "${ .start_processor.execution_id }"
-	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// "${ .start_processor.run_id }"
+	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Signal name, matching the target's listen task event id (verbatim).
 	SignalName    string `protobuf:"bytes,2,opt,name=signal_name,json=signalName,proto3" json:"signal_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -376,9 +376,9 @@ func (*SignalDelivery) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *SignalDelivery) GetExecutionId() string {
+func (x *SignalDelivery) GetRunId() string {
 	if x != nil {
-		return x.ExecutionId
+		return x.RunId
 	}
 	return ""
 }
@@ -414,9 +414,9 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_rawDesc = "" +
 	"\aheaders\x18\x02 \x03(\v2B.ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery.HeadersEntryR\aheaders\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"t\n" +
-	"\x0eSignalDelivery\x121\n" +
-	"\fexecution_id\x18\x01 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\vexecutionId\x12/\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"h\n" +
+	"\x0eSignalDelivery\x12%\n" +
+	"\x06run_id\x18\x01 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\x05runId\x12/\n" +
 	"\vsignal_name\x18\x02 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\n" +
 	"signalNameB\xc3\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\x0eEmitEventProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"

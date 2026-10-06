@@ -8,7 +8,7 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
 	v11 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -74,7 +74,7 @@ type AgentCallTaskConfig struct {
 	// - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
 	//
 	// The runner creates a Session with this harness before creating
-	// the AgentExecution. The harness is a session-level concern — it determines
+	// the AgentRun. The harness is a session-level concern — it determines
 	// tool availability, state management, model access, and billing tier.
 	//
 	// When unspecified: native when run_config names a model (the engine the
@@ -205,7 +205,7 @@ func (x *AgentCallTaskConfig) GetEnvironmentRefs() []*apiresource.ApiResourceRef
 //	{
 //	  "structured": { <validated JSON matching the schema> },
 //	  "final_text": "<the agent's human-readable response>",
-//	  "agent_execution_id": "<execution ID for drill-down>",
+//	  "agent_run_id": "<execution ID for drill-down>",
 //	  "usage_summary": {
 //	    "total_tokens": 4523,
 //	    "estimated_cost_usd": 0.045,
@@ -335,13 +335,13 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto protoreflect.File
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a5ai/stigmer/agentic/agentexecution/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a1ai/stigmer/agentic/workflow/v1/tasks/common.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa2\x06\n" +
+	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a/ai/stigmer/agentic/agentrun/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a1ai/stigmer/agentic/workflow/v1/tasks/common.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x9c\x06\n" +
 	"\x13AgentCallTaskConfig\x12\"\n" +
 	"\x05agent\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18\x7fR\x05agent\x12(\n" +
 	"\amessage\x18\x02 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\amessage\x12T\n" +
-	"\x03env\x18\x03 \x03(\v2B.ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntryR\x03env\x12N\n" +
+	"\x03env\x18\x03 \x03(\v2B.ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntryR\x03env\x12H\n" +
 	"\n" +
-	"run_config\x18\x04 \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\x12U\n" +
+	"run_config\x18\x04 \x01(\v2).ai.stigmer.agentic.agentrun.v1.RunConfigR\trunConfig\x12U\n" +
 	"\x06output\x18\x05 \x01(\v2=.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractR\x06output\x12@\n" +
 	"\aharness\x18\x06 \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12Z\n" +
 	"\x11workspace_entries\x18\a \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xd9\x01\n" +
@@ -377,7 +377,7 @@ var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_goTypes = []any{
 	(*AgentCallTaskConfig)(nil),              // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
 	(*AgentCallOutputContract)(nil),          // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
 	nil,                                      // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
-	(*v1.RunConfig)(nil),                     // 3: ai.stigmer.agentic.agentexecution.v1.RunConfig
+	(*v1.RunConfig)(nil),                     // 3: ai.stigmer.agentic.agentrun.v1.RunConfig
 	(v11.Harness)(0),                         // 4: ai.stigmer.agentic.session.v1.Harness
 	(*v11.WorkspaceEntry)(nil),               // 5: ai.stigmer.agentic.session.v1.WorkspaceEntry
 	(*apiresource.ApiResourceReference)(nil), // 6: ai.stigmer.commons.apiresource.ApiResourceReference
@@ -386,7 +386,7 @@ var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_goTypes = []any{
 }
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.env:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
-	3, // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.run_config:type_name -> ai.stigmer.agentic.agentexecution.v1.RunConfig
+	3, // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.run_config:type_name -> ai.stigmer.agentic.agentrun.v1.RunConfig
 	1, // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.output:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
 	4, // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
 	5, // 4: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry

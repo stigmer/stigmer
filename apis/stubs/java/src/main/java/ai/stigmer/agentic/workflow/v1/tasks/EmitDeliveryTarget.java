@@ -145,7 +145,7 @@ private static final long serialVersionUID = 0L;
   public static final int SIGNAL_FIELD_NUMBER = 2;
   /**
    * <pre>
-   * Signal another workflow execution's listen task.
+   * Signal another workflow run's listen task.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -157,7 +157,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Signal another workflow execution's listen task.
+   * Signal another workflow run's listen task.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -172,7 +172,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Signal another workflow execution's listen task.
+   * Signal another workflow run's listen task.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -749,7 +749,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery, ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery.Builder, ai.stigmer.agentic.workflow.v1.tasks.SignalDeliveryOrBuilder> signalBuilder_;
     /**
      * <pre>
-     * Signal another workflow execution's listen task.
+     * Signal another workflow run's listen task.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -761,7 +761,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Signal another workflow execution's listen task.
+     * Signal another workflow run's listen task.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -783,7 +783,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Signal another workflow execution's listen task.
+     * Signal another workflow run's listen task.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -803,7 +803,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Signal another workflow execution's listen task.
+     * Signal another workflow run's listen task.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -821,7 +821,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Signal another workflow execution's listen task.
+     * Signal another workflow run's listen task.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -848,7 +848,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Signal another workflow execution's listen task.
+     * Signal another workflow run's listen task.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -871,7 +871,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Signal another workflow execution's listen task.
+     * Signal another workflow run's listen task.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -881,7 +881,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Signal another workflow execution's listen task.
+     * Signal another workflow run's listen task.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>
@@ -899,7 +899,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Signal another workflow execution's listen task.
+     * Signal another workflow run's listen task.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2 [json_name = "signal"];</code>

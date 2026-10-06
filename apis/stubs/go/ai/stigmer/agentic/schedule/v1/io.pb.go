@@ -91,7 +91,7 @@ const (
 	// The fire no-opped: the row was deleted, disabled, or paused between
 	// the fire being recorded and the run starting.
 	ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_SKIPPED ScheduleRunOutcome = 4
-	// The tracked run reached EXECUTION_COMPLETED.
+	// The tracked run reached RUN_COMPLETED.
 	ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_COMPLETED ScheduleRunOutcome = 5
 	// The tracked run ended terminal-but-not-completed (failed, cancelled,
 	// or terminated); reason names the terminal phase.
@@ -398,8 +398,8 @@ type ScheduleTriggerResult struct {
 	// terminal outcomes belong to run history — a manual fire answers at
 	// run start).
 	Outcome ScheduleRunOutcome `protobuf:"varint,2,opt,name=outcome,proto3,enum=ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome" json:"outcome,omitempty"`
-	// ID of the created execution. Set only when outcome is STARTED.
-	ExecutionId string `protobuf:"bytes,3,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// ID of the created run. Set only when outcome is STARTED.
+	RunId string `protobuf:"bytes,3,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// The refusing launch gate's copy, verbatim. Set only when outcome is
 	// REFUSED or TARGET_MISSING.
 	RefusalReason string `protobuf:"bytes,4,opt,name=refusal_reason,json=refusalReason,proto3" json:"refusal_reason,omitempty"`
@@ -451,9 +451,9 @@ func (x *ScheduleTriggerResult) GetOutcome() ScheduleRunOutcome {
 	return ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_UNSPECIFIED
 }
 
-func (x *ScheduleTriggerResult) GetExecutionId() string {
+func (x *ScheduleTriggerResult) GetRunId() string {
 	if x != nil {
-		return x.ExecutionId
+		return x.RunId
 	}
 	return ""
 }
@@ -482,9 +482,9 @@ type ScheduleRun struct {
 	// The refusing gate's or terminal verdict's copy, verbatim. Empty for
 	// healthy outcomes.
 	Reason string `protobuf:"bytes,6,opt,name=reason,proto3" json:"reason,omitempty"`
-	// ID of the created execution. Empty when no execution was created
+	// ID of the created run. Empty when no execution was created
 	// (refused, target missing, skipped).
-	ExecutionId string `protobuf:"bytes,7,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	RunId string `protobuf:"bytes,7,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// When the fire was recorded.
 	RecordedAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=recorded_at,json=recordedAt,proto3" json:"recorded_at,omitempty"`
 	// When the terminal outcome was recorded. Absent while the run is in
@@ -566,9 +566,9 @@ func (x *ScheduleRun) GetReason() string {
 	return ""
 }
 
-func (x *ScheduleRun) GetExecutionId() string {
+func (x *ScheduleRun) GetRunId() string {
 	if x != nil {
-		return x.ExecutionId
+		return x.RunId
 	}
 	return ""
 }
@@ -719,12 +719,12 @@ const file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc = "" +
 	"\tpage_info\x18\x03 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf5\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe9\x01\n" +
 	"\x15ScheduleTriggerResult\x12D\n" +
 	"\bschedule\x18\x01 \x01(\v2(.ai.stigmer.agentic.schedule.v1.ScheduleR\bschedule\x12L\n" +
-	"\aoutcome\x18\x02 \x01(\x0e22.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcomeR\aoutcome\x12!\n" +
-	"\fexecution_id\x18\x03 \x01(\tR\vexecutionId\x12%\n" +
-	"\x0erefusal_reason\x18\x04 \x01(\tR\rrefusalReason\"\xd8\x03\n" +
+	"\aoutcome\x18\x02 \x01(\x0e22.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcomeR\aoutcome\x12\x15\n" +
+	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12%\n" +
+	"\x0erefusal_reason\x18\x04 \x01(\tR\rrefusalReason\"\xcc\x03\n" +
 	"\vScheduleRun\x12\x1f\n" +
 	"\vschedule_id\x18\x01 \x01(\tR\n" +
 	"scheduleId\x12\x10\n" +
@@ -732,8 +732,8 @@ const file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc = "" +
 	"\x11nominal_fire_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x0fnominalFireTime\x12I\n" +
 	"\x06origin\x18\x04 \x01(\x0e21.ai.stigmer.agentic.schedule.v1.ScheduleRunOriginR\x06origin\x12L\n" +
 	"\aoutcome\x18\x05 \x01(\x0e22.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcomeR\aoutcome\x12\x16\n" +
-	"\x06reason\x18\x06 \x01(\tR\x06reason\x12!\n" +
-	"\fexecution_id\x18\a \x01(\tR\vexecutionId\x12;\n" +
+	"\x06reason\x18\x06 \x01(\tR\x06reason\x12\x15\n" +
+	"\x06run_id\x18\a \x01(\tR\x05runId\x12;\n" +
 	"\vrecorded_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"recordedAt\x12=\n" +
 	"\fcompleted_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\x81\x01\n" +

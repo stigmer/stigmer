@@ -179,15 +179,15 @@ func (x *CreateArtifactInput) GetContent() []byte {
 	return nil
 }
 
-// ListArtifactsByExecutionRequest lists artifacts produced by a specific execution.
-type ListArtifactsByExecutionRequest struct {
+// ListArtifactsByRunRequest lists artifacts produced by a specific run.
+type ListArtifactsByRunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// WorkflowExecution ID to list artifacts for.
+	// WorkflowRun ID to list artifacts for.
 	// Format: "wex_{unique-suffix}"
-	WorkflowExecutionId string `protobuf:"bytes,1,opt,name=workflow_execution_id,json=workflowExecutionId,proto3" json:"workflow_execution_id,omitempty"`
-	// AgentExecution ID to list artifacts for.
+	WorkflowRunId string `protobuf:"bytes,1,opt,name=workflow_run_id,json=workflowRunId,proto3" json:"workflow_run_id,omitempty"`
+	// AgentRun ID to list artifacts for.
 	// Format: "aex_{unique-suffix}"
-	AgentExecutionId string `protobuf:"bytes,2,opt,name=agent_execution_id,json=agentExecutionId,proto3" json:"agent_execution_id,omitempty"`
+	AgentRunId string `protobuf:"bytes,2,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
 	// Not read: an execution's artifacts are returned whole.
 	//
 	// Deprecated: Marked as deprecated in ai/stigmer/agentic/artifact/v1/io.proto.
@@ -200,20 +200,20 @@ type ListArtifactsByExecutionRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListArtifactsByExecutionRequest) Reset() {
-	*x = ListArtifactsByExecutionRequest{}
+func (x *ListArtifactsByRunRequest) Reset() {
+	*x = ListArtifactsByRunRequest{}
 	mi := &file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListArtifactsByExecutionRequest) String() string {
+func (x *ListArtifactsByRunRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListArtifactsByExecutionRequest) ProtoMessage() {}
+func (*ListArtifactsByRunRequest) ProtoMessage() {}
 
-func (x *ListArtifactsByExecutionRequest) ProtoReflect() protoreflect.Message {
+func (x *ListArtifactsByRunRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -225,27 +225,27 @@ func (x *ListArtifactsByExecutionRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListArtifactsByExecutionRequest.ProtoReflect.Descriptor instead.
-func (*ListArtifactsByExecutionRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListArtifactsByRunRequest.ProtoReflect.Descriptor instead.
+func (*ListArtifactsByRunRequest) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_artifact_v1_io_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ListArtifactsByExecutionRequest) GetWorkflowExecutionId() string {
+func (x *ListArtifactsByRunRequest) GetWorkflowRunId() string {
 	if x != nil {
-		return x.WorkflowExecutionId
+		return x.WorkflowRunId
 	}
 	return ""
 }
 
-func (x *ListArtifactsByExecutionRequest) GetAgentExecutionId() string {
+func (x *ListArtifactsByRunRequest) GetAgentRunId() string {
 	if x != nil {
-		return x.AgentExecutionId
+		return x.AgentRunId
 	}
 	return ""
 }
 
 // Deprecated: Marked as deprecated in ai/stigmer/agentic/artifact/v1/io.proto.
-func (x *ListArtifactsByExecutionRequest) GetPageSize() int32 {
+func (x *ListArtifactsByRunRequest) GetPageSize() int32 {
 	if x != nil {
 		return x.PageSize
 	}
@@ -253,7 +253,7 @@ func (x *ListArtifactsByExecutionRequest) GetPageSize() int32 {
 }
 
 // Deprecated: Marked as deprecated in ai/stigmer/agentic/artifact/v1/io.proto.
-func (x *ListArtifactsByExecutionRequest) GetPageToken() string {
+func (x *ListArtifactsByRunRequest) GetPageToken() string {
 	if x != nil {
 		return x.PageToken
 	}
@@ -507,10 +507,11 @@ const file_ai_stigmer_agentic_artifact_v1_io_proto_rawDesc = "" +
 	"\x13CreateArtifactInput\x12H\n" +
 	"\x04spec\x18\x01 \x01(\v2,.ai.stigmer.agentic.artifact.v1.ArtifactSpecB\x06\xbaH\x03\xc8\x01\x01R\x04spec\x12'\n" +
 	"\acontent\x18\x02 \x01(\fB\r\xbaH\n" +
-	"\xc8\x01\x01z\x05\x18\x80\x80\x80\x19R\acontent\"\xc7\x01\n" +
-	"\x1fListArtifactsByExecutionRequest\x122\n" +
-	"\x15workflow_execution_id\x18\x01 \x01(\tR\x13workflowExecutionId\x12,\n" +
-	"\x12agent_execution_id\x18\x02 \x01(\tR\x10agentExecutionId\x12\x1f\n" +
+	"\xc8\x01\x01z\x05\x18\x80\x80\x80\x19R\acontent\"\xa9\x01\n" +
+	"\x19ListArtifactsByRunRequest\x12&\n" +
+	"\x0fworkflow_run_id\x18\x01 \x01(\tR\rworkflowRunId\x12 \n" +
+	"\fagent_run_id\x18\x02 \x01(\tR\n" +
+	"agentRunId\x12\x1f\n" +
 	"\tpage_size\x18\x03 \x01(\x05B\x02\x18\x01R\bpageSize\x12!\n" +
 	"\n" +
 	"page_token\x18\x04 \x01(\tB\x02\x18\x01R\tpageToken\"b\n" +
@@ -546,15 +547,15 @@ func file_ai_stigmer_agentic_artifact_v1_io_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_artifact_v1_io_proto_goTypes = []any{
-	(*ArtifactId)(nil),                      // 0: ai.stigmer.agentic.artifact.v1.ArtifactId
-	(*ArtifactList)(nil),                    // 1: ai.stigmer.agentic.artifact.v1.ArtifactList
-	(*CreateArtifactInput)(nil),             // 2: ai.stigmer.agentic.artifact.v1.CreateArtifactInput
-	(*ListArtifactsByExecutionRequest)(nil), // 3: ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest
-	(*GetArtifactContentRequest)(nil),       // 4: ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest
-	(*GetArtifactContentResponse)(nil),      // 5: ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse
-	(*ArtifactDownloadUrl)(nil),             // 6: ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl
-	(*Artifact)(nil),                        // 7: ai.stigmer.agentic.artifact.v1.Artifact
-	(*ArtifactSpec)(nil),                    // 8: ai.stigmer.agentic.artifact.v1.ArtifactSpec
+	(*ArtifactId)(nil),                 // 0: ai.stigmer.agentic.artifact.v1.ArtifactId
+	(*ArtifactList)(nil),               // 1: ai.stigmer.agentic.artifact.v1.ArtifactList
+	(*CreateArtifactInput)(nil),        // 2: ai.stigmer.agentic.artifact.v1.CreateArtifactInput
+	(*ListArtifactsByRunRequest)(nil),  // 3: ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest
+	(*GetArtifactContentRequest)(nil),  // 4: ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest
+	(*GetArtifactContentResponse)(nil), // 5: ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse
+	(*ArtifactDownloadUrl)(nil),        // 6: ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl
+	(*Artifact)(nil),                   // 7: ai.stigmer.agentic.artifact.v1.Artifact
+	(*ArtifactSpec)(nil),               // 8: ai.stigmer.agentic.artifact.v1.ArtifactSpec
 }
 var file_ai_stigmer_agentic_artifact_v1_io_proto_depIdxs = []int32{
 	7, // 0: ai.stigmer.agentic.artifact.v1.ArtifactList.entries:type_name -> ai.stigmer.agentic.artifact.v1.Artifact

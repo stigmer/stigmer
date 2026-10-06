@@ -2,10 +2,10 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.agentexecution.v1.AgentInvocation;
-import ai.stigmer.agentic.agentexecution.v1.RunConfig;
-import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
-import ai.stigmer.agentic.agentexecution.v1.ThinkingMode;
+import ai.stigmer.agentic.agentrun.v1.AgentInvocation;
+import ai.stigmer.agentic.agentrun.v1.RunConfig;
+import ai.stigmer.agentic.agentrun.v1.ServiceTier;
+import ai.stigmer.agentic.agentrun.v1.ThinkingMode;
 import ai.stigmer.agentic.schedule.v1.Schedule;
 import ai.stigmer.agentic.schedule.v1.ScheduleSpec;
 import ai.stigmer.agentic.session.v1.GitRepoSource;

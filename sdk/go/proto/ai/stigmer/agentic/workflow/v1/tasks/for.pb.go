@@ -25,7 +25,7 @@ const (
 )
 
 // ForEachErrorPolicy defines what happens when an individual iteration fails
-// during parallel or sequential for_each execution.
+// during parallel or sequential for_each run.
 type ForEachErrorPolicy int32
 
 const (

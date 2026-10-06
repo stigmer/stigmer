@@ -59,16 +59,16 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ai.stigmer.agentic.artifact.v1.ArtifactS" +
       "ourceB\006\272H\003\310\001\001R\006source\022M\n\tretention\030\004 \001(\013" +
       "2/.ai.stigmer.agentic.artifact.v1.Retent" +
-      "ionPolicyR\tretention\"\217\001\n\016ArtifactSource\022" +
-      "2\n\025workflow_execution_id\030\001 \001(\tR\023workflow" +
-      "ExecutionId\022,\n\022agent_execution_id\030\002 \001(\tR" +
-      "\020agentExecutionId\022\033\n\ttask_name\030\003 \001(\tR\010ta" +
-      "skName\",\n\017RetentionPolicy\022\031\n\010ttl_days\030\001 " +
-      "\001(\005R\007ttlDaysB\250\001B\tSpecProtoP\001\242\002\004ASAA\252\002\036Ai" +
-      ".Stigmer.Agentic.Artifact.V1\312\002\036Ai\\Stigme" +
-      "r\\Agentic\\Artifact\\V1\342\002*Ai\\Stigmer\\Agent" +
-      "ic\\Artifact\\V1\\GPBMetadata\352\002\"Ai::Stigmer" +
-      "::Agentic::Artifact::V1b\006proto3"
+      "ionPolicyR\tretention\"w\n\016ArtifactSource\022&" +
+      "\n\017workflow_run_id\030\001 \001(\tR\rworkflowRunId\022 " +
+      "\n\014agent_run_id\030\002 \001(\tR\nagentRunId\022\033\n\ttask" +
+      "_name\030\003 \001(\tR\010taskName\",\n\017RetentionPolicy" +
+      "\022\031\n\010ttl_days\030\001 \001(\005R\007ttlDaysB\250\001B\tSpecProt" +
+      "oP\001\242\002\004ASAA\252\002\036Ai.Stigmer.Agentic.Artifact" +
+      ".V1\312\002\036Ai\\Stigmer\\Agentic\\Artifact\\V1\342\002*A" +
+      "i\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadat" +
+      "a\352\002\"Ai::Stigmer::Agentic::Artifact::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -86,7 +86,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_artifact_v1_ArtifactSource_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_artifact_v1_ArtifactSource_descriptor,
-        new java.lang.String[] { "WorkflowExecutionId", "AgentExecutionId", "TaskName", });
+        new java.lang.String[] { "WorkflowRunId", "AgentRunId", "TaskName", });
     internal_static_ai_stigmer_agentic_artifact_v1_RetentionPolicy_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_artifact_v1_RetentionPolicy_fieldAccessorTable = new

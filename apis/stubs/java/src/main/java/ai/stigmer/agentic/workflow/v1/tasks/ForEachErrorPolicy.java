@@ -8,7 +8,7 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * ForEachErrorPolicy defines what happens when an individual iteration fails
- * during parallel or sequential for_each execution.
+ * during parallel or sequential for_each run.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy}

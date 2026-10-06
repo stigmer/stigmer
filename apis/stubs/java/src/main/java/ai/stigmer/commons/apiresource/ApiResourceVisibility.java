@@ -80,7 +80,7 @@ public enum ApiResourceVisibility
    * all org roles including read-only viewers (the role SSO auto-provisioning
    * grants by default). Running or otherwise spending against the resource
    * still requires the org-level member-or-guest permissions
-   * (can_create_session / can_create_execution_in); org visibility widens
+   * (can_create_session / can_create_run_in); org visibility widens
    * read, never spend.
    *
    * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
@@ -167,7 +167,7 @@ public enum ApiResourceVisibility
    * all org roles including read-only viewers (the role SSO auto-provisioning
    * grants by default). Running or otherwise spending against the resource
    * still requires the org-level member-or-guest permissions
-   * (can_create_session / can_create_execution_in); org visibility widens
+   * (can_create_session / can_create_run_in); org visibility widens
    * read, never spend.
    *
    * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer

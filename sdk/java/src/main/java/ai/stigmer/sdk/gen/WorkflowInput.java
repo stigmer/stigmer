@@ -9,7 +9,7 @@ import ai.stigmer.agentic.workflow.v1.FlowControl;
 import ai.stigmer.agentic.workflow.v1.Workflow;
 import ai.stigmer.agentic.workflow.v1.WorkflowBudget;
 import ai.stigmer.agentic.workflow.v1.WorkflowDocument;
-import ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility;
+import ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility;
 import ai.stigmer.agentic.workflow.v1.WorkflowSpec;
 import ai.stigmer.agentic.workflow.v1.WorkflowTask;
 import ai.stigmer.agentic.workflow.v1.WorkflowTaskKind;
@@ -32,7 +32,7 @@ public final class WorkflowInput {
     private final java.util.List<WorkflowTaskInput> tasks;
     private final java.util.Map<String, EnvVarDeclarationInput> env;
     private final WorkflowBudgetInput budget;
-    private final WorkflowExecutionVisibility executionVisibility;
+    private final WorkflowRunVisibility runVisibility;
 
     private WorkflowInput(Builder builder) {
         this.id = builder.id;
@@ -47,7 +47,7 @@ public final class WorkflowInput {
         this.tasks = builder.tasks;
         this.env = builder.env;
         this.budget = builder.budget;
-        this.executionVisibility = builder.executionVisibility;
+        this.runVisibility = builder.runVisibility;
     }
 
     Workflow toProto() {
@@ -71,8 +71,8 @@ public final class WorkflowInput {
         if (this.budget != null) {
             spec.setBudget(this.budget.toProto());
         }
-        if (this.executionVisibility != null) {
-            spec.setExecutionVisibility(this.executionVisibility);
+        if (this.runVisibility != null) {
+            spec.setRunVisibility(this.runVisibility);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -119,7 +119,7 @@ public final class WorkflowInput {
         private java.util.List<WorkflowTaskInput> tasks;
         private java.util.Map<String, EnvVarDeclarationInput> env;
         private WorkflowBudgetInput budget;
-        private WorkflowExecutionVisibility executionVisibility;
+        private WorkflowRunVisibility runVisibility;
 
         private Builder() {}
 
@@ -140,7 +140,7 @@ public final class WorkflowInput {
         public Builder tasks(java.util.List<WorkflowTaskInput> tasks) { this.tasks = tasks; return this; }
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
         public Builder budget(WorkflowBudgetInput budget) { this.budget = budget; return this; }
-        public Builder executionVisibility(WorkflowExecutionVisibility executionVisibility) { this.executionVisibility = executionVisibility; return this; }
+        public Builder runVisibility(WorkflowRunVisibility runVisibility) { this.runVisibility = runVisibility; return this; }
 
         public WorkflowInput build() { return new WorkflowInput(this); }
     }

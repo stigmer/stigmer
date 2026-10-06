@@ -12,7 +12,7 @@ public interface OrganizationPreferencesOrBuilder extends
 
   /**
    * <pre>
-   * Free-text standing context injected into eligible agent executions in
+   * Free-text standing context injected into eligible agent runs in
    * this organization. Example: "We deploy to us-east-1."
    * </pre>
    *
@@ -22,7 +22,7 @@ public interface OrganizationPreferencesOrBuilder extends
   java.lang.String getStandingContext();
   /**
    * <pre>
-   * Free-text standing context injected into eligible agent executions in
+   * Free-text standing context injected into eligible agent runs in
    * this organization. Example: "We deploy to us-east-1."
    * </pre>
    *

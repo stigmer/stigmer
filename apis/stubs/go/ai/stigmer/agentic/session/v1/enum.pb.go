@@ -155,7 +155,7 @@ const (
 	// Desktop app or CLI spawns a local runner process that polls the
 	// session's task queue. No server-side provisioning needed.
 	ExecutionTarget_EXECUTION_TARGET_LOCAL ExecutionTarget = 1
-	// Server provisions a cloud sandbox for execution.
+	// Server provisions a cloud sandbox for run.
 	//
 	// The control plane triggers EnsureSessionSandbox to create an isolated
 	// environment with a runner polling the session's task queue.

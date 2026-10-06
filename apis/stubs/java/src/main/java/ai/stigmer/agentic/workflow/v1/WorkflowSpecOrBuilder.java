@@ -167,10 +167,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
 
   /**
    * <pre>
-   * Budget limits for this workflow execution.
+   * Budget limits for this workflow run.
    * When set, the runtime enforces cost, token, and duration limits
    * across all tasks. The existing org-level billing reservation system
-   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * (AuthorizeRun / RunBillingSignal) remains the safety net
    * for overall credit exhaustion; workflow budgets prevent individual
    * workflows from consuming more than intended.
    * Optional — when not set, no workflow-level budget is enforced.
@@ -182,10 +182,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
   boolean hasBudget();
   /**
    * <pre>
-   * Budget limits for this workflow execution.
+   * Budget limits for this workflow run.
    * When set, the runtime enforces cost, token, and duration limits
    * across all tasks. The existing org-level billing reservation system
-   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * (AuthorizeRun / RunBillingSignal) remains the safety net
    * for overall credit exhaustion; workflow budgets prevent individual
    * workflows from consuming more than intended.
    * Optional — when not set, no workflow-level budget is enforced.
@@ -197,10 +197,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
   ai.stigmer.agentic.workflow.v1.WorkflowBudget getBudget();
   /**
    * <pre>
-   * Budget limits for this workflow execution.
+   * Budget limits for this workflow run.
    * When set, the runtime enforces cost, token, and duration limits
    * across all tasks. The existing org-level billing reservation system
-   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * (AuthorizeRun / RunBillingSignal) remains the safety net
    * for overall credit exhaustion; workflow budgets prevent individual
    * workflows from consuming more than intended.
    * Optional — when not set, no workflow-level budget is enforced.
@@ -220,14 +220,14 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    *
    * Defaults to PRIVATE (unspecified is treated as private): each run is
    * visible only to the person who started it. Set at create; afterwards it
-   * changes only through WorkflowCommandController.updateExecutionVisibility,
+   * changes only through WorkflowCommandController.updateRunVisibility,
    * and update and apply keep the stored level.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 6 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
-   * @return The enum numeric value on the wire for executionVisibility.
+   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 6 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for runVisibility.
    */
-  int getExecutionVisibilityValue();
+  int getRunVisibilityValue();
   /**
    * <pre>
    * Who can observe the runs (executions) of this workflow.
@@ -238,12 +238,12 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    *
    * Defaults to PRIVATE (unspecified is treated as private): each run is
    * visible only to the person who started it. Set at create; afterwards it
-   * changes only through WorkflowCommandController.updateExecutionVisibility,
+   * changes only through WorkflowCommandController.updateRunVisibility,
    * and update and apply keep the stored level.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility execution_visibility = 6 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
-   * @return The executionVisibility.
+   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 6 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
+   * @return The runVisibility.
    */
-  ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility getExecutionVisibility();
+  ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility getRunVisibility();
 }

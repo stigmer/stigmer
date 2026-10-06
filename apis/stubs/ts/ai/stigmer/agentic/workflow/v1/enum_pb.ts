@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/workflow/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKt4CChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANEgwKCGxsbV9jYWxsEA4SDQoJdHJhbnNmb3JtEA8SDwoLaHVtYW5faW5wdXQQEBIMCgh2YWxpZGF0ZRAREg4KCmVtaXRfZXZlbnQQEhIQCgxub3RpZmljYXRpb24QExIICgRldmFsEBQqmQEKFEJ1ZGdldEV4Y2VlZGVkUG9saWN5EiYKImJ1ZGdldF9leGNlZWRlZF9wb2xpY3lfdW5zcGVjaWZpZWQQABIdChlidWRnZXRfZXhjZWVkZWRfdGVybWluYXRlEAESIAocYnVkZ2V0X2V4Y2VlZGVkX2h1bWFuX3JldmlldxACEhgKFGJ1ZGdldF9leGNlZWRlZF93YXJuEAMqpwEKG1dvcmtmbG93RXhlY3V0aW9uVmlzaWJpbGl0eRItCil3b3JrZmxvd19leGVjdXRpb25fdmlzaWJpbGl0eV91bnNwZWNpZmllZBAAEikKJXdvcmtmbG93X2V4ZWN1dGlvbl92aXNpYmlsaXR5X3ByaXZhdGUQARIuCip3b3JrZmxvd19leGVjdXRpb25fdmlzaWJpbGl0eV9vcmdhbml6YXRpb24QAmIGcHJvdG8z");
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKt4CChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANEgwKCGxsbV9jYWxsEA4SDQoJdHJhbnNmb3JtEA8SDwoLaHVtYW5faW5wdXQQEBIMCgh2YWxpZGF0ZRAREg4KCmVtaXRfZXZlbnQQEhIQCgxub3RpZmljYXRpb24QExIICgRldmFsEBQqmQEKFEJ1ZGdldEV4Y2VlZGVkUG9saWN5EiYKImJ1ZGdldF9leGNlZWRlZF9wb2xpY3lfdW5zcGVjaWZpZWQQABIdChlidWRnZXRfZXhjZWVkZWRfdGVybWluYXRlEAESIAocYnVkZ2V0X2V4Y2VlZGVkX2h1bWFuX3JldmlldxACEhgKFGJ1ZGdldF9leGNlZWRlZF93YXJuEAMqjwEKFVdvcmtmbG93UnVuVmlzaWJpbGl0eRInCiN3b3JrZmxvd19ydW5fdmlzaWJpbGl0eV91bnNwZWNpZmllZBAAEiMKH3dvcmtmbG93X3J1bl92aXNpYmlsaXR5X3ByaXZhdGUQARIoCiR3b3JrZmxvd19ydW5fdmlzaWJpbGl0eV9vcmdhbml6YXRpb24QAmIGcHJvdG8z");
 
 /**
  * WorkflowTaskKind defines the supported task types in a workflow.
@@ -191,7 +191,7 @@ export enum BudgetExceededPolicy {
   budget_exceeded_policy_unspecified = 0,
 
   /**
-   * Terminate the workflow immediately with EXECUTION_FAILED status.
+   * Terminate the workflow immediately with RUN_FAILED status.
    * The execution record includes the budget breach details for diagnostics.
    *
    * @generated from enum value: budget_exceeded_terminate = 1;
@@ -225,35 +225,35 @@ export const BudgetExceededPolicySchema: GenEnum<BudgetExceededPolicy> = /*@__PU
   enumDesc(file_ai_stigmer_agentic_workflow_v1_enum, 1);
 
 /**
- * WorkflowExecutionVisibility controls who can observe the runs (executions)
+ * WorkflowRunVisibility controls who can observe the runs (executions)
  * of a workflow.
  *
  * This is a SEPARATE axis from the workflow's own visibility
  * (metadata.visibility, which governs who can SEE and RUN the workflow).
  * Keeping them separate means making a workflow org-runnable never exposes
- * other people's run inputs and outputs. See workflow_execution.fga and
- * workflow.fga (the `execution_viewer` relation) for how this maps to
+ * other people's run inputs and outputs. See workflow_run.fga and
+ * workflow.fga (the `run_viewer` relation) for how this maps to
  * authorization tuples.
  *
  * Only PRIVATE and ORGANIZATION are meaningful: a run is either visible to
  * just the person who started it, or to every member of the owning
  * organization. Public/platform run observability is deliberately unsupported.
  *
- * @generated from enum ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility
+ * @generated from enum ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility
  */
-export enum WorkflowExecutionVisibility {
+export enum WorkflowRunVisibility {
   /**
    * Unset. Treated as PRIVATE — each execution is visible only to the user
    * who triggered it.
    *
-   * @generated from enum value: workflow_execution_visibility_unspecified = 0;
+   * @generated from enum value: workflow_run_visibility_unspecified = 0;
    */
   unspecified = 0,
 
   /**
    * Each execution is visible only to the user who triggered it (its owner).
    *
-   * @generated from enum value: workflow_execution_visibility_private = 1;
+   * @generated from enum value: workflow_run_visibility_private = 1;
    */
   private = 1,
 
@@ -261,14 +261,14 @@ export enum WorkflowExecutionVisibility {
    * Every member of the owning organization can observe all executions of
    * this workflow.
    *
-   * @generated from enum value: workflow_execution_visibility_organization = 2;
+   * @generated from enum value: workflow_run_visibility_organization = 2;
    */
   organization = 2,
 }
 
 /**
- * Describes the enum ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility.
+ * Describes the enum ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility.
  */
-export const WorkflowExecutionVisibilitySchema: GenEnum<WorkflowExecutionVisibility> = /*@__PURE__*/
+export const WorkflowRunVisibilitySchema: GenEnum<WorkflowRunVisibility> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_workflow_v1_enum, 2);
 
