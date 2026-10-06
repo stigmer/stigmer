@@ -12,7 +12,6 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -140,17 +139,17 @@ describe("listIndexFactsOf", () => {
   });
 
   it("follows a nested field path", () => {
-    const artifacts = declareListIndex({
-      kind: ApiResourceKind.artifact,
-      schema: ArtifactSchema,
+    const byAgentSlug = declareListIndex({
+      kind: ApiResourceKind.session,
+      schema: SessionSchema,
       revision: 1,
-      keys: { agent_run: field("spec.source.agent_run_id") },
+      keys: { agent_slug: field("spec.agent_ref.slug") },
     });
-    const artifact = create(ArtifactSchema, {
-      spec: { source: { agentRunId: "aex_1" } },
+    const session = create(SessionSchema, {
+      spec: { agentRef: { slug: "support-bot" } },
     });
-    expect(listIndexFactsOf(artifacts, artifact).keys).toEqual([
-      { key: "agent_run", value: "aex_1" },
+    expect(listIndexFactsOf(byAgentSlug, session).keys).toEqual([
+      { key: "agent_slug", value: "support-bot" },
     ]);
   });
 

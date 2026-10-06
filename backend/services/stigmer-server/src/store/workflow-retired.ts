@@ -1,0 +1,160 @@
+/**
+ * The one data migration both store drivers run when workflows, workflow
+ * runs and the artifact kind leave the platform: their rows leave the
+ * store, with every grant that names one and the two tables only workflows
+ * wrote, and every agent run is left with nothing that points at a
+ * workflow. The drivers own the SQL (which rows to read, in what pages, how
+ * to write and delete them, the transaction); this module owns what is
+ * edition- and driver-neutral: which kinds go, which grant names one, and
+ * what one agent run row becomes. It is the third of its line, after
+ * agent-instance-retired.ts and workflow-instance-retired.ts.
+ *
+ * What leaves. Every row of the retired kinds (`RETIRED_WORKFLOW_KINDS`:
+ * a workflow, a workflow run under either name it was stored under, and an
+ * artifact, whose only producer was a workflow step's output) leaves every
+ * table that keys a row by kind (run-rename.ts `RUN_KIND_TABLES`): the live
+ * rows, their history, their list keys and the names they held. No data of
+ * those kinds is kept. Every IamPolicy row whose resource or principal is
+ * one of those kinds leaves too (`policyNamesRetiredWorkflowKind`): a grant
+ * on an object that no longer exists would only linger in grant listings.
+ * Such a row leaves the way the store deletes a policy, with its list keys
+ * and with its history kept. The workflow run event log
+ * (`workflow_execution_events`) and the signal idempotency ledger
+ * (`signal_dedupe`) are dropped; nothing else wrote or read them. Search
+ * entries of the removed rows are boot's rebuild's to drop.
+ *
+ * What an agent run becomes. A run a workflow step started holds its
+ * parent in AgentRunSpec field 17 (`parent`) and may hold the step's task
+ * token in AgentRunStatus field 10 (`callback_token`); the contract now
+ * reserves both, so the current schema decodes them as unknown fields
+ * (protobuf-es keeps unknown fields through `fromBinary`). They are read by
+ * wire number, never through a schema that no longer exists, and dropped,
+ * with the two lineage labels the workflow runner stamped
+ * (`stigmer.ai/workflow-execution-id`, `stigmer.ai/workflow-task`). Every
+ * other field is kept, and a run that carries none of them is left byte
+ * for byte as it is. Its `updated_at` is left alone: no list key of a run
+ * reads what changes, so the list index stays proven. Audit rows of a run
+ * are not read: runs are not versioned.
+ *
+ * An undecodable row fails the step, the rule the other data migrations
+ * keep (public-visibility-retired.ts): the driver's transaction rolls back
+ * and the boot stops on the row it names.
+ */
+import { fromBinary, toBinary } from "@bufbuild/protobuf";
+
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+
+/**
+ * The `kind` column values of the rows the step deletes: the workflow kind,
+ * the workflow run kind under the name a store before the run rename holds
+ * it by and the name after, and the artifact kind.
+ */
+export const RETIRED_WORKFLOW_KINDS: ReadonlyArray<string> = [
+  "workflow",
+  "workflow_execution",
+  "workflow_run",
+  "artifact",
+];
+
+/** The `kind` column value of the agent run rows the step rewrites. */
+export const AGENT_RUN_KIND = "agent_run";
+/** The `kind` column value of the grant rows the step reads. */
+export const WORKFLOW_RETIRED_POLICY_KIND = "iam_policy";
+
+/** The tables the step drops. */
+export const RETIRED_WORKFLOW_TABLES: ReadonlyArray<string> = [
+  "workflow_execution_events",
+  "signal_dedupe",
+];
+
+/** How many grant rows the step decodes per page. */
+export const WORKFLOW_RETIRED_PAGE_SIZE = 500;
+/**
+ * How many agent run rows the step decodes per page: fewer than the
+ * grants', because a run's row carries its whole transcript.
+ */
+export const AGENT_RUN_RETIRED_PAGE_SIZE = 100;
+
+/** The retired AgentRunSpec field that held the run's workflow parent. */
+const RUN_SPEC_PARENT_FIELD = 17;
+/** The retired AgentRunStatus field that held the workflow step's task token. */
+const RUN_STATUS_CALLBACK_TOKEN_FIELD = 10;
+/** The lineage labels the workflow runner stamped on a run it started. */
+const WORKFLOW_LINEAGE_LABELS: ReadonlyArray<string> = [
+  "stigmer.ai/workflow-execution-id",
+  "stigmer.ai/workflow-task",
+];
+
+/**
+ * The migrated bytes of one agent run row, or undefined when it carries
+ * neither retired field and neither lineage label (the driver then leaves
+ * its bytes as they are). Throws when the bytes do not decode.
+ */
+export function migrateAgentRunRow(data: Uint8Array): Uint8Array | undefined {
+  const run = fromBinary(AgentRunSchema, data);
+  const spec = run.spec;
+  const status = run.status;
+  const labels = run.metadata?.labels;
+  const parentHeld = (spec?.$unknown ?? []).some(
+    (f) => f.no === RUN_SPEC_PARENT_FIELD,
+  );
+  const tokenHeld = (status?.$unknown ?? []).some(
+    (f) => f.no === RUN_STATUS_CALLBACK_TOKEN_FIELD,
+  );
+  const lineage = WORKFLOW_LINEAGE_LABELS.filter(
+    (key) => labels !== undefined && Object.hasOwn(labels, key),
+  );
+  if (!parentHeld && !tokenHeld && lineage.length === 0) {
+    return undefined;
+  }
+  if (spec !== undefined && parentHeld) {
+    spec.$unknown = (spec.$unknown ?? []).filter(
+      (f) => f.no !== RUN_SPEC_PARENT_FIELD,
+    );
+    if (spec.$unknown.length === 0) {
+      delete spec.$unknown;
+    }
+  }
+  if (status !== undefined && tokenHeld) {
+    status.$unknown = (status.$unknown ?? []).filter(
+      (f) => f.no !== RUN_STATUS_CALLBACK_TOKEN_FIELD,
+    );
+    if (status.$unknown.length === 0) {
+      delete status.$unknown;
+    }
+  }
+  if (labels !== undefined) {
+    for (const key of lineage) {
+      delete labels[key];
+    }
+  }
+  return toBinary(AgentRunSchema, run);
+}
+
+/**
+ * Whether a stored IamPolicy row names a retired kind as its resource or
+ * its principal (an `ApiResourceRef.kind` is the enum member name, the
+ * string the kind's rows were stored under). Read through the live schema:
+ * the policy's own fields are unchanged. Throws when the bytes do not
+ * decode.
+ */
+export function policyNamesRetiredWorkflowKind(data: Uint8Array): boolean {
+  const spec = fromBinary(IamPolicySchema, data).spec;
+  return (
+    RETIRED_WORKFLOW_KINDS.includes(spec?.resource?.kind ?? "") ||
+    RETIRED_WORKFLOW_KINDS.includes(spec?.principal?.kind ?? "")
+  );
+}
+
+/** The step's failure for a row it cannot read (the module header). */
+export function unreadableRetiredWorkflowRowError(
+  kind: string,
+  id: string,
+  error: unknown,
+): Error {
+  return new Error(
+    `${kind} '${id}' cannot be read to retire the workflow kinds: ${String(error)}`,
+    { cause: error },
+  );
+}

@@ -15,7 +15,6 @@
  *   - `decoded`: rows are protobuf resources; each is decoded with its
  *     kind's schema and every string it holds, at any depth (its
  *     `metadata.org`, every reference), is compared;
- *   - `by-execution`: rows are keyed by a run, whose id the census is given;
  *   - `none`: the table names no organization (the schema's own version);
  *   - `engine`: the search engine's own storage behind `search_index`
  *     (SQLite's FTS5 shadow tables), read through `search_index` itself.
@@ -43,7 +42,6 @@ export type CensusClass =
   | "org-column"
   | "id-as-value"
   | "decoded"
-  | "by-execution"
   | "none"
   | "engine";
 
@@ -57,10 +55,8 @@ export const CENSUS_TABLES: Readonly<Record<string, CensusClass>> = {
   organization_deletions: "org-column",
   search_index: "org-column",
   schedule_runs: "org-column",
-  signal_dedupe: "org-column",
   oauth_grant: "org-column",
   pending_oauth_state: "org-column",
-  workflow_execution_events: "by-execution",
   schema_version: "none",
   // SQLite's own bookkeeping and the FTS5 shadow tables behind search_index.
   sqlite_sequence: "none",

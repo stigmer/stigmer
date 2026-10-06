@@ -70,31 +70,33 @@ import {
 } from "../public-visibility-retired.js";
 import {
   RETIRED_WORKFLOW_INSTANCE_KIND,
-  WORKFLOW_EXECUTION_KIND,
   WORKFLOW_RETIREMENT_PAGE_SIZE,
   WORKFLOW_RETIREMENT_POLICY_KIND,
-  migrateWorkflowExecutionRow,
   policyNamesRetiredWorkflowInstance,
   unreadableWorkflowRowError,
-  workflowInstanceWorkflowIdOf,
 } from "../workflow-instance-retired.js";
-import type { MigratedRun } from "../workflow-instance-retired.js";
 import {
   RETIRED_AGENT_RUN_KIND,
-  RETIRED_WORKFLOW_RUN_KIND,
-  RUN_EVENT_TYPE_RENAMES,
   RUN_KIND_RENAMES,
   RUN_KIND_TABLES,
   RUN_RENAME_PAGE_SIZE,
   RUN_RENAME_POLICY_KIND,
-  RUN_RENAME_WORKFLOW_KIND,
   rekeyedRunPolicy,
   renamedAgentRunRow,
-  renamedWorkflowRow,
-  renamedWorkflowRunRow,
   unreadableRunRenameRowError,
 } from "../run-rename.js";
 import type { RekeyedPolicy } from "../run-rename.js";
+import {
+  AGENT_RUN_KIND,
+  AGENT_RUN_RETIRED_PAGE_SIZE,
+  RETIRED_WORKFLOW_KINDS,
+  RETIRED_WORKFLOW_TABLES,
+  WORKFLOW_RETIRED_PAGE_SIZE,
+  WORKFLOW_RETIRED_POLICY_KIND,
+  migrateAgentRunRow,
+  policyNamesRetiredWorkflowKind,
+  unreadableRetiredWorkflowRowError,
+} from "../workflow-retired.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -115,13 +117,15 @@ export const SCHEMA_VERSION_9 = 9;
 export const SCHEMA_VERSION_10 = 10;
 /** v11: the organization deletion table (DDL only). */
 export const SCHEMA_VERSION_11 = 11;
-/** v12: workflow runs name their workflow directly; the workflow instance rows removed. */
+/** v12: the workflow instance rows removed. */
 export const SCHEMA_VERSION_12 = 12;
-/** v13: agent and workflow executions are runs, in the store and the workflow language. */
+/** v13: agent executions are runs. */
 export const SCHEMA_VERSION_13 = 13;
+/** v14: the workflow, workflow run and artifact rows removed, with the tables only workflows wrote. */
+export const SCHEMA_VERSION_14 = 14;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_13;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_14;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -174,6 +178,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_11, migrateToV11],
       [SCHEMA_VERSION_12, migrateToV12],
       [SCHEMA_VERSION_13, migrateToV13],
+      [SCHEMA_VERSION_14, migrateToV14],
     ];
 
     for (const [version, migrate] of chain) {
@@ -825,16 +830,8 @@ async function migrateToV11(client: PoolClient): Promise<void> {
 
 /**
  * v12: the workflow instance kind is removed (workflow-instance-retired.ts
- * says what each run becomes and why an unreadable row fails the step).
+ * says what leaves and why an unreadable row fails the step).
  *
- * - Every instance row is read in keyset pages on `(kind, id)` for the
- *   workflow it names; the map of instance to workflow is ids only, so it
- *   stays small beside the rows.
- * - Every run is read in keyset pages and rewritten when it carries a
- *   retired field. A run that gained its workflow id has `updated_at`
- *   bumped the way the store's writes bump it, so the list index
- *   re-derives the key it is found by the way it re-derives any unproven
- *   row; a run that only lost a retired field keeps its stamp.
  * - Every IamPolicy row is read in keyset pages, and the ones naming an
  *   instance as resource or principal are deleted with their list keys,
  *   their history kept, as the store deletes a policy.
@@ -848,83 +845,35 @@ async function migrateToV11(client: PoolClient): Promise<void> {
  * out of the step, and the transaction makes it whole or nothing.
  */
 async function migrateToV12(client: PoolClient): Promise<void> {
-  /** Every row of a kind, in keyset pages, in id order. */
-  const forEachRow = async (
-    kind: string,
-    visit: (row: { id: string; data: Buffer }) => Promise<void> | void,
-  ): Promise<void> => {
-    for (let after = ""; ; ) {
-      const rows = (
-        await client.query<{ id: string; data: Buffer }>(
-          `SELECT id, data FROM resources
-           WHERE kind = $1 AND id > $2
-           ORDER BY id
-           LIMIT $3`,
-          [kind, after, WORKFLOW_RETIREMENT_PAGE_SIZE],
-        )
-      ).rows;
-      for (const row of rows) {
-        await visit(row);
-      }
-      if (rows.length < WORKFLOW_RETIREMENT_PAGE_SIZE) {
-        return;
-      }
-      after = rows[rows.length - 1]!.id;
-    }
-  };
-
-  const instanceWorkflows = new Map<string, string>();
-  await forEachRow(RETIRED_WORKFLOW_INSTANCE_KIND, (row) => {
-    try {
-      instanceWorkflows.set(
-        row.id,
-        workflowInstanceWorkflowIdOf(new Uint8Array(row.data)),
-      );
-    } catch (error) {
-      throw unreadableWorkflowRowError(
-        RETIRED_WORKFLOW_INSTANCE_KIND,
-        row.id,
-        error,
-      );
-    }
-  });
-  const workflowOf = (instanceId: string): string | undefined =>
-    instanceWorkflows.get(instanceId);
-
-  await forEachRow(WORKFLOW_EXECUTION_KIND, async (row) => {
-    let migrated: MigratedRun | undefined;
-    try {
-      migrated = migrateWorkflowExecutionRow(
-        new Uint8Array(row.data),
-        workflowOf,
-      );
-    } catch (error) {
-      throw unreadableWorkflowRowError(WORKFLOW_EXECUTION_KIND, row.id, error);
-    }
-    if (migrated !== undefined) {
-      await client.query(
-        migrated.workflowIdFilled
-          ? `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`
-          : `UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`,
-        [Buffer.from(migrated.data), WORKFLOW_EXECUTION_KIND, row.id],
-      );
-    }
-  });
-
   const retiredPolicies: string[] = [];
-  await forEachRow(WORKFLOW_RETIREMENT_POLICY_KIND, (row) => {
-    try {
-      if (policyNamesRetiredWorkflowInstance(new Uint8Array(row.data))) {
-        retiredPolicies.push(row.id);
+  for (let after = ""; ; ) {
+    const rows = (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM resources
+         WHERE kind = $1 AND id > $2
+         ORDER BY id
+         LIMIT $3`,
+        [WORKFLOW_RETIREMENT_POLICY_KIND, after, WORKFLOW_RETIREMENT_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      try {
+        if (policyNamesRetiredWorkflowInstance(new Uint8Array(row.data))) {
+          retiredPolicies.push(row.id);
+        }
+      } catch (error) {
+        throw unreadableWorkflowRowError(
+          WORKFLOW_RETIREMENT_POLICY_KIND,
+          row.id,
+          error,
+        );
       }
-    } catch (error) {
-      throw unreadableWorkflowRowError(
-        WORKFLOW_RETIREMENT_POLICY_KIND,
-        row.id,
-        error,
-      );
     }
-  });
+    if (rows.length < WORKFLOW_RETIREMENT_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(
       `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
@@ -940,21 +889,17 @@ async function migrateToV12(client: PoolClient): Promise<void> {
 }
 
 /**
- * v13: agent and workflow executions are runs. run-rename.ts says what each
- * row becomes and why an unreadable row fails the step.
+ * v13: agent executions are runs. run-rename.ts says what each row becomes
+ * and why an unreadable row fails the step.
  *
  * - Every run row is read in keyset pages under its old kind and rewritten
  *   when its bytes spell the kind the old way; then every table keyed by
- *   kind renames the run kinds, and every workflow run event names its
- *   type the new way.
+ *   kind renames the run kind.
  * - Every IamPolicy row is read in keyset pages, and the ones naming a run
  *   kind are re-keyed: the old row leaves with its list keys, its history
  *   kept, and the new row is written unproven with `updated_at` stamped,
  *   so the list index derives its keys the way it derives any unproven
  *   row.
- * - Every workflow head and every archived workflow version is read in
- *   keyset pages and rewritten when its steps name a run the old way; no
- *   stamp changes, because no list key reads a step.
  * - The search index is left to boot's RebuildIndex (the v9 precedent).
  *
  * Each page compares and orders `id` under the column's own collation, so
@@ -986,27 +931,21 @@ async function migrateToV13(client: PoolClient): Promise<void> {
       after = rows[rows.length - 1]!.id;
     }
   };
-  const migrateRows = (
-    kind: string,
-    migrate: (data: Uint8Array) => Uint8Array | undefined,
-  ): Promise<void> =>
-    forEachRow(kind, async (row) => {
-      let data: Uint8Array | undefined;
-      try {
-        data = migrate(new Uint8Array(row.data));
-      } catch (error) {
-        throw unreadableRunRenameRowError(kind, row.id, error);
-      }
-      if (data !== undefined) {
-        await client.query(
-          `UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`,
-          [Buffer.from(data), kind, row.id],
-        );
-      }
-    });
 
-  await migrateRows(RETIRED_AGENT_RUN_KIND, renamedAgentRunRow);
-  await migrateRows(RETIRED_WORKFLOW_RUN_KIND, renamedWorkflowRunRow);
+  await forEachRow(RETIRED_AGENT_RUN_KIND, async (row) => {
+    let data: Uint8Array | undefined;
+    try {
+      data = renamedAgentRunRow(new Uint8Array(row.data));
+    } catch (error) {
+      throw unreadableRunRenameRowError(RETIRED_AGENT_RUN_KIND, row.id, error);
+    }
+    if (data !== undefined) {
+      await client.query(
+        `UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`,
+        [Buffer.from(data), RETIRED_AGENT_RUN_KIND, row.id],
+      );
+    }
+  });
   for (const [from, to] of RUN_KIND_RENAMES) {
     for (const table of RUN_KIND_TABLES) {
       await client.query(`UPDATE ${table} SET kind = $1 WHERE kind = $2`, [
@@ -1014,12 +953,6 @@ async function migrateToV13(client: PoolClient): Promise<void> {
         from,
       ]);
     }
-  }
-  for (const [from, to] of RUN_EVENT_TYPE_RENAMES) {
-    await client.query(
-      `UPDATE workflow_execution_events SET event_type = $1 WHERE event_type = $2`,
-      [to, from],
-    );
   }
 
   const rekeyed: Array<{ from: string; policy: RekeyedPolicy }> = [];
@@ -1045,39 +978,101 @@ async function migrateToV13(client: PoolClient): Promise<void> {
       [RUN_RENAME_POLICY_KIND, policy.id, Buffer.from(policy.data)],
     );
   }
+}
 
-  await migrateRows(RUN_RENAME_WORKFLOW_KIND, renamedWorkflowRow);
-  for (let after = "0"; ; ) {
-    const rows = (
-      await client.query<{ id: string; data: Buffer }>(
-        `SELECT id::text AS id, data FROM resource_audit
-         WHERE kind = $1 AND id > $2::bigint
-         ORDER BY id
-         LIMIT $3`,
-        [RUN_RENAME_WORKFLOW_KIND, after, RUN_RENAME_PAGE_SIZE],
-      )
-    ).rows;
-    for (const row of rows) {
-      let data: Uint8Array | undefined;
+/**
+ * v14: workflows, workflow runs and the artifact kind are removed
+ * (workflow-retired.ts says what leaves, what each agent run becomes and
+ * why an unreadable row fails the step).
+ *
+ * - Every IamPolicy row is read in keyset pages, and the ones naming a
+ *   retired kind as resource or principal are deleted with their list
+ *   keys, their history kept, as the store deletes a policy.
+ * - Every agent run is read in keyset pages and rewritten when it carries
+ *   a workflow parent, a workflow step's task token or a workflow lineage
+ *   label, its `updated_at` left alone (no list key of a run reads them).
+ * - Every row of a retired kind is then deleted from every table keyed by
+ *   kind, and the two tables only workflows wrote are dropped; the search
+ *   index is left to boot's RebuildIndex, which re-indexes only the
+ *   registered kinds (the v9 precedent).
+ *
+ * Each page compares and orders `id` under the column's own collation, so
+ * the keyset is consistent whatever the database's locale and the primary
+ * key serves it. The chain's advisory lock keeps a second instance's boot
+ * out of the step, and the transaction makes it whole or nothing.
+ */
+async function migrateToV14(client: PoolClient): Promise<void> {
+  const forEachRow = async (
+    kind: string,
+    size: number,
+    visit: (row: { id: string; data: Buffer }) => Promise<void> | void,
+  ): Promise<void> => {
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources
+           WHERE kind = $1 AND id > $2
+           ORDER BY id
+           LIMIT $3`,
+          [kind, after, size],
+        )
+      ).rows;
+      for (const row of rows) {
+        await visit(row);
+      }
+      if (rows.length < size) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+
+  const retiredPolicies: string[] = [];
+  await forEachRow(
+    WORKFLOW_RETIRED_POLICY_KIND,
+    WORKFLOW_RETIRED_PAGE_SIZE,
+    (row) => {
       try {
-        data = renamedWorkflowRow(new Uint8Array(row.data));
+        if (policyNamesRetiredWorkflowKind(new Uint8Array(row.data))) {
+          retiredPolicies.push(row.id);
+        }
       } catch (error) {
-        throw unreadableRunRenameRowError(
-          `${RUN_RENAME_WORKFLOW_KIND} version`,
+        throw unreadableRetiredWorkflowRowError(
+          WORKFLOW_RETIRED_POLICY_KIND,
           row.id,
           error,
         );
       }
-      if (data !== undefined) {
-        await client.query(
-          `UPDATE resource_audit SET data = $1 WHERE id = $2::bigint`,
-          [Buffer.from(data), row.id],
-        );
-      }
+    },
+  );
+  for (const table of ["resource_list_keys", "resources"]) {
+    await client.query(
+      `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
+      [WORKFLOW_RETIRED_POLICY_KIND, retiredPolicies],
+    );
+  }
+
+  await forEachRow(AGENT_RUN_KIND, AGENT_RUN_RETIRED_PAGE_SIZE, async (row) => {
+    let migrated: Uint8Array | undefined;
+    try {
+      migrated = migrateAgentRunRow(new Uint8Array(row.data));
+    } catch (error) {
+      throw unreadableRetiredWorkflowRowError(AGENT_RUN_KIND, row.id, error);
     }
-    if (rows.length < RUN_RENAME_PAGE_SIZE) {
-      break;
+    if (migrated !== undefined) {
+      await client.query(
+        `UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`,
+        [Buffer.from(migrated), AGENT_RUN_KIND, row.id],
+      );
     }
-    after = rows[rows.length - 1]!.id;
+  });
+
+  for (const table of RUN_KIND_TABLES) {
+    await client.query(`DELETE FROM ${table} WHERE kind = ANY($1::text[])`, [
+      RETIRED_WORKFLOW_KINDS,
+    ]);
+  }
+  for (const table of RETIRED_WORKFLOW_TABLES) {
+    await client.query(`DROP TABLE ${table}`);
   }
 }

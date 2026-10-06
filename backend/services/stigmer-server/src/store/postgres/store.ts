@@ -16,8 +16,6 @@
  * concurrency a team-scale database exists to provide).
  *
  * Other write contracts and their mechanisms here:
- * - first-writer-wins event appends: one multi-row INSERT ON CONFLICT DO
- *   NOTHING, rowCount = the true inserted count;
  * - fire-identity schedule-run upserts: ON CONFLICT DO UPDATE guarded by
  *   completed_at = '' (terminal rows immutable);
  * - single-holder audit tags: two UPDATEs in one transaction, missing
@@ -42,14 +40,12 @@ import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apireso
 
 import {
   AuditNotFoundError,
-  DELIVERED_SIGNAL_DEDUPE_TTL_MS,
   PENDING_OAUTH_STATE_TTL_MS,
   ResourceNotFoundError,
 } from "../interface.js";
 import type {
   AuditRecord,
   BootstrapStateStore,
-  ClaimResult,
   OAuthGrant,
   OAuthGrantStore,
   ResourceNameClaim,
@@ -68,12 +64,8 @@ import type {
   SearchIndexHit,
   SearchIndexQuery,
   SearchIndexQueryResult,
-  SignalDedupeRecord,
-  SignalDedupeStatus,
-  SignalDedupeStore,
   Store,
   StoreOpenOptions,
-  WorkflowExecutionEventRecord,
 } from "../interface.js";
 import {
   ListIndexRegistry,
@@ -155,7 +147,6 @@ const RECONCILE_BATCH = 500;
 
 export class PostgresStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
-  readonly signalDedupe: SignalDedupeStore;
   readonly resourceNames: ResourceNameStore;
   readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
@@ -174,10 +165,6 @@ export class PostgresStore implements Store {
     this.logger = logger;
     this.listIndexes = listIndexes;
     this.bootstrapState = new PostgresBootstrapStateStore(() => this.open());
-    this.signalDedupe = new PostgresSignalDedupeStore(
-      () => this.open(),
-      logger,
-    );
     this.resourceNames = new PostgresResourceNameStore(() => this.open());
     this.oauthGrants = new PostgresOAuthGrantStore(() => this.open());
     this.pendingOAuthStates = new PostgresPendingOAuthStateStore(() =>
@@ -881,106 +868,6 @@ export class PostgresStore implements Store {
   }
 
   // ---------------------------------------------------------------------------
-  // Workflow execution events
-  // ---------------------------------------------------------------------------
-
-  async appendWorkflowExecutionEvents(
-    executionId: string,
-    events: readonly WorkflowExecutionEventRecord[],
-  ): Promise<number> {
-    if (events.length === 0) {
-      return 0;
-    }
-
-    // One multi-row INSERT: atomic without an explicit transaction, and
-    // ON CONFLICT DO NOTHING makes rowCount the true first-writer-wins
-    // inserted count (oss#308).
-    const values: unknown[] = [];
-    const tuples: string[] = [];
-    for (const [i, event] of events.entries()) {
-      const base = i * 5;
-      tuples.push(
-        `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`,
-      );
-      values.push(
-        executionId,
-        event.sequenceNumber,
-        event.eventType,
-        event.taskName,
-        Buffer.from(event.data),
-      );
-    }
-
-    const result = await this.open().query(
-      `INSERT INTO workflow_execution_events (execution_id, sequence_number, event_type, task_name, data)
-       VALUES ${tuples.join(", ")}
-       ON CONFLICT (execution_id, sequence_number) DO NOTHING`,
-      values,
-    );
-    return result.rowCount ?? 0;
-  }
-
-  async getWorkflowExecutionEvents(
-    executionId: string,
-    afterSequence: number,
-    eventType: string,
-    taskName: string,
-    limit: number,
-  ): Promise<WorkflowExecutionEventRecord[]> {
-    const effectiveLimit = limit <= 0 ? 100 : limit;
-
-    let query = `SELECT execution_id, sequence_number, event_type, task_name, data, created_at
-      FROM workflow_execution_events
-      WHERE execution_id = $1 AND sequence_number > $2`;
-    const args: unknown[] = [executionId, afterSequence];
-    if (eventType !== "") {
-      args.push(eventType);
-      query += ` AND event_type = $${args.length}`;
-    }
-    if (taskName !== "") {
-      args.push(taskName);
-      query += ` AND task_name = $${args.length}`;
-    }
-    args.push(effectiveLimit);
-    query += ` ORDER BY sequence_number ASC LIMIT $${args.length}`;
-
-    const result = await this.open().query(query, args);
-    return (
-      result.rows as Array<{
-        execution_id: string;
-        sequence_number: string | number;
-        event_type: string;
-        task_name: string;
-        data: Uint8Array;
-        created_at: string;
-      }>
-    ).map((row) => ({
-      executionId: row.execution_id,
-      sequenceNumber: Number(row.sequence_number),
-      eventType: row.event_type,
-      taskName: row.task_name,
-      data: row.data,
-      createdAt: row.created_at,
-    }));
-  }
-
-  async getMaxEventSequence(executionId: string): Promise<number> {
-    const result = await this.open().query(
-      `SELECT COALESCE(MAX(sequence_number), 0) AS max_seq FROM workflow_execution_events WHERE execution_id = $1`,
-      [executionId],
-    );
-    return Number((result.rows[0] as { max_seq: string | number }).max_seq);
-  }
-
-  async deleteWorkflowExecutionEvents(executionId: string): Promise<number> {
-    const result = await this.open().query(
-      `DELETE FROM workflow_execution_events WHERE execution_id = $1`,
-      [executionId],
-    );
-    return result.rowCount ?? 0;
-  }
-
-  // ---------------------------------------------------------------------------
   // Schedule runs (fire ledger)
   // ---------------------------------------------------------------------------
 
@@ -1396,153 +1283,6 @@ class PostgresBootstrapStateStore implements BootstrapStateStore {
   async clear(): Promise<void> {
     await this.open().query(`DELETE FROM bootstrap_state`);
   }
-}
-
-// =============================================================================
-// Signal dedupe
-// =============================================================================
-
-class PostgresSignalDedupeStore implements SignalDedupeStore {
-  constructor(
-    private readonly open: () => Pool,
-    private readonly logger: StoreLogger,
-  ) {}
-
-  async claim(
-    org: string,
-    idempotencyKey: string,
-    executionId: string,
-    signalName: string,
-    ttlMs: number,
-  ): Promise<ClaimResult> {
-    const pool = this.open();
-    const id = buildDedupeKey(org, idempotencyKey);
-    const now = new Date();
-    const createdAt = now.toISOString();
-    const expiresAt = new Date(now.getTime() + ttlMs).toISOString();
-
-    // Expired rows are cleaned before claiming so keys become reusable —
-    // failure is non-critical (warn and continue), the cross-driver
-    // contract.
-    try {
-      await pool.query(`DELETE FROM signal_dedupe WHERE expires_at < $1`, [
-        now.toISOString(),
-      ]);
-    } catch (error) {
-      this.logger.warn("failed to cleanup expired dedupe records", {
-        error: String(error),
-      });
-    }
-
-    // ON CONFLICT DO NOTHING instead of catch-the-unique-violation: same
-    // first-claimer-wins outcome, no error-text sniffing.
-    const result = await pool.query(
-      `INSERT INTO signal_dedupe (id, org, idempotency_key, execution_id, signal_name, status, created_at, expires_at)
-       VALUES ($1, $2, $3, $4, $5, 'CLAIMED', $6, $7)
-       ON CONFLICT (id) DO NOTHING`,
-      [id, org, idempotencyKey, executionId, signalName, createdAt, expiresAt],
-    );
-
-    if ((result.rowCount ?? 0) === 1) {
-      return { status: "SUCCESS" };
-    }
-
-    const record = await this.loadRecord(pool, id);
-    if (record === undefined) {
-      // The holder vanished between INSERT and SELECT — surface as a
-      // claim failure rather than fabricating a record.
-      throw new Error(`load existing record: ${id} disappeared`);
-    }
-    return { status: "DUPLICATE", record };
-  }
-
-  async markDelivered(org: string, idempotencyKey: string): Promise<void> {
-    const id = buildDedupeKey(org, idempotencyKey);
-    const now = new Date();
-
-    // Extending expires_at here is the load-bearing half of the two-phase
-    // hold: delivery earns DELIVERED_SIGNAL_DEDUPE_TTL_MS. The status guard
-    // makes re-marking a no-op and keeps a takeover's fresh claim intact.
-    const result = await this.open().query(
-      `UPDATE signal_dedupe
-       SET status = 'DELIVERED', delivered_at = $1, expires_at = $2
-       WHERE id = $3 AND status = 'CLAIMED'`,
-      [
-        now.toISOString(),
-        new Date(now.getTime() + DELIVERED_SIGNAL_DEDUPE_TTL_MS).toISOString(),
-        id,
-      ],
-    );
-
-    if ((result.rowCount ?? 0) === 0) {
-      this.logger.warn(
-        "no dedupe record updated - may be already delivered or doesn't exist",
-        { id },
-      );
-    }
-  }
-
-  async release(org: string, idempotencyKey: string): Promise<void> {
-    const id = buildDedupeKey(org, idempotencyKey);
-
-    // Status-guarded DELETE: only an in-flight claim can be freed, so a
-    // release racing markDelivered can never unblock a delivered key.
-    await this.open().query(
-      `DELETE FROM signal_dedupe WHERE id = $1 AND status = 'CLAIMED'`,
-      [id],
-    );
-  }
-
-  async deleteByOrg(org: string): Promise<number> {
-    const result = await this.open().query(
-      `DELETE FROM signal_dedupe WHERE org = $1`,
-      [org],
-    );
-    return result.rowCount ?? 0;
-  }
-
-  private async loadRecord(
-    pool: Pool,
-    id: string,
-  ): Promise<SignalDedupeRecord | undefined> {
-    const result = await pool.query(
-      `SELECT id, org, idempotency_key, execution_id, signal_name, status, created_at, delivered_at, expires_at
-       FROM signal_dedupe WHERE id = $1`,
-      [id],
-    );
-    const row = result.rows[0] as
-      | {
-          id: string;
-          org: string;
-          idempotency_key: string;
-          execution_id: string;
-          signal_name: string;
-          status: string;
-          created_at: string;
-          delivered_at: string | null;
-          expires_at: string;
-        }
-      | undefined;
-    if (row === undefined) {
-      return undefined;
-    }
-    return {
-      id: row.id,
-      org: row.org,
-      idempotencyKey: row.idempotency_key,
-      executionId: row.execution_id,
-      signalName: row.signal_name,
-      status: row.status as SignalDedupeStatus,
-      createdAt: row.created_at,
-      deliveredAt: row.delivered_at ?? "",
-      expiresAt: row.expires_at,
-    };
-  }
-}
-
-/** Composite dedupe key: "{org}:{idempotency_key}" (both drivers). */
-function buildDedupeKey(org: string, idempotencyKey: string): string {
-  return `${org}:${idempotencyKey}`;
 }
 
 // =============================================================================

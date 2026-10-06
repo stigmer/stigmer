@@ -1,39 +1,26 @@
 /**
- * The one data migration both store drivers run when agent and workflow
- * executions became runs: the kinds' stored names, the rows that spell
- * them, and the workflow language's two run-named keys. The drivers own
- * the SQL (which rows to read, in what pages, how to write them, the
- * transaction); this module owns what is driver-neutral: what one row
- * becomes. It is the twin of workflow-instance-retired.ts.
+ * The one data migration both store drivers run when agent executions
+ * became runs: the kind's stored name and the rows that spell it. The
+ * drivers own the SQL (which rows to read, in what pages, how to write
+ * them, the transaction); this module owns what is driver-neutral: what
+ * one row becomes. It is the twin of workflow-instance-retired.ts.
  *
  * What changes, and why each row must.
  *
  *   - The `kind` column. A kind's stored name is its enum value name
- *     (proto-fields.ts `apiResourceKindName`), and the kinds were renamed
- *     with their numbers and id prefixes kept: `agent_execution` became
- *     `agent_run`, `workflow_execution` became `workflow_run`. Every table
- *     that keys a row by kind follows (`RUN_KIND_TABLES`). The search index
- *     is not among them: boot's rebuild clears it and indexes every
- *     registered kind before the port binds.
+ *     (proto-fields.ts `apiResourceKindName`), and the kind was renamed
+ *     with its number and id prefix kept: `agent_execution` became
+ *     `agent_run`. Every table that keys a row by kind follows
+ *     (`RUN_KIND_TABLES`). The search index is not among them: boot's
+ *     rebuild clears it and indexes every registered kind before the port
+ *     binds.
  *   - A run row's `kind` string. Every stored run carries its kind's
- *     display name in its bytes (`AgentExecution`, `WorkflowExecution`),
- *     which a read returns and an update of a fetched run must send back
- *     under the contract's const (`AgentRun`, `WorkflowRun`), so the row is
- *     rewritten. A workflow run's task metadata and agent_call outputs name
- *     the child run `agent_execution_id`; the key is now `agent_run_id`, the
- *     one a workflow reads (`renamedWorkflowRunRow`): the metadata is
- *     renamed, and an output gains the new key beside the old one, as the
- *     runner writes it until #1966 (a recovered run reads its outputs back
- *     from here). Field and enum value
+ *     display name in its bytes (`AgentExecution`), which a read returns
+ *     and an update of a fetched run must send back under the contract's
+ *     const (`AgentRun`), so the row is rewritten. Field and enum value
  *     renames need nothing: the rows are binary, by number. A run's audit
  *     rows keep their bytes: only version history decodes audit rows, and
  *     runs are not versioned.
- *   - A workflow run's event log. The side table `workflow_execution_events`
- *     keys each event by its `WorkflowEventType` value name, which
- *     getEventLog filters on (`event_type = ?`); the run lifecycle values
- *     were renamed (`execution_started` became `run_started`), so every
- *     event row names its type the new way (`RUN_EVENT_TYPE_RENAMES`). The
- *     event's bytes need nothing: they hold the type by number.
  *   - Grants on a run. An IamPolicy names its subject and object by kind as
  *     a string (`ApiResourceRef.kind`), and its id is derived from that
  *     triple's text (domain/iampolicy/constants.ts `policyIdFor`), so a
@@ -42,74 +29,36 @@
  *     deletes a policy, with its list keys and with its history kept; the
  *     driver writes the new row unproven, so its list keys are derived on
  *     read (list-index.ts).
- *   - The workflow language. A workflow's step configs are JSON inside the
- *     workflow and inside each of its archived versions, read strictly
- *     (domain/workflow/converter/unmarshal.ts), and the runner runs the
- *     YAML the validator wrote from them (`status.serverless_workflow_validation`).
- *     An emit_event signal target was keyed `execution_id` (or
- *     `executionId`) and is now `run_id`; an agent_call step's output named
- *     the child run `agent_execution_id` and now names it `agent_run_id`
- *     (the runner writes both keys until #1966), so every jq access that
- *     reads it (`.triage.agent_execution_id`, in any field of any step) is
- *     rewritten too.
- *     A rewritten workflow's YAML is regenerated from its rewritten spec by
- *     the validator's own converter. Version hashes are not rewritten: runs
- *     are pinned to them and their audit rows keep answering, so a changed
- *     head mints one version at its next save (domain/workflow/steps.ts).
+ *
+ * 2026-10-07: this step no longer renames workflow runs, their event log's
+ * types or the run keys in workflow steps. The workflow product was
+ * removed, and the later step in workflow-retired.ts deletes every
+ * workflow, workflow run (under either kind name) and grant naming one,
+ * and drops the event log, so nothing those arms wrote survives the chain:
+ * a store replayed from before this step reaches the state the full step
+ * would have left.
  *
  * A row this migration does not change is left byte for byte as it is. An
  * undecodable row fails the step, the rule the other data migrations keep
  * (public-visibility-retired.ts): the driver's transaction rolls back and
  * the boot stops on the row it names.
  */
-import {
-  fromBinary,
-  fromJson,
-  toBinary,
-  toJson,
-  type JsonObject,
-  type JsonValue,
-} from "@bufbuild/protobuf";
+import { fromBinary, toBinary } from "@bufbuild/protobuf";
 
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import {
-  WorkflowTaskSchema,
-  type WorkflowTask,
-} from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
 import { policyIdFor } from "../domain/iampolicy/constants.js";
-import { protoToYaml } from "../domain/workflow/converter/converter.js";
 
-/** The run kinds' stored names before the rename. */
+/** The run kind's stored name before the rename. */
 export const RETIRED_AGENT_RUN_KIND = "agent_execution";
-export const RETIRED_WORKFLOW_RUN_KIND = "workflow_execution";
 
-/** Each run kind's stored name before and after the rename. */
+/** The run kind's stored name before and after the rename. */
 export const RUN_KIND_RENAMES: ReadonlyArray<readonly [from: string, to: string]> = [
   [RETIRED_AGENT_RUN_KIND, "agent_run"],
-  [RETIRED_WORKFLOW_RUN_KIND, "workflow_run"],
 ];
 
-/**
- * Each run lifecycle event type's stored name before and after the rename
- * (`workflow_execution_events.event_type`, the `WorkflowEventType` value
- * name). The task and approval event types kept their names.
- */
-export const RUN_EVENT_TYPE_RENAMES: ReadonlyArray<readonly [from: string, to: string]> = [
-  ["execution_started", "run_started"],
-  ["execution_completed", "run_completed"],
-  ["execution_failed", "run_failed"],
-  ["execution_paused", "run_paused"],
-  ["execution_resumed", "run_resumed"],
-  ["execution_cancelled", "run_cancelled"],
-  ["execution_terminated", "run_terminated"],
-];
-
-/** The tables whose `kind` column names a run kind. */
+/** The tables that key a row by kind. */
 export const RUN_KIND_TABLES: ReadonlyArray<string> = [
   "resources",
   "resource_audit",
@@ -117,36 +66,16 @@ export const RUN_KIND_TABLES: ReadonlyArray<string> = [
   "resource_names",
 ];
 
-/** The `kind` column values of the other rows the step reads. */
+/** The `kind` column value of the grant rows the step reads. */
 export const RUN_RENAME_POLICY_KIND = "iam_policy";
-export const RUN_RENAME_WORKFLOW_KIND = "workflow";
 
 /** How many rows of a kind the step decodes per page. */
 export const RUN_RENAME_PAGE_SIZE = 500;
 
-/** Each run kind's display name in a row's bytes, before and after. */
+/** The run kind's display name in a row's bytes, before and after. */
 const RUN_KIND_STRINGS: ReadonlyMap<string, string> = new Map([
   ["AgentExecution", "AgentRun"],
-  ["WorkflowExecution", "WorkflowRun"],
 ]);
-
-/** The agent_call key that names the child run, before and after. */
-const RETIRED_AGENT_CALL_RUN_KEY = "agent_execution_id";
-const AGENT_CALL_RUN_KEY = "agent_run_id";
-
-/** The emit_event signal target's run key, before (in either JSON spelling) and after. */
-const RETIRED_SIGNAL_RUN_KEYS = ["execution_id", "executionId"] as const;
-const SIGNAL_RUN_KEY = "run_id";
-
-/** A nested step's config key, in either spelling its JSON accepts. */
-const NESTED_STEP_CONFIG_KEYS = ["taskConfig", "task_config"] as const;
-
-/**
- * A jq field access that reads the child run by its old key
- * (`.triage.agent_execution_id`), wherever the engine evaluates jq: inside
- * `${ }`, and bare in a step's `if` and in switch, catch and retry `when`.
- */
-const RETIRED_AGENT_CALL_RUN_ACCESS = /\.agent_execution_id\b/g;
 
 /**
  * The migrated bytes of one agent run row, or undefined when its kind
@@ -160,31 +89,6 @@ export function renamedAgentRunRow(data: Uint8Array): Uint8Array | undefined {
   }
   run.kind = kind;
   return toBinary(AgentRunSchema, run);
-}
-
-/**
- * The migrated bytes of one workflow run row, or undefined when nothing in
- * it names a run the old way. Throws when the bytes do not decode.
- */
-export function renamedWorkflowRunRow(data: Uint8Array): Uint8Array | undefined {
-  const run = fromBinary(WorkflowRunSchema, data);
-  let changed = false;
-  const kind = RUN_KIND_STRINGS.get(run.kind);
-  if (kind !== undefined) {
-    run.kind = kind;
-    changed = true;
-  }
-  for (const task of run.status?.tasks ?? []) {
-    // The status names the child one way; an output keeps the old key
-    // beside the new one, as the runner writes it until #1966.
-    if (task.metadata !== undefined && renameKey(task.metadata, RETIRED_AGENT_CALL_RUN_KEY, AGENT_CALL_RUN_KEY)) {
-      changed = true;
-    }
-    if (task.output !== undefined && addKeyBeside(task.output, RETIRED_AGENT_CALL_RUN_KEY, AGENT_CALL_RUN_KEY)) {
-      changed = true;
-    }
-  }
-  return changed ? toBinary(WorkflowRunSchema, run) : undefined;
 }
 
 /** What the step made of one grant row. */
@@ -224,24 +128,6 @@ export function rekeyedRunPolicy(data: Uint8Array): RekeyedPolicy | undefined {
   return { id, data: toBinary(IamPolicySchema, policy) };
 }
 
-/**
- * The migrated bytes of one workflow row, a head or an archived version,
- * or undefined when its steps name no run the old way. Throws when the
- * bytes do not decode or the rewritten spec does not convert.
- */
-export function renamedWorkflowRow(data: Uint8Array): Uint8Array | undefined {
-  const workflow = fromBinary(WorkflowSchema, data);
-  const spec = workflow.spec;
-  if (spec === undefined || !rewriteTasks(spec.tasks)) {
-    return undefined;
-  }
-  const validation = workflow.status?.serverlessWorkflowValidation;
-  if (validation !== undefined && validation.yaml !== "") {
-    validation.yaml = protoToYaml(spec);
-  }
-  return toBinary(WorkflowSchema, workflow);
-}
-
 /** The step's failure for a row it cannot read (the module header). */
 export function unreadableRunRenameRowError(
   kind: string,
@@ -258,145 +144,4 @@ export function unreadableRunRenameRowError(
 
 function runKindRename(kind: string): string | undefined {
   return RUN_KIND_RENAMES.find(([from]) => from === kind)?.[1];
-}
-
-/**
- * Rewrites every step in place, through its JSON form so that every field
- * is reached: its config, its `if`, its export and its compensating steps,
- * nested steps included. A step that does not change is left as it was.
- */
-function rewriteTasks(tasks: WorkflowTask[]): boolean {
-  let changed = false;
-  for (let i = 0; i < tasks.length; i++) {
-    const json = toJson(WorkflowTaskSchema, tasks[i]!);
-    if (isObject(json) && rewriteStepJson(json)) {
-      tasks[i] = fromJson(WorkflowTaskSchema, json);
-      changed = true;
-    }
-  }
-  return changed;
-}
-
-/**
- * Rewrites one step's JSON in place, nested steps included: an emit_event
- * step's signal targets, and every jq field access that reads the child run
- * by its old key. Answers whether anything changed.
- */
-function rewriteStepJson(value: JsonObject): boolean {
-  let changed = false;
-  if (isEmitEventKind(value["kind"])) {
-    for (const key of NESTED_STEP_CONFIG_KEYS) {
-      const config = value[key];
-      if (config !== undefined && isObject(config) && renameSignalRunKeys(config)) {
-        changed = true;
-      }
-    }
-  }
-  for (const [key, item] of Object.entries(value)) {
-    if (typeof item === "string") {
-      const rewritten = rewriteExpression(item);
-      if (rewritten !== item) {
-        value[key] = rewritten;
-        changed = true;
-      }
-    } else if (rewriteNested(item)) {
-      changed = true;
-    }
-  }
-  return changed;
-}
-
-/**
- * An emit_event step config's signal targets (`delivery[].signal`) name
- * the run they signal by its new key. Nothing else in a step is a signal
- * target, so no other `execution_id` is touched.
- */
-function renameSignalRunKeys(config: JsonObject): boolean {
-  const delivery = config["delivery"];
-  if (!Array.isArray(delivery)) {
-    return false;
-  }
-  let changed = false;
-  for (const target of delivery) {
-    const signal = isObject(target) ? target["signal"] : undefined;
-    if (signal !== undefined && isObject(signal)) {
-      for (const retired of RETIRED_SIGNAL_RUN_KEYS) {
-        if (renameKey(signal, retired, SIGNAL_RUN_KEY)) {
-          changed = true;
-        }
-      }
-    }
-  }
-  return changed;
-}
-
-/** A nested step's kind, as its JSON spells it: the enum value's name or its number. */
-function isEmitEventKind(kind: JsonValue | undefined): boolean {
-  return kind === "emit_event" || kind === WorkflowTaskKind.emit_event;
-}
-
-function rewriteNested(value: JsonValue): boolean {
-  if (Array.isArray(value)) {
-    let changed = false;
-    for (let i = 0; i < value.length; i++) {
-      const item = value[i];
-      if (typeof item === "string") {
-        const rewritten = rewriteExpression(item);
-        if (rewritten !== item) {
-          value[i] = rewritten;
-          changed = true;
-        }
-      } else if (item !== undefined && rewriteNested(item)) {
-        changed = true;
-      }
-    }
-    return changed;
-  }
-  return isObject(value) ? rewriteStepJson(value) : false;
-}
-
-/**
- * A string's jq field accesses read the child run by its new key. Text that
- * names the key without accessing it (`the agent_execution_id field`) is
- * left as written.
- */
-function rewriteExpression(text: string): string {
-  return text.replace(RETIRED_AGENT_CALL_RUN_ACCESS, `.${AGENT_CALL_RUN_KEY}`);
-}
-
-/** Adds `to` right after `from` in one object, in place, with `from`'s value. */
-function addKeyBeside(value: JsonObject, from: string, to: string): boolean {
-  if (!(from in value) || to in value) {
-    return false;
-  }
-  const entries = Object.entries(value);
-  for (const key of Object.keys(value)) {
-    delete value[key];
-  }
-  for (const [key, item] of entries) {
-    value[key] = item;
-    if (key === from) {
-      value[to] = item;
-    }
-  }
-  return true;
-}
-
-/** Renames `from` to `to` in one object, in place, keeping key order. */
-function renameKey(value: JsonObject, from: string, to: string): boolean {
-  if (!(from in value) || to in value) {
-    return false;
-  }
-  const entries = Object.entries(value);
-  for (const key of Object.keys(value)) {
-    delete value[key];
-  }
-  for (const [key, item] of entries) {
-    value[key === from ? to : key] = item;
-  }
-  return true;
-}
-
-function isObject(value: JsonValue): value is JsonObject {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }

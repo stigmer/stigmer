@@ -42,9 +42,7 @@ const ALL_TABLES = [
   "resource_audit",
   "search_index",
   "bootstrap_state",
-  "workflow_execution_events",
   "schedule_runs",
-  "signal_dedupe",
   "resource_names",
   "oauth_grant",
   "pending_oauth_state",
@@ -86,12 +84,6 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       const others: Store[] = [];
       return {
         store,
-        async forceDedupeExpiry(id, expiresAtIso) {
-          await hooks.query(
-            `UPDATE signal_dedupe SET expires_at = $1 WHERE id = $2`,
-            [expiresAtIso, id],
-          );
-        },
         async countPendingOAuthStates() {
           const result = await hooks.query(
             `SELECT COUNT(*) AS count FROM pending_oauth_state`,

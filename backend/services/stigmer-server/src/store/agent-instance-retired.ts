@@ -36,7 +36,7 @@
  * step writes carries them anywhere. A conversation that got keys from its
  * instance reads them from then on from the person's personal environment
  * (when the agent belongs to the run's own organization) or from the
- * layers a schedule, a workflow task or a PlatformClient caller supplies.
+ * layers a schedule or a PlatformClient caller supplies.
  * Every IamPolicy row whose resource or principal is an instance leaves too
  * (`policyNamesRetiredInstance`): a grant on an object that no longer
  * exists would only linger in grant listings. Such a row leaves the way the
@@ -64,7 +64,7 @@ import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
-import { FrozenAgentInstanceEnvelopeSchema } from "./frozen-agent-instance.js";
+import { FrozenAgentInstanceEnvelopeSchema } from "./frozen-envelopes.js";
 
 /** The `kind` column values the step reads and removes. */
 export const RETIRED_INSTANCE_KIND = "agent_instance";
