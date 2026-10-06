@@ -3,7 +3,7 @@
 // the mock LLM, so the browser only renders and resolves what was seeded.
 import type { Page, Locator } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
-import type { Stigmer } from "@stigmer/sdk";
+import type { HookSourceInput, Stigmer } from "@stigmer/sdk";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { TerminateAgentExecutionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
@@ -55,6 +55,8 @@ export interface SeedGatedSessionOptions {
   readonly gateTurns?: ToolUseBlock[][];
   /** The user message that triggers the run. */
   readonly message?: string;
+  /** The seeded agent's hooks (`AgentSpec.hooks`), for a gate a hook decides. */
+  readonly agentHooks?: HookSourceInput[];
 }
 
 /** A single gated `write_file` block; `content` controls the inline preview height. */
@@ -120,6 +122,7 @@ export async function seedGatedSession(
     name: `e2e-approval-agent-${stamp}`,
     org,
     instructions: "You are a test assistant for the HITL approval e2e.",
+    ...(opts.agentHooks && { hooks: opts.agentHooks }),
   });
   const agentId = agent.metadata!.id;
 
@@ -205,6 +208,8 @@ export interface SeedToolRunSessionOptions {
   readonly toolTurns?: ToolUseBlock[][];
   /** The user message that triggers the run. */
   readonly message?: string;
+  /** The seeded agent's hooks (`AgentSpec.hooks`): a hook's refusal binds even under `auto_approve_all`. */
+  readonly agentHooks?: HookSourceInput[];
 }
 
 /**
@@ -233,6 +238,7 @@ export async function seedToolRunSession(
     name: `e2e-toolrun-agent-${stamp}`,
     org,
     instructions: "You are a test assistant for the tool-disclosure e2e.",
+    ...(opts.agentHooks && { hooks: opts.agentHooks }),
   });
   const agentId = agent.metadata!.id;
 

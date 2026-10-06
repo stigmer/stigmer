@@ -46,7 +46,7 @@ export default function PluginDetailPage() {
     const confirmed = await confirm({
       title: `Remove ${resourceName}?`,
       description:
-        "Removes the plugin and every skill, MCP server and agent it installed. The server refuses if something outside the plugin still uses one of them.",
+        "Removes the plugin and every skill, MCP server and agent it installed. The server refuses while something outside the plugin still uses one of them, or an agent's hooks use the plugin.",
       confirmLabel: "Remove",
       variant: "destructive",
     });
