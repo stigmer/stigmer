@@ -1,5 +1,5 @@
 // MCP tools for the Environment domain. Environments hold the configuration
-// and secrets that agents, workflows, and MCP servers resolve at runtime —
+// and secrets that agents and MCP servers resolve at runtime —
 // without these tools, an assistant authoring an agent hits a dead end the
 // moment env config is involved.
 //
@@ -68,7 +68,7 @@ export function registerEnvironmentTools(server: McpServer, target: BackendTarge
     {
       description:
         "Delete a Stigmer environment by its org and slug. Returns the deleted environment. " +
-        "Agents and workflows referencing it will fail to resolve their variables at run time.",
+        "Agents referencing it will fail to resolve their variables at run time.",
       inputSchema: {
         org: z
           .string()

@@ -12,8 +12,8 @@ cannot be undone.
 # Delete an agent by slug
 stigmer delete agent my-agent
 
-# Delete a workflow by ID
-stigmer delete workflow wfl_abc123
+# Delete an agent by ID
+stigmer delete agent agt_abc123
 
 # Cancel a run in progress
 stigmer delete run aex_01abc123
@@ -38,7 +38,6 @@ stigmer delete agent my-agent --force
 | Run | `run`, `runs` | Gracefully cancels a run in progress |
 | Schedule | `schedule`, `sch`, `schedules` | Permanently deletes the schedule and tears down its firing clock |
 | Skill | `skill`, `skills` | Permanently deletes the skill |
-| Workflow | `workflow`, `wf`, `workflows` | Permanently deletes the workflow |
 
 ### Confirmation
 

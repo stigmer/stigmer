@@ -13,8 +13,6 @@ class RunnerAdapterTest {
     static class MockRunnerAdapter implements RunnerAdapter {
         final List<String> sessionsOpened = new ArrayList<>();
         final List<String> sessionsClosed = new ArrayList<>();
-        final List<String> runsCreated = new ArrayList<>();
-        final List<String> runsTerminated = new ArrayList<>();
 
         @Override
         public void onSessionOpened(String sessionId) {
@@ -25,16 +23,6 @@ class RunnerAdapterTest {
         public void onSessionClosed(String sessionId) {
             sessionsClosed.add(sessionId);
         }
-
-        @Override
-        public void onWorkflowRunCreated(String runId) {
-            runsCreated.add(runId);
-        }
-
-        @Override
-        public void onWorkflowRunTerminated(String runId) {
-            runsTerminated.add(runId);
-        }
     }
 
     @Test
@@ -44,13 +32,9 @@ class RunnerAdapterTest {
         adapter.onSessionOpened("ses-1");
         adapter.onSessionOpened("ses-2");
         adapter.onSessionClosed("ses-1");
-        adapter.onWorkflowRunCreated("wfexec-1");
-        adapter.onWorkflowRunTerminated("wfexec-1");
 
         assertEquals(List.of("ses-1", "ses-2"), adapter.sessionsOpened);
         assertEquals(List.of("ses-1"), adapter.sessionsClosed);
-        assertEquals(List.of("wfexec-1"), adapter.runsCreated);
-        assertEquals(List.of("wfexec-1"), adapter.runsTerminated);
     }
 
     @Test
@@ -78,17 +62,11 @@ class RunnerAdapterTest {
             public void onSessionOpened(String sessionId) {}
             @Override
             public void onSessionClosed(String sessionId) {}
-            @Override
-            public void onWorkflowRunCreated(String runId) {}
-            @Override
-            public void onWorkflowRunTerminated(String runId) {}
         };
 
         assertDoesNotThrow(() -> {
             adapter.onSessionOpened("test");
             adapter.onSessionClosed("test");
-            adapter.onWorkflowRunCreated("test");
-            adapter.onWorkflowRunTerminated("test");
         });
     }
 }

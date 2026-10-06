@@ -1,5 +1,5 @@
 // In-process test for the read tools (get_mcp_server, get_skill,
-// get_workflow, get_environment). Stands up a real Connect
+// get_environment). Stands up a real Connect
 // backend serving the query controllers, drives the MCP server through an
 // in-memory client, and asserts each tool returns the backend's protojson
 // verbatim (the parity contract) and that get_skill forwards its optional
@@ -23,8 +23,6 @@ import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../../logger";
@@ -42,12 +40,6 @@ const knownSkill = create(SkillSchema, {
   apiVersion: "v1",
   kind: "skill",
   metadata: { name: "Code Review", slug: "code-review", org: "acme", id: "skl-1" },
-});
-
-const knownWorkflow = create(WorkflowSchema, {
-  apiVersion: "v1",
-  kind: "workflow",
-  metadata: { name: "Release", slug: "release", org: "acme", id: "wkf-1" },
 });
 
 // The backend redacts secret values before they leave the server; the tool
@@ -85,7 +77,6 @@ beforeAll(async () => {
         return knownSkill;
       },
     });
-    router.service(WorkflowQueryController, { getByReference: () => knownWorkflow });
     router.service(EnvironmentQueryController, { getByReference: () => knownEnvironment });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
@@ -117,7 +108,6 @@ describe("read tools integration", () => {
         "get_agent",
         "get_mcp_server",
         "get_skill",
-        "get_workflow",
         "get_environment",
       ]),
     );
@@ -128,14 +118,6 @@ describe("read tools integration", () => {
     expect(result.isError).toBeFalsy();
     expect(JSON.parse(result.content[0]?.text ?? "{}")).toEqual(
       toJson(McpServerSchema, knownMcpServer, { useProtoFieldName: true }),
-    );
-  });
-
-  it("get_workflow returns the backend protojson", async () => {
-    const result = await callTool("get_workflow", { org: "acme", slug: "release" });
-    expect(result.isError).toBeFalsy();
-    expect(JSON.parse(result.content[0]?.text ?? "{}")).toEqual(
-      toJson(WorkflowSchema, knownWorkflow, { useProtoFieldName: true }),
     );
   });
 

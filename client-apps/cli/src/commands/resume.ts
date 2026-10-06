@@ -50,12 +50,12 @@ async function runResume(reference: string | undefined, options: ResumeFlags): P
     throw browseUnavailableError();
   }
 
-  const { isSessionId, isAgentId, isWorkflowId, isScheduleId, hasResourceIdPrefix, validateResourceId } = await import(
+  const { isSessionId, isAgentId, isScheduleId, hasResourceIdPrefix, validateResourceId } = await import(
     "../resources/reference.js"
   );
 
-  // Agent/workflow IDs belong to `run`.
-  if (isAgentId(reference) || isWorkflowId(reference)) {
+  // Agent IDs belong to `run`.
+  if (isAgentId(reference)) {
     throw new UsageError(`Resource IDs like "${reference}" are not sessions\n\nTo run a resource:\n  stigmer run ${reference}`);
   }
 

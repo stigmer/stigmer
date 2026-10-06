@@ -78,7 +78,6 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   list: "resource",
   delete: "resource",
   validate: "resource",
-  diff: "resource",
   search: "resource",
   connect: "resource",
   tag: "resource",
@@ -484,7 +483,7 @@ function escapeTable(value: string): string {
 // otherwise parse as JSX or markdown would parse as formatting. Bare
 // <placeholder> tokens are wrapped in backticks; outside backtick spans, angle
 // brackets and curly braces are backslash-escaped, and underscores are escaped
-// so identifiers like `aex_`/`wex_` do not form accidental emphasis spans.
+// so identifiers like `aex_`/`agt_` do not form accidental emphasis spans.
 function escapeMDX(value: string): string {
   const wrapped = value.replace(angleBracketRe, "`<$1>`");
 

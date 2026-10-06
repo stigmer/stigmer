@@ -71,8 +71,6 @@ Every resource type has a typed client accessible as a method on `StigmerClient`
 | `organizations()`        | Organization       |
 | `sessions()`             | Session            |
 | `skills()`               | Skill              |
-| `workflows()`            | Workflow           |
-| `workflowRuns()`         | WorkflowRun        |
 | `search()`               | Cross-resource search |
 | `billing()`              | Credit balance, ledger, and Stripe billing |
 

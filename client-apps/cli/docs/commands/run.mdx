@@ -1,9 +1,8 @@
-Execute an agent or workflow by reference, or browse agents interactively.
+Execute an agent by reference, or browse agents interactively.
 
 When you run `stigmer run` without arguments, an interactive picker lets you
 search and select from available agents. With a reference argument, the CLI
-resolves it as an agent slug, `org/slug`, or resource ID. Use the two-argument
-form (`stigmer run workflow <ref>`) for workflows.
+resolves it as an agent slug, `org/slug`, or agent ID.
 
 The command streams agent output to your terminal in real time — you see
 messages, tool calls, and approval prompts as they happen. For scripting and
@@ -17,14 +16,11 @@ CI pipelines, use `--json` to receive newline-delimited event objects instead.
 # Browse and select an agent interactively
 stigmer run
 
-# Run by slug (agent is the default type)
+# Run by slug
 stigmer run my-agent
 
 # Run by org-qualified slug
 stigmer run acme-corp/code-reviewer
-
-# Run a workflow (requires explicit type)
-stigmer run workflow deploy-pipeline
 
 # Run with an initial prompt
 stigmer run my-agent -m "Summarize the Q4 earnings report"
@@ -217,9 +213,9 @@ The CLI prints the session ID and exits immediately. Use
 | Command | Description |
 |---------|-------------|
 | [`stigmer resume`](./resume) | Resume an existing session |
-| [`stigmer apply`](./apply) | Deploy agent and workflow definitions |
+| [`stigmer apply`](./apply) | Deploy agent definitions |
 | [`stigmer get`](./get) | Inspect resources by type and ID |
-| [`stigmer search`](./search) | Find agents and workflows by text query |
+| [`stigmer search`](./search) | Find agents by text query |
 
 ## See also
 

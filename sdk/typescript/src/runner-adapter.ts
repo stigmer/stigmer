@@ -12,12 +12,10 @@
  * the adapter at the appropriate lifecycle points. The consumer never
  * needs to manage runner processes directly.
  *
- * Sessions and workflow runs have different lifecycles. A session
- * is a long-lived, multi-turn conversation with no terminal phase, so its
- * worker is tied to whether the session is open (in use): `onSessionOpened`
- * when the session is opened, `onSessionClosed` when it is closed. A
- * workflow run runs to a terminal phase, so its worker is tied to
- * creation and completion.
+ * A session is a long-lived, multi-turn conversation with no terminal
+ * phase, so its worker is tied to whether the session is open (in use):
+ * `onSessionOpened` when the session is opened, `onSessionClosed` when it
+ * is closed.
  */
 export interface RunnerAdapter {
   /**
@@ -31,15 +29,10 @@ export interface RunnerAdapter {
    * should tear down the session's runner worker.
    */
   onSessionClosed(sessionId: string): Promise<void>;
-  /** Called after a workflow run is created with executionTarget=LOCAL. */
-  onWorkflowRunCreated(runId: string): Promise<void>;
-  /** Called when a workflow run reaches a terminal phase. */
-  onWorkflowRunTerminated(runId: string): Promise<void>;
 }
 
 /**
- * A runner backend that can start and stop per-session and per-execution
- * workers. This is the worker-lifecycle slice of a runner host — the only
+ * A runner backend that can start and stop per-session workers. This is the worker-lifecycle slice of a runner host — the only
  * capability `createRunnerAdapter` needs — not the full process surface
  * (start/status/token/shutdown).
  *
@@ -54,8 +47,6 @@ export interface RunnerWorkerHost {
   // so void would reject real hosts. The factory awaits and discards the value.
   addSession(sessionId: string): Promise<unknown>;
   removeSession(sessionId: string): Promise<unknown>;
-  addWorkflowExecution(executionId: string): Promise<unknown>;
-  removeWorkflowExecution(executionId: string): Promise<unknown>;
 }
 
 /**
@@ -67,21 +58,14 @@ export interface RunnerWorkerHost {
  * host's responsibility (the SDK calls `onSessionOpened` on every open).
  */
 export function createRunnerAdapter(host: RunnerWorkerHost): RunnerAdapter {
-  // The mapping is deliberate and asymmetric: sessions attach/detach on
-  // open/close, workflow runs on create/terminate. Keep it here so no
-  // embedder re-derives (and mis-wires) it.
+  // Sessions attach on open and detach on close. Keep the mapping here so
+  // no embedder re-derives (and mis-wires) it.
   return {
     onSessionOpened: async (sessionId) => {
       await host.addSession(sessionId);
     },
     onSessionClosed: async (sessionId) => {
       await host.removeSession(sessionId);
-    },
-    onWorkflowRunCreated: async (runId) => {
-      await host.addWorkflowExecution(runId);
-    },
-    onWorkflowRunTerminated: async (runId) => {
-      await host.removeWorkflowExecution(runId);
     },
   };
 }

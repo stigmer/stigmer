@@ -14,7 +14,6 @@ import { registerCompletion } from "./commands/completion.js";
 import { registerConfig } from "./commands/config/index.js";
 import { registerConnect } from "./commands/connect.js";
 import { registerDelete } from "./commands/delete.js";
-import { registerDiff } from "./commands/diff.js";
 import { registerDown } from "./commands/down.js";
 import { registerDownload } from "./commands/download.js";
 import { registerGet } from "./commands/get.js";
@@ -98,7 +97,6 @@ export function buildProgram(): Command {
   registerTag(program);
   registerShare(program);
   registerSchedule(program);
-  registerDiff(program);
   registerUsage(program);
   registerPush(program);
   registerInstall(program);

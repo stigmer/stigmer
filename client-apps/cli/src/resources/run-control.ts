@@ -1,15 +1,16 @@
 // Lifecycle control for runs (cancel / terminate / pause / resume).
 //
 // Mirrors Go's execution.Cancel/Terminate/Pause/Resume (cancel.go + pause.go):
-// each verb auto-detects agent vs workflow from the ID prefix, issues the
-// matching controller RPC, and returns the resulting phase as a human label.
-// The phase is read back from the RPC response so the success line reports the
-// authoritative post-mutation state, exactly as the Go CLI does.
+// each verb issues the agent-run controller RPC and returns the resulting
+// phase as a human label. The phase is read back from the RPC response so the
+// success line reports the authoritative post-mutation state, exactly as the
+// Go CLI does.
 //
-// These return a plain `{ type, phase }` rather than a CommandResult so the
-// command layer owns presentation (single source of the success wording).
+// These return a plain `{ phase }` rather than a CommandResult so the command
+// layer owns presentation (single source of the success wording).
 
 import { create } from "@bufbuild/protobuf";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   CancelAgentRunInputSchema,
@@ -17,62 +18,34 @@ import {
   ResumeAgentRunInputSchema,
   TerminateAgentRunInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import { RunPhase as WorkflowRunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
-import {
-  CancelWorkflowRunInputSchema,
-  PauseWorkflowRunInputSchema,
-  ResumeWorkflowRunInputSchema,
-  TerminateWorkflowRunInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
-import { type RunType, formatAgentPhase, formatWorkflowPhase, resolveRunType } from "./runs.js";
+import { formatAgentPhase } from "./runs.js";
 
-/** Outcome of a control verb: the resolved type and the post-mutation phase. */
+/** Outcome of a control verb: the post-mutation phase. */
 export interface ControlResult {
-  readonly type: RunType;
   readonly phase: string;
 }
 
-/** Gracefully cancel a run (agent or workflow). Mirrors Go execution.Cancel. */
+/** Gracefully cancel a run. Mirrors Go execution.Cancel. */
 export async function cancelRun(client: Stigmer, id: string, reason: string): Promise<ControlResult> {
-  const type = resolveRunType(id);
-  if (type === "agent") {
-    const result = await client.agentRun.cancel(create(CancelAgentRunInputSchema, { id, reason }));
-    return { type, phase: formatAgentPhase(result.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) };
-  }
-  const result = await client.workflowRun.cancel(create(CancelWorkflowRunInputSchema, { id, reason }));
-  return { type, phase: formatWorkflowPhase(result.status?.phase ?? WorkflowRunPhase.RUN_PHASE_UNSPECIFIED) };
+  return toResult(await client.agentRun.cancel(create(CancelAgentRunInputSchema, { id, reason })));
 }
 
-/** Force-stop a run immediately (agent or workflow). Mirrors Go execution.Terminate. */
+/** Force-stop a run immediately. Mirrors Go execution.Terminate. */
 export async function terminateRun(client: Stigmer, id: string, reason: string): Promise<ControlResult> {
-  const type = resolveRunType(id);
-  if (type === "agent") {
-    const result = await client.agentRun.terminate(create(TerminateAgentRunInputSchema, { id, reason }));
-    return { type, phase: formatAgentPhase(result.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) };
-  }
-  const result = await client.workflowRun.terminate(create(TerminateWorkflowRunInputSchema, { id, reason }));
-  return { type, phase: formatWorkflowPhase(result.status?.phase ?? WorkflowRunPhase.RUN_PHASE_UNSPECIFIED) };
+  return toResult(await client.agentRun.terminate(create(TerminateAgentRunInputSchema, { id, reason })));
 }
 
-/** Pause a run in progress (agent or workflow). Mirrors Go execution.Pause. */
+/** Pause a run in progress. Mirrors Go execution.Pause. */
 export async function pauseRun(client: Stigmer, id: string, reason: string): Promise<ControlResult> {
-  const type = resolveRunType(id);
-  if (type === "agent") {
-    const result = await client.agentRun.pause(create(PauseAgentRunInputSchema, { id, reason }));
-    return { type, phase: formatAgentPhase(result.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) };
-  }
-  const result = await client.workflowRun.pause(create(PauseWorkflowRunInputSchema, { id, reason }));
-  return { type, phase: formatWorkflowPhase(result.status?.phase ?? WorkflowRunPhase.RUN_PHASE_UNSPECIFIED) };
+  return toResult(await client.agentRun.pause(create(PauseAgentRunInputSchema, { id, reason })));
 }
 
-/** Resume a paused run (agent or workflow). Mirrors Go execution.Resume (no reason). */
+/** Resume a paused run. Mirrors Go execution.Resume (no reason). */
 export async function resumeRun(client: Stigmer, id: string): Promise<ControlResult> {
-  const type = resolveRunType(id);
-  if (type === "agent") {
-    const result = await client.agentRun.resume(create(ResumeAgentRunInputSchema, { id }));
-    return { type, phase: formatAgentPhase(result.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) };
-  }
-  const result = await client.workflowRun.resume(create(ResumeWorkflowRunInputSchema, { id }));
-  return { type, phase: formatWorkflowPhase(result.status?.phase ?? WorkflowRunPhase.RUN_PHASE_UNSPECIFIED) };
+  return toResult(await client.agentRun.resume(create(ResumeAgentRunInputSchema, { id })));
+}
+
+function toResult(run: AgentRun): ControlResult {
+  return { phase: formatAgentPhase(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) };
 }

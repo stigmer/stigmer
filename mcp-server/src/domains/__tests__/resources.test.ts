@@ -23,8 +23,6 @@ import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../../logger";
@@ -39,11 +37,6 @@ const mcpServer = create(McpServerSchema, {
   metadata: { slug: "m", org: "acme" },
 });
 const skill = create(SkillSchema, { apiVersion: "v1", kind: "skill", metadata: { slug: "s", org: "acme" } });
-const workflow = create(WorkflowSchema, {
-  apiVersion: "v1",
-  kind: "workflow",
-  metadata: { slug: "w", org: "acme" },
-});
 const environment = create(EnvironmentSchema, {
   apiVersion: "v1",
   kind: "environment",
@@ -69,7 +62,6 @@ beforeAll(async () => {
         return skill;
       },
     });
-    router.service(WorkflowQueryController, { getByReference: () => workflow });
     router.service(EnvironmentQueryController, { getByReference: () => environment });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
@@ -101,7 +93,6 @@ describe("resource templates integration", () => {
         "stigmer_mcp_server",
         "stigmer_skill",
         "stigmer_skill_version",
-        "stigmer_workflow",
         "stigmer_environment",
       ]),
     );
@@ -121,15 +112,6 @@ describe("resource templates integration", () => {
     })) as ResourceResult;
     expect(JSON.parse(result.contents[0]?.text ?? "{}")).toEqual(
       toJson(McpServerSchema, mcpServer, { useProtoFieldName: true }),
-    );
-  });
-
-  it("reads a workflow resource", async () => {
-    const result = (await client.readResource({
-      uri: "stigmer://workflows/acme/w",
-    })) as ResourceResult;
-    expect(JSON.parse(result.contents[0]?.text ?? "{}")).toEqual(
-      toJson(WorkflowSchema, workflow, { useProtoFieldName: true }),
     );
   });
 

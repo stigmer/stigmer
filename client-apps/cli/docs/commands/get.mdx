@@ -16,7 +16,7 @@ stigmer get agent my-agent
 stigmer get agent acme-corp/code-reviewer
 
 # Get by resource ID
-stigmer get workflow wfl_abc123
+stigmer get agent agt_abc123
 
 # Output as YAML
 stigmer get agent my-agent --output yaml
@@ -26,7 +26,7 @@ stigmer get agent my-agent --output yaml
 
 ### Versions
 
-Workflows and Agents keep every version an apply records. Show the history, or
+Agents keep every version an apply records. Show the history, or
 fetch one version by its content hash or a tag:
 
 ```bash
@@ -35,9 +35,6 @@ stigmer get agent acme-corp/code-reviewer --version-history
 
 # The agent as the version tagged "stable" stored it
 stigmer get agent acme-corp/code-reviewer --version stable
-
-# A workflow version prints its validated YAML
-stigmer get workflow acme-corp/deploy-pipeline --version stable
 ```
 
 ### Supported resource types
@@ -54,7 +51,6 @@ stigmer get workflow acme-corp/deploy-pipeline --version stable
 | Run | `run`, `runs` | ID only |
 | Schedule | `schedule`, `sch`, `schedules` | slug, org/slug, ID |
 | Skill | `skill`, `skills` | slug, org/slug, ID |
-| Workflow | `workflow`, `wf`, `workflows` | slug, org/slug, ID |
 
 ### Output formats
 

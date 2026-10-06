@@ -5,7 +5,7 @@
 // repeated failed runs), distinct from "disabled", the owner's switch
 // (spec.enabled) — two words, two levers (see docs/vocabulary.md). The
 // resume RPC is deliberately the only path that clears the latch: applying
-// a manifest preserves status verbatim, so no declarative workflow can
+// a manifest preserves status verbatim, so no declarative apply can
 // silently un-pause a failing schedule.
 //
 // The pre-state read exists for honest messaging only: the RPC is

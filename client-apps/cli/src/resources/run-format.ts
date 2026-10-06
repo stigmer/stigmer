@@ -1,11 +1,8 @@
 // Shared, presentation-only formatters for run output.
 //
 // These mirror helpers in Go's pkg/display + internal/cli/execution (duration
-// math, ellipsis truncation, workflow task-type labels). They live here, away
-// from any RPC code, so both `runs trace` and the `run workflow` epilogue
-// format durations and task types identically without duplicating the logic.
-
-import { WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+// math, ellipsis truncation). They live here, away from any RPC code, so run
+// output formats durations and truncates text the same way everywhere.
 
 /**
  * Human duration between two ISO 8601 timestamps. Mirrors Go's calculateDuration:
@@ -29,26 +26,4 @@ export function truncateWithEllipsis(value: string, maxLen: number): string {
   if (value.length <= maxLen) return value;
   if (maxLen <= 3) return value.slice(0, maxLen);
   return `${value.slice(0, maxLen - 3)}...`;
-}
-
-/** Short workflow task-type label. Mirrors Go's formatWorkflowTaskType. */
-export function formatWorkflowTaskType(type: WorkflowTaskType): string {
-  switch (type) {
-    case WorkflowTaskType.WORKFLOW_TASK_AGENT_INVOCATION:
-      return "agent";
-    case WorkflowTaskType.WORKFLOW_TASK_APPROVAL:
-      return "approval";
-    case WorkflowTaskType.WORKFLOW_TASK_API_CALL:
-      return "api_call";
-    case WorkflowTaskType.WORKFLOW_TASK_CONDITIONAL:
-      return "condition";
-    case WorkflowTaskType.WORKFLOW_TASK_PARALLEL:
-      return "parallel";
-    case WorkflowTaskType.WORKFLOW_TASK_TRANSFORM:
-      return "transform";
-    case WorkflowTaskType.WORKFLOW_TASK_CUSTOM:
-      return "custom";
-    default:
-      return "unknown";
-  }
 }

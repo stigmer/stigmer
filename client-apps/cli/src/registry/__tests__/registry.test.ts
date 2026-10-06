@@ -22,8 +22,6 @@ describe("registry — alias resolution", () => {
     ["agent", ApiResourceKind.agent],
     ["agents", ApiResourceKind.agent],
     ["agt", ApiResourceKind.agent],
-    ["workflow", ApiResourceKind.workflow],
-    ["wfl", ApiResourceKind.workflow],
     ["org", ApiResourceKind.organization],
     ["oapp", ApiResourceKind.oauth_app],
     // The canonical proto enum name and its kebab/plural companions
@@ -58,17 +56,12 @@ describe("registry — alias resolution", () => {
     expect(registry.getByAlias("nope")).toBeUndefined();
   });
 
-  // The run kinds are served by the pre-gate `list runs`
-  // route and their dedicated controllers; registering either would put a
-  // row in `list types` that the pre-gate route then shadows — the
-  // stigmer/stigmer#469 class (see the alias-shadowing suite below).
-  it("does not register the run kinds as addressable types", () => {
-    for (const kind of [
-      ApiResourceKind.agent_run,
-      ApiResourceKind.workflow_run,
-    ]) {
-      expect(registry.getByKind(kind)).toBeUndefined();
-    }
+  // The run kind is served by the pre-gate `list runs` route and its
+  // dedicated controller; registering it would put a row in `list types`
+  // that the pre-gate route then shadows — the stigmer/stigmer#469 class
+  // (see the alias-shadowing suite below).
+  it("does not register the run kind as an addressable type", () => {
+    expect(registry.getByKind(ApiResourceKind.agent_run)).toBeUndefined();
   });
 });
 
@@ -77,8 +70,8 @@ describe("registry — YAML kind resolution", () => {
     expect(registry.getByYamlKind("McpServer")?.kind).toBe(
       ApiResourceKind.mcp_server,
     );
-    expect(registry.getByYamlKind("Workflow")?.kind).toBe(
-      ApiResourceKind.workflow,
+    expect(registry.getByYamlKind("Agent")?.kind).toBe(
+      ApiResourceKind.agent,
     );
   });
 });
@@ -156,7 +149,7 @@ describe("registry — verb support matrix", () => {
   it("typesForVerb(get) includes the core read kinds", () => {
     const kinds = new Set(registry.typesForVerb(Verb.Get).map((t) => t.kind));
     expect(kinds).toContain(ApiResourceKind.agent);
-    expect(kinds).toContain(ApiResourceKind.workflow);
+    expect(kinds).toContain(ApiResourceKind.skill);
     expect(kinds).toContain(ApiResourceKind.mcp_server);
   });
 });

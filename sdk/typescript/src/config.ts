@@ -74,8 +74,8 @@ export interface StigmerConfig {
   readonly fetch?: typeof globalThis.fetch;
 
   /**
-   * Default execution target for all sessions and workflow runs
-   * created through this client.
+   * Default execution target for every session created through this
+   * client.
    *
    * - `"local"` -- Client provides runners (desktop app, CLI, or
    *   customer-managed runner process).
@@ -87,8 +87,7 @@ export interface StigmerConfig {
    * state, runner processes, and sandbox provisioning are all scoped
    * to the application, not individual sessions.
    *
-   * Per-call overrides on `SessionInput.executionTarget` or
-   * `WorkflowExecutionInput.executionTarget` take precedence when
+   * A per-call `SessionInput.executionTarget` takes precedence when
    * explicitly set.
    */
   readonly executionTarget?: "local" | "cloud";

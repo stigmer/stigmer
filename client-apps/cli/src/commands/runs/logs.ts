@@ -7,15 +7,13 @@ import { ensureAuthenticated } from "../../config/index.js";
 
 interface LogsFlags {
   follow?: boolean;
-  task?: string;
 }
 
 export function registerRunsLogs(runs: Command): void {
   runs
     .command("logs <run-id>")
-    .description("view run event logs (use --follow to stream)")
+    .description("view run message logs (use --follow to stream)")
     .option("-f, --follow", "stream live events")
-    .option("--task <name>", "filter events by task name (workflow only)")
     .action((runId: string, options: LogsFlags) => runLogs(runId, options));
 }
 
@@ -37,7 +35,7 @@ async function runLogs(runId: string, options: LogsFlags): Promise<void> {
   try {
     await streamRunLogs(
       client.stigmer,
-      { runId, follow: options.follow === true, task: options.task },
+      { runId, follow: options.follow === true },
       controller.signal,
     );
   } finally {

@@ -1,11 +1,10 @@
 // Agent-run read path: the polling primitive behind get_agent_run.
 //
-// Agent runs have no event-log RPC (unlike workflow runs) — the
-// platform's contract is: poll get and read status.phase, status.messages[],
-// and status.pending_approvals[]. That makes the response shape critical for
-// MCP: a long conversation's full protojson (every message, the resolved
-// context snapshot, the approval ledger, sub-agent transcripts) can dwarf the
-// model's context. The default "compact" view therefore returns a bounded
+// Agent runs have no event-log RPC — the platform's contract is: poll get
+// and read status.phase, status.messages[], and status.pending_approvals[].
+// That makes the response shape critical for MCP: a long conversation's
+// full protojson (every message, the resolved context snapshot, the approval
+// ledger, sub-agent transcripts) can dwarf the model's context. The default "compact" view therefore returns a bounded
 // message tail and drops the bulky server-side bookkeeping fields; "full" is
 // the verbatim protojson for when the model genuinely needs everything.
 

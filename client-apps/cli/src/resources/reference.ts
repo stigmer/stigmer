@@ -41,22 +41,16 @@ export function parseReference(ref: string, defaultOrg: string, idPrefix: string
 // known prefix is accepted as a complete ID.
 const ULID_LENGTH = 26;
 
-// Run prefixes that are not in KIND_META (which only carries the
-// addressable, registry-relevant kinds) but that the run resolver must still
-// recognize so it can reject them with explicit-form guidance. "wex" is the
-// workflow-run prefix; "aex" is already in KIND_META.
-const RUNTIME_ID_PREFIXES: readonly string[] = ["wex"];
-
 /** The id_prefix for a kind (from the proto kind_meta mirror), or "". */
 function idPrefixFor(kind: ApiResourceKind): string {
   return KIND_META.get(kind)?.idPrefix ?? "";
 }
 
 // Every known resource-ID prefix, deduped. Built once from the kind_meta mirror
-// plus the runtime prefixes so there is a single source of truth shared with
-// the rest of the CLI (the registry) rather than a hand-rolled prefix list.
+// so there is a single source of truth shared with the rest of the CLI (the
+// registry) rather than a hand-rolled prefix list.
 const ALL_ID_PREFIXES: readonly string[] = (() => {
-  const set = new Set<string>(RUNTIME_ID_PREFIXES);
+  const set = new Set<string>();
   for (const meta of KIND_META.values()) {
     if (meta.idPrefix !== "") set.add(meta.idPrefix);
   }
@@ -74,11 +68,6 @@ function hasKindPrefix(ref: string, prefix: string): boolean {
 /** True if `ref` carries the agent ID prefix (`agt_…`/`agt-…`). */
 export function isAgentId(ref: string): boolean {
   return hasKindPrefix(ref, idPrefixFor(ApiResourceKind.agent));
-}
-
-/** True if `ref` carries the workflow ID prefix (`wfl_…`/`wfl-…`). */
-export function isWorkflowId(ref: string): boolean {
-  return hasKindPrefix(ref, idPrefixFor(ApiResourceKind.workflow));
 }
 
 /** True if `ref` carries the session ID prefix (`ses_…`/`ses-…`). */

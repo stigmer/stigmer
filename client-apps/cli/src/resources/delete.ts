@@ -77,7 +77,6 @@ export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<
   DeleteFn
 >([
   [ApiResourceKind.agent, (c, id) => c.agent.delete(id)],
-  [ApiResourceKind.workflow, (c, id) => c.workflow.delete(id)],
   [
     ApiResourceKind.mcp_server,
     (c, id, force) => c.mcpServer.delete({ resourceId: id, force }),
@@ -307,8 +306,8 @@ function buildDeleteWarning(
 
   if (info.kind === ApiResourceKind.plugin) {
     warning.hint(
-      "This removes the plugin and every skill, MCP server, agent and workflow it installed. " +
-        "It is refused while another agent or workflow of yours still references one of them.",
+      "This removes the plugin and every skill, MCP server and agent it installed. " +
+        "It is refused while another agent of yours still references one of them.",
     );
   }
 

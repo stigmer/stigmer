@@ -1,4 +1,6 @@
-import type { JsonValue } from "@bufbuild/protobuf";
+// Unit tests for offline validation: the schema each file-based kind resolves
+// to, and the structural decode of a document against it.
+
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { describe, expect, it } from "vitest";
 import { schemaForValidate, validateDocument } from "../validate.js";
@@ -6,7 +8,6 @@ import { schemaForValidate, validateDocument } from "../validate.js";
 describe("schemaForValidate", () => {
   it("resolves a schema for each file-based kind", () => {
     expect(schemaForValidate(ApiResourceKind.agent)).toBeDefined();
-    expect(schemaForValidate(ApiResourceKind.workflow)).toBeDefined();
     expect(schemaForValidate(ApiResourceKind.mcp_server)).toBeDefined();
   });
 
@@ -50,30 +51,5 @@ describe("validateDocument", () => {
         metadata: "not-an-object",
       }),
     ).toThrow();
-  });
-
-  // The stigmer/stigmer#778 wiring pin: task_config blocks are typed per kind,
-  // so validate rejects what a real apply rejects instead of waving any Struct
-  // payload through. Decode behavior itself is pinned in task-configs.test.ts.
-  it("decodes workflow task_config blocks per kind", () => {
-    const workflowSchema = schemaForValidate(ApiResourceKind.workflow);
-    if (workflowSchema === undefined) throw new Error("workflow schema unavailable");
-
-    const workflowDoc = (taskConfig: JsonValue): JsonValue => ({
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: "Workflow",
-      metadata: { name: "wf", org: "acme" },
-      spec: {
-        document: { dsl: "1.0.0", namespace: "acme", name: "wf", version: "1.0.0" },
-        tasks: [{ name: "conditional_wait", kind: "wait", task_config: taskConfig }],
-      },
-    });
-
-    expect(() => validateDocument(workflowSchema, workflowDoc({ duration: "5s" }))).toThrow(
-      /conditional_wait.*invalid task_config/,
-    );
-    expect(() =>
-      validateDocument(workflowSchema, workflowDoc({ duration: { seconds: 5 } })),
-    ).not.toThrow();
   });
 });

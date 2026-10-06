@@ -1,4 +1,4 @@
-// Resource creation for the run path: AgentRun and WorkflowRun.
+// Resource creation for the run path: AgentRun.
 //
 // Ports the Go CLI's run_create.go. We build the full proto messages and drive
 // the generated command controllers directly — the fidelity rule
@@ -24,12 +24,6 @@ import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executio
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { type SessionSpec, SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import {
-  type WorkflowRun,
-  WorkflowRunSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
-import { WorkflowRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/spec_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -106,36 +100,6 @@ export async function createAgentRun(
     }),
   });
   return controller(AgentRunCommandController).create(run);
-}
-
-/** Inputs for creating a workflow run. */
-export interface CreateWorkflowRunInput {
-  readonly workflowId: string;
-  readonly orgId: string;
-  readonly message: string;
-  readonly runtimeEnv: RuntimeEnv;
-}
-
-/**
- * Create a workflow run. Mirrors Go's createWorkflowExecution. The caller
- * either detaches (prints IDs) or streams the run live over the canonical
- * event stream (resources/run/workflow-stream.ts).
- */
-export async function createWorkflowRun(
-  controller: ControllerFn,
-  input: CreateWorkflowRunInput,
-): Promise<WorkflowRun> {
-  const run = create(WorkflowRunSchema, {
-    apiVersion: API_VERSION,
-    kind: "WorkflowRun",
-    metadata: create(ApiResourceMetadataSchema, { name: runName(), org: input.orgId }),
-    spec: create(WorkflowRunSpecSchema, {
-      workflowId: input.workflowId,
-      triggerMessage: input.message === "" ? "execute" : input.message,
-      runtimeEnv: toExecutionValues(input.runtimeEnv),
-    }),
-  });
-  return controller(WorkflowRunCommandController).create(run);
 }
 
 // The turn's target: an existing session by id, or the session_spec of the

@@ -297,7 +297,7 @@ describe("file-mode apply — kinds the registry does not know", () => {
     }
   });
 
-  it("refuses a WorkflowInstance manifest, naming the workflow as where a run starts", () => {
+  it("refuses a WorkflowInstance manifest, naming the agent as where a run starts", () => {
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
       writeYaml(
@@ -306,7 +306,7 @@ describe("file-mode apply — kinds the registry does not know", () => {
         ["kind: WorkflowInstance", "metadata:", "  name: Deploy", "  slug: deploy-default", ""].join("\n"),
       );
       expect(() => resolveApplyItems(dir)).toThrow(
-        /kind 'WorkflowInstance' in .*workflow-instance\.yaml is no longer a Stigmer resource.*stigmer run workflow <org>\/<workflow>.*set on the workflow/,
+        /kind 'WorkflowInstance' in .*workflow-instance\.yaml is no longer a Stigmer resource.*stigmer run <org>\/<agent>/,
       );
     } finally {
       rmSync(dir, { recursive: true, force: true });

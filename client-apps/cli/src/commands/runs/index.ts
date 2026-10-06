@@ -1,9 +1,7 @@
-// `stigmer runs …` — lifecycle and observability for agent and workflow runs.
-// The run type is auto-detected from the ID prefix (aex_ vs wex_), so a single
-// command group serves both families.
+// `stigmer runs …` — lifecycle and observability for agent runs (aex_).
 //
 // The group is plural because the singular `stigmer run` starts a run (`run
-// <agent>`, `run workflow <ref>`), the top-level `logs` reads the local stack
+// <agent>`), the top-level `logs` reads the local stack
 // and the top-level `resume` reopens a session; `runs` is the one plural group
 // the CLI has.
 //
@@ -20,7 +18,7 @@ import { registerRunsTrace } from "./trace.js";
 export function registerRuns(program: Command): void {
   const runs = program
     .command("runs")
-    .description("manage run lifecycle and observability (agent: aex_, workflow: wex_)");
+    .description("manage run lifecycle and observability (run IDs: aex_)");
 
   registerRunsControl(runs);
   registerRunsLogs(runs);

@@ -173,7 +173,6 @@ stigmer/
 │   │   ├── README.md      # Go SDK quick start
 │   │   ├── go.mod         # Go module definition
 │   │   ├── agent/         # Agent builder API
-│   │   ├── workflow/      # Workflow builder API
 │   │   ├── skill/         # Skills API
 │   │   ├── mcpserver/     # MCP servers API
 │   │   ├── subagent/      # Sub-agents API

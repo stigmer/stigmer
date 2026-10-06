@@ -84,7 +84,6 @@ export const kindToAuthority: Readonly<Record<string, string>> = {
   environment: "environments",
   mcp_server: "mcp-servers",
   skill: "skills",
-  workflow: "workflows",
 };
 
 /**

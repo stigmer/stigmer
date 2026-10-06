@@ -1,41 +1,29 @@
-// `runs logs` — event/message stream for a run (agent or workflow).
+// `runs logs` — the message stream for a run.
 //
-// Mirrors Go's execution.WorkflowLogs + AgentLogs (logs_workflow.go /
-// logs_agent.go). The two run families consume different primitives, and
-// that asymmetry is intentional:
-//
-//   - Workflows have a canonical, sequenced event log. Non-follow reads it via
-//     getEventLog (paginated); follow tails it via subscribeEvents. Both render
-//     through the shared workflow event renderer, so `logs` and `run workflow`
-//     speak the same vocabulary.
-//   - Agents have no event stream — only status snapshots (subscribe). So agent
-//     follow diffs the message list across snapshots (lastMsgCount) and stops on
-//     a terminal phase, exactly as Go does; non-follow prints the message list
-//     from a single Get.
+// Mirrors Go's execution.AgentLogs (logs_agent.go). A run has no event log,
+// only status snapshots (subscribe): follow diffs the message list across
+// snapshots (lastMsgCount) and stops on a terminal phase, exactly as Go does;
+// non-follow prints the message list from a single Get.
 //
 // Ctrl-C ends a follow cleanly: the SIGINT aborts the subscription and we treat
 // the abort as a normal exit (no stack trace).
 
-import { create } from "@bufbuild/protobuf";
 import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import {
-  GetEventLogRequestSchema,
-  SubscribeEventsRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { shouldColorize, styler } from "../output/style.js";
-import { formatAgentPhase, isTerminalAgentPhase, resolveRunType } from "./runs.js";
-import { type LineSink, renderWorkflowEventPlaintext } from "./stream/workflow-render-plaintext.js";
+import { formatAgentPhase, isTerminalAgentPhase } from "./runs.js";
 
-const EVENT_LOG_PAGE_SIZE = 50;
 const MAX_AGENT_MESSAGE_LEN = 200;
 
 export interface LogsOptions {
   readonly runId: string;
   readonly follow: boolean;
-  /** Workflow-only: filter events by task name. */
-  readonly task?: string;
+}
+
+/** Where rendered log lines go. */
+export interface LineSink {
+  write(line: string): void;
 }
 
 /** A line sink + a signal that the caller can abort (SIGINT). */
@@ -51,53 +39,7 @@ export async function streamRunLogs(
   signal: AbortSignal,
   streams: LogsStreams = defaultStreams(),
 ): Promise<void> {
-  const type = resolveRunType(opts.runId);
-  if (type === "workflow") {
-    await (opts.follow ? followWorkflowLogs(client, opts, signal, streams) : printWorkflowLog(client, opts, streams));
-    return;
-  }
   await (opts.follow ? followAgentLogs(client, opts, signal, streams) : printAgentMessages(client, opts, streams));
-}
-
-async function printWorkflowLog(client: Stigmer, opts: LogsOptions, streams: LogsStreams): Promise<void> {
-  const resp = await client.workflowRun.getEventLog(
-    create(GetEventLogRequestSchema, {
-      runId: opts.runId,
-      pageSize: EVENT_LOG_PAGE_SIZE,
-      ...(opts.task ? { taskName: opts.task } : {}),
-    }),
-  );
-  if (resp.events.length === 0) {
-    streams.out.write("No events recorded for this run.\n");
-    return;
-  }
-  for (const event of resp.events) renderWorkflowEventPlaintext(event, streams.out, streams.colorize);
-  if (resp.hasMore) {
-    streams.out.write(`\n... more events available (showing first ${resp.events.length})\n`);
-  }
-}
-
-async function followWorkflowLogs(
-  client: Stigmer,
-  opts: LogsOptions,
-  signal: AbortSignal,
-  streams: LogsStreams,
-): Promise<void> {
-  const stream = client.workflowRun.subscribeEvents(
-    create(SubscribeEventsRequestSchema, { runId: opts.runId }),
-    signal,
-  );
-  try {
-    for await (const event of stream) {
-      // Client-side task filter, matching Go's streamWorkflowEvents.
-      if (opts.task !== undefined && opts.task !== "" && event.taskName !== opts.task) continue;
-      renderWorkflowEventPlaintext(event, streams.out, streams.colorize);
-    }
-    streams.out.write("\n--- stream ended ---\n");
-  } catch (error) {
-    if (signal.aborted) return;
-    throw error;
-  }
 }
 
 async function printAgentMessages(client: Stigmer, opts: LogsOptions, streams: LogsStreams): Promise<void> {

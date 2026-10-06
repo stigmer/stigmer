@@ -1,4 +1,4 @@
-// `stigmer runs trace <run-id>` — show task/tool structure + timing.
+// `stigmer runs trace <run-id>` — show the tool-call structure + timing.
 // Thin handler: resolve the client and format, delegate to
 // resources/run-trace.ts. Mirrors Go's execution_trace.go.
 
@@ -11,7 +11,7 @@ import { addReadFlags, readFormat } from "../shared.js";
 export function registerRunsTrace(runs: Command): void {
   const trace = runs
     .command("trace <run-id>")
-    .description("show run task structure and timing")
+    .description("show run tool-call structure and timing")
     .action((runId: string, options: OutputFlags) => runTrace(runId, options));
   addReadFlags(trace);
 }

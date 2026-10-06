@@ -10,7 +10,7 @@ let dir: string;
 beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), "stigmer-docs-"));
   writeFileSync(join(dir, "single.yaml"), "kind: Agent\nmetadata:\n  slug: a\n");
-  writeFileSync(join(dir, "multi.yaml"), "kind: Agent\nmetadata:\n  slug: a\n---\nkind: Workflow\nmetadata:\n  slug: w\n");
+  writeFileSync(join(dir, "multi.yaml"), "kind: Agent\nmetadata:\n  slug: a\n---\nkind: McpServer\nmetadata:\n  slug: m\n");
   writeFileSync(join(dir, "nokind.yaml"), "metadata:\n  slug: a\n");
   writeFileSync(join(dir, "broken.yaml"), "kind: Agent\nfoo: [1, 2\n");
   writeFileSync(join(dir, "notyaml.txt"), "ignored");
@@ -47,10 +47,10 @@ describe("loadDocuments", () => {
 
   it("splits multi-document files with per-document raw text", () => {
     const docs = loadDocuments(join(dir, "multi.yaml"));
-    expect(docs.map((d) => d.kind)).toEqual(["Agent", "Workflow"]);
+    expect(docs.map((d) => d.kind)).toEqual(["Agent", "McpServer"]);
     expect(docs[0].raw).toContain("slug: a");
-    expect(docs[0].raw).not.toContain("Workflow");
-    expect(docs[1].raw).toContain("Workflow");
+    expect(docs[0].raw).not.toContain("McpServer");
+    expect(docs[1].raw).toContain("McpServer");
   });
 
   it("rejects a document missing its kind", () => {

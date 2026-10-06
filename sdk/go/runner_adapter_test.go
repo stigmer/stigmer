@@ -12,8 +12,6 @@ import (
 type mockRunnerAdapter struct {
 	sessionsOpened []string
 	sessionsClosed []string
-	runsCreated    []string
-	runsTerminated []string
 }
 
 func (m *mockRunnerAdapter) OnSessionOpened(_ context.Context, sessionID string) error {
@@ -23,16 +21,6 @@ func (m *mockRunnerAdapter) OnSessionOpened(_ context.Context, sessionID string)
 
 func (m *mockRunnerAdapter) OnSessionClosed(_ context.Context, sessionID string) error {
 	m.sessionsClosed = append(m.sessionsClosed, sessionID)
-	return nil
-}
-
-func (m *mockRunnerAdapter) OnWorkflowRunCreated(_ context.Context, runID string) error {
-	m.runsCreated = append(m.runsCreated, runID)
-	return nil
-}
-
-func (m *mockRunnerAdapter) OnWorkflowRunTerminated(_ context.Context, runID string) error {
-	m.runsTerminated = append(m.runsTerminated, runID)
 	return nil
 }
 
@@ -58,16 +46,8 @@ func TestRunnerAdapter_MockRecordsCalls(t *testing.T) {
 	err = adapter.OnSessionClosed(ctx, "ses-1")
 	require.NoError(t, err)
 
-	err = adapter.OnWorkflowRunCreated(ctx, "wfexec-1")
-	require.NoError(t, err)
-
-	err = adapter.OnWorkflowRunTerminated(ctx, "wfexec-1")
-	require.NoError(t, err)
-
 	assert.Equal(t, []string{"ses-1", "ses-2"}, adapter.sessionsOpened)
 	assert.Equal(t, []string{"ses-1"}, adapter.sessionsClosed)
-	assert.Equal(t, []string{"wfexec-1"}, adapter.runsCreated)
-	assert.Equal(t, []string{"wfexec-1"}, adapter.runsTerminated)
 }
 
 func TestWithRunnerAdapter_SetsOnClient(t *testing.T) {

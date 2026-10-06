@@ -3,12 +3,10 @@
 When ``execution_target`` is ``"local"``, a consumer drives the adapter at
 the appropriate lifecycle points. Cloud consumers do not provide an adapter.
 
-Sessions and workflow runs have different lifecycles. A session is a
-long-lived, multi-turn conversation with no terminal phase, so its worker is
-tied to whether the session is open (in use): ``on_session_opened`` when the
-session is opened, ``on_session_closed`` when it is closed. A workflow
-run reaches a terminal phase, so its worker is tied to creation and
-completion.
+A session is a long-lived, multi-turn conversation with no terminal phase,
+so its worker is tied to whether the session is open (in use):
+``on_session_opened`` when the session is opened, ``on_session_closed`` when
+it is closed.
 
 Each environment provides its own implementation:
 
@@ -25,12 +23,6 @@ Usage::
         async def on_session_closed(self, session_id: str) -> None:
             await stop_worker(session_id)
 
-        async def on_workflow_run_created(self, run_id: str) -> None:
-            await start_run_worker(run_id)
-
-        async def on_workflow_run_terminated(self, run_id: str) -> None:
-            await stop_run_worker(run_id)
-
     client = StigmerClient("sk_live_...", runner_adapter=MyRunnerAdapter())
 """
 
@@ -44,7 +36,7 @@ class RunnerAdapter(Protocol):
     """Protocol for runner lifecycle management.
 
     Implementations handle starting and stopping runner workers in
-    response to session and workflow run lifecycle events.
+    response to session lifecycle events.
     Methods are async to support I/O-bound operations (process
     management, HTTP calls to runner APIs, etc.).
     """
@@ -63,12 +55,4 @@ class RunnerAdapter(Protocol):
 
         The adapter should tear down the session's runner worker.
         """
-        ...
-
-    async def on_workflow_run_created(self, run_id: str) -> None:
-        """Called after a workflow run is created with execution_target=LOCAL."""
-        ...
-
-    async def on_workflow_run_terminated(self, run_id: str) -> None:
-        """Called when a workflow run reaches a terminal phase."""
         ...

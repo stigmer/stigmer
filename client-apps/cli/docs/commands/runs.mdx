@@ -1,11 +1,7 @@
 Manage run lifecycle and observability.
 
-`stigmer runs` controls the lifecycle of agent and workflow runs and exposes
-their logs and traces. The run type is auto-detected from the ID prefix, so a
-single command group serves both families:
-
-- Agent runs: `aex_<ulid>`
-- Workflow runs: `wex_<ulid>`
+`stigmer runs` controls the lifecycle of agent runs and exposes their logs
+and traces. A run is addressed by its ID, `aex_<ulid>`.
 
 The group is plural because `stigmer run` starts a run; `stigmer runs` manages
 one that already exists.
@@ -16,10 +12,10 @@ The subcommands fall into three areas:
   point; `terminate` force-stops it immediately without cleanup (and cannot be
   recovered); `pause` checkpoints a run in progress; `resume` continues a
   paused one from its last checkpoint.
-- **Observability** — `logs` views or streams a run's event logs; `trace` shows
-  the task/tool structure with status and timing.
-- **Approval** — `approve` submits a decision for a run waiting on human input
-  (a workflow task or an agent tool call).
+- **Observability** — `logs` views or streams a run's messages; `trace` shows
+  the tool-call structure with status and timing.
+- **Approval** — `approve` submits a decision for a run waiting on an
+  approval for a tool call.
 
 {/* AUTO_USAGE */}
 
@@ -28,8 +24,8 @@ The subcommands fall into three areas:
 ### Cancel and terminate
 
 ```bash
-# Gracefully cancel a workflow run
-stigmer runs cancel wex_01abc123
+# Gracefully cancel a run
+stigmer runs cancel aex_01abc123
 
 # Force-stop immediately (unrecoverable)
 stigmer runs terminate aex_01xyz789 --reason "stuck run"
@@ -45,23 +41,17 @@ stigmer runs resume aex_01abc123
 ### Stream logs and inspect a trace
 
 ```bash
-# Stream live events from a workflow run
-stigmer runs logs wex_01abc123 --follow
+# Stream live messages from a run
+stigmer runs logs aex_01abc123 --follow
 
-# Filter workflow events by task name
-stigmer runs logs wex_01abc123 --task validate_email
-
-# Show the task tree with timing as YAML
-stigmer runs trace wex_01abc123 -o yaml
+# Show the tool-call timeline as YAML
+stigmer runs trace aex_01abc123 -o yaml
 ```
 
 ### Approve a waiting run
 
 ```bash
-# Approve a workflow task
-stigmer runs approve wex_01abc123 --task review --outcome approve
-
-# Approve an agent tool call
+# Approve a tool call
 stigmer runs approve aex_01xyz789 --tool-call tc_abc --action approve
 ```
 
@@ -73,7 +63,7 @@ stigmer runs approve aex_01xyz789 --tool-call tc_abc --action approve
 
 | Command | Description |
 |---------|-------------|
-| [`stigmer run`](./run) | Start a new agent or workflow run |
+| [`stigmer run`](./run) | Start a new agent run |
 | [`stigmer resume`](./resume) | Re-attach to a session's live stream |
 | [`stigmer get`](./get) | Inspect a run by ID |
 

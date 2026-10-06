@@ -8,12 +8,10 @@ import "context"
 // appropriate lifecycle points so it never manages runner processes
 // directly — the adapter handles it transparently.
 //
-// Sessions and workflow runs have different lifecycles. A session is
-// a long-lived, multi-turn conversation with no terminal phase, so its
-// worker is tied to whether the session is open (in use): OnSessionOpened
-// when the session is opened, OnSessionClosed when it is closed. A workflow
-// run reaches a terminal phase, so its worker is tied to creation and
-// completion.
+// A session is a long-lived, multi-turn conversation with no terminal
+// phase, so its worker is tied to whether the session is open (in use):
+// OnSessionOpened when the session is opened, OnSessionClosed when it is
+// closed.
 //
 // Each environment provides its own implementation:
 //   - Desktop app: wraps the embedded Tauri runner process
@@ -30,14 +28,4 @@ type RunnerAdapter interface {
 	// OnSessionClosed is called when a local session is closed (no longer
 	// in use). The adapter should tear down the session's runner worker.
 	OnSessionClosed(ctx context.Context, sessionID string) error
-
-	// OnWorkflowRunCreated is called after a workflow run is created
-	// with ExecutionTarget=LOCAL. The adapter should ensure a runner
-	// worker is active for the given run.
-	OnWorkflowRunCreated(ctx context.Context, runID string) error
-
-	// OnWorkflowRunTerminated is called when a workflow run reaches a
-	// terminal phase. The adapter should clean up any runner resources
-	// allocated for the run.
-	OnWorkflowRunTerminated(ctx context.Context, runID string) error
 }

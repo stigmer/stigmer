@@ -16,7 +16,7 @@ import { UsageError } from "../../errors/usage-error.js";
 import { planDelete } from "../delete.js";
 import { renderResource } from "../render.js";
 import { resumeSchedule } from "../schedule.js";
-import { renderWorkflowVersionHistory } from "../version.js";
+import { renderAgentVersionHistory } from "../version.js";
 
 const AGENT = create(AgentSchema, {
   metadata: { id: "agt_1", name: "Helper", slug: "helper", org: "stigmer" },
@@ -66,21 +66,21 @@ describe("the delete warning", () => {
   });
 });
 
-describe("renderWorkflowVersionHistory with no versions", () => {
+describe("renderAgentVersionHistory with no versions", () => {
   const empty = {
-    workflow: { listVersions: async () => ({ versions: [], totalCount: 0 }) },
+    agent: { listVersions: async () => ({ versions: [], totalCount: 0 }) },
   } as unknown as Stigmer;
 
   it("names org/slug when an organization was named", async () => {
-    expect(await renderWorkflowVersionHistory(empty, "acme", "deploy")).toContain(
-      "No version history found for acme/deploy",
+    expect(await renderAgentVersionHistory(empty, "acme", "reviewer")).toContain(
+      "No version history found for acme/reviewer",
     );
   });
 
   it("names the organization by slug when given its id", async () => {
     const id = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
     const knowingAcme = {
-      workflow: { listVersions: async () => ({ versions: [], totalCount: 0 }) },
+      agent: { listVersions: async () => ({ versions: [], totalCount: 0 }) },
       organization: {
         get: async (value: string) => {
           if (value !== id) throw new Error("organization not found");
@@ -88,14 +88,14 @@ describe("renderWorkflowVersionHistory with no versions", () => {
         },
       },
     } as unknown as Stigmer;
-    const rendered = await renderWorkflowVersionHistory(knowingAcme, id, "deploy");
-    expect(rendered).toContain("No version history found for acme/deploy\n");
+    const rendered = await renderAgentVersionHistory(knowingAcme, id, "reviewer");
+    expect(rendered).toContain("No version history found for acme/reviewer\n");
     expect(rendered).not.toContain(id);
   });
 
   it("names the slug alone when none was (a server that holds one)", async () => {
-    expect(await renderWorkflowVersionHistory(empty, "", "deploy")).toContain(
-      "No version history found for deploy\n",
+    expect(await renderAgentVersionHistory(empty, "", "reviewer")).toContain(
+      "No version history found for reviewer\n",
     );
   });
 });

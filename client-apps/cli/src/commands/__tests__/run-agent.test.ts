@@ -1,4 +1,4 @@
-// Command-level contract for `stigmer run agent <ref>`: the spec of the agent
+// Command-level contract for `stigmer run <agent>`: the spec of the agent
 // the command resolved reaches the prelude, so the agent's run defaults seed
 // the run. An agent naming the cursor engine runs on cursor with no flag, and
 // its model is left to the server (the run carries none), ahead of any
@@ -78,13 +78,13 @@ describe("stigmer run seeds the run from the resolved agent's run defaults", () 
   });
 
   it("runs on the engine the agent names and leaves its model to the server", async () => {
-    const started = await run("agent", "reviewer", "-m", "review this");
+    const started = await run("reviewer", "-m", "review this");
     expect(started?.harness).toBe("cursor");
     expect(started?.model).toBe("");
   });
 
   it("an explicit --harness outranks the agent's engine", async () => {
-    const started = await run("agent", "reviewer", "-m", "review this", "--harness", "native");
+    const started = await run("reviewer", "-m", "review this", "--harness", "native");
     expect(started?.harness).toBe("native");
   });
 

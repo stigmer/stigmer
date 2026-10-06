@@ -1,8 +1,8 @@
 // Unit tests for run-path resource creation: full-proto field mapping, the
 // message default, run_config presence/contents, the top-level mode, runtime-env conversion,
-// the one-call session_spec bootstrap, the turn's target (an existing session
-// by id alone, or a new conversation naming its agent by reference), and the
-// workflow shape. The controller is faked to capture the exact proto sent to
+// the one-call session_spec bootstrap, and the turn's target (an existing
+// session by id alone, or a new conversation naming its agent by reference).
+// The controller is faked to capture the exact proto sent to
 // the RPC.
 
 import { describe, expect, it } from "vitest";
@@ -17,7 +17,7 @@ import {
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { type ControllerFn, createAgentRun, createWorkflowRun } from "../create.js";
+import { type ControllerFn, createAgentRun } from "../create.js";
 
 const AGENT_REF = { org: "acme", slug: "helper" };
 
@@ -378,21 +378,5 @@ describe("createAgentRun", () => {
     });
     expect(sessionSpecOf(exec)?.harness).toBe(Harness.CURSOR);
     expect(sessionSpecOf(exec)?.workspaceEntries).toEqual([entry]);
-  });
-});
-
-describe("createWorkflowRun", () => {
-  it("builds a workflow run with the trigger message", async () => {
-    const { fn } = fakeController();
-    const exec = await createWorkflowRun(fn, {
-      workflowId: "wfl_1",
-      orgId: "acme",
-      message: "",
-      runtimeEnv: { K: { value: "v", isSecret: false } },
-    });
-    expect(exec.kind).toBe("WorkflowRun");
-    expect(exec.spec?.workflowId).toBe("wfl_1");
-    expect(exec.spec?.triggerMessage).toBe("execute");
-    expect(exec.spec?.runtimeEnv.K).toMatchObject({ value: "v", isSecret: false });
   });
 });

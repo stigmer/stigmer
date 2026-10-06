@@ -37,11 +37,11 @@ describe("generateAliases", () => {
     }
   });
 
-  it("derives the Workflow alias set", () => {
+  it("derives the Skill alias set", () => {
     const found = normalized(
-      generateAliases("Workflow", "Workflow", "wfl", "workflow"),
+      generateAliases("Skill", "Skill", "skl", "skill"),
     );
-    for (const exp of ["workflow", "wfl", "workflows", "wfls"]) {
+    for (const exp of ["skill", "skl", "skills", "skls"]) {
       expect(found).toContain(exp);
     }
   });
@@ -71,13 +71,11 @@ describe("generateAliases", () => {
     }
   });
 
-  it("derives the run kinds' spellings from their renamed metadata", () => {
+  it("derives the run kind's spellings from its renamed metadata", () => {
     const agentRun = [...normalized(generateAliases("AgentRun", "Agent Run", "aex", "agent_run"))];
     expect(agentRun).toEqual(expect.arrayContaining(["agentrun", "agent-run", "agent_run", "aex"]));
     expect(agentRun).not.toContain("agent");
-    const workflowRun = [...normalized(generateAliases("WorkflowRun", "Workflow Run", "wex", "workflow_run"))];
-    expect(workflowRun).toEqual(expect.arrayContaining(["workflowrun", "workflow-run", "workflow_run", "wex"]));
-    for (const alias of [...agentRun, ...workflowRun]) {
+    for (const alias of agentRun) {
       expect(alias).not.toContain("execution");
     }
   });
@@ -106,7 +104,7 @@ describe("case conversion", () => {
     ["McpServer", "mcp-server"],
     ["Agent", "agent"],
     ["AgentShare", "agent-share"],
-    ["WorkflowRun", "workflow-run"],
+    ["AgentRun", "agent-run"],
     ["", ""],
   ])("toKebabCase(%s) = %s", (input, expected) => {
     expect(toKebabCase(input)).toBe(expected);
@@ -116,7 +114,7 @@ describe("case conversion", () => {
     ["McpServer", "mcp_server"],
     ["Agent", "agent"],
     ["AgentShare", "agent_share"],
-    ["WorkflowRun", "workflow_run"],
+    ["AgentRun", "agent_run"],
     ["", ""],
   ])("toSnakeCase(%s) = %s", (input, expected) => {
     expect(toSnakeCase(input)).toBe(expected);
@@ -126,7 +124,7 @@ describe("case conversion", () => {
 describe("pluralize", () => {
   it.each([
     ["agent", "agents"],
-    ["workflow", "workflows"],
+    ["skill", "skills"],
     ["mcpserver", "mcpservers"],
     ["agents", "agents"],
     ["", ""],
@@ -140,7 +138,7 @@ describe("normalizeAlias", () => {
     ["Agent", "agent"],
     ["  agent  ", "agent"],
     ["MCP-Server", "mcp-server"],
-    ["WORKFLOW", "workflow"],
+    ["SKILL", "skill"],
     ["", ""],
   ])("normalizeAlias(%s) = %s", (input, expected) => {
     expect(normalizeAlias(input)).toBe(expected);

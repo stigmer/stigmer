@@ -38,11 +38,6 @@ import { registerRunControlTools } from "./domains/runs/tools.js";
 import { registerSearchTools } from "./domains/search/tools.js";
 import { registerSkillResources } from "./domains/skills/resources.js";
 import { registerSkillTools } from "./domains/skills/tools.js";
-import { registerWorkflowRunTools } from "./domains/workflowruns/tools.js";
-import { registerTaskKindTools } from "./domains/workflows/taskkinds.js";
-import { registerWorkflowResources } from "./domains/workflows/resources.js";
-import { registerWorkflowTools } from "./domains/workflows/tools.js";
-import { registerValidateWorkflowYamlTool } from "./domains/workflows/validate.js";
 import { log } from "./logger.js";
 
 /**
@@ -178,10 +173,6 @@ function registerTools(server: McpServer, target: BackendTarget): string[] {
     ...registerAgentRunTools(server, target),
     ...registerMcpServerTools(server, target),
     ...registerSkillTools(server, target),
-    ...registerWorkflowTools(server, target),
-    ...registerValidateWorkflowYamlTool(server, target),
-    ...registerTaskKindTools(server, target),
-    ...registerWorkflowRunTools(server, target),
     ...registerRunControlTools(server, target),
     ...registerEnvironmentTools(server, target),
   ];
@@ -196,7 +187,6 @@ function registerResources(server: McpServer, target: BackendTarget): string[] {
     ...registerAgentResources(server, target),
     ...registerMcpServerResources(server, target),
     ...registerSkillResources(server, target),
-    ...registerWorkflowResources(server, target),
     ...registerEnvironmentResources(server, target),
   ];
 }

@@ -1,11 +1,9 @@
 // In-process test for the apply tools. Drives apply_agent,
-// apply_mcp_server, apply_workflow, and apply_environment through the
-// full MCP boundary and asserts the codegen projection (src/gen/*)
-// reconstitutes the proto correctly: metadata hoist + slug generation,
-// the agent tool lists, enum-string conversion,
-// ApiResourceReference kind injection, the stdio/http oneof, the environment
-// data map with secret flags, and the recursive workflow task_config expansion
-// (http_call leaf, fork/for_each nesting).
+// apply_mcp_server, and apply_environment through the full MCP boundary and
+// asserts the codegen projection (src/gen/*) reconstitutes the proto
+// correctly: metadata hoist + slug generation, the agent tool lists,
+// enum-string conversion, ApiResourceReference kind injection, the
+// stdio/http oneof, and the environment data map with secret flags.
 
 import { clone } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -25,9 +23,6 @@ import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import type { McpServer as McpServerProto } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
-import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -42,7 +37,6 @@ let backend: Http2Server;
 let client: Client;
 let appliedAgent: Agent | undefined;
 let appliedMcpServer: McpServerProto | undefined;
-let appliedWorkflow: Workflow | undefined;
 let appliedEnvironment: Environment | undefined;
 const visibilityUpdates: UpdateVisibilityInput[] = [];
 
@@ -89,12 +83,6 @@ beforeAll(async () => {
         return req;
       },
     });
-    router.service(WorkflowCommandController, {
-      apply: (req) => {
-        appliedWorkflow = req;
-        return req;
-      },
-    });
     router.service(EnvironmentCommandController, {
       apply: (req) => {
         appliedEnvironment = req;
@@ -129,7 +117,6 @@ describe("apply tools integration", () => {
       expect.arrayContaining([
         "apply_agent",
         "apply_mcp_server",
-        "apply_workflow",
         "apply_environment",
       ]),
     );
@@ -191,72 +178,6 @@ describe("apply tools integration", () => {
     expect(appliedMcpServer?.spec?.serverType?.value).toMatchObject({
       url: "https://mcp.example.com/v1",
     });
-  });
-
-  it("apply_workflow expands typed task_config and nests recursive tasks", async () => {
-    const result = await callTool("apply_workflow", {
-      name: "Triage",
-      org: "acme",
-      document: { namespace: "support", name: "triage", version: "1.0.0" },
-      tasks: [
-        {
-          name: "fetch",
-          kind: "http_call",
-          http_call: { method: "POST", endpoint: { uri: "https://api.example.com" } },
-        },
-        {
-          name: "parallel",
-          kind: "fork",
-          fork: {
-            branches: [
-              {
-                name: "b1",
-                do: [{ name: "set_x", kind: "set_vars", set_vars: { variables: { x: "1" } } }],
-              },
-            ],
-          },
-        },
-        {
-          name: "loop",
-          kind: "for_each",
-          for_each: {
-            each: "item",
-            in: "${ $data.items }",
-            do: [
-              {
-                name: "call",
-                kind: "http_call",
-                http_call: { method: "GET", endpoint: { uri: "https://api.example.com/item" } },
-              },
-            ],
-          },
-        },
-      ],
-    });
-    expect(result.isError).toBeFalsy();
-
-    const wf = appliedWorkflow;
-    expect(wf?.apiVersion).toBe("agentic.stigmer.ai/v1");
-    expect(wf?.metadata?.slug).toBe("triage");
-    expect(wf?.spec?.document?.namespace).toBe("support");
-
-    const tasks = wf?.spec?.tasks ?? [];
-    expect(tasks).toHaveLength(3);
-
-    // http_call leaf: task_config Struct carries the serialized config.
-    expect(tasks[0]?.kind).toBe(WorkflowTaskKind.http_call);
-    expect(tasks[0]?.taskConfig).toMatchObject({ method: "POST" });
-
-    // fork: recursive nesting — branches[].do[] are full tasks.
-    expect(tasks[1]?.kind).toBe(WorkflowTaskKind.fork);
-    const forkCfg = tasks[1]?.taskConfig as { branches?: Array<{ do?: unknown[] }> };
-    expect(forkCfg.branches?.[0]?.do).toHaveLength(1);
-
-    // for_each: recursive nesting via z.lazy.
-    expect(tasks[2]?.kind).toBe(WorkflowTaskKind.for_each);
-    const forCfg = tasks[2]?.taskConfig as { each?: string; do?: unknown[] };
-    expect(forCfg.each).toBe("item");
-    expect(forCfg.do).toHaveLength(1);
   });
 
   it("apply_agent lands a declared visibility the update preserved away via UpdateVisibility (oss#573)", async () => {

@@ -174,10 +174,6 @@ export interface PluginDescription {
   readonly plugin: Omit<PluginPackage, "overlay"> & {
     readonly overlay: {
       readonly agent?: string;
-      readonly workflows: readonly {
-        readonly name: string;
-        readonly path: string;
-      }[];
       readonly mcpServers: readonly {
         readonly server: string;
         readonly path: string;
@@ -199,10 +195,6 @@ export function describePlugin(
       ...rest,
       overlay: {
         ...(overlay.agent !== undefined && { agent: overlay.agent.path }),
-        workflows: overlay.workflows.map((w) => ({
-          name: w.name,
-          path: w.path,
-        })),
         mcpServers: overlay.mcpServers.map((s) => ({
           server: s.server,
           path: s.path,
@@ -290,7 +282,6 @@ export function describePackageOn(
   );
   const overlay = [
     ...(plugin.overlay.agent !== undefined ? ["agent"] : []),
-    ...plugin.overlay.workflows.map((w) => `workflow ${w.name}`),
     ...plugin.overlay.mcpServers.map((s) => `server overlay ${s.server}`),
   ];
   if (overlay.length > 0) contents.field("Stigmer overlay", overlay.join(", "));
@@ -553,7 +544,6 @@ export function renderPushOutcome(
       [counts?.skills ?? 0, "skill"],
       [counts?.mcpServers ?? 0, "MCP server"],
       [counts?.agents ?? 0, "agent"],
-      [counts?.workflows ?? 0, "workflow"],
     ] as const
   )
     .filter(([n]) => n > 0)
@@ -585,7 +575,6 @@ export function renderPushOutcome(
     ApiResourceKind.skill,
     ApiResourceKind.mcp_server,
     ApiResourceKind.agent,
-    ApiResourceKind.workflow,
   ]) {
     const slugs = members.filter((m) => m.kind === kind).map((m) => m.slug);
     if (slugs.length > 0)
@@ -616,7 +605,6 @@ const MEMBER_KIND_LABELS: Partial<Record<ApiResourceKind, string>> = {
   [ApiResourceKind.skill]: "Skills",
   [ApiResourceKind.mcp_server]: "MCP servers",
   [ApiResourceKind.agent]: "Agents",
-  [ApiResourceKind.workflow]: "Workflows",
 };
 
 function dialectLabel(dialect: PluginDialectProto): string {

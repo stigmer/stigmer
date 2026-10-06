@@ -57,13 +57,13 @@ const assistantSession = create(SessionSchema, {
 });
 
 const knownSearchResult = create(SearchResultSchema, {
-  kind: ApiResourceKind.workflow,
-  id: "wfl_1",
-  name: "Deploy",
-  slug: "deploy",
-  qualifiedSlug: `${ACME_ID}/deploy`,
+  kind: ApiResourceKind.agent,
+  id: "agt_1",
+  name: "Reviewer",
+  slug: "reviewer",
+  qualifiedSlug: `${ACME_ID}/reviewer`,
   org: ACME_ID,
-  description: "deploys things",
+  description: "reviews things",
 });
 
 const knownUsage = create(GetSessionUsageReportOutputSchema, {
@@ -119,7 +119,7 @@ afterAll(async () => {
 
 describe("search integration", () => {
   it("queries the SearchService and renders entries as protojson", async () => {
-    const outcome = await searchResources(client, ApiResourceKind.workflow, "deploy", {
+    const outcome = await searchResources(client, ApiResourceKind.agent, "review", {
       org: "acme",
       page: 1,
       pageSize: 20,
@@ -131,12 +131,12 @@ describe("search integration", () => {
   });
 
   it("renders a human table for search results, naming the organization by slug", async () => {
-    const outcome = await searchResources(client, ApiResourceKind.workflow, "deploy", {
+    const outcome = await searchResources(client, ApiResourceKind.agent, "review", {
       org: "acme",
       page: 1,
       pageSize: 20,
     }, "table");
-    expect(outcome.rendered).toContain("acme/deploy");
+    expect(outcome.rendered).toContain("acme/reviewer");
     expect(outcome.rendered).not.toContain(ACME_ID);
   });
 });
@@ -156,7 +156,7 @@ describe("run integration", () => {
 
   it("lists agent runs as protojson envelope", async () => {
     const result = await listAgentRuns(client, 50);
-    const json = JSON.parse(renderRunList(result, "json", "agent"));
+    const json = JSON.parse(renderRunList(result, "json"));
     expect(json.entries[0].metadata.id).toBe("aex_1");
   });
 });

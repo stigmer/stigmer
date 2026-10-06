@@ -1,6 +1,6 @@
 // In-process test for the delete tools. Verifies the two-step
 // resolve→delete flow forwards the resolved id into the correct per-domain
-// delete-input shape: typed {value} for agent/skill/workflow, and
+// delete-input shape: typed {value} for agent and skill, and
 // ApiResourceDeleteInput {resource_id} for mcp_server and environment.
 
 import { create, toJson } from "@bufbuild/protobuf";
@@ -120,7 +120,6 @@ describe("delete tools integration", () => {
       expect.arrayContaining([
         "delete_agent",
         "delete_skill",
-        "delete_workflow",
         "delete_mcp_server",
         "delete_environment",
       ]),
