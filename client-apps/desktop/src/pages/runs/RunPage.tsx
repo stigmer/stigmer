@@ -3,17 +3,21 @@
  * and a schedule's runs open it). A run is viewed in the session it ran in:
  * the page resolves the run's session and replaces its own history entry
  * with /sessions/<id>, rendering nothing meanwhile. When no run resolves (an
- * unknown id, or a run without a session) it shows a not-found state.
+ * unknown id, a run the caller cannot see, or a run without a session) it
+ * shows a not-found state; when reading the run failed for another reason
+ * (the network, the server) it says so and offers a retry, so a transient
+ * failure never reads as a missing run.
  */
 import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { FileQuestion } from "lucide-react";
+import { AlertTriangle, FileQuestion, RotateCcw } from "lucide-react";
+import { getUserMessage } from "@stigmer/sdk";
 import { useResolveAgentRunSession } from "@stigmer/react";
 
 export default function RunPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { sessionId, isLoading } = useResolveAgentRunSession(id ?? null);
+  const { sessionId, isLoading, error, refetch } = useResolveAgentRunSession(id ?? null);
 
   useEffect(() => {
     if (sessionId) {
@@ -22,8 +26,35 @@ export default function RunPage() {
   }, [sessionId, navigate]);
 
   if (isLoading || sessionId) return null;
+  if (error) return <RunLoadFailed error={error} onRetry={refetch} />;
 
   return <RunNotFound />;
+}
+
+function RunLoadFailed({ error, onRetry }: { error: Error; onRetry: () => void }) {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">
+      <div className="w-full max-w-sm space-y-6 text-center">
+        <div className="bg-destructive-subtle mx-auto flex size-12 items-center justify-center rounded-full">
+          <AlertTriangle className="text-destructive size-6" />
+        </div>
+
+        <div className="space-y-2">
+          <h1 className="text-lg font-semibold">Failed to load run</h1>
+          <p className="text-muted-foreground text-sm">{getUserMessage(error)}</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onRetry}
+          className="border-border bg-card hover:bg-muted inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-sm font-medium transition-colors"
+        >
+          <RotateCcw className="size-3.5" />
+          Try again
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function RunNotFound() {

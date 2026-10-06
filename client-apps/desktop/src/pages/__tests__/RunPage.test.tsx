@@ -2,8 +2,8 @@
  * Pins the desktop run page: /runs/<id> resolves the run named by its route
  * to the session it ran in and replaces itself with that session's page,
  * showing nothing of its own while the run resolves; a run that resolves to
- * no session shows the not-found state. The resolving hook is pinned in
- * @stigmer/react.
+ * no session shows the not-found state, and a failed read says so and
+ * retries on request. The resolving hook is pinned in @stigmer/react.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -13,6 +13,8 @@ const page = vi.hoisted(() => ({
   resolving: [] as Array<string | null>,
   sessionFor: new Map<string, string>(),
   pending: new Set<string>(),
+  failing: new Set<string>(),
+  retries: 0,
 }));
 
 vi.mock("@stigmer/react", () => ({
@@ -21,7 +23,10 @@ vi.mock("@stigmer/react", () => ({
     return {
       sessionId: id ? (page.sessionFor.get(id) ?? null) : null,
       isLoading: id !== null && page.pending.has(id),
-      error: null,
+      error: id !== null && page.failing.has(id) ? new Error("connection refused") : null,
+      refetch: () => {
+        page.retries += 1;
+      },
     };
   },
 }));
@@ -44,6 +49,8 @@ beforeEach(() => {
   page.resolving.length = 0;
   page.sessionFor.clear();
   page.pending.clear();
+  page.failing.clear();
+  page.retries = 0;
 });
 
 describe("desktop RunPage", () => {
@@ -68,5 +75,15 @@ describe("desktop RunPage", () => {
 
     expect(screen.getByText("Run not found")).toBeTruthy();
     expect(screen.queryByText("session page")).toBeNull();
+  });
+
+  it("says the run failed to load, not that it is missing, and retries on request", () => {
+    page.failing.add("aex_flaky");
+    renderAt("/runs/aex_flaky");
+
+    expect(screen.getByRole("heading", { name: "Failed to load run" })).toBeTruthy();
+    expect(screen.queryByText("Run not found")).toBeNull();
+    screen.getByRole("button", { name: "Try again" }).click();
+    expect(page.retries).toBe(1);
   });
 });

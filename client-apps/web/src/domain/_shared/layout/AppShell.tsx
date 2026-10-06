@@ -10,6 +10,7 @@ import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { SessionLauncher } from "@/domain/session/SessionLauncher";
 import { SessionPageInner } from "@/domain/session/SessionPage";
+import { RunLoadFailed } from "@/domain/runs/RunLoadFailed";
 import { RunNotFound } from "@/domain/runs/RunNotFound";
 import { DesktopAppBanner, useDesktopBannerState } from "./DesktopAppBanner";
 import { ManagementSidebar } from "./ManagementSidebar";
@@ -137,8 +138,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
  * `/runs/<id>` is the address of a run; a run is viewed in its session.
  * The zone resolves the run's session and hands off to the session zone
  * via `navigateToSession`, rendering nothing meanwhile. When no run
- * resolves (an unknown id, or a run without a session), it says the run
- * was not found.
+ * resolves (an unknown id, a run the caller cannot see, or a run without a
+ * session), it says the run was not found; when reading the run failed for
+ * another reason, it says so and offers a retry.
  *
  * The `/runs/[id]` route is a no-op placeholder (like `/sessions/[id]`)
  * that only exists so static export emits an nginx fallback for deep links and
@@ -147,7 +149,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
  */
 function RunZoneContent({ runId }: { runId: string }) {
   const { navigateToSession } = useSessionNavigation();
-  const { sessionId, isLoading } = useResolveAgentRunSession(runId);
+  const { sessionId, isLoading, error, refetch } = useResolveAgentRunSession(runId);
 
   useEffect(() => {
     if (sessionId) {
@@ -156,6 +158,7 @@ function RunZoneContent({ runId }: { runId: string }) {
   }, [sessionId, navigateToSession]);
 
   if (isLoading || sessionId) return null;
+  if (error) return <RunLoadFailed error={error} onRetry={refetch} />;
 
   return <RunNotFound />;
 }
