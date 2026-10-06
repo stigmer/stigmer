@@ -24,6 +24,7 @@
  *  - "approve all" on the hook's card leases that hook's asks on that tool,
  *    never the shell category: the next turn's ask of the hook runs, and the
  *    shell default still asks before a call the hook passes;
+ *  - two refusals of one command in a turn that completes stay two rows;
  *  - a person's refusal binds on the retry although the hook now allows;
  *  - only the agent's own hooks run: a repository's `.cursor/hooks.json`
  *    entry and a runner-owned folder's `.claude` settings hook never run
@@ -326,6 +327,58 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     const where = row(status, "call-where");
     expect(where.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(where.approvalPolicySource, "the default asked, not a hook").toBe(ApprovalPolicySource.BUILTIN_CATEGORY);
+  });
+
+  it("keeps both refusals of one command in a turn that completes, each on its own row", async () => {
+    clock.reset();
+    const workspaceRoot = sessionWorkspaceDir(env);
+    const answers: string[] = [];
+    const hook = (command: string, callId: string) =>
+      step.effect(`hook: ${command}`, async () => {
+        answers.push((await runWorkspaceHooks(workspaceRoot, shellHook(command, callId))).permission);
+      });
+    const ev = sdkEvents("agent-twice-0001", "run-twice-0001");
+    const agent = new ScriptedCursorAgent({
+      agentId: "agent-twice-0001",
+      runIds: ["run-twice-0001"],
+      observeStep: () => clock.tick(),
+      turns: [
+        [
+          step.event(ev.init()),
+          step.event(ev.toolCall("call-rm-1", "shell", "running", { command: "rm -rf build" })),
+          hook("rm -rf build", "call-rm-1"),
+          step.event(ev.toolCall("call-rm-1", "shell", "error", { command: "rm -rf build" }, "Blocked by a hook")),
+          step.event(ev.toolCall("call-ls", "shell", "running", { command: "ls" })),
+          hook("ls", "call-ls"),
+          step.event(ev.toolCall("call-ls", "shell", "completed", { command: "ls" }, "build\n")),
+          step.event(ev.toolCall("call-rm-2", "shell", "running", { command: "rm -rf build" })),
+          hook("rm -rf build", "call-rm-2"),
+          step.event(ev.toolCall("call-rm-2", "shell", "error", { command: "rm -rf build" }, "Blocked by a hook")),
+          step.event(ev.assistant("Both deletes were refused.")),
+          step.turnEnded({ inputTokens: 2_000, outputTokens: 40, cacheReadTokens: 0, cacheWriteTokens: 0 }),
+          step.finished({ result: "Both deletes were refused.", model: { id: FIXTURE.model, params: [] } }),
+        ],
+      ],
+    });
+    const record = cursorExecutionRecord({ message: "Delete the build, list, then delete it again.", hooks: [SAFETY_REF] });
+    const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG }, clientOverrides: pluginClient(GUARD) });
+
+    const turn = await runCursorTurn(scenario, { threadId: "", turnSeq: 0 });
+    expect(turn.outcome.kind).toBe("returned");
+    expect(answers).toEqual(["deny", "allow", "deny"]);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
+    const final = record.lastFullStatus!;
+    // Two refusals of one command are two acts: the terminal twin collapse
+    // keeps the rows the boundary settled from the refusals (#1967).
+    for (const id of ["call-rm-1", "call-rm-2"]) {
+      const refused = row(final, id);
+      expect(isToolCallRowHidden(refused), `${id} stays visible`).toBe(false);
+      expect([refused.status, refused.error, refused.approvalPolicyHook]).toEqual([
+        ToolCallStatus.TOOL_CALL_FAILED,
+        "The safety plugin's hook refused this call: recursive deletes are not allowed",
+        "safety",
+      ]);
+    }
   });
 
   it("a person's refusal binds on the retry although the hook now allows", async () => {

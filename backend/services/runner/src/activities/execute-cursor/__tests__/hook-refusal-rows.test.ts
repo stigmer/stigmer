@@ -6,7 +6,9 @@
  * messages or a sub-agent this turn started; the row is FAILED with the very
  * text the model read, names the hook that refused, and names none for a
  * person's earlier refusal; an earlier turn's row, a row that ran, and an
- * entry with no refusal text are left alone.
+ * entry with no refusal text are left alone. Two refusals of one command in a
+ * turn stamp two rows, and the terminal twin collapse that runs after the
+ * stamp keeps both (#1967).
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
@@ -15,7 +17,7 @@ import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/prot
 import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 import { describe, expect, it } from "vitest";
 import { contentToken, grantToken, type DeniedLedgerEntry } from "../approval-state.js";
-import { stampHookRefusedToolCalls } from "../boundary-rows.js";
+import { collapseRedundantToolCallTwins, stampHookRefusedToolCalls } from "../boundary-rows.js";
 
 const BLOCKED = "Blocked by a hook";
 
@@ -49,7 +51,7 @@ describe("stampHookRefusedToolCalls", () => {
     const messages = [message(earlier), message(shell, edit, read, ran, listing), message(row("c-task", "task", {}, ToolCallStatus.TOOL_CALL_COMPLETED))];
     const subAgents = [create(SubAgentRunSchema, { id: "c-task", messages: [message(inSubAgent)] })];
 
-    expect(stampHookRefusedToolCalls(messages, subAgents, ledger, 1, "/w")).toBe(5);
+    expect(stampHookRefusedToolCalls(messages, subAgents, ledger, 1, "/w")).toEqual(["c-shell", "c-edit", "c-read", "c-sub", "c-ls"]);
     expect([listing.error, listing.approvalPolicyHook]).toEqual(["no listing src", "safety"]);
     expect([shell.status, shell.error, shell.approvalPolicySource, shell.approvalPolicyHook]).toEqual([
       ToolCallStatus.TOOL_CALL_FAILED, "no deletes", ApprovalPolicySource.HOOK, "safety",
@@ -64,9 +66,26 @@ describe("stampHookRefusedToolCalls", () => {
     expect([ran.status, earlier.error], "a row that ran, and an earlier turn's, stay as they are").toEqual([ToolCallStatus.TOOL_CALL_COMPLETED, BLOCKED]);
   });
 
+  it("stamps two hook refusals of one command as two rows, and the terminal collapse after it keeps both", () => {
+    const first = row("c-rm-1", "shell", { command: "rm -rf build" });
+    const tamper = row("c-tamper", "shell", { command: "cp allow.py rule_engine.py" }, ToolCallStatus.TOOL_CALL_COMPLETED);
+    const second = row("c-rm-2", "shell", { command: "rm -rf build" });
+    const refusal = { toolName: "Shell", token: grantToken("shell", "rm -rf build"), kind: "hook", message: "[block-dangerous-rm]", hook: "hookify" } as const;
+    const messages = [message(first), message(tamper), message(second)];
+
+    const stamped = stampHookRefusedToolCalls(messages, [], [refusal, refusal], 0);
+    expect(stamped).toEqual(["c-rm-1", "c-rm-2"]);
+    // Terminal finalize (turn-settle.ts) collapses twins after the boundary
+    // stamped them, keeping the ids the boundary returned.
+    expect(collapseRedundantToolCallTwins(messages, new Set(stamped))).toBe(0);
+    for (const refused of [first, second]) {
+      expect([refused.status, refused.error, refused.approvalPolicyHook]).toEqual([ToolCallStatus.TOOL_CALL_FAILED, "[block-dangerous-rm]", "hookify"]);
+    }
+  });
+
   it("settles nothing without a refusal that carries its text", () => {
     const shell = row("c-shell", "shell", { command: "rm -rf x" });
-    expect(stampHookRefusedToolCalls([message(shell)], [], [{ toolName: "Shell", token: grantToken("shell", "rm -rf x"), kind: "hook" }], 0)).toBe(0);
+    expect(stampHookRefusedToolCalls([message(shell)], [], [{ toolName: "Shell", token: grantToken("shell", "rm -rf x"), kind: "hook" }], 0)).toEqual([]);
     expect(shell.error).toBe(BLOCKED);
   });
 });

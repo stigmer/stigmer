@@ -132,6 +132,12 @@ export interface TurnBoundaryResult {
    * stream event-loss, so failing would over-punish).
    */
   readonly settledUnresolvedCount: number;
+  /**
+   * The ids of this turn's rows settled from a refusal in the ledger (kind
+   * `hook`): each the record of a refusal the model read. The terminal twin
+   * collapse keeps them, so two refusals of one command stay two rows (#1967).
+   */
+  readonly hookRefusedToolCallIds: readonly string[];
 }
 
 /**
@@ -265,16 +271,16 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   // refusal stood over a hook's allow (kind "hook"); settle their rows to the
   // native shape, a FAILED call carrying the refusal the model read, with the
   // hook named. Before the #205 pass, for the same reason as the lists'.
-  const stampedHookRefusals = stampHookRefusedToolCalls(
+  const hookRefusedToolCallIds = stampHookRefusedToolCalls(
     status.messages,
     status.subAgentRuns,
     deniedLedger,
     turnStartMessageIndex,
     primaryWorkspaceDir,
   );
-  if (stampedHookRefusals > 0) {
+  if (hookRefusedToolCallIds.length > 0) {
     console.log(
-      `ExecuteCursor turn boundary: ${stampedHookRefusals} tool call(s) refused by the agent's hooks ` +
+      `ExecuteCursor turn boundary: ${hookRefusedToolCallIds.length} tool call(s) refused by the agent's hooks ` +
       `(execution=${executionId})`,
     );
   }
@@ -365,5 +371,6 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     deniedToolCallCount: deniedToolCalls.length,
     unattributedHookBlocks,
     settledUnresolvedCount: settledUnresolved.length,
+    hookRefusedToolCallIds,
   };
 }
