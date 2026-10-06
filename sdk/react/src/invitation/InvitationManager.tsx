@@ -169,7 +169,9 @@ export function InvitationManager({
           <span className="stg:text-sm stg:font-semibold stg:text-foreground">
             Invite Links
           </span>
-          {activeCount > 0 && (
+          {/* The count covers the loaded pages only, so it is shown once
+              they are all loaded rather than undercount. */}
+          {activeCount > 0 && !hasMore && (
             <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
               {activeCount} active
             </span>
