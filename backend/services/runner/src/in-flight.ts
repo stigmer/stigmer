@@ -1,17 +1,17 @@
 /**
  * Per-task-queue in-flight activity tracking.
  *
- * A session/wfexec worker must NOT be torn down while one of its activities
+ * A session worker must NOT be torn down while one of its activities
  * (notably the long-running ExecuteCursor) is still running: doing so abandons
  * the activity and removes the only poller on its queue, turning a harmless UI
  * navigation into an "Activity task timed out" dead-end. The activity inbound
  * interceptor increments on every activity start and decrements on finish;
- * runner-manager's removeSession/removeWorkflowExecution consult the count and
- * defer teardown until it drains.
+ * runner-manager's removeSession consults the count and defers teardown until
+ * it drains.
  *
  * This lives in its own module (rather than inside the runner-manager closure)
  * so the interceptor — which has no handle to that closure — and unit tests can
- * both reach it. Keyed by task queue (`session:{id}` / `wfexec:{id}`), it is
+ * both reach it. Keyed by task queue (`session:{id}`), it is
  * process-global, mirroring the shutdown-signal registry.
  */
 

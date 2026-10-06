@@ -36,7 +36,7 @@ function jwt(payload: Record<string, unknown>): string {
 const SESSION_QUEUE = "session:ses_01m3zkdb7wxbe2gx0ezmf8fmaq";
 const SESSION_SANDBOX = "sbx-ses-4e918096d317";
 
-type ServerScope = "session" | "workflow" | "connect";
+type ServerScope = "session" | "connect";
 interface ServerNaming {
   sandboxBaseName(scope: ServerScope, id: string): string;
   SANDBOX_QUEUE_PREFIXES: Readonly<Record<ServerScope, string>>;
@@ -57,8 +57,8 @@ describe("sandboxNameForQueue", () => {
     const kinds = Object.entries(SANDBOX_QUEUE_PREFIXES).map(
       ([scope, prefix]) => [prefix, scope as ServerScope] as const,
     );
-    expect(kinds.map(([prefix]) => prefix).sort()).toEqual(["mcpconnect:", "session:", "wfexec:"]);
-    const ids = ["ses_01m3zkdb7wxbe2gx0ezmf8fmaq", "wfx_01J_UNDERSCORED.id", ...Array.from({ length: 50 }, () => randomUUID())];
+    expect(kinds.map(([prefix]) => prefix).sort()).toEqual(["mcpconnect:", "session:"]);
+    const ids = ["ses_01m3zkdb7wxbe2gx0ezmf8fmaq", "ses_01J_UNDERSCORED.id", ...Array.from({ length: 50 }, () => randomUUID())];
     for (const [prefix, scope] of kinds) {
       for (const id of ids) {
         expect(sandboxNameForQueue(`${prefix}${id}`)).toBe(sandboxBaseName(scope, id));
@@ -101,7 +101,6 @@ describe("verifyAttachPush", () => {
   it("refuses a queue that another sandbox serves, on every queue kind", () => {
     for (const taskQueue of [
       "session:ses_other",
-      "wfexec:wfx_01m3zk8zjqdj5jsep1zngaawxq",
       "mcpconnect:aex_01m3zkdb6zbg983x4yvttsysyy",
     ]) {
       const verdict = verifyAttachPush({ taskQueue, secrets: { STIGMER_TOKEN: token } }, SESSION_SANDBOX, NOW);

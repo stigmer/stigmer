@@ -1,30 +1,16 @@
+/**
+ * Pins the pricing lookup and cost arithmetic (`model-pricing.ts`): the turn
+ * cost over disjoint token buckets, model-id resolution, the fallback pricing
+ * for an unknown model, and the pricing table's failure caching.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { computeLlmCostMicros, computeTurnCost, getModelPricing, resolveModelId, ensureLoaded } from "../model-pricing.js";
+import { computeTurnCost, getModelPricing, resolveModelId, ensureLoaded } from "../model-pricing.js";
 import {
   getPricingTable,
   _resetPricingCache,
   DEFAULT_PRICING,
   type ModelPricing,
 } from "../model-pricing-data.js";
-
-describe("computeLlmCostMicros", () => {
-  it("falls back to DEFAULT_PRICING when registry is not loaded", () => {
-    const cost = computeLlmCostMicros("claude-sonnet-4", 1000, 500);
-    expect(cost).toBeGreaterThan(0);
-  });
-
-  it("falls back to DEFAULT_PRICING for unknown models", () => {
-    const cost = computeLlmCostMicros("unknown-model-xyz", 1000, 500);
-    // DEFAULT_PRICING: input=$1.25/M, output=$6.00/M
-    // (1000 * 1.25 + 500 * 6.00) / 1M = $0.00425 → 4250 micros
-    expect(cost).toBe(4250);
-  });
-
-  it("returns zero when tokens are zero", () => {
-    const cost = computeLlmCostMicros("any-model", 0, 0);
-    expect(cost).toBe(0);
-  });
-});
 
 describe("computeTurnCost", () => {
   const testPricing: ModelPricing = {

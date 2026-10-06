@@ -18,7 +18,7 @@
  *   1. Shape. A JSON object with a string `taskQueue` and a `secrets` object
  *      of strings whose names are all in `RUNNER_SECRET_ENV_KEYS`: the push
  *      cannot set any other environment variable of the runner.
- *   2. Binding. The queue names one scope and one id (`session:`, `wfexec:`,
+ *   2. Binding. The queue names one scope and one id (`session:`,
  *      `mcpconnect:`), and the sandbox serving it must be the one the server
  *      names for that scope and id: `sbx-<code>-<first 12 hex of sha256(id)>`,
  *      byte-identical to the server's `sandboxBaseName`
@@ -48,7 +48,6 @@ import { expiryClaimOf, isJwtShaped } from "../client/token-claims.js";
 /** The queue kinds a sandbox serves, with the server's scope codes for each. */
 const QUEUE_KINDS = [
   { prefix: "session:", code: "ses" },
-  { prefix: "wfexec:", code: "wfx" },
   { prefix: "mcpconnect:", code: "mcp" },
 ] as const;
 

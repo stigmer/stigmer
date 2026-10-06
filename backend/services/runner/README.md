@@ -1,6 +1,6 @@
 # @stigmer/runner
 
-Embeddable Temporal worker for the Stigmer AI agent platform. The runner executes agent sessions and workflow executions — driving the Cursor and native (deep-agent) harnesses, orchestrating MCP servers, and reporting status and artifacts back to the Stigmer backend.
+Embeddable Temporal worker for the Stigmer AI agent platform. The runner executes agent sessions — driving the Cursor and native (deep-agent) harnesses, orchestrating MCP servers, and reporting status and artifacts back to the Stigmer backend.
 
 It is the single runtime behind three surfaces:
 
@@ -77,7 +77,7 @@ The `stigmer-runner` CLI runs this mode by default, reading its configuration fr
 
 ### Manager mode
 
-Manager mode keeps a single shared Temporal connection and a single set of activities, then spins Workers up and down on demand — one per session (`session:{sessionId}`) and one per workflow execution (`wfexec:{executionId}`). This is what the desktop app needs: it adds and removes Workers as the user opens and closes sessions, without restarting the process.
+Manager mode keeps a single shared Temporal connection and a single set of activities, then spins Workers up and down on demand — one per session (`session:{sessionId}`). This is what the desktop app needs: it adds and removes Workers as the user opens and closes sessions, without restarting the process.
 
 As a library:
 
@@ -95,7 +95,7 @@ await manager.removeSession("ses_abc123");
 await manager.shutdown();
 ```
 
-As a subprocess, the host launches `stigmer-runner` with `STIGMER_RUNNER_MODE=manager` and drives it over a line-delimited JSON protocol on stdin/stdout (`addSession`, `removeSession`, `addWorkflowExecution`, `updateToken`, `shutdown`). The protocol surface is intentionally small and is specified in detail elsewhere — see [Related documentation](#related-documentation).
+As a subprocess, the host launches `stigmer-runner` with `STIGMER_RUNNER_MODE=manager` and drives it over a line-delimited JSON protocol on stdin/stdout (`addSession`, `removeSession`, `updateToken`, `shutdown`). The protocol surface is intentionally small and is specified in detail elsewhere — see [Related documentation](#related-documentation).
 
 ### The attach entry (a sandbox that waits to be attached)
 

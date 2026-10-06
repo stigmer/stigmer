@@ -28,10 +28,8 @@
 #              tools the Cursor approval hook runs, missing from PATH
 #              (without them a repository workspace or every Cursor turn
 #              breaks).
-#   warned   - python3 and node (workflow script tasks run them) and rg
-#              (the native agent's grep falls back to a substring search):
-#              one feature degrades with its own error, so the runner
-#              starts.
+#   warned   - rg (the native agent's grep falls back to a substring
+#              search): one feature degrades, so the runner starts.
 #
 # glibc's version is not checked: that needs a fork, and below 2.28 the
 # loader refuses the Node itself with a message that names the version it
@@ -139,16 +137,9 @@ if [ -n "$server_release" ]; then
   fi
 fi
 
-for tool in python3 node rg; do
-  if ! command -v "$tool" >/dev/null 2>&1; then
-    case "$tool" in
-      python3) without="workflow script tasks in Python fail" ;;
-      node) without="workflow script tasks in JavaScript fail" ;;
-      rg) without="the native agent's grep falls back to a substring search" ;;
-    esac
-    printf 'stigmer runner: warning: %s is not on PATH, so %s (%s)\n' "$tool" "$without" "$GUIDE" >&2
-  fi
-done
+if ! command -v rg >/dev/null 2>&1; then
+  printf 'stigmer runner: warning: rg is not on PATH, so the native agent'"'"'s grep falls back to a substring search (%s)\n' "$GUIDE" >&2
+fi
 
 unset NODE_OPTIONS NODE_PATH
 

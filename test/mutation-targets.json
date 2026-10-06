@@ -61,27 +61,6 @@
       ],
       "concurrency": 4
     },
-    "runner-workflow-engine": {
-      "title": "the runner's workflow engine and budgets",
-      "package": "backend/services/runner",
-      "mutate": [
-        "src/workflow-engine/*.ts",
-        "src/budget/**/*.ts",
-        "!src/**/__tests__/**",
-        "!src/**/*.test.ts"
-      ],
-      "concurrency": 4
-    },
-    "runner-workflow-tasks": {
-      "title": "the runner's workflow tasks",
-      "package": "backend/services/runner",
-      "mutate": [
-        "src/workflow-engine/tasks/**/*.ts",
-        "!src/**/__tests__/**",
-        "!src/**/*.test.ts"
-      ],
-      "concurrency": 4
-    },
     "runner-middleware-pricing-guards": {
       "title": "the runner's middleware, pricing and guards",
       "package": "backend/services/runner",

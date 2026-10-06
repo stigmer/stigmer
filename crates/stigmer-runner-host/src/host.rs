@@ -28,7 +28,6 @@ pub type LogSink = Arc<dyn Fn(String) + Send + Sync>;
 pub struct RunnerStatus {
     pub running: bool,
     pub active_sessions: Vec<String>,
-    pub active_workflow_executions: Vec<String>,
     /// OS process id of the runner, for embedders that want an out-of-band reaper. `Some`
     /// while the child is running, `None` when no runner is running (or once it has been
     /// reaped). Prefer `kill()` over killing this pid yourself unless you must reap from
@@ -41,7 +40,6 @@ struct RunnerProcess {
     child: Child,
     stdin: tokio::process::ChildStdin,
     active_sessions: HashSet<String>,
-    active_workflow_executions: HashSet<String>,
 }
 
 impl RunnerProcess {
@@ -202,7 +200,6 @@ impl RunnerHost {
             child,
             stdin,
             active_sessions: HashSet::new(),
-            active_workflow_executions: HashSet::new(),
         });
         Ok(())
     }
@@ -271,40 +268,6 @@ impl RunnerHost {
         Ok(())
     }
 
-    /// Start a worker for a workflow execution. Idempotent: a no-op if already active.
-    pub async fn add_workflow_execution(&self, execution_id: &str) -> Result<(), RunnerHostError> {
-        let mut guard = self.process.lock().await;
-        let proc = guard.as_mut().ok_or(RunnerHostError::NotRunning)?;
-        if proc.active_workflow_executions.contains(execution_id) {
-            return Ok(());
-        }
-        proc.send(&IpcCommand::AddWorkflowExecution {
-            execution_id: execution_id.to_string(),
-        })
-        .await?;
-        proc.active_workflow_executions
-            .insert(execution_id.to_string());
-        Ok(())
-    }
-
-    /// Stop a workflow execution's worker. Idempotent: a no-op if not active.
-    pub async fn remove_workflow_execution(
-        &self,
-        execution_id: &str,
-    ) -> Result<(), RunnerHostError> {
-        let mut guard = self.process.lock().await;
-        let proc = guard.as_mut().ok_or(RunnerHostError::NotRunning)?;
-        if !proc.active_workflow_executions.contains(execution_id) {
-            return Ok(());
-        }
-        proc.send(&IpcCommand::RemoveWorkflowExecution {
-            execution_id: execution_id.to_string(),
-        })
-        .await?;
-        proc.active_workflow_executions.remove(execution_id);
-        Ok(())
-    }
-
     /// Push a new (or cleared) auth token to the running runner.
     pub async fn update_token(&self, token: Option<String>) -> Result<(), RunnerHostError> {
         let mut guard = self.process.lock().await;
@@ -313,25 +276,19 @@ impl RunnerHost {
         Ok(())
     }
 
-    /// Current lifecycle snapshot (running flag + active sessions/executions).
+    /// Current lifecycle snapshot (running flag + active sessions).
     pub async fn status(&self) -> RunnerStatus {
         let guard = self.process.lock().await;
         match guard.as_ref() {
             Some(proc) => RunnerStatus {
                 running: true,
                 active_sessions: proc.active_sessions.iter().cloned().collect(),
-                active_workflow_executions: proc
-                    .active_workflow_executions
-                    .iter()
-                    .cloned()
-                    .collect(),
                 // `None` once tokio has reaped the child even if our handle lingers briefly.
                 pid: proc.child.id(),
             },
             None => RunnerStatus {
                 running: false,
                 active_sessions: Vec::new(),
-                active_workflow_executions: Vec::new(),
                 pid: None,
             },
         }

@@ -29,14 +29,6 @@ pub enum IpcCommand {
     RemoveSession {
         session_id: String,
     },
-    #[serde(rename_all = "camelCase")]
-    AddWorkflowExecution {
-        execution_id: String,
-    },
-    #[serde(rename_all = "camelCase")]
-    RemoveWorkflowExecution {
-        execution_id: String,
-    },
     UpdateToken {
         token: Option<String>,
     },
@@ -66,15 +58,6 @@ pub enum IpcResponse {
     #[serde(rename_all = "camelCase")]
     SessionRemoved {
         session_id: String,
-    },
-    #[serde(rename_all = "camelCase")]
-    WorkflowExecutionAdded {
-        execution_id: String,
-        task_queue: String,
-    },
-    #[serde(rename_all = "camelCase")]
-    WorkflowExecutionRemoved {
-        execution_id: String,
     },
     TokenUpdated,
     Error {
@@ -151,7 +134,7 @@ mod tests {
     #[test]
     fn commands_match_golden_fixtures() {
         let commands = &fixtures()["commands"];
-        let cases: [(&str, IpcCommand); 7] = [
+        let cases: [(&str, IpcCommand); 5] = [
             (
                 "addSession",
                 IpcCommand::AddSession {
@@ -162,18 +145,6 @@ mod tests {
                 "removeSession",
                 IpcCommand::RemoveSession {
                     session_id: "ses_example".into(),
-                },
-            ),
-            (
-                "addWorkflowExecution",
-                IpcCommand::AddWorkflowExecution {
-                    execution_id: "wfe_example".into(),
-                },
-            ),
-            (
-                "removeWorkflowExecution",
-                IpcCommand::RemoveWorkflowExecution {
-                    execution_id: "wfe_example".into(),
                 },
             ),
             (
@@ -232,22 +203,6 @@ mod tests {
         match from("sessionRemoved") {
             IpcResponse::SessionRemoved { session_id } => assert_eq!(session_id, "ses_example"),
             other => panic!("expected SessionRemoved, got {other:?}"),
-        }
-        match from("workflowExecutionAdded") {
-            IpcResponse::WorkflowExecutionAdded {
-                execution_id,
-                task_queue,
-            } => {
-                assert_eq!(execution_id, "wfe_example");
-                assert_eq!(task_queue, "wfexec:wfe_example");
-            }
-            other => panic!("expected WorkflowExecutionAdded, got {other:?}"),
-        }
-        match from("workflowExecutionRemoved") {
-            IpcResponse::WorkflowExecutionRemoved { execution_id } => {
-                assert_eq!(execution_id, "wfe_example")
-            }
-            other => panic!("expected WorkflowExecutionRemoved, got {other:?}"),
         }
         assert!(matches!(from("tokenUpdated"), IpcResponse::TokenUpdated));
         match from("error") {

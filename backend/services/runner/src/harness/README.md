@@ -129,10 +129,6 @@ and nothing per harness; there is nothing to touch there.
 - `harness/capabilities.ts` — the harness matrix in the header gains a column.
 - `config.ts` — the harness's own settings, if it has any (`cursorApiKey`,
   `checkpointerType` are the two adapters' today).
-- `activities/call-agent.ts` — `resolveHarness`, the wire string to the proto
-  enum for the workflow task.
-- `workflow-engine/loader.ts` — the YAML shorthand map from harness word to enum
-  name.
 - `shared/filereview/events.ts` — a comment stating the closed set of
   file-review ids.
 - `__tests__/harness-boot-order.test.ts` — the header states the row count; its
@@ -155,7 +151,7 @@ exactly that.
 
 ```bash
 # The same exclusions for every probe. __test-utils__/ stays in: the kit and the hermetic drivers enumerate harnesses.
-X=(-g '!node_modules' -g '!**/gen/**' -g '!*_pb.*' -g '!*.pb.go' -g '!apis/stubs/**' -g '!tools/codegen/output/**'
+X=(-g '!node_modules' -g '!**/gen/**' -g '!*_pb.*' -g '!*.pb.go' -g '!apis/stubs/**'
    -g '!**/dist/**' -g '!**/dist-slim/**' -g '!**/__tests__/**' -g '!*.test.*' -g '!**/goldens/**' -g '!*lock*')
 rg -l "${X[@]}" 'HARNESS_NATIVE|HARNESS_CURSOR|Harness\.(NATIVE|CURSOR)|\bHarnessOption\b'   # the proto enum
 rg -l "${X[@]}" 'ExecuteDeepAgent|ExecuteCursor|HARNESS_ACTIVITY_NAMES'                       # the activity name
@@ -180,14 +176,11 @@ Every hit falls into one of three classes:
 | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apis/ai/stigmer/agentic/session/v1/enum.proto`                                                                             | The `Harness` enum itself; the root. Then `make codegen`.                                                                                                                                                                                                                                                                     |
 | `apis/ai/stigmer/agentic/session/v1/spec.proto`                                                                             | The `harness` field's comment lists each harness and its activity.                                                                                                                                                                                                                                                            |
-| `apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto`                                                                | The `harness` field's comment lists each harness.                                                                                                                                                                                                                                                                             |
 | `apis/ai/stigmer/iam/identityaccount/v1/spec.proto`                                                                         | `default_harness` names the allowed lowercase strings in its validation rule.                                                                                                                                                                                                                                                 |
 | `apis/ai/stigmer/agentic/agentrun/v1/filereview.proto`                                                                      | `harness_id` comments state the closed set of file-review ids.                                                                                                                                                                                                                                                                |
 | `apis/ai/stigmer/billing/v1/io.proto`, `apis/ai/stigmer/billing/v1/policy.proto`                                            | Harness string fields whose comments state the set.                                                                                                                                                                                                                                                                           |
 | `backend/services/stigmer-server/src/temporal/agentexecution/names.ts`                                                      | `EXECUTE_CURSOR_ACTIVITY_NAME`, `EXECUTE_DEEP_AGENT_ACTIVITY_NAME`: the server side of the runner's byte-pinned names.                                                                                                                                                                                                        |
 | `backend/services/stigmer-server/src/temporal/agentexecution/workflows/invoke-agent-execution.ts`                           | The activity proxy typed per name, and a branch on the enum: `executeCursorFlow` for a harness whose engine mints the state id (the server reads it back), the deep-agent flow for one whose id the server mints first (`EnsureThread`). The largest site; a new harness needs an arm here, its own flow or one of these two. |
-| `backend/services/stigmer-server/src/domain/workflow/converter/task-converters.ts`                                          | A `switch` over `Harness` to the YAML shorthand.                                                                                                                                                                                                                                                                              |
-| `backend/services/stigmer-server/src/domain/workflow/converter/unmarshal.ts`                                                | `normalizeEnumShorthands`: the YAML word to the enum name.                                                                                                                                                                                                                                                                    |
 | `backend/services/stigmer-server/src/modelcatalog/pin-validation.ts`                                                        | `HARNESS_NAME_CURSOR` and a Cursor-only pin rule.                                                                                                                                                                                                                                                                             |
 | `backend/services/stigmer-server/src/modelcatalog/data/model-registry.json`                                                 | Per-harness model rows; a harness with its own catalog adds rows.                                                                                                                                                                                                                                                             |
 | `backend/services/stigmer-server/src/temporal/schedule/model-pinning.ts`                                                    | A Cursor-only pinning rule.                                                                                                                                                                                                                                                                                                   |
@@ -215,8 +208,7 @@ own model registry). A harness that must run there is a change on that side too.
 
 Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
 
-- `apis/`: `apis/ai/stigmer/agentic/workflow/v1/tasks/meta/agent_call.yaml` (an
-  example value); `apis/ai/stigmer/agentic/agentrun/v1/io.proto`,
+- `apis/`: `apis/ai/stigmer/agentic/agentrun/v1/io.proto`,
   `apis/ai/stigmer/agentic/agentrun/v1/usage.proto`,
   `apis/ai/stigmer/billing/v1/model_pricing_baseline.proto`,
   `apis/ai/stigmer/billing/v1/pricing_override.proto` (free-form provider or
@@ -252,10 +244,8 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
 ### Generated
 
 `make codegen` rebuilds these from the proto and the registry; do not edit them:
-`apis/stubs/`, `sdk/go/proto/`, `tools/codegen/output/`,
-`tools/codegen/schemas/`,
-`backend/services/stigmer-server/src/domain/workflow/registry/data/task-kind-registry.json`,
-`docs/sdk/resources/`, `docs/sdk/react/`, `docs/cli/commands/`.
+`apis/stubs/`, `sdk/go/proto/`, `tools/codegen/schemas/`, `docs/sdk/resources/`,
+`docs/sdk/react/`, `docs/cli/commands/`.
 
 ### Verifying
 

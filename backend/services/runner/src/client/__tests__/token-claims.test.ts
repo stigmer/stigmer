@@ -51,7 +51,6 @@ describe("isEmbeddedRunnerToken", () => {
     expect(isEmbeddedRunnerToken(fakeJwt({ token_type: "embedded_runner" }))).toBe(true);
     // A cloud sandbox runner's credential is already scoped — must not gate in.
     expect(isEmbeddedRunnerToken(fakeJwt({ token_type: "sandbox" }))).toBe(false);
-    expect(isEmbeddedRunnerToken(fakeJwt({ token_type: "workflow_sandbox" }))).toBe(false);
     // A user token has no token_type claim at all.
     expect(isEmbeddedRunnerToken(fakeJwt({ sub: "user-1" }))).toBe(false);
     expect(isEmbeddedRunnerToken(null)).toBe(false);

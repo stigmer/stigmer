@@ -155,7 +155,7 @@ describe("classifyModelCallError — provider billing prose", () => {
 });
 
 describe("classifyModelCallError — status mapping", () => {
-  it("maps statuses to the stable codes with call-llm's retryability policy", () => {
+  it("maps statuses to the stable codes with the retryability policy", () => {
     const cases: Array<[number, string, boolean]> = [
       [401, "LLM_AUTHENTICATION_ERROR", false],
       [403, "LLM_PERMISSION_DENIED", false],
@@ -207,16 +207,8 @@ describe("classifyModelCallError — connection heuristics and no-signal", () =>
     ).toBe("LLM_CONNECTION_ERROR");
   });
 
-  it("loose Timeout/Connection names classify only when the caller vouches assumeModelCall", () => {
+  it("does not relabel an arbitrary *TimeoutError class as a model connection timeout", () => {
     class ConnectTimeoutError extends Error {}
-
-    // A model-call-only catch (call-llm) keeps the loose heuristics.
-    expect(
-      classifyModelCallError(new ConnectTimeoutError("undici timeout"), {
-        proxyMode: false,
-        assumeModelCall: true,
-      })?.code,
-    ).toBe("LLM_CONNECTION_TIMEOUT");
 
     // A broad catch must not relabel arbitrary *TimeoutError classes.
     expect(

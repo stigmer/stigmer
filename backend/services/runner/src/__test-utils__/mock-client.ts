@@ -43,12 +43,8 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
     getPluginArtifact: vi.fn().mockResolvedValue({}),
     getPluginArtifactDownloadUrl: vi.fn().mockResolvedValue({}),
     recordLlmCallUsage: vi.fn().mockResolvedValue({}),
-    getWorkflowExecution: vi.fn().mockResolvedValue({}),
-    getWorkflow: vi.fn().mockResolvedValue({}),
-    updateWorkflowExecutionStatus: vi.fn().mockResolvedValue({}),
     getAgentByReference: vi.fn().mockResolvedValue({}),
     createSession: vi.fn().mockResolvedValue({}),
-    createAgentExecution: vi.fn().mockResolvedValue({}),
     ...overrides,
   } as unknown as StigmerClient;
 }

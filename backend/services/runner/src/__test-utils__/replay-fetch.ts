@@ -76,9 +76,8 @@ function isLlmApiUrl(url: string): boolean {
 
 // ─── Streaming (SSE) Synthesis ─────────────────────────────────────────────
 //
-// The runner's `call-llm` activity invokes LangChain's `model.stream()` for
-// plain (non-structured) completions so the proxy's SSE usage extractors can
-// meter the request. A streaming request expects a `text/event-stream`
+// A plain (non-structured) completion through LangChain's `model.stream()`
+// lets the proxy's SSE usage extractors meter the request. A streaming request expects a `text/event-stream`
 // response, not a single JSON body. Recorded fixtures store the *logical*
 // (non-streaming) provider response; when the captured request was a streaming
 // one we re-emit that body as the equivalent SSE event sequence so the

@@ -31,7 +31,6 @@ import { markBoot } from "./shared/cold-start-timing.js";
 import type { WorkerActivities } from "./worker.js";
 import {
   resolveWorkflowSource,
-  runCredentialWorkflowInterceptorModule,
   OTEL_WORKFLOW_INTERCEPTOR_MODULE,
   type WorkflowSource,
 } from "./workflow-source.js";
@@ -63,7 +62,6 @@ import {
 } from "./shared/worker-shutdown.js";
 
 const SESSION_QUEUE_PREFIX = "session:";
-const WFEXEC_QUEUE_PREFIX = "wfexec:";
 // Warm-pool control queue — polled by exactly one pool member, carrying only
 // the ProbePoolMember/AttachSession claim activities (never session work).
 // Mirrors SessionDispatchService's convention: lowercase kind, colon, id.
@@ -163,15 +161,6 @@ export interface StigmerRunnerManager {
 
   /** List currently active session IDs. */
   activeSessions(): string[];
-
-  /** Add a workflow execution — creates a Worker polling wfexec:{executionId}. Idempotent. */
-  addWorkflowExecution(executionId: string): Promise<void>;
-
-  /** Remove a workflow execution — gracefully shuts down that execution's Worker. */
-  removeWorkflowExecution(executionId: string): Promise<void>;
-
-  /** List currently active workflow execution IDs. */
-  activeWorkflowExecutions(): string[];
 
   /**
    * Start the warm-pool control worker — a Worker polling sandbox:{memberId}
@@ -404,7 +393,6 @@ export async function createStigmerRunnerManager(
   markBoot("workflow_bundle_ready");
 
   const sessions = new Map<string, ManagedSession>();
-  const workflowExecutions = new Map<string, ManagedSession>();
   // At most one per process: a pool member IS its control worker's identity.
   let poolControl: { taskQueue: string; managed: ManagedSession } | null = null;
   let shuttingDown = false;
@@ -435,7 +423,7 @@ export async function createStigmerRunnerManager(
   }
 
   /**
-   * Re-opening a session/execution whose teardown was deferred: cancel the
+   * Re-opening a session whose teardown was deferred: cancel the
    * pending close so the worker keeps serving the reused queue. Returns true
    * when an existing managed worker was found (caller should not recreate one).
    */
@@ -550,33 +538,6 @@ export async function createStigmerRunnerManager(
       return Array.from(sessions.keys());
     },
 
-    async addWorkflowExecution(executionId: string): Promise<void> {
-      if (shuttingDown) {
-        throw new Error("RunnerManager is shutting down");
-      }
-      const taskQueue = WFEXEC_QUEUE_PREFIX + executionId;
-      if (reuseExistingWorker(workflowExecutions, executionId, taskQueue, "workflow execution")) {
-        return;
-      }
-
-      const managed = await createWorkerOnQueue(taskQueue);
-      workflowExecutions.set(executionId, managed);
-      console.log(
-        `[runner-manager] Added workflow execution ${executionId} (queue=${taskQueue}, active=${workflowExecutions.size})`,
-      );
-    },
-
-    async removeWorkflowExecution(executionId: string): Promise<void> {
-      await removeManaged(
-        workflowExecutions, executionId, WFEXEC_QUEUE_PREFIX + executionId,
-        "workflow execution",
-      );
-    },
-
-    activeWorkflowExecutions(): string[] {
-      return Array.from(workflowExecutions.keys());
-    },
-
     async addPoolControl(memberId: string): Promise<void> {
       if (shuttingDown) {
         throw new Error("RunnerManager is shutting down");
@@ -605,8 +566,8 @@ export async function createStigmerRunnerManager(
       // nothing is ever minted), never once the runner owns a minted token.
       // See runner-token-coordinator.ts and the staleness changelogs. The
       // credential store is the second leg of the pair (it replaced the
-      // process.env.STIGMER_TOKEN write, #508): per-call readers like
-      // call-llm and the registry headers resolve the current token there.
+      // process.env.STIGMER_TOKEN write, #508): per-call readers like the
+      // registry headers resolve the current token there.
       tokenRef.current = token;
       setRunnerSecret("STIGMER_TOKEN", token);
       tokenCoordinator.onControlPlaneTokenChanged(token);
@@ -616,9 +577,8 @@ export async function createStigmerRunnerManager(
     async shutdown(): Promise<void> {
       shuttingDown = true;
       tokenCoordinator.stop();
-      const totalWorkers = sessions.size + workflowExecutions.size;
       console.log(
-        `[runner-manager] Shutting down ${totalWorkers} workers (${sessions.size} sessions, ${workflowExecutions.size} workflow executions)...`,
+        `[runner-manager] Shutting down ${sessions.size} session workers...`,
       );
 
       // Mark every queue's shutdown signal BEFORE draining, so an in-flight
@@ -632,9 +592,6 @@ export async function createStigmerRunnerManager(
       for (const session of sessions.values()) {
         session.shutdownController.abort();
       }
-      for (const execution of workflowExecutions.values()) {
-        execution.shutdownController.abort();
-      }
       poolControl?.managed.shutdownController.abort();
 
       const shutdownPromises = [
@@ -643,13 +600,6 @@ export async function createStigmerRunnerManager(
             session.worker.shutdown();
             await session.runPromise;
             console.log(`[runner-manager] Session worker ${id} stopped`);
-          },
-        ),
-        ...Array.from(workflowExecutions.entries()).map(
-          async ([id, execution]) => {
-            execution.worker.shutdown();
-            await execution.runPromise;
-            console.log(`[runner-manager] Workflow execution worker ${id} stopped`);
           },
         ),
       ];
@@ -676,7 +626,6 @@ export async function createStigmerRunnerManager(
         );
       }
       sessions.clear();
-      workflowExecutions.clear();
       poolControl = null;
       connection.close();
       console.log("[runner-manager] All workers stopped, connection closed");
@@ -774,17 +723,6 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createEnsureThreadActivities },
     { createGenerateSessionSubjectActivities },
     { createDiscoverMcpServerActivities },
-    { createEvaluateExpressionsActivities },
-    { createCallHttpActivities },
-    { createCallGrpcActivities },
-    { createCallFunctionActivities },
-    { createCallLlmActivities },
-    { createCallAgentActivities },
-    { createCallAgentStatusActivities },
-    { createRunCommandActivities },
-    { createHydrateWorkflowActivities },
-    { createWorkflowEventActivities },
-    { createPromoteTaskOutputActivities },
     { createAttachSessionActivities },
   ] = await Promise.all([
     import("./harness-adapters.js"),
@@ -792,17 +730,6 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     import("./activities/ensure-thread.js"),
     import("./activities/generate-session-subject.js"),
     import("./activities/discover-mcp-server.js"),
-    import("./activities/evaluate-expressions.js"),
-    import("./activities/call-http.js"),
-    import("./activities/call-grpc.js"),
-    import("./activities/call-function.js"),
-    import("./activities/call-llm.js"),
-    import("./activities/call-agent.js"),
-    import("./activities/call-agent-status.js"),
-    import("./activities/run-command.js"),
-    import("./activities/hydrate-workflow-execution.js"),
-    import("./activities/workflow-event-activities.js"),
-    import("./activities/promote-task-output.js"),
     import("./activities/attach-session.js"),
   ]);
 
@@ -811,17 +738,6 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createEnsureThreadActivities(),
     ...createGenerateSessionSubjectActivities(config),
     ...createDiscoverMcpServerActivities(config),
-    ...createEvaluateExpressionsActivities(),
-    ...createCallHttpActivities(),
-    ...createCallGrpcActivities(),
-    ...createCallFunctionActivities(config),
-    ...createCallLlmActivities(),
-    ...createCallAgentActivities(config),
-    ...createCallAgentStatusActivities(config),
-    ...createRunCommandActivities(),
-    ...createHydrateWorkflowActivities(config),
-    ...createWorkflowEventActivities(config),
-    ...createPromoteTaskOutputActivities(config),
     ...createAttachSessionActivities(config),
   };
 }
@@ -856,16 +772,14 @@ export async function buildInterceptorConfig(
     "./interceptors/workflow-metrics-sink.js"
   );
 
-  // The run credential's two ends (shared/run-credential.ts), always on and
-  // inert without a credential — the same pair the static root registers
-  // (worker.ts). The workflow module reaches the bundle through
-  // `workflowInterceptorModules` on the runtime path and is baked in on the
-  // pre-built path (scripts/bundle-slim.mjs).
+  // The run credential (shared/run-credential.ts), always on and inert
+  // without a credential — the same interceptor the static root registers
+  // (worker.ts).
   const activityInterceptors: ActivityInterceptorsFactory[] = [runCredentialActivityInterceptor];
   let sinks: InjectedSinks<any> = { ...createWorkflowMetricsSinks() };
-  const workflowInterceptorModules: string[] = [runCredentialWorkflowInterceptorModule()];
+  const workflowInterceptorModules: string[] = [];
 
-  // In-flight activity counter: keeps a session/wfexec worker alive while one of
+  // In-flight activity counter: keeps a session worker alive while one of
   // its activities (notably the long ExecuteCursor) is running, so a view close
   // can no longer reap the worker mid-run. Always installed; cheap and global.
   activityInterceptors.push((ctx) => ({

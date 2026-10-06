@@ -1,10 +1,10 @@
 # Agent guide: backend/services/runner
 
-The Temporal worker that runs agent turns and workflow runs, published as
-`@stigmer/runner` and embedded by `stigmer up`, the cloud provisioner and the
-desktop app. One turn runtime serves every harness (native deep-agent, Cursor);
-a harness is a registry row and an SDK slice. This guide is an index; the
-headers it names are the truth.
+The Temporal worker that runs agent turns, published as `@stigmer/runner` and
+embedded by `stigmer up`, the cloud provisioner and the desktop app. One turn
+runtime serves every harness (native deep-agent, Cursor); a harness is a
+registry row and an SDK slice. This guide is an index; the headers it names are
+the truth.
 
 ## Read in this order
 
@@ -26,8 +26,8 @@ headers it names are the truth.
   first.
 - `src/ipc-protocol.ts` and `docs/ipc-protocol.md`: the manager-mode IPC
   contract and where its one home is.
-- `src/workflows/`: the serverless-workflow engine and its orchestrators;
-  `test/golden/` pins its behaviour.
+- `src/workflows/index.ts`: the Temporal workflow types a runner registers (the
+  MCP connect lane) and the rule for adding one.
 - `backend/libs/ts/outbound/README.md`: the rules behind
   `src/tools/url-guard.ts` and `src/shared/mcp-oauth-detect.ts`, shared with the
   control plane.

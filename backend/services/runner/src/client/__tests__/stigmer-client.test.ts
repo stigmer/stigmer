@@ -21,7 +21,6 @@ vi.mock("@connectrpc/connect", () => ({
 
 import { StigmerClient } from "../stigmer-client.js";
 import { withRunCredential } from "../../shared/run-credential-store.js";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
@@ -307,12 +306,11 @@ describe("StigmerClient", () => {
       expect(req.header.get("authorization")).toBe("Bearer run-cred");
     });
 
-    it("presents it above the runner credential on the three runner-credential RPCs", async () => {
+    it("presents it above the runner credential on the two runner-credential RPCs", async () => {
       clientWithEveryProcessCredential();
       for (const req of [
         makeExecutionContextRequest(),
         makeScopedTokenExchangeRequest(),
-        makeRequest(AgentRunCommandController.typeName, "create"),
       ]) {
         await withRunCredential("run-cred", () => runInterceptor(req));
         expect(req.header.get("authorization")).toBe("Bearer run-cred");
@@ -419,17 +417,17 @@ describe("StigmerClient", () => {
         expiresInSeconds: 3600,
       });
 
-      const token = await client.acquireScopedRunnerToken({ workflowExecutionId: "wfx_1" });
+      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
 
       expect(token).toBe("oss-scoped-tok");
-      expect(client.getRunnerScopedToken).toHaveBeenCalledWith({ workflowExecutionId: "wfx_1" });
+      expect(client.getRunnerScopedToken).toHaveBeenCalledWith({ agentExecutionId: "aex_1" });
     });
 
     it("proceeds tokenless when a credential-less exchange is answered not-minted (pre-oss#535 server)", async () => {
       const client = clientWithRunnerCredential(null);
       vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue(undefined);
 
-      const token = await client.acquireScopedRunnerToken({ workflowExecutionId: "wfx_1" });
+      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
 
       expect(token).toBeUndefined();
     });
@@ -479,8 +477,8 @@ describe("StigmerClient", () => {
       vi.spyOn(client, "getRunnerScopedToken").mockRejectedValue(new Error("boom"));
 
       await expect(
-        client.acquireScopedRunnerToken({ workflowExecutionId: "wfx_1" }),
-      ).rejects.toThrow(/exchange failed for workflow execution wfx_1: boom/);
+        client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" }),
+      ).rejects.toThrow(/exchange failed for agent execution aex_1: boom/);
     });
   });
 
@@ -501,15 +499,6 @@ describe("StigmerClient", () => {
 
       const input = rpc.mock.calls[0]![0];
       expect(input.scope).toEqual({ case: "agentRunId", value: "aex_1" });
-    });
-
-    it("maps workflowExecutionId onto its oneof arm", async () => {
-      const { client, rpc } = clientWithPlatformQuery({ runnerScopedToken: "tok" });
-
-      await client.getRunnerScopedToken({ workflowExecutionId: "wfx_1" });
-
-      const input = rpc.mock.calls[0]![0];
-      expect(input.scope).toEqual({ case: "workflowRunId", value: "wfx_1" });
     });
 
     it("maps poolClaimSessionId onto the pool_claim message arm", async () => {
@@ -574,54 +563,6 @@ describe("StigmerClient", () => {
       await client.getExecutionContextByExecutionId("aex_1");
 
       expect(getByExecutionId).toHaveBeenCalledWith(expect.anything(), undefined);
-    });
-  });
-
-  describe("sendWorkflowSignal", () => {
-    function clientWithWorkflowCommand() {
-      const client = new StigmerClient({ endpoint: "http://localhost", token: null });
-      const sendSignal = vi.fn().mockResolvedValue({});
-      // Reach into the private generated client: the mocked createClient()
-      // returned {}, so install the method it would have provided.
-      (client as any).workflowExecutionCommand = { sendSignal };
-      return { client, rpc: sendSignal };
-    }
-
-    it("builds SendSignalInput with execution addressing and the payload verbatim", async () => {
-      const { client, rpc } = clientWithWorkflowCommand();
-      const payload = { type: "approval.granted", data: { ok: true } };
-
-      await client.sendWorkflowSignal("wfx_1", "approval_resolved", payload);
-
-      const input = rpc.mock.calls[0]![0];
-      expect(input.runId).toBe("wfx_1");
-      expect(input.signalName).toBe("approval_resolved");
-      expect(input.payload).toEqual(payload);
-    });
-
-    it("sends no idempotency key (oss#442: failed-delivery claims are never released)", async () => {
-      const { client, rpc } = clientWithWorkflowCommand();
-
-      await client.sendWorkflowSignal("wfx_1", "ping", undefined);
-
-      const input = rpc.mock.calls[0]![0];
-      expect(input.idempotencyKey).toBe("");
-    });
-
-    it("passes the per-call timeout through to the RPC", async () => {
-      const { client, rpc } = clientWithWorkflowCommand();
-
-      await client.sendWorkflowSignal("wfx_1", "ping", undefined, { timeoutMs: 30_000 });
-
-      expect(rpc).toHaveBeenCalledWith(expect.anything(), { timeoutMs: 30_000 });
-    });
-
-    it("passes an undefined timeout when no options are supplied", async () => {
-      const { client, rpc } = clientWithWorkflowCommand();
-
-      await client.sendWorkflowSignal("wfx_1", "ping", undefined);
-
-      expect(rpc).toHaveBeenCalledWith(expect.anything(), { timeoutMs: undefined });
     });
   });
 

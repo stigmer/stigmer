@@ -19,9 +19,6 @@ import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/sessi
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
-import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
-import type { CreateArtifactInput } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -43,13 +40,6 @@ import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { AgentRunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
-import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
-import type { WorkflowRun, WorkflowRunStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { WorkflowRunUpdateStatusInputSchema, GetEventLogRequestSchema, SendSignalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
-import type { JsonObject } from "@bufbuild/protobuf";
-import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
-import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { PlatformQueryController, GetRunnerScopedTokenInputSchema, TokenRenewalSchema } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
@@ -130,7 +120,6 @@ export interface RunnerScopedToken {
  */
 export type RunnerScopedTokenScope =
   | { agentExecutionId: string }
-  | { workflowExecutionId: string }
   | { poolClaimSessionId: string }
   | { renewal: true };
 
@@ -142,9 +131,6 @@ export type RunnerScopedTokenScope =
 function toRunnerScopedTokenOneof(scope: RunnerScopedTokenScope) {
   if ("agentExecutionId" in scope) {
     return { case: "agentRunId", value: scope.agentExecutionId } as const;
-  }
-  if ("workflowExecutionId" in scope) {
-    return { case: "workflowRunId", value: scope.workflowExecutionId } as const;
   }
   if ("poolClaimSessionId" in scope) {
     return { case: "poolClaim", value: { sessionId: scope.poolClaimSessionId } } as const;
@@ -188,10 +174,6 @@ export class StigmerClient {
   private readonly skillQuery: Client<typeof SkillQueryController>;
   private readonly pluginQuery: Client<typeof PluginQueryController>;
   private readonly billingCommand: Client<typeof BillingCommandController>;
-  private readonly artifactCommand: Client<typeof ArtifactCommandController>;
-  readonly workflowExecutionCommand: Client<typeof WorkflowRunCommandController>;
-  private readonly workflowExecutionQuery: Client<typeof WorkflowRunQueryController>;
-  private readonly workflowQuery: Client<typeof WorkflowQueryController>;
   private readonly platformQuery: Client<typeof PlatformQueryController>;
   private readonly channelMessageQuery: Client<typeof ChannelMessageQueryController>;
 
@@ -233,8 +215,7 @@ export class StigmerClient {
         //    run — which is every RPC but the process-bound bootstrap read.
         //    The server minted it for exactly this execution at dispatch and,
         //    with sign-in on, admits its bearer as the run's own human: the
-        //    status write, the child create, the artifact, the session title
-        //    are the member's, whoever's API key this process holds. It is
+        //    status write and the session title are the member's, whoever's API key this process holds. It is
         //    read from the async context, never from a ref: one process serves
         //    many runs at once and a shared ref would be the wrong run's the
         //    moment two overlap — the same reason rule 1 exists. Absent
@@ -249,10 +230,7 @@ export class StigmerClient {
         //    scoped-token exchange itself requires the embedded_runner
         //    bootstrap credential (a desktop runner's control-plane token is
         //    the user's own Auth0 token, which the server correctly treats as
-        //    a browsing user); and the workflow child-execution create stamps
-        //    the platform's workflow lineage labels, which cloud's
-        //    reserved-label guard and environment composer accept only from
-        //    runner-class callers — a user-token create is rejected outright.
+        //    a browsing user).
         //
         // 4. Everything else uses the control-plane token: the process
         //    credential, an operator's API key on a self-host. Falls through
@@ -267,9 +245,7 @@ export class StigmerClient {
           const usesRunnerCredential =
             req.service.typeName === ExecutionContextQueryController.typeName ||
             (req.service.typeName === PlatformQueryController.typeName &&
-              req.method.name === PlatformQueryController.method.getRunnerScopedToken.name) ||
-            (req.service.typeName === AgentRunCommandController.typeName &&
-              req.method.name === AgentRunCommandController.method.create.name);
+              req.method.name === PlatformQueryController.method.getRunnerScopedToken.name);
           const token =
             (isProcessBound ? undefined : currentRunCredential())
             ?? (usesRunnerCredential ? this.runnerTokenRef?.current : null)
@@ -294,10 +270,6 @@ export class StigmerClient {
     this.skillQuery = createClient(SkillQueryController, this.transport);
     this.pluginQuery = createClient(PluginQueryController, this.transport);
     this.billingCommand = createClient(BillingCommandController, this.transport);
-    this.artifactCommand = createClient(ArtifactCommandController, this.transport);
-    this.workflowExecutionCommand = createClient(WorkflowRunCommandController, this.transport);
-    this.workflowExecutionQuery = createClient(WorkflowRunQueryController, this.transport);
-    this.workflowQuery = createClient(WorkflowQueryController, this.transport);
     this.platformQuery = createClient(PlatformQueryController, this.transport);
     this.channelMessageQuery = createClient(ChannelMessageQueryController, this.transport);
   }
@@ -475,9 +447,7 @@ export class StigmerClient {
     const scopeDescription =
       "agentExecutionId" in scope
         ? `agent execution ${scope.agentExecutionId}`
-        : "workflowExecutionId" in scope
-          ? `workflow execution ${scope.workflowExecutionId}`
-          : JSON.stringify(scope);
+        : JSON.stringify(scope);
     let scoped: RunnerScopedToken | undefined;
     try {
       scoped = await this.getRunnerScopedToken(scope);
@@ -653,10 +623,6 @@ export class StigmerClient {
     return this.pluginQuery.getArtifactDownloadUrl({ artifactStorageKey });
   }
 
-  async createArtifact(input: CreateArtifactInput): Promise<Artifact> {
-    return this.artifactCommand.create(input);
-  }
-
   async recordLlmCallUsage(input: RecordLlmCallUsageInput): Promise<RecordLlmCallUsageResponse> {
     return this.billingCommand.recordLlmCallUsage(input);
   }
@@ -675,107 +641,4 @@ export class StigmerClient {
     assertCreateRequirements(session, "Session", "applySession");
     return this.sessionCommand.apply(session);
   }
-
-  async createAgentExecution(execution: AgentRun): Promise<AgentRun> {
-    assertCreateRequirements(execution, "AgentRun", "createAgentExecution");
-    return this.executionCommand.create(execution);
-  }
-
-  async updateWorkflowExecutionStatus(
-    executionId: string,
-    status: WorkflowRunStatus,
-    options?: {
-      updatePendingApprovals?: boolean;
-      updatePendingFileReviews?: boolean;
-      // The child a per-child merge targets (required whenever either update flag
-      // is set, including the scoped-clear case where the list is empty).
-      pendingUpdateChildAgentExecutionId?: string;
-    },
-  ): Promise<WorkflowRun> {
-    const input = create(WorkflowRunUpdateStatusInputSchema, {
-      runId: executionId,
-      status,
-      updatePendingApprovals: options?.updatePendingApprovals ?? false,
-      updatePendingFileReviews: options?.updatePendingFileReviews ?? false,
-      pendingUpdateChildAgentRunId: options?.pendingUpdateChildAgentExecutionId ?? "",
-    });
-    return this.workflowExecutionCommand.updateStatus(input);
-  }
-
-  /**
-   * Deliver a named signal to another workflow execution through the
-   * server's SendSignal lane (validate → phase gate → relay via the
-   * outer orchestrator). This is the ONLY sanctioned path for
-   * runner-originated signals: a direct Temporal client would bypass
-   * both the authorization boundary and the payload-encryption design
-   * (per-identity runner keys make sender-side encryption fail closed
-   * at receivers holding a different key — see oss#517).
-   *
-   * Deliberately sends no idempotency_key: the server's dedupe claim is
-   * not released when delivery fails (oss#442), so a key here would
-   * poison the exact retry it exists to protect — and emit envelope ids
-   * regenerate per activity attempt anyway. Revisit once oss#442 lands.
-   */
-  async sendWorkflowSignal(
-    executionId: string,
-    signalName: string,
-    payload: JsonObject | undefined,
-    options?: { timeoutMs?: number },
-  ): Promise<WorkflowRun> {
-    const input = create(SendSignalInputSchema, {
-      runId: executionId,
-      signalName,
-      payload,
-    });
-    return this.workflowExecutionCommand.sendSignal(input, {
-      timeoutMs: options?.timeoutMs,
-    });
-  }
-
-  async getWorkflowExecution(executionId: string): Promise<WorkflowRun> {
-    return this.workflowExecutionQuery.get({ value: executionId });
-  }
-
-  /**
-   * Return the highest persisted event sequence_number for a workflow execution.
-   *
-   * Paginates through getEventLog with the maximum page size (500) and
-   * follows the cursor until has_more is false. The final page's
-   * latest_sequence is the global high-water mark.
-   *
-   * Returns 0 when no events have been persisted yet (new execution).
-   */
-  async getEventLogHighWaterMark(executionId: string): Promise<bigint> {
-    let afterSequence = BigInt(0);
-    let highWaterMark = BigInt(0);
-
-    for (;;) {
-      const resp = await this.workflowExecutionQuery.getEventLog(
-        create(GetEventLogRequestSchema, {
-          runId: executionId,
-          afterSequence,
-          pageSize: 500,
-        }),
-      );
-
-      if (resp.latestSequence > highWaterMark) {
-        highWaterMark = resp.latestSequence;
-      }
-
-      if (!resp.hasMore) {
-        return highWaterMark;
-      }
-
-      afterSequence = resp.latestSequence;
-    }
-  }
-
-  async getWorkflow(workflowId: string): Promise<Workflow> {
-    return this.workflowQuery.get({ value: workflowId });
-  }
-
-  async getWorkflowVersion(workflowId: string, versionHash: string) {
-    return this.workflowQuery.getVersion({ workflowId, versionHash });
-  }
-
 }

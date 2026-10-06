@@ -115,7 +115,7 @@ Final result: {"answer": 42, "final": true}`;
     it("extracts JSON when prose follows the JSON object", () => {
       const text = `Analysis complete. Here is the result:
 {"status": "done", "metrics": {"dau": 7175}}
-Done! The workflow has finished.`;
+Done! The task has finished.`;
       const result = extractJsonFromText(text);
       expect(result).toEqual({ status: "done", metrics: { dau: 7175 } });
     });

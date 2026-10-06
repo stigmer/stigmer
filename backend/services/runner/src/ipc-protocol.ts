@@ -24,16 +24,6 @@ export interface IpcRemoveSession {
   sessionId: string;
 }
 
-export interface IpcAddWorkflowExecution {
-  type: "addWorkflowExecution";
-  executionId: string;
-}
-
-export interface IpcRemoveWorkflowExecution {
-  type: "removeWorkflowExecution";
-  executionId: string;
-}
-
 export interface IpcUpdateToken {
   type: "updateToken";
   token: string | null;
@@ -46,8 +36,6 @@ export interface IpcShutdown {
 export type IpcCommand =
   | IpcAddSession
   | IpcRemoveSession
-  | IpcAddWorkflowExecution
-  | IpcRemoveWorkflowExecution
   | IpcUpdateToken
   | IpcShutdown;
 
@@ -69,17 +57,6 @@ export interface IpcSessionRemoved {
   sessionId: string;
 }
 
-export interface IpcWorkflowExecutionAdded {
-  type: "workflowExecutionAdded";
-  executionId: string;
-  taskQueue: string;
-}
-
-export interface IpcWorkflowExecutionRemoved {
-  type: "workflowExecutionRemoved";
-  executionId: string;
-}
-
 export interface IpcError {
   type: "error";
   message: string;
@@ -98,8 +75,6 @@ export type IpcResponse =
   | IpcReady
   | IpcSessionAdded
   | IpcSessionRemoved
-  | IpcWorkflowExecutionAdded
-  | IpcWorkflowExecutionRemoved
   | IpcTokenUpdated
   | IpcError
   | IpcShutdownComplete;

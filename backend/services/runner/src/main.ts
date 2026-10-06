@@ -139,20 +139,6 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
           sendIpc({ type: "sessionRemoved", sessionId: cmd.sessionId });
           break;
         }
-        case "addWorkflowExecution": {
-          await manager.addWorkflowExecution(cmd.executionId);
-          sendIpc({
-            type: "workflowExecutionAdded",
-            executionId: cmd.executionId,
-            taskQueue: `wfexec:${cmd.executionId}`,
-          });
-          break;
-        }
-        case "removeWorkflowExecution": {
-          await manager.removeWorkflowExecution(cmd.executionId);
-          sendIpc({ type: "workflowExecutionRemoved", executionId: cmd.executionId });
-          break;
-        }
         case "updateToken": {
           manager.updateToken(cmd.token);
           sendIpc({ type: "tokenUpdated" });

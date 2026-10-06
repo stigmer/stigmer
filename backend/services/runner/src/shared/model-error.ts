@@ -75,15 +75,6 @@ export interface ModelErrorContext {
   readonly provider?: LlmProvider;
   /** Model id, when the caller knows it. */
   readonly modelId?: string;
-  /**
-   * True when the caller's catch can only see model-call failures (e.g. the
-   * call-llm activity). Enables the loose connection/timeout class-name
-   * heuristics ("Timeout"/"Connection" substrings, catching undici transport
-   * errors). Broad catch blocks (deep-agent, Cursor) must leave this false:
-   * a WorkspaceLockTimeoutError is not a model connection timeout, and only
-   * the SDKs' own APIConnection* class names are positive signal there.
-   */
-  readonly assumeModelCall?: boolean;
 }
 
 /**
@@ -241,12 +232,12 @@ export function classifyModelCallError(
     return classifyByStatus(status, message, ctx, backend);
   }
 
-  // 4. Connection/timeout heuristics on the root error's class name. Strict
-  //    (SDK class names only) unless the caller vouches that every error it
-  //    sees is a model-call error — see ModelErrorContext.assumeModelCall.
+  // 4. Connection/timeout heuristics on the root error's class name: the
+  //    SDKs' own APIConnection* class names only. The callers' catch blocks
+  //    are broad (deep-agent, Cursor), and a WorkspaceLockTimeoutError is not
+  //    a model connection timeout.
   const errName = root instanceof Error ? root.constructor.name : "";
-  const isTimeout = errName.includes("APIConnectionTimeout")
-    || (ctx.assumeModelCall === true && errName.includes("Timeout"));
+  const isTimeout = errName.includes("APIConnectionTimeout");
   if (isTimeout) {
     return {
       code: "LLM_CONNECTION_TIMEOUT",
@@ -254,8 +245,7 @@ export function classifyModelCallError(
       message: `Connection timed out for ${modelLabel(ctx)}: ${message}`,
     };
   }
-  const isConnection = errName.includes("APIConnection")
-    || (ctx.assumeModelCall === true && errName.includes("Connection"));
+  const isConnection = errName.includes("APIConnection");
   if (isConnection) {
     return {
       code: "LLM_CONNECTION_ERROR",
@@ -314,7 +304,7 @@ function classifyOrganizationKeyError(
 }
 
 /**
- * Retryability policy (unchanged from the original call-llm classifier):
+ * Retryability policy:
  *   - 4xx (except 429): nonRetryable — client/config errors won't self-heal
  *   - 429: nonRetryable at the Temporal level — the SDK already retried
  *     internally with backoff; retrying on top causes duplicates

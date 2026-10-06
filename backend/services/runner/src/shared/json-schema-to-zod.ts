@@ -1,11 +1,11 @@
 /**
  * Convert a JSON Schema object to a Zod schema.
  *
- * Used by multiple activity layers (call:llm, ExecuteCursor extraction,
+ * Used by both harness activities (ExecuteCursor extraction,
  * ExecuteDeepAgent responseFormat) to produce Zod schemas for
  * `withStructuredOutput()` / function-calling APIs.
  *
- * Handles the subset of JSON Schema used by workflow output schemas:
+ * Handles the subset of JSON Schema used by structured output schemas:
  * object types with required/optional fields, string/number/boolean/array
  * primitives, enum constraints, and null types.
  */

@@ -16,7 +16,7 @@
  * withheld even when the agent's `env` lists it: a value that exists for
  * an MCP server reaches that server and never the shell. An agent that
  * declares nothing gets no run values: declare to receive, the rule MCP
- * servers and workflow `run` tasks already follow.
+ * servers already follow.
  *
  * The git token is the one value the shell holds without a declaration,
  * because the clone has already put it in the shell's reach (the remote

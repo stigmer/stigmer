@@ -9,14 +9,6 @@
       "type": "removeSession",
       "sessionId": "ses_example"
     },
-    "addWorkflowExecution": {
-      "type": "addWorkflowExecution",
-      "executionId": "wfe_example"
-    },
-    "removeWorkflowExecution": {
-      "type": "removeWorkflowExecution",
-      "executionId": "wfe_example"
-    },
     "updateTokenSet": {
       "type": "updateToken",
       "token": "tok_example"
@@ -45,15 +37,6 @@
     "sessionRemoved": {
       "type": "sessionRemoved",
       "sessionId": "ses_example"
-    },
-    "workflowExecutionAdded": {
-      "type": "workflowExecutionAdded",
-      "executionId": "wfe_example",
-      "taskQueue": "wfexec:wfe_example"
-    },
-    "workflowExecutionRemoved": {
-      "type": "workflowExecutionRemoved",
-      "executionId": "wfe_example"
     },
     "tokenUpdated": {
       "type": "tokenUpdated"
