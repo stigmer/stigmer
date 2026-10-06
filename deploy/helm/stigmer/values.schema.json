@@ -29,6 +29,7 @@
       "properties": {
         "publicUrl": { "$ref": "#/$defs/urlOrEmpty" },
         "artifactPublicUrl": { "$ref": "#/$defs/urlOrEmpty" },
+        "allowUnauthenticatedExposure": { "type": "boolean" },
         "operator": {
           "type": "object",
           "additionalProperties": false,
@@ -41,14 +42,14 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "issuer": { "$ref": "#/$defs/urlOrEmpty" },
+            "issuer": { "$ref": "#/$defs/httpsUrlOrEmpty" },
             "audience": { "type": "string" },
             "consoleClientId": { "type": "string" }
           }
         },
         "resources": { "$ref": "#/$defs/resources" },
         "persistence": { "$ref": "#/$defs/persistence" },
-        "securityContext": { "type": "object" },
+        "securityContext": { "$ref": "#/$defs/containerSecurityContext" },
         "extraEnv": { "$ref": "#/$defs/envList" }
       }
     },
@@ -71,7 +72,7 @@
         },
         "resources": { "$ref": "#/$defs/resources" },
         "persistence": { "$ref": "#/$defs/persistence" },
-        "securityContext": { "type": "object" },
+        "securityContext": { "$ref": "#/$defs/containerSecurityContext" },
         "extraEnv": { "$ref": "#/$defs/envList" }
       }
     },
@@ -86,7 +87,8 @@
       "additionalProperties": false,
       "properties": {
         "enabled": { "type": "boolean" },
-        "image": { "type": "string", "minLength": 1 }
+        "image": { "type": "string", "minLength": 1 },
+        "securityContext": { "$ref": "#/$defs/containerSecurityContext" }
       }
     },
     "postgres": {
@@ -96,7 +98,9 @@
         "enabled": { "type": "boolean" },
         "image": { "type": "string", "minLength": 1 },
         "persistence": { "$ref": "#/$defs/persistence" },
-        "resources": { "$ref": "#/$defs/resources" }
+        "resources": { "$ref": "#/$defs/resources" },
+        "securityContext": { "$ref": "#/$defs/containerSecurityContext" },
+        "networkPolicy": { "$ref": "#/$defs/networkPolicy" }
       }
     },
     "externalDatabase": {
@@ -118,13 +122,8 @@
         "enabled": { "type": "boolean" },
         "image": { "type": "string", "minLength": 1 },
         "resources": { "$ref": "#/$defs/resources" },
-        "networkPolicy": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "enabled": { "type": "boolean" }
-          }
-        }
+        "securityContext": { "$ref": "#/$defs/containerSecurityContext" },
+        "networkPolicy": { "$ref": "#/$defs/networkPolicy" }
       }
     },
     "externalTemporal": {
@@ -192,6 +191,71 @@
     "urlOrEmpty": {
       "type": "string",
       "pattern": "^$|^https?://"
+    },
+    "httpsUrlOrEmpty": {
+      "$comment": "The OIDC issuer: discovery and the signing keys are fetched from it, so plaintext would let the network vouch for every token. The server also takes http on loopback for its tests; a chart issuer on loopback would name the pod, never the operator's identity provider.",
+      "type": "string",
+      "pattern": "^$|^https://"
+    },
+    "networkPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "containerSecurityContext": {
+      "$comment": "A Kubernetes container SecurityContext (core/v1), every field it has and no other, so a typo fails like every other value.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowPrivilegeEscalation": { "type": "boolean" },
+        "appArmorProfile": { "$ref": "#/$defs/securityProfile" },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "add": { "type": "array", "items": { "type": "string" } },
+            "drop": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "privileged": { "type": "boolean" },
+        "procMount": { "type": "string", "enum": ["Default", "Unmasked"] },
+        "readOnlyRootFilesystem": { "type": "boolean" },
+        "runAsGroup": { "type": "integer", "minimum": 0 },
+        "runAsNonRoot": { "type": "boolean" },
+        "runAsUser": { "type": "integer", "minimum": 0 },
+        "seLinuxOptions": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "level": { "type": "string" },
+            "role": { "type": "string" },
+            "type": { "type": "string" },
+            "user": { "type": "string" }
+          }
+        },
+        "seccompProfile": { "$ref": "#/$defs/securityProfile" },
+        "windowsOptions": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "gmsaCredentialSpec": { "type": "string" },
+            "gmsaCredentialSpecName": { "type": "string" },
+            "hostProcess": { "type": "boolean" },
+            "runAsUserName": { "type": "string" }
+          }
+        }
+      }
+    },
+    "securityProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "enum": ["RuntimeDefault", "Localhost", "Unconfined"] },
+        "localhostProfile": { "type": "string" }
+      }
     },
     "resources": {
       "type": "object",

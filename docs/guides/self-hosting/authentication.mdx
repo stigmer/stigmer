@@ -18,8 +18,10 @@ machines (CI jobs, the runner, scripts) use API keys. The
 ## What you need
 
 - A running stack, reached over TLS on port 443 the way its page's "Reach it
-  from outside" section set up. The console's redirect URI and the CLI's TLS
-  rule both assume it. For an evaluation on one machine over plain HTTP,
+  from outside" section sets up. The console's redirect URI and the CLI's TLS
+  rule both assume it. On Kubernetes the chart refuses an Ingress while
+  authentication is off, so the Ingress and the values below go into one
+  upgrade. For an evaluation on one machine over plain HTTP,
   `http://localhost:7234` works too.
 - An OIDC provider you control: Keycloak, Okta, Auth0, Dex, or any server that
   supports OIDC discovery. You need three values from it: the **issuer URL**
@@ -104,7 +106,9 @@ Compose recreates the services whose settings changed.
 </Tab>
 <Tab value="Kubernetes">
 
-Add the three values to your values file and upgrade:
+Add the three values to your values file, with the `ingress` lines from
+[Reach it from outside the cluster, signed in](./kubernetes#reach-it-from-outside-the-cluster-signed-in)
+if you are adding the Ingress now, and upgrade:
 
 ```yaml no-validate="Helm values, not a Stigmer resource"
 server:

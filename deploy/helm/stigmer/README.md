@@ -17,8 +17,8 @@ ships.
   server) and the **runner** (executes agents and workflows, holds your LLM
   key). They share the pod network and an artifact disk, the way `stigmer up`
   shares one laptop and Compose shares one host.
-- **Postgres**, bundled as one `postgres:16` instance with one disk (one team's
-  posture), or yours through `externalDatabase`.
+- **Postgres**, bundled as one `postgres:16.15` instance with one disk (one
+  team's posture), or yours through `externalDatabase`.
 - **Temporal**, bundled as one `temporalio/auto-setup` pod, or yours through
   `externalTemporal`. For production Temporal,
   [Temporal's own chart](https://github.com/temporalio/helm-charts) is the path.
@@ -27,6 +27,10 @@ ships.
   bundled). The server never generates keys into a disk you did not know about.
 - **State that survives `helm uninstall`.** Every disk the chart creates is
   kept; a later install of the same release name adopts it.
+- **Safe by default.** Every bundled container runs as a non-root user with no
+  privilege to escalate and every capability dropped. The bundled Postgres and
+  Temporal admit only the pods that use them. An install reachable from outside
+  the cluster is refused while sign-in is off.
 - **Kubernetes 1.27 or newer**, on amd64 and arm64.
 
 ## Install
@@ -70,7 +74,9 @@ Without authentication, every caller that can reach the port has full control.
 Without an Ingress the Service is a ClusterIP: reachable from outside the
 cluster only through that port-forward, but from every pod inside it. That is
 the laptop posture, and fine for trying it. For a team, add an Ingress and turn
-authentication on (below).
+authentication on together (below): the chart refuses an Ingress, a `NodePort`
+or `LoadBalancer` Service, or a public URL other than `localhost` while
+authentication is off.
 
 Give the runner an LLM key so agents can run (workflows without agent tasks run
 key-free):
@@ -88,7 +94,17 @@ artifact downloads. The two are separate because the artifact lane is its own
 listener whose storage keys carry full paths, so it cannot share a host by path
 prefix.
 
+Turn authentication on in the same step. Without it, every caller is the
+operator with full control, so anyone who finds the address would control
+Stigmer, and the chart refuses to install it (see
+[Authentication](#authentication) for the issuer and the runner's key):
+
 ```yaml
+server:
+  oidc:
+    issuer: https://your-issuer.example.com
+    audience: https://stigmer.example.com
+    consoleClientId: stigmer-console
 ingress:
   enabled: true
   className: nginx
@@ -108,7 +124,14 @@ ingress:
 With an Ingress, the URLs the server mints for browsers and the CLI
 (`SKILL_TRANSFER_BASE_URL`, `ARTIFACT_LOCAL_SERVE_URL`) follow the hosts,
 `https` once a host has a TLS Secret. Set `server.publicUrl` and
-`server.artifactPublicUrl` yourself if you front the Service another way.
+`server.artifactPublicUrl` yourself if you front the Service another way; a URL
+naming a host other than `localhost`, `127.0.0.1` or `[::1]` counts as exposure
+too.
+
+If something of yours already authenticates every caller before Stigmer (an
+authenticating proxy in front, a private network), set
+`server.allowUnauthenticatedExposure: true` to say the exposure is on purpose.
+It does not make the install safe, and the install notes repeat that every time.
 
 Point the CLI at the API host on port 443 (the CLI picks `https` for `:443`):
 
@@ -134,8 +157,9 @@ signed in can create a key, so an authenticated install is two steps, and
 sign-in comes first:
 
 1. Set the issuer: below as an upgrade of a running install, or the same three
-   values in a first install. The pod runs the server alone, and the install
-   notes say the runner is waiting for its key:
+   values in a first install, with the Ingress if you add one. The issuer is an
+   `https` URL. The pod runs the server alone, and the install notes say the
+   runner is waiting for its key:
 
 ```bash
 helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reuse-values \
@@ -203,19 +227,23 @@ key out of its environment at boot, so its agent tools cannot read them. They
 are Stigmer's own names, so a developer's `TEMPORAL_API_KEY` for their own
 Temporal work is never picked up.
 
-The server's `DATABASE_URL` is assembled inside the container from these values
-and the password Secret, so the password never appears in rendered manifests.
-When Temporal stays bundled and Postgres is yours, Temporal's `auto-setup`
-creates its two databases (`temporal`, `temporal_visibility`) on your instance
-at first boot and needs a user with `CREATE DATABASE`.
+The server's `DATABASE_URL` names the user, host, port and database, and the
+password reaches the server as `PGPASSWORD` from its Secret, so it never appears
+in rendered manifests and no character in it can break the URL. When Temporal
+stays bundled and Postgres is yours, Temporal's `auto-setup` creates its two
+databases (`temporal`, `temporal_visibility`) on your instance at first boot and
+needs a user with `CREATE DATABASE`.
 
 ## Backup, restore, upgrade
 
 A complete backup is four things: the database (the bundled Postgres's disk, or
 yours), the `<release>-artifacts` disk, the `<release>-server-data` disk, and
-the Secret you created. The `<release>-runner-data` disk holds paused-session
-checkpoints and agent workspaces; it is kept too, but it is lifecycle state, not
-backup state.
+the Secret you created. The bundled Postgres admits only the stigmer and
+Temporal pods (`postgres.networkPolicy`), so a backup job that dumps it from a
+pod of its own needs a NetworkPolicy of yours that admits it; policies add up,
+so yours and the chart's both apply. The `<release>-runner-data` disk holds
+paused-session checkpoints and agent workspaces; it is kept too, but it is
+lifecycle state, not backup state.
 
 `helm uninstall` removes the pods and Services and leaves every disk in place.
 `helm install` with the same release name adopts them and the data is back. To
@@ -248,8 +276,13 @@ authenticates nothing, so the chart fences it with a NetworkPolicy
 plugin that ignores NetworkPolicy leaves it open. The runner's own tools share
 the stigmer pod and so sit inside the fence. For a Temporal outside that
 boundary, use your own with authentication on (`externalTemporal.tls`,
-`externalTemporal.apiKey`). The chart adds no NetworkPolicy for the stigmer pod
-itself; add one at the namespace if your cluster's posture wants it.
+`externalTemporal.apiKey`).
+
+The bundled Postgres holds everything Stigmer keeps and authenticates by
+password alone, so the chart fences it the same way (`postgres.networkPolicy`):
+the stigmer pod and the Temporal pod may connect, nothing else. The chart adds
+no NetworkPolicy for the stigmer pod itself; add one at the namespace if your
+cluster's posture wants it.
 
 ## What the server calls out to
 
@@ -263,27 +296,30 @@ agent's tools do.
 Every key is documented in [`values.yaml`](values.yaml) with its reason; this is
 the map.
 
-| Key                                               | What it is                                                                                                                                                                  |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `fullnameOverride`                                | The name every Service takes; defaults to the release name.                                                                                                                 |
-| `image`                                           | Registry, the two repositories (`stigmer-server`, `stigmer-runner`), tags (empty means this chart's version), pull policy, pull Secrets.                                    |
-| `secrets`                                         | `existingSecret`, required: `STIGMER_ENCRYPTION_KEY`, `STIGMER_RUNNER_TOKEN_KEY`, and `POSTGRES_PASSWORD` when Postgres is bundled; optional: `STIGMER_PLATFORM_TOKEN_KEY`. |
-| `server`                                          | `publicUrl`, `artifactPublicUrl`, `operator.{email,name}`, `oidc.{issuer,audience,consoleClientId}`, `resources`, `persistence`, `securityContext`, `extraEnv`.             |
-| `runner`                                          | `llm.existingSecret`, `stigmerToken.{existingSecret,key}`, `resources`, `persistence`, `securityContext`, `extraEnv`.                                                       |
-| `artifacts`                                       | `persistence` for the shared artifact disk.                                                                                                                                 |
-| `terminationGracePeriodSeconds`                   | How long a stopping pod may drain (60 s; the runner finishes in-flight activities).                                                                                         |
-| `waitForDependencies`                             | The init container that waits for Postgres and Temporal (`enabled`, `image`).                                                                                               |
-| `postgres`                                        | The bundled Postgres: `enabled`, `image`, `persistence`, `resources`.                                                                                                       |
-| `externalDatabase`                                | `host`, `port`, `user`, `database`, `existingSecret`, `passwordKey` when Postgres is yours.                                                                                 |
-| `temporal`                                        | The bundled Temporal: `enabled`, `image`, `resources`, `networkPolicy.enabled` (the fence to the stigmer pod, on by default).                                               |
-| `externalTemporal`                                | `hostPort`, `namespace` when Temporal is yours; `tls.{enabled,serverName,existingSecret,caKey,certKey,keyKey}` and `apiKey.{existingSecret,key}` when it authenticates.     |
-| `service`                                         | `type` (ClusterIP).                                                                                                                                                         |
-| `ingress`                                         | `enabled`, `className`, `api.{host,annotations,tlsSecretName}`, `artifacts.{host,annotations,tlsSecretName}`.                                                               |
-| `openfga`, `redis`, `openbao`, `licenseKeySecret` | Reserved for Stigmer Enterprise; refused in this version.                                                                                                                   |
+| Key                                               | What it is                                                                                                                                                                                      |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fullnameOverride`                                | The name every Service takes; defaults to the release name.                                                                                                                                     |
+| `image`                                           | Registry, the two repositories (`stigmer-server`, `stigmer-runner`), tags (empty means this chart's version), pull policy, pull Secrets.                                                        |
+| `secrets`                                         | `existingSecret`, required: `STIGMER_ENCRYPTION_KEY`, `STIGMER_RUNNER_TOKEN_KEY`, and `POSTGRES_PASSWORD` when Postgres is bundled; optional: `STIGMER_PLATFORM_TOKEN_KEY`.                     |
+| `server`                                          | `publicUrl`, `artifactPublicUrl`, `allowUnauthenticatedExposure`, `operator.{email,name}`, `oidc.{issuer,audience,consoleClientId}`, `resources`, `persistence`, `securityContext`, `extraEnv`. |
+| `runner`                                          | `llm.existingSecret`, `stigmerToken.{existingSecret,key}`, `resources`, `persistence`, `securityContext`, `extraEnv`.                                                                           |
+| `artifacts`                                       | `persistence` for the shared artifact disk.                                                                                                                                                     |
+| `terminationGracePeriodSeconds`                   | How long a stopping pod may drain (60 s; the runner finishes in-flight activities).                                                                                                             |
+| `waitForDependencies`                             | The init containers that wait for Postgres and Temporal (`enabled`, `image`, `securityContext`).                                                                                                |
+| `postgres`                                        | The bundled Postgres: `enabled`, `image`, `persistence`, `resources`, `securityContext`, `networkPolicy.enabled` (the fence to the stigmer and Temporal pods, on by default).                   |
+| `externalDatabase`                                | `host`, `port`, `user`, `database`, `existingSecret`, `passwordKey` when Postgres is yours.                                                                                                     |
+| `temporal`                                        | The bundled Temporal: `enabled`, `image`, `resources`, `securityContext`, `networkPolicy.enabled` (the fence to the stigmer pod, on by default).                                                |
+| `externalTemporal`                                | `hostPort`, `namespace` when Temporal is yours; `tls.{enabled,serverName,existingSecret,caKey,certKey,keyKey}` and `apiKey.{existingSecret,key}` when it authenticates.                         |
+| `service`                                         | `type` (ClusterIP).                                                                                                                                                                             |
+| `ingress`                                         | `enabled`, `className`, `api.{host,annotations,tlsSecretName}`, `artifacts.{host,annotations,tlsSecretName}`.                                                                                   |
+| `openfga`, `redis`, `openbao`, `licenseKeySecret` | Reserved for Stigmer Enterprise; refused in this version.                                                                                                                                       |
 
 Unknown keys are refused at install, so a typo fails loudly instead of doing
-nothing. Anything the chart does not model goes through `server.extraEnv` and
-`runner.extraEnv` as plain Kubernetes `env` entries.
+nothing; every `securityContext` takes the Kubernetes container fields and no
+other. Anything the chart does not model goes through `server.extraEnv` and
+`runner.extraEnv` as plain Kubernetes `env` entries. A name the chart sets
+itself is refused there, because Kubernetes keeps the last entry of a name and
+the extra one would silently replace the chart's.
 
 ## What is deliberately not here
 

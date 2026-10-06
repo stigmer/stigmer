@@ -1,11 +1,17 @@
 {{- /*
 Bundled Postgres: compose's `postgres` service. One instance, one claim,
-`postgres:16`, the app database created by POSTGRES_DB; Temporal's
-auto-setup creates its two on the same instance at first boot (one Postgres,
-three databases, one backup story). A StatefulSet so the
-claim follows the pod; its volumeClaimTemplate is retained on uninstall by
-Kubernetes' default policy. Right for one team; production brings its own
-through externalDatabase.
+the image compose runs (the parity test holds the two tags equal), the app
+database created by POSTGRES_DB; Temporal's auto-setup creates its two on
+the same instance at first boot (one Postgres, three databases, one backup
+story). A StatefulSet so the claim follows the pod; its volumeClaimTemplate
+is retained on uninstall by Kubernetes' default policy. Right for one team;
+production brings its own through externalDatabase.
+
+It runs as the image's own postgres user (uid 999) from the first process,
+never as root: the official image's entrypoint initializes and serves as
+whichever user it starts as, and the pod's fsGroup, the same group, makes a
+fresh claim writable by it. postgres.networkPolicy fences it to this
+release's stigmer and Temporal pods (postgres-networkpolicy.yaml).
 */ -}}
 {{- if .Values.postgres.enabled }}
 {{- $fullname := include "stigmer.fullname" . }}
@@ -43,24 +49,29 @@ spec:
       labels:
         {{- include "stigmer.selectorLabels" (dict "root" . "component" "postgres") | nindent 8 }}
     spec:
+      {{- with .Values.postgres.securityContext.runAsGroup }}
+      # The claim's group: a fresh volume is writable by the user above.
+      securityContext:
+        fsGroup: {{ . }}
+      {{- end }}
       automountServiceAccountToken: false
       {{- with .Values.image.pullSecrets }}
       imagePullSecrets:
         {{- range . }}
-        - name: {{ . }}
+        - name: {{ . | quote }}
         {{- end }}
       {{- end }}
       containers:
         - name: postgres
-          image: {{ .Values.postgres.image }}
-          # A pinned third-party tag: IfNotPresent by definition. image.pullPolicy
+          image: {{ .Values.postgres.image | quote }}
+          # An exact third-party tag: IfNotPresent by definition. image.pullPolicy
           # governs the two Stigmer images only.
           imagePullPolicy: IfNotPresent
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.secrets.existingSecret }}
+                  name: {{ .Values.secrets.existingSecret | quote }}
                   key: POSTGRES_PASSWORD
             # The app database; auto-setup creates `temporal` and
             # `temporal_visibility` beside it.
@@ -88,6 +99,8 @@ spec:
             timeoutSeconds: 5
           resources:
             {{- toYaml .Values.postgres.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.postgres.securityContext | nindent 12 }}
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data

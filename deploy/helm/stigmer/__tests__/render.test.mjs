@@ -13,20 +13,34 @@
  *   - the server has three native gRPC probes and the runner has none;
  *   - both Service ports carry `appProtocol`;
  *   - the init container waits for the dependencies compose orders with
- *     `depends_on`;
+ *     `depends_on`, reading their addresses from env, never from shell text
+ *     the chart splices values into;
+ *   - every bundled container (Postgres, Temporal, the init containers) runs
+ *     as its image's own user by number, non-root, with nothing to escalate
+ *     to, every capability dropped and the runtime's seccomp profile; the
+ *     Postgres pod's fsGroup is that user's group;
+ *   - the server's DATABASE_URL names no password (it arrives as
+ *     PGPASSWORD by secretKeyRef), and its user and database are
+ *     percent-encoded;
+ *   - a Secret name from values renders as the string it was, never a YAML
+ *     number or boolean;
  *   - every top-level values key is documented in the README;
  *   - the bundled Temporal's NetworkPolicy admits the stigmer pod on the
  *     frontend port and Temporal itself, and nothing else; it is absent
- *     when turned off or when Temporal is external;
+ *     when turned off or when Temporal is external; the bundled Postgres's
+ *     admits the stigmer and Temporal pods on its port alone, likewise;
  *   - an authenticated external Temporal reaches both containers as the
  *     STIGMER_TEMPORAL_* settings, every secret by secretKeyRef and no
- *     volume, while a plaintext install carries none of those names;
+ *     volume, while a plaintext install carries none of those names; the
+ *     server name reaches them with an API key alone, which implies TLS;
  *   - with the issuer set and no runner key named, the pod is the server
  *     alone, and the runner's claim is still created (stigmer/stigmer#1169:
  *     only someone signed in can create the key, so sign-in comes first);
  *   - the notes `helm install` prints tell that operator the runner is
  *     waiting for its key and how to give it one, and say nothing of it once
- *     the key is named or when there is no sign-in (stigmer/stigmer#1468).
+ *     the key is named or when there is no sign-in (stigmer/stigmer#1468);
+ *   - an install that states its unauthenticated exposure on purpose is told,
+ *     in the notes, that whoever reaches it controls Stigmer.
  *
  * Goldens live in `golden/<profile>.yaml` with the chart version replaced by
  * a placeholder so a release-pin bump does not churn them. Regenerate with
@@ -34,7 +48,15 @@
  */
 
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -185,8 +207,50 @@ for (const profile of PROFILES) {
     );
     assert.match(
       script,
-      /7233/,
+      /\/dev\/tcp\/\$\{TEMPORAL_HOST\}\/\$\{TEMPORAL_PORT\}/,
       "the init container must wait for Temporal's frontend",
+    );
+    assert.equal(
+      envMap(wait).get("TEMPORAL_PORT")?.value,
+      "7233",
+      "the init container must wait for Temporal's frontend",
+    );
+  });
+
+  test(`[${profile}] every bundled container runs as its image's user, unprivileged`, () => {
+    const expected = {
+      [`${RELEASE}-postgres/postgres`]: 999,
+      [`${RELEASE}-temporal/temporal`]: 1000,
+      [`${RELEASE}-temporal/wait-for-postgres`]: 999,
+      [`${RELEASE}/wait-for-dependencies`]: 999,
+    };
+    const seen = [];
+    for (const { name, spec } of podTemplates(renderProfile(profile))) {
+      for (const container of [
+        ...(spec.initContainers ?? []),
+        ...(spec.containers ?? []),
+      ]) {
+        const key = `${name}/${container.name}`;
+        if (!(key in expected)) continue;
+        seen.push(key);
+        const context = container.securityContext ?? {};
+        assert.equal(context.runAsNonRoot, true, `${key} runs as root`);
+        assert.equal(context.runAsUser, expected[key], `${key}'s uid`);
+        assert.equal(context.allowPrivilegeEscalation, false, key);
+        assert.deepEqual(context.capabilities?.drop, ["ALL"], key);
+        assert.equal(context.seccompProfile?.type, "RuntimeDefault", key);
+      }
+      if (name === `${RELEASE}-postgres`) {
+        assert.equal(
+          spec.securityContext?.fsGroup,
+          999,
+          "a fresh Postgres claim must be writable by its user",
+        );
+      }
+    }
+    assert.ok(
+      seen.includes(`${RELEASE}/wait-for-dependencies`),
+      "the stigmer pod's init container was checked",
     );
   });
 
@@ -318,6 +382,107 @@ test("the notes tell a sign-in install that the runner waits for its key, and on
   );
 });
 
+test("the server's DATABASE_URL names no password; the password is PGPASSWORD from its Secret", () => {
+  for (const profile of PROFILES) {
+    const pod = findOne(renderProfile(profile), "Deployment", RELEASE).spec
+      .template.spec;
+    const env = envMap(containerNamed(pod, "server"));
+    const url = new URL(env.get("DATABASE_URL")?.value ?? "");
+    assert.equal(url.password, "", `[${profile}] DATABASE_URL carries a password`);
+    assert.ok(
+      !env.get("DATABASE_URL").value.includes("$("),
+      `[${profile}] DATABASE_URL expands nothing into itself`,
+    );
+    assert.deepEqual(
+      env.get("PGPASSWORD")?.valueFrom?.secretKeyRef,
+      { name: "stigmer-secrets", key: "POSTGRES_PASSWORD" },
+      `[${profile}] PGPASSWORD`,
+    );
+    assert.equal(env.has("POSTGRES_PASSWORD"), false, `[${profile}]`);
+  }
+});
+
+test("the database user and name are percent-encoded into DATABASE_URL", () => {
+  const pod = findOne(
+    renderProfile("byo", {
+      sets: [
+        "externalDatabase.user=team a@ops",
+        "externalDatabase.database=stig/mer+1",
+      ],
+    }),
+    "Deployment",
+    RELEASE,
+  ).spec.template.spec;
+  const url = envMap(containerNamed(pod, "server")).get("DATABASE_URL").value;
+  assert.equal(
+    url,
+    "postgres://team%20a%40ops@byo-postgres.byo-infra.svc.cluster.local:5432/stig%2Fmer%2B1",
+  );
+});
+
+test("the init containers read the dependencies' addresses from env, never from spliced shell text", () => {
+  const host = "db.internal;touch /tmp/pwned";
+  const docs = renderProfile("byo", { sets: [`externalDatabase.host=${host}`] });
+  const pod = findOne(docs, "Deployment", RELEASE).spec.template.spec;
+  const wait = containerNamed(pod, "wait-for-dependencies", { init: true });
+  assert.ok(
+    !wait.command.join(" ").includes("pwned"),
+    "a value reached the shell script's text",
+  );
+  assert.equal(envMap(wait).get("PGHOST")?.value, host);
+});
+
+test("a Secret name from values renders as the string it was", () => {
+  const scratch = mkdtempSync(join(tmpdir(), "stigmer-chart-values-"));
+  try {
+    const values = join(scratch, "values.yaml");
+    writeFileSync(
+      values,
+      'secrets:\n  existingSecret: "0123"\nrunner:\n  llm:\n    existingSecret: "true"\n',
+    );
+    const docs = renderProfile("bundled", { valuesFiles: [values] });
+    const pod = findOne(docs, "Deployment", RELEASE).spec.template.spec;
+    const server = envMap(containerNamed(pod, "server"));
+    assert.equal(
+      server.get("STIGMER_ENCRYPTION_KEY")?.valueFrom?.secretKeyRef?.name,
+      "0123",
+    );
+    assert.equal(
+      server.get("PGPASSWORD")?.valueFrom?.secretKeyRef?.name,
+      "0123",
+    );
+    const runner = envMap(containerNamed(pod, "runner"));
+    assert.equal(
+      runner.get("ANTHROPIC_API_KEY")?.valueFrom?.secretKeyRef?.name,
+      "true",
+    );
+    const postgres = findOne(docs, "StatefulSet", `${RELEASE}-postgres`).spec
+      .template.spec;
+    assert.equal(
+      envMap(containerNamed(postgres, "postgres")).get("POSTGRES_PASSWORD")
+        ?.valueFrom?.secretKeyRef?.name,
+      "0123",
+    );
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+});
+
+test("the notes warn an install that states its unauthenticated exposure on purpose, and only it", () => {
+  const WARNING = "reachable from outside the cluster with no sign-in";
+  const exposed = renderNotes("bundled", {
+    sets: ["service.type=LoadBalancer", "server.allowUnauthenticatedExposure=true"],
+  });
+  assert.ok(exposed.includes(WARNING), `the notes warn:\n${exposed}`);
+  assert.ok(exposed.includes("(service.type is LoadBalancer)"), `the notes name the exposure:\n${exposed}`);
+  assert.ok(exposed.includes("Whoever reaches it controls Stigmer"), exposed);
+
+  const flagOnly = renderNotes("bundled", { sets: ["server.allowUnauthenticatedExposure=true"] });
+  assert.ok(!flagOnly.includes(WARNING), `nothing is exposed, so nothing to warn of:\n${flagOnly}`);
+  assert.ok(!renderNotes("bundled").includes(WARNING));
+  assert.ok(!renderNotes("ingress-oidc").includes(WARNING), "sign-in is on");
+});
+
 test("the byo profile renders no bundled Postgres or Temporal", () => {
   const docs = renderProfile("byo");
   assert.equal(findAll(docs, "StatefulSet").length, 0);
@@ -348,8 +513,41 @@ test("the bundled Temporal is fenced to the stigmer pod", () => {
 
 test("the Temporal fence is absent when turned off or when Temporal is external", () => {
   const off = renderProfile("bundled", { sets: ["temporal.networkPolicy.enabled=false"] });
-  assert.equal(findAll(off, "NetworkPolicy").length, 0);
+  assert.equal(findAll(off, "NetworkPolicy", `${RELEASE}-temporal`).length, 0);
   assert.equal(findAll(renderProfile("byo"), "NetworkPolicy").length, 0);
+});
+
+test("the bundled Postgres is fenced to the stigmer and Temporal pods, on its port alone", () => {
+  const docs = renderProfile("bundled");
+  const policy = findOne(docs, "NetworkPolicy", `${RELEASE}-postgres`);
+  assert.equal(policy.spec.podSelector.matchLabels["app.kubernetes.io/component"], "postgres");
+  assert.deepEqual(policy.spec.policyTypes, ["Ingress"]);
+  assert.equal(policy.spec.ingress.length, 1);
+  const [rule] = policy.spec.ingress;
+  assert.deepEqual(rule.ports, [{ protocol: "TCP", port: "postgres" }]);
+  assert.deepEqual(
+    rule.from.map((peer) => peer.podSelector.matchLabels["app.kubernetes.io/component"]),
+    ["stigmer", "temporal"],
+  );
+  // Each admitted selector is exactly what its pods carry.
+  for (const [peer, workload] of [
+    [rule.from[0], findOne(docs, "Deployment", RELEASE)],
+    [rule.from[1], findOne(docs, "Deployment", `${RELEASE}-temporal`)],
+  ]) {
+    for (const [key, value] of Object.entries(peer.podSelector.matchLabels)) {
+      assert.equal(workload.spec.template.metadata.labels[key], value, `${workload.metadata.name} carries ${key}`);
+    }
+  }
+  // The named port is the one the Postgres container declares.
+  const postgres = findOne(docs, "StatefulSet", `${RELEASE}-postgres`).spec.template.spec;
+  assert.deepEqual(containerNamed(postgres, "postgres").ports, [{ name: "postgres", containerPort: 5432 }]);
+});
+
+test("the Postgres fence is absent when turned off or when Postgres is external", () => {
+  const off = renderProfile("bundled", { sets: ["postgres.networkPolicy.enabled=false"] });
+  assert.equal(findAll(off, "NetworkPolicy", `${RELEASE}-postgres`).length, 0);
+  assert.equal(findAll(off, "NetworkPolicy", `${RELEASE}-temporal`).length, 1);
+  assert.equal(findAll(renderProfile("byo"), "NetworkPolicy", `${RELEASE}-postgres`).length, 0);
 });
 
 const AUTHENTICATED_TEMPORAL = [
@@ -385,6 +583,24 @@ test("an authenticated external Temporal reaches both containers by secretKeyRef
     !volumeNames.some((volume) => volume.includes("temporal")),
     "the Temporal settings are env, not mounts",
   );
+});
+
+test("the Temporal server name reaches both containers with an API key alone, which implies TLS", () => {
+  const spec = findOne(
+    renderProfile("byo", {
+      sets: [
+        "externalTemporal.tls.serverName=temporal.internal",
+        "externalTemporal.apiKey.existingSecret=temporal-api-key",
+      ],
+    }),
+    "Deployment",
+    RELEASE,
+  ).spec.template.spec;
+  for (const name of ["server", "runner"]) {
+    const env = envMap(containerNamed(spec, name));
+    assert.equal(env.get("STIGMER_TEMPORAL_TLS_SERVER_NAME")?.value, "temporal.internal", name);
+    assert.equal(env.has("STIGMER_TEMPORAL_TLS"), false, `${name}: the flag stays the operator's`);
+  }
 });
 
 test("a plaintext install carries no STIGMER_TEMPORAL_* setting", () => {
