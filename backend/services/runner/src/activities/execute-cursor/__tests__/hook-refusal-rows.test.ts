@@ -6,7 +6,9 @@
  * messages or a sub-agent this turn started; the row is FAILED with the very
  * text the model read, names the hook that refused, and names none for a
  * person's earlier refusal; an earlier turn's row, a row that ran, and an
- * entry with no refusal text are left alone.
+ * entry with no refusal text are left alone. Two refusals of one command in a
+ * turn stamp two rows, and the terminal twin collapse that runs after the
+ * stamp keeps both (#1967).
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
@@ -15,7 +17,7 @@ import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/prot
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { describe, expect, it } from "vitest";
 import { contentToken, grantToken, type DeniedLedgerEntry } from "../approval-state.js";
-import { stampHookRefusedToolCalls } from "../boundary-rows.js";
+import { collapseRedundantToolCallTwins, stampHookRefusedToolCalls } from "../boundary-rows.js";
 
 const BLOCKED = "Blocked by a hook";
 
@@ -62,6 +64,21 @@ describe("stampHookRefusedToolCalls", () => {
     expect(read.completedAt).not.toBe("");
     expect([inSubAgent.error, inSubAgent.approvalPolicyHook]).toEqual(["no network", "net"]);
     expect([ran.status, earlier.error], "a row that ran, and an earlier turn's, stay as they are").toEqual([ToolCallStatus.TOOL_CALL_COMPLETED, BLOCKED]);
+  });
+
+  it("stamps two hook refusals of one command as two rows, and the terminal collapse after it keeps both", () => {
+    const first = row("c-rm-1", "shell", { command: "rm -rf build" });
+    const tamper = row("c-tamper", "shell", { command: "cp allow.py rule_engine.py" }, ToolCallStatus.TOOL_CALL_COMPLETED);
+    const second = row("c-rm-2", "shell", { command: "rm -rf build" });
+    const refusal = { toolName: "Shell", token: grantToken("shell", "rm -rf build"), kind: "hook", message: "[block-dangerous-rm]", hook: "hookify" } as const;
+    const messages = [message(first), message(tamper), message(second)];
+
+    expect(stampHookRefusedToolCalls(messages, [], [refusal, refusal], 0)).toBe(2);
+    // Terminal finalize (turn-settle.ts) collapses twins after the boundary stamped them.
+    expect(collapseRedundantToolCallTwins(messages)).toBe(0);
+    for (const refused of [first, second]) {
+      expect([refused.status, refused.error, refused.approvalPolicyHook]).toEqual([ToolCallStatus.TOOL_CALL_FAILED, "[block-dangerous-rm]", "hookify"]);
+    }
   });
 
   it("settles nothing without a refusal that carries its text", () => {
