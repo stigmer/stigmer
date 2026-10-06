@@ -32,6 +32,9 @@ vi.mock("../../agent/AgentPicker.js", () => ({
       <button type="button" disabled={disabled} onClick={() => onChange({ org: "acme", slug: "guarded" })}>
         Pick guarded
       </button>
+      <button type="button" disabled={disabled} onClick={() => onChange({ org: "acme", slug: "undeclared" })}>
+        Pick undeclared
+      </button>
     </span>
   ),
 }));
@@ -47,15 +50,13 @@ const HOOKS = create(HookConfigSchema, {
   groups: [{ event: "PreToolUse", handlers: [{ command: "python3", args: ["guard.py", "${user_config.API_TOKEN}"] }] }],
 });
 
-function agent(slug: string, labels: Record<string, string> = {}, guarded = false): Agent {
+function agent(slug: string, labels: Record<string, string> = {}, guarded: "no" | "declared" | "undeclared" = "no"): Agent {
   return create(AgentSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: `agt_${slug}`, org: "acme", slug, name: slug === "reviewer" ? "Reviewer" : slug, labels }),
     spec: create(AgentSpecSchema, {
       instructions: "Review.",
-      ...(guarded && {
-        hooks: [{ source: { case: "plugin" as const, value: { org: "acme", slug: "guard" } } }],
-        env: { API_TOKEN: { isSecret: true } },
-      }),
+      ...(guarded !== "no" && { hooks: [{ source: { case: "plugin" as const, value: { org: "acme", slug: "guard" } } }] }),
+      ...(guarded === "declared" && { env: { API_TOKEN: { isSecret: true } } }),
     }),
   });
 }
@@ -64,7 +65,8 @@ function renderDialog(offer: PluginOffer, onCreateAgent?: () => void) {
   const agents: Record<string, Agent> = {
     reviewer: agent("reviewer"),
     assistant: agent("assistant", { "stigmer.ai/plugin": "plg_1" }),
-    guarded: agent("guarded", {}, true),
+    guarded: agent("guarded", {}, "declared"),
+    undeclared: agent("undeclared", {}, "undeclared"),
   };
   const update = vi.fn(async (input: AgentInput) => Object.values(agents).find((a) => a.metadata?.name === input.name) ?? agents.reviewer!);
   const client = { agent: { getByReference: vi.fn(async (ref: ResourceRef) => agents[ref.slug]!), update } };
@@ -108,6 +110,19 @@ describe("AddPluginToAgentDialog", () => {
     expect(await within(dialog).findByText("guarded already runs this plugin's hooks.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
     expect(await within(dialog).findByText("guarded already had everything this plugin adds.")).toBeTruthy();
+  });
+
+  it("says it declared the variables when the agent already ran the hooks without them", async () => {
+    const { update } = renderDialog({ servers: [], hooks: { plugin: { org: "acme", slug: "guard" }, config: HOOKS } });
+
+    const dialog = await screen.findByRole("dialog", { name: "Add to an agent" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Pick undeclared" }));
+    expect(await within(dialog).findByText(/The hooks read API_TOKEN/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
+    expect(
+      await within(dialog).findByText("undeclared already runs this plugin's hooks; it now declares what they read. It will ask for API_TOKEN when a session starts."),
+    ).toBeTruthy();
+    expect(update.mock.calls[0]![0].env?.["API_TOKEN"]).toEqual({ isSecret: true });
   });
 
   it("refuses an agent a plugin installed before Add is offered, and offers no new agent for hooks alone", async () => {

@@ -226,7 +226,9 @@ function addedSentence(outcome: AddPluginOutcome, agentName: string): string {
     outcome.servers > 0 ? (outcome.servers === 1 ? "1 server" : `${outcome.servers} servers`) : null,
     outcome.hooks ? "this plugin's hooks" : null,
   ].filter((part): part is string => part !== null);
-  if (parts.length === 0) return `${agentName} already had everything this plugin adds.`;
   const asks = outcome.variables.length > 0 ? ` It will ask for ${outcome.variables.join(", ")} when a session starts.` : "";
-  return `Added ${parts.join(" and ")} to ${agentName}.${asks}`;
+  if (parts.length > 0) return `Added ${parts.join(" and ")} to ${agentName}.${asks}`;
+  // The agent already ran the hooks; only the variables they read were missing.
+  if (outcome.variables.length > 0) return `${agentName} already runs this plugin's hooks; it now declares what they read.${asks}`;
+  return `${agentName} already had everything this plugin adds.`;
 }
