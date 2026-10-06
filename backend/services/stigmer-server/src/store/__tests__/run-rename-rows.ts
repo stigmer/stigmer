@@ -26,6 +26,8 @@ export interface RunNames {
   readonly signalKey: string;
   /** The agent_call key naming the child run. */
   readonly childKey: string;
+  /** The keys a stored agent_call output names the child run under. */
+  readonly childOutputKeys: readonly string[];
 }
 
 export const OLD_RUN_NAMES: RunNames = {
@@ -33,6 +35,7 @@ export const OLD_RUN_NAMES: RunNames = {
   workflowRunKind: "WorkflowExecution",
   signalKey: "execution_id",
   childKey: "agent_execution_id",
+  childOutputKeys: ["agent_execution_id"],
 };
 
 export const NEW_RUN_NAMES: RunNames = {
@@ -40,6 +43,7 @@ export const NEW_RUN_NAMES: RunNames = {
   workflowRunKind: "WorkflowRun",
   signalKey: "run_id",
   childKey: "agent_run_id",
+  childOutputKeys: ["agent_execution_id", "agent_run_id"],
 };
 
 /** An agent run of a session, as a turn's row stores it. */
@@ -70,7 +74,10 @@ export function workflowRunBytes(id: string, workflowId: string, names: RunNames
           {
             taskName: "triage",
             metadata: { [names.childKey]: "aex_child", token_attribution: "total_only" },
-            output: { [names.childKey]: "aex_child", final_text: "done" },
+            output: {
+              ...Object.fromEntries(names.childOutputKeys.map((key) => [key, "aex_child"])),
+              final_text: "done",
+            },
           },
           { taskName: "notify", output: { sent: true } },
         ],

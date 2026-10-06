@@ -10,7 +10,12 @@
  *   happens to spell a retired name is left as written;
  * - the workflow's load still drops a reserved enum name or an unknown
  *   field, keeping everything else;
- * - the runner result's phase lookup reads a retired phase name.
+ * - a field set under both its retired and its current name is refused,
+ *   not decided by its place in the payload;
+ * - the runner result's phase lookup reads a retired phase name;
+ * - the retired-names tables hold exactly the run-named fields and enum
+ *   values of the messages that cross Temporal, each from its name before
+ *   the rename, so they cannot drift from the contract.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -21,7 +26,16 @@ import {
 
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 
-import { decodeLoadedExecution, renameRetiredRunJson } from "../execution-json.js";
+import type { DescMessage } from "@bufbuild/protobuf";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { WorkflowRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+
+import {
+  RETIRED_ENUM_VALUE_NAMES,
+  RETIRED_FIELD_NAMES,
+  decodeLoadedExecution,
+  renameRetiredRunJson,
+} from "../execution-json.js";
 import { getPhaseFromResult } from "../runner-result.js";
 
 describe("decodeLoadedExecution", () => {
@@ -106,6 +120,17 @@ describe("decodeLoadedExecution", () => {
     });
   });
 
+  it("refuses a field set under its retired and its current name, whichever comes first", () => {
+    for (const spec of [
+      { supersedesExecutionId: "aex_a", supersedesRunId: "aex_b" },
+      { supersedesRunId: "aex_b", supersedesExecutionId: "aex_a" },
+    ]) {
+      expect(() => renameRetiredRunJson(AgentRunSchema, { spec })).toThrow(
+        /ai\.stigmer\.agentic\.agentrun\.v1\.AgentRunSpec sets the field supersedesRunId twice/,
+      );
+    }
+  });
+
   it("drops a field the contract no longer knows", () => {
     const execution = decodeLoadedExecution({ metadata: { id: "aex_2" }, removedField: true });
     expect(execution.metadata?.id).toBe("aex_2");
@@ -129,5 +154,54 @@ describe("getPhaseFromResult", () => {
     expect(getPhaseFromResult(null)).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
     expect(getPhaseFromResult(undefined)).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
     expect(getPhaseFromResult({ phase: true })).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
+  });
+});
+
+/** A name before the rename: its `run` words said `execution`. */
+function retiredSpelling(name: string): string {
+  return name
+    .replace(/(^|_)runs($|_)/g, "$1executions$2")
+    .replace(/(^|_)run($|_)/g, "$1execution$2")
+    .replace(/(^|_)RUN(_|$)/g, "$1EXECUTION$2");
+}
+
+/** lowerCamelCase of a proto field name, as its JSON name spells it. */
+function jsonSpelling(name: string): string {
+  return name.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+}
+
+describe("the retired-names tables", () => {
+  // `run_config` carried that name before the rename.
+  const NAMED_RUN_BEFORE = new Set(["run_config"]);
+
+  function crossingNames(): { fields: Map<string, string>; values: Map<string, string> } {
+    const fields = new Map<string, string>();
+    const values = new Map<string, string>();
+    const seen = new Set<string>();
+    const visit = (desc: DescMessage): void => {
+      if (seen.has(desc.typeName) || desc.typeName.startsWith("google.protobuf.")) return;
+      seen.add(desc.typeName);
+      for (const field of desc.fields) {
+        if (/(^|_)runs?($|_)/.test(field.name) && !NAMED_RUN_BEFORE.has(field.name)) {
+          const retired = retiredSpelling(field.name);
+          fields.set(retired, field.name);
+          fields.set(jsonSpelling(retired), field.jsonName);
+        }
+        for (const value of field.enum?.values ?? []) {
+          if (/(^|_)(RUN|runs?)(_|$)/.test(value.name)) {
+            values.set(retiredSpelling(value.name), value.name);
+          }
+        }
+        if (field.message !== undefined) visit(field.message);
+      }
+    };
+    [AgentRunSchema, AgentRunStatusSchema, WorkflowRunStatusSchema].forEach(visit);
+    return { fields, values };
+  }
+
+  it("map every run-named field and enum value that crosses Temporal from its name before the rename, and nothing else", () => {
+    const { fields, values } = crossingNames();
+    expect(new Map([...RETIRED_FIELD_NAMES].sort())).toEqual(new Map([...fields].sort()));
+    expect(new Map([...RETIRED_ENUM_VALUE_NAMES].sort())).toEqual(new Map([...values].sort()));
   });
 });

@@ -13,7 +13,9 @@
  *     by the new keys, nested steps included, its YAML regenerated from the
  *     rewritten spec and its version hash untouched; a free-form string is
  *     never rewritten, nor an `execution_id` that is not an emit_event
- *     signal target; a workflow already current is left alone;
+ *     signal target; every field of a step is reached (its export, its
+ *     compensating steps, a bare jq condition), and the signal key in either
+ *     JSON spelling; a workflow already current is left alone;
  *   - the event-type renames cover exactly the event log's run lifecycle
  *     types, each the old name of a current WorkflowEventType value;
  *   - bytes that do not decode throw (the step must not pass over them).
@@ -24,6 +26,8 @@ import { describe, expect, it } from "vitest";
 
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { ExportSchema, WorkflowTaskSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -216,6 +220,43 @@ describe("renamedWorkflowRow", () => {
       },
     ]);
     expect(migrated.spec?.tasks[2]?.taskConfig).toEqual(workflow.spec!.tasks[2]!.taskConfig);
+  });
+
+  it("reaches every field of a step: its export, its compensating steps and a bare jq condition", () => {
+    const workflow = workflowWithSteps("wfl_fields", NEW_RUN_NAMES);
+    const triage = workflow.spec!.tasks[0]!;
+    triage.export = create(ExportSchema, { as: "${ {child: .agent_execution_id} }" });
+    triage.compensate = [
+      create(WorkflowTaskSchema, {
+        name: "undo",
+        kind: WorkflowTaskKind.emit_event,
+        taskConfig: {
+          event: { type: "ticket.undone" },
+          delivery: [{ signal: { executionId: "${ .triage.agent_execution_id }", signal_name: "undo" } }],
+        },
+      }),
+    ];
+    workflow.spec!.tasks.push(
+      create(WorkflowTaskSchema, {
+        name: "route",
+        kind: WorkflowTaskKind.switch_case,
+        taskConfig: {
+          cases: [{ name: "has-child", when: ".triage.agent_execution_id != null", then: "emit" }],
+        },
+      }),
+    );
+
+    const migrated = fromBinary(WorkflowSchema, renamedWorkflowRow(toBinary(WorkflowSchema, workflow))!);
+    const [migratedTriage] = migrated.spec?.tasks ?? [];
+    expect(migratedTriage?.export?.as).toBe("${ {child: .agent_run_id} }");
+    expect(migratedTriage?.compensate[0]?.taskConfig?.["delivery"]).toEqual([
+      { signal: { run_id: "${ .triage.agent_run_id }", signal_name: "undo" } },
+    ]);
+    expect(migrated.spec?.tasks.at(-1)?.taskConfig?.["cases"]).toEqual([
+      { name: "has-child", when: ".triage.agent_run_id != null", then: "emit" },
+    ]);
+    // Every other step reads as the current fixture spells it.
+    expect(migrated.spec?.tasks.slice(1, 3)).toEqual(workflow.spec!.tasks.slice(1, 3));
   });
 
   it("passes over a step with no config, leaving its workflow alone", () => {

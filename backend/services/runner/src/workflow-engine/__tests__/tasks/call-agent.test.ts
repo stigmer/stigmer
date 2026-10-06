@@ -3,8 +3,8 @@
  * evaluation, the hand-off to `ctx.callAgent` (the task's name only; the
  * ids that link the child to the run are the engine's own, never workflow
  * data), output-contract validation and retries, the event bracketing
- * around each call, and the key the output names the child run by (the
- * run's own, `agent_execution_id` in a run started before the rename).
+ * around each call, and the keys the output names the child run by
+ * (`agent_run_id`, and its retired name until #1966).
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -17,10 +17,7 @@ import { AgentCallError } from "../../types.js";
 let mockCallAgent: ReturnType<typeof vi.fn>;
 let mockEmitEvents: ReturnType<typeof vi.fn>;
 
-function makeCtx(opts?: {
-  emitEvents?: EmitEventsFn;
-  agentCallRunIdKey?: TaskExecutionContext["agentCallRunIdKey"];
-}): TaskExecutionContext {
+function makeCtx(opts?: { emitEvents?: EmitEventsFn }): TaskExecutionContext {
   return {
     evaluateExpressions: evaluateExpressionBatch,
     doc: { document: { dsl: "1.0.0", name: "test-workflow" }, do: [] },
@@ -34,7 +31,6 @@ function makeCtx(opts?: {
     callFunction: () => { throw new Error("not used"); },
     callAgent: (...args: Parameters<TaskExecutionContext["callAgent"]>) => mockCallAgent(...args),
     emitEvents: opts?.emitEvents,
-    agentCallRunIdKey: opts?.agentCallRunIdKey,
   };
 }
 
@@ -71,25 +67,12 @@ describe("CallAgentTaskBuilder", () => {
     expect(config.message).toBe("Review this code");
     expect(metadata).toEqual({ taskName: "reviewCode" });
     // The step names the child run as workflow expressions read it
-    // (agent_run_id); the engine's callback key does not reach the output.
-    expect(output).toEqual({ final_text: "Code looks good", agent_run_id: "aex-123" });
-  });
-
-  it("names the child run by the run's own key: agent_execution_id in a run started before the rename", async () => {
-    mockCallAgent.mockResolvedValue({ final_text: "done", agent_execution_id: "aex-old" });
-    const taskDef: CallAgentTaskDef = {
-      kind: "call:agent",
-      call: "agent",
-      with: { agent: "code-reviewer", message: "Review this code" },
-    };
-    const executor = new CallAgentTaskBuilder("reviewCode", taskDef).build();
-
-    expect(
-      await executor({}, createState(), makeCtx({ agentCallRunIdKey: "agent_execution_id" })),
-    ).toEqual({ final_text: "done", agent_execution_id: "aex-old" });
-    expect(
-      await executor({}, createState(), makeCtx({ agentCallRunIdKey: "agent_run_id" })),
-    ).toEqual({ final_text: "done", agent_run_id: "aex-old" });
+    // (agent_run_id), and under its retired key until #1966.
+    expect(output).toEqual({
+      final_text: "Code looks good",
+      agent_execution_id: "aex-123",
+      agent_run_id: "aex-123",
+    });
   });
 
   it("hands over no link ids, whatever the workflow data carries", async () => {
@@ -739,6 +722,7 @@ describe("CallAgentTaskBuilder — ON_INVALID_FALLBACK", () => {
     const invalidResult: AgentCallResult = {
       final_text: "not json",
       agent_execution_id: "aex-fb-1",
+      usage_summary: { total_tokens: 40, estimated_cost_usd: 0.002 },
     };
     mockCallAgent.mockResolvedValue(invalidResult);
 
@@ -763,7 +747,8 @@ describe("CallAgentTaskBuilder — ON_INVALID_FALLBACK", () => {
     expect(output.__flow_directive__).toBe("handleBadOutput");
     expect(output.validation_errors).toBeDefined();
     expect(Array.isArray(output.validation_errors)).toBe(true);
-    expect(output.original_output).toBeDefined();
+    // The agent's answer as it came back, its child run named; no cost keys.
+    expect(output.original_output).toEqual({ ...invalidResult, agent_run_id: "aex-fb-1" });
   });
 
   it("defaults fallback_task to 'continue' when not specified", async () => {

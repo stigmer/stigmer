@@ -43,7 +43,7 @@ import {
   type AgentRun,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 
-const RETIRED_FIELD_NAMES: ReadonlyMap<string, string> = new Map([
+export const RETIRED_FIELD_NAMES: ReadonlyMap<string, string> = new Map([
   ["childAgentExecutionId", "childAgentRunId"],
   ["child_agent_execution_id", "child_agent_run_id"],
   ["executionId", "runId"],
@@ -56,7 +56,7 @@ const RETIRED_FIELD_NAMES: ReadonlyMap<string, string> = new Map([
   ["workflow_execution_id", "workflow_run_id"],
 ]);
 
-const RETIRED_ENUM_VALUE_NAMES: ReadonlyMap<string, string> = new Map([
+export const RETIRED_ENUM_VALUE_NAMES: ReadonlyMap<string, string> = new Map([
   ["EXECUTION_ARTIFACT_KIND_DIRECTORY", "RUN_ARTIFACT_KIND_DIRECTORY"],
   ["EXECUTION_ARTIFACT_KIND_FILE", "RUN_ARTIFACT_KIND_FILE"],
   ["EXECUTION_ARTIFACT_KIND_UNSPECIFIED", "RUN_ARTIFACT_KIND_UNSPECIFIED"],
@@ -95,6 +95,7 @@ function retiredMessage(value: JsonValue, desc: DescMessage): JsonValue {
     return value;
   }
   const out: JsonObject = {};
+  const spelledBy = new Map<string, string>();
   for (const [key, raw] of Object.entries(value)) {
     let field = desc.fields.find((f) => f.jsonName === key || f.name === key);
     let name = key;
@@ -108,6 +109,14 @@ function retiredMessage(value: JsonValue, desc: DescMessage): JsonValue {
         name = field.jsonName;
       }
     }
+    const earlier = spelledBy.get(name);
+    if (earlier !== undefined) {
+      // One field under its retired and its current name: refused, as the
+      // strict decode refuses a field set twice, rather than one silently
+      // winning by its place in the payload.
+      throw new Error(`${desc.typeName} sets the field ${name} twice, as ${earlier} and as ${key}`);
+    }
+    spelledBy.set(name, key);
     out[name] = field === undefined || raw === undefined ? raw : retiredField(raw, field);
   }
   if (typeof out.kind === "string") {

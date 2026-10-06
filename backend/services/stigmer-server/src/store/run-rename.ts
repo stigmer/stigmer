@@ -21,7 +21,10 @@
  *     under the contract's const (`AgentRun`, `WorkflowRun`), so the row is
  *     rewritten. A workflow run's task metadata and agent_call outputs name
  *     the child run `agent_execution_id`; the key is now `agent_run_id`, the
- *     one a workflow reads (`renamedWorkflowRunRow`). Field and enum value
+ *     one a workflow reads (`renamedWorkflowRunRow`): the metadata is
+ *     renamed, and an output gains the new key beside the old one, as the
+ *     runner writes it until #1966 (a recovered run reads its outputs back
+ *     from here). Field and enum value
  *     renames need nothing: the rows are binary, by number. A run's audit
  *     rows keep their bytes: only version history decodes audit rows, and
  *     runs are not versioned.
@@ -43,10 +46,12 @@
  *     workflow and inside each of its archived versions, read strictly
  *     (domain/workflow/converter/unmarshal.ts), and the runner runs the
  *     YAML the validator wrote from them (`status.serverless_workflow_validation`).
- *     An emit_event signal target was keyed `execution_id` and is now
- *     `run_id`; an agent_call step's output named the child run
- *     `agent_execution_id` and now names it `agent_run_id`, so expressions
- *     that read it (`${ .triage.agent_execution_id }`) are rewritten too.
+ *     An emit_event signal target was keyed `execution_id` (or
+ *     `executionId`) and is now `run_id`; an agent_call step's output named
+ *     the child run `agent_execution_id` and now names it `agent_run_id`
+ *     (the runner writes both keys until #1966), so every jq access that
+ *     reads it (`.triage.agent_execution_id`, in any field of any step) is
+ *     rewritten too.
  *     A rewritten workflow's YAML is regenerated from its rewritten spec by
  *     the validator's own converter. Version hashes are not rewritten: runs
  *     are pinned to them and their audit rows keep answering, so a changed
@@ -57,12 +62,22 @@
  * (public-visibility-retired.ts): the driver's transaction rolls back and
  * the boot stops on the row it names.
  */
-import { fromBinary, toBinary, type JsonObject, type JsonValue } from "@bufbuild/protobuf";
+import {
+  fromBinary,
+  fromJson,
+  toBinary,
+  toJson,
+  type JsonObject,
+  type JsonValue,
+} from "@bufbuild/protobuf";
 
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
+import {
+  WorkflowTaskSchema,
+  type WorkflowTask,
+} from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
@@ -119,15 +134,19 @@ const RUN_KIND_STRINGS: ReadonlyMap<string, string> = new Map([
 const RETIRED_AGENT_CALL_RUN_KEY = "agent_execution_id";
 const AGENT_CALL_RUN_KEY = "agent_run_id";
 
-/** The emit_event signal target's run key, before and after. */
-const RETIRED_SIGNAL_RUN_KEY = "execution_id";
+/** The emit_event signal target's run key, before (in either JSON spelling) and after. */
+const RETIRED_SIGNAL_RUN_KEYS = ["execution_id", "executionId"] as const;
 const SIGNAL_RUN_KEY = "run_id";
 
 /** A nested step's config key, in either spelling its JSON accepts. */
 const NESTED_STEP_CONFIG_KEYS = ["taskConfig", "task_config"] as const;
 
-/** The expression token a workflow reads the child run by, as a whole word. */
-const RETIRED_AGENT_CALL_RUN_TOKEN = /\bagent_execution_id\b/g;
+/**
+ * A jq field access that reads the child run by its old key
+ * (`.triage.agent_execution_id`), wherever the engine evaluates jq: inside
+ * `${ }`, and bare in a step's `if` and in switch, catch and retry `when`.
+ */
+const RETIRED_AGENT_CALL_RUN_ACCESS = /\.agent_execution_id\b/g;
 
 /**
  * The migrated bytes of one agent run row, or undefined when its kind
@@ -156,10 +175,13 @@ export function renamedWorkflowRunRow(data: Uint8Array): Uint8Array | undefined 
     changed = true;
   }
   for (const task of run.status?.tasks ?? []) {
-    for (const struct of [task.metadata, task.output]) {
-      if (struct !== undefined && renameKey(struct, RETIRED_AGENT_CALL_RUN_KEY, AGENT_CALL_RUN_KEY)) {
-        changed = true;
-      }
+    // The status names the child one way; an output keeps the old key
+    // beside the new one, as the runner writes it until #1966.
+    if (task.metadata !== undefined && renameKey(task.metadata, RETIRED_AGENT_CALL_RUN_KEY, AGENT_CALL_RUN_KEY)) {
+      changed = true;
+    }
+    if (task.output !== undefined && addKeyBeside(task.output, RETIRED_AGENT_CALL_RUN_KEY, AGENT_CALL_RUN_KEY)) {
+      changed = true;
     }
   }
   return changed ? toBinary(WorkflowRunSchema, run) : undefined;
@@ -238,16 +260,17 @@ function runKindRename(kind: string): string | undefined {
   return RUN_KIND_RENAMES.find(([from]) => from === kind)?.[1];
 }
 
+/**
+ * Rewrites every step in place, through its JSON form so that every field
+ * is reached: its config, its `if`, its export and its compensating steps,
+ * nested steps included. A step that does not change is left as it was.
+ */
 function rewriteTasks(tasks: WorkflowTask[]): boolean {
   let changed = false;
-  for (const task of tasks) {
-    if (task.taskConfig === undefined) {
-      continue;
-    }
-    if (task.kind === WorkflowTaskKind.emit_event && renameSignalRunKeys(task.taskConfig)) {
-      changed = true;
-    }
-    if (rewriteStepJson(task.taskConfig)) {
+  for (let i = 0; i < tasks.length; i++) {
+    const json = toJson(WorkflowTaskSchema, tasks[i]!);
+    if (isObject(json) && rewriteStepJson(json)) {
+      tasks[i] = fromJson(WorkflowTaskSchema, json);
       changed = true;
     }
   }
@@ -255,9 +278,9 @@ function rewriteTasks(tasks: WorkflowTask[]): boolean {
 }
 
 /**
- * Rewrites one step config in place, nested steps included: a nested
- * emit_event step's signal targets, and the agent_call run key in every
- * expression. Answers whether anything changed.
+ * Rewrites one step's JSON in place, nested steps included: an emit_event
+ * step's signal targets, and every jq field access that reads the child run
+ * by its old key. Answers whether anything changed.
  */
 function rewriteStepJson(value: JsonObject): boolean {
   let changed = false;
@@ -296,8 +319,12 @@ function renameSignalRunKeys(config: JsonObject): boolean {
   let changed = false;
   for (const target of delivery) {
     const signal = isObject(target) ? target["signal"] : undefined;
-    if (signal !== undefined && isObject(signal) && renameKey(signal, RETIRED_SIGNAL_RUN_KEY, SIGNAL_RUN_KEY)) {
-      changed = true;
+    if (signal !== undefined && isObject(signal)) {
+      for (const retired of RETIRED_SIGNAL_RUN_KEYS) {
+        if (renameKey(signal, retired, SIGNAL_RUN_KEY)) {
+          changed = true;
+        }
+      }
     }
   }
   return changed;
@@ -328,11 +355,31 @@ function rewriteNested(value: JsonValue): boolean {
   return isObject(value) ? rewriteStepJson(value) : false;
 }
 
-/** An expression (`${ ... }`) reads the child run by its new key; any other string is left as written. */
+/**
+ * A string's jq field accesses read the child run by its new key. Text that
+ * names the key without accessing it (`the agent_execution_id field`) is
+ * left as written.
+ */
 function rewriteExpression(text: string): string {
-  return text.includes("${")
-    ? text.replace(RETIRED_AGENT_CALL_RUN_TOKEN, AGENT_CALL_RUN_KEY)
-    : text;
+  return text.replace(RETIRED_AGENT_CALL_RUN_ACCESS, `.${AGENT_CALL_RUN_KEY}`);
+}
+
+/** Adds `to` right after `from` in one object, in place, with `from`'s value. */
+function addKeyBeside(value: JsonObject, from: string, to: string): boolean {
+  if (!(from in value) || to in value) {
+    return false;
+  }
+  const entries = Object.entries(value);
+  for (const key of Object.keys(value)) {
+    delete value[key];
+  }
+  for (const [key, item] of entries) {
+    value[key] = item;
+    if (key === from) {
+      value[to] = item;
+    }
+  }
+  return true;
 }
 
 /** Renames `from` to `to` in one object, in place, keeping key order. */

@@ -313,8 +313,8 @@ export async function executeDoTasks(
     if (kind === "call:agent" && taskOutput && typeof taskOutput === "object") {
       const agentResult = taskOutput as Record<string, unknown>;
       const meta: Record<string, unknown> = { token_attribution: "total_only" };
-      // A run started before the rename names the child `agent_execution_id`
-      // in the step's output (AgentCallRunIdKey); the status names it one way.
+      // The step's output names the child under both keys until #1966;
+      // the status names it one way.
       const childRunId = agentResult.agent_run_id ?? agentResult.agent_execution_id;
       if (childRunId) meta.agent_run_id = childRunId;
       if (agentResult.usage_summary && typeof agentResult.usage_summary === "object") {
