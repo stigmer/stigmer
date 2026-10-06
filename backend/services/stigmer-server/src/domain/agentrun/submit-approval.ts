@@ -25,10 +25,7 @@
 import { create } from "@bufbuild/protobuf";
 
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
 import {
   ApprovalAction,
@@ -123,10 +120,8 @@ export async function submitApproval(
     .addStep({
       name: "LoadExisting",
       async execute(ctx) {
+        // ValidateProto has already refused an empty agent_run_id (min_len).
         const executionId = ctx.input.agentRunId;
-        if (executionId === "") {
-          throw invalidArgumentError("agent_run_id is required");
-        }
         let execution: AgentRun;
         try {
           execution = await deps.store.getResource(
@@ -254,15 +249,15 @@ export async function submitApproval(
                 );
               }
 
-              if (execution.status === undefined) {
-                execution.status = create(AgentRunStatusSchema);
-              }
+              // The tool call was found in the status, so the status is
+              // present.
+              const status = execution.status!;
 
               // Author REQUESTED events BEFORE recording the decision,
               // while every gated tool call is still WAITING — seeds the
               // stream for executions predating the field, so a decision
               // event always has a preceding request.
-              ensureApprovalRequests(execution.status, executionId);
+              ensureApprovalRequests(status, executionId);
 
               tc.approvalAction = action;
               tc.approvalDecidedAt = now;
@@ -270,7 +265,7 @@ export async function submitApproval(
               // The rich decision event (decided_by + the user's comment)
               // in the same locked write that records the decision on the
               // scan, so it can never be duplicated or clobbered.
-              recordDecisionEvent(execution.status, tc, decidedBy, comment);
+              recordDecisionEvent(status, tc, decidedBy, comment);
 
               // APPROVE_ALL grants a run-lifetime lease scoped to the
               // clicked tool's class; co-pending calls of the SAME class
@@ -283,17 +278,17 @@ export async function submitApproval(
                   now,
                   decidedBy,
                 )) {
-                  recordDecisionEvent(execution.status, bulkTc, decidedBy, "");
+                  recordDecisionEvent(status, bulkTc, decidedBy, "");
                 }
               }
 
               // Recompute pending_approvals — the approved entry
               // disappears because its approval_action is now set.
-              execution.status.pendingApprovals = projectPendingApprovals(
-                execution.status.phase,
-                execution.status.messages,
-                execution.status.subAgentRuns,
-                execution.status.approvalEventStream,
+              status.pendingApprovals = projectPendingApprovals(
+                status.phase,
+                status.messages,
+                status.subAgentRuns,
+                status.approvalEventStream,
                 deps.logger,
               );
             },

@@ -27,7 +27,6 @@ import type { Logger } from "../../boot/logger.js";
 import {
   failedPreconditionError,
   internalError,
-  invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -94,9 +93,7 @@ export async function submitFileDecision(
     .addStep({
       name: "LoadExisting",
       async execute(ctx) {
-        if (ctx.input.runId === "") {
-          throw invalidArgumentError("run_id is required");
-        }
+        // ValidateProto has already refused an empty run_id (min_len).
         let execution: WorkflowRun;
         try {
           execution = await deps.store.getResource(

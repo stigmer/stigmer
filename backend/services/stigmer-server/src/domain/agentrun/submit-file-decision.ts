@@ -23,10 +23,7 @@ import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
 import {
   RunPhase,
@@ -122,10 +119,8 @@ export async function submitFileDecision(
     .addStep({
       name: "LoadExisting",
       async execute(ctx) {
+        // ValidateProto has already refused an empty agent_run_id (min_len).
         const executionId = ctx.input.agentRunId;
-        if (executionId === "") {
-          throw invalidArgumentError("agent_run_id is required");
-        }
         let execution: AgentRun;
         try {
           execution = await deps.store.getResource(
@@ -190,9 +185,9 @@ export async function submitFileDecision(
               // that landed between the pre-lock validation and this
               // update).
               validateFileDecisionTarget(execution, ctx.input);
-              if (execution.status === undefined) {
-                execution.status = create(AgentRunStatusSchema);
-              }
+              // The re-check found an actionable change set, which lives in
+              // the status, so the status is present.
+              const status = execution.status!;
 
               const decision = buildFileDecision(
                 ctx.input.changeSetId,
@@ -205,14 +200,14 @@ export async function submitFileDecision(
                 ctx.input.reason,
                 ctx.input.acknowledgeUnreviewable,
               );
-              recordFileDecisionEvent(execution.status, executionId, decision);
+              recordFileDecisionEvent(status, executionId, decision);
 
               // Recompute file_change_sets from the authored ledger via
               // the single projection seam, so the new decision reflects
               // immediately and consistently with the source of truth.
-              execution.status.fileChangeSets = projectFileChangeSets(
-                execution.status.phase,
-                execution.status.fileReviewEventStream,
+              status.fileChangeSets = projectFileChangeSets(
+                status.phase,
+                status.fileReviewEventStream,
               );
             },
           );

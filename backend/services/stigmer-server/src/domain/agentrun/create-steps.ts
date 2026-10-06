@@ -45,7 +45,6 @@ import {
   goWrappedStatusError,
   internalError,
   invalidArgumentError,
-  notFoundError,
   rethrownStatusError,
 } from "../../pipeline/errors.js";
 import { ConnectError } from "@connectrpc/connect";
@@ -793,9 +792,4 @@ export function newStartWorkflowStep(deps: {
       });
     },
   };
-}
-
-/** Unknown-execution NotFound with Go's kind naming for these paths. */
-export function agentExecutionNotFound(executionId: string): ConnectError {
-  return notFoundError("agent_run", executionId);
 }

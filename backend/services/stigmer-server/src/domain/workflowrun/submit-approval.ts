@@ -98,9 +98,7 @@ export async function submitApproval(
     .addStep({
       name: "LoadExisting",
       async execute(ctx) {
-        if (ctx.input.runId === "") {
-          throw invalidArgumentError("run_id is required");
-        }
+        // ValidateProto has already refused an empty run_id (min_len).
         let execution: WorkflowRun;
         try {
           execution = await deps.store.getResource(
